@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.converters.DocxTableScanner;
+import org.apache.calcite.adapter.file.converters.FileConversionManager;
 import org.apache.calcite.adapter.file.converters.MarkdownTableScanner;
 import org.apache.calcite.adapter.file.converters.PptxTableScanner;
 import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
@@ -68,7 +69,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
@@ -80,17 +84,20 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
- * 
+ *
  * <p><strong>Cache directory behavior:</strong>
  * <ul>
  *   <li>Multiple JVM instances can safely share the same cache directory on shared storage
@@ -104,6 +111,53 @@ public class FileSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchema.class);
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
   
+  /** Brand name for cache and metadata directory */
+  public static final String BRAND = "aperio";
+
+  /**
+   * Set of file extensions that need conversion to JSON for table creation.
+   * These include spreadsheets, documents, and markup files.
+   */
+  private static final Set<String> CONVERTIBLE_EXTENSIONS = Collections.unmodifiableSet(
+      new HashSet<>(Arrays.asList(
+          ".xlsx", ".xls",        // Excel spreadsheets
+          ".md", ".markdown",     // Markdown files
+          ".docx",                 // Word documents
+          ".pptx",                 // PowerPoint presentations
+          ".html", ".htm"         // HTML files
+      ))
+  );
+
+  /**
+   * Set of file extensions that are native table source primitives.
+   * These files can be directly used as tables without conversion.
+   * Note: Compression extensions are handled separately.
+   */
+  private static final Set<String> TABLE_SOURCE_EXTENSIONS = Collections.unmodifiableSet(
+      new HashSet<>(Arrays.asList(
+          ".csv",                  // Comma-separated values
+          ".tsv",                  // Tab-separated values
+          ".json",                 // JSON data
+          ".yaml", ".yml",        // YAML data
+          ".arrow",                // Apache Arrow format
+          ".parquet"               // Apache Parquet format
+      ))
+  );
+
+  /**
+   * Set of supported compressed file extensions.
+   * Files with these extensions will be automatically decompressed.
+   */
+  private static final Set<String> COMPRESSED_EXTENSIONS = Collections.unmodifiableSet(
+      new HashSet<>(Arrays.asList(
+          ".gz",                   // Gzip compression
+          ".gzip",                 // Alternative gzip extension
+          ".bz2",                  // Bzip2 compression
+          ".xz",                   // XZ compression
+          ".zip"                   // ZIP compression
+      ))
+  );
+
   /**
    * Gets the table name to use for registration.
    * If an explicit name is provided, use it as-is.
@@ -121,8 +175,10 @@ public class FileSchema extends AbstractSchema {
 
   private final ImmutableList<Map<String, Object>> tables;
   private final @Nullable File baseDirectory;
+  private final @Nullable File sourceDirectory; // Original directory for reading source files
   private final @Nullable String directoryPattern;
   private final ExecutionEngineConfig engineConfig;
+  private final @Nullable ConversionMetadata conversionMetadata;
   private final boolean recursive;
   private final @Nullable List<Map<String, Object>> materializations;
   private final @Nullable List<Map<String, Object>> views;
@@ -143,7 +199,7 @@ public class FileSchema extends AbstractSchema {
    *
    * @param parentSchema    Parent schema
    * @param name            Schema name
-   * @param baseDirectory   Base directory to look for relative files, or null
+   * @param sourceDirectory Source directory to look for files, or null
    * @param directoryPattern Directory pattern for file discovery, or null
    * @param tables          List containing table identifiers, or null
    * @param engineConfig    Execution engine configuration
@@ -160,7 +216,53 @@ public class FileSchema extends AbstractSchema {
    * @param csvTypeInference CSV type inference configuration, or null
    * @param primeCache      Whether to prime statistics cache on initialization (default true)
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
+      @Nullable String directoryPattern,
+      @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
+      boolean recursive,
+      @Nullable List<Map<String, Object>> materializations,
+      @Nullable List<Map<String, Object>> views,
+      @Nullable List<Map<String, Object>> partitionedTables,
+      @Nullable String refreshInterval,
+      String tableNameCasing,
+      String columnNameCasing,
+      @Nullable String storageType,
+      @Nullable Map<String, Object> storageConfig,
+      @Nullable Boolean flatten,
+      @Nullable Map<String, Object> csvTypeInference,
+      boolean primeCache) {
+    this(parentSchema, name, sourceDirectory, null, directoryPattern, tables, engineConfig,
+        recursive, materializations, views, partitionedTables, refreshInterval,
+        tableNameCasing, columnNameCasing, storageType, storageConfig, flatten,
+        csvTypeInference, primeCache);
+  }
+
+  /**
+   * Creates a file schema with all features including storage provider support.
+   * This constructor accepts both sourceDirectory and modelBaseDirectory.
+   *
+   * @param parentSchema    Parent schema
+   * @param name            Schema name
+   * @param sourceDirectory Source directory to look for files, or null
+   * @param modelBaseDirectory Base directory from model.json for .aperio location, or null
+   * @param directoryPattern Directory pattern for file discovery, or null
+   * @param tables          List containing table identifiers, or null
+   * @param engineConfig    Execution engine configuration
+   * @param recursive       Whether to recursively scan subdirectories
+   * @param materializations List of materialized view definitions, or null
+   * @param views           List of view definitions, or null
+   * @param partitionedTables List of partitioned table definitions, or null
+   * @param refreshInterval Default refresh interval for tables (e.g., "5 minutes"), or null
+   * @param tableNameCasing Table name casing: "UPPER", "LOWER", or "UNCHANGED"
+   * @param columnNameCasing Column name casing: "UPPER", "LOWER", or "UNCHANGED"
+   * @param storageType     Storage type (e.g., "local", "s3", "sharepoint"), or null
+   * @param storageConfig   Storage-specific configuration, or null
+   * @param flatten         Whether to flatten JSON/YAML structures, or null
+   * @param csvTypeInference CSV type inference configuration, or null
+   * @param primeCache      Whether to prime statistics cache on initialization (default true)
+   */
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
+      @Nullable File modelBaseDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -178,7 +280,42 @@ public class FileSchema extends AbstractSchema {
     this.tables =
         tables == null ? ImmutableList.of()
             : ImmutableList.copyOf(tables);
-    this.baseDirectory = baseDirectory;
+
+    // Handle sourceDirectory - convert to fully qualified path
+    if (sourceDirectory != null) {
+      // If sourceDirectory is provided, ensure it's a fully qualified path
+      this.sourceDirectory = sourceDirectory.getAbsoluteFile();
+    } else if (modelBaseDirectory != null) {
+      // If no sourceDirectory but modelBaseDirectory exists, use parent of model.json
+      this.sourceDirectory = modelBaseDirectory.getParentFile() != null
+          ? modelBaseDirectory.getParentFile().getAbsoluteFile()
+          : new File(System.getProperty("user.dir")).getAbsoluteFile();
+    } else {
+      // Fallback to current working directory
+      this.sourceDirectory = new File(System.getProperty("user.dir")).getAbsoluteFile();
+    }
+
+    // Determine the root directory for .aperio/<schema>
+    // If modelBaseDirectory is provided (from model.json), use it as root
+    // Otherwise use current working directory
+    File aperioRoot;
+    if (modelBaseDirectory != null) {
+      // modelBaseDirectory from model.json - use it directly
+      aperioRoot = modelBaseDirectory.getAbsoluteFile();
+    } else {
+      // No modelBaseDirectory provided - use current working directory
+      aperioRoot = new File(System.getProperty("user.dir")).getAbsoluteFile();
+    }
+    // Always use fully qualified path for .aperio/<schema> as the baseDirectory for cache/conversion operations
+    this.baseDirectory = new File(aperioRoot, "." + BRAND + "/" + name);
+    // Ensure the aperio directory exists
+    if (!this.baseDirectory.exists()) {
+      this.baseDirectory.mkdirs();
+      LOGGER.info("Created {} cache directory: {}", BRAND, this.baseDirectory.getAbsolutePath());
+    }
+    
+    // Initialize conversion metadata for comprehensive table tracking
+    this.conversionMetadata = this.baseDirectory != null ? new ConversionMetadata(this.baseDirectory) : null;
     this.directoryPattern = directoryPattern;
     this.engineConfig = engineConfig;
     this.recursive = recursive;
@@ -196,23 +333,15 @@ public class FileSchema extends AbstractSchema {
     this.flatten = flatten;
     this.csvTypeInferenceConfig = CsvTypeInferrer.TypeInferenceConfig.fromMap(csvTypeInference);
     this.primeCache = primeCache;
-    
+
     // Schema name is used for cache directory naming to ensure stable, predictable paths
     LOGGER.debug("FileSchema created with name: {}", name);
 
-    // Initialize central metadata directory and storage cache if parquetCacheDirectory is configured
+    // Initialize storage cache manager if parquetCacheDirectory is explicitly configured
     if (engineConfig.getParquetCacheDirectory() != null) {
-      File cacheDir = new File(engineConfig.getParquetCacheDirectory());
-      String metadataStorageType = storageType != null ? storageType : "local";
-      
-      // Initialize conversion metadata
-      ConversionMetadata.setCentralMetadataDirectory(cacheDir, metadataStorageType);
-      LOGGER.debug("Initialized central metadata directory under: {}/metadata/{}", 
-          cacheDir, metadataStorageType);
-      
-      // Initialize storage cache manager
-      StorageCacheManager.initialize(cacheDir);
-      LOGGER.debug("Initialized storage cache manager under: {}/storage_cache", cacheDir);
+      StorageCacheManager.initialize(new File(engineConfig.getParquetCacheDirectory()));
+      LOGGER.debug("Initialized storage cache manager under: {}/storage_cache", 
+          engineConfig.getParquetCacheDirectory());
     }
 
     // Create storage provider if configured
@@ -333,7 +462,7 @@ public class FileSchema extends AbstractSchema {
    *
    * @param parentSchema    Parent schema
    * @param name            Schema name
-   * @param baseDirectory   Base directory to look for relative files, or null
+   * @param sourceDirectory Source directory to look for files, or null
    * @param directoryPattern Directory pattern for file discovery, or null
    * @param tables          List containing table identifiers, or null
    * @param engineConfig    Execution engine configuration
@@ -345,7 +474,7 @@ public class FileSchema extends AbstractSchema {
    * @param tableNameCasing Table name casing: "UPPER", "LOWER", or "UNCHANGED"
    * @param columnNameCasing Column name casing: "UPPER", "LOWER", or "UNCHANGED"
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -355,29 +484,11 @@ public class FileSchema extends AbstractSchema {
       @Nullable String refreshInterval,
       String tableNameCasing,
       String columnNameCasing) {
-    this.tables =
-        tables == null ? ImmutableList.of()
-            : ImmutableList.copyOf(tables);
-    this.baseDirectory = baseDirectory;
-    this.directoryPattern = directoryPattern;
-    this.engineConfig = engineConfig;
-    this.recursive = recursive;
-    this.materializations = materializations;
-    this.views = views;
-    this.partitionedTables = partitionedTables;
-    this.refreshInterval = refreshInterval;
-    LOGGER.info("FileSchema constructor: refreshInterval set to '{}'", refreshInterval);
-    this.parentSchema = parentSchema;
-    this.name = name;
-    this.tableNameCasing = tableNameCasing != null ? tableNameCasing : "SMART_CASING";
-    this.columnNameCasing = columnNameCasing != null ? columnNameCasing : "SMART_CASING";
-    this.storageType = null;
-    this.storageConfig = null;
-    this.storageProvider = null;
-    this.flatten = null;
-    this.csvTypeInferenceConfig = CsvTypeInferrer.TypeInferenceConfig.disabled();
-    this.primeCache = true;  // Default to true for backward compatibility
+    this(parentSchema, name, sourceDirectory, null, directoryPattern, tables, engineConfig,
+        recursive, materializations, views, partitionedTables, refreshInterval,
+        tableNameCasing, columnNameCasing, null, null, null, null, true);
   }
+
 
   /**
    * Creates a file schema with all features including partitioned tables and refresh support.
@@ -394,7 +505,7 @@ public class FileSchema extends AbstractSchema {
    * @param partitionedTables List of partitioned table definitions, or null
    * @param refreshInterval Default refresh interval for tables (e.g., "5 minutes"), or null
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -402,7 +513,7 @@ public class FileSchema extends AbstractSchema {
       @Nullable List<Map<String, Object>> views,
       @Nullable List<Map<String, Object>> partitionedTables,
       @Nullable String refreshInterval) {
-    this(parentSchema, name, baseDirectory, directoryPattern, tables, engineConfig, recursive,
+    this(parentSchema, name, sourceDirectory, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, "SMART_CASING", "SMART_CASING");
   }
 
@@ -419,12 +530,12 @@ public class FileSchema extends AbstractSchema {
    * @param materializations List of materialized view definitions, or null
    * @param views           List of view definitions, or null
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
       @Nullable List<Map<String, Object>> materializations,
       @Nullable List<Map<String, Object>> views) {
-    this(parentSchema, name, baseDirectory, null, tables, engineConfig, recursive,
+    this(parentSchema, name, sourceDirectory, null, tables, engineConfig, recursive,
         materializations, views, null, null);
   }
 
@@ -508,117 +619,245 @@ public class FileSchema extends AbstractSchema {
   }
 
 
-  private void convertExcelFilesToJson(File baseDirectory) {
+  /**
+   * Converts all supported file types to JSON using a glob pattern approach.
+   * This consolidates conversion of Excel, Markdown, DOCX, PPTX, and HTML files.
+   * Now also handles files from storage providers (S3, FTP, etc.).
+   */
+  private void convertSupportedFilesToJson(File sourceDir) {
+    // Process local files if source directory exists
+    if (sourceDir != null && sourceDir.exists() && sourceDir.isDirectory()) {
+      convertLocalSupportedFilesToJson(sourceDir);
+    }
 
-    // Get the list of all files and directories
-    File[] files = baseDirectory.listFiles();
+    // Also process files from storage provider if configured
+    if (storageProvider != null) {
+      convertStorageProviderFilesToJson();
+    }
+  }
 
-    if (files != null) {
-      for (File file : files) {
-        // If it's a directory and recursive is enabled, recurse into it
-        if (file.isDirectory() && recursive) {
-          convertExcelFilesToJson(file);
-        } else if ((file.getName().endsWith(".xlsx") || file.getName().endsWith(".xls"))
-            && !file.getName().startsWith("~")) {
-          // If it's a file ending in .xlsx, convert it
-          try {
-            // Always extract all sheets from Excel files
-            SafeExcelToJsonConverter.convertIfNeeded(file, true, tableNameCasing, columnNameCasing);
-          } catch (Exception e) {
-            e.printStackTrace();
-            LOGGER.debug("!");
-          }
+  /**
+   * Converts local supported file types to JSON.
+   */
+  private void convertLocalSupportedFilesToJson(File sourceDir) {
+    // Build glob pattern for all convertible file types
+    String pattern = buildConvertibleFilesGlobPattern(recursive);
+
+    // Find all matching files using the existing glob infrastructure
+    List<String> matchingFiles = findMatchingFiles(pattern);
+
+    // Convert each file using FileConversionManager
+    for (String filePath : matchingFiles) {
+      File file = new File(filePath);
+
+      // Skip temporary files (starting with ~)
+      if (file.getName().startsWith("~")) {
+        continue;
+      }
+
+      try {
+        // Use FileConversionManager for centralized conversion logic
+        // The output directory is the file's parent directory
+        // Pass baseDirectory for metadata storage
+        boolean converted = FileConversionManager.convertIfNeeded(
+            file, file.getParentFile(), columnNameCasing, tableNameCasing, baseDirectory);
+        if (converted) {
+          LOGGER.debug("Converted file: {}", file.getName());
         }
+      } catch (Exception e) {
+        LOGGER.warn("Failed to convert file {}: {}", file.getName(), e.getMessage());
       }
     }
   }
 
-  private void convertHtmlFilesToJson(File baseDirectory) {
-    // Get the list of all files and directories
-    File[] files = baseDirectory.listFiles();
+  /**
+   * Converts complex file types from storage provider to JSON.
+   * Downloads convertible files (Excel, HTML, DOCX, etc.) to cache and converts them.
+   */
+  private void convertStorageProviderFilesToJson() {
+    if (storageProvider == null) {
+      return;
+    }
 
-    if (files != null) {
-      for (File file : files) {
-        // If it's a directory and recursive is enabled, recurse into it
-        if (file.isDirectory() && recursive) {
-          convertHtmlFilesToJson(file);
-        } else if ((file.getName().endsWith(".html") || file.getName().endsWith(".htm"))
-            && !file.getName().startsWith("~")) {
-          // If it's an HTML file, convert its tables to JSON
-          try {
-            org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
-                file, file.getParentFile(), columnNameCasing, tableNameCasing);
-          } catch (Exception e) {
-            LOGGER.error("Error converting HTML file: {} - {}", file.getName(), e.getMessage());
-          }
+    // Determine the base path for storage provider
+    String basePath = "/";
+    if (sourceDirectory != null) {
+      basePath = sourceDirectory.getPath();
+      // Handle cloud storage URIs
+      if (!basePath.startsWith("s3://") && !basePath.startsWith("gs://")
+          && !basePath.startsWith("azure://") && !basePath.startsWith("http")) {
+        // Only normalize local paths
+        if (!basePath.startsWith("/")) {
+          basePath = "/" + basePath;
         }
       }
     }
-  }
 
-  private void convertMarkdownFilesToJson(File baseDirectory) {
-    // Get the list of all files and directories
-    File[] files = baseDirectory.listFiles();
+    try {
+      LOGGER.debug("Checking storage provider for convertible files at: {}", basePath);
+      List<StorageProvider.FileEntry> entries = listFilesRecursively(basePath, recursive);
 
-    if (files != null) {
-      for (File file : files) {
-        // If it's a directory and recursive is enabled, recurse into it
-        if (file.isDirectory() && recursive) {
-          convertMarkdownFilesToJson(file);
-        } else if ((file.getName().endsWith(".md") || file.getName().endsWith(".markdown"))
-            && !file.getName().startsWith("~")) {
-          // If it's a Markdown file, scan it for tables
+      for (StorageProvider.FileEntry entry : entries) {
+        if (!entry.isDirectory() && isConvertibleFile(entry.getName())) {
+          // Skip temporary files
+          if (entry.getName().startsWith("~")) {
+            continue;
+          }
+
           try {
-            MarkdownTableScanner.scanAndConvertTables(file);
+            // Download file to cache
+            File cachedFile = downloadToCache(entry);
+
+            // Determine output directory for converted JSON files
+            // Use baseDirectory/.download-cache/conversions/
+            File conversionDir = new File(baseDirectory, ".download-cache/conversions");
+            if (!conversionDir.exists()) {
+              conversionDir.mkdirs();
+            }
+
+            // Convert the cached file
+            // Pass baseDirectory for metadata storage
+            boolean converted = FileConversionManager.convertIfNeeded(
+                cachedFile,
+                conversionDir,
+                columnNameCasing,
+                tableNameCasing,
+                baseDirectory
+            );
+
+            if (converted) {
+              LOGGER.debug("Converted storage provider file: {}", entry.getName());
+            }
           } catch (Exception e) {
-            LOGGER.error("Error scanning Markdown file: {} - {}", file.getName(), e.getMessage());
+            LOGGER.warn("Failed to convert storage provider file {}: {}",
+                entry.getName(), e.getMessage());
           }
         }
       }
+    } catch (Exception e) {
+      LOGGER.error("Error processing storage provider files for conversion: {}", e.getMessage());
     }
   }
 
-  private void convertDocxFilesToJson(File baseDirectory) {
-    // Get the list of all files and directories
-    File[] files = baseDirectory.listFiles();
+  /**
+   * Downloads a file from storage provider to local cache.
+   * Files are cached in .download-cache/originals/ to avoid re-downloading.
+   */
+  private File downloadToCache(StorageProvider.FileEntry entry) throws IOException {
+    // Create cache directory structure
+    File cacheDir = new File(baseDirectory, ".download-cache/originals");
+    if (!cacheDir.exists()) {
+      cacheDir.mkdirs();
+    }
 
-    if (files != null) {
-      for (File file : files) {
-        // If it's a directory and recursive is enabled, recurse into it
-        if (file.isDirectory() && recursive) {
-          convertDocxFilesToJson(file);
-        } else if (file.getName().endsWith(".docx") && !file.getName().startsWith("~")) {
-          // If it's a DOCX file, scan it for tables
-          try {
-            DocxTableScanner.scanAndConvertTables(file);
-          } catch (Exception e) {
-            LOGGER.error("Error scanning DOCX file: {} - {}", file.getName(), e.getMessage());
-          }
-        }
+    // Create cached file path preserving directory structure
+    String relativePath = entry.getName();
+    if (relativePath.contains("/")) {
+      // Create subdirectories if needed
+      String subPath = relativePath.substring(0, relativePath.lastIndexOf("/"));
+      File subDir = new File(cacheDir, subPath);
+      if (!subDir.exists()) {
+        subDir.mkdirs();
       }
     }
-  }
 
-  private void convertPptxFilesToJson(File baseDirectory) {
-    // Get the list of all files and directories
-    File[] files = baseDirectory.listFiles();
+    File cachedFile = new File(cacheDir, relativePath);
 
-    if (files != null) {
-      for (File file : files) {
-        // If it's a directory and recursive is enabled, recurse into it
-        if (file.isDirectory() && recursive) {
-          convertPptxFilesToJson(file);
-        } else if (file.getName().endsWith(".pptx") && !file.getName().startsWith("~")) {
-          // If it's a PPTX file, scan it for tables
-          try {
-            PptxTableScanner.scanAndConvertTables(file);
-          } catch (Exception e) {
-            LOGGER.error("Error scanning PPTX file: {} - {}", file.getName(), e.getMessage());
-          }
-        }
+    // Check if we need to download (file doesn't exist or is stale)
+    boolean needsDownload = !cachedFile.exists();
+
+    if (!needsDownload && storageProvider.getMetadata(entry.getPath()) != null) {
+      // Check if cached file is stale
+      StorageProvider.FileMetadata metadata = storageProvider.getMetadata(entry.getPath());
+      if (cachedFile.lastModified() < metadata.getLastModified()) {
+        needsDownload = true;
+        LOGGER.debug("Cached file is stale, will re-download: {}", entry.getName());
       }
     }
+
+    if (needsDownload) {
+      LOGGER.debug("Downloading file from storage provider: {} to {}",
+          entry.getPath(), cachedFile.getAbsolutePath());
+
+      // Download the file
+      try (InputStream in = storageProvider.openInputStream(entry.getPath());
+           FileOutputStream out = new FileOutputStream(cachedFile)) {
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = in.read(buffer)) != -1) {
+          out.write(buffer, 0, bytesRead);
+        }
+      }
+
+      // Set the last modified time to match source
+      if (entry.getLastModified() > 0) {
+        cachedFile.setLastModified(entry.getLastModified());
+      }
+    } else {
+      LOGGER.debug("Using cached file: {}", cachedFile.getAbsolutePath());
+    }
+
+    return cachedFile;
   }
+
+  /**
+   * Checks if a file needs conversion based on its extension.
+   */
+  private boolean isConvertibleFile(String fileName) {
+    if (fileName == null) {
+      return false;
+    }
+
+    String lowerName = fileName.toLowerCase();
+    for (String extension : CONVERTIBLE_EXTENSIONS) {
+      if (lowerName.endsWith(extension)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Builds a glob pattern for finding all convertible file types.
+   * @param recursive Whether to search recursively
+   * @return Glob pattern string
+   */
+  private String buildConvertibleFilesGlobPattern(boolean recursive) {
+    // Remove dots from extensions and join with commas
+    StringBuilder extensions = new StringBuilder();
+    boolean first = true;
+    for (String ext : CONVERTIBLE_EXTENSIONS) {
+      if (!first) {
+        extensions.append(",");
+      }
+      // Remove the leading dot from extension
+      extensions.append(ext.substring(1));
+      first = false;
+    }
+
+    String prefix = recursive ? "**/" : "";
+    return prefix + "*.{" + extensions.toString() + "}";
+  }
+
+  /**
+   * Checks if a file is a native table source primitive.
+   * @param fileName File name (without .gz extension if compressed)
+   * @return true if this is a table source file
+   */
+  private boolean isTableSourceFile(String fileName) {
+    if (fileName == null) {
+      return false;
+    }
+
+    String lowerName = fileName.toLowerCase();
+    for (String extension : TABLE_SOURCE_EXTENSIONS) {
+      if (lowerName.endsWith(extension)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 
   private File[] getFilesInDir(File dir) {
     List<File> files = new ArrayList<>();
@@ -639,14 +878,8 @@ public class FileSchema extends AbstractSchema {
           // Only recurse if recursive flag is set
           files.addAll(Arrays.asList(getFilesInDir(file)));
         } else if (file.isFile()) {
-          final String nameSansGz = trim(file.getName(), ".gz");
-          if (nameSansGz.endsWith(".csv")
-              || nameSansGz.endsWith(".tsv")
-              || nameSansGz.endsWith(".json")
-              || nameSansGz.endsWith(".yaml")
-              || nameSansGz.endsWith(".yml")
-              || nameSansGz.endsWith(".arrow")
-              || nameSansGz.endsWith(".parquet")) {
+          final String nameSansCompression = trimCompressedExtensions(file.getName());
+          if (isTableSourceFile(nameSansCompression)) {
             files.add(file);
           }
         }
@@ -658,22 +891,22 @@ public class FileSchema extends AbstractSchema {
 
   // Make volatile for thread visibility
   private volatile Map<String, Table> tableCache = null;
-  
+
   /**
    * Finds the original source file for a converted JSON file using metadata.
    * Returns null if this JSON file is not a conversion result.
-   * 
+   *
    * @param jsonFile The JSON file that might be a conversion result
    * @return The original source, or null if this is not a converted file
    */
   private Source findOriginalSource(File jsonFile) {
     if (baseDirectory != null) {
       try {
-        org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+        org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
             new org.apache.calcite.adapter.file.metadata.ConversionMetadata(baseDirectory);
         File originalFile = metadata.findOriginalSource(jsonFile);
         if (originalFile != null) {
-          LOGGER.debug("Found original source {} for {} from metadata", 
+          LOGGER.debug("Found original source {} for {} from metadata",
               originalFile.getName(), jsonFile.getName());
           return Sources.of(originalFile);
         }
@@ -681,7 +914,7 @@ public class FileSchema extends AbstractSchema {
         LOGGER.debug("Failed to check conversion metadata: {}", e.getMessage());
       }
     }
-    
+
     // No metadata found - this is either not a converted file or metadata is missing
     return null;
   }
@@ -708,7 +941,7 @@ public class FileSchema extends AbstractSchema {
 
       LOGGER.info("[FileSchema.getTableMap] Computing tables! baseDirectory={}, storageProvider={}, storageType={}, engine={}",
                    baseDirectory, storageProvider, storageType, engineConfig != null ? engineConfig.getEngineType() : "null");
-      LOGGER.info("Schema name: {}, CSV type inference enabled: {}", name, 
+      LOGGER.info("Schema name: {}, CSV type inference enabled: {}", name,
                   csvTypeInferenceConfig != null ? csvTypeInferenceConfig.isEnabled() : false);
 
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
@@ -722,26 +955,15 @@ public class FileSchema extends AbstractSchema {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
     // If storage provider is configured, skip local file operations
-    LOGGER.debug("[FileSchema.getTableMap] Checking conditions: baseDirectory={}, storageProvider={}, refreshInterval={}",
-                 baseDirectory, storageProvider, refreshInterval);
-    if (baseDirectory != null && storageProvider == null) {
-      LOGGER.debug("[FileSchema.getTableMap] Using local file system");
+    LOGGER.debug("[FileSchema.getTableMap] Checking conditions: sourceDirectory={}, baseDirectory={}, storageProvider={}, refreshInterval={}",
+                 sourceDirectory, baseDirectory, storageProvider, refreshInterval);
+    if (sourceDirectory != null && storageProvider == null) {
+      LOGGER.debug("[FileSchema.getTableMap] Using local file system with sourceDirectory: {}", sourceDirectory);
 
-      convertExcelFilesToJson(baseDirectory);
+      // Convert all supported file types to JSON using a consolidated approach
+      convertSupportedFilesToJson(sourceDirectory);
 
-      // Convert Markdown files to JSON
-      convertMarkdownFilesToJson(baseDirectory);
-
-      // Convert DOCX files to JSON
-      convertDocxFilesToJson(baseDirectory);
-
-      // Convert PPTX files to JSON
-      convertPptxFilesToJson(baseDirectory);
-
-      // Convert HTML files to JSON
-      convertHtmlFilesToJson(baseDirectory);
-
-      final Source baseSource = Sources.of(baseDirectory);
+      final Source baseSource = Sources.of(sourceDirectory);
       // Get files using glob or regular directory scanning
       File[] files = getFilesForProcessing();
       LOGGER.debug("[FileSchema] Found {} files for processing", files.length);
@@ -757,8 +979,8 @@ public class FileSchema extends AbstractSchema {
           StorageProviderFile spFile = (StorageProviderFile) file;
           source = new StorageProviderSource(spFile.getFileEntry(), spFile.getStorageProvider());
         } else if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
-          // For gzipped files, we still need Sources.of() to handle decompression
-          if (file.getName().endsWith(".gz")) {
+          // For compressed files, we still need Sources.of() to handle decompression
+          if (hasCompressedExtension(file.getName())) {
             source = Sources.of(file);
           } else {
             source = new DirectFileSource(file);
@@ -843,6 +1065,7 @@ public class FileSchema extends AbstractSchema {
             // Use standard Parquet table
             Table table = new ParquetTranslatableTable(new java.io.File(source.path()), name);
             builder.put(tableName, table);
+            recordTableMetadata(tableName, table, source, null);
           } catch (Exception e) {
             LOGGER.error("Failed to add Parquet table: {}", e.getMessage());
           }
@@ -864,14 +1087,17 @@ public class FileSchema extends AbstractSchema {
                     ParquetConversionUtil.convertToParquet(source, tableName, arrowTable, cacheDir, parentSchema, this.name, tableNameCasing);
                 Table table = new ParquetTranslatableTable(parquetFile, name);
                 builder.put(tableName, table);
+                recordTableMetadata(tableName, table, source, null);
               } catch (Exception conversionException) {
                 LOGGER.warn("Parquet conversion failed for {}, using Arrow table: {}", tableName, conversionException.getMessage());
                 // Fall back to using the original Arrow table
                 builder.put(tableName, arrowTable);
+                recordTableMetadata(tableName, arrowTable, source, null);
               }
             } else {
               // Add Arrow file as an ArrowTable
               builder.put(tableName, arrowTable);
+              recordTableMetadata(tableName, arrowTable, source, null);
             }
           } catch (Exception e) {
             LOGGER.error("Failed to add Arrow table: {}", e.getMessage());
@@ -926,7 +1152,7 @@ public class FileSchema extends AbstractSchema {
             File mvParquetFile = null;
             if (baseDirectory != null) {
               // Use schema-aware cache directory for materialized views
-              File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory, 
+              File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory,
                   engineConfig.getParquetCacheDirectory(), name);
               File mvDir = new File(cacheDir, ".materialized_views");
               if (!mvDir.exists()) {
@@ -962,7 +1188,7 @@ public class FileSchema extends AbstractSchema {
                 // Create a MaterializedViewTable that executes SQL on first access
                 // Build a snapshot of current tables for the MV to use
                 final Map<String, Table> currentTables = builder.build();
-                LOGGER.debug("Creating MV '{}' with {} available tables: {}", 
+                LOGGER.debug("Creating MV '{}' with {} available tables: {}",
                     viewName, currentTables.size(), currentTables.keySet());
                 Table mvTable =
                     new MaterializedViewTable(parentSchema, name,
@@ -985,11 +1211,15 @@ public class FileSchema extends AbstractSchema {
     }
 
     tableCache = builder.build();
-    LOGGER.info("[FileSchema.getTableMap] COMPLETED - Computed {} tables for schema '{}': {}", 
+    LOGGER.info("[FileSchema.getTableMap] COMPLETED - Computed {} tables for schema '{}': {}",
                 tableCache.size(), name, tableCache.keySet());
     if (tableCache.isEmpty()) {
       LOGGER.warn("[FileSchema.getTableMap] WARNING: No tables were registered for schema '{}'!", name);
     }
+
+    // Generate Calcite model file in baseDirectory
+    generateModelFile(tableCache);
+
     return tableCache;
     } catch (Exception e) {
       LOGGER.error("[FileSchema.getTableMap] Error computing tables: {}", e.getMessage());
@@ -1045,7 +1275,7 @@ public class FileSchema extends AbstractSchema {
     if (url == null) {
       return false;
     }
-    
+
     // URLs with http/https protocols are never glob patterns
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return false;
@@ -1133,9 +1363,9 @@ public class FileSchema extends AbstractSchema {
     // Let Sources.of handle protocol detection
     Source source0 = Sources.of(uri);
 
-    // Apply base directory for relative paths
-    if (baseDirectory != null && !isAbsoluteUri(uri)) {
-      return Sources.of(baseDirectory).append(source0);
+    // Apply source directory for relative paths (use original directory for reading files)
+    if (sourceDirectory != null && !isAbsoluteUri(uri)) {
+      return Sources.of(sourceDirectory).append(source0);
     }
 
     return source0;
@@ -1165,7 +1395,7 @@ public class FileSchema extends AbstractSchema {
     String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
     Duration refreshInterval = RefreshInterval.parse(refreshIntervalStr);
     boolean hasRefresh = refreshInterval != null;
-    LOGGER.info("FileSchema.addTable: tableName={}, source={}, refreshIntervalStr={}, hasRefresh={}", 
+    LOGGER.info("FileSchema.addTable: tableName={}, source={}, refreshIntervalStr={}, hasRefresh={}",
         tableName, source.path(), refreshIntervalStr, hasRefresh);
 
     String path = source.path().toLowerCase(Locale.ROOT);
@@ -1173,9 +1403,9 @@ public class FileSchema extends AbstractSchema {
                           path.endsWith(".json") || path.endsWith(".json.gz");
 
     // Handle refreshable CSV/JSON files with Parquet caching
-    LOGGER.info("Refresh check: hasRefresh={}, isCSVorJSON={}, engineType={}, baseDirectory!=null={}", 
+    LOGGER.info("Refresh check: hasRefresh={}, isCSVorJSON={}, engineType={}, baseDirectory!=null={}",
         hasRefresh, isCSVorJSON, engineConfig.getEngineType(), baseDirectory != null);
-    
+
     if (hasRefresh && isCSVorJSON &&
         engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET &&
         baseDirectory != null) {
@@ -1211,7 +1441,7 @@ public class FileSchema extends AbstractSchema {
         // Find original source file for converted files (e.g., HTML->JSON)
         Source originalSource = findOriginalSource(new File(source.path()));
         LOGGER.debug("RefreshableParquetCacheTable - source: {}, originalSource: {}", source.path(), (originalSource != null ? originalSource.path() : "null"));
-        
+
         RefreshableParquetCacheTable refreshableTable =
             new RefreshableParquetCacheTable(source, originalSource, parquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
             columnNameCasing, tableNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
@@ -1229,7 +1459,7 @@ public class FileSchema extends AbstractSchema {
     // Check if we should convert to Parquet (for PARQUET engine)
     String tableRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
     Duration effectiveInterval = RefreshInterval.getEffectiveInterval(tableRefreshInterval, this.refreshInterval);
-    
+
     if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
         && baseDirectory != null
         && !source.path().toLowerCase(Locale.ROOT).endsWith(".parquet")) {
@@ -1270,7 +1500,7 @@ public class FileSchema extends AbstractSchema {
 
             // DuckDB engine will be handled same as PARQUET for initial setup
             // FileSchemaFactory will create the actual DuckDB JDBC adapter later
-            
+
             // Create appropriate table based on refresh configuration
             Table parquetTable;
             if (effectiveInterval != null) {
@@ -1286,7 +1516,7 @@ public class FileSchema extends AbstractSchema {
               // Use standard Parquet table for non-refresh cases
               parquetTable = new ParquetTranslatableTable(parquetFile, name);
             }
-            
+
             builder.put(
                 applyCasing(Util.first(tableName, source.path()),
                 tableNameCasing), parquetTable);
@@ -1317,17 +1547,17 @@ public class FileSchema extends AbstractSchema {
         // Check if JSONPath extraction is configured
         if (tableDef != null && tableDef.containsKey("jsonSearchPaths")) {
           LOGGER.info("Using JSONPath extraction for source: {}", source.path());
-          
+
           // Get refresh interval if configured
           String jsonRefreshInterval = (String) tableDef.get("refreshInterval");
           Duration jsonEffectiveInterval = RefreshInterval.getEffectiveInterval(jsonRefreshInterval, this.refreshInterval);
-          
+
           // JSON table extraction would go here when JsonMultiTableFactory is available
           // For now, skip JSONPath extraction as dependencies are not available
           LOGGER.debug("Skipping JSONPath extraction - dependencies not available");
           // Continue to single table creation below
         }
-        
+
         // Single table creation (existing code)
         String jsonRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         Map<String, Object> options = null;
@@ -1343,12 +1573,14 @@ public class FileSchema extends AbstractSchema {
         String finalTableName = getTableName(tableName, source.path(), tableNameCasing);
         LOGGER.debug("Created JSON table of type: {} for table '{}' -> registered as '{}'", jsonTable.getClass().getName(), tableName, finalTableName);
         builder.put(finalTableName, jsonTable);
+        recordTableMetadata(finalTableName, jsonTable, source, tableDef);
         return true;
       case "csv":
         String csvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         final Table csvTable = createEnhancedCsvTable(source, null, tableName, csvRefreshInterval);
         String csvFinalName = getTableName(tableName, source.path(), tableNameCasing);
         builder.put(csvFinalName, csvTable);
+        recordTableMetadata(csvFinalName, csvTable, source, tableDef);
         LOGGER.info("FileSchema.addTable SUCCESS: Added CSV table '{}' to schema '{}'", csvFinalName, name);
         return true;
       case "tsv":
@@ -1815,11 +2047,11 @@ public class FileSchema extends AbstractSchema {
         File jsonFile = source.file();
         if (jsonFile != null) {
           try {
-            org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+            org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
                 new org.apache.calcite.adapter.file.metadata.ConversionMetadata(jsonFile.getParentFile());
-            org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record = 
+            org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record =
                 metadata.getConversionRecord(jsonFile);
-            if (record != null && record.getConversionType() != null 
+            if (record != null && record.getConversionType() != null
                 && record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
               isJsonPathExtraction = true;
               LOGGER.debug("JSON file {} is a JSONPath extraction, using regular JSON table", jsonFile.getName());
@@ -1828,12 +2060,12 @@ public class FileSchema extends AbstractSchema {
             LOGGER.debug("Could not check if {} is a JSONPath extraction: {}", source.path(), e.getMessage());
           }
         }
-        
+
         // JSONPath extractions should use regular JSON tables that can be refreshed via re-extraction
         if (isJsonPathExtraction) {
           return new RefreshableJsonTable(source, tableName, effectiveInterval, columnNameCasing);
         }
-        
+
         try {
           // For Parquet engine with refresh, we need to use RefreshableParquetCacheTable
           // First convert JSON to Parquet
@@ -1841,24 +2073,24 @@ public class FileSchema extends AbstractSchema {
               ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
           File parquetFile =
               ParquetConversionUtil.convertToParquet(source, tableName, new JsonScannableTable(source, options, columnNameCasing), cacheDir, parentSchema, name, tableNameCasing);
-          
+
           // Check if this JSON file was converted from another source (HTML, Excel, XML)
           Source originalSource = null;
           try {
             if (jsonFile != null) {
-              org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+              org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
                   new org.apache.calcite.adapter.file.metadata.ConversionMetadata(jsonFile.getParentFile());
               File origFile = metadata.findOriginalSource(jsonFile);
               if (origFile != null && origFile.exists()) {
                 originalSource = Sources.of(origFile);
-                LOGGER.debug("Found original source {} for JSON file {}", 
+                LOGGER.debug("Found original source {} for JSON file {}",
                     origFile.getName(), jsonFile.getName());
               }
             }
           } catch (Exception e) {
             LOGGER.debug("Could not find original source for {}: {}", source.path(), e.getMessage());
           }
-          
+
           // Use RefreshableParquetCacheTable with original source if found
           return new RefreshableParquetCacheTable(source, originalSource, parquetFile, cacheDir,
               effectiveInterval, false, columnNameCasing, tableNameCasing, null,
@@ -1983,12 +2215,12 @@ public class FileSchema extends AbstractSchema {
   private List<String> findMatchingFiles(String pattern) {
     List<String> result = new ArrayList<>();
 
-    if (baseDirectory == null || pattern == null) {
+    if (sourceDirectory == null || pattern == null) {
       return result;
     }
 
     try {
-      Path basePath = baseDirectory.toPath();
+      Path basePath = sourceDirectory.toPath();
       PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 
       Files.walkFileTree(basePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<Path>() {
@@ -2019,14 +2251,14 @@ public class FileSchema extends AbstractSchema {
       return getFilesFromStorageProvider();
     }
 
-    // Otherwise use local file system
-    if (baseDirectory == null) {
-      LOGGER.warn("[FileSchema] baseDirectory is null, returning empty file array");
+    // Otherwise use local file system from sourceDirectory
+    if (sourceDirectory == null) {
+      LOGGER.warn("[FileSchema] sourceDirectory is null, returning empty file array");
       return new File[0];
     }
-    
-    LOGGER.debug("[FileSchema] getFilesForProcessing - baseDirectory: {}, exists: {}, isDirectory: {}", 
-        baseDirectory.getAbsolutePath(), baseDirectory.exists(), baseDirectory.isDirectory());
+
+    LOGGER.debug("[FileSchema] getFilesForProcessing - sourceDirectory: {}, exists: {}, isDirectory: {}",
+        sourceDirectory.getAbsolutePath(), sourceDirectory.exists(), sourceDirectory.isDirectory());
 
     // Determine the glob pattern to use
     String pattern;
@@ -2070,12 +2302,51 @@ public class FileSchema extends AbstractSchema {
   }
 
   /**
-   * Gets the file extension without .gz suffix.
+   * Gets the file extension without compression suffix.
    */
   private String getFileExtension(String fileName) {
-    String nameSansGz = trim(fileName, ".gz");
-    int lastDot = nameSansGz.lastIndexOf('.');
-    return lastDot > 0 ? nameSansGz.substring(lastDot + 1) : "";
+    String nameSansCompression = trimCompressedExtensions(fileName);
+    int lastDot = nameSansCompression.lastIndexOf('.');
+    return lastDot > 0 ? nameSansCompression.substring(lastDot + 1) : "";
+  }
+
+  /**
+   * Removes known compression extensions from a file name.
+   * @param fileName The file name to process
+   * @return The file name without compression extensions
+   */
+  private String trimCompressedExtensions(String fileName) {
+    if (fileName == null) {
+      return null;
+    }
+
+    String result = fileName;
+    for (String ext : COMPRESSED_EXTENSIONS) {
+      if (result.toLowerCase().endsWith(ext)) {
+        result = result.substring(0, result.length() - ext.length());
+        break; // Only remove one compression extension
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Checks if a file has a compressed extension.
+   * @param fileName The file name to check
+   * @return true if the file has a compressed extension
+   */
+  private boolean hasCompressedExtension(String fileName) {
+    if (fileName == null) {
+      return false;
+    }
+
+    String lowerName = fileName.toLowerCase();
+    for (String ext : COMPRESSED_EXTENSIONS) {
+      if (lowerName.endsWith(ext)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -2089,15 +2360,9 @@ public class FileSchema extends AbstractSchema {
     if (file.getName().startsWith(".")) {
       return false;
     }
-    final String nameSansGz = trim(file.getName(), ".gz");
-    return nameSansGz.endsWith(".csv")
-        || nameSansGz.endsWith(".tsv")
-        || nameSansGz.endsWith(".json")
-        || nameSansGz.endsWith(".yaml")
-        || nameSansGz.endsWith(".yml")
-        || nameSansGz.endsWith(".html")
-        || nameSansGz.endsWith(".arrow")
-        || nameSansGz.endsWith(".parquet");
+    final String nameSansCompression = trimCompressedExtensions(file.getName());
+    // HTML is a special case - it's both a potential table source and a convertible file
+    return isTableSourceFile(nameSansCompression) || nameSansCompression.toLowerCase().endsWith(".html");
   }
 
   /**
@@ -2202,15 +2467,9 @@ public class FileSchema extends AbstractSchema {
    * Checks if a file name is supported based on its extension.
    */
   private boolean isFileNameSupported(String fileName) {
-    final String nameSansGz = trim(fileName, ".gz");
-    return nameSansGz.endsWith(".csv")
-        || nameSansGz.endsWith(".tsv")
-        || nameSansGz.endsWith(".json")
-        || nameSansGz.endsWith(".yaml")
-        || nameSansGz.endsWith(".yml")
-        || nameSansGz.endsWith(".html")
-        || nameSansGz.endsWith(".arrow")
-        || nameSansGz.endsWith(".parquet");
+    final String nameSansCompression = trimCompressedExtensions(fileName);
+    // HTML is a special case - it's both a potential table source and a convertible file
+    return isTableSourceFile(nameSansCompression) || nameSansCompression.toLowerCase().endsWith(".html");
   }
 
   /**
@@ -2414,6 +2673,107 @@ public class FileSchema extends AbstractSchema {
     for (Map.Entry<String, Table> entry : metadataTables.entrySet()) {
       String metadataTableName = baseTableName + "$" + entry.getKey();
       builder.put(metadataTableName, entry.getValue());
+    }
+  }
+
+  /**
+   * Generates a Calcite model JSON file documenting the discovered schema and tables.
+   * The file is saved to baseDirectory/generated-model.json
+   */
+  private void generateModelFile(Map<String, Table> tables) {
+    if (baseDirectory == null || !baseDirectory.exists()) {
+      LOGGER.debug("Cannot generate model file - baseDirectory doesn't exist");
+      return;
+    }
+
+    File modelFile = new File(baseDirectory, ".generated-model.json");
+
+    try (FileWriter writer = new FileWriter(modelFile)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"" + name + "\",\n");
+      writer.write("  \"schemas\": [\n");
+      writer.write("    {\n");
+      writer.write("      \"name\": \"" + name + "\",\n");
+      writer.write("      \"type\": \"custom\",\n");
+      writer.write("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("      \"operand\": {\n");
+
+      // Write source directory if available
+      if (sourceDirectory != null) {
+        writer.write("        \"directory\": \"" + sourceDirectory.getAbsolutePath().replace("\\", "\\\\") + "\",\n");
+      }
+
+      // Write execution engine
+      writer.write("        \"executionEngine\": \"" + engineConfig.getEngineType() + "\",\n");
+
+      // Write storage type if configured
+      if (storageType != null) {
+        writer.write("        \"storageType\": \"" + storageType + "\",\n");
+      }
+
+      // Write refresh interval if configured
+      if (refreshInterval != null) {
+        writer.write("        \"refreshInterval\": \"" + refreshInterval + "\",\n");
+      }
+
+      // Write table and column casing
+      writer.write("        \"tableNameCasing\": \"" + tableNameCasing + "\",\n");
+      writer.write("        \"columnNameCasing\": \"" + columnNameCasing + "\",\n");
+
+      // Write discovered tables
+      writer.write("        \"tables\": [\n");
+      boolean firstTable = true;
+      for (Map.Entry<String, Table> entry : tables.entrySet()) {
+        if (!firstTable) {
+          writer.write(",\n");
+        }
+        writer.write("          {\n");
+        writer.write("            \"name\": \"" + entry.getKey() + "\",\n");
+
+        // Add table type info
+        Table table = entry.getValue();
+        String tableType = table.getClass().getSimpleName();
+        writer.write("            \"type\": \"" + tableType + "\"");
+
+        // Add source file if we can determine it
+        if (table instanceof FileTable) {
+          try {
+            // Use reflection to get the source file
+            java.lang.reflect.Field sourceField = table.getClass().getDeclaredField("source");
+            sourceField.setAccessible(true);
+            Source source = (Source) sourceField.get(table);
+            if (source != null) {
+              writer.write(",\n            \"source\": \"" + source.path().replace("\\", "\\\\") + "\"");
+            }
+          } catch (Exception e) {
+            // Ignore - not all tables have a source field
+          }
+        }
+
+        writer.write("\n          }");
+        firstTable = false;
+      }
+      writer.write("\n        ]\n");
+      writer.write("      }\n");
+      writer.write("    }\n");
+      writer.write("  ]\n");
+      writer.write("}\n");
+
+      LOGGER.info("Generated Calcite model file: {}", modelFile.getAbsolutePath());
+    } catch (IOException e) {
+      LOGGER.warn("Failed to generate model file: {}", e.getMessage());
+    }
+  }
+
+  /**
+   * Records table metadata for comprehensive tracking.
+   * This captures the complete lineage from original source to final table.
+   */
+  private void recordTableMetadata(String tableName, Table table, Source source, 
+      @Nullable Map<String, Object> tableDef) {
+    if (conversionMetadata != null) {
+      conversionMetadata.recordTable(tableName, table, source, tableDef);
     }
   }
 

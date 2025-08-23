@@ -68,9 +68,14 @@ public class FileSchemaFactory implements SchemaFactory {
     LOGGER.info("[FileSchemaFactory] ==> Thread: {}", Thread.currentThread().getName());
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
-    final File baseDirectory =
+    
+    // Global baseDirectory operand (for cache/conversions - defaults to ./.aperio/<schema>)
+    File baseDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    
+    // Schema-specific sourceDirectory operand (for reading source files)
     final String directory = (String) operand.get("directory");
+    File sourceDirectory = null;
     LOGGER.debug("[FileSchemaFactory] directory from operand: '{}'", directory);
     LOGGER.debug("[FileSchemaFactory] baseDirectory: '{}'", baseDirectory);
 
@@ -172,18 +177,28 @@ public class FileSchemaFactory implements SchemaFactory {
             : Boolean.TRUE;  // Default to true
 
     File directoryFile = null;
+    // Determine sourceDirectory for reading files
     // Only create File objects for local storage, not for cloud storage providers
     if (storageType == null || "local".equals(storageType)) {
       if (directory != null) {
-        directoryFile = new File(directory);
-      }
-      if (baseDirectory != null) {
-        if (directoryFile == null) {
-          directoryFile = baseDirectory;
-        } else if (!directoryFile.isAbsolute()) {
-          directoryFile = new File(baseDirectory, directory);
+        sourceDirectory = new File(directory);
+        // If sourceDirectory is relative and we have a baseDirectory context, resolve it
+        if (!sourceDirectory.isAbsolute() && baseDirectory != null) {
+          // For relative paths, resolve against the parent of baseDirectory or current dir
+          File contextDir = baseDirectory.getParentFile() != null ? baseDirectory.getParentFile() : new File(System.getProperty("user.dir"));
+          sourceDirectory = new File(contextDir, directory);
         }
+      } else if (baseDirectory != null) {
+        // If no directory specified but baseDirectory exists, use parent of baseDirectory
+        sourceDirectory = baseDirectory.getParentFile();
+        if (sourceDirectory == null) {
+          sourceDirectory = new File(System.getProperty("user.dir"));
+        }
+      } else {
+        // Default to current working directory
+        sourceDirectory = new File(System.getProperty("user.dir"));
       }
+      directoryFile = sourceDirectory;
     } else if (directory != null && storageType != null) {
       // For cloud storage, use the directory as-is (it's a URI like s3://bucket/path)
       // Create a fake File object that just holds the path
@@ -231,15 +246,20 @@ public class FileSchemaFactory implements SchemaFactory {
           engineConfig.getMaterializedViewStoragePath(), engineConfig.getDuckDBConfig(),
           engineConfig.getParquetCacheDirectory());
       
-      FileSchema fileSchema = new FileSchema(parentSchema, name, directoryFile, 
+      FileSchema fileSchema = new FileSchema(parentSchema, name, directoryFile, baseDirectory,
           directoryPattern, tables, conversionConfig, recursive, materializations, views, 
           partitionedTables, refreshInterval, tableNameCasing, columnNameCasing, 
           storageType, storageConfig, flatten, csvTypeInference, primeCache);
       
-      // Force initialization to run conversions
+      // Force initialization to run conversions and populate the FileSchema for DuckDB
       LOGGER.debug("FileSchemaFactory: About to call fileSchema.getTableMap() for table discovery");
+      LOGGER.debug("FileSchemaFactory: Internal FileSchema engine type: {}", conversionConfig.getEngineType());
+      LOGGER.debug("FileSchemaFactory: Internal FileSchema directory: {}", directoryFile);
       Map<String, Table> tableMap = fileSchema.getTableMap();
-      LOGGER.info("FileSchemaFactory: FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
+      LOGGER.info("FileSchemaFactory: DuckDB FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
+      
+      // Check if any JSON files were processed by the internal FileSchema
+      LOGGER.debug("FileSchemaFactory: Checking if internal FileSchema processed JSON files from HTML conversion...");
       
       // Parquet conversion should happen automatically when tables are accessed
       LOGGER.debug("FileSchemaFactory: Parquet conversion will happen on-demand via FileSchema");
@@ -249,6 +269,11 @@ public class FileSchemaFactory implements SchemaFactory {
       LOGGER.debug("FileSchemaFactory: Now creating DuckDB JDBC schema");
       JdbcSchema duckdbSchema = DuckDBJdbcSchemaFactory.create(parentSchema, name, directoryFile, recursive, fileSchema);
       LOGGER.info("FileSchemaFactory: DuckDB JDBC schema created successfully");
+
+      // Register the DuckDB JDBC schema with the parent so SQL queries can find the tables
+      // This is critical for Calcite's SQL validator to see the tables
+      parentSchema.add(name, duckdbSchema);
+      LOGGER.info("FileSchemaFactory: Registered DuckDB JDBC schema '{}' with parent schema for SQL validation", name);
 
       // Add metadata schemas as sibling schemas
       addMetadataSchemas(parentSchema);
@@ -261,7 +286,7 @@ public class FileSchemaFactory implements SchemaFactory {
     LOGGER.info("[FileSchemaFactory] ==> - Reason: isDuckDB={}, directoryFile != null={}, storageType='{}'", 
                isDuckDB, directoryFile != null, storageType);
     FileSchema fileSchema =
-        new FileSchema(parentSchema, name, directoryFile, directoryPattern, tables, engineConfig, recursive,
+        new FileSchema(parentSchema, name, directoryFile, baseDirectory, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
         columnNameCasing, storageType, storageConfig, flatten, csvTypeInference, primeCache);
 
