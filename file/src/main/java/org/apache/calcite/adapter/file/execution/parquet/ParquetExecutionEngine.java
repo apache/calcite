@@ -76,11 +76,17 @@ public final class ParquetExecutionEngine {
     private final ByteBuffer data;
     private final ParquetMetadata metadata;
     private final MessageType schema;
+    private final List<String> stringTable;
 
     public InMemoryParquetData(ByteBuffer data, ParquetMetadata metadata, MessageType schema) {
+      this(data, metadata, schema, new ArrayList<>());
+    }
+
+    public InMemoryParquetData(ByteBuffer data, ParquetMetadata metadata, MessageType schema, List<String> stringTable) {
       this.data = data;
       this.metadata = metadata;
       this.schema = schema;
+      this.stringTable = stringTable;
     }
 
     public ByteBuffer getData() {
@@ -92,6 +98,9 @@ public final class ParquetExecutionEngine {
     public MessageType getSchema() {
       return schema;
     }
+    public List<String> getStringTable() {
+      return stringTable;
+    }
   }
 
   /**
@@ -102,6 +111,7 @@ public final class ParquetExecutionEngine {
   public static InMemoryParquetData convertToParquet(VectorSchemaRoot batch) {
     try {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      List<String> stringTable = new ArrayList<>();
 
       // Create Parquet schema from Arrow schema
       MessageType parquetSchema = createParquetSchema(batch.getSchema());
@@ -115,7 +125,7 @@ public final class ParquetExecutionEngine {
 
       // Write each column's data
       for (FieldVector vector : batch.getFieldVectors()) {
-        writeVectorToBuffer(vector, buffer);
+        writeVectorToBuffer(vector, buffer, stringTable);
       }
 
       buffer.flip();
@@ -123,7 +133,7 @@ public final class ParquetExecutionEngine {
       // Create minimal metadata
       ParquetMetadata metadata = createMinimalMetadata(parquetSchema, batch.getRowCount());
 
-      return new InMemoryParquetData(buffer, metadata, parquetSchema);
+      return new InMemoryParquetData(buffer, metadata, parquetSchema, stringTable);
 
     } catch (Exception e) {
       throw new RuntimeException("Failed to convert to Parquet format", e);
@@ -156,7 +166,8 @@ public final class ParquetExecutionEngine {
     return new InMemoryParquetData(
         projectedData,
         createMinimalMetadata(projectedSchema, rowCount),
-        projectedSchema);
+        projectedSchema,
+        input.stringTable);
   }
 
   /**
@@ -193,7 +204,8 @@ public final class ParquetExecutionEngine {
     return new InMemoryParquetData(
         filteredData,
         createMinimalMetadata(input.schema, matchingRows.size()),
-        input.schema);
+        input.schema,
+        input.stringTable);
   }
 
   /**
@@ -274,7 +286,7 @@ public final class ParquetExecutionEngine {
     return 4 + vector.getValueCount() * 8; // header + data
   }
 
-  private static void writeVectorToBuffer(FieldVector vector, ByteBuffer buffer) {
+  private static void writeVectorToBuffer(FieldVector vector, ByteBuffer buffer, List<String> stringTable) {
     // Simplified - write vector data to buffer
     buffer.putInt(vector.getValueCount());
 
@@ -284,9 +296,15 @@ public final class ParquetExecutionEngine {
         if (value instanceof Number) {
           buffer.putDouble(((Number) value).doubleValue());
         } else {
-          // For non-numeric values, write a marker value
-          // This simplification allows the reader to work correctly
-          buffer.putDouble(0.0);
+          // For non-numeric values, store in string table and write index
+          String stringValue = value.toString();
+          int stringIndex = stringTable.indexOf(stringValue);
+          if (stringIndex == -1) {
+            stringIndex = stringTable.size();
+            stringTable.add(stringValue);
+          }
+          // Use negative values to distinguish string indices from regular doubles
+          buffer.putDouble(-1.0 - stringIndex);
         }
       } else {
         buffer.putDouble(Double.NaN); // null marker
@@ -360,7 +378,20 @@ public final class ParquetExecutionEngine {
     int columnRowCount = data.data.getInt();
     for (int i = 0; i < columnRowCount; i++) {
       double value = data.data.getDouble();
-      column[i] = Double.isNaN(value) ? null : value;
+      if (Double.isNaN(value)) {
+        column[i] = null;
+      } else if (value < -1.0) {
+        // Negative values indicate string indices
+        int stringIndex = (int) (-1.0 - value);
+        if (stringIndex < data.stringTable.size()) {
+          column[i] = data.stringTable.get(stringIndex);
+        } else {
+          column[i] = "UNKNOWN_STRING_" + stringIndex;
+        }
+      } else {
+        // Regular numeric values
+        column[i] = value;
+      }
     }
 
     return column;
@@ -371,7 +402,14 @@ public final class ParquetExecutionEngine {
     buffer.putInt(indices.size());
     for (int idx : indices) {
       if (column[idx] != null) {
-        buffer.putDouble(((Number) column[idx]).doubleValue());
+        Object value = column[idx];
+        if (value instanceof Number) {
+          buffer.putDouble(((Number) value).doubleValue());
+        } else {
+          // For string values, they're already decoded from string table
+          // For filtered data, we'll represent them as their toString() hash
+          buffer.putDouble(value.toString().hashCode());
+        }
       } else {
         buffer.putDouble(Double.NaN);
       }
@@ -414,8 +452,31 @@ public final class ParquetExecutionEngine {
       if (vector instanceof org.apache.arrow.vector.Float8Vector) {
         ((org.apache.arrow.vector.Float8Vector) vector).set(index,
             ((Number) value).doubleValue());
+      } else if (vector instanceof org.apache.arrow.vector.IntVector) {
+        ((org.apache.arrow.vector.IntVector) vector).set(index,
+            ((Number) value).intValue());
+      } else if (vector instanceof org.apache.arrow.vector.BigIntVector) {
+        ((org.apache.arrow.vector.BigIntVector) vector).set(index,
+            ((Number) value).longValue());
+      } else if (vector instanceof org.apache.arrow.vector.Float4Vector) {
+        ((org.apache.arrow.vector.Float4Vector) vector).set(index,
+            ((Number) value).floatValue());
       }
-      // Add more type handlers
+    } else if (value instanceof String) {
+      if (vector instanceof org.apache.arrow.vector.VarCharVector) {
+        ((org.apache.arrow.vector.VarCharVector) vector).setSafe(index,
+            ((String) value).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      }
+    } else if (value instanceof Boolean) {
+      if (vector instanceof org.apache.arrow.vector.BitVector) {
+        ((org.apache.arrow.vector.BitVector) vector).setSafe(index, (Boolean) value ? 1 : 0);
+      }
+    } else {
+      // For other types, convert to string if it's a VarChar vector
+      if (vector instanceof org.apache.arrow.vector.VarCharVector && value != null) {
+        ((org.apache.arrow.vector.VarCharVector) vector).setSafe(index,
+            value.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      }
     }
   }
 
