@@ -317,37 +317,35 @@ public class MixedFormatGlobTest extends BaseFileTest {
       }
 
       // Verify Parquet files were created for all formats
-      // With PARQUET engine, converted files are in temp directory directly
-      File[] parquetFiles = tempDir.listFiles((dir, name) -> name.endsWith(".parquet"));
-      boolean hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+      // With FileSchema changes, cache files are in .aperio/MIXED/.parquet_cache directory
+      File workingDir = new File(System.getProperty("user.dir"));
+      File aperioDir = new File(workingDir, ".aperio");
+      File schemaDir = new File(aperioDir, "MIXED");
+      File cacheDir = new File(schemaDir, ".parquet_cache");
       
-      // If not found directly, check cache directories
-      if (!hasParquetFiles) {
-        File cacheDir = new File(tempDir, ".parquet_cache");
-        if (cacheDir.exists()) {
-          // With schema-aware caching, files are in schema_<schemaName> subdirectory
-          File schemaCacheDir = new File(cacheDir, "schema_MIXED");
-          if (schemaCacheDir.exists()) {
-            parquetFiles = schemaCacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
-            hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
-          } else {
-            // Check root cache directory as fallback
-            parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
-            hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
-          }
-        }
-        
-        // Also check for schema-specific cache directory
-        if (!hasParquetFiles) {
-          File schemaCacheDir = new File(tempDir, ".parquet_cache_MIXED");
-          if (schemaCacheDir.exists()) {
-            parquetFiles = schemaCacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
-            hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
-          }
-        }
+      boolean hasParquetFiles = false;
+      File[] parquetFiles = null;
+      
+      // Check the parquet cache subdirectory
+      if (cacheDir.exists()) {
+        parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+        hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
       }
       
-      assertThat(hasParquetFiles, is(true));
+      // If not found, check the schema directory directly
+      if (!hasParquetFiles && schemaDir.exists()) {
+        parquetFiles = schemaDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+        hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+      }
+      
+      // If not found, also check temp directory directly (backward compatibility)
+      if (!hasParquetFiles) {
+        parquetFiles = tempDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+        hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+      }
+      
+      assertThat("Expected at least 3 parquet files in " + cacheDir + ", " + schemaDir + " or " + tempDir, 
+                 hasParquetFiles, is(true));
     }
   }
 

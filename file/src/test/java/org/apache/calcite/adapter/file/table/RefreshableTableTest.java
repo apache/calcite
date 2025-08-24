@@ -215,7 +215,7 @@ public class RefreshableTableTest extends BaseFileTest {
           rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
 
       // Check table has overridden refresh interval
-      Table table = fileSchema.getTable("FAST_REFRESH");
+      Table table = fileSchema.getTable("fast_refresh");
       assertNotNull(table);
       assertTrue(table instanceof RefreshableTable);
 
@@ -503,6 +503,10 @@ public class RefreshableTableTest extends BaseFileTest {
     // Create directory structure for custom partition naming: sales_2023_01.parquet
     File salesDir = new File(tempDir.toFile(), "sales_data");
     salesDir.mkdirs();
+    
+    System.out.println("[DEBUG] testCustomRegexPartitions - tempDir: " + tempDir.toString());
+    System.out.println("[DEBUG] testCustomRegexPartitions - salesDir: " + salesDir.getAbsolutePath());
+    System.out.println("[DEBUG] testCustomRegexPartitions - salesDir exists: " + salesDir.exists());
 
     // Create Avro schema
     Schema avroSchema = Schema.createRecord("SalesRecord", "", "sales", false);
@@ -513,17 +517,31 @@ public class RefreshableTableTest extends BaseFileTest {
         new Schema.Field("product", Schema.create(Schema.Type.STRING), "", null)));
 
     // Create initial files with custom naming pattern
-    createParquetFile(new File(salesDir, "sales_2023_01.parquet"), avroSchema,
+    File file1 = new File(salesDir, "sales_2023_01.parquet");
+    File file2 = new File(salesDir, "sales_2023_02.parquet");
+    createParquetFile(file1, avroSchema,
         createRecord(avroSchema, 1, 100.0, "Widget"));
-    createParquetFile(new File(salesDir, "sales_2023_02.parquet"), avroSchema,
+    createParquetFile(file2, avroSchema,
         createRecord(avroSchema, 2, 200.0, "Gadget"));
-
+    
+    System.out.println("[DEBUG] Created parquet file 1: " + file1.getAbsolutePath() + ", exists: " + file1.exists() + ", size: " + file1.length());
+    System.out.println("[DEBUG] Created parquet file 2: " + file2.getAbsolutePath() + ", exists: " + file2.exists() + ", size: " + file2.length());
+    
+    // List all files in salesDir
+    System.out.println("[DEBUG] Files in salesDir:");
+    File[] files = salesDir.listFiles();
+    if (files != null) {
+      for (File f : files) {
+        System.out.println("  - " + f.getName() + " (size: " + f.length() + ")");
+      }
+    }
 
     // Configure schema with custom regex partitions
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
     String engine = getExecutionEngine();
+    System.out.println("[DEBUG] Engine: " + engine);
     if (engine != null && !engine.isEmpty()) {
       operand.put("executionEngine", engine.toLowerCase());
     }
@@ -544,19 +562,36 @@ public class RefreshableTableTest extends BaseFileTest {
     partitionConfig.put("partitions", partitionSpec);
 
     operand.put("partitionedTables", Arrays.asList(partitionConfig));
+    
+    System.out.println("[DEBUG] Operand configuration:");
+    System.out.println("  - directory: " + operand.get("directory"));
+    System.out.println("  - refreshInterval: " + operand.get("refreshInterval"));
+    System.out.println("  - executionEngine: " + operand.get("executionEngine"));
+    System.out.println("  - partitionedTables: " + operand.get("partitionedTables"));
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      System.out.println("[DEBUG] Creating FileSchema with operand...");
       SchemaPlus fileSchema =
           rootSchema.add("CUSTOM", FileSchemaFactory.INSTANCE.create(rootSchema, "CUSTOM", operand));
+      System.out.println("[DEBUG] FileSchema created: " + fileSchema);
+      
+      // List tables in the schema
+      System.out.println("[DEBUG] Tables in CUSTOM schema:");
+      for (String tableName : fileSchema.getTableNames()) {
+        System.out.println("  - " + tableName);
+      }
 
       // Verify initial files are available
+      System.out.println("[DEBUG] Executing query: SELECT COUNT(*) FROM \"CUSTOM\".\"sales_custom\"");
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"CUSTOM\".\"sales_custom\"")) {
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        int count = rs.getInt(1);
+        System.out.println("[DEBUG] Initial count result: " + count);
+        assertEquals(2, count);
       }
 
       // Test basic query first to see column types

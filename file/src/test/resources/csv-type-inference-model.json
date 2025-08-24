@@ -1,9 +1,9 @@
 {
   "version": "1.0",
-  "defaultSchema": "CSV_INFER",
+  "defaultSchema": "csv_infer",
   "schemas": [
     {
-      "name": "CSV_INFER",
+      "name": "csv_infer",
       "type": "custom",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
@@ -21,7 +21,7 @@
       }
     },
     {
-      "name": "CSV_NO_INFER",
+      "name": "csv_no_infer",
       "type": "custom",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {

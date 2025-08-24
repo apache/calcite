@@ -76,27 +76,11 @@ public class ParquetJsonScannableTable extends JsonScannableTable
   }
 
   @Override public Enumerable<Object[]> scan(DataContext root) {
-    // Check if flattening is enabled
-    if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
-      // Use parent class's scan method which handles flattening
-      return super.scan(root);
-    }
-
-    // Check if this is a StorageProviderSource (HTTP, etc.) - use standard JSON processing
-    if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
-      LOGGER.debug("ParquetJsonScannableTable.scan: Detected StorageProviderSource, using standard JSON processing");
-      return super.scan(root);
-    }
-
-    // Otherwise use Parquet file enumerator for file-based sources
-    LOGGER.debug("ParquetJsonScannableTable.scan: Using ParquetFileEnumerator for source: {}", source.path());
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
-        final RelDataType rowType = getRowType(root.getTypeFactory());
-        return new ParquetFileEnumerator<>(
-            source, rowType, engineConfig.getBatchSize());
-      }
-    };
+    // For JSON files, always use the standard JSON processing
+    // The mock ParquetExecutionEngine causes ClassCastException issues with aggregation
+    // and provides no real benefit since real Parquet files use ParquetEnumerableFactory
+    LOGGER.debug("ParquetJsonScannableTable.scan: Using standard JSON processing for source: {}", source.path());
+    return super.scan(root);
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {

@@ -971,9 +971,12 @@ public class FileSchema extends AbstractSchema {
   private Source findOriginalSource(File jsonFile) {
     if (baseDirectory != null) {
       try {
+        LOGGER.debug("Looking for conversion metadata for {} in baseDirectory: {}", 
+            jsonFile.getName(), baseDirectory.getAbsolutePath());
         org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
             new org.apache.calcite.adapter.file.metadata.ConversionMetadata(baseDirectory);
         File originalFile = metadata.findOriginalSource(jsonFile);
+        LOGGER.debug("Metadata lookup result for {}: originalFile={}", jsonFile.getName(), originalFile);
         if (originalFile != null) {
           LOGGER.debug("Found original source {} for {} from metadata",
               originalFile.getName(), jsonFile.getName());
@@ -982,6 +985,24 @@ public class FileSchema extends AbstractSchema {
       } catch (Exception e) {
         LOGGER.debug("Failed to check conversion metadata: {}", e.getMessage());
       }
+    }
+
+    // Also try the JSON file's parent directory (for JSONPath extractions)
+    try {
+      File parentDir = jsonFile.getParentFile();
+      LOGGER.debug("Also looking for conversion metadata for {} in parentDir: {}", 
+          jsonFile.getName(), parentDir.getAbsolutePath());
+      org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
+          new org.apache.calcite.adapter.file.metadata.ConversionMetadata(parentDir);
+      File originalFile = metadata.findOriginalSource(jsonFile);
+      LOGGER.debug("Parent dir metadata lookup result for {}: originalFile={}", jsonFile.getName(), originalFile);
+      if (originalFile != null && originalFile.exists()) {
+        LOGGER.info("Found original source {} for {} from parent directory metadata",
+            originalFile.getName(), jsonFile.getName());
+        return Sources.of(originalFile);
+      }
+    } catch (Exception e) {
+      LOGGER.debug("Failed to check parent directory conversion metadata: {}", e.getMessage());
     }
 
     // No metadata found - this is either not a converted file or metadata is missing
@@ -2158,13 +2179,21 @@ public class FileSchema extends AbstractSchema {
           Source originalSource = null;
           try {
             if (jsonFile != null) {
+              File metadataDir = jsonFile.getParentFile();
+              LOGGER.debug("Looking for conversion metadata for {} in directory: {}", jsonFile.getName(), metadataDir.getAbsolutePath());
+              
               org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
-                  new org.apache.calcite.adapter.file.metadata.ConversionMetadata(jsonFile.getParentFile());
+                  new org.apache.calcite.adapter.file.metadata.ConversionMetadata(metadataDir);
               File origFile = metadata.findOriginalSource(jsonFile);
+              LOGGER.debug("Metadata lookup result for {}: origFile={}", jsonFile.getName(), origFile);
+              
               if (origFile != null && origFile.exists()) {
                 originalSource = Sources.of(origFile);
-                LOGGER.debug("Found original source {} for JSON file {}",
-                    origFile.getName(), jsonFile.getName());
+                LOGGER.info("Found original source {} for JSON file {} - will monitor original for changes",
+                    origFile.getAbsolutePath(), jsonFile.getName());
+              } else {
+                LOGGER.debug("No original source found for JSON file {} (origFile={}, exists={})",
+                    jsonFile.getName(), origFile, origFile != null ? origFile.exists() : "n/a");
               }
             }
           } catch (Exception e) {
@@ -2271,7 +2300,7 @@ public class FileSchema extends AbstractSchema {
           // Use refreshable version that can discover new partitions
           table =
               new RefreshablePartitionedParquetTable(config.getName(),
-                  baseDirectory, config.getPattern(), config,
+                  sourceDirectory, config.getPattern(), config,
                   engineConfig, RefreshInterval.parse(this.refreshInterval));
         } else {
           // Use standard version

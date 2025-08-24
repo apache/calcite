@@ -24,15 +24,19 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,8 +46,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class ExcelFileTest {
+  private static final Logger LOGGER = Logger.getLogger(ExcelFileTest.class.getName());
+  private Path tempDir;
 
-  @Test public void testExcelFileConversion(@TempDir Path tempDir) throws IOException {
+  @BeforeEach
+  public void setUp() throws IOException {
+    // Create manual temp directory with timestamp
+    String tmpDir = System.getProperty("java.io.tmpdir");
+    tempDir = Path.of(tmpDir, "calcite_test_" + System.currentTimeMillis() + "_" + Thread.currentThread().threadId());
+    Files.createDirectories(tempDir);
+  }
+
+  @AfterEach
+  public void tearDown() {
+    // Best-effort cleanup - never fail
+    if (tempDir != null && Files.exists(tempDir)) {
+      try {
+        // Recursively delete directory
+        Files.walk(tempDir)
+            .sorted(Comparator.reverseOrder())
+            .map(Path::toFile)
+            .forEach(file -> {
+              try {
+                if (!file.delete()) {
+                  // Log but don't fail
+                  LOGGER.fine("Could not delete: " + file.getAbsolutePath());
+                }
+              } catch (Exception e) {
+                // Log but don't fail
+                LOGGER.fine("Error deleting file " + file.getAbsolutePath() + ": " + e.getMessage());
+              }
+            });
+      } catch (IOException e) {
+        // Log but never fail the test
+        LOGGER.fine("Could not cleanup temp directory " + tempDir + ": " + e.getMessage());
+      }
+    }
+  }
+
+  @Test public void testExcelFileConversion() throws IOException {
     // Create a test Excel file with two sheets
     File excelFile = new File(tempDir.toFile(), "TestData.xlsx");
     createTestExcelFile(excelFile);
@@ -84,7 +125,7 @@ public class ExcelFileTest {
     assertNotNull(sheet1Table, "Sheet1 table should exist");
   }
 
-  @Test public void testExcelFileWithSubdirectory(@TempDir Path tempDir) throws IOException {
+  @Test public void testExcelFileWithSubdirectory() throws IOException {
     // Create a subdirectory
     File subDir = new File(tempDir.toFile(), "data");
     subDir.mkdir();
@@ -114,7 +155,7 @@ public class ExcelFileTest {
     assertNotNull(tables.get("data_sales__orders"), "Should have table for data/Sales__Orders");
   }
 
-  @Test public void testExcelFileDirectoryProcessing(@TempDir Path tempDir) throws IOException {
+  @Test public void testExcelFileDirectoryProcessing() throws IOException {
     // Create test Excel file in directory (this is the supported approach)
     File excelFile = new File(tempDir.toFile(), "DirectTest.xlsx");
     createTestExcelFile(excelFile);

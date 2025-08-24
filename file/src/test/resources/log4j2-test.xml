@@ -53,6 +53,10 @@
     <logger name="org.apache.calcite.adapter.file.FileSchema" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.converters.FileConversionManager" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.converters.HtmlToJsonConverter" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.refresh" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.table.RefreshablePartitionedParquetTable" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.table.RefreshableParquetCacheTable" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.table.RefreshableJsonTable" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file" level="WARN"/>
   </Loggers>
 </Configuration>
