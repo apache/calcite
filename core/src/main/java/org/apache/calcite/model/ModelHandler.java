@@ -43,6 +43,7 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.EnvironmentVariableSubstitutor;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -98,10 +99,18 @@ public class ModelHandler {
       mapper = (inline.startsWith("/*") || inline.startsWith("{"))
           ? JSON_MAPPER
           : YAML_MAPPER;
-      root = mapper.readValue(inline, JsonRoot.class);
+      // Substitute environment variables before parsing
+      String substituted = EnvironmentVariableSubstitutor.substituteInJson(inline);
+      root = mapper.readValue(substituted, JsonRoot.class);
     } else {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
-      root = mapper.readValue(new File(uri), JsonRoot.class);
+      // Read file as string first to perform environment variable substitution
+      File modelFile = new File(uri);
+      String fileContent = new String(java.nio.file.Files.readAllBytes(modelFile.toPath()), 
+                                     java.nio.charset.StandardCharsets.UTF_8);
+      // Substitute environment variables before parsing
+      String substituted = EnvironmentVariableSubstitutor.substituteInJson(fileContent);
+      root = mapper.readValue(substituted, JsonRoot.class);
     }
     visit(root);
     this.defaultSchemaName = root.defaultSchema;
