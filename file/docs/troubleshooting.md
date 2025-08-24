@@ -2,6 +2,50 @@
 
 This guide covers common issues, error messages, and solutions when using the Apache Calcite File Adapter.
 
+## Environment Variable Issues
+
+### Environment Variable Not Found
+
+**Error:**
+```
+java.lang.IllegalArgumentException: Environment variable 'DATA_DIR' is not defined and no default value was provided
+```
+
+**Solution:**
+1. Set the environment variable before starting:
+   ```bash
+   export DATA_DIR=/path/to/data
+   ./sqlline -m model.json
+   ```
+
+2. Provide a default value in the model:
+   ```json
+   {
+     "directory": "${DATA_DIR:/default/path}"
+   }
+   ```
+
+3. Use system properties for testing:
+   ```bash
+   java -DDATA_DIR=/path/to/data -jar calcite.jar
+   ```
+
+### Debugging Environment Variables
+
+**Check what variables are available:**
+```bash
+# List all environment variables
+env | grep CALCITE
+
+# Check specific variable
+echo $CALCITE_FILE_ENGINE_TYPE
+```
+
+**Common variable naming issues:**
+- Case sensitivity: `${data_dir}` ≠ `${DATA_DIR}`
+- Typos: `${CALCITE_ENGINGE_TYPE}` → `${CALCITE_ENGINE_TYPE}`
+- Missing exports: `DATA_DIR=/path` → `export DATA_DIR=/path`
+
 ## Common Configuration Issues
 
 ### Schema Not Found
