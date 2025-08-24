@@ -50,6 +50,9 @@
     <logger name="org.apache.calcite.adapter.file.table.CsvTable" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.FileSchema" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.converters.FileConversionManager" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.converters.HtmlToJsonConverter" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file" level="WARN"/>
   </Loggers>
 </Configuration>
