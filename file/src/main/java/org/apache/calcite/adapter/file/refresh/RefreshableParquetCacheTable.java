@@ -116,6 +116,20 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     this.parentSchema = parentSchema;
     this.fileSchemaName = fileSchemaName;
     
+    // Initialize the last modified time 
+    File fileToMonitor = originalSource != null ? 
+        new File(originalSource.path()) : new File(source.path());
+    if (fileToMonitor.exists()) {
+      // For refresh scenarios, start with 0 so first refresh will detect changes
+      this.lastModifiedTime = refreshInterval != null ? 0 : fileToMonitor.lastModified();
+      LOGGER.info("RefreshableParquetCacheTable initialized for {} - monitoring {} (originalSource={}) with lastModifiedTime={} (refresh={})",
+                   source.path(), fileToMonitor.getPath(), originalSource != null ? originalSource.path() : "null", 
+                   this.lastModifiedTime, refreshInterval != null ? "enabled" : "disabled");
+    } else {
+      LOGGER.warn("RefreshableParquetCacheTable initialized for {} - file to monitor does not exist: {} (originalSource={})",
+                  source.path(), fileToMonitor.getPath(), originalSource != null ? originalSource.path() : "null");
+    }
+    
     // Initialize delegate table
     updateDelegateTable();
   }
@@ -139,8 +153,8 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     File fileToMonitor = originalSource != null ? 
         new File(originalSource.path()) : new File(source.path());
     
-    LOGGER.debug("Monitoring file: {} (exists: {}, lastModified: {})", 
-                 fileToMonitor.getPath(), fileToMonitor.exists(), fileToMonitor.lastModified());
+    LOGGER.debug("Monitoring file: {} (exists: {}, lastModified: {}, lastTracked: {})", 
+                 fileToMonitor.getPath(), fileToMonitor.exists(), fileToMonitor.lastModified(), lastModifiedTime);
     
     // Check if monitored file has been modified since our last refresh
     if (isFileModified(fileToMonitor)) {
