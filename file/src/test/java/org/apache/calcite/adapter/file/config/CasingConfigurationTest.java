@@ -16,16 +16,19 @@
  */
 package org.apache.calcite.adapter.file.config;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -42,13 +45,41 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("unit")
 public class CasingConfigurationTest {
 
-  @TempDir
-  public File tempDir;
+  private File tempDir;
+
+  @BeforeEach
+  public void setUp() throws Exception {
+    tempDir = Files.createTempDirectory("casing-test").toFile();
+  }
+
+  @AfterEach
+  public void tearDown() {
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteDirectory(tempDir);
+      } catch (Exception e) {
+        // Non-fatal cleanup error
+        System.err.println("Warning: Failed to clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] children = dir.listFiles();
+      if (children != null) {
+        for (File child : children) {
+          deleteDirectory(child);
+        }
+      }
+    }
+    dir.delete();
+  }
 
   @Test void testUppercaseTableAndColumnNames() throws Exception {
     createTestCsvFile(new File(tempDir, "TestFile.csv"));
 
-    String model = createModelWithCasing("UPPER", "UPPER");
+    String model = BaseFileTest.addEphemeralCacheToModel(createModelWithCasing("UPPER", "UPPER"));
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
@@ -75,7 +106,7 @@ public class CasingConfigurationTest {
   @Test void testLowercaseTableAndColumnNames() throws Exception {
     createTestCsvFile(new File(tempDir, "TestFile.csv"));
 
-    String model = createModelWithCasing("LOWER", "LOWER");
+    String model = BaseFileTest.addEphemeralCacheToModel(createModelWithCasing("LOWER", "LOWER"));
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
@@ -102,7 +133,7 @@ public class CasingConfigurationTest {
   @Test void testUnchangedTableAndColumnNames() throws Exception {
     createTestCsvFile(new File(tempDir, "TestFile.csv"));
 
-    String model = createModelWithCasing("UNCHANGED", "UNCHANGED");
+    String model = BaseFileTest.addEphemeralCacheToModel(createModelWithCasing("UNCHANGED", "UNCHANGED"));
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
@@ -130,7 +161,7 @@ public class CasingConfigurationTest {
     createTestCsvFile(new File(tempDir, "TestFile.csv"));
 
     // Test uppercase table names with lowercase column names
-    String model = createModelWithCasing("UPPER", "LOWER");
+    String model = BaseFileTest.addEphemeralCacheToModel(createModelWithCasing("UPPER", "LOWER"));
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
@@ -159,7 +190,7 @@ public class CasingConfigurationTest {
 
     // Test default behavior with project standard: LEX=ORACLE and UNQUOTED_CASING=TO_LOWER
     // Default table casing is SMART_CASING which converts "TestFile" to "test_file"
-    String model = createModelWithoutCasing();
+    String model = BaseFileTest.addEphemeralCacheToModel(createModelWithoutCasing());
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model
         + ";lex=ORACLE;unquotedCasing=TO_LOWER")) {
@@ -187,7 +218,7 @@ public class CasingConfigurationTest {
     createTestCsvFile(new File(tempDir, "TestFile.csv"));
 
     // Test snake_case configuration names (as used in JDBC URLs)
-    String model = createModelWithSnakeCasing("UPPER", "UPPER");
+    String model = BaseFileTest.addEphemeralCacheToModel(createModelWithSnakeCasing("UPPER", "UPPER"));
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
@@ -213,17 +244,17 @@ public class CasingConfigurationTest {
 
   private String createModelWithCasing(String tableNameCasing, String columnNameCasing) {
     return "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'TEST',\n"
-        + "  schemas: [\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"TEST\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'TEST',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        tableNameCasing: '" + tableNameCasing + "',\n"
-        + "        columnNameCasing: '" + columnNameCasing + "'\n"
+        + "      \"name\": \"TEST\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"tableNameCasing\": \"" + tableNameCasing + "\",\n"
+        + "        \"columnNameCasing\": \"" + columnNameCasing + "\"\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -232,17 +263,17 @@ public class CasingConfigurationTest {
 
   private String createModelWithSnakeCasing(String tableNameCasing, String columnNameCasing) {
     return "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'TEST',\n"
-        + "  schemas: [\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"TEST\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'TEST',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        table_name_casing: '" + tableNameCasing + "',\n"
-        + "        column_name_casing: '" + columnNameCasing + "'\n"
+        + "      \"name\": \"TEST\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"table_name_casing\": \"" + tableNameCasing + "\",\n"
+        + "        \"column_name_casing\": \"" + columnNameCasing + "\"\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -251,15 +282,15 @@ public class CasingConfigurationTest {
 
   private String createModelWithoutCasing() {
     return "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'TEST',\n"
-        + "  schemas: [\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"TEST\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'TEST',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "'\n"
+        + "      \"name\": \"TEST\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\"\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"

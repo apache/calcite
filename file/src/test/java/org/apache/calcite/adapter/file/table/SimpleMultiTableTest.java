@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
@@ -32,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Simple test to show what tables are extracted from Excel files.
  */
 @Tag("unit")
-public class SimpleMultiTableTest {
+public class SimpleMultiTableTest extends BaseFileTest {
   @TempDir
   Path tempDir;
 
@@ -57,8 +58,11 @@ public class SimpleMultiTableTest {
 
     // Use FileSchema to see what tables it creates
     try {
+      // FileSchema will create tempDir/.aperio/TEST as the actual base directory
       FileSchema schema =
-          new FileSchema(null, "TEST", tempDir.toFile(), null, new ExecutionEngineConfig(), false, null, null);
+          new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), false, null, null, null, null,
+              "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
       System.out.println("\nTables extracted from " + targetFile.getName() + ":");
       for (String tableName : schema.getTableMap().keySet()) {

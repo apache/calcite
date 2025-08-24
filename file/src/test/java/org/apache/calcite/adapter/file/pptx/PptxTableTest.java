@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.converters.PptxTableScanner;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.avatica.util.Casing;
@@ -56,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for PPTX table extraction in the file adapter.
  */
 @Tag("unit")
-public class PptxTableTest {
+public class PptxTableTest extends BaseFileTest {
   @TempDir
   Path tempDir;
 
@@ -344,8 +345,10 @@ public class PptxTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toFile());
 
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null,
-        new ExecutionEngineConfig(), false, null, null, null, null);
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        getEngineConfig(), false, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     // Convert PPTX files first
     PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
@@ -373,10 +376,12 @@ public class PptxTableTest {
     // Create schema and run query
     final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
 
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
-        .withSchema("pptx", new FileSchema(null, "TEST", tempDir.toFile(), null, null,
-            new ExecutionEngineConfig(), false, null, null, null, null))
+        .withSchema("pptx", new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+            getEngineConfig(), false, null, null, null, null,
+            "SMART_CASING", "SMART_CASING", null, null, null, null, true))
         .query("SELECT * FROM \"pptx\".\"sales_presentation__q4_sales_results__regional_performance\" " +
                "WHERE CAST(\"sales\" AS INTEGER) > 100000")
         .returnsCount(2); // North (120000) and East (145000) have sales > 100000
@@ -463,8 +468,10 @@ public class PptxTableTest {
     PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
 
     // Create schema with the PPTX files
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null,
-        new ExecutionEngineConfig(), false, null, null, null, null);
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        getEngineConfig(), false, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     // Test querying with the complex names (now lowercase columns, snake_case table names with SMART_CASING)
     CalciteAssert.that()

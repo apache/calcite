@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
+
 import org.apache.calcite.adapter.file.refresh.RefreshInterval;
 import org.apache.calcite.adapter.file.refresh.RefreshableTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableJsonTable;
@@ -37,6 +39,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -63,7 +67,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @SuppressWarnings("deprecation")
 @Tag("unit")
-public class RefreshableTableTest {
+public class RefreshableTableTest extends BaseFileTest {
+  
+  /**
+   * Checks if refresh functionality is supported by the current engine.
+   * Refresh only works with PARQUET and DUCKDB engines.
+   */
+  private boolean isRefreshSupported() {
+    String engine = getExecutionEngine();
+    if (engine == null || engine.isEmpty()) {
+      return true; // Default engine supports refresh
+    }
+    String engineUpper = engine.toUpperCase();
+    return "PARQUET".equals(engineUpper) || "DUCKDB".equals(engineUpper);
+  }
   @TempDir
   java.nio.file.Path tempDir;
 
@@ -106,11 +123,15 @@ public class RefreshableTableTest {
 
   @Test 
   public void testRefreshableJsonTable() throws Exception {
+    assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     // Create schema with refresh interval
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "2 seconds");
-    operand.put("executionEngine", "parquet");
+    String engine = getExecutionEngine();
+    if (engine != null && !engine.isEmpty()) {
+      operand.put("executionEngine", engine.toLowerCase());
+    }
 
     Properties connectionProps = new Properties();
     connectionProps.setProperty("lex", "ORACLE");
@@ -168,11 +189,15 @@ public class RefreshableTableTest {
   }
 
   @Test public void testTableLevelRefreshOverride() throws Exception {
+    assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     // Create schema with default refresh interval
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "10 minutes");
-    operand.put("executionEngine", "parquet");
+    String engine = getExecutionEngine();
+    if (engine != null && !engine.isEmpty()) {
+      operand.put("executionEngine", engine.toLowerCase());
+    }
 
     // Add table with override
     Map<String, Object> tableConfig = new HashMap<>();
@@ -219,6 +244,7 @@ public class RefreshableTableTest {
   }
 
   @Test public void testRefreshBehavior() throws Exception {
+    assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     File file1 = new File(tempDir.toFile(), "data1.json");
     File file2 = new File(tempDir.toFile(), "data2.json");
 
@@ -228,7 +254,10 @@ public class RefreshableTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
-    operand.put("executionEngine", "linq4j");
+    String engine = getExecutionEngine();
+    if (engine != null && !engine.isEmpty()) {
+      operand.put("executionEngine", engine.toLowerCase());
+    }
 
     Properties connectionProps = new Properties();
     connectionProps.setProperty("lex", "ORACLE");
@@ -272,6 +301,7 @@ public class RefreshableTableTest {
   }
 
   @Test public void testPartitionedParquetTableRefresh() throws Exception {
+    assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     // Create partitioned directory structure with initial partitions
     File salesDir = new File(tempDir.toFile(), "sales");
     salesDir.mkdirs();
@@ -302,7 +332,10 @@ public class RefreshableTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
-    operand.put("executionEngine", "parquet"); // Use parquet engine
+    String engine = getExecutionEngine();
+    if (engine != null && !engine.isEmpty()) {
+      operand.put("executionEngine", engine.toLowerCase());
+    } // Use parquet engine
 
     // Configure partitioned table
     Map<String, Object> partitionConfig = new HashMap<>();
@@ -466,6 +499,7 @@ public class RefreshableTableTest {
   }
 
   @Test public void testCustomRegexPartitions() throws Exception {
+    assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     // Create directory structure for custom partition naming: sales_2023_01.parquet
     File salesDir = new File(tempDir.toFile(), "sales_data");
     salesDir.mkdirs();
@@ -489,7 +523,10 @@ public class RefreshableTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
-    operand.put("executionEngine", "parquet");
+    String engine = getExecutionEngine();
+    if (engine != null && !engine.isEmpty()) {
+      operand.put("executionEngine", engine.toLowerCase());
+    }
 
     // Configure custom regex partitioned table
     Map<String, Object> partitionConfig = new HashMap<>();

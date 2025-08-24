@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
@@ -50,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for multi-table Excel detection feature.
  */
 @Tag("unit")
-public class MultiTableExcelTest {
+public class MultiTableExcelTest extends BaseFileTest {
   @TempDir
   Path tempDir;
 
@@ -125,9 +126,12 @@ public class MultiTableExcelTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // FileSchema will create tempDir/.aperio/excel as the actual base directory
       rootSchema.add("excel",
-          new FileSchema(rootSchema, "excel", tempDir.toFile(), null,
-              new ExecutionEngineConfig(), false, null, null));
+          new FileSchema(rootSchema, "excel", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), false, null, null, null, null,
+              "SMART_CASING", "SMART_CASING", null, null, null, null, true));
 
       try (Statement statement = connection.createStatement()) {
         // Query the first table - table names use SMART_CASING (lowercase)
@@ -174,9 +178,12 @@ public class MultiTableExcelTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // FileSchema will create tempDir/.aperio/excel as the actual base directory
       rootSchema.add("excel",
-          new FileSchema(rootSchema, "excel", tempDir.toFile(), null,
-              new ExecutionEngineConfig(), false, null, null));
+          new FileSchema(rootSchema, "excel", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), false, null, null, null, null,
+              "SMART_CASING", "SMART_CASING", null, null, null, null, true));
 
       try (Statement statement = connection.createStatement()) {
         // Count tables found

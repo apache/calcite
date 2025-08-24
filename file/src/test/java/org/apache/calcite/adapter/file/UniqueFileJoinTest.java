@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test join reordering with unique source files to eliminate cache conflicts.
  */
 @Tag("unit")
-public class UniqueFileJoinTest {
+public class UniqueFileJoinTest extends BaseFileTest {
 
   @Test
   public void testJoinWithUniqueFiles() throws Exception {
@@ -178,6 +179,11 @@ public class UniqueFileJoinTest {
   }
   
   private String createUniqueModel(File tempDir, String uniqueId) {
+    String engineLine = "";
+    String engine = getExecutionEngine();
+    if (engine != null && !engine.isEmpty()) {
+      engineLine = "        \"executionEngine\": \"" + engine.toLowerCase() + "\",\n";
+    }
     return "{\n" +
            "  \"version\": \"1.0\",\n" +
            "  \"defaultSchema\": \"SALES\",\n" +
@@ -188,6 +194,8 @@ public class UniqueFileJoinTest {
            "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n" +
            "      \"operand\": {\n" +
            "        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n" +
+           "        \"baseDirectory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n" +
+           engineLine +
            "        \"flavor\": \"TRANSLATABLE\"\n" +
            "      }\n" +
            "    }\n" +

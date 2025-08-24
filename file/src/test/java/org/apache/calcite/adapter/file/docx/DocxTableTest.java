@@ -29,10 +29,10 @@ import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -50,21 +50,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class DocxTableTest {
-  @TempDir
-  Path tempDir;
-
+  private File tempDir;
   private File simpleDocxFile;
   private File complexDocxFile;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Create temporary directory manually
+    tempDir = Files.createTempDirectory("docx-test").toFile();
+    
     // Create test DOCX files
     createSimpleDocxFile();
     createComplexDocxFile();
   }
 
+  @AfterEach
+  public void tearDown() {
+    // Clean up temporary directory - non-fatal
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteDirectory(tempDir);
+      } catch (Exception e) {
+        // Cleanup failure should not fail the test
+        System.err.println("Warning: Failed to clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectory(File directory) {
+    try {
+      File[] files = directory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          if (file.isDirectory()) {
+            deleteDirectory(file);
+          } else {
+            file.delete();
+          }
+        }
+      }
+      directory.delete();
+    } catch (Exception e) {
+      // Ignore cleanup errors
+    }
+  }
+
   private void createSimpleDocxFile() throws IOException {
-    simpleDocxFile = new File(tempDir.toFile(), "products.docx");
+    simpleDocxFile = new File(tempDir, "products.docx");
 
     try (XWPFDocument document = new XWPFDocument()) {
       // Add title
@@ -116,7 +148,7 @@ public class DocxTableTest {
   }
 
   private void createComplexDocxFile() throws IOException {
-    complexDocxFile = new File(tempDir.toFile(), "quarterly_report.docx");
+    complexDocxFile = new File(tempDir, "quarterly_report.docx");
 
     try (XWPFDocument document = new XWPFDocument()) {
       // Document title
@@ -189,10 +221,10 @@ public class DocxTableTest {
 
   @Test public void testDocxTableExtraction() throws Exception {
     // Run the DOCX scanner
-    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir);
 
     // Check that JSON file was created
-    File jsonFile = new File(tempDir.toFile(), "products__current_products.json");
+    File jsonFile = new File(tempDir, "products__current_products.json");
     assertTrue(jsonFile.exists(), "JSON file should be created from DOCX table");
 
     // Verify content
@@ -204,11 +236,11 @@ public class DocxTableTest {
 
   @Test public void testMultipleTablesInDocx() throws Exception {
     // Run the DOCX scanner
-    DocxTableScanner.scanAndConvertTables(complexDocxFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(complexDocxFile, tempDir);
 
     // Check that both JSON files were created
-    File salesFile = new File(tempDir.toFile(), "quarterly_report__regional_sales_summary.json");
-    File employeeFile = new File(tempDir.toFile(), "quarterly_report__employee_performance.json");
+    File salesFile = new File(tempDir, "quarterly_report__regional_sales_summary.json");
+    File employeeFile = new File(tempDir, "quarterly_report__employee_performance.json");
 
     assertTrue(salesFile.exists(), "Sales summary JSON should be created");
     assertTrue(employeeFile.exists(), "Employee performance JSON should be created");
@@ -225,7 +257,7 @@ public class DocxTableTest {
   }
 
   @Test public void testDocxWithGroupHeaders() throws Exception {
-    File groupHeaderFile = new File(tempDir.toFile(), "budget.docx");
+    File groupHeaderFile = new File(tempDir, "budget.docx");
 
     try (XWPFDocument document = new XWPFDocument()) {
       // Document title
@@ -270,9 +302,9 @@ public class DocxTableTest {
       }
     }
 
-    DocxTableScanner.scanAndConvertTables(groupHeaderFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(groupHeaderFile, tempDir);
 
-    File jsonFile = new File(tempDir.toFile(), "budget__department_budgets.json");
+    File jsonFile = new File(tempDir, "budget__department_budgets.json");
     assertTrue(jsonFile.exists(), "JSON file with group headers should be created");
 
     String content = Files.readString(jsonFile.toPath());
@@ -282,20 +314,22 @@ public class DocxTableTest {
   }
 
   @Test public void testDocxInFileSchema() throws Exception {
-    // Create a simple schema with DOCX files
-    Map<String, Object> operand = new HashMap<>();
-    operand.put("directory", tempDir.toFile());
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    File sourceDir = tempDir;
 
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
+    // Create FileSchema with proper source and base directory configuration
+    FileSchema schema = new FileSchema(null, "TEST", sourceDir, tempDir, null, null, 
+        new ExecutionEngineConfig(), false, null, null, null, null, 
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
-    // Convert DOCX files first
-    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir.toFile());
-    DocxTableScanner.scanAndConvertTables(complexDocxFile, tempDir.toFile());
+    // FileSchema should automatically detect and convert DOCX files via FileConversionManager
+    // No manual conversion needed - it will happen when getTableMap() is called
 
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
 
-    // Tables should be created from the generated JSON files
+    // Tables should be created from the generated JSON files in base directory
     assertTrue(tables.containsKey("products__current_products"),
         "Should have products__current_products table");
     assertTrue(tables.containsKey("quarterly_report__regional_sales_summary"),
@@ -306,20 +340,25 @@ public class DocxTableTest {
 
   @Test public void testDocxTableQuery() throws Exception {
     // Run the scanner first
-    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir);
+
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
 
     // Create schema and run query
-    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
+    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir);
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
-        .withSchema("docx", new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
+        .withSchema("docx", new FileSchema(null, "TEST", tempDir, tempDir, null, null, 
+            new ExecutionEngineConfig(), false, null, null, null, null, 
+            "SMART_CASING", "SMART_CASING", null, null, null, null, true))
         .query("SELECT * FROM \"docx\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }
 
   @Test public void testEmptyDocxFile() throws Exception {
-    File emptyFile = new File(tempDir.toFile(), "empty.docx");
+    File emptyFile = new File(tempDir, "empty.docx");
 
     try (XWPFDocument document = new XWPFDocument()) {
       XWPFParagraph para = document.createParagraph();
@@ -331,16 +370,16 @@ public class DocxTableTest {
     }
 
     // Should not throw exception
-    DocxTableScanner.scanAndConvertTables(emptyFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(emptyFile, tempDir);
 
     // No JSON files should be created
-    File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
+    File[] jsonFiles = tempDir.listFiles((dir, name) ->
         name.startsWith("Empty") && name.endsWith(".json"));
     assertEquals(0, jsonFiles.length, "No JSON files should be created for empty DOCX");
   }
 
   @Test public void testDocxTableWithoutTitle() throws Exception {
-    File noTitleFile = new File(tempDir.toFile(), "no_title.docx");
+    File noTitleFile = new File(tempDir, "no_title.docx");
 
     try (XWPFDocument document = new XWPFDocument()) {
       // Just add a table without any preceding title
@@ -359,10 +398,10 @@ public class DocxTableTest {
       }
     }
 
-    DocxTableScanner.scanAndConvertTables(noTitleFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(noTitleFile, tempDir);
 
     // Should create file without Table suffix since there's only one table
-    File jsonFile = new File(tempDir.toFile(), "no_title.json");
+    File jsonFile = new File(tempDir, "no_title.json");
     assertTrue(jsonFile.exists(), "Should create table with generic name when no heading");
   }
 }

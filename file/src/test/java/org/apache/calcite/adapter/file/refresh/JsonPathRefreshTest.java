@@ -89,6 +89,12 @@ public class JsonPathRefreshTest {
   
   @Test
   public void testJsonPathExtractionRefresh() throws Exception {
+    // Skip for engines that don't support refresh
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr))) {
+      org.junit.jupiter.api.Assumptions.assumeTrue(false,
+          "Skipping refresh test for " + engineStr + " engine (refresh not supported)");
+    }
     
     // Create a source JSON file with nested data
     File sourceJsonFile = new File(schemaDir, "api_data.json");
@@ -207,6 +213,12 @@ public class JsonPathRefreshTest {
   
   @Test
   public void testMultipleJsonPathExtractions() throws Exception {
+    // Skip for engines that don't support refresh
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr))) {
+      org.junit.jupiter.api.Assumptions.assumeTrue(false,
+          "Skipping refresh test for " + engineStr + " engine (refresh not supported)");
+    }
     
     // Create a source JSON file with multiple extractable sections
     File sourceJsonFile = new File(schemaDir, "multi_data.json");

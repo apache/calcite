@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.html;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -48,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for multi-table HTML support.
  */
 @Tag("unit")
-public class MultiTableHtmlTest {
+public class MultiTableHtmlTest extends BaseFileTest {
   @TempDir
   Path tempDir;
 
@@ -149,8 +150,13 @@ public class MultiTableHtmlTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // modelBaseDirectory is the parent directory where .aperio will be created
+      // FileSchema will create tempDir/.aperio/html as the actual base directory
       FileSchema fileSchema =
-          new FileSchema(rootSchema, "html", tempDir.toFile(), null, null, new ExecutionEngineConfig(), true, null, null, null, null, "LOWER", "LOWER");
+          new FileSchema(rootSchema, "html", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), true, null, null, null, null,
+              "LOWER", "LOWER", null, null, null, null, true);
       SchemaPlus htmlSchema = rootSchema.add("html", fileSchema);
 
       // Force table discovery
@@ -218,9 +224,13 @@ public class MultiTableHtmlTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // modelBaseDirectory is the parent directory where .aperio will be created
+      // FileSchema will create tempDir/.aperio/html as the actual base directory
       rootSchema.add("html",
-          new FileSchema(rootSchema, "html", tempDir.toFile(), null, null,
-              new ExecutionEngineConfig(), false, null, null, null, null, "LOWER", "LOWER"));
+          new FileSchema(rootSchema, "html", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), false, null, null, null, null,
+              "LOWER", "LOWER", null, null, null, null, true));
 
       try (Statement statement = connection.createStatement()) {
         // HTML files should be processed even when recursive=false
@@ -249,8 +259,13 @@ public class MultiTableHtmlTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // modelBaseDirectory is the parent directory where .aperio will be created
+      // FileSchema will create tempDir/.aperio/html as the actual base directory
       FileSchema fileSchema =
-          new FileSchema(rootSchema, "html", tempDir.toFile(), null, null, new ExecutionEngineConfig(), true, null, null, null, null, "LOWER", "LOWER");
+          new FileSchema(rootSchema, "html", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), true, null, null, null, null,
+              "LOWER", "LOWER", null, null, null, null, true);
       SchemaPlus htmlSchema = rootSchema.add("html", fileSchema);
 
       // Force table discovery
@@ -310,9 +325,13 @@ public class MultiTableHtmlTest {
                   "url", "file://" + new File(tempDir.toFile(), "multi_table_test.html").getAbsolutePath(),
                   "selector", "#sales_data"));
 
+      // Set up base directory for converted files
+      File baseDir = new File(tempDir.toFile(), ".aperio");
+      
       rootSchema.add("html",
-          new FileSchema(rootSchema, "html", null, null, tableDefs,
-              new ExecutionEngineConfig(), false, null, null, null, null, "LOWER", "LOWER"));
+          new FileSchema(rootSchema, "html", null, baseDir, null, tableDefs,
+              getEngineConfig(), false, null, null, null, null,
+              "LOWER", "LOWER", null, null, null, null, true));
 
       try (Statement statement = connection.createStatement()) {
         // Should only find the explicitly defined table

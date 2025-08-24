@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
@@ -46,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for recursive directory scanning feature.
  */
 @Tag("unit")
-public class RecursiveDirectoryTest {
+public class RecursiveDirectoryTest extends BaseFileTest {
   @TempDir
   Path tempDir;
 
@@ -114,9 +115,12 @@ public class RecursiveDirectoryTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // FileSchema will create tempDir/.aperio/FILES as the actual base directory
       rootSchema.add("FILES",
-          new FileSchema(rootSchema, "FILES", tempDir.toFile(), null,
-              new ExecutionEngineConfig(), true, null, null));
+          new FileSchema(rootSchema, "FILES", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), true, null, null, null, null,
+              "SMART_CASING", "SMART_CASING", null, null, null, null, true));
 
       try (Statement statement = connection.createStatement()) {
         // Query all files from all levels
@@ -154,9 +158,12 @@ public class RecursiveDirectoryTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // FileSchema will create tempDir/.aperio/FILES as the actual base directory
       rootSchema.add("FILES",
-          new FileSchema(rootSchema, "FILES", tempDir.toFile(), null,
-              new ExecutionEngineConfig(), false, null, null));
+          new FileSchema(rootSchema, "FILES", tempDir.toFile(), tempDir.toFile(), null, null,
+              getEngineConfig(), false, null, null, null, null,
+              "SMART_CASING", "SMART_CASING", null, null, null, null, true));
 
       try (Statement statement = connection.createStatement()) {
         // Count tables - should only find root level

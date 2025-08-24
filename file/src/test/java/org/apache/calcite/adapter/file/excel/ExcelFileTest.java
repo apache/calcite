@@ -55,18 +55,25 @@ public class ExcelFileTest {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
     
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(),
-        com.google.common.collect.ImmutableList.of(), engineConfig);
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        engineConfig, false, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     // Get table map which should trigger Excel conversion
     Map<String, Table> tables = schema.getTableMap();
 
     // Verify that JSON files were created for each sheet (SMART_CASING makes them snake_case)
-    File sheet1Json = new File(tempDir.toFile(), "test_data__sheet1.json");
-    File sheet2Json = new File(tempDir.toFile(), "test_data__orders.json");
+    // FileSchema creates .aperio/TEST as base directory, and converts to .aperio/TEST/conversions
+    File baseDir = new File(tempDir.toFile(), ".aperio/TEST");
+    File conversionsDir = new File(baseDir, "conversions");
+    File sheet1Json = new File(conversionsDir, "test_data__sheet1.json");
+    File sheet2Json = new File(conversionsDir, "test_data__orders.json");
 
-    assertTrue(sheet1Json.exists(), "Sheet1 JSON file should exist");
-    assertTrue(sheet2Json.exists(), "Orders JSON file should exist");
+    // Excel files should be converted to JSON for all engines
+    assertTrue(sheet1Json.exists(), "Sheet1 JSON file should exist at: " + sheet1Json.getAbsolutePath());
+    assertTrue(sheet2Json.exists(), "Orders JSON file should exist at: " + sheet2Json.getAbsolutePath());
 
     // Verify that tables were created for the converted files (SMART_CASING makes them snake_case)
     assertNotNull(tables.get("test_data__sheet1"), "Should have table for Sheet1");
@@ -93,12 +100,16 @@ public class ExcelFileTest {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
     
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(),
-        com.google.common.collect.ImmutableList.of(), engineConfig, true);
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        engineConfig, true, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     Map<String, Table> tables = schema.getTableMap();
 
-    // Verify tables are created with correct names including subdirectory (SMART_CASING makes them snake_case)
+    // When Excel files in subdirectories are converted, the directory structure is preserved
+    // So "data/Sales.xlsx" becomes "data_sales__sheet1.json" and "data_sales__orders.json"
     assertNotNull(tables.get("data_sales__sheet1"), "Should have table for data/Sales__Sheet1");
     assertNotNull(tables.get("data_sales__orders"), "Should have table for data/Sales__Orders");
   }
@@ -115,8 +126,11 @@ public class ExcelFileTest {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
     
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), 
-        com.google.common.collect.ImmutableList.of(), engineConfig);
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        engineConfig, false, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
     Map<String, Table> tableMap = schema.getTableMap();
 
     // After processing, the Excel file should be converted and tables created with proper names (SMART_CASING makes them snake_case)

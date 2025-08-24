@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -283,9 +284,10 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testTypeInferrerDirectly() throws Exception {
-    // Use absolute path to test resources
-    String basePath = System.getProperty("user.dir");
-    File csvFile = new File(basePath, "src/test/resources/csv-type-inference/mixed-types.csv");
+    // Use ClassLoader resource loading to find the CSV file
+    URL resourceUrl = getClass().getResource("/csv-type-inference/mixed-types.csv");
+    assertNotNull(resourceUrl, "Test CSV file should be accessible as a resource");
+    File csvFile = new File(resourceUrl.toURI());
 
     // Make sure file exists
     assertTrue(csvFile.exists(), "Test CSV file should exist at: " + csvFile.getAbsolutePath());

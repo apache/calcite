@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
+import org.apache.calcite.adapter.file.BaseFileTest;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test that Statement queries benefit from plan caching.
  */
 @Tag("unit")
-public class StatementCacheTest {
+public class StatementCacheTest extends BaseFileTest {
     @TempDir
     java.nio.file.Path tempDir;
     
@@ -62,7 +63,10 @@ public class StatementCacheTest {
             // Create a simple test schema
             Map<String, Object> operand = new LinkedHashMap<>();
             operand.put("directory", tempDir.toString());
-            operand.put("executionEngine", "parquet");
+            String engine = getExecutionEngine();
+            if (engine != null && !engine.isEmpty()) {
+                operand.put("executionEngine", engine.toLowerCase());
+            }
             
             rootSchema.add("TEST", 
                 FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));

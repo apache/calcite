@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.markdown;
 
 import org.apache.calcite.adapter.file.converters.MarkdownTableScanner;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.schema.Table;
+import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.test.CalciteAssert;
 
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,21 +47,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("unit")
 @Isolated  // Required due to engine-specific behavior and shared state
 public class MarkdownTableTest {
-  @TempDir
-  Path tempDir;
+  private File tempDir;
 
   private File markdownFile;
   private File complexMarkdownFile;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Create temporary directory manually
+    tempDir = Files.createTempDirectory("markdown-test").toFile();
     // Create test Markdown files
     createSimpleMarkdownFile();
     createComplexMarkdownFile();
   }
 
+  @AfterEach
+  public void tearDown() {
+    // Clean up temporary directory - non-fatal
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteDirectory(tempDir);
+      } catch (Exception e) {
+        // Non-fatal - just log the warning
+        System.err.println("Warning: Failed to clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] children = dir.listFiles();
+      if (children != null) {
+        for (File child : children) {
+          deleteDirectory(child);
+        }
+      }
+    }
+    dir.delete();
+  }
+
   private void createSimpleMarkdownFile() throws IOException {
-    markdownFile = new File(tempDir.toFile(), "products.md");
+    markdownFile = new File(tempDir, "products.md");
     try (FileWriter writer = new FileWriter(markdownFile, StandardCharsets.UTF_8)) {
       writer.write("# Product Catalog\n\n");
       writer.write("## Current Products\n\n");
@@ -73,7 +100,7 @@ public class MarkdownTableTest {
   }
 
   private void createComplexMarkdownFile() throws IOException {
-    complexMarkdownFile = new File(tempDir.toFile(), "quarterly_report.md");
+    complexMarkdownFile = new File(tempDir, "quarterly_report.md");
     try (FileWriter writer = new FileWriter(complexMarkdownFile, StandardCharsets.UTF_8)) {
       writer.write("# Quarterly Report\n\n");
       writer.write("## Sales Summary\n\n");
@@ -93,10 +120,10 @@ public class MarkdownTableTest {
 
   @Test public void testMarkdownTableExtraction() throws Exception {
     // Run the Markdown scanner
-    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir);
 
     // Check that JSON file was created
-    File jsonFile = new File(tempDir.toFile(), "Products__Current_Products.json");
+    File jsonFile = new File(tempDir, "Products__Current_Products.json");
     assertTrue(jsonFile.exists(), "JSON file should be created from Markdown table");
 
     // Verify content
@@ -108,11 +135,11 @@ public class MarkdownTableTest {
 
   @Test public void testMultipleTablesInMarkdown() throws Exception {
     // Run the Markdown scanner
-    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir);
 
     // Check that both JSON files were created
-    File salesFile = new File(tempDir.toFile(), "QuarterlyReport__Sales_Summary.json");
-    File employeeFile = new File(tempDir.toFile(), "QuarterlyReport__Employee_Performance.json");
+    File salesFile = new File(tempDir, "QuarterlyReport__Sales_Summary.json");
+    File employeeFile = new File(tempDir, "QuarterlyReport__Employee_Performance.json");
 
     assertTrue(salesFile.exists(), "Sales summary JSON should be created");
     assertTrue(employeeFile.exists(), "Employee performance JSON should be created");
@@ -129,7 +156,7 @@ public class MarkdownTableTest {
   }
 
   @Test public void testMarkdownWithGroupHeaders() throws Exception {
-    File groupHeaderFile = new File(tempDir.toFile(), "budget.md");
+    File groupHeaderFile = new File(tempDir, "budget.md");
     try (FileWriter writer = new FileWriter(groupHeaderFile, StandardCharsets.UTF_8)) {
       writer.write("# Budget Report\n\n");
       writer.write("## Department Budgets\n\n");
@@ -140,9 +167,9 @@ public class MarkdownTableTest {
       writer.write("| Marketing  | 80000     | 78000     | 85000     | 40000     |\n");
     }
 
-    MarkdownTableScanner.scanAndConvertTables(groupHeaderFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(groupHeaderFile, tempDir);
 
-    File jsonFile = new File(tempDir.toFile(), "Budget__Department_Budgets.json");
+    File jsonFile = new File(tempDir, "Budget__Department_Budgets.json");
     assertTrue(jsonFile.exists(), "JSON file with group headers should be created");
 
     String content = Files.readString(jsonFile.toPath());
@@ -151,45 +178,55 @@ public class MarkdownTableTest {
     assertTrue(content.contains("Sales"));
   }
 
-  @Test public void testMarkdownInFileSchema() throws Exception {
+  @Test @SuppressWarnings("deprecation") public void testMarkdownInFileSchema() throws Exception {
     // Create a simple schema with Markdown files
     Map<String, Object> operand = new HashMap<>();
-    operand.put("directory", tempDir.toFile());
+    operand.put("directory", tempDir);
 
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+
+    FileSchema schema = new FileSchema(null, "TEST", tempDir, tempDir, null, null, 
+        new ExecutionEngineConfig(), false, null, null, null, null, 
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     // Convert Markdown files first
-    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir.toFile());
-    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir);
+    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir);
 
     // Check that tables are accessible
-    Map<String, Table> tables = schema.getTableMap();
+    Set<String> tableNames = schema.getTableNames();
 
     // Tables should be created from the generated JSON files
-    assertTrue(tables.containsKey("products__current_products"),
+    assertTrue(tableNames.contains("products__current_products"),
         "Should have products__current_products table");
-    assertTrue(tables.containsKey("quarterly_report__sales_summary"),
+    assertTrue(tableNames.contains("quarterly_report__sales_summary"),
         "Should have quarterly_report__sales_summary table");
-    assertTrue(tables.containsKey("quarterly_report__employee_performance"),
+    assertTrue(tableNames.contains("quarterly_report__employee_performance"),
         "Should have quarterly_report__employee_performance table");
   }
 
   @Test public void testMarkdownTableQuery() throws Exception {
     // Run the scanner first
-    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir);
+
+    // modelBaseDirectory is the parent directory where .aperio will be created
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
 
     // Create schema and run query
-    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
+    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir);
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
-        .withSchema("markdown", new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
+        .withSchema("markdown", new FileSchema(null, "TEST", tempDir, tempDir, null, null, 
+            new ExecutionEngineConfig(), false, null, null, null, null, 
+            "SMART_CASING", "SMART_CASING", null, null, null, null, true))
         .query("SELECT * FROM \"markdown\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }
 
   @Test public void testMarkdownWithSpecialCharacters() throws Exception {
-    File specialFile = new File(tempDir.toFile(), "special_chars.md");
+    File specialFile = new File(tempDir, "special_chars.md");
     try (FileWriter writer = new FileWriter(specialFile, StandardCharsets.UTF_8)) {
       writer.write("# Special Characters Test\n\n");
       writer.write("## Data with Special Chars\n\n");
@@ -200,9 +237,9 @@ public class MarkdownTableTest {
       writer.write("| Test_Under | 300 | Contains underscore |\n");
     }
 
-    MarkdownTableScanner.scanAndConvertTables(specialFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(specialFile, tempDir);
 
-    File jsonFile = new File(tempDir.toFile(), "SpecialChars__Data_with_Special_Chars.json");
+    File jsonFile = new File(tempDir, "SpecialChars__Data_with_Special_Chars.json");
     assertTrue(jsonFile.exists(), "JSON file should handle special characters");
 
     String content = Files.readString(jsonFile.toPath());
@@ -212,23 +249,23 @@ public class MarkdownTableTest {
   }
 
   @Test public void testEmptyMarkdownFile() throws Exception {
-    File emptyFile = new File(tempDir.toFile(), "empty.md");
+    File emptyFile = new File(tempDir, "empty.md");
     try (FileWriter writer = new FileWriter(emptyFile, StandardCharsets.UTF_8)) {
       writer.write("# Empty Document\n\n");
       writer.write("This document has no tables.\n");
     }
 
     // Should not throw exception
-    MarkdownTableScanner.scanAndConvertTables(emptyFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(emptyFile, tempDir);
 
     // No JSON files should be created
-    File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
+    File[] jsonFiles = tempDir.listFiles((dir, name) ->
         name.startsWith("Empty") && name.endsWith(".json"));
     assertEquals(0, jsonFiles.length, "No JSON files should be created for empty Markdown");
   }
 
   @Test public void testMarkdownTableWithoutTitle() throws Exception {
-    File noTitleFile = new File(tempDir.toFile(), "no_title.md");
+    File noTitleFile = new File(tempDir, "no_title.md");
     try (FileWriter writer = new FileWriter(noTitleFile, StandardCharsets.UTF_8)) {
       writer.write("Some introductory text.\n\n");
       writer.write("| Column1 | Column2 |\n");
@@ -236,10 +273,10 @@ public class MarkdownTableTest {
       writer.write("| Data1   | Data2  |\n");
     }
 
-    MarkdownTableScanner.scanAndConvertTables(noTitleFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(noTitleFile, tempDir);
 
     // Should create file without Table suffix since there's only one table
-    File jsonFile = new File(tempDir.toFile(), "NoTitle.json");
+    File jsonFile = new File(tempDir, "NoTitle.json");
     assertTrue(jsonFile.exists(), "Should create table with generic name when no heading");
   }
 }

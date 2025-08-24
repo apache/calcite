@@ -87,6 +87,12 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
   
   @Test
   public void testDuckDBWithExcelFile() throws Exception {
+    // Skip test if not using DuckDB engine
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (!"DUCKDB".equals(engineType)) {
+      return; // Skip test for non-DuckDB engines
+    }
+    
     // Create Excel file first
     File testExcelFile = new File(tempDir.toFile(), "test_data.xlsx");
     createTestExcelFile(testExcelFile);
@@ -153,6 +159,12 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
   
   @Test
   public void testDuckDBWithMultipleSheets() throws Exception {
+    // Skip test if not using DuckDB engine
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (!"DUCKDB".equals(engineType)) {
+      return; // Skip test for non-DuckDB engines
+    }
+    
     // This test verifies DuckDB can handle Excel files with multiple sheets
     // Create Excel file with multiple sheets BEFORE connection
     File excelFile = new File(tempDir.toFile(), "multi_sheet.xlsx");

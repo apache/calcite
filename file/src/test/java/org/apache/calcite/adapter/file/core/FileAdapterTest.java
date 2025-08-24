@@ -1334,9 +1334,14 @@ public class FileAdapterTest {
   @Tag("unit")
   void testSimpleCsvQueryWithLinq4j() throws SQLException {
     // Get the absolute path to the test resources sales directory
-    String salesDir = new File("src/test/resources/sales").getAbsolutePath();
-
+    // Use the same pattern as other tests - get from classpath/resource path
+    String salesDir = FileAdapterTests.resourcePath("sales");
+    
+    // Create a temporary directory for baseDirectory
+    String tempDir = System.getProperty("java.io.tmpdir") + "/calcite-test-" + System.currentTimeMillis();
+    
     // Create a model with LINQ4J engine specified in the schema operand
+    // With inline models, sourceDirectory must be explicitly specified
     String model = "{\n"
         + "  \"version\": \"1.0\",\n"
         + "  \"defaultSchema\": \"sales\",\n"
@@ -1346,8 +1351,11 @@ public class FileAdapterTest {
         + "      \"type\": \"custom\",\n"
         + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
         + "      \"operand\": {\n"
-        + "        \"directory\": \"" + salesDir.replace("\\", "\\\\") + "\",\n"
-        + "        \"executionEngine\": \"LINQ4J\"\n"
+        + "        \"sourceDirectory\": \"" + salesDir.replace("\\", "\\\\") + "\",\n"
+        + "        \"baseDirectory\": \"" + tempDir.replace("\\", "\\\\") + "\",\n"
+        + "        \"executionEngine\": \"LINQ4J\",\n"
+        + "        \"tableNameCasing\": \"SMART_CASING\",\n"
+        + "        \"columnNameCasing\": \"SMART_CASING\"\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -1362,8 +1370,8 @@ public class FileAdapterTest {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
-      // Query the DEPTS CSV file
-      String sql = "select deptno, name from depts order by deptno";
+      // Query the DEPTS CSV file  
+      String sql = "select deptno, name from \"sales\".\"depts\" order by deptno";
 
       try (ResultSet rs = statement.executeQuery(sql)) {
         // Verify we got results

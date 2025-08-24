@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * End-to-end tests for file conversion refresh functionality.
@@ -46,6 +47,32 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("unit")
 @Isolated  // Needs isolation due to static ConversionMetadata state
 public class RefreshEndToEndTest {
+  
+  /**
+   * Checks if refresh functionality is supported by the current engine.
+   * Refresh only works with PARQUET and DUCKDB engines.
+   */
+  private boolean isRefreshSupported() {
+    String engine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engine == null || engine.isEmpty()) {
+      return true; // Default engine supports refresh
+    }
+    String engineUpper = engine.toUpperCase();
+    return "PARQUET".equals(engineUpper) || "DUCKDB".equals(engineUpper);
+  }
+  
+  /**
+   * Checks if Parquet-specific functionality is supported by the current engine.
+   * Parquet-specific tests only work with PARQUET and DUCKDB engines.
+   */
+  private boolean isParquetSupported() {
+    String engine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engine == null || engine.isEmpty()) {
+      return true; // Default engine supports Parquet functionality
+    }
+    String engineUpper = engine.toUpperCase();
+    return "PARQUET".equals(engineUpper) || "DUCKDB".equals(engineUpper);
+  }
 
   @TempDir
   Path tempDir;
@@ -138,6 +165,7 @@ public class RefreshEndToEndTest {
   
   @Test
   public void testQueryWithParquetEngine() throws Exception {
+    assumeFalse(!isParquetSupported(), "Parquet-specific functionality only supported by PARQUET and DUCKDB engines");
     System.out.println("\n=== TEST: Query with Parquet Engine ===");
     
     // Create a simple JSON file directly for querying
@@ -179,6 +207,7 @@ public class RefreshEndToEndTest {
   
   @Test
   public void testHtmlRefreshOnSourceChange() throws Exception {
+    assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     System.out.println("\n=== TEST: HTML Refresh on Source Change ===");
     
     // Create an HTML file with initial data

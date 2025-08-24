@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.schema.Table;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -55,8 +56,17 @@ public class ExcelConversionTest {
     File excelFile = new File(tempDir.toFile(), "TestData.xlsx");
     excelFile.createNewFile();
 
-    // Create FileSchema
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null);
+    // Set up execution engine config based on environment
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
+    if (engineType != null && !engineType.isEmpty()) {
+      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    }
+    
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        engineConfig, false, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     // Note: Without POI dependencies working, we can't actually convert Excel files
     // But we can test the schema creation and conflict detection logic
@@ -114,8 +124,17 @@ public class ExcelConversionTest {
     File excelFile = new File(tempDir.toFile(), "report.xlsx");
     excelFile.createNewFile();
 
-    // Create schema
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null);
+    // Set up execution engine config based on environment
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
+    if (engineType != null && !engineType.isEmpty()) {
+      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    }
+    
+    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
+        engineConfig, false, null, null, null, null,
+        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
     Map<String, Table> tables = schema.getTableMap();
 
     // Verify all file types are recognized (table names are lowercase with SMART_CASING)

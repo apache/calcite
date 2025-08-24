@@ -20,6 +20,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -53,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration tests for JSON API access with POST and JSONPath.
  */
 @Tag("integration")
-public class JsonApiIntegrationTest {
+public class JsonApiIntegrationTest extends BaseFileTest {
   
   private HttpServer server;
   private int port;
@@ -286,7 +287,7 @@ public class JsonApiIntegrationTest {
         tempDir.toFile(),
         null,  // directoryPattern
         null,  // tables
-        new ExecutionEngineConfig(),
+        getEngineConfig(),
         false,  // recursive
         null,  // materializations
         null,  // views
