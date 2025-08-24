@@ -369,6 +369,12 @@ public class SpuriousTableComprehensiveTest {
   }
 
   private String createModel(File directory) {
+    // Get execution engine from system property
+    String executionEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE");
+    String engineLine = executionEngine != null 
+        ? "        executionEngine: '" + executionEngine + "',\n" 
+        : "";
+    
     return "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'FILES',\n"
@@ -379,6 +385,8 @@ public class SpuriousTableComprehensiveTest {
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
         + "        directory: '" + directory.getAbsolutePath().replace("\\", "\\\\") + "',\n"
+        + engineLine
+        + "        ephemeralCache: true,\n"  // Use ephemeral cache for test isolation
         + "        tableNameCasing: 'LOWER',\n"
         + "        columnNameCasing: 'LOWER'\n"
         + "      }\n"
