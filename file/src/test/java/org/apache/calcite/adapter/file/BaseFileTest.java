@@ -16,11 +16,17 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.junit.jupiter.api.Tag;
+
+import java.util.Map;
 
 /**
  * Base class for file adapter tests.
@@ -47,6 +53,60 @@ public abstract class BaseFileTest {
    */
   protected String getExecutionEngine() {
     return System.getenv("CALCITE_FILE_ENGINE_TYPE");
+  }
+  
+  /**
+   * Gets an ExecutionEngineConfig based on the environment variable.
+   * This ensures tests respect the CALCITE_FILE_ENGINE_TYPE environment variable.
+   * 
+   * @return ExecutionEngineConfig configured based on environment, or default if not set
+   */
+  protected static ExecutionEngineConfig getEngineConfig() {
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineType != null && !engineType.isEmpty()) {
+      return new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    }
+    return new ExecutionEngineConfig();
+  }
+  
+  /**
+   * Adds ephemeralCache to a model JSON string for test isolation.
+   * This method parses the model, adds ephemeralCache: true to each schema operand,
+   * and returns the modified JSON string.
+   * 
+   * @param modelJson the original model JSON string
+   * @return the modified model JSON with ephemeralCache added
+   */
+  public static String addEphemeralCacheToModel(String modelJson) {
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      Map<String, Object> model = mapper.readValue(modelJson, Map.class);
+      
+      // Add ephemeralCache to each schema's operand (not at model level to avoid Calcite validation errors)
+      if (model.containsKey("schemas")) {
+        Object schemasObj = model.get("schemas");
+        if (schemasObj instanceof java.util.List) {
+          java.util.List<Map<String, Object>> schemas = (java.util.List<Map<String, Object>>) schemasObj;
+          for (Map<String, Object> schema : schemas) {
+            if (schema.containsKey("operand")) {
+              Object operandObj = schema.get("operand");
+              if (operandObj instanceof Map) {
+                Map<String, Object> operand = (Map<String, Object>) operandObj;
+                // Only add if not already present (allows override)
+                if (!operand.containsKey("ephemeralCache") && !operand.containsKey("ephemeral_cache")) {
+                  operand.put("ephemeralCache", true);
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return mapper.writeValueAsString(model);
+    } catch (Exception e) {
+      // If parsing fails, return original (shouldn't happen with valid JSON)
+      return modelJson;
+    }
   }
   
   /**
@@ -97,6 +157,20 @@ public abstract class BaseFileTest {
     model.append("}\n");
     
     return model.toString();
+  }
+  
+  /**
+   * Builds a model JSON string with ephemeralCache enabled for test isolation.
+   * This is the preferred method for tests to ensure proper test isolation.
+   * 
+   * @param schemaName the schema name
+   * @param directory the directory path
+   * @param additionalOperands additional operand entries as key-value pairs
+   * @return the model JSON string with ephemeralCache enabled
+   */
+  protected String buildTestModel(String schemaName, String directory, String... additionalOperands) {
+    String model = buildModelWithEngine(schemaName, directory, additionalOperands);
+    return addEphemeralCacheToModel(model);
   }
   
   /**
