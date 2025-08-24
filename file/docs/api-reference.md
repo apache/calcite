@@ -16,22 +16,25 @@ public class FileSchemaFactory implements SchemaFactory {
 
 **Configuration Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `directory` | String | Base directory path |
-| `recursive` | Boolean | Enable recursive scanning |
-| `executionEngine` | String | Execution engine selection (`linq4j`, `arrow`, `vectorized`, `parquet`, `duckdb`) |
-| `batchSize` | Integer | Batch size for columnar engines (default: 2048) |
-| `memoryThreshold` | Long | Memory threshold before spillover in bytes (default: 64MB) |
-| `directoryPattern` | String | Directory pattern for glob-based discovery |
-| `storageType` | String | Storage provider type (`local`, `s3`, `http`, `sharepoint`) |
-| `storageConfig` | Map | Storage provider-specific configuration |
-| `refreshInterval` | String | Table refresh interval for dynamic sources |
-| `tableNameCasing` | String | Table name casing transformation (`UPPER`, `LOWER`, `SMART_CASING`) |
-| `columnNameCasing` | String | Column name casing transformation (`UPPER`, `LOWER`, `SMART_CASING`) |
-| `primeCache` | Boolean | Whether to prime statistics cache on startup (default: true) |
-| `duckdbConfig` | Map | DuckDB-specific configuration options |
-| `csvTypeInference` | Map | CSV type inference configuration |
+| Parameter | Type | Description | Environment Variable Support |
+|-----------|------|-------------|------------------------------|
+| `directory` | String | Base directory path | ✅ Yes |
+| `recursive` | Boolean | Enable recursive scanning | ✅ Yes |
+| `executionEngine` | String | Execution engine selection (`linq4j`, `arrow`, `vectorized`, `parquet`, `duckdb`) | ✅ Yes |
+| `batchSize` | Integer | Batch size for columnar engines (default: 2048) | ✅ Yes |
+| `memoryThreshold` | Long | Memory threshold before spillover in bytes (default: 64MB) | ✅ Yes |
+| `directoryPattern` | String | Directory pattern for glob-based discovery | ✅ Yes |
+| `storageType` | String | Storage provider type (`local`, `s3`, `http`, `sharepoint`) | ✅ Yes |
+| `storageConfig` | Map | Storage provider-specific configuration | ✅ Yes (nested values) |
+| `refreshInterval` | String | Table refresh interval for dynamic sources | ✅ Yes |
+| `tableNameCasing` | String | Table name casing transformation (`UPPER`, `LOWER`, `SMART_CASING`) | ✅ Yes |
+| `columnNameCasing` | String | Column name casing transformation (`UPPER`, `LOWER`, `SMART_CASING`) | ✅ Yes |
+| `primeCache` | Boolean | Whether to prime statistics cache on startup (default: true) | ✅ Yes |
+| `ephemeralCache` | Boolean | Use temporary cache directory (default: false) | ✅ Yes |
+| `duckdbConfig` | Map | DuckDB-specific configuration options | ✅ Yes (nested values) |
+| `csvTypeInference` | Map | CSV type inference configuration | ✅ Yes (nested values) |
+
+**Note:** All string, numeric, and boolean configuration values support environment variable substitution using `${VAR_NAME}` or `${VAR_NAME:default}` syntax.
 
 **Example Usage:**
 
@@ -52,6 +55,45 @@ operand.put("duckdbConfig", duckdbConfig);
 
 FileSchemaFactory factory = new FileSchemaFactory();
 Schema schema = factory.create(parentSchema, "FILES", operand);
+```
+
+**Example with Environment Variables:**
+
+```java
+// Model JSON with environment variables
+String modelJson = """
+{
+  "version": "1.0",
+  "defaultSchema": "${SCHEMA_NAME:files}",
+  "schemas": [{
+    "name": "${SCHEMA_NAME:files}",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "${DATA_DIR:/data}",
+      "executionEngine": "${ENGINE_TYPE:PARQUET}",
+      "batchSize": "${BATCH_SIZE:2048}",
+      "ephemeralCache": "${USE_TEMP_CACHE:false}",
+      "storageType": "${STORAGE_TYPE:local}",
+      "storageConfig": {
+        "bucketName": "${S3_BUCKET}",
+        "region": "${AWS_REGION:us-east-1}"
+      }
+    }
+  }]
+}
+""";
+
+// Set environment variables (or use System.setProperty for testing)
+System.setProperty("DATA_DIR", "/production/data");
+System.setProperty("ENGINE_TYPE", "DUCKDB");
+System.setProperty("BATCH_SIZE", "5000");
+System.setProperty("STORAGE_TYPE", "s3");
+System.setProperty("S3_BUCKET", "my-data-bucket");
+
+// Create connection - variables are automatically substituted
+Properties info = new Properties();
+info.setProperty("model", "inline:" + modelJson);
+Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
 ```
 
 ### FileSchema

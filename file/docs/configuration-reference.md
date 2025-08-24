@@ -2,6 +2,98 @@
 
 This document provides comprehensive configuration options for the Apache Calcite File Adapter.
 
+## Environment Variable Substitution
+
+The File Adapter supports environment variable substitution in all configuration values using the `${VAR_NAME}` or `${VAR_NAME:default}` syntax. This enables dynamic configuration without modifying model files.
+
+### Syntax
+
+- `${VAR_NAME}` - Substitutes with environment variable value; fails if not defined
+- `${VAR_NAME:default}` - Substitutes with environment variable value; uses default if not defined
+
+### Type Conversion
+
+Environment variables are automatically converted to appropriate JSON types:
+- **Numbers**: `"${PORT:8080}"` → `8080` (unquoted number)
+- **Booleans**: `"${ENABLED:true}"` → `true` (unquoted boolean)  
+- **Strings**: `"${NAME:value}"` → `"value"` (quoted string)
+
+### Resolution Order
+
+1. Environment variables (`System.getenv()`)
+2. System properties (`System.getProperty()`) - useful for testing
+3. Default value if specified
+4. Error if no value found and no default provided
+
+### Examples
+
+**Basic Usage:**
+```json
+{
+  "schemas": [{
+    "name": "${SCHEMA_NAME:sales}",
+    "operand": {
+      "directory": "${DATA_DIR:/data}",
+      "executionEngine": "${ENGINE_TYPE:PARQUET}",
+      "batchSize": "${BATCH_SIZE:1000}",
+      "ephemeralCache": "${USE_TEMP_CACHE:true}"
+    }
+  }]
+}
+```
+
+**Cloud Storage Configuration:**
+```json
+{
+  "operand": {
+    "storageType": "s3",
+    "storageConfig": {
+      "bucketName": "${S3_BUCKET}",
+      "region": "${AWS_REGION:us-east-1}",
+      "accessKey": "${AWS_ACCESS_KEY_ID}",
+      "secretKey": "${AWS_SECRET_ACCESS_KEY}"
+    }
+  }
+}
+```
+
+**Multi-Environment Setup:**
+```bash
+# Development
+export ENVIRONMENT=dev
+export DATA_DIR=/dev/data
+export ENGINE_TYPE=LINQ4J
+export LOG_LEVEL=DEBUG
+
+# Production
+export ENVIRONMENT=prod
+export DATA_DIR=s3://prod-bucket/data
+export ENGINE_TYPE=DUCKDB
+export LOG_LEVEL=ERROR
+```
+
+**Docker/Kubernetes Integration:**
+```yaml
+# docker-compose.yml
+services:
+  calcite:
+    image: calcite-file-adapter
+    environment:
+      - DATA_DIR=/data
+      - ENGINE_TYPE=PARQUET
+      - CACHE_SIZE=2048
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_REGION=${AWS_REGION}
+```
+
+### Best Practices
+
+1. **Use descriptive variable names**: `CALCITE_FILE_ENGINE_TYPE` instead of `ENGINE`
+2. **Always provide defaults** for non-sensitive configuration
+3. **Never commit secrets**: Use environment variables for credentials
+4. **Document required variables** in your deployment guide
+5. **Validate early**: Check for required variables at startup
+
 ## Configuration Scope and Hierarchy
 
 ### Multi-Engine Architecture for Optimized Workloads

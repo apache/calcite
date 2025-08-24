@@ -109,6 +109,44 @@ Create a model configuration file:
 }
 ```
 
+### Configuration with Environment Variables
+
+Use environment variables for flexible deployment across environments:
+
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "${SCHEMA_NAME:files}",
+  "schemas": [
+    {
+      "name": "${SCHEMA_NAME:files}",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "${DATA_DIR:/data}",
+        "executionEngine": "${ENGINE_TYPE:PARQUET}",
+        "ephemeralCache": "${USE_TEMP_CACHE:false}",
+        "storageType": "${STORAGE_TYPE:local}",
+        "storageConfig": {
+          "bucketName": "${S3_BUCKET}",
+          "region": "${AWS_REGION:us-east-1}"
+        }
+      }
+    }
+  ]
+}
+```
+
+Then set environment variables:
+```bash
+export DATA_DIR=/production/data
+export ENGINE_TYPE=DUCKDB
+export STORAGE_TYPE=s3
+export S3_BUCKET=my-data-bucket
+export AWS_REGION=us-west-2
+
+./sqlline -m model.json
+```
+
 ### Connect and Query
 
 ```bash
@@ -158,16 +196,20 @@ JOIN files.customer_info c ON s.customer_id = c.id;
 - Different storage providers (one schema on S3, another on local disk)
 - Different casing rules, statistics settings, etc.
 
-**Environment Variables:** Supported in all string configuration values using `${VAR_NAME}` syntax:
+**Environment Variables:** Supported in all configuration values using `${VAR_NAME}` or `${VAR_NAME:default}` syntax:
 ```json
 {
-  "directory": "${DATA_DIR}",
+  "directory": "${DATA_DIR:/data}",                    // With default value
+  "executionEngine": "${CALCITE_FILE_ENGINE_TYPE}",     // Required variable
+  "batchSize": "${BATCH_SIZE:1000}",                   // Numbers auto-converted
+  "ephemeralCache": "${USE_TEMP_CACHE:true}",          // Booleans auto-converted
   "storageConfig": {
     "accessKey": "${AWS_ACCESS_KEY}",
     "secretKey": "${AWS_SECRET_KEY}"
   }
 }
 ```
+Variables are resolved from environment variables first, then system properties (for testing).
 
 **Global Settings:** Configured via Java system properties:
 - JVM memory settings (`-Xmx`, `-XX:MaxDirectMemorySize`)
