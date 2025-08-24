@@ -1866,9 +1866,10 @@ LogicalProject(EXPR$0=[$3])
     LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}]], EXPR$0=[SUM($0)])
       LogicalProject(SAL=[$5], DEPTNO=[$7], ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 2}]], EXPR$0=[SUM($0)])
-      LogicalProject(SAL=[$5], DEPTNO=[$7], ENAME=[$1])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(SAL=[$0], DEPTNO=[null:INTEGER], ENAME=[$1], EXPR$0=[$2])
+      LogicalAggregate(group=[{0, 2}], EXPR$0=[SUM($0)])
+        LogicalProject(SAL=[$5], DEPTNO=[$7], ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2743,8 +2744,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
       LogicalAggregate(group=[{0, 1}], groups=[[{0}, {1}]])
         LogicalProject(DEPTNO=[$7], JOB=[$2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$0], JOB=[$1], EXPR$1=[2:BIGINT])
-      LogicalAggregate(group=[{0, 1}], groups=[[{0}]])
+    LogicalProject(DEPTNO=[$0], JOB=[null:VARCHAR(10)], EXPR$1=[2:BIGINT])
+      LogicalAggregate(group=[{0}])
         LogicalProject(DEPTNO=[$7], JOB=[$2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -2766,9 +2767,10 @@ LogicalUnion(all=[true])
   LogicalAggregate(group=[{0, 1}], groups=[[{0}, {1}]])
     LogicalProject(DEPTNO=[$7], JOB=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalAggregate(group=[{0, 1}], groups=[[{0}]])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0], JOB=[null:VARCHAR(10)])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7], JOB=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2799,9 +2801,10 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
       LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], groups=[[{0}]], EXPR$2=[SUM($2)])
-      LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], ENAME=[null:VARCHAR(20)], EXPR$2=[$1])
+      LogicalAggregate(group=[{0}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2872,9 +2875,10 @@ LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
       LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], groups=[[{}]], EXPR$2=[SUM($2)])
-      LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[null:INTEGER], ENAME=[null:VARCHAR(20)], EXPR$2=[$0])
+      LogicalAggregate(group=[{}], EXPR$2=[SUM($2)])
+        LogicalProject(DEPTNO=[$7], ENAME=[$1], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
