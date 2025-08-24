@@ -77,9 +77,19 @@ public final class MultiTableExcelToJsonConverter {
   public static void convertFileToJson(File inputFile, File outputDir, boolean detectMultipleTables,
       String tableNameCasing, String columnNameCasing, File baseDirectory)
       throws IOException {
+    convertFileToJson(inputFile, outputDir, detectMultipleTables, tableNameCasing, columnNameCasing, baseDirectory, null);
+  }
+  
+  /**
+   * Converts an Excel file to JSON with multi-table detection and custom casing.
+   * Outputs files to the specified output directory, preserving directory structure if relativePath is provided.
+   */
+  public static void convertFileToJson(File inputFile, File outputDir, boolean detectMultipleTables,
+      String tableNameCasing, String columnNameCasing, File baseDirectory, String relativePath)
+      throws IOException {
     if (!detectMultipleTables) {
-      // Fall back to standard conversion
-      ExcelToJsonConverter.convertFileToJson(inputFile, outputDir, tableNameCasing, columnNameCasing, baseDirectory);
+      // Fall back to standard conversion with relativePath
+      ExcelToJsonConverter.convertFileToJson(inputFile, outputDir, tableNameCasing, columnNameCasing, baseDirectory, relativePath);
       return;
     }
 
@@ -103,6 +113,14 @@ public final class MultiTableExcelToJsonConverter {
       FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
       String fileName = inputFile.getName();
       String rawBaseName = fileName.substring(0, fileName.lastIndexOf('.'));
+      
+      // If relativePath is provided, include directory structure in the base name
+      if (relativePath != null && relativePath.contains(File.separator)) {
+        String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+            .replace(File.separator, "_");
+        rawBaseName = dirPrefix + "_" + rawBaseName;
+      }
+      
       String baseName = SmartCasing.applyCasing(rawBaseName, tableNameCasing);
 
       for (int i = 0; i < workbook.getNumberOfSheets(); i++) {

@@ -68,6 +68,10 @@ public final class MarkdownTableScanner {
    * @param outputDir The directory to write JSON files to
    */
   public static void scanAndConvertTables(File inputFile, File outputDir) throws IOException {
+    scanAndConvertTables(inputFile, outputDir, null);
+  }
+  
+  public static void scanAndConvertTables(File inputFile, File outputDir, String relativePath) throws IOException {
     LOGGER.debug("Scanning Markdown file for tables: " + inputFile.getName());
 
     // Acquire read lock on source file
@@ -92,6 +96,14 @@ public final class MarkdownTableScanner {
 
       // Convert each table to JSON
       String baseName = toPascalCase(inputFile.getName().replaceFirst("\\.[^.]+$", ""));
+      
+      // Include directory structure in the basename if relativePath is provided
+      if (relativePath != null && relativePath.contains(File.separator)) {
+        String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+            .replace(File.separator, "_");
+        baseName = dirPrefix + "_" + baseName;
+      }
+      
       ObjectMapper mapper = new ObjectMapper();
 
       for (int i = 0; i < tables.size(); i++) {

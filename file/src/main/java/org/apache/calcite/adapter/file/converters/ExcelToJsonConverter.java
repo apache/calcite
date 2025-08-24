@@ -55,6 +55,10 @@ public final class ExcelToJsonConverter {
   }
 
   public static void convertFileToJson(File inputFile, File outputDir, String tableNameCasing, String columnNameCasing, File baseDirectory) throws IOException {
+    convertFileToJson(inputFile, outputDir, tableNameCasing, columnNameCasing, baseDirectory, null);
+  }
+  
+  public static void convertFileToJson(File inputFile, File outputDir, String tableNameCasing, String columnNameCasing, File baseDirectory, String relativePath) throws IOException {
     // Acquire read lock on source file
     SourceFileLockManager.LockHandle lockHandle = null;
     try {
@@ -72,6 +76,14 @@ public final class ExcelToJsonConverter {
     FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
     String fileName = inputFile.getName();
     String rawBaseName = fileName.substring(0, fileName.lastIndexOf('.'));
+    
+    // If relativePath is provided, include directory structure in the base name
+    if (relativePath != null && relativePath.contains(File.separator)) {
+      String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+          .replace(File.separator, "_");
+      rawBaseName = dirPrefix + "_" + rawBaseName;
+    }
+    
     String baseName = SmartCasing.applyCasing(rawBaseName, tableNameCasing);
     for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
       Sheet sheet = workbook.getSheetAt(i);

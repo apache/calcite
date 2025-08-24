@@ -76,6 +76,21 @@ public class FileConversionManager {
    * @return true if conversion was performed, false if no conversion needed
    */
   public static boolean convertIfNeeded(File sourceFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory) {
+    return convertIfNeeded(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory, null);
+  }
+  
+  /**
+   * Identifies the source file type and runs the appropriate conversion if needed.
+   * 
+   * @param sourceFile The file to potentially convert
+   * @param outputDir The directory for output files
+   * @param columnNameCasing Column name casing strategy
+   * @param tableNameCasing Table name casing strategy
+   * @param baseDirectory The base directory for metadata storage (if null, uses outputDir)
+   * @param relativePath The relative path from source directory to the file (for preserving directory structure)
+   * @return true if conversion was performed, false if no conversion needed
+   */
+  public static boolean convertIfNeeded(File sourceFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory, String relativePath) {
     String path = sourceFile.getPath().toLowerCase();
     
     // First check if conversion is needed using metadata-based change detection
@@ -87,42 +102,42 @@ public class FileConversionManager {
     try {
       // Excel files
       if (path.endsWith(".xlsx") || path.endsWith(".xls")) {
-        boolean converted = convertExcelFile(sourceFile, outputDir, baseDirectory, tableNameCasing, columnNameCasing);
+        boolean converted = convertExcelFile(sourceFile, outputDir, baseDirectory, tableNameCasing, columnNameCasing, relativePath);
         LOGGER.debug("Converted Excel file to JSON: {}", sourceFile.getName());
         return converted;
       }
       
       // HTML files
       if (path.endsWith(".html") || path.endsWith(".htm")) {
-        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory);
+        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath);
         LOGGER.debug("Converted HTML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;
       }
       
       // XML files
       if (path.endsWith(".xml")) {
-        List<File> jsonFiles = XmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, baseDirectory);
+        List<File> jsonFiles = XmlToJsonConverter.convert(sourceFile, outputDir, null, columnNameCasing, baseDirectory, relativePath);
         LOGGER.debug("Converted XML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;
       }
       
       // Markdown files
       if (path.endsWith(".md")) {
-        MarkdownTableScanner.scanAndConvertTables(sourceFile, outputDir);
+        MarkdownTableScanner.scanAndConvertTables(sourceFile, outputDir, relativePath);
         LOGGER.debug("Converted Markdown file to JSON: {}", sourceFile.getName());
         return true;
       }
       
       // DOCX files
       if (path.endsWith(".docx")) {
-        DocxTableScanner.scanAndConvertTables(sourceFile, outputDir);
+        DocxTableScanner.scanAndConvertTables(sourceFile, outputDir, relativePath);
         LOGGER.debug("Converted DOCX file to JSON: {}", sourceFile.getName());
         return true;
       }
       
       // PPTX files
       if (path.endsWith(".pptx")) {
-        PptxTableScanner.scanAndConvertTables(sourceFile, outputDir);
+        PptxTableScanner.scanAndConvertTables(sourceFile, outputDir, relativePath);
         LOGGER.debug("Converted PPTX file to JSON: {}", sourceFile.getName());
         return true;
       }
@@ -361,20 +376,30 @@ public class FileConversionManager {
   /**
    * Converts an Excel file and records metadata.
    */
-  private static boolean convertExcelFile(File sourceFile, File outputDir, File baseDirectory, String tableNameCasing, String columnNameCasing) {
+  private static boolean convertExcelFile(File sourceFile, File outputDir, File baseDirectory, String tableNameCasing, String columnNameCasing, String relativePath) {
     try {
-      // Convert Excel file to the specified output directory
-      MultiTableExcelToJsonConverter.convertFileToJson(sourceFile, outputDir, true, tableNameCasing, columnNameCasing, baseDirectory);
+      // Convert Excel file to the specified output directory with relative path for directory preservation
+      MultiTableExcelToJsonConverter.convertFileToJson(sourceFile, outputDir, true, tableNameCasing, columnNameCasing, baseDirectory, relativePath);
       
       // Record conversion for each sheet that was converted
-      // Excel converter creates files like "filename__sheetname.json"
+      // Excel converter creates files like "filename__sheetname.json" or "dir_filename__sheetname.json" if relativePath is provided
       String fileName = sourceFile.getName();
-      final String baseName = fileName.contains(".") ? 
+      String baseName = fileName.contains(".") ? 
           fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+      
+      // If relativePath is provided, include directory prefix in the pattern
+      if (relativePath != null && relativePath.contains(File.separator)) {
+        String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+            .replace(File.separator, "_");
+        baseName = dirPrefix + "_" + baseName;
+      }
+      
+      // Make baseName final for use in lambda
+      final String filePrefix = baseName;
       
       // Find generated JSON files in the output directory
       File[] jsonFiles = outputDir.listFiles((dir, name) -> 
-          name.startsWith(baseName + "__") && name.endsWith(".json"));
+          name.startsWith(filePrefix + "__") && name.endsWith(".json"));
       
       if (jsonFiles != null && baseDirectory != null) {
         for (File jsonFile : jsonFiles) {

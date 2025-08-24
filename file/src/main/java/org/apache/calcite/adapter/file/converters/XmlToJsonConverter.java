@@ -110,6 +110,11 @@ public class XmlToJsonConverter {
    */
   public static List<File> convert(File xmlFile, File outputDir, String xpath, String columnNameCasing, File baseDirectory) 
       throws IOException {
+    return convert(xmlFile, outputDir, xpath, columnNameCasing, baseDirectory, null);
+  }
+  
+  public static List<File> convert(File xmlFile, File outputDir, String xpath, String columnNameCasing, File baseDirectory, String relativePath) 
+      throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     
     // Use XmlTableScanner to find table patterns
@@ -125,6 +130,13 @@ public class XmlToJsonConverter {
     
     // Get base filename for JSON file naming
     String baseFileName = ConverterUtils.getBaseFileName(xmlFile.getName(), ".xml", ".XML");
+    
+    // Include directory structure in the filename if relativePath is provided
+    if (relativePath != null && relativePath.contains(File.separator)) {
+      String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+          .replace(File.separator, "_");
+      baseFileName = dirPrefix + "_" + baseFileName;
+    }
     
     // Acquire read lock on source file
     SourceFileLockManager.LockHandle lockHandle = null;

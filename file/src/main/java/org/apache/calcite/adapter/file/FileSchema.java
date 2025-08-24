@@ -239,12 +239,12 @@ public class FileSchema extends AbstractSchema {
 
   /**
    * Creates a file schema with all features including storage provider support.
-   * This constructor accepts both sourceDirectory and modelBaseDirectory.
+   * This constructor accepts both sourceDirectory and userConfiguredBaseDirectory.
    *
    * @param parentSchema    Parent schema
    * @param name            Schema name
    * @param sourceDirectory Source directory to look for files, or null
-   * @param modelBaseDirectory Base directory from model.json for .aperio location, or null
+   * @param userConfiguredBaseDirectory User-configured base directory for .aperio location from model.json, or null
    * @param directoryPattern Directory pattern for file discovery, or null
    * @param tables          List containing table identifiers, or null
    * @param engineConfig    Execution engine configuration
@@ -262,7 +262,7 @@ public class FileSchema extends AbstractSchema {
    * @param primeCache      Whether to prime statistics cache on initialization (default true)
    */
   public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
-      @Nullable File modelBaseDirectory,
+      @Nullable File userConfiguredBaseDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -285,28 +285,30 @@ public class FileSchema extends AbstractSchema {
     if (sourceDirectory != null) {
       // If sourceDirectory is provided, ensure it's a fully qualified path
       this.sourceDirectory = sourceDirectory.getAbsoluteFile();
-    } else if (modelBaseDirectory != null) {
-      // If no sourceDirectory but modelBaseDirectory exists, use parent of model.json
-      this.sourceDirectory = modelBaseDirectory.getParentFile() != null
-          ? modelBaseDirectory.getParentFile().getAbsoluteFile()
-          : new File(System.getProperty("user.dir")).getAbsoluteFile();
     } else {
       // Fallback to current working directory
-      this.sourceDirectory = new File(System.getProperty("user.dir")).getAbsoluteFile();
+      String workingDir = System.getProperty("user.dir");
+      LOGGER.warn("sourceDirectory is null after initialization. Falling back to current working directory: {}. " +
+          "This is not fatal if not using local storage for file discovery.", workingDir);
+      this.sourceDirectory = new File(workingDir).getAbsoluteFile();
     }
 
     // Determine the root directory for .aperio/<schema>
-    // According to developer guidelines:
-    // - Default: {working_directory}/.aperio
-    // - Can be overridden via model.json baseDirectory attribute + .aperio
     File aperioRoot;
-    if (modelBaseDirectory != null) {
-      // If modelBaseDirectory provided (either user-configured baseDirectory or model file location)
-      // Use it as the root for .aperio
-      aperioRoot = modelBaseDirectory.getAbsoluteFile();
+    if (userConfiguredBaseDirectory != null) {
+      // Use the baseDirectory passed from FileSchemaFactory
+      // (could be user-configured or ephemeral)
+      aperioRoot = userConfiguredBaseDirectory.getAbsoluteFile();
     } else {
       // Default to current working directory
-      aperioRoot = new File(System.getProperty("user.dir")).getAbsoluteFile();
+      String userDir = System.getProperty("user.dir");
+      
+      // Safety check: if user.dir is root, use temp directory instead
+      if ("/".equals(userDir) || userDir == null || userDir.isEmpty()) {
+        LOGGER.warn("Working directory is root or invalid ('{}'), falling back to temp directory", userDir);
+        userDir = System.getProperty("java.io.tmpdir");
+      }
+      aperioRoot = new File(userDir).getAbsoluteFile();
     }
     
     // Always use fully qualified path for .aperio/<schema> as the baseDirectory for cache/conversion operations
@@ -316,6 +318,8 @@ public class FileSchema extends AbstractSchema {
       this.baseDirectory.mkdirs();
       LOGGER.info("Created {} cache directory: {}", BRAND, this.baseDirectory.getAbsolutePath());
     }
+    LOGGER.debug("FileSchema baseDirectory setup: aperioRoot={}, baseDirectory={}", 
+        aperioRoot.getAbsolutePath(), this.baseDirectory.getAbsolutePath());
     
     // Initialize conversion metadata for comprehensive table tracking
     this.conversionMetadata = this.baseDirectory != null ? new ConversionMetadata(this.baseDirectory) : null;
@@ -644,10 +648,22 @@ public class FileSchema extends AbstractSchema {
    */
   private void convertLocalSupportedFilesToJson(File sourceDir) {
     // Build glob pattern for all convertible file types
-    String pattern = buildConvertibleFilesGlobPattern(recursive);
-
-    // Find all matching files using the existing glob infrastructure
-    List<String> matchingFiles = findMatchingFiles(pattern);
+    // We need to search separately for root and recursive patterns due to glob syntax limitations
+    List<String> matchingFiles = new ArrayList<>();
+    
+    if (recursive) {
+      // Search for root-level files first
+      String rootPattern = buildConvertibleFilesGlobPattern(false);
+      matchingFiles.addAll(findMatchingFiles(rootPattern));
+      
+      // Then search for subdirectory files
+      String recursivePattern = buildConvertibleFilesGlobPatternRecursive();
+      matchingFiles.addAll(findMatchingFiles(recursivePattern));
+    } else {
+      // Just search for root-level files
+      String pattern = buildConvertibleFilesGlobPattern(false);
+      matchingFiles = findMatchingFiles(pattern);
+    }
     
     // Determine output directory for converted files
     File conversionDir = null;
@@ -670,12 +686,18 @@ public class FileSchema extends AbstractSchema {
       }
 
       try {
+        // Calculate relative path from sourceDirectory to preserve directory structure
+        String relativePath = null;
+        if (sourceDirectory != null) {
+          relativePath = sourceDirectory.toPath().relativize(file.toPath()).toString();
+        }
+        
         // Use FileConversionManager for centralized conversion logic
         // Output to conversions directory if available, otherwise fallback to source directory
         File outputDir = conversionDir != null ? conversionDir : file.getParentFile();
-        // Pass baseDirectory for metadata storage
+        // Pass baseDirectory for metadata storage and relativePath for directory preservation
         boolean converted = FileConversionManager.convertIfNeeded(
-            file, outputDir, columnNameCasing, tableNameCasing, baseDirectory);
+            file, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath);
         if (converted) {
           LOGGER.debug("Converted file: {} to directory: {}", file.getName(), outputDir.getAbsolutePath());
         }
@@ -730,14 +752,24 @@ public class FileSchema extends AbstractSchema {
               conversionDir.mkdirs();
             }
 
+            // Calculate relative path to preserve directory structure
+            String relativePath = entry.getName();
+            if (basePath != null && !basePath.equals("/") && relativePath.startsWith(basePath)) {
+              relativePath = relativePath.substring(basePath.length());
+              if (relativePath.startsWith("/")) {
+                relativePath = relativePath.substring(1);
+              }
+            }
+            
             // Convert the cached file
-            // Pass baseDirectory for metadata storage
+            // Pass baseDirectory for metadata storage and relativePath for directory preservation
             boolean converted = FileConversionManager.convertIfNeeded(
                 cachedFile,
                 conversionDir,
                 columnNameCasing,
                 tableNameCasing,
-                baseDirectory
+                baseDirectory,
+                relativePath
             );
 
             if (converted) {
@@ -850,8 +882,30 @@ public class FileSchema extends AbstractSchema {
       first = false;
     }
 
-    String prefix = recursive ? "**/" : "";
-    return prefix + "*.{" + extensions.toString() + "}";
+    // Note: for recursive mode, this now only returns the root pattern
+    // The recursive pattern is handled by buildConvertibleFilesGlobPatternRecursive()
+    return "*.{" + extensions.toString() + "}";
+  }
+  
+  /**
+   * Builds a glob pattern for finding convertible files in subdirectories.
+   * This is separate from buildConvertibleFilesGlobPattern to avoid nested brace syntax issues.
+   * @return Glob pattern string for recursive search
+   */
+  private String buildConvertibleFilesGlobPatternRecursive() {
+    // Remove dots from extensions and join with commas
+    StringBuilder extensions = new StringBuilder();
+    boolean first = true;
+    for (String ext : CONVERTIBLE_EXTENSIONS) {
+      if (!first) {
+        extensions.append(",");
+      }
+      // Remove the leading dot from extension
+      extensions.append(ext.substring(1));
+      first = false;
+    }
+    
+    return "**/*.{" + extensions.toString() + "}";
   }
 
   /**
@@ -2248,11 +2302,30 @@ public class FileSchema extends AbstractSchema {
     try {
       Path basePath = sourceDirectory.toPath();
       PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+      
+      // Special handling for patterns starting with "**/": also match root files
+      // For example, "**/*.csv" should also match "*.csv" in the root directory
+      PathMatcher rootMatcher = null;
+      if (pattern.startsWith("**/")) {
+        String rootPattern = pattern.substring(3); // Get pattern after "**/"
+        rootMatcher = FileSystems.getDefault().getPathMatcher("glob:" + rootPattern);
+      }
 
+      final PathMatcher finalRootMatcher = rootMatcher;
       Files.walkFileTree(basePath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<Path>() {
+        @Override public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+          // Skip the .aperio directory to avoid finding converted files through source directory scan
+          if (dir.getFileName() != null && dir.getFileName().toString().equals(".aperio")) {
+            return FileVisitResult.SKIP_SUBTREE;
+          }
+          return FileVisitResult.CONTINUE;
+        }
+        
         @Override public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
           Path relativePath = basePath.relativize(file);
-          if (matcher.matches(relativePath)) {
+          // Match against main pattern OR root pattern (if applicable)
+          if (matcher.matches(relativePath) || 
+              (finalRootMatcher != null && finalRootMatcher.matches(relativePath))) {
             result.add(file.toString());
           }
           return FileVisitResult.CONTINUE;
@@ -2291,6 +2364,7 @@ public class FileSchema extends AbstractSchema {
 
     if (directoryPattern != null && isGlobPattern(directoryPattern)) {
       // Directory pattern itself contains glob characters - use as-is
+      // The findMatchingFiles method will handle **/ patterns specially
       pattern = directoryPattern;
     } else if (recursive) {
       // Use recursive glob pattern that includes both root and subdirectory files
@@ -2340,8 +2414,11 @@ public class FileSchema extends AbstractSchema {
       }
     }
     
-    // Sort all files with the same logic
+    // Deduplicate files based on absolute path and sort with the same logic
+    // Use a Set to track unique paths for deduplication
+    Set<String> seenPaths = new HashSet<>();
     File[] sortedFiles = allFiles.stream()
+        .filter(file -> seenPaths.add(file.getAbsolutePath())) // Only keep files with unique absolute paths
         .sorted((f1, f2) -> {
           // Sort files to ensure CSV files are processed after HTML files
           // This ensures CSV tables take precedence over HTML tables when they have the same name

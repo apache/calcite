@@ -68,6 +68,10 @@ public final class PptxTableScanner {
    * @param outputDir The directory to write JSON files to
    */
   public static void scanAndConvertTables(File inputFile, File outputDir) throws IOException {
+    scanAndConvertTables(inputFile, outputDir, null);
+  }
+  
+  public static void scanAndConvertTables(File inputFile, File outputDir, String relativePath) throws IOException {
     LOGGER.debug("Scanning PPTX file for tables: {}", inputFile.getName());
 
     // Acquire read lock on source file
@@ -93,6 +97,14 @@ public final class PptxTableScanner {
       // Convert each table to JSON
       String baseName = inputFile.getName().replaceFirst("\\.[^.]+$", "").toLowerCase()
           .replaceAll("[^a-z0-9_]", "_");
+      
+      // Include directory structure in the basename if relativePath is provided
+      if (relativePath != null && relativePath.contains(File.separator)) {
+        String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+            .replace(File.separator, "_");
+        baseName = dirPrefix + "_" + baseName;
+      }
+      
       ObjectMapper mapper = new ObjectMapper();
       
       // First pass: generate base filenames for all tables

@@ -103,7 +103,7 @@ public class HtmlToJsonConverter {
    * @throws IOException if conversion fails
    */
   public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, 
-                                   String tableNameCasing, String explicitTableName, File baseDirectory) throws IOException {
+                                   String tableNameCasing, String explicitTableName, File baseDirectory, String relativePath) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     // Use HtmlTableScanner to find tables - make sure we re-scan each time
     Source source = Sources.of(htmlFile);
@@ -139,6 +139,14 @@ public class HtmlToJsonConverter {
         
         // Generate JSON filename
         String baseFileName = ConverterUtils.getBaseFileName(htmlFile.getName(), ".html", ".htm");
+        
+        // Include directory structure in the filename if relativePath is provided
+        if (relativePath != null && relativePath.contains(File.separator)) {
+          String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
+              .replace(File.separator, "_");
+          baseFileName = dirPrefix + "_" + baseFileName;
+        }
+        
         String jsonFileName = baseFileName + "__" + tableName + ".json";
         File jsonFile = new File(outputDir, jsonFileName);
         
@@ -156,7 +164,11 @@ public class HtmlToJsonConverter {
   }
   
   public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory) throws IOException {
-    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null, baseDirectory);
+    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null, baseDirectory, null);
+  }
+  
+  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory, String relativePath) throws IOException {
+    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null, baseDirectory, relativePath);
   }
   
 
