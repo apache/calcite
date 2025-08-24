@@ -16,15 +16,18 @@
  */
 package org.apache.calcite.adapter.file.integration;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -48,10 +51,38 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 @SuppressWarnings("deprecation")
-public class MixedFormatGlobTest {
+public class MixedFormatGlobTest extends BaseFileTest {
 
-  @TempDir
-  public File tempDir;
+  private File tempDir;
+
+  @BeforeEach
+  public void setUp() throws Exception {
+    tempDir = Files.createTempDirectory("mixed-glob-test").toFile();
+  }
+
+  @AfterEach
+  public void tearDown() {
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteDirectory(tempDir);
+      } catch (Exception e) {
+        // Non-fatal cleanup error
+        System.err.println("Warning: Failed to clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] children = dir.listFiles();
+      if (children != null) {
+        for (File child : children) {
+          deleteDirectory(child);
+        }
+      }
+    }
+    dir.delete();
+  }
 
   @Test void testMixedFormatGlobAllFiles() throws Exception {
     // Create files of different formats
@@ -62,32 +93,35 @@ public class MixedFormatGlobTest {
     createGzippedCsv(new File(tempDir, "archive.csv.gz"));
 
     // Use * glob to get all files
-    String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'MIXED',\n"
-        + "  schemas: [\n"
-        + "    {\n"
-        + "      name: 'MIXED',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        glob: '*',\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
-        + "      }\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}";
+    String model = "{"
+        + "\n  \"version\": \"1.0\","
+        + "\n  \"defaultSchema\": \"MIXED\","
+        + "\n  \"schemas\": ["
+        + "\n    {"
+        + "\n      \"name\": \"MIXED\","
+        + "\n      \"type\": \"custom\","
+        + "\n      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\","
+        + "\n      \"operand\": {"
+        + "\n        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\","
+        + "\n        \"baseDirectory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\","
+        + "\n        \"glob\": \"*\","
+        + (getExecutionEngine() != null ? "\n        \"executionEngine\": \"" + getExecutionEngine() + "\"," : "")
+        + "\n        \"tableNameCasing\": \"LOWER\","
+        + "\n        \"columnNameCasing\": \"LOWER\","
+        + "\n        \"primeCache\": false"
+        + "\n      }"
+        + "\n    }"
+        + "\n  ]"
+        + "\n}";
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
+    String modelWithEphemeralCache = addEphemeralCacheToModel(model);
+
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + modelWithEphemeralCache)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("MIXED");
 
       // Should see all files as tables
       Set<String> tableNames = new TreeSet<>(schema.getTableNames());
-      System.out.println("testMixedFormatGlobAllFiles found tables: " + tableNames);
       assertEquals(5, tableNames.size());
       assertTrue(tableNames.contains("employees"));
       assertTrue(tableNames.contains("products"));
@@ -125,42 +159,43 @@ public class MixedFormatGlobTest {
     createHtmlFile(new File(tempDir, "report.html")); // Should be excluded
 
     // Use glob to select only CSV and JSON files
-    String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'MIXED',\n"
-        + "  schemas: [\n"
-        + "    {\n"
-        + "      name: 'MIXED',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        glob: '*.{csv,json}',\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
-        + "      }\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}";
+    String model = "{"
+        + "\n  \"version\": \"1.0\","
+        + "\n  \"defaultSchema\": \"MIXED\","
+        + "\n  \"schemas\": ["
+        + "\n    {"
+        + "\n      \"name\": \"MIXED\","
+        + "\n      \"type\": \"custom\","
+        + "\n      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\","
+        + "\n      \"operand\": {"
+        + "\n        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\","
+        + "\n        \"glob\": \"*.{csv,json}\","
+        + (getExecutionEngine() != null ? "\n        \"executionEngine\": \"" + getExecutionEngine() + "\"," : "")
+        + "\n        \"tableNameCasing\": \"LOWER\","
+        + "\n        \"columnNameCasing\": \"LOWER\","
+        + "\n        \"primeCache\": false"
+        + "\n      }"
+        + "\n    }"
+        + "\n  ]"
+        + "\n}";
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
+    String modelWithEphemeralCache = addEphemeralCacheToModel(model);
+
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + modelWithEphemeralCache)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("MIXED");
 
-      // Should only see CSV and JSON files
+      // Should see CSV and JSON files matching the glob pattern, plus converted HTML table
       Set<String> tableNames = schema.getTableNames();
-      System.out.println("testMixedFormatSpecificExtensions found tables: " + tableNames);
-      // Note: Glob filtering appears to include more files than expected
-      // This may indicate an issue with glob pattern *.{csv,json} implementation
-      assertEquals(6, tableNames.size());
+      
+      // Glob pattern *.{csv,json} matches 4 source files, plus 1 converted HTML table
+      assertEquals(5, tableNames.size());
       assertTrue(tableNames.contains("sales_2023"));
       assertTrue(tableNames.contains("sales_2024"));
       assertTrue(tableNames.contains("products"));
       assertTrue(tableNames.contains("inventory"));
-      // Currently these are also appearing despite glob filter
-      assertTrue(tableNames.contains("config"));
-      assertTrue(tableNames.contains("report__t1"));
+      assertTrue(tableNames.contains("report__t1")); // HTML file converted to JSON table
+      // config.yaml should NOT match the glob pattern
     }
   }
 
@@ -170,23 +205,24 @@ public class MixedFormatGlobTest {
     createDepartmentJson(new File(tempDir, "departments.json"));
     createLocationYaml(new File(tempDir, "locations.yaml"));
 
-    String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'MIXED',\n"
-        + "  schemas: [\n"
-        + "    {\n"
-        + "      name: 'MIXED',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
-        + "      }\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}";
+    String model = "{"
+        + "\n  \"version\": \"1.0\","
+        + "\n  \"defaultSchema\": \"MIXED\","
+        + "\n  \"schemas\": ["
+        + "\n    {"
+        + "\n      \"name\": \"MIXED\","
+        + "\n      \"type\": \"custom\","
+        + "\n      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\","
+        + "\n      \"operand\": {"
+        + "\n        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\","
+        + (getExecutionEngine() != null ? "\n        \"executionEngine\": \"" + getExecutionEngine() + "\"," : "")
+        + "\n        \"tableNameCasing\": \"LOWER\","
+        + "\n        \"columnNameCasing\": \"LOWER\","
+        + "\n        \"primeCache\": false"
+        + "\n      }"
+        + "\n    }"
+        + "\n  ]"
+        + "\n}";
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER;model=inline:" + model);
          Statement stmt = conn.createStatement()) {
@@ -221,6 +257,13 @@ public class MixedFormatGlobTest {
   }
 
   @Test void testMixedFormatWithParquetEngine() throws Exception {
+    // Skip for non-Parquet engines
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineStr != null && !("PARQUET".equalsIgnoreCase(engineStr) || "DUCKDB".equalsIgnoreCase(engineStr))) {
+      org.junit.jupiter.api.Assumptions.assumeTrue(false,
+          "Skipping Parquet-specific test for " + engineStr + " engine");
+    }
+    
     // Create mixed format files
     createCsvFile(new File(tempDir, "data1.csv"));
     createJsonFile(new File(tempDir, "data2.json"));
@@ -321,27 +364,30 @@ public class MixedFormatGlobTest {
     createYamlFile(new File(subDir2, "config.yaml"));
 
     // Use recursive glob
-    String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'MIXED',\n"
-        + "  schemas: [\n"
-        + "    {\n"
-        + "      name: 'MIXED',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        glob: '**/*',\n"
-        + "        recursive: true,\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
-        + "      }\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}";
+    String model = "{"
+        + "\n  \"version\": \"1.0\","
+        + "\n  \"defaultSchema\": \"MIXED\","
+        + "\n  \"schemas\": ["
+        + "\n    {"
+        + "\n      \"name\": \"MIXED\","
+        + "\n      \"type\": \"custom\","
+        + "\n      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\","
+        + "\n      \"operand\": {"
+        + "\n        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\","
+        + "\n        \"glob\": \"**/*\","
+        + (getExecutionEngine() != null ? "\n        \"executionEngine\": \"" + getExecutionEngine() + "\"," : "")
+        + "\n        \"recursive\": true,"
+        + "\n        \"tableNameCasing\": \"LOWER\","
+        + "\n        \"columnNameCasing\": \"LOWER\","
+        + "\n        \"primeCache\": false"
+        + "\n      }"
+        + "\n    }"
+        + "\n  ]"
+        + "\n}";
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
+    String modelWithEphemeralCache = addEphemeralCacheToModel(model);
+
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + modelWithEphemeralCache)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("MIXED");
 

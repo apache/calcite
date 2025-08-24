@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -88,22 +89,24 @@ public class RecursiveGlobTest {
 
     // Test using SQL queries through JDBC with proper lexical settings
     String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'TEST',\n"
-        + "  schemas: [\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"TEST\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'TEST',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + uniqueTempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        recursive: true\n"
+        + "      \"name\": \"TEST\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + uniqueTempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"recursive\": true\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
         + "}";
 
-    try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:model=inline:" + model + ";lex=ORACLE;unquotedCasing=TO_LOWER");
+    String modelWithEphemeralCache = BaseFileTest.addEphemeralCacheToModel(model);
+
+    try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:model=inline:" + modelWithEphemeralCache + ";lex=ORACLE;unquotedCasing=TO_LOWER");
          java.sql.Statement stmt = conn.createStatement()) {
 
       // Test that we can query tables from all directories
@@ -144,22 +147,24 @@ public class RecursiveGlobTest {
 
     // Test using SQL queries through JDBC with non-recursive and proper lexical settings
     String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'TEST',\n"
-        + "  schemas: [\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"TEST\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'TEST',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + uniqueTempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        recursive: false\n"
+        + "      \"name\": \"TEST\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + uniqueTempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"recursive\": false\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
         + "}";
 
-    try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:model=inline:" + model + ";lex=ORACLE;unquotedCasing=TO_LOWER");
+    String modelWithEphemeralCache = BaseFileTest.addEphemeralCacheToModel(model);
+
+    try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:model=inline:" + modelWithEphemeralCache + ";lex=ORACLE;unquotedCasing=TO_LOWER");
          java.sql.Statement stmt = conn.createStatement()) {
 
       // Check table count
@@ -197,22 +202,24 @@ public class RecursiveGlobTest {
 
     // Test basic glob pattern functionality by creating a schema and verifying it can query the files
     String model = "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'TEST',\n"
-        + "  schemas: [\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"TEST\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'TEST',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + uniqueTempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        recursive: true\n"
+        + "      \"name\": \"TEST\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + uniqueTempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"recursive\": true\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
         + "}";
 
-    try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:model=inline:" + model + ";lex=ORACLE;unquotedCasing=TO_LOWER");
+    String modelWithEphemeralCache = BaseFileTest.addEphemeralCacheToModel(model);
+
+    try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:model=inline:" + modelWithEphemeralCache + ";lex=ORACLE;unquotedCasing=TO_LOWER");
          java.sql.Statement stmt = conn.createStatement()) {
 
       // Test that both root and subdirectory files are accessible (use lowercase table names)

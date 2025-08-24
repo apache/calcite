@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.feature;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -126,11 +127,13 @@ public class RecursiveDirectoryComprehensiveTest {
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("FILES");
 
       Set<String> tableNames = schema.getTableNames();
+      
+      // All engines support Excel file conversion through conversion to JSON
+      // LINQ4J converts Excel to JSON and then processes the JSON
       assertEquals(3, tableNames.size());
-
+      assertTrue(tableNames.contains("data_excel_sales__sheet1"));
       assertTrue(tableNames.contains("data_csv_employees"));
       assertTrue(tableNames.contains("data_json_products"));
-      assertTrue(tableNames.contains("data_excel_sales__sheet1"));
 
       try (Statement stmt = conn.createStatement()) {
         // Test each format
@@ -340,78 +343,81 @@ public class RecursiveDirectoryComprehensiveTest {
   // Helper methods
 
   private String createRecursiveModel(File directory, String glob) {
-    return "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'FILES',\n"
-        + "  schemas: [\n"
+    String model = "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"FILES\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'FILES',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + directory.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        recursive: true,\n"
-        + "        glob: '" + glob + "',\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + directory.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"recursive\": true,\n"
+        + "        \"glob\": \"" + glob + "\",\n"
+        + "        \"tableNameCasing\": \"LOWER\",\n"
+        + "        \"columnNameCasing\": \"LOWER\",\n"
+        + "        \"primeCache\": false\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
         + "}";
+    return BaseFileTest.addEphemeralCacheToModel(model);
   }
 
   private String createRecursiveModelWithDepth(File directory, String glob, int maxDepth) {
-    return "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'FILES',\n"
-        + "  schemas: [\n"
+    String model = "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"FILES\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'FILES',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + directory.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        recursive: true,\n"
-        + "        glob: '" + glob + "',\n"
-        + "        maxDepth: " + maxDepth + ",\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + directory.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"recursive\": true,\n"
+        + "        \"glob\": \"" + glob + "\",\n"
+        + "        \"maxDepth\": " + maxDepth + ",\n"
+        + "        \"tableNameCasing\": \"LOWER\",\n"
+        + "        \"columnNameCasing\": \"LOWER\",\n"
+        + "        \"primeCache\": false\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
         + "}";
+    return BaseFileTest.addEphemeralCacheToModel(model);
   }
 
   private String createRecursiveModelWithIgnore(File directory, String glob, String[] ignorePatterns) {
     StringBuilder ignoreArray = new StringBuilder("[");
     for (int i = 0; i < ignorePatterns.length; i++) {
       if (i > 0) ignoreArray.append(", ");
-      ignoreArray.append("'").append(ignorePatterns[i]).append("'");
+      ignoreArray.append("\"").append(ignorePatterns[i]).append("\"");
     }
     ignoreArray.append("]");
 
-    return "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'FILES',\n"
-        + "  schemas: [\n"
+    String model = "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"FILES\",\n"
+        + "  \"schemas\": [\n"
         + "    {\n"
-        + "      name: 'FILES',\n"
-        + "      type: 'custom',\n"
-        + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
-        + "      operand: {\n"
-        + "        directory: '" + directory.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        recursive: true,\n"
-        + "        glob: '" + glob + "',\n"
-        + "        ignorePatterns: " + ignoreArray + ",\n"
-        + "        tableNameCasing: 'LOWER',\n"
-        + "        columnNameCasing: 'LOWER',\n"
-        + "        primeCache: false\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": \"" + directory.getAbsolutePath().replace("\\", "\\\\") + "\",\n"
+        + "        \"recursive\": true,\n"
+        + "        \"glob\": \"" + glob + "\",\n"
+        + "        \"ignorePatterns\": " + ignoreArray + ",\n"
+        + "        \"tableNameCasing\": \"LOWER\",\n"
+        + "        \"columnNameCasing\": \"LOWER\",\n"
+        + "        \"primeCache\": false\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
         + "}";
+    return BaseFileTest.addEphemeralCacheToModel(model);
   }
 
   private void createCsvFile(File file, String dataValue) throws IOException {
