@@ -66,11 +66,19 @@
 ## File Structure & Configuration
 
 ### FileSchema Configuration
-- `FileSchema.baseDirectory` defaults to: `{working_directory}/.aperio` (fully qualified path)
-- Can be overridden via `model.json` baseDirectory attribute + `.aperio`
+- `FileSchema.baseDirectory` defaults to: `{working_directory}/.aperio/{schema_name}` (fully qualified path)
+- Can be overridden via `model.json` schema operand `baseDirectory` attribute
 - `FileSchema.sourceDirectory` defaults to the model.json parent path (fully qualified path)
 - Can be overridden via `model.json` schema operand `sourceDirectory` attribute
 - **ALWAYS** convert paths to fully qualified absolute paths
+
+### Cache Configuration
+- `ephemeralCache`: Boolean flag in schema operand (default: false)
+  - When `true`: Uses temporary directory that's cleared on restart
+  - When `false`: Uses persistent cache in working directory
+  - Tests should set `ephemeralCache: true` for isolation via `BaseFileTest.addEphemeralCacheToModel()`
+  - Production typically uses `false` for restart benefits
+  - Multiple connection instances can share cache by setting same `baseDirectory` for horizontal scale-out
 
 ## Development Workflow
 
@@ -86,6 +94,7 @@ When asked to "cleanup debug code":
 
 ### Debugging Command
 - To trace value computation: Generate and analyze stack traces
+- **When debugging a module in test**: Add the appropriate log level configuration to `/src/test/resources/log4j2-test.xml`
 
 ## Documentation Standards
 
