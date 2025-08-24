@@ -16605,6 +16605,12 @@ public class SqlOperatorTest {
     f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
     f.checkScalar("0 << 100", "0", "INTEGER NOT NULL");
 
+    // === Non-zero values with large shifts ===
+    f.checkScalar("1 << 32", "1", "INTEGER NOT NULL");       // beyond 32-bit int
+    f.checkScalar("1 << 40", "256", "INTEGER NOT NULL");    // large shift
+    f.checkScalar("2 << 50", "524288", "INTEGER NOT NULL");
+    f.checkScalar("123 << 60", "-1342177280", "INTEGER NOT NULL");
+
     // === Binary type tests ===
     f.checkScalar("CAST(X'FF' AS BINARY(1)) << 1", "fe", "BINARY(1) NOT NULL");
     f.checkScalar("CAST(X'0F' AS BINARY(1)) << 4", "f0", "BINARY(1) NOT NULL");

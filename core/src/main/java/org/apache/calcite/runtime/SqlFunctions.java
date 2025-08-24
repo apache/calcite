@@ -3512,7 +3512,6 @@ public class SqlFunctions {
    * If the shift amount is negative, a logical right shift is applied.
    * The shift amount is taken modulo 32.
    */
-
   public static int leftShift(int x, int y) {
     int shift = Math.abs(y % 32);
     return y >= 0 ? x << shift : x >>> shift;
@@ -3524,7 +3523,6 @@ public class SqlFunctions {
    * If the shift amount is negative, a logical right shift is applied.
    * The shift amount is taken modulo 64.
    */
-
   public static long leftShift(long x, int y) {
     int shift = Math.abs(y % 64);
     return y >= 0 ? x << shift : x >>> shift;
@@ -3586,7 +3584,6 @@ public class SqlFunctions {
           result[byteShift - 1] = (byte) carry;
         }
       }
-
     } else {
       // Logical right shift
       int byteShift = shift / 8;
@@ -3595,7 +3592,6 @@ public class SqlFunctions {
       if (shift >= bytes.length * 8) {
         return new byte[bytes.length];
       }
-
       if (bitShift == 0) {
         System.arraycopy(bytes, byteShift, result, 0, bytes.length - byteShift);
       } else {

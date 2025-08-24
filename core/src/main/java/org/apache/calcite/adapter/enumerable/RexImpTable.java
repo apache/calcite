@@ -897,9 +897,14 @@ public class RexImpTable {
       defineMethod(TYPEOF, BuiltInMethod.TYPEOF.method, NullPolicy.STRICT);
       defineMethod(VARIANTNULL, BuiltInMethod.VARIANTNULL.method, NullPolicy.STRICT);
 
-      // shift
+      // shift: "<<" operator in SQL, a general arithmetic shift used in expressions.
+      // BIT_LEFT_SHIFT:internal/external function name
+      // (BIT_LEFT_SHIFT) mapped to the same implementation;
+      // provided for explicit function-call syntax (e.g., BIT_LEFT_SHIFT(x, y))
+      // in addition to the operator form.
       defineMethod(LEFTSHIFT, BuiltInMethod.LEFT_SHIFT.method, NullPolicy.STRICT);
       defineMethod(BIT_LEFT_SHIFT, BuiltInMethod.LEFT_SHIFT.method, NullPolicy.STRICT);
+
       define(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
       define(SAFE_DIVIDE,
