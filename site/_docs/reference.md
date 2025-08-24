@@ -2828,6 +2828,7 @@ In the following:
 | * | BITAND(value1, value2)                         | Returns the bitwise AND of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
 | * | BITOR(value1, value2)                          | Returns the bitwise OR of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
 | * | BITXOR(value1, value2)                         | Returns the bitwise XOR of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | LEFTSHIFT(value1, value2)                      | Returns the result of left-shifting *value1* by *value2* bits. *value1* can be integer, unsigned integer, or binary. For binary, the result has the same length as *value1*. |
 | * | BITNOT(value)                                  | Returns the bitwise NOT of *value*. *value* must be either an integer type or a binary value.
 | f | BITAND_AGG(value)                              | Equivalent to `BIT_AND(value)`
 | f | BITOR_AGG(value)                               | Equivalent to `BIT_OR(value)`
