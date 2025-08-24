@@ -3628,11 +3628,11 @@ public class SqlFunctions {
   }
 
   /**
-   * PostgreSQL-style bitwise shift for {@link UInteger}. Returns {@code null} if any operand is
+   * PostgresSQL-style bitwise shift for {@link UInteger}. Returns {@code null} if any operand is
    * null.
    */
   public static UInteger leftShift(UInteger x, int y) {
-    int shift = Math.abs((int) (y % 32));
+    int shift = Math.abs(y % 32);
     return y >= 0
         ? UInteger.valueOf(x.longValue() << shift)
         : UInteger.valueOf(x.longValue() >>> shift);
@@ -3642,7 +3642,7 @@ public class SqlFunctions {
    * PostgreSQL-style bitwise shift for {@link ULong}. Returns {@code null} if any operand is null.
    */
   public static ULong leftShift(ULong x, int y) {
-    int shift = Math.abs((int) (y % 64));
+    int shift = Math.abs(y % 64);
     return y >= 0
         ? ULong.valueOf(x.longValue() << shift)
         : ULong.valueOf(x.longValue() >>> shift);
