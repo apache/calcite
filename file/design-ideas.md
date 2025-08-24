@@ -1,6 +1,10 @@
-# Design Ideas for File Adapter
+# Design Ideas for File Adapter (Prioritized by ROI)
 
-## Environment Variable Substitution in Model Files
+## 🔥🔥🔥 HIGH ROI - Quick Wins (Days to Implement, Immediate Value)
+
+### 1. Environment Variable Substitution in Model Files
+
+**ROI**: Effort: 1-2 days | Impact: High | Risk: Low
 
 **Problem**: Model files (JSON format) don't support environment variable substitution, making it difficult to configure execution engines and other settings dynamically across test suites and deployments.
 
@@ -32,7 +36,13 @@
 - Handle in FileSchemaFactory or model parsing layer
 - Would simplify test configuration and deployment scenarios
 
-## Duplicate Schema Name Detection
+### 2. Multi-URL Pattern-Based Web Scraping
+
+**ROI**: Effort: 1 week | Impact: Very High | Risk: Low
+
+**Problem**: Users often need to scrape the same data structure from multiple URLs that follow a pattern - like fetching stock summaries for different tickers, product details for different SKUs, or weather data for different cities. Currently, each URL requires a separate table definition, leading to repetitive configuration and maintenance overhead.
+
+**Proposed Solution**: A lightweight extension to the existing HTML table extraction that supports URL patterns with variable substitution and batch fetching, perfect for aggregating structured data from multiple similar web pages.
 
 **Problem**: Multiple schemas with the same name within a single connection can cause conflicts and unpredictable behavior.
 
@@ -731,3 +741,1769 @@ public class TwitterPipeline implements DataPipeline {
 - Monitoring dashboard
 
 This framework would transform the file adapter into a powerful data ingestion platform while maintaining backward compatibility with existing file-based functionality.
+
+## Caffeine-based Parquet Batch Caching
+
+**Problem**: The file adapter repeatedly reads and decodes Parquet files for each query, even when accessing the same data batches. This leads to unnecessary I/O operations, CPU overhead for decompression/decoding, and poor performance for analytical workloads that repeatedly query the same datasets.
+
+**Proposed Solution**: Integrate the Caffeine caching library to cache decoded Parquet batches at the schema level, with configurable memory management, refresh strategies, and seamless spillover support for large datasets.
+
+### Architecture Analysis: Per-Schema vs Global vs Hybrid Cache
+
+#### Per-Schema Cache Approach
+
+**Advantages:**
+- **Isolation**: Different schemas can have different cache policies (e.g., sales data cached longer than temp data)
+- **Resource Control**: Each schema gets its own memory budget - prevents one schema from monopolizing cache
+- **Configuration Flexibility**: Different refresh strategies per data source (e.g., real-time vs batch data)
+- **Fault Isolation**: Cache corruption/issues in one schema don't affect others
+- **Lifecycle Management**: Clean shutdown per schema without affecting others
+- **Multi-tenancy**: Better for multi-tenant scenarios where different tenants have different SLAs
+
+**Disadvantages:**
+- **Memory Fragmentation**: Fixed memory per schema may lead to underutilization (one schema uses 10%, another needs 150%)
+- **Duplicate Caching**: Same file accessed through different schemas gets cached multiple times
+- **Complex Configuration**: More configuration overhead for administrators
+- **Cross-Schema Queries**: No benefit when joining across schemas
+- **Overhead**: Multiple cache instances mean more overhead (threads, management structures)
+
+#### Global Cache Approach
+
+**Advantages:**
+- **Memory Efficiency**: Single pool adapts to actual usage patterns dynamically
+- **Deduplication**: Same file/batch cached once regardless of access path
+- **Simpler Configuration**: One set of cache settings to tune
+- **Cross-Schema Benefits**: Joins across schemas benefit from shared cache
+- **Better Statistics**: Single point for monitoring cache effectiveness
+- **Hot Data Optimization**: Most frequently accessed data stays cached regardless of schema
+
+**Disadvantages:**
+- **No Isolation**: One misbehaving schema can evict everyone's data
+- **Single Policy**: Can't have different TTLs or refresh strategies per data source
+- **Resource Contention**: All schemas compete for same cache space
+- **Complex Eviction**: Harder to implement fair eviction across schemas
+- **Security Concerns**: Potential data leakage across schema boundaries (though data is already in same JVM)
+
+#### Recommended Hybrid Approach
+
+A hybrid design that combines the benefits of both approaches while mitigating their disadvantages:
+
+```java
+public class ParquetBatchCacheManager {
+    // Single Caffeine cache instance for memory efficiency
+    private final Cache<ParquetBatchCacheKey, CachedBatch> globalCache;
+    
+    // Per-schema configuration and quotas
+    private final Map<String, SchemaConfig> schemaConfigs;
+    private final Map<String, AtomicLong> schemaUsage;
+    
+    // Weighted eviction that considers schema quotas and priorities
+    private final Weigher<ParquetBatchCacheKey, CachedBatch> schemaAwareWeigher;
+}
+```
+
+### Hybrid Cache Implementation Design
+
+#### Cache Key Structure
+```java
+public class ParquetBatchCacheKey {
+    private final String schemaName;      // For schema-aware operations
+    private final String filePath;        // Absolute path to parquet file
+    private final int rowGroupIndex;      // Row group within file
+    private final long batchOffset;       // Offset within row group
+    private final int batchSize;          // Number of rows in batch
+    private final long fileModTime;       // File modification timestamp
+    
+    // Proper equals/hashCode for cache lookups
+    // Include schema name for schema-aware eviction
+}
+```
+
+#### Schema-Level Configuration
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "analytics",
+  "schemas": [{
+    "name": "analytics",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "data/analytics",
+      "parquetBatchCache": {
+        "enabled": true,
+        "priority": 8,                    // 1-10, higher = more important
+        "softQuotaMb": 256,               // Soft limit for this schema
+        "hardQuotaMb": 512,               // Hard limit (can't exceed)
+        "expireAfterWriteMinutes": 30,   // TTL for cached batches
+        "expireAfterAccessMinutes": 10,  // Idle timeout
+        "refreshAfterWriteMinutes": 15,  // Background refresh
+        "spilloverEnabled": true,        // Allow spillover to disk
+        "spilloverThresholdMb": 10,      // Batch size to trigger spillover
+        "recordStats": true              // Track cache statistics
+      }
+    }
+  }]
+}
+```
+
+### Cache Manager Architecture
+
+#### Core Components
+
+**1. Caffeine Cache Configuration:**
+```java
+public class CacheBuilder {
+    public Cache<ParquetBatchCacheKey, CachedBatch> buildCache(GlobalConfig config) {
+        return Caffeine.newBuilder()
+            .maximumWeight(config.getMaxGlobalMemoryBytes())
+            .weigher(new SchemaAwareWeigher(schemaConfigs))
+            .expireAfter(new SchemaAwareExpiry())
+            .removalListener(new SpilloverRemovalListener())
+            .recordStats()
+            .build();
+    }
+}
+```
+
+**2. Schema-Aware Weigher:**
+```java
+public class SchemaAwareWeigher implements Weigher<ParquetBatchCacheKey, CachedBatch> {
+    public int weigh(ParquetBatchCacheKey key, CachedBatch batch) {
+        SchemaConfig config = schemaConfigs.get(key.getSchemaName());
+        int baseWeight = batch.getMemorySize();
+        
+        // Apply schema priority as weight multiplier
+        // Higher priority = lower weight = less likely to evict
+        double priorityMultiplier = 1.0 / (config.getPriority() / 5.0);
+        
+        return (int)(baseWeight * priorityMultiplier);
+    }
+}
+```
+
+**3. Spillover Integration:**
+```java
+public class SpilloverBatchLoader implements CacheLoader<ParquetBatchCacheKey, CachedBatch> {
+    @Override
+    public CachedBatch load(ParquetBatchCacheKey key) throws Exception {
+        // First check if spilled to disk
+        File spillFile = spilloverManager.getSpillFile(key);
+        if (spillFile != null && spillFile.exists()) {
+            return loadFromSpillover(spillFile);
+        }
+        
+        // Otherwise load from parquet file
+        VectorizedParquetReader reader = new VectorizedParquetReader(
+            key.getFilePath(),
+            cacheManager  // Pass cache manager for coordination
+        );
+        
+        List<Object[]> batch = reader.readBatch(
+            key.getRowGroupIndex(),
+            key.getBatchOffset(),
+            key.getBatchSize()
+        );
+        
+        // Check if should spill immediately
+        CachedBatch cached = new CachedBatch(batch);
+        if (cached.getMemorySize() > config.getSpilloverThresholdBytes()) {
+            spilloverManager.spillToDisk(key, cached);
+            cached.setSpilled(true);
+        }
+        
+        return cached;
+    }
+}
+```
+
+### Integration Points
+
+#### 1. VectorizedParquetReader Enhancement
+```java
+public class VectorizedParquetReader {
+    private final ParquetBatchCacheManager cacheManager;
+    
+    public List<Object[]> readBatch() throws IOException {
+        // Generate cache key
+        ParquetBatchCacheKey key = new ParquetBatchCacheKey(
+            schemaName,
+            filePath,
+            currentRowGroupIndex,
+            currentRowInGroup,
+            batchSize,
+            fileModTime
+        );
+        
+        // Try cache first
+        if (cacheManager != null) {
+            CachedBatch cached = cacheManager.get(key);
+            if (cached != null) {
+                cacheStats.recordHit();
+                return cached.getData();
+            }
+            cacheStats.recordMiss();
+        }
+        
+        // Read from file
+        List<Object[]> batch = readBatchFromFile();
+        
+        // Cache for future use
+        if (cacheManager != null && shouldCache(batch)) {
+            cacheManager.put(key, new CachedBatch(batch));
+        }
+        
+        return batch;
+    }
+}
+```
+
+#### 2. FileSchema Integration
+```java
+public class FileSchema extends AbstractSchema {
+    private final ParquetBatchCacheManager cacheManager;
+    
+    public FileSchema(File baseDirectory, Map<String, Object> operand) {
+        // Parse cache configuration
+        Map<String, Object> cacheConfig = 
+            (Map<String, Object>) operand.get("parquetBatchCache");
+        
+        if (cacheConfig != null && Boolean.TRUE.equals(cacheConfig.get("enabled"))) {
+            this.cacheManager = ParquetBatchCacheManager.getInstance()
+                .registerSchema(this.name, cacheConfig);
+        }
+    }
+    
+    @Override
+    public void close() {
+        if (cacheManager != null) {
+            cacheManager.evictSchema(this.name);
+        }
+    }
+}
+```
+
+### Memory Management Strategies
+
+#### 1. Adaptive Memory Allocation
+```java
+public class AdaptiveMemoryManager {
+    public void adjustQuotas() {
+        // Monitor actual usage patterns
+        Map<String, Double> usageRatios = calculateUsageRatios();
+        
+        // Adjust soft quotas based on demand
+        for (String schema : schemaConfigs.keySet()) {
+            double ratio = usageRatios.get(schema);
+            if (ratio > 0.9) {  // Schema needs more memory
+                increaseSoftQuota(schema);
+            } else if (ratio < 0.3) {  // Schema underutilizing
+                decreaseSoftQuota(schema);
+            }
+        }
+    }
+}
+```
+
+#### 2. Memory Pressure Response
+```java
+public class MemoryPressureMonitor {
+    public void onMemoryPressure() {
+        // Progressive response to memory pressure
+        MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
+        double usage = memory.getHeapMemoryUsage().getUsed() / 
+                      (double) memory.getHeapMemoryUsage().getMax();
+        
+        if (usage > 0.9) {
+            // Critical: Spill largest batches
+            spillLargestBatches(10);
+        } else if (usage > 0.8) {
+            // High: Evict low-priority schemas
+            evictLowPriorityData();
+        } else if (usage > 0.7) {
+            // Moderate: Stop prefetching
+            disablePrefetching();
+        }
+    }
+}
+```
+
+### Cache Statistics and Monitoring
+
+```java
+public class CacheStatistics {
+    // Per-schema statistics
+    private final Map<String, SchemaStats> schemaStats;
+    
+    public static class SchemaStats {
+        private long hits;
+        private long misses;
+        private long evictions;
+        private long spillovers;
+        private long bytesInCache;
+        private long bytesSpilled;
+        
+        public double getHitRate() {
+            return hits / (double)(hits + misses);
+        }
+        
+        public long getMemoryUsage() {
+            return bytesInCache + bytesSpilled;
+        }
+    }
+    
+    // JMX exposure for monitoring
+    @MXBean
+    public interface CacheStatisticsMXBean {
+        Map<String, Double> getHitRatesBySchema();
+        long getTotalMemoryUsage();
+        long getSpilledBytes();
+        Map<String, Long> getEvictionsBySchema();
+    }
+}
+```
+
+### Benefits of Hybrid Approach
+
+1. **Memory Efficiency**: Single cache pool adapts to actual usage patterns
+2. **Schema Awareness**: Different policies and priorities per schema
+3. **Spillover Support**: Seamless handling of large datasets
+4. **Fair Resource Sharing**: Soft quotas with ability to exceed when space available
+5. **Performance**: Dramatic speedup for repeated queries
+6. **Monitoring**: Comprehensive statistics for tuning
+
+### Performance Optimizations
+
+1. **Batch Prefetching**: Predictively load next batches based on access patterns
+2. **Compression**: Keep compressed batches in cache, decompress on demand
+3. **Tiered Caching**: Hot data in memory, warm data spilled, cold data on disk
+4. **Async Loading**: Background loading of likely-needed batches
+5. **NUMA Awareness**: Pin cache regions to NUMA nodes for better locality
+
+### Future Enhancements
+
+1. **Distributed Caching**: Share cache across multiple file adapter instances
+2. **Persistent Cache**: Survive JVM restarts with memory-mapped files
+3. **Smart Eviction**: ML-based prediction of future access patterns
+4. **Column-Level Caching**: Cache individual columns for better memory efficiency
+5. **Query-Aware Caching**: Cache computed results of common sub-queries
+
+## Pluggable Cache Provider Pattern
+
+**Problem**: Different deployment environments have different caching requirements. Some need in-memory caching (Caffeine), others need distributed caching (Redis/Hazelcast), and some need custom solutions (S3-backed, etc.). Hardcoding a single caching solution limits flexibility and forces users to accept trade-offs that may not fit their use case.
+
+**Proposed Solution**: Implement a pluggable cache provider pattern that allows users to choose or implement their own caching strategy through configuration, without modifying the core file adapter code.
+
+### Provider Interface
+
+```java
+public interface ParquetCacheProvider {
+    // Lifecycle
+    void initialize(CacheConfig config);
+    void close();
+    
+    // Basic operations
+    CompletableFuture<CachedBatch> get(ParquetBatchCacheKey key);
+    CompletableFuture<Void> put(ParquetBatchCacheKey key, CachedBatch batch);
+    CompletableFuture<Void> evict(ParquetBatchCacheKey key);
+    CompletableFuture<Void> clear();
+    
+    // Bulk operations
+    CompletableFuture<Map<ParquetBatchCacheKey, CachedBatch>> getAll(Set<ParquetBatchCacheKey> keys);
+    CompletableFuture<Void> putAll(Map<ParquetBatchCacheKey, CachedBatch> entries);
+    
+    // Management
+    CacheStatistics getStatistics();
+    long getMemoryUsage();
+    void setEvictionPolicy(EvictionPolicy policy);
+    
+    // Provider metadata
+    String getName();
+    Set<String> getSupportedFeatures();
+    boolean supportsAsync();
+    boolean supportsDistributed();
+}
+```
+
+### Configuration-Driven Selection
+
+```json
+{
+  "parquetBatchCache": {
+    "enabled": true,
+    "provider": "tiered",  // caffeine, redis, hazelcast, disk, tiered, or custom class
+    "config": {
+      // Provider-specific configuration
+      "tiers": [
+        {
+          "name": "l1-memory",
+          "provider": "caffeine",
+          "maxSizeMb": 256,
+          "expireAfterAccessMinutes": 5,
+          "recordStats": true
+        },
+        {
+          "name": "l2-redis", 
+          "provider": "redis",
+          "connection": "${REDIS_URL:redis://localhost:6379}",
+          "maxSizeGb": 10,
+          "serializer": "kryo",
+          "compression": "lz4"
+        },
+        {
+          "name": "l3-disk",
+          "provider": "disk",
+          "directory": "${CACHE_DIR:/tmp/parquet-cache}",
+          "maxSizeGb": 100,
+          "blockSize": 4096
+        }
+      ]
+    }
+  }
+}
+```
+
+### Built-in Providers
+
+#### 1. Caffeine Provider (Local In-Memory)
+**Best for**: Single JVM, low latency, small-medium datasets
+```java
+public class CaffeineCacheProvider implements ParquetCacheProvider {
+    private Cache<ParquetBatchCacheKey, CachedBatch> cache;
+    
+    @Override
+    public Set<String> getSupportedFeatures() {
+        return Set.of("local", "fast", "ttl", "size-eviction", "weight-eviction");
+    }
+}
+```
+
+#### 2. Redis Provider (Distributed)
+**Best for**: Multi-JVM, large datasets, shared cache
+```java
+public class RedisCacheProvider implements ParquetCacheProvider {
+    private RedissonClient redisson;
+    private RMapCache<String, byte[]> cache;
+    
+    @Override
+    public Set<String> getSupportedFeatures() {
+        return Set.of("distributed", "persistent", "shared", "large-capacity", 
+                     "pub-sub", "atomic-ops");
+    }
+}
+```
+
+#### 3. Hazelcast Provider (In-Memory Data Grid)
+**Best for**: Distributed computing, near-cache support
+```java
+public class HazelcastCacheProvider implements ParquetCacheProvider {
+    private HazelcastInstance hazelcast;
+    private IMap<ParquetBatchCacheKey, CachedBatch> cache;
+    
+    @Override
+    public Set<String> getSupportedFeatures() {
+        return Set.of("distributed", "near-cache", "replicated", "queryable", 
+                     "entry-processor", "continuous-query");
+    }
+}
+```
+
+#### 4. Apache Ignite Provider (Compute Grid)
+**Best for**: Collocated compute, SQL queries on cache
+```java
+public class IgniteCacheProvider implements ParquetCacheProvider {
+    private Ignite ignite;
+    private IgniteCache<ParquetBatchCacheKey, CachedBatch> cache;
+    
+    @Override
+    public Set<String> getSupportedFeatures() {
+        return Set.of("distributed", "compute-grid", "sql-queries", 
+                     "collocated-processing", "persistence");
+    }
+}
+```
+
+#### 5. Disk Provider (File-Based Spillover)
+**Best for**: Large datasets, persistence, spillover
+```java
+public class DiskCacheProvider implements ParquetCacheProvider {
+    private Path cacheDir;
+    private ConcurrentHashMap<ParquetBatchCacheKey, Path> index;
+    
+    @Override
+    public Set<String> getSupportedFeatures() {
+        return Set.of("persistent", "spillover", "unlimited-size", "low-memory");
+    }
+}
+```
+
+#### 6. Tiered Provider (Composite)
+**Best for**: Combining multiple cache levels
+```java
+public class TieredCacheProvider implements ParquetCacheProvider {
+    private List<ParquetCacheProvider> tiers;
+    
+    @Override
+    public CompletableFuture<CachedBatch> get(ParquetBatchCacheKey key) {
+        // Waterfall through tiers
+        return getTiered(key, 0);
+    }
+    
+    private CompletableFuture<CachedBatch> getTiered(ParquetBatchCacheKey key, int tier) {
+        if (tier >= tiers.size()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        
+        return tiers.get(tier).get(key)
+            .thenCompose(batch -> {
+                if (batch != null) {
+                    promoteToHigherTiers(key, batch, tier);
+                    return CompletableFuture.completedFuture(batch);
+                }
+                return getTiered(key, tier + 1);
+            });
+    }
+}
+```
+
+### Custom Provider Implementation
+
+Users can implement their own providers for specific requirements:
+
+```java
+// Example: S3-backed cache for serverless deployments
+public class S3CacheProvider implements ParquetCacheProvider {
+    private S3Client s3Client;
+    private String bucket;
+    private String prefix;
+    
+    @Override
+    public void initialize(CacheConfig config) {
+        this.s3Client = S3Client.builder()
+            .region(Region.of(config.getString("region", "us-east-1")))
+            .build();
+        this.bucket = config.getString("bucket");
+        this.prefix = config.getString("prefix", "parquet-cache/");
+    }
+    
+    @Override
+    public CompletableFuture<CachedBatch> get(ParquetBatchCacheKey key) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                GetObjectRequest request = GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(prefix + key.toS3Key())
+                    .build();
+                    
+                ResponseBytes<GetObjectResponse> response = 
+                    s3Client.getObjectAsBytes(request);
+                    
+                return deserialize(response.asByteArray());
+            } catch (NoSuchKeyException e) {
+                return null;
+            }
+        });
+    }
+    
+    @Override
+    public Set<String> getSupportedFeatures() {
+        return Set.of("distributed", "persistent", "serverless", 
+                     "unlimited-size", "s3-native");
+    }
+}
+```
+
+### Provider Factory and Registration
+
+```java
+public class CacheProviderFactory {
+    private static final Map<String, Class<? extends ParquetCacheProvider>> PROVIDERS = 
+        new ConcurrentHashMap<>();
+    
+    static {
+        // Register built-in providers
+        registerProvider("caffeine", CaffeineCacheProvider.class);
+        registerProvider("redis", RedisCacheProvider.class);
+        registerProvider("hazelcast", HazelcastCacheProvider.class);
+        registerProvider("ignite", IgniteCacheProvider.class);
+        registerProvider("disk", DiskCacheProvider.class);
+        registerProvider("tiered", TieredCacheProvider.class);
+        registerProvider("ehcache", EhcacheCacheProvider.class);
+    }
+    
+    public static void registerProvider(String name, 
+                                       Class<? extends ParquetCacheProvider> providerClass) {
+        PROVIDERS.put(name.toLowerCase(), providerClass);
+    }
+    
+    public static ParquetCacheProvider create(String type, CacheConfig config) {
+        // Check if it's a class name (custom provider)
+        if (type.contains(".")) {
+            return createCustomProvider(type, config);
+        }
+        
+        // Built-in provider
+        Class<? extends ParquetCacheProvider> providerClass = PROVIDERS.get(type.toLowerCase());
+        if (providerClass == null) {
+            throw new IllegalArgumentException("Unknown cache provider: " + type);
+        }
+        
+        try {
+            ParquetCacheProvider provider = providerClass.getDeclaredConstructor().newInstance();
+            provider.initialize(config);
+            return provider;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create cache provider: " + type, e);
+        }
+    }
+}
+```
+
+### Advanced Provider Features
+
+#### Cache Warming
+```java
+public interface WarmableCacheProvider extends ParquetCacheProvider {
+    CompletableFuture<Void> warmCache(List<ParquetBatchCacheKey> keys);
+    void setWarmingStrategy(WarmingStrategy strategy);
+    void scheduleWarming(String cronExpression);
+}
+```
+
+#### Cache Coherence
+```java
+public interface CoherentCacheProvider extends ParquetCacheProvider {
+    void addInvalidationListener(InvalidationListener listener);
+    void invalidateAcrossNodes(ParquetBatchCacheKey key);
+    void setCoherenceMode(CoherenceMode mode);
+    CompletableFuture<Void> synchronize();
+}
+```
+
+#### Observable Cache
+```java
+public interface ObservableCacheProvider extends ParquetCacheProvider {
+    void addCacheListener(CacheListener listener);
+    Stream<CacheEvent> getEventStream();
+    void enableMetrics(MeterRegistry registry);
+    void enableTracing(Tracer tracer);
+}
+```
+
+### Provider Selection Matrix
+
+| Provider | Latency | Capacity | Distributed | Persistent | Use Case |
+|----------|---------|----------|-------------|------------|----------|
+| Caffeine | <1μs | GB | No | No | Single JVM, hot data |
+| Redis | 1-2ms | TB | Yes | Yes | Multi-JVM, shared cache |
+| Hazelcast | <1ms | TB | Yes | Optional | Compute grid |
+| Ignite | <1ms | TB | Yes | Yes | Collocated compute |
+| Disk | 10ms | Unlimited | No | Yes | Large spillover |
+| S3 | 50-200ms | Unlimited | Yes | Yes | Serverless |
+| Tiered | Variable | Unlimited | Optional | Optional | Mixed workloads |
+
+### Integration Example
+
+```java
+public class FileSchema extends AbstractSchema {
+    private ParquetCacheProvider cacheProvider;
+    
+    public FileSchema(File baseDirectory, Map<String, Object> operand) {
+        Map<String, Object> cacheConfig = 
+            (Map<String, Object>) operand.get("parquetBatchCache");
+        
+        if (cacheConfig != null && Boolean.TRUE.equals(cacheConfig.get("enabled"))) {
+            String providerType = (String) cacheConfig.getOrDefault("provider", "caffeine");
+            
+            // Create provider through factory
+            this.cacheProvider = CacheProviderFactory.create(
+                providerType, 
+                new CacheConfig(cacheConfig)
+            );
+            
+            // Optional: warm cache on startup
+            if (cacheProvider instanceof WarmableCacheProvider) {
+                ((WarmableCacheProvider) cacheProvider)
+                    .setWarmingStrategy(WarmingStrategy.ON_STARTUP);
+            }
+        }
+    }
+}
+```
+
+### Benefits of Provider Pattern
+
+1. **Flexibility**: Choose the right cache for your deployment
+2. **No Lock-in**: Switch providers without code changes
+3. **Extensibility**: Add custom providers for specific needs
+4. **Testing**: Easy to mock/stub providers
+5. **Configuration-Driven**: Change behavior via config
+6. **Best of Breed**: Use specialized caches for their strengths
+7. **Future-Proof**: New cache technologies can be added as providers
+8. **Composability**: Combine providers (e.g., tiered caching)
+
+### Implementation Priority
+
+**Phase 1**: Core provider interface and factory
+**Phase 2**: Caffeine and Disk providers (local options)
+**Phase 3**: Redis provider (distributed option)
+**Phase 4**: Tiered provider (composition)
+**Phase 5**: Additional providers based on demand
+
+## Enhanced Web Table Extraction
+
+**Problem**: The current web/HTML feature extracts all HTML tables from a single URL, which works well but is limited in scope. Users often need to extract specific tables from multiple sources, target tables by ID or class, or extract tables matching certain patterns.
+
+**Current Implementation**: 
+- Single URL per schema
+- Extracts all `<table>` elements from the page
+- Clean and simple - tables are obviously tabular data
+
+**Proposed Enhancement**: Extend the current table extraction with multi-URL support and CSS selector-based targeting while maintaining the simplicity of "tables are tabular data".
+
+### Multi-URL and Selector Configuration
+
+```json
+{
+  "type": "web",
+  "urls": [
+    "https://example.com/page1.html",
+    "https://example.com/page2.html",
+    "https://example.com/reports/*/daily.html"  // Glob pattern support
+  ],
+  "selectors": {
+    "sales_table": "table#sales-data",           // Specific table by ID
+    "product_tables": "table.product-listing",   // All tables with class
+    "nested_data": "div.container > table",      // Tables within specific container
+    "monthly_reports": "table[data-period='monthly']",  // Attribute selector
+    "price_table": {
+      "selector": "table",
+      "contains_text": "Price List",            // Table containing specific text
+      "has_headers": ["Product", "Price"],      // Required column headers
+      "min_rows": 5                             // Minimum row count
+    }
+  }
+}
+```
+
+### Selector Strategies
+
+#### CSS Selectors
+Standard CSS selector support for precise table targeting:
+```json
+{
+  "selectors": {
+    "by_id": "#data-table",
+    "by_class": ".financial-data",
+    "by_attribute": "table[data-source='bloomberg']",
+    "nested": "div#reports table.quarterly",
+    "nth_table": "table:nth-of-type(2)",
+    "after_heading": "h2:contains('Sales') + table"
+  }
+}
+```
+
+#### Content-Based Selection
+Select tables based on their content:
+```json
+{
+  "selectors": {
+    "financial_tables": {
+      "selector": "table",
+      "header_pattern": ".*Q[1-4] 20\\d{2}.*",  // Regex for headers
+      "data_pattern": "\\$[\\d,]+\\.\\d{2}",     // Contains currency
+      "contains_text": "Revenue",
+      "min_rows": 10,
+      "max_rows": 1000
+    }
+  }
+}
+```
+
+### URL Pattern Support
+
+#### Static Lists
+```json
+{
+  "urls": [
+    "https://site.com/data1.html",
+    "https://site.com/data2.html"
+  ]
+}
+```
+
+#### Date Range Expansion
+```json
+{
+  "urls": {
+    "template": "https://site.com/data/{date}/report.html",
+    "date_range": {
+      "start": "2024-01-01",
+      "end": "2024-01-31",
+      "format": "yyyy-MM-dd"
+    }
+  }
+}
+```
+
+#### Pagination Support
+```json
+{
+  "urls": {
+    "template": "https://site.com/list?page={page}",
+    "pages": {
+      "start": 1,
+      "end": 10
+    }
+  }
+}
+```
+
+### SQL Interface
+
+```sql
+-- Create schema with multiple web sources
+CREATE SCHEMA web_data AS WEB('web_config.json');
+
+-- Query specific extracted tables
+SELECT * FROM web_data.sales_table;
+SELECT * FROM web_data.product_tables_page1;
+SELECT * FROM web_data.monthly_reports;
+
+-- Dynamic extraction with selectors
+SELECT * FROM web.extract(
+  url := 'https://example.com/data.html',
+  selector := 'table#specific-data'
+);
+
+-- Extract from multiple URLs
+SELECT * FROM web.extract_all(
+  urls := ARRAY[
+    'https://site1.com/data.html',
+    'https://site2.com/data.html'
+  ],
+  selector := 'table.price-list'
+);
+
+-- Union tables from multiple sources
+WITH combined_prices AS (
+  SELECT 'source1' as source, * 
+  FROM web.extract('https://competitor1.com', 'table.prices')
+  UNION ALL
+  SELECT 'source2' as source, *
+  FROM web.extract('https://competitor2.com', 'table#price-grid')
+)
+SELECT * FROM combined_prices;
+```
+
+### Implementation Components
+
+#### WebTableExtractor Enhancement
+```java
+public class WebTableExtractor {
+    
+    public Map<String, DataFrame> extractTables(WebConfig config) {
+        Map<String, DataFrame> tables = new HashMap<>();
+        
+        for (String urlPattern : config.getUrls()) {
+            List<String> urls = expandUrlPattern(urlPattern);
+            
+            for (String url : urls) {
+                Document doc = fetchDocument(url);
+                
+                for (Entry<String, SelectorConfig> entry : config.getSelectors().entrySet()) {
+                    Elements selected = selectTables(doc, entry.getValue());
+                    
+                    if (!selected.isEmpty()) {
+                        String tableName = generateTableName(entry.getKey(), url);
+                        tables.put(tableName, convertToDataFrame(selected));
+                    }
+                }
+            }
+        }
+        return tables;
+    }
+    
+    private Elements selectTables(Document doc, SelectorConfig config) {
+        Elements tables = doc.select(config.getSelector());
+        
+        // Apply filters
+        if (config.getContainsText() != null) {
+            tables = filterByText(tables, config.getContainsText());
+        }
+        
+        if (config.getRequiredHeaders() != null) {
+            tables = filterByHeaders(tables, config.getRequiredHeaders());
+        }
+        
+        if (config.getMinRows() != null) {
+            tables = filterByRowCount(tables, config.getMinRows(), config.getMaxRows());
+        }
+        
+        return tables;
+    }
+}
+```
+
+### Use Cases
+
+#### Financial Data Aggregation
+```json
+{
+  "name": "market_data",
+  "urls": [
+    "https://finance.yahoo.com/quote/AAPL",
+    "https://finance.yahoo.com/quote/GOOGL",
+    "https://finance.yahoo.com/quote/MSFT"
+  ],
+  "selectors": {
+    "historical_prices": "table[data-test='historical-prices']",
+    "key_statistics": "table:contains('Valuation Measures')",
+    "financials": "div.financials table"
+  }
+}
+```
+
+#### Government Data Collection
+```json
+{
+  "name": "census_tables",
+  "urls": [
+    "https://census.gov/data/tables/2020/*.html",
+    "https://census.gov/data/tables/2021/*.html"
+  ],
+  "selectors": {
+    "population_data": {
+      "selector": "table",
+      "contains_text": "Population",
+      "has_headers": ["State", "Population", "Change"]
+    },
+    "economic_data": {
+      "selector": "table.economic-indicators",
+      "min_rows": 10
+    }
+  }
+}
+```
+
+#### Competitive Intelligence
+```json
+{
+  "name": "competitor_monitoring",
+  "urls": [
+    "https://competitor1.com/pricing",
+    "https://competitor2.com/products",
+    "https://competitor3.com/catalog"
+  ],
+  "selectors": {
+    "price_tables": {
+      "selector": "table",
+      "contains_text": ["$", "USD", "Price"],
+      "data_pattern": "\\$[\\d,]+\\.\\d{2}"
+    }
+  },
+  "refresh_interval": "daily"
+}
+```
+
+### Advanced Features
+
+#### Table Merging Strategies
+```json
+{
+  "merge": {
+    "strategy": "union_all",  // or "join", "concatenate"
+    "key_columns": ["product_id", "date"],
+    "deduplicate": true,
+    "conflict_resolution": "latest"  // or "first", "merge"
+  }
+}
+```
+
+#### Schema Validation
+```json
+{
+  "validation": {
+    "expect_columns": ["id", "name", "price"],
+    "column_types": {
+      "id": "integer",
+      "price": "decimal",
+      "date": "date"
+    },
+    "fail_on_mismatch": false,
+    "coerce_types": true
+  }
+}
+```
+
+#### Change Detection
+```sql
+-- Monitor tables for changes
+CREATE MATERIALIZED VIEW price_changes AS
+WITH current_prices AS (
+  SELECT * FROM web.extract('https://competitor.com', 'table#prices')
+),
+previous_prices AS (
+  SELECT * FROM price_changes_history
+)
+SELECT 
+  c.*,
+  p.price as previous_price,
+  c.price - p.price as price_change,
+  CURRENT_TIMESTAMP as detected_at
+FROM current_prices c
+LEFT JOIN previous_prices p ON c.product_id = p.product_id
+WHERE c.price != p.price OR p.price IS NULL;
+```
+
+### Benefits
+
+1. **Maintains Simplicity**: Still just extracting HTML tables - no complex content analysis
+2. **Precise Targeting**: Extract exactly the tables you need
+3. **Multi-Source Support**: Aggregate data from multiple pages/sites
+4. **Predictable**: CSS selectors are well-understood and documented
+5. **Flexible**: Can start simple and gradually add more sophisticated selectors
+6. **Efficient**: Only extract and store the tables you actually need
+
+### Implementation Priority
+
+**Phase 1**: Multi-URL support with basic CSS selectors
+**Phase 2**: Content-based filtering (contains_text, has_headers)
+**Phase 3**: Pattern matching and regex support
+**Phase 4**: URL templating and pagination
+**Phase 5**: Change detection and monitoring
+
+## Multi-URL Pattern-Based Web Scraping (Focused Feature)
+
+**Problem**: Users often need to scrape the same data structure from multiple URLs that follow a pattern - like fetching stock summaries for different tickers, product details for different SKUs, or weather data for different cities. Currently, each URL requires a separate table definition, leading to repetitive configuration and maintenance overhead.
+
+**Proposed Solution**: A lightweight extension to the existing HTML table extraction that supports URL patterns with variable substitution and batch fetching, perfect for aggregating structured data from multiple similar web pages.
+
+### Core Concept
+
+Enable pattern-based URL definitions with variable substitution using an array of variable dictionaries:
+
+```json
+{
+  "name": "stock_summaries",
+  "type": "custom",
+  "operand": {
+    "urls": "https://finance.example.com/quote/{ticker}/summary",
+    "variables": [
+      {"ticker": "AAPL", "company": "Apple"},
+      {"ticker": "GOOGL", "company": "Google"},
+      {"ticker": "MSFT", "company": "Microsoft"},
+      {"ticker": "AMZN", "company": "Amazon"},
+      {"ticker": "TSLA", "company": "Tesla"}
+    ],
+    "selector": "table.summary-data",
+    "addSourceColumns": ["ticker", "company"]  // Which variables to include as columns
+  }
+}
+```
+
+This single configuration would fetch and aggregate data from 5 different URLs, adding source columns to track which ticker and company each row came from.
+
+### Use Cases
+
+#### Stock Market Data Aggregation
+```sql
+-- Single query across multiple tickers
+SELECT ticker, price, volume, market_cap, pe_ratio
+FROM stock_summaries
+WHERE pe_ratio < 25
+ORDER BY market_cap DESC;
+```
+
+#### E-commerce Price Monitoring
+```json
+{
+  "name": "product_prices",
+  "type": "custom",
+  "operand": {
+    "urls": [
+      "https://store1.com/product/{sku}",
+      "https://store2.com/item/{sku}",
+      "https://store3.com/p/{sku}"
+    ],
+    "variables": [
+      {"sku": "ABC123", "product_name": "Widget A", "category": "widgets"},
+      {"sku": "DEF456", "product_name": "Gadget B", "category": "gadgets"},
+      {"sku": "GHI789", "product_name": "Tool C", "category": "tools"}
+    ],
+    "selector": "div.price-info table",
+    "addSourceColumns": ["sku", "product_name", "category", "_url_index"],
+    "addTimestampColumn": true
+  }
+}
+```
+
+#### Geographic Data Collection
+```json
+{
+  "name": "city_weather",
+  "type": "custom",
+  "operand": {
+    "urls": "https://weather.api.com/{country}/{city}",
+    "variables": [
+      {"country": "us", "city": "new-york", "timezone": "EST", "lat": 40.7128, "lon": -74.0060},
+      {"country": "uk", "city": "london", "timezone": "GMT", "lat": 51.5074, "lon": -0.1278},
+      {"country": "ca", "city": "toronto", "timezone": "EST", "lat": 43.6532, "lon": -79.3832}
+    ],
+    "selector": "#current-conditions",
+    "addSourceColumns": ["city", "country", "timezone"],
+    "refreshInterval": "30 minutes"
+  }
+}
+```
+
+#### Real Estate Listings with Metadata
+```json
+{
+  "name": "property_listings",
+  "type": "custom",
+  "operand": {
+    "urls": "https://realestate.com/listing/{mls_id}",
+    "variables": [
+      {"mls_id": "ML81234567", "neighborhood": "Downtown", "listing_agent": "Jane Smith"},
+      {"mls_id": "ML81234568", "neighborhood": "Westside", "listing_agent": "John Doe"},
+      {"mls_id": "ML81234569", "neighborhood": "Eastside", "listing_agent": "Jane Smith"}
+    ],
+    "selector": "div.property-details table",
+    "addSourceColumns": ["mls_id", "neighborhood", "listing_agent"]
+  }
+}
+```
+
+### Implementation Details
+
+#### URL Expansion Logic
+```java
+public class UrlPatternExpander {
+    // Now takes an array of variable dictionaries instead of cartesian product
+    public List<ExpandedUrl> expandUrls(String pattern, List<Map<String, Object>> variables) {
+        List<ExpandedUrl> expandedUrls = new ArrayList<>();
+        
+        for (Map<String, Object> variableSet : variables) {
+            String url = pattern;
+            // Replace each variable in the pattern
+            for (Entry<String, Object> var : variableSet.entrySet()) {
+                url = url.replace("{" + var.getKey() + "}", String.valueOf(var.getValue()));
+            }
+            
+            // Store the URL along with its variable values for source tracking
+            expandedUrls.add(new ExpandedUrl(url, variableSet));
+        }
+        
+        return expandedUrls;
+    }
+    
+    // For multiple URL patterns (like different stores with same SKU)
+    public List<ExpandedUrl> expandMultiplePatterns(List<String> patterns, 
+                                                     List<Map<String, Object>> variables) {
+        List<ExpandedUrl> allUrls = new ArrayList<>();
+        
+        for (String pattern : patterns) {
+            for (Map<String, Object> variableSet : variables) {
+                String url = pattern;
+                for (Entry<String, Object> var : variableSet.entrySet()) {
+                    url = url.replace("{" + var.getKey() + "}", String.valueOf(var.getValue()));
+                }
+                
+                // Add pattern index for tracking which URL pattern was used
+                Map<String, Object> enrichedVars = new HashMap<>(variableSet);
+                enrichedVars.put("_url_pattern_index", patterns.indexOf(pattern));
+                allUrls.add(new ExpandedUrl(url, enrichedVars));
+            }
+        }
+        
+        return allUrls;
+    }
+}
+
+class ExpandedUrl {
+    final String url;
+    final Map<String, Object> variables;
+    
+    ExpandedUrl(String url, Map<String, Object> variables) {
+        this.url = url;
+        this.variables = variables;
+    }
+}
+```
+
+#### Batch Fetching with Rate Limiting
+```java
+public class BatchWebTableFetcher {
+    private final RateLimiter rateLimiter = RateLimiter.create(2.0); // 2 requests/second
+    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    
+    public List<TableData> fetchTables(List<String> urls, String selector) {
+        List<CompletableFuture<TableData>> futures = urls.stream()
+            .map(url -> CompletableFuture.supplyAsync(() -> {
+                rateLimiter.acquire();
+                return fetchSingleTable(url, selector);
+            }, executor))
+            .collect(Collectors.toList());
+        
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .thenApply(v -> futures.stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList()))
+            .join();
+    }
+}
+```
+
+#### Source Tracking
+```java
+public class SourceAwareTable extends AbstractTable {
+    private final List<String> sourceColumns;
+    private final boolean addTimestamp;
+    
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        RelDataTypeFactory.Builder builder = typeFactory.builder();
+        
+        // Add original columns from scraped table
+        for (RelDataTypeField field : baseRowType.getFieldList()) {
+            builder.add(field);
+        }
+        
+        // Add requested source tracking columns from variables
+        for (String columnName : sourceColumns) {
+            builder.add(columnName, SqlTypeName.VARCHAR);
+        }
+        
+        // Add metadata columns
+        if (addTimestamp) {
+            builder.add("_fetched_at", SqlTypeName.TIMESTAMP);
+        }
+        builder.add("_source_url", SqlTypeName.VARCHAR);
+        
+        return builder.build();
+    }
+    
+    // Enrich each row with source variable values
+    public Object[] enrichRow(Object[] originalRow, Map<String, Object> variables, String url) {
+        List<Object> enrichedRow = new ArrayList<>(Arrays.asList(originalRow));
+        
+        // Add variable values as columns
+        for (String columnName : sourceColumns) {
+            enrichedRow.add(variables.get(columnName));
+        }
+        
+        // Add metadata
+        if (addTimestamp) {
+            enrichedRow.add(new Timestamp(System.currentTimeMillis()));
+        }
+        enrichedRow.add(url);
+        
+        return enrichedRow.toArray();
+    }
+}
+```
+
+### Advanced Example: Variable Selectors
+
+You could even use variables in the selector pattern:
+
+```json
+{
+  "name": "competitor_prices",
+  "type": "custom",
+  "operand": {
+    "urls": "{base_url}/product/{sku}",
+    "selector": "{selector}",
+    "variables": [
+      {
+        "base_url": "https://amazon.com",
+        "sku": "B08N5WRWNW",
+        "selector": "span.a-price-whole",
+        "competitor": "Amazon",
+        "product": "Echo Dot"
+      },
+      {
+        "base_url": "https://bestbuy.com",
+        "sku": "6430060",
+        "selector": "div.pricing-price__regular-price",
+        "competitor": "Best Buy",
+        "product": "Echo Dot"
+      },
+      {
+        "base_url": "https://walmart.com",  
+        "sku": "735005303",
+        "selector": "span[itemprop='price']",
+        "competitor": "Walmart",
+        "product": "Echo Dot"
+      }
+    ],
+    "addSourceColumns": ["competitor", "product", "sku"]
+  }
+}
+```
+
+This gives you complete flexibility - different URLs, different selectors, all in one unified table!
+
+### Configuration Options
+
+```json
+{
+  "multiUrlConfig": {
+    "urls": "string or array",           // URL pattern(s) with {variables}
+    "variables": [],                     // Array of variable dictionaries
+    "selector": "string",                // CSS selector (can also use {variables})
+    "addSourceColumn": true,             // Track source URL
+    "addTimestampColumn": true,          // Track fetch time
+    "failureStrategy": "skip|fail",      // How to handle failed fetches
+    "maxConcurrent": 3,                  // Max parallel fetches
+    "requestsPerSecond": 2,              // Rate limiting
+    "timeout": 10000,                    // Timeout per request (ms)
+    "retries": 2,                       // Retry failed requests
+    "cacheMinutes": 60,                 // Cache fetched data
+    "userAgent": "custom",              // Custom user agent
+    "headers": {}                       // Additional HTTP headers
+  }
+}
+```
+
+### Benefits
+
+1. **Massive Configuration Reduction**: One table definition instead of dozens
+2. **Automatic Aggregation**: Built-in data combining from multiple sources
+3. **Source Tracking**: Know where each row came from
+4. **Rate Limiting**: Respect server limits automatically
+5. **Parallel Fetching**: Fast data collection
+6. **Cache Management**: Avoid redundant requests
+
+### Example Query Patterns
+
+```sql
+-- Compare prices across stores
+SELECT sku, MIN(price) as best_price, 
+       ARRAY_AGG(DISTINCT _source_url) as available_at
+FROM product_prices
+GROUP BY sku;
+
+-- Track stock movements
+SELECT ticker, 
+       price as current_price,
+       LAG(price) OVER (PARTITION BY ticker ORDER BY _fetched_at) as previous_price,
+       price - LAG(price) OVER (PARTITION BY ticker ORDER BY _fetched_at) as change
+FROM stock_summaries;
+
+-- Find anomalies across locations
+SELECT city, temperature, humidity
+FROM city_weather
+WHERE temperature > (
+    SELECT AVG(temperature) + 2 * STDDEV(temperature) 
+    FROM city_weather
+);
+```
+
+### ROI Analysis
+
+**Effort**: 1 week (building on existing HTML extraction)
+**Impact**: High - enables entire new class of use cases
+**Risk**: Low - extends existing functionality
+**Priority**: HIGH - small effort, big user value
+
+This focused feature would make the file adapter incredibly powerful for web data aggregation scenarios like:
+- Financial data monitoring
+- E-commerce price tracking  
+- Weather/environmental monitoring
+- Sports statistics aggregation
+- Real estate listings compilation
+- Job posting aggregation
+
+The beauty is its simplicity - it's just a pattern expander on top of the existing HTML table extraction, but it unlocks massive value for users who need to aggregate structured data from multiple similar sources.
+
+## Parallelization Framework for Performance Optimization
+
+**Problem**: The file adapter currently processes most operations sequentially - table discovery, file reading, statistics generation, and data conversion all happen one at a time. This leaves significant performance on the table, especially for multi-core systems and I/O-bound operations that could overlap.
+
+**Proposed Solution**: Implement a comprehensive parallelization framework that identifies and parallelizes independent operations throughout the file adapter, providing 3-10x performance improvements for common operations.
+
+### High-Impact Parallelization Opportunities
+
+#### 1. Schema Discovery & Table Loading
+**Current State**: Tables are discovered and loaded sequentially during schema initialization
+```java
+// Current: Sequential processing
+for (File file : files) {
+    Table table = createTable(file);
+    tables.put(name, table);
+}
+```
+
+**Parallel Implementation**:
+```java
+// Parallel table creation using ForkJoinPool
+Map<String, Table> tables = files.parallelStream()
+    .collect(Collectors.toConcurrentMap(
+        file -> deriveTableName(file),
+        file -> createTable(file)
+    ));
+```
+
+**Expected Speedup**: 5-10x for schemas with many tables
+**Risk**: Low - table creation is independent
+
+#### 2. Multi-File Queries (Glob/Partitioned Tables)
+**Current State**: Multiple Parquet files in partitioned tables are read sequentially
+```java
+// Current: Sequential partition reading
+List<Object[]> allResults = new ArrayList<>();
+for (String partition : partitions) {
+    allResults.addAll(readPartition(partition));
+}
+```
+
+**Parallel Implementation**:
+```java
+// Parallel partition reading with CompletableFuture
+CompletableFuture<List<Object[]>>[] futures = partitions.stream()
+    .map(partition -> CompletableFuture.supplyAsync(
+        () -> readPartition(partition), 
+        ioExecutor))
+    .toArray(CompletableFuture[]::new);
+
+List<Object[]> allResults = CompletableFuture.allOf(futures)
+    .thenApply(v -> Arrays.stream(futures)
+        .map(CompletableFuture::join)
+        .flatMap(List::stream)
+        .collect(Collectors.toList()))
+    .join();
+```
+
+**Expected Speedup**: Linear with number of files (up to I/O bandwidth)
+**Risk**: Medium - needs memory management for large result sets
+
+#### 3. Statistics Generation (HLL Sketches)
+**Current State**: HyperLogLog sketches are built sequentially for each column
+```java
+// Current: Sequential HLL sketch generation
+Map<String, HyperLogLogPlus> sketches = new HashMap<>();
+for (String column : columns) {
+    sketches.put(column, buildHLLSketch(column));
+}
+```
+
+**Parallel Implementation**:
+```java
+// Parallel column statistics computation
+Map<String, HyperLogLogPlus> sketches = columns.parallelStream()
+    .collect(Collectors.toConcurrentMap(
+        column -> column,
+        column -> buildHLLSketch(column)
+    ));
+```
+
+**Expected Speedup**: 3-5x for wide tables (many columns)
+**Risk**: Low - column processing is independent
+
+### Medium-Impact Opportunities
+
+#### 4. Batch Processing with Read-Ahead
+**Current State**: VectorizedParquetReader reads batches synchronously
+```java
+// Current: Synchronous batch reading
+public List<Object[]> readBatch() {
+    // Read batch, block until complete
+    return readNextBatchFromFile();
+}
+```
+
+**Parallel Implementation**:
+```java
+public class PrefetchingParquetReader {
+    private final BlockingQueue<CompletableFuture<List<Object[]>>> batchQueue;
+    private final ExecutorService prefetchExecutor;
+    
+    public PrefetchingParquetReader() {
+        this.batchQueue = new ArrayBlockingQueue<>(prefetchSize);
+        // Start background prefetching
+        startPrefetching();
+    }
+    
+    private void startPrefetching() {
+        prefetchExecutor.submit(() -> {
+            while (hasMoreData()) {
+                CompletableFuture<List<Object[]>> future = 
+                    CompletableFuture.supplyAsync(this::readNextBatchFromFile);
+                batchQueue.offer(future);
+            }
+        });
+    }
+    
+    public List<Object[]> readBatch() {
+        // Return already-fetched batch
+        return batchQueue.poll().join();
+    }
+}
+```
+
+**Expected Speedup**: 20-30% for I/O bound queries
+**Risk**: Low - well-established pattern
+
+#### 5. Parallel File Format Conversion
+**Current State**: Files are converted to Parquet one at a time
+```java
+// Current: Sequential conversion
+for (File csvFile : csvFiles) {
+    File parquetFile = convertToParquet(csvFile);
+    parquetFiles.add(parquetFile);
+}
+```
+
+**Parallel Implementation**:
+```java
+// Parallel conversion with rate limiting
+ExecutorService conversionPool = Executors.newFixedThreadPool(
+    config.getConversionThreads());
+    
+List<CompletableFuture<File>> conversions = csvFiles.stream()
+    .map(csv -> CompletableFuture.supplyAsync(
+        () -> convertToParquet(csv), 
+        conversionPool))
+    .collect(Collectors.toList());
+
+List<File> parquetFiles = CompletableFuture.allOf(
+    conversions.toArray(new CompletableFuture[0]))
+    .thenApply(v -> conversions.stream()
+        .map(CompletableFuture::join)
+        .collect(Collectors.toList()))
+    .join();
+```
+
+**Expected Speedup**: 3-4x for initial load
+**Risk**: Medium - I/O contention possible
+
+#### 6. Storage Provider Parallel Downloads
+**Current State**: Files downloaded sequentially from S3/SharePoint/HTTP
+```java
+// Current: Sequential downloads
+for (String key : s3Keys) {
+    downloadFile(bucket, key, localPath);
+}
+```
+
+**Parallel Implementation**:
+```java
+// Parallel downloads with S3 TransferManager
+S3TransferManager transferManager = S3TransferManager.builder()
+    .s3Client(s3Client)
+    .maxConcurrency(10)
+    .build();
+
+List<CompletedFileDownload> downloads = s3Keys.parallelStream()
+    .map(key -> {
+        DownloadFileRequest request = DownloadFileRequest.builder()
+            .getObjectRequest(req -> req.bucket(bucket).key(key))
+            .destination(Paths.get(localPath, key))
+            .build();
+        return transferManager.downloadFile(request).completionFuture();
+    })
+    .map(CompletableFuture::join)
+    .collect(Collectors.toList());
+```
+
+**Expected Speedup**: 5-10x for remote files
+**Risk**: Low - standard practice for cloud storage
+
+### Quick Win Opportunities
+
+#### 7. CSV Type Inference Parallelization
+```java
+// Parallel column type inference
+Map<String, SqlTypeName> columnTypes = columns.parallelStream()
+    .collect(Collectors.toConcurrentMap(
+        column -> column,
+        column -> inferTypeFromSamples(columnSamples.get(column))
+    ));
+```
+**Expected Speedup**: 2x for wide CSVs
+
+#### 8. Parallel Join Scanning
+```java
+// Scan both sides of join in parallel
+CompletableFuture<List<Row>> leftScan = 
+    CompletableFuture.supplyAsync(() -> scanTable(leftTable));
+CompletableFuture<List<Row>> rightScan = 
+    CompletableFuture.supplyAsync(() -> scanTable(rightTable));
+
+JoinResult result = CompletableFuture.allOf(leftScan, rightScan)
+    .thenApply(v -> performJoin(leftScan.join(), rightScan.join()))
+    .join();
+```
+**Expected Speedup**: 2x for join operations
+
+### Implementation Architecture
+
+#### Thread Pool Management
+```java
+public class FileAdapterExecutors {
+    // CPU-bound tasks (parsing, type inference, HLL computation)
+    private static final ForkJoinPool CPU_POOL = new ForkJoinPool(
+        Runtime.getRuntime().availableProcessors(),
+        ForkJoinPool.defaultForkJoinWorkerThreadFactory,
+        null, // Default exception handler
+        true  // Async mode for better throughput
+    );
+    
+    // I/O-bound tasks (file reading, network operations)
+    private static final ExecutorService IO_POOL = new ThreadPoolExecutor(
+        4,     // Core pool size
+        32,    // Maximum pool size
+        60L, TimeUnit.SECONDS, // Keep-alive time
+        new LinkedBlockingQueue<>(100), // Bounded queue
+        new ThreadFactory() {
+            private final AtomicInteger counter = new AtomicInteger();
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setDaemon(true);
+                t.setName("FileAdapter-IO-" + counter.incrementAndGet());
+                return t;
+            }
+        },
+        new ThreadPoolExecutor.CallerRunsPolicy() // Backpressure strategy
+    );
+    
+    // Scheduled tasks (cache refresh, statistics update)
+    private static final ScheduledExecutorService SCHEDULED_POOL = 
+        Executors.newScheduledThreadPool(2);
+}
+```
+
+#### Memory Management Strategies
+```java
+public class ParallelMemoryManager {
+    private final Semaphore memoryPermits;
+    private final long maxMemoryBytes;
+    
+    public ParallelMemoryManager(long maxMemoryBytes) {
+        this.maxMemoryBytes = maxMemoryBytes;
+        // Each permit represents 1MB of memory
+        this.memoryPermits = new Semaphore((int)(maxMemoryBytes / (1024 * 1024)));
+    }
+    
+    public <T> CompletableFuture<T> executeWithMemoryLimit(
+            Supplier<T> task, long estimatedMemoryBytes) {
+        int permits = (int)(estimatedMemoryBytes / (1024 * 1024));
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                memoryPermits.acquire(permits);
+                return task.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } finally {
+                memoryPermits.release(permits);
+            }
+        });
+    }
+}
+```
+
+#### Configuration Schema
+```json
+{
+  "parallelism": {
+    "enabled": true,
+    "schemaDiscovery": {
+      "threads": 4,
+      "enabled": true
+    },
+    "fileReading": {
+      "threads": 8,
+      "prefetchBatches": 2,
+      "enabled": true
+    },
+    "conversion": {
+      "threads": 2,
+      "maxConcurrent": 4,
+      "enabled": true
+    },
+    "statistics": {
+      "threads": 4,
+      "enabled": true
+    },
+    "downloads": {
+      "maxConcurrency": 10,
+      "connectionPoolSize": 20,
+      "enabled": true
+    },
+    "memory": {
+      "maxParallelMemoryMb": 1024,
+      "backpressureThreshold": 0.8
+    }
+  }
+}
+```
+
+### Performance Expectations
+
+| Operation | Current Time | Parallel Time | Speedup | Threads |
+|-----------|-------------|---------------|---------|---------|
+| Schema with 100 tables | 10s | 1-2s | 5-10x | 4 |
+| Query 10 partitions | 5s | 0.8-1s | 5-6x | 10 |
+| Statistics for 50 columns | 30s | 8-10s | 3-4x | 4 |
+| S3 download 20 files | 20s | 2-3s | 7-10x | 10 |
+| Convert 10 CSV to Parquet | 15s | 4-5s | 3-4x | 4 |
+| Wide table (100 cols) type inference | 8s | 2s | 4x | 8 |
+| Join two large tables | 10s | 5-6s | 1.7-2x | 2 |
+
+### Risk Mitigation
+
+**Thread Safety**:
+- Use concurrent collections (ConcurrentHashMap, CopyOnWriteArrayList)
+- Immutable data structures where possible
+- Proper synchronization for shared state
+
+**Resource Management**:
+- Bounded queues to prevent memory exhaustion
+- Semaphore-based memory limiting
+- Graceful degradation under load
+
+**Error Handling**:
+- Proper exception propagation in CompletableFuture chains
+- Fallback to sequential processing on failure
+- Comprehensive logging for debugging
+
+### Implementation Phases
+
+**Phase 1 - Quick Wins** (1 week):
+- Parallel schema discovery
+- CSV type inference parallelization
+- Basic thread pool setup
+
+**Phase 2 - Core Operations** (2 weeks):
+- Multi-file parallel queries
+- Parallel statistics generation
+- Storage provider parallel downloads
+
+**Phase 3 - Advanced Features** (2 weeks):
+- Batch prefetching
+- Parallel format conversion
+- Memory management framework
+
+**Phase 4 - Optimization** (1 week):
+- Performance tuning
+- Adaptive parallelism based on system load
+- Monitoring and metrics
+
+### Benefits
+
+1. **Dramatic Performance Improvement**: 3-10x speedup for common operations
+2. **Better Resource Utilization**: Full use of multi-core processors
+3. **Improved Responsiveness**: Reduced query latency
+4. **Scalability**: Better handling of large schemas and datasets
+5. **User Experience**: Faster schema loading and query execution
+
+### Compatibility Notes
+
+- Backward compatible - parallelism can be disabled via configuration
+- Thread-safe implementation preserves correctness
+- Gradual rollout possible with feature flags
+- No changes to public APIs required
