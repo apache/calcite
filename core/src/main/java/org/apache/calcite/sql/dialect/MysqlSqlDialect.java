@@ -196,6 +196,18 @@ public class MysqlSqlDialect extends SqlDialect {
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    case UTINYINT:
+    case USMALLINT:
+    case UINTEGER:
+      throw new RuntimeException(
+          "MySQL doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!");
+    case UBIGINT:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "UNSIGNED",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
