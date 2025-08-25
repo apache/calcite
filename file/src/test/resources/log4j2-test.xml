@@ -45,7 +45,7 @@
     <logger name="org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter" level="TRACE"/>
     <logger name="org.apache.calcite.adapter.file.CsvTypeInferenceTest" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.FileSchemaFactory" level="INFO"/>
-    <logger name="org.apache.calcite.adapter.file.duckdb.DuckDBJdbcSchemaFactory" level="INFO"/>
+    <logger name="org.apache.calcite.adapter.file.duckdb.DuckDBJdbcSchemaFactory" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.table.CsvTable" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil" level="DEBUG"/>
@@ -53,6 +53,7 @@
     <logger name="org.apache.calcite.adapter.file.FileSchema" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.converters.FileConversionManager" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.converters.HtmlToJsonConverter" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.metadata.ConversionMetadata" level="INFO"/>
     <logger name="org.apache.calcite.adapter.file.refresh" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.table.RefreshablePartitionedParquetTable" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file.table.RefreshableParquetCacheTable" level="DEBUG"/>

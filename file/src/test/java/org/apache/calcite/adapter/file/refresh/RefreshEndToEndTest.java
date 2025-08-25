@@ -19,17 +19,19 @@ package org.apache.calcite.adapter.file.refresh;
 import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -46,7 +48,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
  */
 @Tag("unit")
 @Isolated  // Needs isolation due to static ConversionMetadata state
-public class RefreshEndToEndTest {
+public class RefreshEndToEndTest extends BaseFileTest {
   
   /**
    * Checks if refresh functionality is supported by the current engine.
@@ -74,22 +76,30 @@ public class RefreshEndToEndTest {
     return "PARQUET".equals(engineUpper) || "DUCKDB".equals(engineUpper);
   }
 
-  @TempDir
-  Path tempDir;
-  
   private File schemaDir;
   
   @BeforeEach
   public void setupTestFiles() throws Exception {
-    schemaDir = tempDir.toFile();
-    
-    // Metadata now stored directly in the test directory
-    // This avoids conflicts when tests run in parallel
+    schemaDir = Files.createTempDirectory("refresh-test-").toFile();
   }
   
   @AfterEach
   public void cleanup() throws Exception {
-    // No longer need to reset central metadata directory
+    if (schemaDir != null && schemaDir.exists()) {
+      deleteDirectory(schemaDir);
+    }
+  }
+  
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
   }
   
   @Test
@@ -310,6 +320,7 @@ public class RefreshEndToEndTest {
     model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
     model.append("      \"operand\": {\n");
     model.append("        \"directory\": \"").append(info.getProperty("directory").replace("\\", "\\\\")).append("\",\n");
+    model.append("        \"ephemeralCache\": true,\n");
     
     if (info.containsKey("refreshInterval")) {
       model.append("        \"refreshInterval\": \"").append(info.getProperty("refreshInterval")).append("\",\n");
