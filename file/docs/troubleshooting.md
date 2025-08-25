@@ -48,6 +48,43 @@ echo $CALCITE_FILE_ENGINE_TYPE
 
 ## Common Configuration Issues
 
+### Duplicate Schema Name
+
+**Error:**
+```
+java.lang.IllegalArgumentException: Schema with name 'data' already exists in parent schema. Each schema must have a unique name within the same connection. Existing schemas: [metadata, information_schema, data, pg_catalog]
+```
+
+**Solution:**
+Schema names must be unique within the same connection. This validation prevents configuration errors where duplicate schema names could cause unexpected behavior.
+
+**Fix the issue by:**
+1. **Use different schema names:**
+   ```json
+   {
+     "schemas": [
+       {"name": "sales_data", "operand": {"directory": "/data/sales"}},
+       {"name": "hr_data", "operand": {"directory": "/data/hr"}}
+     ]
+   }
+   ```
+
+2. **Check for typos in schema names:**
+   ```json
+   // Wrong - duplicate names
+   {"name": "data", "operand": {"directory": "/sales"}},
+   {"name": "data", "operand": {"directory": "/hr"}}
+   
+   // Correct - unique names
+   {"name": "sales", "operand": {"directory": "/sales"}},
+   {"name": "hr", "operand": {"directory": "/hr"}}
+   ```
+
+3. **Review existing schemas:**
+   The error message lists all existing schemas to help identify conflicts.
+
+**Note:** This is a breaking change from previous versions where duplicate schema names would silently replace existing schemas, potentially causing data access issues.
+
 ### Schema Not Found
 
 **Error:**
