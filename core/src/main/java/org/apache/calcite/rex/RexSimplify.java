@@ -417,15 +417,20 @@ public class RexSimplify {
    */
   private static int findLiteralIndex(List<RexNode> operands, BigDecimal value) {
     for (int i = 0; i < operands.size(); i++) {
-      if (operands.get(i).isA(SqlKind.LITERAL)) {
-        Comparable comparable = ((RexLiteral) operands.get(i)).getValue();
-        if (comparable instanceof BigDecimal
-            && value.compareTo((BigDecimal) comparable) == 0) {
-          return i;
-        }
+      if (checkLiteralValue(operands.get(i), value)) {
+        return i;
       }
     }
     return -1;
+  }
+
+  /** Check whether the operand is a BigDecimal literal of the specified value. */
+  private static boolean checkLiteralValue(RexNode operand, BigDecimal value) {
+    if (!operand.isA(SqlKind.LITERAL)) {
+      return false;
+    }
+    Comparable<?> comparable = ((RexLiteral) operand).getValue();
+    return comparable instanceof BigDecimal && value.compareTo((BigDecimal) comparable) == 0;
   }
 
   private RexNode simplifyArithmetic(RexCall e) {
@@ -439,7 +444,7 @@ public class RexSimplify {
     assert e.getOperands().size() == 2;
 
     switch (e.getKind()) {
-      // These simplifications are safe for both checked and unchecked arithemtic.
+      // These simplifications are safe for both checked and unchecked arithmetic.
     case PLUS:
     case CHECKED_PLUS:
       return simplifyPlus(e);
@@ -453,7 +458,7 @@ public class RexSimplify {
     case CHECKED_DIVIDE:
       return simplifyDivide(e);
     default:
-      throw new IllegalArgumentException("Unsupported arithmeitc operation " + e.getKind());
+      throw new IllegalArgumentException("Unsupported arithmetic operation " + e.getKind());
     }
   }
 
@@ -490,9 +495,13 @@ public class RexSimplify {
   }
 
   private RexNode simplifyDivide(RexCall e) {
-    final int oneIndex = findLiteralIndex(e.operands, BigDecimal.ONE);
-    if (oneIndex == 1) {
-      RexNode leftOperand = e.getOperands().get(0);
+    RexNode leftOperand = e.getOperands().get(0);
+    RexNode rightOperand = e.getOperands().get(1);
+    if ((isSafeExpression(leftOperand) && STRONG.isNull(leftOperand))
+        || (isSafeExpression(rightOperand) && STRONG.isNull(rightOperand))) {
+      return rexBuilder.makeLiteral(null, e.getType());
+    }
+    if (checkLiteralValue(rightOperand, BigDecimal.ONE)) {
       return leftOperand.getType().equals(e.getType())
           ? leftOperand : rexBuilder.makeCast(e.getParserPosition(), e.getType(), leftOperand);
     }
@@ -1142,6 +1151,9 @@ public class RexSimplify {
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NOT NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NOT NULL" to "TRUE".
     a = simplify(a, UNKNOWN);
+    if (!isSafeExpression(a)) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
+    }
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(true);
     }
@@ -1181,8 +1193,7 @@ public class RexSimplify {
       case LITERAL:
         return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
       default:
-        throw new AssertionError("every CUSTOM policy needs a handler, "
-            + a.getKind());
+        return null;
       }
     case AS_IS:
     default:
@@ -1197,6 +1208,9 @@ public class RexSimplify {
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
     a = simplify(a, UNKNOWN);
+    if (!isSafeExpression(a)) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
+    }
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(false);
     }
@@ -1216,6 +1230,7 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
+      // TODO: handle safety here?!?
       // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
       // to "operand0 IS NULL OR operand1 IS NULL"
       final List<RexNode> operands = new ArrayList<>();
@@ -1549,17 +1564,23 @@ public class RexSimplify {
       SqlOperator sqlOperator = call.getOperator();
 
       switch (sqlKind) {
+      case CHECKED_DIVIDE:
       case DIVIDE:
       case MOD:
         List<RexNode> operands = call.getOperands();
-        boolean isSafe = RexVisitorImpl.visitArrayAnd(this, ImmutableList.of(operands.get(0)));
-        if (!isSafe) {
+        boolean hasNullOperand = RexUtil.isNullLiteral(operands.get(0), true)
+            || RexUtil.isNullLiteral(operands.get(1), true);
+        if (hasNullOperand) {
+          return true;
+        }
+        boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+        if (!areOperandsSafe) {
           return false;
         }
         if (operands.get(1) instanceof RexLiteral) {
-          RexLiteral literal = (RexLiteral) operands.get(1);
-          return RexUtil.isNullLiteral(literal, true);
+          return !checkLiteralValue(operands.get(1), BigDecimal.ZERO);
         }
+        // the safety of division could not be deduced, so assume it is unsafe
         return false;
       default:
         break;
@@ -2308,6 +2329,20 @@ public class RexSimplify {
     return RexUtil.composeDisjunction(rexBuilder, terms);
   }
 
+  private Pair<Comparable, RuntimeException> evaluate(RexNode e, Map<RexNode, Comparable> map) {
+    Comparable c = null;
+    RuntimeException ex = null;
+    try {
+      c = RexInterpreter.evaluate(e, map);
+    } catch (RuntimeException exception) {
+      ex = exception;
+    }
+    if (c == null && ex == null) {
+      throw new AssertionError("interpreter returned null for " + e);
+    }
+    return Pair.of(c, ex);
+  }
+
   private void verify(RexNode before, RexNode simplified, RexUnknownAs unknownAs) {
     if (simplified.isAlwaysFalse()
         && before.isAlwaysTrue()) {
@@ -2338,14 +2373,28 @@ public class RexSimplify {
           continue assignment_loop;
         }
       }
-      Comparable v0 = RexInterpreter.evaluate(foo0.e, map);
-      if (v0 == null) {
-        throw new AssertionError("interpreter returned null for " + foo0.e);
+      Pair<Comparable, RuntimeException> p0 = evaluate(foo0.e, map);
+      Pair<Comparable, RuntimeException> p1 = evaluate(foo1.e, map);
+      if (p0.right != null || p1.right != null) {
+        if (p0.right == null || p1.right == null) {
+          throw Util.first(p0.right, p1.right);
+        }
+        if (!p0.right.getClass().equals(p1.right.getClass())) {
+          AssertionError error = new AssertionError("exception class does not match");
+          error.addSuppressed(p0.right);
+          error.addSuppressed(p1.right);
+          throw error;
+        }
+        if (!java.util.Objects.equals(p0.right.getMessage(), p1.right.getMessage())) {
+          AssertionError error = new AssertionError("exception message does not match");
+          error.addSuppressed(p0.right);
+          error.addSuppressed(p1.right);
+          throw error;
+        }
+        continue;
       }
-      Comparable v1 = RexInterpreter.evaluate(foo1.e, map);
-      if (v1 == null) {
-        throw new AssertionError("interpreter returned null for " + foo1.e);
-      }
+      Comparable v0 = p0.left;
+      Comparable v1 = p1.left;
       if (before.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
         switch (unknownAs) {
         case FALSE:
