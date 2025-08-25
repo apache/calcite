@@ -30,8 +30,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * A <code>SqlDialect</code> implementation for the DuckDB database.
+ * 
+ * <p>DuckDB is PostgreSQL-compatible, so we extend PostgresqlSqlDialect to inherit
+ * appropriate behaviors like type coercion rules, identifier casing, and SQL syntax.
  */
-public class DuckDBSqlDialect extends SqlDialect {
+public class DuckDBSqlDialect extends PostgresqlSqlDialect {
   public static final RelDataTypeSystem TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
 
@@ -81,6 +84,9 @@ public class DuckDBSqlDialect extends SqlDialect {
   @Override public boolean supportsAliasedValues() {
     return false;
   }
+  
+  // Note: supportsImplicitTypeCoercion is inherited from PostgresqlSqlDialect
+  // which correctly handles DuckDB's PostgreSQL-compatible type coercion rules
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {

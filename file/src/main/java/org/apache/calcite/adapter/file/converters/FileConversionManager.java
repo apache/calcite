@@ -109,7 +109,24 @@ public class FileConversionManager {
       
       // HTML files
       if (path.endsWith(".html") || path.endsWith(".htm")) {
-        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath);
+        // Check if there's an existing conversion record for this source file
+        // This preserves explicit table names from tableDef processing
+        String existingTableName = null;
+        if (baseDirectory != null) {
+          try {
+            ConversionMetadata metadata = new ConversionMetadata(baseDirectory);
+            ConversionMetadata.ConversionRecord existingRecord = metadata.findRecordBySourceFile(sourceFile);
+            if (existingRecord != null) {
+              existingTableName = existingRecord.tableName;
+              LOGGER.debug("Found existing conversion record for {}, preserving table name: {}", 
+                  sourceFile.getName(), existingTableName);
+            }
+          } catch (Exception e) {
+            LOGGER.warn("Failed to check for existing conversion record: {}", e.getMessage());
+          }
+        }
+        
+        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath, existingTableName);
         LOGGER.debug("Converted HTML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;
       }

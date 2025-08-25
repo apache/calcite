@@ -185,6 +185,7 @@ public class HttpStorageProvider implements StorageProvider {
     }
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod("HEAD");
+    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)");
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(30000);
     applyHeaders(conn);
@@ -315,6 +316,7 @@ public class HttpStorageProvider implements StorageProvider {
       URL url = new URI(path).toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestMethod("HEAD");
+      conn.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)");
       conn.setConnectTimeout(30000);
       conn.setReadTimeout(30000);
       applyHeaders(conn);
@@ -371,6 +373,7 @@ public class HttpStorageProvider implements StorageProvider {
 
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod(method);
+    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)");
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(30000);
 
