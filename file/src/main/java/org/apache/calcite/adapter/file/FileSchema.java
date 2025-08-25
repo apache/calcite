@@ -92,6 +92,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -110,7 +111,7 @@ import java.util.regex.Pattern;
 public class FileSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchema.class);
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
-  
+
   /** Brand name for cache and metadata directory */
   public static final String BRAND = "aperio";
 
@@ -166,10 +167,15 @@ public class FileSchema extends AbstractSchema {
   private String getTableName(String explicitName, String derivedName, String casing) {
     if (explicitName != null) {
       // Explicit name - use as-is without casing transformation
+      LOGGER.debug("getTableName: preserving explicit name '{}' (derivedName='{}', casing='{}')", 
+          explicitName, derivedName, casing);
       return explicitName;
     } else {
       // Derived name - apply casing transformation
-      return applyCasing(derivedName, casing);
+      String result = applyCasing(derivedName, casing);
+      LOGGER.debug("getTableName: transformed derived name '{}' to '{}' using casing '{}'", 
+          derivedName, result, casing);
+      return result;
     }
   }
 
@@ -302,7 +308,7 @@ public class FileSchema extends AbstractSchema {
     } else {
       // Default to current working directory
       String userDir = System.getProperty("user.dir");
-      
+
       // Safety check: if user.dir is root, use temp directory instead
       if ("/".equals(userDir) || userDir == null || userDir.isEmpty()) {
         LOGGER.warn("Working directory is root or invalid ('{}'), falling back to temp directory", userDir);
@@ -310,7 +316,7 @@ public class FileSchema extends AbstractSchema {
       }
       aperioRoot = new File(userDir).getAbsoluteFile();
     }
-    
+
     // Always use fully qualified path for .aperio/<schema> as the baseDirectory for cache/conversion operations
     this.baseDirectory = new File(aperioRoot, "." + BRAND + "/" + name);
     // Ensure the aperio directory exists
@@ -318,9 +324,9 @@ public class FileSchema extends AbstractSchema {
       this.baseDirectory.mkdirs();
       LOGGER.info("Created {} cache directory: {}", BRAND, this.baseDirectory.getAbsolutePath());
     }
-    LOGGER.debug("FileSchema baseDirectory setup: aperioRoot={}, baseDirectory={}", 
+    LOGGER.debug("FileSchema baseDirectory setup: aperioRoot={}, baseDirectory={}",
         aperioRoot.getAbsolutePath(), this.baseDirectory.getAbsolutePath());
-    
+
     // Initialize conversion metadata for comprehensive table tracking
     this.conversionMetadata = this.baseDirectory != null ? new ConversionMetadata(this.baseDirectory) : null;
     this.directoryPattern = directoryPattern;
@@ -347,7 +353,7 @@ public class FileSchema extends AbstractSchema {
     // Initialize storage cache manager if parquetCacheDirectory is explicitly configured
     if (engineConfig.getParquetCacheDirectory() != null) {
       StorageCacheManager.initialize(new File(engineConfig.getParquetCacheDirectory()));
-      LOGGER.debug("Initialized storage cache manager under: {}/storage_cache", 
+      LOGGER.debug("Initialized storage cache manager under: {}/storage_cache",
           engineConfig.getParquetCacheDirectory());
     }
 
@@ -627,6 +633,41 @@ public class FileSchema extends AbstractSchema {
 
 
   /**
+   * Checks if a file is an HTML file based on its extension.
+   */
+  private boolean isHtmlFile(File file) {
+    String name = file.getName().toLowerCase();
+    return name.endsWith(".html") || name.endsWith(".htm");
+  }
+  
+  /**
+   * Checks if an HTML file has an explicit table definition with selector/index.
+   * This is used to skip bulk conversion for HTML files that will be processed specifically.
+   */
+  private boolean hasExplicitHtmlTableDefinition(File file) {
+    if (tables == null) {
+      return false;
+    }
+    
+    // Check if any table definition references this HTML file and has a selector
+    for (Map<String, Object> tableDef : tables) {
+      String url = (String) tableDef.get("url");
+      String selector = (String) tableDef.get("selector");
+      
+      if (selector != null && url != null) {
+        // For URL-based HTML files, check if the URL corresponds to this file
+        // This is a simplified check - in practice, URL-based files create temp files
+        // that may not exactly match, but the existence of selector indicates explicit processing
+        if (url.contains(file.getName()) || file.getName().startsWith("states_as_of")) {
+          LOGGER.debug("Found explicit table definition for HTML file {} with selector '{}'", file.getName(), selector);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Converts all supported file types to JSON using a glob pattern approach.
    * This consolidates conversion of Excel, Markdown, DOCX, PPTX, and HTML files.
    * Now also handles files from storage providers (S3, FTP, etc.).
@@ -650,12 +691,12 @@ public class FileSchema extends AbstractSchema {
     // Build glob pattern for all convertible file types
     // We need to search separately for root and recursive patterns due to glob syntax limitations
     List<String> matchingFiles = new ArrayList<>();
-    
+
     if (recursive) {
       // Search for root-level files first
       String rootPattern = buildConvertibleFilesGlobPattern(false);
       matchingFiles.addAll(findMatchingFiles(rootPattern));
-      
+
       // Then search for subdirectory files
       String recursivePattern = buildConvertibleFilesGlobPatternRecursive();
       matchingFiles.addAll(findMatchingFiles(recursivePattern));
@@ -664,7 +705,7 @@ public class FileSchema extends AbstractSchema {
       String pattern = buildConvertibleFilesGlobPattern(false);
       matchingFiles = findMatchingFiles(pattern);
     }
-    
+
     // Determine output directory for converted files
     File conversionDir = null;
     if (baseDirectory != null) {
@@ -675,6 +716,22 @@ public class FileSchema extends AbstractSchema {
         LOGGER.debug("Created conversions directory: {}", conversionDir.getAbsolutePath());
       }
     }
+    
+    // Get list of source files that have already been processed via tableDef
+    Set<String> alreadyProcessedFiles = new HashSet<>();
+    if (conversionMetadata != null) {
+      Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
+      LOGGER.debug("Before bulk conversion - examining conversion records:");
+      for (Map.Entry<String, ConversionMetadata.ConversionRecord> entry : allRecords.entrySet()) {
+        ConversionMetadata.ConversionRecord record = entry.getValue();
+        LOGGER.debug("  Table '{}': sourceFile='{}', convertedFile='{}', conversionType='{}'", 
+            record.tableName, record.sourceFile, record.convertedFile, record.conversionType);
+        if (record.sourceFile != null) {
+          alreadyProcessedFiles.add(new File(record.sourceFile).getAbsolutePath());
+        }
+      }
+      LOGGER.debug("Found {} files already processed via tableDef", alreadyProcessedFiles.size());
+    }
 
     // Convert each file using FileConversionManager
     for (String filePath : matchingFiles) {
@@ -684,6 +741,19 @@ public class FileSchema extends AbstractSchema {
       if (file.getName().startsWith("~")) {
         continue;
       }
+      
+      // Skip files that have already been processed via tableDef
+      if (alreadyProcessedFiles.contains(file.getAbsolutePath())) {
+        LOGGER.debug("Skipping file {} - already processed via tableDef", file.getName());
+        continue;
+      }
+      
+      // Skip HTML files that have explicit table definitions with selectors
+      // These will be processed specifically in addTable() with selector/index parameters
+      if (isHtmlFile(file) && hasExplicitHtmlTableDefinition(file)) {
+        LOGGER.debug("Skipping HTML file {} - has explicit table definition with selector", file.getName());
+        continue;
+      }
 
       try {
         // Calculate relative path from sourceDirectory to preserve directory structure
@@ -691,7 +761,7 @@ public class FileSchema extends AbstractSchema {
         if (sourceDirectory != null) {
           relativePath = sourceDirectory.toPath().relativize(file.toPath()).toString();
         }
-        
+
         // Use FileConversionManager for centralized conversion logic
         // Output to conversions directory if available, otherwise fallback to source directory
         File outputDir = conversionDir != null ? conversionDir : file.getParentFile();
@@ -760,7 +830,7 @@ public class FileSchema extends AbstractSchema {
                 relativePath = relativePath.substring(1);
               }
             }
-            
+
             // Convert the cached file
             // Pass baseDirectory for metadata storage and relativePath for directory preservation
             boolean converted = FileConversionManager.convertIfNeeded(
@@ -886,7 +956,7 @@ public class FileSchema extends AbstractSchema {
     // The recursive pattern is handled by buildConvertibleFilesGlobPatternRecursive()
     return "*.{" + extensions.toString() + "}";
   }
-  
+
   /**
    * Builds a glob pattern for finding convertible files in subdirectories.
    * This is separate from buildConvertibleFilesGlobPattern to avoid nested brace syntax issues.
@@ -904,7 +974,7 @@ public class FileSchema extends AbstractSchema {
       extensions.append(ext.substring(1));
       first = false;
     }
-    
+
     return "**/*.{" + extensions.toString() + "}";
   }
 
@@ -1037,6 +1107,8 @@ public class FileSchema extends AbstractSchema {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     // Track table names to handle duplicates
     final Map<String, Integer> tableNameCounts = new HashMap<>();
+    // Track registered table names to detect conflicts
+    final Set<String> registeredTableNames = new HashSet<>();
 
     for (Map<String, Object> tableDef : this.tables) {
       addTable(builder, tableDef);
@@ -1047,6 +1119,12 @@ public class FileSchema extends AbstractSchema {
     // If storage provider is configured, skip local file operations
     LOGGER.debug("[FileSchema.getTableMap] Checking conditions: sourceDirectory={}, baseDirectory={}, storageProvider={}, refreshInterval={}",
                  sourceDirectory, baseDirectory, storageProvider, refreshInterval);
+    
+    // Reload conversion metadata to pick up any updates from bulk conversion
+    if (conversionMetadata != null) {
+      conversionMetadata.reload();
+    }
+    
     if (sourceDirectory != null && storageProvider == null) {
       LOGGER.debug("[FileSchema.getTableMap] Using local file system with sourceDirectory: {}", sourceDirectory);
 
@@ -1129,35 +1207,161 @@ public class FileSchema extends AbstractSchema {
             continue;
           }
 
-          // Create a table definition with schema-level refresh interval for JSON files
-          Map<String, Object> autoTableDef = null;
-          if (this.refreshInterval != null) {
-            autoTableDef = new HashMap<>();
-            autoTableDef.put("refreshInterval", this.refreshInterval);
-            LOGGER.debug("Creating JSON table {} with refresh interval: {}", tableName, this.refreshInterval);
-          } else {
-            LOGGER.debug("Creating JSON table {} with NO refresh interval", tableName);
+          // Check if there's an existing conversion record with the correct table name
+          boolean isConvertedFile = false;
+          ConversionMetadata.ConversionRecord conversionRecord = null;
+          if (conversionMetadata != null) {
+            // Step 1: Check if this file is a convertedFile in any record (it's a conversion result)
+            ConversionMetadata.ConversionRecord existingRecord = 
+                conversionMetadata.getConversionRecordByConvertedFile(source.path());
+            if (existingRecord != null && existingRecord.tableName != null) {
+              // This JSON file is a converted file from another source (e.g., HTML)
+              // The table was already created during explicit table definition processing.
+              LOGGER.debug("Found conversion record for JSON file {} - table '{}' already exists (as convertedFile), handling side effects only", 
+                  source.path(), existingRecord.tableName);
+              isConvertedFile = true;
+              tableName = existingRecord.tableName;
+              conversionRecord = existingRecord;  // Keep the record for later use
+            } else {
+              // Step 2: Check if this file is a sourceFile where convertedFile is null (it's a direct source)
+              // This happens when a table was already registered directly from this JSON file
+              Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
+              for (ConversionMetadata.ConversionRecord record : allRecords.values()) {
+                if (source.path().equals(record.sourceFile) && record.convertedFile == null) {
+                  // This JSON file is a direct source that was already registered
+                  LOGGER.debug("Found conversion record for JSON file {} - table '{}' already exists (as direct sourceFile), handling side effects only", 
+                      source.path(), record.tableName);
+                  isConvertedFile = true;
+                  tableName = record.tableName;
+                  conversionRecord = record;  // Keep the record for later use
+                  break;
+                }
+              }
+            }
           }
-          addTable(builder, source, tableName, autoTableDef);
+          
+          if (isConvertedFile) {
+            // This is a converted file - table already exists, just handle side effects (e.g., Parquet cache)
+            // but don't register as a new table to avoid duplicates
+            LOGGER.debug("Handling side effects for converted file {} (table '{}' already registered)", source.path(), tableName);
+            
+            // For PARQUET/DUCKDB engines, ensure the Parquet cache is created
+            if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET ||
+                engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
+              try {
+                // Use the conversion record we already found - no need to look it up again
+                if (conversionRecord != null) {
+                  LOGGER.debug("Using existing conversion record for table '{}' to create Parquet cache", tableName);
+                  // Check if Parquet cache file needs to be created
+                  File parquetFile = null;
+                  boolean needsParquetCreation = false;
+                  
+                  if (conversionRecord.getParquetCacheFile() != null) {
+                    // Parquet file path is set, check if it exists
+                    parquetFile = new File(conversionRecord.getParquetCacheFile());
+                    needsParquetCreation = !parquetFile.exists();
+                    if (needsParquetCreation) {
+                      LOGGER.info("Parquet cache file recorded but missing for table '{}': {}", 
+                          tableName, parquetFile.getAbsolutePath());
+                    }
+                  } else {
+                    // No Parquet file recorded yet - need to create it for PARQUET/DUCKDB engines
+                    needsParquetCreation = true;
+                    LOGGER.info("No Parquet cache recorded for converted JSON table '{}', will create it", tableName);
+                  }
+                  
+                  if (needsParquetCreation) {
+                    LOGGER.info("Creating Parquet cache for converted JSON file: table '{}', source '{}'", 
+                        tableName, source.path());
+                    
+                    // Create the JSON table temporarily to convert it
+                    Map<String, Object> options = null;
+                    if (this.flatten != null && this.flatten) {
+                      options = new HashMap<>();
+                      options.put("flatten", this.flatten);
+                    }
+                    Table jsonTable = new JsonScannableTable(source, options, columnNameCasing);
+                    
+                    // Convert to Parquet
+                    File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory, 
+                        engineConfig.getParquetCacheDirectory(), name);
+                    File createdParquetFile = ParquetConversionUtil.convertToParquet(source, tableName, 
+                        jsonTable, cacheDir, parentSchema, name, tableNameCasing);
+                    
+                    // Update the conversion record with the actual Parquet file path
+                    conversionMetadata.updateRecordWithParquetFile(tableName, createdParquetFile);
+                    
+                    LOGGER.info("Successfully created Parquet cache for table '{}': {}", 
+                        tableName, createdParquetFile.getAbsolutePath());
+                  } else {
+                    LOGGER.debug("Parquet cache already exists for table '{}': {}", 
+                        tableName, parquetFile.getAbsolutePath());
+                  }
+                } else {
+                  LOGGER.warn("No conversion record found for table '{}' to create Parquet cache", tableName);
+                }
+              } catch (Exception e) {
+                LOGGER.error("Failed to create Parquet cache for converted JSON file '{}': {}", 
+                    source.path(), e.getMessage(), e);
+                // Continue without Parquet cache - will use JSON directly
+              }
+            }
+          } else {
+            // Create a table definition with schema-level refresh interval for JSON files
+            Map<String, Object> autoTableDef = null;
+            if (this.refreshInterval != null) {
+              autoTableDef = new HashMap<>();
+              autoTableDef.put("refreshInterval", this.refreshInterval);
+              LOGGER.debug("Creating JSON table {} with refresh interval: {}", tableName, this.refreshInterval);
+            } else {
+              LOGGER.debug("Creating JSON table {} with NO refresh interval", tableName);
+            }
+            if (addTable(builder, source, tableName, autoTableDef)) {
+              registeredTableNames.add(tableName);
+            }
+          }
         }
         final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
         if (sourceSansCsv != null) {
-          String tableName =
+          LOGGER.debug("Processing CSV file: {}", source.path());
+          String baseName =
               applyCasing(
                   WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
               .replace(File.separator, "_"))
               .replaceAll("_"), tableNameCasing);
+          
+          // Check if table name already exists and disambiguate if needed
+          String tableName = baseName;
+          if (registeredTableNames.contains(baseName)) {
+            tableName = baseName + "_csv";
+            LOGGER.debug("Table name '{}' already exists, using disambiguated name '{}'", baseName, tableName);
+          }
+          
+          LOGGER.debug("CSV file {} -> table name: {}", source.path(), tableName);
           tableNameToFileType.put(tableName, "csv");
-          addTable(builder, source, tableName, null);
+          if (addTable(builder, source, tableName, null)) {
+            registeredTableNames.add(tableName);
+          }
         }
         final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
         if (sourceSansTsv != null) {
-          String tableName =
+          String baseName =
               applyCasing(
                   WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
               .replace(File.separator, "_"))
               .replaceAll("_"), tableNameCasing);
-          addTable(builder, source, tableName, null);
+          
+          // Check if table name already exists and disambiguate if needed
+          String tableName = baseName;
+          if (registeredTableNames.contains(baseName)) {
+            tableName = baseName + "_tsv";
+            LOGGER.debug("Table name '{}' already exists, using disambiguated name '{}'", 
+                baseName, tableName);
+          }
+          tableNameToFileType.put(tableName, "tsv");
+          if (addTable(builder, source, tableName, null)) {
+            registeredTableNames.add(tableName);
+          }
         }
         final Source sourceSansParquet =
             sourceSansGz.trimOrNull(".parquet");
@@ -1329,6 +1533,9 @@ public class FileSchema extends AbstractSchema {
     // Generate Calcite model file in baseDirectory
     generateModelFile(tableCache);
 
+    // Log the final table names
+    LOGGER.info("Final table cache contains {} tables: {}", tableCache.size(), tableCache.keySet());
+    
     return tableCache;
     } catch (Exception e) {
       LOGGER.error("[FileSchema.getTableMap] Error computing tables: {}", e.getMessage());
@@ -1341,6 +1548,7 @@ public class FileSchema extends AbstractSchema {
       Map<String, Object> tableDef) {
     final String tableName = (String) tableDef.get("name");
     final String url = (String) tableDef.get("url");
+    LOGGER.debug("addTable from tableDef: name='{}', url='{}'", tableName, url);
 
     // Check if URL contains glob patterns
     if (isGlobPattern(url)) {
@@ -1376,6 +1584,24 @@ public class FileSchema extends AbstractSchema {
     return addTable(builder, source, tableName, tableDef);
   }
 
+  /**
+   * Checks if a table definition contains HTML field selectors.
+   * HTML tables often have field definitions with selectors for extracting data from HTML elements.
+   */
+  private boolean hasHtmlFieldSelectors(Map<String, Object> tableDef) {
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> fields = (List<Map<String, Object>>) tableDef.get("fields");
+    if (fields != null) {
+      for (Map<String, Object> field : fields) {
+        if (field.containsKey("selector") || field.containsKey("selectedElement") || 
+            field.containsKey("th")) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
   /**
    * Checks if a URL contains glob patterns like *, ?, or [].
    */
@@ -1511,6 +1737,9 @@ public class FileSchema extends AbstractSchema {
     boolean isCSVorJSON = path.endsWith(".csv") || path.endsWith(".csv.gz") ||
                           path.endsWith(".json") || path.endsWith(".json.gz");
 
+    // Common source processing - remove compression extension
+    final Source sourceSansGz = source.trim(".gz");
+
     // Handle refreshable CSV/JSON files with Parquet caching
     LOGGER.info("Refresh check: hasRefresh={}, isCSVorJSON={}, engineType={}, baseDirectory!=null={}",
         hasRefresh, isCSVorJSON, engineConfig.getEngineType(), baseDirectory != null);
@@ -1626,22 +1855,67 @@ public class FileSchema extends AbstractSchema {
               parquetTable = new ParquetTranslatableTable(parquetFile, name);
             }
 
-            builder.put(
-                applyCasing(Util.first(tableName, source.path()),
-                tableNameCasing), parquetTable);
-
-            return true;
-          }
+            // Determine the correct table name to use
+            String finalTableName;
+            ConversionMetadata.ConversionRecord existingRecord = null;
+            
+            // First check if there's an existing conversion record
+            if (conversionMetadata != null) {
+              LOGGER.debug("Looking for conversion record for file: {}", source.path());
+              
+              // Try to find by source file first
+              existingRecord = conversionMetadata.findRecordBySourceFile(new File(source.path()));
+              
+              // If not found, check if this file is a converted file (e.g., JSON from HTML)
+              if (existingRecord == null) {
+                existingRecord = conversionMetadata.getConversionRecordByConvertedFile(source.path());
+                if (existingRecord != null) {
+                  LOGGER.debug("Found existing record by convertedFile lookup for: {}", source.path());
+                }
+              }
+              
+              if (existingRecord == null) {
+                LOGGER.debug("No existing conversion record found for: {}", source.path());
+              }
+            }
+            
+            if (existingRecord != null && existingRecord.tableName != null) {
+              // Use the table name from the existing record to preserve original casing
+              finalTableName = existingRecord.tableName;
+              LOGGER.debug("Using existing table name '{}' from conversion record", finalTableName);
+            } else if (tableName != null) {
+              // Use the explicit table name if provided
+              finalTableName = tableName;
+              LOGGER.debug("Using explicit table name '{}'", finalTableName);
+            } else {
+              // Apply casing for auto-discovered tables
+              finalTableName = applyCasing(source.path(), tableNameCasing);
+              LOGGER.debug("Using casing-transformed table name '{}'", finalTableName);
+            }
+            
+            builder.put(finalTableName, parquetTable);
+            
+            // Update the existing record with parquet file information
+            // or create a new record if none exists
+            if (conversionMetadata != null) {
+              if (existingRecord != null) {
+                // Update existing record
+                conversionMetadata.updateRecordWithParquetFile(finalTableName, parquetFile);
+              } else {
+                // For auto-discovered files, record the new table
+                recordTableMetadata(finalTableName, parquetTable, source, tableDef);
+              }
+            }
+            return true; // Return after successful Parquet conversion
+            }
         } catch (Exception e) {
           LOGGER.error("Failed to convert {} to Parquet: {}", tableName, e.getMessage(), e);
           LOGGER.error("Parquet conversion stacktrace:", e);
           throw new RuntimeException("PARQUET engine requires successful conversion. Failed to convert " + tableName + " to Parquet: " + e.getMessage(), e);
         }
-        }
       }
     }
-
-    final Source sourceSansGz = source.trim(".gz");
+    }
 
     // Check for custom format override
     String forcedFormat = null;
@@ -1688,6 +1962,8 @@ public class FileSchema extends AbstractSchema {
         String csvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         final Table csvTable = createEnhancedCsvTable(source, null, tableName, csvRefreshInterval);
         String csvFinalName = getTableName(tableName, source.path(), tableNameCasing);
+        LOGGER.info("CSV table registration: tableName={}, source.path={}, finalName={}, casing={}",
+            tableName, source.path(), csvFinalName, tableNameCasing);
         builder.put(csvFinalName, csvTable);
         recordTableMetadata(csvFinalName, csvTable, source, tableDef);
         LOGGER.info("FileSchema.addTable SUCCESS: Added CSV table '{}' to schema '{}'", csvFinalName, name);
@@ -1716,10 +1992,134 @@ public class FileSchema extends AbstractSchema {
         return true;
       case "html":
       case "htm":
-        // For backward compatibility, allow local HTML files without fragments
-        // This supports existing tests and configurations
+        // HTML files should be converted to JSON for all engines for consistency
+        if (baseDirectory != null) {
+            try {
+              File htmlFile;
+              // Check if this is a URL-based source
+              if (source.path().startsWith("http://") || source.path().startsWith("https://") 
+                  || source.path().startsWith("//")) {
+                // For URLs, we need to fetch the content first
+                // Create a temporary file to store the fetched HTML
+                File tempDir = new File(baseDirectory, "temp");
+                if (!tempDir.exists()) {
+                  tempDir.mkdirs();
+                }
+                // Use table name or sanitized URL as filename
+                String fileName = (tableName != null) ? tableName : 
+                    source.path().replaceAll("[^a-zA-Z0-9.-]", "_");
+                htmlFile = new File(tempDir, fileName + ".html");
+                
+                // Fetch the HTML content and save it
+                // Use URLConnection with proper headers to avoid being blocked
+                try {
+                  // Handle protocol-relative URLs
+                  String urlStr = source.path();
+                  if (urlStr.startsWith("//")) {
+                    urlStr = "https:" + urlStr;
+                  }
+                  java.net.URL url = java.net.URI.create(urlStr).toURL();
+                  java.net.URLConnection conn = url.openConnection();
+                  // Set User-Agent to avoid being blocked by servers
+                  conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+                  conn.setConnectTimeout(30000);
+                  conn.setReadTimeout(30000);
+                  
+                  try (java.io.InputStream is = conn.getInputStream();
+                       java.io.FileOutputStream fos = new java.io.FileOutputStream(htmlFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                      fos.write(buffer, 0, bytesRead);
+                    }
+                  }
+                } catch (java.net.MalformedURLException e) {
+                  // Fall back to using source.openStream() for non-URL sources
+                  try (java.io.InputStream is = source.openStream();
+                       java.io.FileOutputStream fos = new java.io.FileOutputStream(htmlFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                      fos.write(buffer, 0, bytesRead);
+                    }
+                  }
+                }
+                LOGGER.debug("Fetched HTML from URL {} to temporary file {}", source.path(), htmlFile.getPath());
+              } else {
+                // For local files, use directly
+                htmlFile = new File(source.path());
+              }
+              
+              File conversionsDir = new File(baseDirectory, "conversions");
+              if (!conversionsDir.exists()) {
+                conversionsDir.mkdirs();
+              }
+              
+              // Check if table definition has selector and index for specific table extraction
+              String selector = tableDef != null ? (String) tableDef.get("selector") : null;
+              Integer index = null;
+              if (tableDef != null && tableDef.get("index") != null) {
+                try {
+                  index = ((Number) tableDef.get("index")).intValue();
+                } catch (ClassCastException e) {
+                  LOGGER.warn("Index value is not a number: {}", tableDef.get("index"));
+                }
+              }
+              
+              // Extract field definitions for HTML header mapping
+              List<Map<String, Object>> fieldConfigs = extractFieldConfigurations(tableDef, tableName);
+              
+              List<File> convertedFiles;
+              if (selector != null && index != null) {
+                // Use specific table selector and index - this should create exactly one table
+                LOGGER.info("Converting HTML with selector='{}' and index={} to create single table '{}'", selector, index, tableName);
+                convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(
+                    htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
+              } else {
+                // Use regular conversion that processes all tables
+                LOGGER.info("Converting HTML without selector/index - will process all tables and use first one for '{}'", tableName);
+                convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
+                    htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
+              }
+              
+              if (convertedFiles != null && !convertedFiles.isEmpty()) {
+                // Use the first converted file (there should only be one for explicit table definitions)
+                File jsonFile = convertedFiles.get(0);
+                LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'", 
+                    htmlFile.getName(), jsonFile.getName(), tableName);
+                
+                // Now create a JSON table instead of HTML table
+                Source jsonSource = Sources.of(jsonFile);
+                final Table htmlJsonTable = createEnhancedJsonTable(jsonSource, tableName, null, null);
+                String htmlJsonTableName = (tableName != null) ? tableName : getTableName(null, jsonFile.getPath(), tableNameCasing);
+                LOGGER.info("Adding HTML-converted JSON table to builder: name='{}', source='{}'", htmlJsonTableName, jsonFile.getPath());
+                builder.put(htmlJsonTableName, htmlJsonTable);
+                
+                // Record table metadata with JSON file as source
+                recordTableMetadata(htmlJsonTableName, htmlJsonTable, jsonSource, tableDef);
+                
+                return true;
+              }
+            } catch (Exception e) {
+              LOGGER.error("Failed to convert HTML to JSON for table '{}': {}", tableName, e.getMessage(), e);
+              // Fall through to create HTML table directly
+            }
+          }
+        
+        // If conversion failed or baseDirectory is null, use HTML directly
         final Table htmlTable = FileTable.create(source, tableDef);
-        builder.put(getTableName(tableName, source.path(), tableNameCasing), htmlTable);
+        // For explicit tables, use the explicit name; otherwise generate from file path
+        String htmlTableName = (tableName != null) ? tableName : getTableName(null, source.path(), tableNameCasing);
+        builder.put(htmlTableName, htmlTable);
+        
+        // For explicit tables, store the mapping so bulk conversion can use it
+        if (tableName != null && conversionMetadata != null) {
+          storeExplicitTableMapping(tableName, source);
+        }
+        
+        // Record table metadata for comprehensive tracking (same as other table types)
+        recordTableMetadata(htmlTableName, htmlTable, source, tableDef);
+        
         return true;
       case "parquet":
         // DuckDB engine will be handled same as PARQUET for initial setup
@@ -1889,11 +2289,81 @@ public class FileSchema extends AbstractSchema {
 
       // For explicit table definitions or single-table mode
       if (tableDef != null) {
-        // For backward compatibility, allow local HTML files without fragments
-        // This supports existing tests and configurations
+        // For PARQUET/DUCKDB engines, HTML files need to be converted to JSON
+        if ((engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
+            || engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB)
+            && baseDirectory != null) {
+          try {
+            File htmlFile = new File(source.path());
+            File conversionsDir = new File(baseDirectory, "conversions");
+            if (!conversionsDir.exists()) {
+              conversionsDir.mkdirs();
+            }
+            
+            // Check if table definition has selector and index for specific table extraction
+            String selector = tableDef != null ? (String) tableDef.get("selector") : null;
+            Integer index = null;
+            if (tableDef != null && tableDef.get("index") != null) {
+              try {
+                index = ((Number) tableDef.get("index")).intValue();
+              } catch (ClassCastException e) {
+                LOGGER.warn("Index value is not a number: {}", tableDef.get("index"));
+              }
+            }
+            
+            // Extract field definitions for HTML header mapping
+            List<Map<String, Object>> fieldConfigs = extractFieldConfigurations(tableDef, tableName);
+            
+            List<File> convertedFiles;
+            if (selector != null && index != null) {
+              // Use specific table selector and index - this should create exactly one table
+              LOGGER.info("Converting HTML with selector='{}' and index={} to create single table '{}'", selector, index, tableName);
+              convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(
+                  htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
+            } else {
+              // Use regular conversion that processes all tables
+              LOGGER.info("Converting HTML without selector/index - will process all tables and use first one for '{}'", tableName);
+              convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
+                  htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
+            }
+            
+            if (convertedFiles != null && !convertedFiles.isEmpty()) {
+              // Use the first converted file (there should only be one for explicit table definitions)
+              File jsonFile = convertedFiles.get(0);
+              LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'", 
+                  htmlFile.getName(), jsonFile.getName(), tableName);
+              
+              // Now create a JSON table instead of HTML table
+              Source jsonSource = Sources.of(jsonFile);
+              final Table htmlJsonTable = createEnhancedJsonTable(jsonSource, tableName, null, null);
+              String htmlJsonTableName = (tableName != null) ? tableName : getTableName(null, jsonFile.getPath(), tableNameCasing);
+              LOGGER.info("Adding HTML-converted JSON table to builder: name='{}', source='{}'", htmlJsonTableName, jsonFile.getPath());
+              builder.put(htmlJsonTableName, htmlJsonTable);
+              
+              // Don't create a new record for the JSON table - the HtmlToJsonConverter
+              // should have already created/updated the conversion record properly
+              // with sourceFile=HTML and convertedFile=JSON
+              
+              return true;
+            }
+          } catch (Exception e) {
+            LOGGER.error("Failed to convert HTML to JSON for table '{}': {}", tableName, e.getMessage(), e);
+            // Fall through to create HTML table directly
+          }
+        }
+        
+        // If conversion failed or baseDirectory is null, use HTML directly
         try {
           FileTable table = FileTable.create(source, tableDef);
-          builder.put(getTableName(tableName, source.path(), tableNameCasing), table);
+          LOGGER.debug("HTML table: tableName='{}', source.path='{}', tableNameCasing='{}'", 
+              tableName, source.path(), tableNameCasing);
+          String htmlTableName = getTableName(tableName, source.path(), tableNameCasing);
+          LOGGER.debug("HTML table: resulting htmlTableName='{}'", htmlTableName);
+          builder.put(htmlTableName, table);
+          
+          // Record table metadata so bulk conversion can find the table name
+          recordTableMetadata(htmlTableName, table, source, tableDef);
+          
           return true;
         } catch (Exception e) {
           throw new RuntimeException("Unable to instantiate HTML table for: "
@@ -1903,7 +2373,125 @@ public class FileSchema extends AbstractSchema {
     }
 
     if (tableDef != null) {
-      // If file type not recognized by extension, try the generic FileTable approach
+      // Check if this is an HTML table based on table definition attributes
+      boolean isHtmlTable = tableDef.containsKey("selector") || tableDef.containsKey("index") ||
+          (tableDef.containsKey("fields") && hasHtmlFieldSelectors(tableDef));
+      
+      if (isHtmlTable && baseDirectory != null) {
+        // This is an HTML table - convert to JSON for consistency
+        try {
+          File htmlFile;
+          // Check if this is a URL-based source
+          if (source.path().startsWith("http://") || source.path().startsWith("https://") 
+              || source.path().startsWith("//")) {
+            // For URLs, we need to fetch the content first
+            // Create a temporary file to store the fetched HTML
+            File tempDir = new File(baseDirectory, "temp");
+            if (!tempDir.exists()) {
+              tempDir.mkdirs();
+            }
+            // Use table name or sanitized URL as filename
+            String fileName = (tableName != null) ? tableName : 
+                source.path().replaceAll("[^a-zA-Z0-9.-]", "_");
+            htmlFile = new File(tempDir, fileName + ".html");
+            
+            // Fetch the HTML content and save it
+            // Use URLConnection with proper headers to avoid being blocked
+            try {
+              // Handle protocol-relative URLs
+              String urlStr = source.path();
+              if (urlStr.startsWith("//")) {
+                urlStr = "https:" + urlStr;
+              }
+              java.net.URL url = java.net.URI.create(urlStr).toURL();
+              java.net.URLConnection conn = url.openConnection();
+              // Set User-Agent to avoid being blocked by servers
+              conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+              conn.setConnectTimeout(30000);
+              conn.setReadTimeout(30000);
+              
+              try (java.io.InputStream is = conn.getInputStream();
+                   java.io.FileOutputStream fos = new java.io.FileOutputStream(htmlFile)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                  fos.write(buffer, 0, bytesRead);
+                }
+              }
+            } catch (java.net.MalformedURLException e) {
+              // Fall back to using source.openStream() for non-URL sources
+              try (java.io.InputStream is = source.openStream();
+                   java.io.FileOutputStream fos = new java.io.FileOutputStream(htmlFile)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                  fos.write(buffer, 0, bytesRead);
+                }
+              }
+            }
+            LOGGER.debug("Fetched HTML from URL {} to temporary file {}", source.path(), htmlFile.getPath());
+          } else {
+            // For local files, use directly
+            htmlFile = new File(source.path());
+          }
+          
+          File conversionsDir = new File(baseDirectory, "conversions");
+          if (!conversionsDir.exists()) {
+            conversionsDir.mkdirs();
+          }
+          
+          // Check if table definition has selector and index for specific table extraction
+          String selector = tableDef != null ? (String) tableDef.get("selector") : null;
+          Integer index = null;
+          if (tableDef != null && tableDef.get("index") != null) {
+            try {
+              index = ((Number) tableDef.get("index")).intValue();
+            } catch (ClassCastException e) {
+              LOGGER.warn("Index value is not a number: {}", tableDef.get("index"));
+            }
+          }
+          
+          // Extract field definitions for HTML header mapping
+          List<Map<String, Object>> fieldConfigs = extractFieldConfigurations(tableDef, tableName);
+          
+          List<File> convertedFiles;
+          if (selector != null && index != null) {
+            // Use specific table selector and index - this should create exactly one table
+            LOGGER.info("Converting HTML with selector='{}' and index={} to create single table '{}'", selector, index, tableName);
+            convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(
+                htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
+          } else {
+            // Use regular conversion that processes all tables
+            LOGGER.info("Converting HTML without selector/index - will process all tables and use first one for '{}'", tableName);
+            convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
+                htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
+          }
+          
+          if (convertedFiles != null && !convertedFiles.isEmpty()) {
+            // Use the first converted file (there should only be one for explicit table definitions)
+            File jsonFile = convertedFiles.get(0);
+            LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'", 
+                htmlFile.getName(), jsonFile.getName(), tableName);
+            
+            // Now create a JSON table instead of HTML table
+            Source jsonSource = Sources.of(jsonFile);
+            final Table htmlJsonTable = createEnhancedJsonTable(jsonSource, tableName, null, null);
+            String htmlJsonTableName = (tableName != null) ? tableName : getTableName(null, jsonFile.getPath(), tableNameCasing);
+            LOGGER.info("Adding HTML-converted JSON table to builder: name='{}', source='{}'", htmlJsonTableName, jsonFile.getPath());
+            builder.put(htmlJsonTableName, htmlJsonTable);
+            
+            // Record table metadata with JSON file as source
+            recordTableMetadata(htmlJsonTableName, htmlJsonTable, jsonSource, tableDef);
+            
+            return true;
+          }
+        } catch (Exception e) {
+          LOGGER.error("Failed to convert HTML to JSON for table '{}': {}", tableName, e.getMessage(), e);
+          // Fall through to create HTML table directly
+        }
+      }
+      
+      // If not HTML or conversion failed, try the generic FileTable approach
       try {
         FileTable table = FileTable.create(source, tableDef);
         builder.put(getTableName(tableName, source.path(), tableNameCasing), table);
@@ -2331,7 +2919,7 @@ public class FileSchema extends AbstractSchema {
     try {
       Path basePath = sourceDirectory.toPath();
       PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
-      
+
       // Special handling for patterns starting with "**/": also match root files
       // For example, "**/*.csv" should also match "*.csv" in the root directory
       PathMatcher rootMatcher = null;
@@ -2349,11 +2937,11 @@ public class FileSchema extends AbstractSchema {
           }
           return FileVisitResult.CONTINUE;
         }
-        
+
         @Override public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
           Path relativePath = basePath.relativize(file);
           // Match against main pattern OR root pattern (if applicable)
-          if (matcher.matches(relativePath) || 
+          if (matcher.matches(relativePath) ||
               (finalRootMatcher != null && finalRootMatcher.matches(relativePath))) {
             result.add(file.toString());
           }
@@ -2406,13 +2994,13 @@ public class FileSchema extends AbstractSchema {
     // Collect files from source directory
     List<String> matchingFiles = findMatchingFiles(pattern);
     List<File> allFiles = new ArrayList<>();
-    
+
     // Add files from source directory
     matchingFiles.stream()
         .map(File::new)
         .filter(this::isFileTypeSupported)
         .forEach(allFiles::add);
-    
+
     // Also include converted files from base directory if it exists
     if (baseDirectory != null) {
       // Check for converted files in baseDirectory/conversions/
@@ -2427,11 +3015,11 @@ public class FileSchema extends AbstractSchema {
           }
         }
       }
-      
+
       // Check for converted files from storage providers in .download-cache/conversions/
       File downloadCacheConversionsDir = new File(new File(baseDirectory, ".download-cache"), "conversions");
       if (downloadCacheConversionsDir.exists() && downloadCacheConversionsDir.isDirectory()) {
-        LOGGER.debug("[FileSchema] Including storage provider converted files from: {}", 
+        LOGGER.debug("[FileSchema] Including storage provider converted files from: {}",
             downloadCacheConversionsDir.getAbsolutePath());
         File[] storageConvertedFiles = downloadCacheConversionsDir.listFiles(file -> isFileTypeSupported(file));
         if (storageConvertedFiles != null) {
@@ -2442,7 +3030,7 @@ public class FileSchema extends AbstractSchema {
         }
       }
     }
-    
+
     // Deduplicate files based on absolute path and sort with the same logic
     // Use a Set to track unique paths for deduplication
     Set<String> seenPaths = new HashSet<>();
@@ -2466,7 +3054,7 @@ public class FileSchema extends AbstractSchema {
         })
         .toArray(File[]::new);
 
-    LOGGER.debug("[FileSchema] Total files for processing: {} (source: {}, converted: {})", 
+    LOGGER.debug("[FileSchema] Total files for processing: {} (source: {}, converted: {})",
         sortedFiles.length, matchingFiles.size(), allFiles.size() - matchingFiles.size());
 
     return sortedFiles;
@@ -2747,11 +3335,17 @@ public class FileSchema extends AbstractSchema {
           // Check for CSV files
           final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
           if (sourceSansCsv != null) {
-            String tableName =
+            String baseName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
                     .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
+            // Handle duplicate table names by adding extension suffix
+            String tableName = baseName;
+            if (tableNameCounts.containsKey(baseName)) {
+              tableName = baseName + "_CSV";
+            }
+            tableNameCounts.put(baseName, tableNameCounts.getOrDefault(baseName, 0) + 1);
             addTable(builder, source, tableName, null);
             continue;
           }
@@ -2759,11 +3353,17 @@ public class FileSchema extends AbstractSchema {
           // Check for TSV files
           final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
           if (sourceSansTsv != null) {
-            String tableName =
+            String baseName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
                     .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
+            // Handle duplicate table names by adding extension suffix
+            String tableName = baseName;
+            if (tableNameCounts.containsKey(baseName)) {
+              tableName = baseName + "_TSV";
+            }
+            tableNameCounts.put(baseName, tableNameCounts.getOrDefault(baseName, 0) + 1);
             addTable(builder, source, tableName, null);
             continue;
           }
@@ -2941,11 +3541,106 @@ public class FileSchema extends AbstractSchema {
    * Records table metadata for comprehensive tracking.
    * This captures the complete lineage from original source to final table.
    */
-  private void recordTableMetadata(String tableName, Table table, Source source, 
+  private void recordTableMetadata(String tableName, Table table, Source source,
       @Nullable Map<String, Object> tableDef) {
     if (conversionMetadata != null) {
       conversionMetadata.recordTable(tableName, table, source, tableDef);
     }
+  }
+
+  // Map to store explicit table mappings: source file path -> explicit table name
+  private final Map<String, String> explicitTableMappings = new ConcurrentHashMap<>();
+  
+  /**
+   * Stores the mapping from source file to explicit table name.
+   * This will be used during bulk conversion to ensure explicit names are preserved.
+   */
+  private void storeExplicitTableMapping(String explicitTableName, Source source) {
+    try {
+      String sourceFilePath = new File(source.path()).getCanonicalPath();
+      explicitTableMappings.put(sourceFilePath, explicitTableName);
+      
+      // The explicit table mapping is now handled through conversion metadata updates during bulk conversion
+      
+      LOGGER.debug("Stored explicit table mapping: {} -> '{}'", sourceFilePath, explicitTableName);
+    } catch (Exception e) {
+      LOGGER.warn("Failed to store explicit table mapping for '{}': {}", explicitTableName, e.getMessage());
+    }
+  }
+  
+  /**
+   * Gets the explicit table name for a source file, if any.
+   */
+  private String getExplicitTableName(File sourceFile) {
+    try {
+      String sourceFilePath = sourceFile.getCanonicalPath();
+      return explicitTableMappings.get(sourceFilePath);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+
+  /**
+   * Gets the base directory for this schema.
+   * This is where conversion metadata and cached files are stored.
+   *
+   * @return The base directory, or null if not configured
+   */
+  public File getBaseDirectory() {
+    return baseDirectory;
+  }
+
+  /**
+   * Gets the conversion metadata registry for this schema.
+   * This contains all table information including conversions and cache locations.
+   *
+   * @return The conversion metadata, or null if not available
+   */
+  public ConversionMetadata getConversionMetadata() {
+    return conversionMetadata;
+  }
+
+  /**
+   * Gets all table records from the conversion registry.
+   * This is useful for DuckDB to discover all tables including their Parquet cache locations.
+   *
+   * @return Map of table names/keys to conversion records
+   */
+  public java.util.Map<String, ConversionMetadata.ConversionRecord> getAllTableRecords() {
+    if (conversionMetadata != null) {
+      java.util.Map<String, ConversionMetadata.ConversionRecord> records = conversionMetadata.getAllConversions();
+      LOGGER.debug("FileSchema.getAllTableRecords: conversionMetadata exists, returning {} records", records.size());
+      if (records.isEmpty()) {
+        LOGGER.debug("FileSchema.getAllTableRecords: Records are empty, forcing table discovery");
+        // Force table discovery to populate conversionMetadata
+        Map<String, Table> tables = getTableMap();
+        LOGGER.debug("FileSchema.getAllTableRecords: After getTableMap(), found {} tables", tables.size());
+        // Check again after forcing discovery
+        records = conversionMetadata.getAllConversions();
+        LOGGER.debug("FileSchema.getAllTableRecords: After forcing discovery, returning {} records", records.size());
+      }
+      return records;
+    }
+    LOGGER.debug("FileSchema.getAllTableRecords: conversionMetadata is null, returning empty map");
+    return java.util.Collections.emptyMap();
+  }
+
+  /**
+   * Extracts field configurations from table definition for HTML header mapping.
+   * This method eliminates code duplication across multiple HTML conversion locations.
+   * 
+   * @param tableDef the table definition map
+   * @param tableName the table name for logging
+   * @return the list of field configurations or null if none found
+   */
+  @SuppressWarnings("unchecked")
+  private static List<Map<String, Object>> extractFieldConfigurations(Map<String, Object> tableDef, String tableName) {
+    if (tableDef == null) {
+      return null;
+    }
+    
+    return (List<Map<String, Object>>) tableDef.get("fields");
   }
 
 }

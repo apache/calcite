@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file.duckdb;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
+import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
@@ -108,10 +109,13 @@ public class DuckDBJdbcSchemaFactory {
       setupConn.createStatement().execute("SET enable_progress_bar = false");  // Cleaner output
       setupConn.createStatement().execute("SET enable_object_cache = true");  // Cache parsed files
       
-      // Create a schema matching the FileSchema name (in lowercase for DuckDB)
-      String duckdbSchema = schemaName.toLowerCase();
-      setupConn.createStatement().execute("CREATE SCHEMA IF NOT EXISTS " + duckdbSchema);
-      LOGGER.info("Created DuckDB schema: {}", duckdbSchema);
+      // Create a schema matching the FileSchema name
+      // ALWAYS quote the schema name to preserve casing as-is
+      String duckdbSchema = schemaName;
+      String createSchemaSQL = "CREATE SCHEMA IF NOT EXISTS \"" + duckdbSchema + "\"";
+      LOGGER.info("Creating DuckDB schema with preserved casing: \"{}\"", duckdbSchema);
+      setupConn.createStatement().execute(createSchemaSQL);
+      LOGGER.info("Created DuckDB schema: \"{}\"", duckdbSchema);
       
       // Register Parquet files as views
       // FileSchemaFactory has already run conversions via FileSchema
@@ -192,8 +196,10 @@ public class DuckDBJdbcSchemaFactory {
    */
   public static void createParquetView(Connection connection, String viewName, String parquetPath) {
     try {
-      String sql = String.format("CREATE OR REPLACE VIEW %s AS SELECT * FROM read_parquet('%s')",
-                              viewName.toLowerCase(), parquetPath);
+      // Preserve the original casing of the view name by properly quoting it
+      // DuckDB preserves casing when identifiers are quoted
+      String sql = String.format("CREATE OR REPLACE VIEW \"%s\" AS SELECT * FROM read_parquet('%s')",
+                              viewName, parquetPath);
       LOGGER.debug("Creating DuckDB Parquet view: {}", sql);
       connection.createStatement().execute(sql);
     } catch (SQLException e) {
@@ -217,25 +223,8 @@ public class DuckDBJdbcSchemaFactory {
         .withCaseSensitive(false);
     
     return new DuckDBSqlDialect(context) {
-      @Override
-      public StringBuilder quoteIdentifier(StringBuilder buf, String name) {
-        // Don't quote identifiers that are already lowercase
-        // This matches DuckDB's default behavior
-        return buf.append(name.toLowerCase());
-      }
-      
-      @Override
-      public StringBuilder quoteIdentifier(StringBuilder buf, List<String> names) {
-        boolean first = true;
-        for (String name : names) {
-          if (!first) {
-            buf.append('.');
-          }
-          buf.append(name.toLowerCase());
-          first = false;
-        }
-        return buf;
-      }
+      // Don't override quoteIdentifier - let the base class handle it properly
+      // The base SqlDialect already handles quoting correctly based on the context settings
       
       @Override
       public void unparseCall(org.apache.calcite.sql.SqlWriter writer, 
@@ -306,29 +295,163 @@ public class DuckDBJdbcSchemaFactory {
   }
   
   /**
-   * Registers ONLY Parquet files as DuckDB views.
-   * FileSchemaFactory has already handled all conversions by creating a FileSchema first.
+   * Registers tables from the FileSchema's conversion registry as DuckDB views.
+   * This ensures all tables discovered by FileSchema are available in DuckDB.
    */
   private static void registerFilesAsViews(Connection conn, File directory, boolean recursive, 
                                           String duckdbSchema, String calciteSchemaName,
                                           org.apache.calcite.adapter.file.FileSchema fileSchema) 
       throws SQLException {
-    // Get the schema-aware Parquet cache directory using schema name
-    // This provides stable, predictable cache paths for proper caching
-    File cacheDir = ParquetConversionUtil.getParquetCacheDir(directory, null, calciteSchemaName);
-    LOGGER.debug("[DuckDBJdbcSchemaFactory] Looking for Parquet files in cache directory: {} (exists: {})", cacheDir, cacheDir.exists());
-    LOGGER.info("Looking for Parquet files in cache directory: {} (exists: {})", 
-                cacheDir, cacheDir.exists());
+    LOGGER.info("=== Starting DuckDB table registration from FileSchema registry for schema '{}' ===", calciteSchemaName);
+    
+    // Use FileSchema's metadata directly - NO FALLBACKS!
+    if (fileSchema == null) {
+      LOGGER.error("No FileSchema available - this is a configuration error");
+      throw new SQLException("DuckDB engine requires FileSchema to be available for table discovery");
+    }
+    
+    // Get all table records directly from FileSchema
+    java.util.Map<String, ConversionMetadata.ConversionRecord> records = fileSchema.getAllTableRecords();
+    LOGGER.info("Found {} entries in FileSchema's conversion registry", records.size());
+    
+    // Debug why records might be empty
+    if (records.isEmpty()) {
+      LOGGER.warn("DuckDB: FileSchema.getAllTableRecords() returned empty - checking details");
+      ConversionMetadata metadata = fileSchema.getConversionMetadata();
+      if (metadata == null) {
+        LOGGER.warn("DuckDB: FileSchema.getConversionMetadata() returned null");
+      } else {
+        LOGGER.warn("DuckDB: ConversionMetadata exists but getAllConversions() returned empty");
+      }
+      
+      // Also check what tables FileSchema knows about
+      // Note: getTableMap() is protected, so we can't call it directly
+      LOGGER.info("DuckDB: FileSchema reports it has tables but registry is empty - check conversion process");
+    }
+    
+    // Process each table from the registry
+    int viewCount = 0;
+    for (java.util.Map.Entry<String, ConversionMetadata.ConversionRecord> entry : records.entrySet()) {
+      String key = entry.getKey();
+      ConversionMetadata.ConversionRecord record = entry.getValue();
+      
+      // Get the Parquet file path - either from cache or original if already Parquet
+      String parquetPath = null;
+      String tableName = null;
+      
+      // Check if this record has table metadata (newer records)
+      if (record.getTableName() != null && !record.getTableName().isEmpty()) {
+        tableName = record.getTableName();
+        LOGGER.debug("Processing table '{}' from registry (original casing)", tableName);
+        
+        // Determine the Parquet file path
+        if (record.getParquetCacheFile() != null) {
+          parquetPath = record.getParquetCacheFile();
+          LOGGER.debug("Table '{}' has cached Parquet file: {}", tableName, parquetPath);
+        } else if (record.getSourceFile() != null && record.getSourceFile().endsWith(".parquet")) {
+          parquetPath = record.getSourceFile();
+          LOGGER.debug("Table '{}' is native Parquet: {}", tableName, parquetPath);
+        } else if (record.getConvertedFile() != null && record.getConvertedFile().endsWith(".parquet")) {
+          parquetPath = record.getConvertedFile();
+          LOGGER.debug("Table '{}' has converted Parquet: {}", tableName, parquetPath);
+        }
+      } else {
+        // Legacy record format - try to extract table name from file path
+        LOGGER.debug("Processing legacy record with key: {}", key);
+        
+        // If the key is a simple table name (not a path), use it
+        if (!key.contains("/") && !key.contains("\\")) {
+          tableName = key;
+        } else {
+          // Extract table name from file path
+          File file = new File(key);
+          String fileName = file.getName();
+          if (fileName.endsWith(".parquet")) {
+            tableName = fileName.substring(0, fileName.length() - 8);
+          } else if (fileName.endsWith(".json")) {
+            tableName = fileName.substring(0, fileName.length() - 5);
+          } else {
+            tableName = fileName;
+          }
+        }
+        
+        // For legacy records, check parquet cache file first
+        if (record.getParquetCacheFile() != null) {
+          parquetPath = record.getParquetCacheFile();
+        } else if (key.endsWith(".parquet")) {
+          parquetPath = key;
+        } else if (key.endsWith(".json")) {
+          // For JSON files, try to find corresponding Parquet cache file
+          // Schema-aware cache uses pattern: baseDirectory/.parquet_cache/tableName.parquet
+          File baseDir = fileSchema.getBaseDirectory();
+          File parquetCacheDir = new File(baseDir, ".parquet_cache");
+          File parquetFile = new File(parquetCacheDir, tableName + ".parquet");
+          if (parquetFile.exists()) {
+            parquetPath = parquetFile.getAbsolutePath();
+            LOGGER.debug("Found Parquet cache for legacy JSON table '{}': {}", tableName, parquetFile.getName());
+          } else {
+            // Try original ParquetConversionUtil location pattern
+            File conversionDir = ParquetConversionUtil.getParquetCacheDir(new File(key).getParentFile(), null, calciteSchemaName);
+            File altParquetFile = new File(conversionDir, tableName + ".parquet");
+            if (altParquetFile.exists()) {
+              parquetPath = altParquetFile.getAbsolutePath();
+              LOGGER.debug("Found Parquet cache for legacy JSON table '{}' in alt location: {}", tableName, altParquetFile.getName());
+            }
+          }
+        }
+      }
+      
+      // Create view if we have both table name and Parquet path
+      if (tableName != null && parquetPath != null) {
+        File parquetFile = new File(parquetPath);
+        if (parquetFile.exists()) {
+          // ALWAYS quote both schema and table names to preserve casing as-is
+          String sql = String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet('%s')",
+                                   duckdbSchema, tableName, parquetFile.getAbsolutePath());
+          LOGGER.info("Creating DuckDB view: \"{}.{}\" -> {}", duckdbSchema, tableName, parquetFile.getName());
+          try {
+            conn.createStatement().execute(sql);
+            viewCount++;
+            LOGGER.debug("Successfully created view: {}.{}", duckdbSchema, tableName);
+          } catch (SQLException e) {
+            LOGGER.warn("Failed to create view for table '{}': {}", tableName, e.getMessage());
+          }
+        } else {
+          LOGGER.warn("Parquet file does not exist for table '{}': {}", tableName, parquetPath);
+        }
+      } else {
+        LOGGER.debug("Skipping registry entry - no Parquet file available. Table: {}, Path: {}", 
+                    tableName, parquetPath);
+      }
+    }
+    
+    LOGGER.info("=== Created {} DuckDB views from registry ===", viewCount);
+    
+    if (viewCount == 0) {
+      LOGGER.warn("No DuckDB views created from registry - this may indicate missing Parquet cache files");
+      LOGGER.warn("Tables found in registry: {}", records.keySet());
+    }
+  }
+  
+  /**
+   * Legacy method: Scans directories for Parquet files.
+   * Used as fallback when registry is not available or empty.
+   */
+  private static void registerParquetFilesFromDirectory(Connection conn, File directory, 
+                                                       boolean recursive, String duckdbSchema) 
+      throws SQLException {
+    LOGGER.info("Using directory scanning for Parquet files in: {}", directory);
+    
+    // Get the schema-aware Parquet cache directory
+    File cacheDir = ParquetConversionUtil.getParquetCacheDir(directory, null, duckdbSchema);
     
     // Register both original Parquet files and cached Parquet files
     registerParquetFiles(conn, directory, recursive, duckdbSchema);
     
-    // Also register Parquet files from the schema-aware cache directory
+    // Also register Parquet files from the cache directory
     if (cacheDir.exists()) {
-      LOGGER.info("Registering Parquet files from schema-aware cache: {}", cacheDir);
+      LOGGER.info("Registering Parquet files from cache: {}", cacheDir);
       registerParquetFiles(conn, cacheDir, false, duckdbSchema);
-    } else {
-      LOGGER.warn("Schema-aware cache directory does not exist: {}", cacheDir);
     }
   }
   
@@ -350,9 +473,9 @@ public class DuckDBJdbcSchemaFactory {
             continue;
           }
           
-          // Register Parquet file
-          String tableName = fileName.replaceAll("\\.parquet$", "").toLowerCase();
-          String sql = String.format("CREATE OR REPLACE VIEW %s.%s AS SELECT * FROM read_parquet('%s')",
+          // Register Parquet file - preserve original casing since we use quoted identifiers
+          String tableName = fileName.replaceAll("\\.parquet$", "");
+          String sql = String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet('%s')",
                                    schema, tableName, file.getAbsolutePath());
           LOGGER.info("Registering DuckDB view: {}.{} from file: {}", 
                       schema, tableName, file.getAbsolutePath());
