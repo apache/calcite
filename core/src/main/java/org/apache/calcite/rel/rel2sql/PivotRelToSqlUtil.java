@@ -246,6 +246,9 @@ public class PivotRelToSqlUtil {
   }
 
   private boolean hasSameAliasNotInAxisColumn(SqlBasicCall call, String subQueryAlias) {
+    if (!(call.getOperandList().get(0) instanceof SqlIdentifier)) {
+      return false;
+    }
     SqlIdentifier sqlIdentifier = (SqlIdentifier) call.getOperandList().get(0);
     return sqlIdentifier.names.size() == 2 && !Objects.equals(sqlIdentifier.names.get(0),
         subQueryAlias);
