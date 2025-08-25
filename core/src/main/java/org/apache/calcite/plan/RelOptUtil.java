@@ -2885,11 +2885,11 @@ public abstract class RelOptUtil {
   }
 
   private static boolean hasScalarSubQuery(RexNode rexNode) {
-    if (rexNode instanceof RexSubQuery) {
+    if (RexSubQuery.class.isInstance(rexNode)) {
       RexSubQuery subQuery = (RexSubQuery) rexNode;
       return "$SCALAR_QUERY".equals(subQuery.op.getName());
     }
-    if (rexNode instanceof RexCall) {
+    if (RexCall.class.isInstance(rexNode)) {
       RexCall call = (RexCall) rexNode;
       for (RexNode operand : call.getOperands()) {
         if (hasScalarSubQuery(operand)) {
