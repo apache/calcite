@@ -1143,7 +1143,8 @@ public class RexSimplify {
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NOT NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NOT NULL" to "TRUE".
     a = simplify(a, UNKNOWN);
-    if (!a.getType().isNullable() && isSafeExpression(a)) {
+    boolean isSafe = isSafeExpression(a);
+    if (!a.getType().isNullable() && isSafe) {
       return rexBuilder.makeLiteral(true);
     }
     if (RexUtil.isLosslessCast(a)) {
@@ -1157,6 +1158,9 @@ public class RexSimplify {
     }
     if (hasCustomNullabilityRules(a.getKind())) {
       return null;
+    }
+    if (!isSafe) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
     }
     switch (Strong.policy(a)) {
     case NOT_NULL:
@@ -1198,7 +1202,8 @@ public class RexSimplify {
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
     a = simplify(a, UNKNOWN);
-    if (!a.getType().isNullable() && isSafeExpression(a)) {
+    boolean isSafe = isSafeExpression(a);
+    if (!a.getType().isNullable() && isSafe) {
       return rexBuilder.makeLiteral(false);
     }
     if (RexUtil.isLosslessCast(a)) {
@@ -1212,6 +1217,9 @@ public class RexSimplify {
     }
     if (hasCustomNullabilityRules(a.getKind())) {
       return null;
+    }
+    if (!isSafe) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
     }
     switch (Strong.policy(a)) {
     case NOT_NULL:

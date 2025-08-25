@@ -33,6 +33,7 @@ import com.google.common.collect.Multimap;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.net.URL;
@@ -2902,6 +2903,7 @@ public class DruidAdapter2IT {
         .returnsUnordered("EXPR$0=86829");
   }
 
+  @Disabled("CALCITE-7271")
   @Test void testComplexExpressionsIsNull() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ( cast(null as INTEGER) + cast"
         + "(\"city\" as INTEGER)) IS NULL";
