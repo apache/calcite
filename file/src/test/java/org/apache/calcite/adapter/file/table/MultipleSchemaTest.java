@@ -75,7 +75,7 @@ public class MultipleSchemaTest {
   }
 
   @Test public void testDuplicateSchemaNames() throws Exception {
-    // Try to create two schemas with the same name but different directories
+    // Try to create two schemas with the same name - this should now throw an exception
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
@@ -86,81 +86,25 @@ public class MultipleSchemaTest {
       salesOperand.put("directory", salesDir.getAbsolutePath());
       rootSchema.add("data", FileSchemaFactory.INSTANCE.create(rootSchema, "data", salesOperand));
 
-      // Try to add second DATA schema pointing to hr directory
+      // Try to add second DATA schema pointing to hr directory - this should throw an exception
       Map<String, Object> hrOperand = new HashMap<>();
       hrOperand.put("directory", hrDir.getAbsolutePath());
 
-      // This should either replace the first schema or throw an exception
-      Exception caughtException = null;
-      try {
-        rootSchema.add("data", FileSchemaFactory.INSTANCE.create(rootSchema, "data", hrOperand));
-      } catch (Exception e) {
-        caughtException = e;
-      }
+      // This should now throw an IllegalArgumentException due to duplicate schema name
+      IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        FileSchemaFactory.INSTANCE.create(rootSchema, "data", hrOperand);
+      });
 
-      // Query to see which schema is active
+      // Verify the error message is descriptive
+      String expectedMessage = "Schema with name 'data' already exists in parent schema";
+      assertTrue(exception.getMessage().contains(expectedMessage), 
+          "Expected error message to contain: " + expectedMessage + ", but got: " + exception.getMessage());
+      
+      // Verify the original schema still works
       try (Statement stmt = connection.createStatement()) {
-        // Check what tables are available in DATA schema by trying to query them
-        boolean hasSalesTables = false;
-        boolean hasHrTables = false;
-
-        // Try to access sales tables
-        try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.customers");
-          if (rs.next()) {
-            System.out.println("Found table in DATA schema: CUSTOMERS");
-            hasSalesTables = true;
-          }
-        } catch (Exception e) {
-          // Table doesn't exist or can't be accessed
-        }
-
-        try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.orders");
-          if (rs.next()) {
-            System.out.println("Found table in DATA schema: ORDERS");
-            hasSalesTables = true;
-          }
-        } catch (Exception e) {
-          // Table doesn't exist or can't be accessed
-        }
-
-        // Try to access hr tables
-        try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.employees");
-          if (rs.next()) {
-            System.out.println("Found table in DATA schema: EMPLOYEES");
-            hasHrTables = true;
-          }
-        } catch (Exception e) {
-          // Table doesn't exist or can't be accessed
-        }
-
-        try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.departments");
-          if (rs.next()) {
-            System.out.println("Found table in DATA schema: DEPARTMENTS");
-            hasHrTables = true;
-          }
-        } catch (Exception e) {
-          // Table doesn't exist or can't be accessed
-        }
-
-        System.out.println("\n=== DUPLICATE SCHEMA NAME TEST ===");
-        System.out.println("Exception thrown: " + (caughtException != null ? caughtException.getClass().getSimpleName() : "None"));
-        System.out.println("Has sales tables: " + hasSalesTables);
-        System.out.println("Has HR tables: " + hasHrTables);
-
-        if (hasSalesTables && !hasHrTables) {
-          System.out.println("✅ First schema retained (sales directory)");
-        } else if (!hasSalesTables && hasHrTables) {
-          System.out.println("✅ Second schema replaced first (hr directory)");
-        } else if (hasSalesTables && hasHrTables) {
-          System.out.println("⚠️ Both schemas merged or visible");
-        } else {
-          System.out.println("❌ No tables visible - unexpected");
-        }
-        System.out.println("===============================\n");
+        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.customers");
+        assertTrue(rs.next(), "Should be able to query original schema");
+        assertTrue(rs.getInt("total_count") > 0, "Should have data in customers table");
       }
     }
   }
@@ -209,7 +153,7 @@ public class MultipleSchemaTest {
   }
 
   @Test public void testSchemaReplacement() throws Exception {
-    // Test explicit schema replacement behavior
+    // Test that schema replacement is now prevented by duplicate detection
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
@@ -229,32 +173,68 @@ public class MultipleSchemaTest {
         assertTrue(customerCount > 0);
       }
 
-      // Replace with hr schema
+      // Attempt to replace with hr schema - this should now throw an exception
       Map<String, Object> hrOperand = new HashMap<>();
       hrOperand.put("directory", hrDir.getAbsolutePath());
-      rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", hrOperand));
 
-      // Check what's now accessible
+      IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        FileSchemaFactory.INSTANCE.create(rootSchema, "test", hrOperand);
+      });
+      
+      // Verify the exception message
+      assertTrue(exception.getMessage().contains("Schema with name 'test' already exists"),
+          "Exception should mention the duplicate schema name");
+      
+      // Verify the original schema is still accessible and unchanged
       try (Statement stmt = connection.createStatement()) {
-        // This should now access hr data, not sales data
+        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM test.customers");
+        assertTrue(rs.next());
+        int customerCount = rs.getInt("total_count");
+        assertTrue(customerCount > 0, "Original schema should still be accessible");
+        
+        // Verify we can't access HR tables (since replacement was prevented)
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM test.employees");
-          assertTrue(rs.next());
-          int employeeCount = rs.getInt("total_count");
-          System.out.println("Employee count after replacement: " + employeeCount);
-
-          System.out.println("\n=== SCHEMA REPLACEMENT TEST ===");
-          System.out.println("✅ Schema replacement successful");
-          System.out.println("✅ Now accessing HR data instead of Sales data");
-          System.out.println("==============================\n");
-
+          stmt.executeQuery("SELECT COUNT(*) as total_count FROM test.employees");
+          fail("Should not be able to access HR tables since replacement was prevented");
         } catch (Exception e) {
-          System.out.println("\n=== SCHEMA REPLACEMENT TEST ===");
-          System.out.println("❌ Could not access employees table: " + e.getMessage());
-          System.out.println("❓ Schema replacement behavior unclear");
-          System.out.println("==============================\n");
+          // Expected - HR tables should not be accessible
         }
       }
+    }
+  }
+  
+  @Test public void testDuplicateSchemaDetectionWithDescriptiveError() throws Exception {
+    // Test that duplicate schema detection provides clear, descriptive error messages
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+
+      // Add multiple schemas first
+      Map<String, Object> salesOperand = new HashMap<>();
+      salesOperand.put("directory", salesDir.getAbsolutePath());
+      rootSchema.add("sales", FileSchemaFactory.INSTANCE.create(rootSchema, "sales", salesOperand));
+      
+      Map<String, Object> hrOperand = new HashMap<>();
+      hrOperand.put("directory", hrDir.getAbsolutePath());
+      rootSchema.add("hr", FileSchemaFactory.INSTANCE.create(rootSchema, "hr", hrOperand));
+
+      // Try to add a duplicate of the 'sales' schema
+      Map<String, Object> duplicateOperand = new HashMap<>();
+      duplicateOperand.put("directory", "/some/other/path");
+
+      IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        FileSchemaFactory.INSTANCE.create(rootSchema, "sales", duplicateOperand);
+      });
+
+      // Verify the error message contains expected elements
+      String errorMessage = exception.getMessage();
+      assertTrue(errorMessage.contains("Schema with name 'sales' already exists"), 
+          "Error message should mention the duplicate schema name");
+      assertTrue(errorMessage.contains("unique name within the same connection"), 
+          "Error message should explain uniqueness requirement");
+      assertTrue(errorMessage.contains("sales") && errorMessage.contains("hr"), 
+          "Error message should list existing schemas for reference");
     }
   }
 }
