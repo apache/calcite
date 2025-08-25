@@ -261,6 +261,7 @@ public class HtmlCrawler {
         throw new IOException("Invalid URL: " + url, e);
       }
       conn.setRequestMethod("HEAD");
+      conn.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)");
       String etag = conn.getHeaderField("ETag");
       String lastModified = conn.getHeaderField("Last-Modified");
       long contentLength = conn.getContentLengthLong();
@@ -284,6 +285,7 @@ public class HtmlCrawler {
     
     try {
       URLConnection connection = new URI(url).toURL().openConnection();
+      connection.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)");
       connection.setConnectTimeout(30000);
       connection.setReadTimeout(30000);
       
@@ -324,6 +326,7 @@ public class HtmlCrawler {
   private long getContentLength(String url) throws IOException {
     try {
       URLConnection connection = new URI(url).toURL().openConnection();
+      connection.setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)");
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
       

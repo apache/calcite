@@ -244,9 +244,8 @@ public final class DocxTableScanner {
       ObjectNode row = mapper.createObjectNode();
       for (int j = 0; j < Math.min(cells.size(), columnHeaders.size()); j++) {
         String value = cells.get(j).trim();
-        if (!value.isEmpty()) {
-          row.put(columnHeaders.get(j), value);
-        }
+        // Use type inference to automatically detect numbers, dates, etc.
+        ConverterUtils.setJsonValueWithTypeInference(row, columnHeaders.get(j), value);
       }
 
       if (row.size() > 0) {
