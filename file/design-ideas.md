@@ -55,14 +55,21 @@
 
 **Proposed Solution**: A lightweight extension to the existing HTML table extraction that supports URL patterns with variable substitution and batch fetching, perfect for aggregating structured data from multiple similar web pages.
 
-**Problem**: Multiple schemas with the same name within a single connection can cause conflicts and unpredictable behavior.
+### ✅ 3. Duplicate Schema Name Detection - **COMPLETED**
 
-**Proposed Solution**: Add validation when adding schemas to detect and prevent duplicate schema names within the same connection/root schema.
+**ROI**: Effort: 2-3 hours | Impact: Medium | Risk: None | **Completed**: 2024-08-25 | **Commit**: 074ccc4da
 
-### Implementation:
-- Check for existing schema with same name when adding to root schema
-- Throw descriptive error if duplicate detected
-- Helps identify configuration issues early
+~~**Problem**: Multiple schemas with the same name within a single connection can cause conflicts and unpredictable behavior.~~
+
+~~**Proposed Solution**: Add validation when adding schemas to detect and prevent duplicate schema names within the same connection/root schema.~~
+
+**✅ IMPLEMENTATION COMPLETE:**
+- Schema name uniqueness validation in FileSchemaFactory.create() 
+- Clear IllegalArgumentException with existing schema lists for troubleshooting
+- Comprehensive test coverage with updated MultipleSchemaTest (4 test cases)
+- Complete documentation in troubleshooting guide and configuration reference
+- Breaking change properly documented with migration guidance
+- Early error detection prevents configuration mistakes and silent replacement issues
 
 ## Delta Lake Support with Time Travel
 
