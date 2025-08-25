@@ -810,6 +810,41 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether a SQL dialect supports interpreting a column in the GROUP BY clause
+   * as the alias defined in the SELECT list, when both the alias and the original column name
+   * are identical.
+   *
+   * <p>This behavior is specific to certain SQL dialects like {@link DatabaseProduct#BIG_QUERY},
+   * where the engine treats the alias from
+   * the SELECT clause as the reference in the GROUP BY clause
+   * if the alias name is the same as a column name from the table.
+   *
+   * <p>For example, in BigQuery:
+   * <blockquote><pre>
+   * SELECT
+   *   CAST(e.department_id AS STRING) AS department_id
+   * FROM emp e
+   * GROUP BY department_id
+   * </pre></blockquote>
+   *
+   * <p>In this case, although <code>e.department_id</code> is a table column, the reference
+   * <code>department_id</code> in the GROUP BY clause is interpreted as the SELECT list alias,
+   * not the original column.
+   *
+   * <p>This behavior can lead to ambiguities or unexpected results in dialects that support it.
+   * Other dialects (like {@link DatabaseProduct#SPARK})
+   * do not treat SELECT aliases as valid references
+   * in the GROUP BY clause, and require fully qualified table column references.
+   *
+   * @return {@code true} if the dialect supports treating identical
+   * SELECT aliases and GROUP BY column names
+   * as references to the alias; {@code false} otherwise.
+   */
+  public boolean supportsIdenticalColumnAliasAndGroupByColumnName() {
+    return true;
+  }
+
   public boolean supportsQualifyClause() {
     return false;
   }
