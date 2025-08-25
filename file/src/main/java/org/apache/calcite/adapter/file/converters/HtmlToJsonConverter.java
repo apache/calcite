@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file.converters;
 import org.apache.calcite.adapter.file.converters.ConversionRecorder;
 import org.apache.calcite.adapter.file.converters.HtmlCrawler.CrawlResult;
 import org.apache.calcite.adapter.file.converters.HtmlTableScanner.TableInfo;
+import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
@@ -38,8 +39,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -126,8 +130,13 @@ public class HtmlToJsonConverter {
       writeTableAsJson(table, jsonFile, columnNameCasing);
       jsonFiles.add(jsonFile);
       
-      // Record the conversion for refresh tracking
-      ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory);
+      // Update or create conversion record with explicit table name
+      if (baseDirectory != null) {
+        ConversionMetadata metadata = new ConversionMetadata(baseDirectory);
+        metadata.updateExistingRecord(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory, explicitTableName);
+      } else {
+        ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory, explicitTableName);
+      }
       
       LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath() + " with explicit name: " + explicitTableName);
     } else {
@@ -153,8 +162,12 @@ public class HtmlToJsonConverter {
         writeTableAsJson(table, jsonFile, columnNameCasing);
         jsonFiles.add(jsonFile);
         
-        // Record the conversion for refresh tracking
-        ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory);
+        // Update existing conversion record if one exists, otherwise create new one
+        // Use the generated table name from the JSON filename
+        String generatedTableName = jsonFileName.substring(0, jsonFileName.lastIndexOf(".json"));
+        
+        // Create conversion record with generated table name
+        ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory, generatedTableName);
         
         LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath());
       }
@@ -171,6 +184,113 @@ public class HtmlToJsonConverter {
     return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null, baseDirectory, relativePath);
   }
   
+  /**
+   * Converts a specific table in an HTML file to JSON using selector and index.
+   * This is for explicit table definitions with selector and index parameters.
+   *
+   * @param htmlFile The HTML file to convert
+   * @param outputDir The directory to write JSON files to
+   * @param columnNameCasing The casing strategy for column names
+   * @param tableNameCasing The casing strategy for table names
+   * @param selector The CSS selector to find tables (e.g., "table.wikitable.sortable")
+   * @param index The index of the table to select (0-based)
+   * @param explicitTableName The explicit name to use for the table
+   * @param baseDirectory The base directory for metadata recording
+   * @return List containing the single generated JSON file
+   * @throws IOException if conversion fails
+   */
+  public static List<File> convertWithSelector(File htmlFile, File outputDir, String columnNameCasing, 
+                                               String tableNameCasing, String selector, Integer index, 
+                                               String explicitTableName, File baseDirectory) throws IOException {
+    return convertWithSelector(htmlFile, outputDir, columnNameCasing, tableNameCasing, selector, index, 
+                              explicitTableName, baseDirectory, null);
+  }
+
+  /**
+   * Converts a specific table in an HTML file to JSON using selector and index with field mappings.
+   * This version supports field definitions for mapping HTML headers to different column names.
+   *
+   * @param htmlFile The HTML file to convert
+   * @param outputDir The directory to write JSON files to
+   * @param columnNameCasing The casing strategy for column names
+   * @param tableNameCasing The casing strategy for table names
+   * @param selector The CSS selector to find tables (e.g., "table.wikitable.sortable")
+   * @param index The index of the table to select (0-based)
+   * @param explicitTableName The explicit name to use for the table
+   * @param baseDirectory The base directory for metadata recording
+   * @param fieldConfigs The field definitions for mapping HTML headers to column names
+   * @return List containing the single generated JSON file
+   * @throws IOException if conversion fails
+   */
+  public static List<File> convertWithSelector(File htmlFile, File outputDir, String columnNameCasing, 
+                                               String tableNameCasing, String selector, Integer index, 
+                                               String explicitTableName, File baseDirectory,
+                                               List<Map<String, Object>> fieldConfigs) throws IOException {
+    List<File> jsonFiles = new ArrayList<>();
+    
+    if (selector == null || index == null) {
+      LOGGER.warning("Selector or index is null, falling back to regular conversion");
+      return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, explicitTableName, baseDirectory, null);
+    }
+    
+    // Ensure output directory exists
+    if (!outputDir.exists()) {
+      outputDir.mkdirs();
+    }
+    
+    // Parse HTML and find the specific table using selector and index
+    Document doc = Jsoup.parse(htmlFile, "UTF-8");
+    Elements selectedTables = doc.select(selector);
+    
+    if (selectedTables.size() == 0) {
+      LOGGER.warning("No tables found for selector: " + selector);
+      return jsonFiles;
+    }
+    
+    if (index >= selectedTables.size()) {
+      LOGGER.warning("Index " + index + " is out of bounds, only " + selectedTables.size() + " tables found for selector: " + selector);
+      return jsonFiles;
+    }
+    
+    // Get the specific table at the requested index
+    Element table = selectedTables.get(index);
+    
+    // Create JSON file with explicit table name
+    File jsonFile = new File(outputDir, explicitTableName + ".json");
+    writeTableAsJson(table, jsonFile, columnNameCasing, fieldConfigs);
+    jsonFiles.add(jsonFile);
+    
+    // Update or create conversion record with explicit table name
+    if (baseDirectory != null) {
+      ConversionMetadata metadata = new ConversionMetadata(baseDirectory);
+      metadata.updateExistingRecord(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory, explicitTableName);
+    } else {
+      ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory, explicitTableName);
+    }
+    
+    LOGGER.info("Converted table at selector '" + selector + "' index " + index + " to " + jsonFile.getAbsolutePath() + " with explicit name: " + explicitTableName);
+    
+    return jsonFiles;
+  }
+
+  /**
+   * Converts all tables in an HTML file to separate JSON files with explicit table name support.
+   * This overload is used by bulk conversion to preserve explicit table names from tableDef processing.
+   * 
+   * @param htmlFile The HTML file to convert
+   * @param outputDir The directory to write JSON files to
+   * @param columnNameCasing The casing strategy for column names
+   * @param tableNameCasing The casing strategy for table names
+   * @param baseDirectory The base directory for metadata storage
+   * @param relativePath The relative path from source directory to the file
+   * @param existingTableName The existing table name from previous conversion record (or null)
+   * @return List of generated JSON files
+   * @throws IOException if conversion fails
+   */
+  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory, String relativePath, String existingTableName) throws IOException {
+    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, existingTableName, baseDirectory, relativePath);
+  }
+  
 
 
   /**
@@ -178,10 +298,58 @@ public class HtmlToJsonConverter {
    */
   private static void writeTableAsJson(Element table, File jsonFile, String columnNameCasing)
       throws IOException {
+    writeTableAsJson(table, jsonFile, columnNameCasing, null);
+  }
+
+  /**
+   * Converts an HTML table element to JSON with field mappings support.
+   */
+  private static void writeTableAsJson(Element table, File jsonFile, String columnNameCasing, 
+                                      List<Map<String, Object>> fieldConfigs) throws IOException {
     ArrayNode jsonArray = MAPPER.createArrayNode();
 
-    // Extract headers and apply column name casing
-    List<String> headers = extractHeaders(table, columnNameCasing);
+    // Extract raw headers from HTML first (without casing applied)
+    List<String> rawHeaders = extractRawHeaders(table);
+    
+    // Create header mapping based on field definitions
+    Map<String, String> headerMapping = new LinkedHashMap<>();
+    Set<String> skipHeaders = new HashSet<>();
+    
+    if (fieldConfigs != null) {
+      // Build mapping from raw HTML headers to desired column names
+      for (Map<String, Object> fieldConfig : fieldConfigs) {
+        String thName = (String) fieldConfig.get("th");  // Raw HTML header text
+        String name = (String) fieldConfig.get("name");  // Desired column name
+        String skip = (String) fieldConfig.get("skip");
+        
+        
+        if (thName != null) {
+          if (skip != null && "true".equalsIgnoreCase(skip)) {
+            skipHeaders.add(thName);
+          } else {
+            // Use explicit name if provided, otherwise apply casing to th name
+            String finalName = name != null ? name : 
+                org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(thName, columnNameCasing);
+            headerMapping.put(thName, finalName);
+          }
+        }
+      }
+    }
+    
+    // Create final headers list using mappings
+    List<String> headers = new ArrayList<>();
+    for (String rawHeader : rawHeaders) {
+      if (skipHeaders.contains(rawHeader)) {
+        continue; // Skip this header entirely
+      }
+      
+      if (headerMapping.containsKey(rawHeader)) {
+        headers.add(headerMapping.get(rawHeader));
+      } else {
+        // No field config for this header, apply default casing
+        headers.add(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(rawHeader, columnNameCasing));
+      }
+    }
     
     // Process data rows
     Elements rows = table.select("tr");
@@ -191,17 +359,37 @@ public class HtmlToJsonConverter {
     
     for (int rowIndex = skipFirstRow ? 1 : 0; rowIndex < rows.size(); rowIndex++) {
       Element row = rows.get(rowIndex);
-      Elements cells = row.select("td");
+      // Select both th and td elements to capture all cell data
+      // Some tables use th elements for row headers (first column)
+      Elements cells = row.select("th, td");
       
       if (cells.isEmpty()) {
         continue;
       }
       
       ObjectNode jsonRow = MAPPER.createObjectNode();
-      for (int i = 0; i < Math.min(headers.size(), cells.size()); i++) {
-        String header = headers.get(i);
-        String value = cells.get(i).text();
-        ConverterUtils.setJsonValueWithTypeInference(jsonRow, header, value);
+      
+      // Process cells based on raw headers, applying mappings and skips
+      int headerIndex = 0;
+      for (int cellIndex = 0; cellIndex < Math.min(rawHeaders.size(), cells.size()); cellIndex++) {
+        String rawHeader = rawHeaders.get(cellIndex);
+        
+        // Skip this column if it's in the skip set
+        if (skipHeaders.contains(rawHeader)) {
+          continue;
+        }
+        
+        // Get the mapped header name
+        String finalHeader;
+        if (headerMapping.containsKey(rawHeader)) {
+          finalHeader = headerMapping.get(rawHeader);
+        } else {
+          // No field config for this header, apply default casing
+          finalHeader = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(rawHeader, columnNameCasing);
+        }
+        
+        String value = extractTextFromElement(cells.get(cellIndex));
+        ConverterUtils.setJsonValueWithTypeInference(jsonRow, finalHeader, value);
       }
       
       if (jsonRow.size() > 0) {
@@ -241,15 +429,71 @@ public class HtmlToJsonConverter {
   }
 
   /**
+   * Extracts clean text from an HTML element, handling special cases:
+   * - Converts <br> elements to spaces
+   * - Lets JSoup handle footnotes naturally
+   * @param element The HTML element to extract text from
+   * @return Clean text string
+   */
+  private static String extractTextFromElement(Element element) {
+    // Clone the element to avoid modifying the original
+    Element clone = element.clone();
+    
+    // Replace <br> tags with spaces
+    clone.select("br").append(" ");
+    
+    // Get the text content - JSoup handles footnotes naturally
+    String text = clone.text().trim();
+    
+    // Clean up multiple spaces
+    text = text.replaceAll("\\s+", " ");
+    
+    return text;
+  }
+  
+  /**
    * Extracts headers from an HTML table.
    * First tries th elements, then falls back to first row td elements.
    */
+  /**
+   * Extracts raw headers from HTML table without applying any casing transformations.
+   * Used for field mapping where we need to match against exact HTML text.
+   */
+  private static List<String> extractRawHeaders(Element table) {
+    // Try th elements first (in thead or first row)
+    Elements headerElements = table.select("thead th, tr:first-child th");
+    if (!headerElements.isEmpty()) {
+      return headerElements.stream()
+          .map(HtmlToJsonConverter::extractTextFromElement)
+          .collect(Collectors.toList());
+    }
+    
+    // Fall back to first row td elements
+    Elements firstRowCells = table.select("tr:first-child td");
+    if (!firstRowCells.isEmpty()) {
+      return firstRowCells.stream()
+          .map(HtmlToJsonConverter::extractTextFromElement)
+          .collect(Collectors.toList());
+    }
+    
+    // Default headers if no headers found
+    List<String> defaultHeaders = new ArrayList<>();
+    int maxCells = table.select("tr").stream()
+        .mapToInt(row -> row.select("td").size())
+        .max()
+        .orElse(0);
+    for (int i = 0; i < maxCells; i++) {
+      defaultHeaders.add("column" + (i + 1));
+    }
+    return defaultHeaders;
+  }
+
   private static List<String> extractHeaders(Element table, String columnNameCasing) {
     // Try th elements first (in thead or first row)
     Elements headerElements = table.select("thead th, tr:first-child th");
     if (!headerElements.isEmpty()) {
       return headerElements.stream()
-          .map(Element::text)
+          .map(element -> extractTextFromElement(element))
           .map(header -> ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing)))
           .collect(Collectors.toList());
     }
@@ -258,7 +502,7 @@ public class HtmlToJsonConverter {
     Elements firstRowCells = table.select("tr:first-child td");
     if (!firstRowCells.isEmpty()) {
       return firstRowCells.stream()
-          .map(Element::text)
+          .map(element -> extractTextFromElement(element))
           .map(header -> ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing)))
           .collect(Collectors.toList());
     }
@@ -280,10 +524,10 @@ public class HtmlToJsonConverter {
    * Determines if the first row should be skipped (used as headers).
    */
   private static boolean shouldSkipFirstRow(Element table, List<String> headers) {
-    // Skip first row if we got headers from td elements in first row
+    // Skip first row if it contains headers (either th or td elements that were used for headers)
     Elements firstRowTh = table.select("tr:first-child th");
     if (!firstRowTh.isEmpty()) {
-      return false; // Headers came from th, don't skip
+      return true; // First row has th elements, so it's a header row - skip it
     }
     
     Elements firstRowTd = table.select("tr:first-child td");
