@@ -36,7 +36,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Tests for partitioned table functionality.
@@ -60,8 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class PartitionedTableTest {
-  @TempDir
-  java.nio.file.Path tempDir;
+  private File tempDir;
 
   private static final String AVRO_SCHEMA_STRING = "{"
       + "\"type\": \"record\","
@@ -76,7 +75,13 @@ public class PartitionedTableTest {
   private Schema avroSchema;
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws Exception {
+    // Skip for engines that don't support partitioned tables
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    assumeFalse(engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr)),
+        "Skipping partitioned table test for " + engineStr + " engine (not supported)");
+    
+    tempDir = java.nio.file.Files.createTempDirectory("partitioned-test-").toFile();
     avroSchema = new Schema.Parser().parse(AVRO_SCHEMA_STRING);
     // Clear any static caches that might interfere with test isolation
     Sources.clearFileCache();
@@ -89,6 +94,23 @@ public class PartitionedTableTest {
     Sources.clearFileCache();
     System.gc();
     Thread.sleep(100);
+    
+    // Clean up temp directory
+    if (tempDir != null && tempDir.exists()) {
+      deleteDirectory(tempDir);
+    }
+  }
+  
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
   }
 
   @Test public void testHiveStylePartitionedTable() throws Exception {
@@ -315,7 +337,7 @@ public class PartitionedTableTest {
     for (int year = 2022; year <= 2024; year++) {
       for (int month = 1; month <= 2; month++) {
         File partDir =
-            new File(tempDir.toFile(), String.format(Locale.ROOT, "sales/year=%d/month=%02d", year, month));
+            new File(tempDir, String.format(Locale.ROOT, "sales/year=%d/month=%02d", year, month));
         partDir.mkdirs();
 
         File parquetFile = new File(partDir, "data.parquet");
@@ -331,7 +353,7 @@ public class PartitionedTableTest {
     for (int year = 2022; year <= 2024; year++) {
       for (int month = 1; month <= 2; month++) {
         File partDir =
-            new File(tempDir.toFile(), String.format(Locale.ROOT, "events/%d/%02d", year, month));
+            new File(tempDir, String.format(Locale.ROOT, "events/%d/%02d", year, month));
         partDir.mkdirs();
 
         File parquetFile = new File(partDir, "events.parquet");

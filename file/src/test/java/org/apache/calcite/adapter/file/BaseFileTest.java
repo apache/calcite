@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Tag;
 
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Base class for file adapter tests.
@@ -67,6 +68,21 @@ public abstract class BaseFileTest {
       return new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
     return new ExecutionEngineConfig();
+  }
+  
+  /**
+   * Applies standard engine defaults for SQL identifier casing to JDBC connection properties.
+   * These settings ensure consistent identifier behavior across all tests:
+   * - lex: ORACLE (SQL lexical rules)
+   * - unquotedCasing: TO_LOWER (unquoted identifiers converted to lowercase)
+   * 
+   * This method should be called by all tests after setting the model property.
+   * 
+   * @param info the Properties object to update with engine defaults
+   */
+  public static void applyEngineDefaults(Properties info) {
+    info.put("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
   }
   
   /**

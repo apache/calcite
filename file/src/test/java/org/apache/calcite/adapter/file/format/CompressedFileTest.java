@@ -153,6 +153,11 @@ public class CompressedFileTest {
   }
 
   @Test void testGzippedWithParquetEngine() throws Exception {
+    // Skip for engines that don't support this specific test (it's hardcoded to use PARQUET)
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    org.junit.jupiter.api.Assumptions.assumeFalse(engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr)),
+        "Skipping PARQUET-specific test for " + engineStr + " engine");
+    
     File gzFile = new File(tempDir, "data.csv.gz");
     createGzippedCsv(gzFile);
 

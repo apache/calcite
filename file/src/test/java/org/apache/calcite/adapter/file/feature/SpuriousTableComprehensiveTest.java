@@ -25,9 +25,10 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -56,8 +57,31 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("unit")
 public class SpuriousTableComprehensiveTest {
 
-  @TempDir
-  public File tempDir;
+  private File tempDir;
+
+  @BeforeEach
+  public void setupTestFiles() throws Exception {
+    tempDir = Files.createTempDirectory("spurious-test-").toFile();
+  }
+
+  @AfterEach
+  public void cleanup() throws Exception {
+    if (tempDir != null && tempDir.exists()) {
+      deleteDirectory(tempDir);
+    }
+  }
+
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
+  }
 
   @Test void testSpuriousTableDetection() throws Exception {
     // Create Excel file with embedded tables that might produce spurious tables

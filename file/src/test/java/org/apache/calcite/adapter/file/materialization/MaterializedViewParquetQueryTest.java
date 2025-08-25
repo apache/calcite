@@ -21,11 +21,13 @@ import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
+
+import java.nio.file.Files;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -41,6 +43,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Test that materialized views work with Parquet execution engine.
@@ -48,13 +51,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Tag("unit")
 @Isolated  // Required due to engine-specific behavior and shared state
 public class MaterializedViewParquetQueryTest {
-  @TempDir
-  java.nio.file.Path tempDir;
+  private File tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Skip for engines that don't support materialized views
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    assumeFalse(engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr)),
+        "Skipping materialized view test for " + engineStr + " engine (not supported)");
+    
+    tempDir = Files.createTempDirectory("mv-test-").toFile();
+    
     // Create sales data
-    File salesCsv = new File(tempDir.toFile(), "sales.csv");
+    File salesCsv = new File(tempDir, "sales.csv");
     try (FileWriter writer = new FileWriter(salesCsv, StandardCharsets.UTF_8)) {
       writer.write("date:string,product:string,quantity:int,price:double\n");
       writer.write("2024-01-01,Widget,10,25.50\n");
@@ -69,10 +78,29 @@ public class MaterializedViewParquetQueryTest {
     // This simulates what would happen if the MV SQL was executed and results stored
     createMaterializedViewParquetFile();
   }
+  
+  @AfterEach
+  public void cleanup() throws Exception {
+    if (tempDir != null && tempDir.exists()) {
+      deleteDirectory(tempDir);
+    }
+  }
+  
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
+  }
 
   private void createMaterializedViewParquetFile() throws Exception {
     // Create .materialized_views directory
-    File mvDir = new File(tempDir.toFile(), ".materialized_views");
+    File mvDir = new File(tempDir, ".materialized_views");
     mvDir.mkdirs();
     
     // Also create schema-specific subdirectory for schema-aware caching
