@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 {
-/*
- * Example calcite-file schema using wikipedia pages for us states and
- * cities.
- */
+  /*
+   * Example calcite-file schema using wikipedia pages for us states and
+   * cities.
+   */
   "version": "1.0",
   "defaultSchema": "wiki",
   /*
@@ -51,78 +51,161 @@
    * (https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html).
    *
    */
-  "schemas": [ {
-    "name": "wiki",
-    "type": "custom",
-    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
-    "operand": {
-      "tables": [ {
-        "name": "RawCities",
-        "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
-        "selector": "#mw-content-text table.wikitable.sortable",
-        "index": 0
-      }, {
-        "name": "Cities",
-        "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
-        "selector": "#mw-content-text table.wikitable.sortable",
-        "index": 0,
-        "fields": [
-          // note the use of a pattern match in the following
-          // matchSeq is optional and defaults to 0
-          {"th": "2012 rank", "name": "Rank", "type": "int", "match": "\\d+", "matchSeq": 0},
-          {"th": "City", "selector": "a", "selectedElement": 0},
-          {"th": "State[5]", "name": "State", "selector": "a:eq(0)"},
-          {"th": "2012 estimate", "name": "Population", "type": "double"},
-          // NB: we're skipping the following two fields
-          {"th": "2010 Census", "skip": "true"},
-          {"th": "Change", "skip": "true"},
-          // here, we're using a selector to navigate the dom inside the table cell
-          {"th": "2012 land area", "name": "Land Area", "type": "double", "selector": ":not(span)"},
-          {"th": "2012 population density", "skip": "true"},
-          // eliminate the degree symbol from the location field
-          // note - it's now possible to create multiple columns from one HTML column
-          {"th": "Location", "name": "Latitude", "replace": "\u00B0", "replaceWith": " ",
-              "match": "\\d+\\.\\d+", "type": "double"},
-          {"th": "Location", "name": "Longitude", "replace": "\u00B0", "replaceWith": " ",
-              "match": "\\d+\\.\\d+", "matchSeq": 1, "type": "double"},
-          // note that field definitions do not need to be in HTML table order - just makes it easier
-          {"th": "ANSI", "skip": "true"}
+  "schemas": [
+    {
+      "name": "wiki",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "ephemeralCache": true,
+        "tables": [
+          {
+            "name": "RawCities",
+            "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+            "selector": "#mw-content-text table.wikitable.sortable",
+            "index": 0
+          },
+          {
+            "name": "Cities",
+            "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
+            "selector": "#mw-content-text table.wikitable.sortable",
+            "index": 0,
+            "fields": [
+              // note the use of a pattern match in the following
+              // matchSeq is optional and defaults to 0
+              {
+                "th": "2012 rank",
+                "name": "Rank",
+                "type": "int",
+                "match": "\\d+",
+                "matchSeq": 0
+              },
+              {
+                "th": "City",
+                "selector": "a",
+                "selectedElement": 0
+              },
+              {
+                "th": "State[5]",
+                "name": "State",
+                "selector": "a:eq(0)"
+              },
+              {
+                "th": "2012 estimate",
+                "name": "Population",
+                "type": "double"
+              },
+              // NB: we're skipping the following two fields
+              {
+                "th": "2010 Census",
+                "skip": "true"
+              },
+              {
+                "th": "Change",
+                "skip": "true"
+              },
+              // here, we're using a selector to navigate the dom inside the table cell
+              {
+                "th": "2012 land area",
+                "name": "Land Area",
+                "type": "double",
+                "selector": ":not(span)"
+              },
+              {
+                "th": "2012 population density",
+                "skip": "true"
+              },
+              // eliminate the degree symbol from the location field
+              // note - it's now possible to create multiple columns from one HTML column
+              {
+                "th": "Location",
+                "name": "Latitude",
+                "replace": "\u00B0",
+                "replaceWith": " ",
+                "match": "\\d+\\.\\d+",
+                "type": "double"
+              },
+              {
+                "th": "Location",
+                "name": "Longitude",
+                "replace": "\u00B0",
+                "replaceWith": " ",
+                "match": "\\d+\\.\\d+",
+                "matchSeq": 1,
+                "type": "double"
+              },
+              // note that field definitions do not need to be in HTML table order - just makes it easier
+              {
+                "th": "ANSI",
+                "skip": "true"
+              }
+            ]
+          },
+          {
+            "name": "States",
+            "url": "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States",
+            "selector": "#mw-content-text table.wikitable.sortable",
+            "index": 0,
+            "fields": [
+              {
+                "th": "State & abbreviation",
+                "name": "State",
+                "selector": "a",
+                "selectedElement": 0
+              },
+              {
+                "th": "Statehood[A]",
+                "name": "Statehood",
+                "type": "Date"
+              },
+              {
+                "th": "Largest city[A][10]",
+                "name": "Largest City"
+              },
+              {
+                "th": "Population (2013 est)[11]",
+                "name": "Population",
+                "type": "double"
+              },
+              {
+                "th": "Total area in mi2 (km2)[C][12]",
+                "name": "Total Area",
+                "type": "double"
+              },
+              {
+                "th": "Land area in mi2 (km2)[C][12]",
+                "name": "Land Area",
+                "type": "double"
+              },
+              {
+                "th": "Water area in mi2 (km2)[C][12]",
+                "name": "Water Area",
+                "type": "double"
+              }
+            ]
+          },
+          {
+            // Historic snapshot of "states" page, to ensure test stability.
+            "name": "states_as_of",
+            "url": "https://en.wikipedia.org/w/index.php?title=List_of_states_and_territories_of_the_United_States&oldid=713721917",
+            "selector": "#mw-content-text table.wikitable.sortable",
+            "index": 0,
+            "fields": [
+              {"th": "State", "name": "state", "selector": "a", "selectedElement": 0},
+              {"th": "Capital"},
+              {"th": "Abbr.", "name": "Abbreviation"},
+              {"th": "Largest city[A][10]", "name": "Largest City"},
+              {"th": "Statehood[B]", "name": "statehood", "type": "Date"},
+              {"th": "Population (2013 est)[11]", "name": "Population", "type": "double"},
+              {"th": "Total area in mi2 (km2)[C][12]", "name": "Total Area", "type": "double"},
+              {"th": "Land area in mi2 (km2)[C][12]", "name": "Land Area", "type": "double"},
+              {"th": "Water area in mi2 (km2)[C][12]", "name": "Water Area",
+                "type": "double"},
+              {"th": "House seat(s)", "name": "House seats", "type": "double"}
+            ]
+          }
         ]
-      }, {
-        "name": "States",
-        "url": "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States",
-        "selector": "#mw-content-text table.wikitable.sortable",
-        "index": 0,
-        "fields": [
-          {"th": "State & abbreviation", "name": "State", "selector": "a", "selectedElement": 0},
-          {"th": "Statehood[A]", "name": "Statehood", "type": "Date"},
-          {"th": "Largest city[A][10]", "name": "Largest City"},
-          {"th": "Population (2013 est)[11]", "name": "Population", "type": "double"},
-          {"th": "Total area in mi2 (km2)[C][12]", "name": "Total Area", "type": "double"},
-          {"th": "Land area in mi2 (km2)[C][12]", "name": "Land Area", "type": "double"},
-          {"th": "Water area in mi2 (km2)[C][12]", "name": "Water Area",
-              "type": "double"}
-        ]
-      }, {
-        // Historic snapshot of "states" page, to ensure test stability.
-        "name": "states_as_of",
-        "url": "https://en.wikipedia.org/w/index.php?title=List_of_states_and_territories_of_the_United_States&oldid=713721917",
-        "selector": "#mw-content-text table.wikitable.sortable",
-        "index": 0,
-        "fields": [
-          {"th": "State", "name": "state", "selector": "a", "selectedElement": 0},
-          {"th": "Capital"},
-          {"th": "Abbr.", "name": "Abbreviation"},
-          {"th": "Largest city[A][10]", "name": "Largest City"},
-          {"th": "Statehood[B]", "name": "statehood", "type": "Date"},
-          {"th": "Population (2013 est)[11]", "name": "Population", "type": "double"},
-          {"th": "Total area in mi2 (km2)[C][12]", "name": "Total Area", "type": "double"},
-          {"th": "Land area in mi2 (km2)[C][12]", "name": "Land Area", "type": "double"},
-          {"th": "Water area in mi2 (km2)[C][12]", "name": "Water Area",
-              "type": "double"},
-          {"th": "House seat(s)", "name": "House seats", "type": "double"}
-        ]
-      } ]
+      }
     }
-  } ]
+  ]
 }
