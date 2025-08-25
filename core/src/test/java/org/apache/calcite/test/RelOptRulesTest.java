@@ -5720,6 +5720,8 @@ class RelOptRulesTest extends RelOptTestBase {
     final Function<RelBuilder, RelNode> relFn = b -> {
       final RexBuilder rexBuilder = b.getRexBuilder();
       final RelDataType type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      final RelDataType nullableType = rexBuilder.getTypeFactory()
+          .createTypeWithNullability(type, true);
 
       RelNode left = b
           .values(new String[]{"x", "y"}, 1, 2, 2, 1).build();
@@ -5727,19 +5729,22 @@ class RelOptRulesTest extends RelOptTestBase {
       RexLiteral literal1 = rexBuilder.makeLiteral(1, type);
       RexLiteral literal2 = rexBuilder.makeLiteral(2, type);
       RexLiteral literal3 = rexBuilder.makeLiteral(3, type);
+      // the MOD (%) operation needs to be unsafe to reproduce the scenario
+      RexNode param0 = rexBuilder.makeDynamicParam(nullableType, 0);
+      RexNode param1 = rexBuilder.makeDynamicParam(nullableType, 1);
 
-      // CASE WHEN x % 2 = 1 THEN x < 2
-      //      WHEN x % 3 = 2 THEN x < 1
+      // CASE WHEN x % param0 = 1 THEN x < 2
+      //      WHEN x % param1 = 2 THEN x < 1
       //      ELSE x < 3
       final RexNode caseRexNode =
           rexBuilder.makeCall(
               SqlStdOperatorTable.CASE,
               rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                  rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, literal2),
+                  rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, param0),
                   literal1),
               rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal2),
               rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                  rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, literal3),
+                  rexBuilder.makeCall(SqlStdOperatorTable.MOD, ref, param1),
                   literal2),
               rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal1),
               rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN, ref, literal3));
