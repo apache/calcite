@@ -2057,8 +2057,9 @@ public class RelBuilderTest {
         + "LogicalUnion(all=[true])\n"
         + "  LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalAggregate(group=[{6, 7}], groups=[[{7}]])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        + "  LogicalProject(COMM=[null:DECIMAL(7, 2)], DEPTNO=[$0])\n"
+        + "    LogicalAggregate(group=[{7}])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

@@ -765,7 +765,8 @@ select count(*) as c,
   grouping_id(gender, deptno) as ggd,
   grouping_id(deptno, gender) as gdg
 from emp
-group by rollup(deptno, gender);
+group by rollup(deptno, gender)
+order by c, g, gid, gd, gg, ggd, gdg;
 +---+---+-----+----+----+-----+-----+
 | C | G | GID | GD | GG | GGD | GDG |
 +---+---+-----+----+----+-----+-----+
@@ -776,14 +777,14 @@ group by rollup(deptno, gender);
 | 1 | 0 |   0 |  0 |  0 |   0 |   0 |
 | 1 | 0 |   0 |  0 |  0 |   0 |   0 |
 | 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
 | 2 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
 | 9 | 1 |   0 |  1 |  1 |   3 |   3 |
-| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
 +---+---+-----+----+----+-----+-----+
 (15 rows)
 
@@ -880,31 +881,32 @@ group by rollup(deptno);
 
 # GROUPING, GROUPING_ID and GROUP_ID
 select deptno, gender, grouping(deptno) gd, grouping(gender) gg,
-  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gd,
-  group_id() gid, count(*) c
+  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gid,
+  group_id() g, count(*) c
 from emp
-group by cube(deptno, gender);
-+--------+--------+----+----+----+----+-----+---+
-| DEPTNO | GENDER | GD | GG | DG | GD | GID | C |
-+--------+--------+----+----+----+----+-----+---+
-|     10 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     10 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     20 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     30 | F      |  0 |  0 |  0 |  0 |   0 | 2 |
-|     50 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     50 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     60 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|        | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|        |        |  1 |  1 |  3 |  3 |   0 | 9 |
-|     10 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     20 |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|     30 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     50 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     60 |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|        | F      |  1 |  0 |  2 |  1 |   0 | 6 |
-|        | M      |  1 |  0 |  2 |  1 |   0 | 3 |
-|        |        |  0 |  1 |  1 |  2 |   0 | 1 |
-+--------+--------+----+----+----+----+-----+---+
+group by cube(deptno, gender)
+order by deptno, gender, gd, gg, dg, gid, g, c;
++--------+--------+----+----+----+-----+---+---+
+| DEPTNO | GENDER | GD | GG | DG | GID | G | C |
++--------+--------+----+----+----+-----+---+---+
+|     10 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     10 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     10 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     20 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     20 |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|     30 | F      |  0 |  0 |  0 |   0 | 0 | 2 |
+|     30 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     50 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     50 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     50 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     60 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     60 |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|        | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|        | F      |  1 |  0 |  2 |   1 | 0 | 6 |
+|        | M      |  1 |  0 |  2 |   1 | 0 | 3 |
+|        |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|        |        |  1 |  1 |  3 |   3 | 0 | 9 |
++--------+--------+----+----+----+-----+---+---+
 (17 rows)
 
 !ok
@@ -1339,11 +1341,6 @@ order by g, i, s desc;
 | 1900.00 | 0 | 0 |
 | 1300.00 | 0 | 0 |
 |  950.00 | 0 | 0 |
-| 8275.00 | 0 | 1 |
-| 6000.00 | 0 | 1 |
-| 5600.00 | 0 | 1 |
-| 5000.00 | 0 | 1 |
-| 4150.00 | 0 | 1 |
 | 6000.00 | 1 | 0 |
 | 5600.00 | 1 | 0 |
 | 5000.00 | 1 | 0 |
@@ -1358,6 +1355,11 @@ order by g, i, s desc;
 | 5600.00 | 2 | 0 |
 | 5000.00 | 2 | 0 |
 | 4150.00 | 2 | 0 |
+| 8275.00 | 2 | 1 |
+| 6000.00 | 2 | 1 |
+| 5600.00 | 2 | 1 |
+| 5000.00 | 2 | 1 |
+| 4150.00 | 2 | 1 |
 +---------+---+---+
 (28 rows)
 
@@ -3895,6 +3897,119 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):BIGINT NOT NULL], M=[$t1])
   EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], $f0=[$t8])
       EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-7126] The calculation result of grouping function is wrong
+SELECT deptno, job, sal, SUM(comm),
+       GROUPING(deptno) AS deptno_flag,
+       GROUPING(job) AS job_flag,
+       GROUPING(sal) AS sal_flag
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job))
+ORDER BY deptno, job, sal;
++--------+-----------+---------+---------+-------------+----------+----------+
+| DEPTNO | JOB       | SAL     | EXPR$3  | DEPTNO_FLAG | JOB_FLAG | SAL_FLAG |
++--------+-----------+---------+---------+-------------+----------+----------+
+|     10 | CLERK     |         |         |           0 |        0 |        1 |
+|     10 | CLERK     |         |         |           0 |        0 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |
+|     10 |           | 1300.00 |         |           0 |        1 |        0 |
+|     10 |           | 2450.00 |         |           0 |        1 |        0 |
+|     10 |           | 5000.00 |         |           0 |        1 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |
+|     20 |           |  800.00 |         |           0 |        1 |        0 |
+|     20 |           | 1100.00 |         |           0 |        1 |        0 |
+|     20 |           | 2975.00 |         |           0 |        1 |        0 |
+|     20 |           | 3000.00 |         |           0 |        1 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |
+|     30 |           |  950.00 |         |           0 |        1 |        0 |
+|     30 |           | 1250.00 | 1900.00 |           0 |        1 |        0 |
+|     30 |           | 1500.00 |    0.00 |           0 |        1 |        0 |
+|     30 |           | 1600.00 |  300.00 |           0 |        1 |        0 |
+|     30 |           | 2850.00 |         |           0 |        1 |        0 |
++--------+-----------+---------+---------+-------------+----------+----------+
+(30 rows)
+
+!ok
+
+EnumerableMergeUnion(all=[true])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..6=[{inputs}], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], EXPR$3=[$t3], DEPTNO_FLAG=[$t4], JOB_FLAG=[$t5], SAL_FLAG=[$t6])
+      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], EXPR$3=[SUM($6)], DEPTNO_FLAG=[GROUPING($7)], JOB_FLAG=[GROUPING($2)], SAL_FLAG=[GROUPING($5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[1], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], EXPR$3=[$t2], DEPTNO_FLAG=[$t3], JOB_FLAG=[$t4], SAL_FLAG=[$t6])
+      EnumerableAggregate(group=[{2, 7}], EXPR$3=[SUM($6)], DEPTNO_FLAG=[GROUPING($7)], JOB_FLAG=[GROUPING($2)])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# The subset of GROUPING SETS cannot contain all the fields in the GROUPING and GROUPING SETS has duplicate groupings
+SELECT deptno, job, sal,
+       SUM(comm) AS sum_comm,
+       GROUPING(deptno, job, sal) AS flag,
+       GROUP_ID() AS g
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job))
+ORDER BY deptno, job, sal;
++--------+-----------+---------+----------+------+---+
+| DEPTNO | JOB       | SAL     | SUM_COMM | FLAG | G |
++--------+-----------+---------+----------+------+---+
+|     10 | CLERK     |         |          |    1 | 0 |
+|     10 | CLERK     |         |          |    1 | 1 |
+|     10 | MANAGER   |         |          |    1 | 0 |
+|     10 | MANAGER   |         |          |    1 | 1 |
+|     10 | PRESIDENT |         |          |    1 | 0 |
+|     10 | PRESIDENT |         |          |    1 | 1 |
+|     10 |           | 1300.00 |          |    2 | 0 |
+|     10 |           | 2450.00 |          |    2 | 0 |
+|     10 |           | 5000.00 |          |    2 | 0 |
+|     20 | ANALYST   |         |          |    1 | 0 |
+|     20 | ANALYST   |         |          |    1 | 1 |
+|     20 | CLERK     |         |          |    1 | 0 |
+|     20 | CLERK     |         |          |    1 | 1 |
+|     20 | MANAGER   |         |          |    1 | 0 |
+|     20 | MANAGER   |         |          |    1 | 1 |
+|     20 |           |  800.00 |          |    2 | 0 |
+|     20 |           | 1100.00 |          |    2 | 0 |
+|     20 |           | 2975.00 |          |    2 | 0 |
+|     20 |           | 3000.00 |          |    2 | 0 |
+|     30 | CLERK     |         |          |    1 | 0 |
+|     30 | CLERK     |         |          |    1 | 1 |
+|     30 | MANAGER   |         |          |    1 | 0 |
+|     30 | MANAGER   |         |          |    1 | 1 |
+|     30 | SALESMAN  |         |  2200.00 |    1 | 0 |
+|     30 | SALESMAN  |         |  2200.00 |    1 | 1 |
+|     30 |           |  950.00 |          |    2 | 0 |
+|     30 |           | 1250.00 |  1900.00 |    2 | 0 |
+|     30 |           | 1500.00 |     0.00 |    2 | 0 |
+|     30 |           | 1600.00 |   300.00 |    2 | 0 |
+|     30 |           | 2850.00 |          |    2 | 0 |
++--------+-----------+---------+----------+------+---+
+(30 rows)
+
+!ok
+EnumerableMergeUnion(all=[true])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], SUM_COMM=[$t3], FLAG=[$t4], G=[$t5])
+      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], SUM_COMM=[SUM($6)], FLAG=[GROUPING($7, $2, $5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[4], expr#7=[*($t6, $t3)], expr#8=[2], expr#9=[*($t8, $t4)], expr#10=[+($t7, $t9)], expr#11=[1], expr#12=[+($t10, $t11)], expr#13=[1:BIGINT], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], SUM_COMM=[$t2], FLAG=[$t12], G=[$t13])
+      EnumerableAggregate(group=[{2, 7}], SUM_COMM=[SUM($6)], agg#1=[GROUPING($7)], agg#2=[GROUPING($2)])
+        EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # End agg.iq
