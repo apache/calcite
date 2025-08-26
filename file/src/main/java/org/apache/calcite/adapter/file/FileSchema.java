@@ -676,12 +676,258 @@ public class FileSchema extends AbstractSchema {
     // Process local files if source directory exists
     if (sourceDir != null && sourceDir.exists() && sourceDir.isDirectory()) {
       convertLocalSupportedFilesToJson(sourceDir);
+      // After converting other formats to JSON, process JSON flattening if needed
+      processJsonFlattening(sourceDir);
     }
 
     // Also process files from storage provider if configured
     if (storageProvider != null) {
       convertStorageProviderFilesToJson();
     }
+  }
+
+  /**
+   * Processes JSON flattening for files that require it.
+   * Creates flattened JSON files in the conversions directory when flatten=true.
+   */
+  private void processJsonFlattening(File sourceDir) {
+    // Only process flattening if we have a base directory for conversions
+    if (baseDirectory == null) {
+      return;
+    }
+    
+    // Check if flattening is enabled at schema level or in table definitions
+    boolean hasFlattening = (flatten != null && flatten) || hasTableWithFlattening();
+    if (!hasFlattening) {
+      return;
+    }
+    
+    LOGGER.info("Processing JSON flattening for directory: {}", sourceDir.getAbsolutePath());
+    
+    // Ensure conversions directory exists
+    File conversionDir = new File(baseDirectory, "conversions");
+    if (!conversionDir.exists()) {
+      conversionDir.mkdirs();
+      LOGGER.debug("Created conversions directory for flattened JSON: {}", conversionDir.getAbsolutePath());
+    }
+    
+    // Initialize conversion metadata
+    if (conversionMetadata == null) {
+      try {
+        conversionMetadata = new org.apache.calcite.adapter.file.metadata.ConversionMetadata(baseDirectory);
+      } catch (Exception e) {
+        LOGGER.error("Failed to initialize conversion metadata for JSON flattening: {}", e.getMessage());
+        return;
+      }
+    }
+    
+    // Find JSON files that need flattening
+    processJsonFilesForFlattening(sourceDir, conversionDir);
+  }
+  
+  /**
+   * Checks if any table definition has flattening enabled.
+   */
+  private boolean hasTableWithFlattening() {
+    for (Map<String, Object> tableDef : tables) {
+      if (Boolean.TRUE.equals(tableDef.get("flatten"))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  /**
+   * Processes JSON files for flattening, creating flattened versions when needed.
+   */
+  private void processJsonFilesForFlattening(File sourceDir, File conversionDir) {
+    try {
+      // Find all JSON files in the source directory
+      List<File> jsonFiles = new ArrayList<>();
+      findJsonFiles(sourceDir, jsonFiles);
+      
+      for (File jsonFile : jsonFiles) {
+        // Check if this JSON file needs flattening
+        Map<String, Object> options = getFlattteningOptionsForFile(jsonFile);
+        if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
+          createFlattenedJsonFile(jsonFile, conversionDir, options);
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error("Failed to process JSON files for flattening: {}", e.getMessage());
+    }
+  }
+  
+  /**
+   * Recursively finds JSON files in the given directory.
+   */
+  private void findJsonFiles(File dir, List<File> jsonFiles) {
+    File[] files = dir.listFiles();
+    if (files != null) {
+      for (File file : files) {
+        if (file.isDirectory() && recursive) {
+          findJsonFiles(file, jsonFiles);
+        } else if (file.isFile() && isJsonFile(file)) {
+          jsonFiles.add(file);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Checks if a file is a JSON file.
+   */
+  private boolean isJsonFile(File file) {
+    String name = file.getName().toLowerCase();
+    return name.endsWith(".json") || name.endsWith(".json.gz");
+  }
+  
+  /**
+   * Gets flattening options for a specific JSON file based on table definitions or schema settings.
+   */
+  private Map<String, Object> getFlattteningOptionsForFile(File jsonFile) {
+    String filePath = jsonFile.getAbsolutePath();
+    
+    // First check explicit table definitions
+    for (Map<String, Object> tableDef : tables) {
+      String url = (String) tableDef.get("url");
+      if (url != null) {
+        // Resolve the table URL to a file path for comparison
+        try {
+          Source source = resolveSource(url);
+          if (source.file() != null && source.file().getAbsolutePath().equals(filePath)) {
+            // This file matches a table definition - check for flatten options
+            if (Boolean.TRUE.equals(tableDef.get("flatten"))) {
+              Map<String, Object> options = new HashMap<>();
+              options.put("flatten", true);
+              if (tableDef.containsKey("flattenSeparator")) {
+                options.put("flattenSeparator", tableDef.get("flattenSeparator"));
+              } else {
+                options.put("flattenSeparator", "_"); // default separator
+              }
+              return options;
+            }
+          }
+        } catch (Exception e) {
+          LOGGER.debug("Failed to resolve URL {} for flattening check: {}", url, e.getMessage());
+        }
+      }
+    }
+    
+    // If no explicit table definition, check schema-level flatten setting
+    if (flatten != null && flatten) {
+      Map<String, Object> options = new HashMap<>();
+      options.put("flatten", true);
+      options.put("flattenSeparator", "_"); // default separator
+      return options;
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Creates a flattened version of a JSON file in the conversions directory.
+   */
+  private void createFlattenedJsonFile(File originalFile, File conversionDir, Map<String, Object> options) {
+    try {
+      LOGGER.info("Creating flattened JSON file for: {}", originalFile.getName());
+      
+      // Create JsonScannableTable to get flattened data
+      Source source = Sources.of(originalFile);
+      JsonScannableTable jsonTable = new JsonScannableTable(source, options, columnNameCasing);
+      
+      // Get the flattened data
+      org.apache.calcite.adapter.java.JavaTypeFactory typeFactory = 
+          new org.apache.calcite.adapter.java.JavaTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
+      List<Object> flattenedData = jsonTable.getDataList(typeFactory);
+      org.apache.calcite.rel.type.RelDataType rowType = jsonTable.getRowType(typeFactory);
+      
+      // Create the flattened JSON filename
+      String originalName = originalFile.getName();
+      String baseName = originalName.replaceAll("\\.(json|json\\.gz)$", "");
+      String flattenedFileName = baseName + "_flattened.json";
+      File flattenedFile = new File(conversionDir, flattenedFileName);
+      
+      // Convert the flattened data back to JSON format
+      List<Map<String, Object>> jsonArray = new ArrayList<>();
+      for (Object row : flattenedData) {
+        if (row instanceof Map) {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> rowMap = (Map<String, Object>) row;
+          jsonArray.add(rowMap);
+        }
+      }
+      
+      // Write the flattened JSON file
+      com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+      mapper.writerWithDefaultPrettyPrinter().writeValue(flattenedFile, jsonArray);
+      
+      // Register the conversion in metadata
+      // For explicit table definitions, preserve the original table name
+      String tableName = getTableNameForFile(originalFile);
+      if (tableName == null) {
+        // Apply proper casing for auto-discovered tables
+        tableName = applyCasing(baseName, tableNameCasing);
+      }
+      
+      org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record = 
+          new org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord();
+      record.tableName = tableName;
+      record.originalFile = originalFile.getAbsolutePath();
+      record.convertedFile = flattenedFile.getAbsolutePath();
+      record.conversionType = "JSON_FLATTEN";
+      record.sourceFile = originalFile.getAbsolutePath();
+      record.sourceType = "json";
+      
+      conversionMetadata.recordConversion(originalFile.getAbsolutePath(), record);
+      
+      LOGGER.info("Created flattened JSON file: {} -> {}", originalFile.getName(), flattenedFile.getName());
+      
+      // Log the conversion metadata state after flattening
+      LOGGER.info("=== CONVERSION METADATA AFTER FLATTENING ===");
+      LOGGER.info("Conversion record for {}: sourceFile={}, convertedFile={}, parquetCacheFile={}", 
+          originalFile.getAbsolutePath(), record.sourceFile, record.convertedFile, record.getParquetCacheFile());
+      
+      // Also log the full conversions.json content
+      try {
+        conversionMetadata.saveMetadata();
+        File conversionsFile = new File(baseDirectory, ".conversions.json");
+        if (conversionsFile.exists()) {
+          LOGGER.info("Contents of .conversions.json after flattening:");
+          java.nio.file.Files.lines(conversionsFile.toPath()).forEach(line -> LOGGER.info("  {}", line));
+        }
+      } catch (Exception e) {
+        LOGGER.warn("Failed to log conversions.json content: {}", e.getMessage());
+      }
+      
+    } catch (Exception e) {
+      LOGGER.error("Failed to create flattened JSON file for {}: {}", originalFile.getName(), e.getMessage());
+    }
+  }
+  
+  /**
+   * Gets the table name for a file from explicit table definitions.
+   */
+  private String getTableNameForFile(File jsonFile) {
+    String filePath = jsonFile.getAbsolutePath();
+    
+    // Check explicit table definitions to find the table name
+    for (Map<String, Object> tableDef : tables) {
+      String url = (String) tableDef.get("url");
+      String tableName = (String) tableDef.get("name");
+      if (url != null && tableName != null) {
+        try {
+          Source source = resolveSource(url);
+          if (source.file() != null && source.file().getAbsolutePath().equals(filePath)) {
+            return tableName; // Return the explicit table name
+          }
+        } catch (Exception e) {
+          LOGGER.debug("Failed to resolve URL {} for table name lookup: {}", url, e.getMessage());
+        }
+      }
+    }
+    
+    return null; // No explicit table definition found
   }
 
   /**
@@ -773,6 +1019,29 @@ public class FileSchema extends AbstractSchema {
         }
       } catch (Exception e) {
         LOGGER.warn("Failed to convert file {}: {}", file.getName(), e.getMessage());
+      }
+    }
+    
+    // Log conversion metadata after bulk conversion
+    if (conversionMetadata != null) {
+      LOGGER.info("=== CONVERSION METADATA AFTER BULK CONVERSION ===");
+      Map<String, ConversionMetadata.ConversionRecord> allRecordsAfter = conversionMetadata.getAllConversions();
+      for (Map.Entry<String, ConversionMetadata.ConversionRecord> entry : allRecordsAfter.entrySet()) {
+        ConversionMetadata.ConversionRecord record = entry.getValue();
+        LOGGER.info("Table '{}': sourceFile='{}', convertedFile='{}', parquetCacheFile='{}', conversionType='{}'", 
+            record.tableName, record.sourceFile, record.convertedFile, record.getParquetCacheFile(), record.conversionType);
+      }
+      
+      // Also log the full conversions.json content after bulk conversion
+      try {
+        conversionMetadata.saveMetadata();
+        File conversionsFile = new File(baseDirectory, ".conversions.json");
+        if (conversionsFile.exists()) {
+          LOGGER.info("Contents of .conversions.json after bulk conversion:");
+          java.nio.file.Files.lines(conversionsFile.toPath()).forEach(line -> LOGGER.info("  {}", line));
+        }
+      } catch (Exception e) {
+        LOGGER.warn("Failed to log conversions.json content after bulk conversion: {}", e.getMessage());
       }
     }
   }

@@ -287,7 +287,15 @@ public class ParquetConversionUtil {
     try {
       schema = new org.apache.parquet.schema.MessageType("record", parquetFields);
       LOGGER.debug("Successfully created MessageType schema with {} fields", parquetFields.size());
-      LOGGER.debug("Parquet schema details: {}", schema);
+      LOGGER.debug("=== Parquet Schema Details ===");
+      for (org.apache.parquet.schema.Type field : schema.getFields()) {
+        LOGGER.debug("  Field: {} | Type: {} | Repetition: {} | LogicalType: {}", 
+                    field.getName(), 
+                    field.asPrimitiveType().getPrimitiveTypeName(),
+                    field.getRepetition(),
+                    field.getLogicalTypeAnnotation());
+      }
+      LOGGER.debug("Full schema: {}", schema);
     } catch (Exception e) {
       LOGGER.error("Failed to create MessageType schema: {}", e.getMessage(), e);
       throw e;
@@ -441,17 +449,20 @@ public class ParquetConversionUtil {
 
       case TIMESTAMP:
         // Use INT64 with timestamp logical type annotation
-        // For TIMESTAMP WITHOUT TIME ZONE, we use isAdjustedToUTC=true
-        // This means the stored value is already in UTC and readers should not adjust it
+        // For TIMESTAMP WITHOUT TIME ZONE, we use isAdjustedToUTC=false
+        // This tells DuckDB this is a naive timestamp (no timezone information)
+        LOGGER.debug("Creating TIMESTAMP field '{}' with isAdjustedToUTC=false (timezone-naive)", fieldName);
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         // Use INT64 with timestamp logical type annotation (milliseconds, adjusted to UTC)
-        // Store as milliseconds since epoch in UTC
+        // For TIMESTAMP WITH TIME ZONE, we use isAdjustedToUTC=true
+        // This tells DuckDB this timestamp has timezone information and is stored in UTC
+        LOGGER.debug("Creating TIMESTAMP_WITH_LOCAL_TIME_ZONE field '{}' with isAdjustedToUTC=true (timezone-aware)", fieldName);
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
             .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,

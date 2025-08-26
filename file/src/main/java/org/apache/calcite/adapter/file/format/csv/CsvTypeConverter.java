@@ -365,12 +365,25 @@ public final class CsvTypeConverter {
         if ((i == 5 || i == 6) && value.endsWith("Z")) { // These are the literal 'Z' formatters
           // Parse the timestamp part without the 'Z'
           String timestampPart = value.substring(0, value.length() - 1);
-          String pattern = i == 5 ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd'T'HH:mm:ss";
-          LocalDateTime ldt = LocalDateTime.parse(timestampPart, DateTimeFormatter.ofPattern(pattern));
-          OffsetDateTime odt = ldt.atOffset(ZoneOffset.UTC);
-          long utcMillis = odt.toInstant().toEpochMilli();
-          LOGGER.debug("=== TIMESTAMPTZ DEBUG: SUCCESS! Parsed literal 'Z' as UTC: '{}' -> {} ===", value, utcMillis);
-          return Long.valueOf(utcMillis);
+          String basePattern = i == 5 ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd'T'HH:mm:ss";
+          
+          // Try with milliseconds first, then without
+          String[] patterns = {
+            basePattern + ".SSS",  // With milliseconds
+            basePattern           // Without milliseconds
+          };
+          
+          for (String pattern : patterns) {
+            try {
+              LocalDateTime ldt = LocalDateTime.parse(timestampPart, DateTimeFormatter.ofPattern(pattern));
+              OffsetDateTime odt = ldt.atOffset(ZoneOffset.UTC);
+              long utcMillis = odt.toInstant().toEpochMilli();
+              LOGGER.debug("=== TIMESTAMPTZ DEBUG: SUCCESS! Parsed literal 'Z' as UTC: '{}' -> {} ===", value, utcMillis);
+              return Long.valueOf(utcMillis);
+            } catch (DateTimeParseException e) {
+              // Try next pattern
+            }
+          }
         }
         
         // Try parsing as OffsetDateTime first

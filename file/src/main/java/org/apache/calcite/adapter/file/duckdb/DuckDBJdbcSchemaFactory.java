@@ -314,6 +314,14 @@ public class DuckDBJdbcSchemaFactory {
     java.util.Map<String, ConversionMetadata.ConversionRecord> records = fileSchema.getAllTableRecords();
     LOGGER.info("Found {} entries in FileSchema's conversion registry", records.size());
     
+    // Log detailed information about each conversion record for DuckDB
+    LOGGER.info("=== DUCKDB REGISTRATION: CONVERSION RECORDS ===");
+    for (java.util.Map.Entry<String, ConversionMetadata.ConversionRecord> entry : records.entrySet()) {
+      ConversionMetadata.ConversionRecord record = entry.getValue();
+      LOGGER.info("DuckDB: Table '{}' -> sourceFile='{}', convertedFile='{}', parquetCacheFile='{}', conversionType='{}'", 
+          record.tableName, record.sourceFile, record.convertedFile, record.getParquetCacheFile(), record.conversionType);
+    }
+    
     // Debug why records might be empty
     if (records.isEmpty()) {
       LOGGER.warn("DuckDB: FileSchema.getAllTableRecords() returned empty - checking details");
@@ -413,6 +421,21 @@ public class DuckDBJdbcSchemaFactory {
             conn.createStatement().execute(sql);
             viewCount++;
             LOGGER.debug("Successfully created view: {}.{}", duckdbSchema, tableName);
+            
+            // Add diagnostic logging to see what DuckDB interprets from the Parquet file
+            try (Statement debugStmt = conn.createStatement();
+                 ResultSet schemaInfo = debugStmt.executeQuery(
+                   String.format("DESCRIBE \"%s\".\"%s\"", duckdbSchema, tableName))) {
+              LOGGER.debug("=== DuckDB Schema for {}.{} ===", duckdbSchema, tableName);
+              while (schemaInfo.next()) {
+                String colName = schemaInfo.getString("column_name");
+                String colType = schemaInfo.getString("column_type");
+                String nullable = schemaInfo.getString("null");
+                LOGGER.debug("  Column: {} | Type: {} | Nullable: {}", colName, colType, nullable);
+              }
+            } catch (SQLException debugE) {
+              LOGGER.warn("Failed to get schema info for table '{}': {}", tableName, debugE.getMessage());
+            }
           } catch (SQLException e) {
             LOGGER.warn("Failed to create view for table '{}': {}", tableName, e.getMessage());
           }
