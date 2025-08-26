@@ -50,9 +50,9 @@ import java.time.Instant;
  * Refreshable table that maintains a Parquet cache for CSV/JSON source files.
  * Provides atomic updates when refresh intervals expire and source files change.
  */
-public class RefreshableParquetCacheTable extends AbstractRefreshableTable 
+public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     implements TranslatableTable, ScannableTable {
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RefreshableParquetCacheTable.class);
 
   private final Source source;
@@ -67,12 +67,12 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   protected volatile Table delegateTable;
   private final @Nullable SchemaPlus parentSchema;
   private final String fileSchemaName;
-  
+
   // For DuckDB integration
   private @Nullable String schemaName;
   private @Nullable String tableName;
 
-  public RefreshableParquetCacheTable(Source source, File initialParquetFile, 
+  public RefreshableParquetCacheTable(Source source, File initialParquetFile,
       File cacheDir, @Nullable Duration refreshInterval, boolean typeInferenceEnabled,
       String columnNameCasing, String tableNameCasing, @Nullable RelProtoDataType protoRowType,
       ExecutionEngineConfig.ExecutionEngineType engineType, @Nullable SchemaPlus parentSchema,
@@ -80,10 +80,10 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     this(source, null, initialParquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
         columnNameCasing, tableNameCasing, protoRowType, engineType, parentSchema, fileSchemaName);
   }
-  
+
   /**
    * Constructor with original source tracking for converted files.
-   * 
+   *
    * @param source The source to read data from (may be converted JSON)
    * @param originalSource The original source file to monitor (e.g., Excel file), or null if source is original
    * @param initialParquetFile Initial Parquet file
@@ -98,7 +98,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
    * @param fileSchemaName File schema name
    */
   public RefreshableParquetCacheTable(Source source, @Nullable Source originalSource,
-      File initialParquetFile, File cacheDir, @Nullable Duration refreshInterval, 
+      File initialParquetFile, File cacheDir, @Nullable Duration refreshInterval,
       boolean typeInferenceEnabled, String columnNameCasing, String tableNameCasing, @Nullable RelProtoDataType protoRowType,
       ExecutionEngineConfig.ExecutionEngineType engineType, @Nullable SchemaPlus parentSchema,
       String fileSchemaName) {
@@ -115,21 +115,21 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     this.engineType = engineType;
     this.parentSchema = parentSchema;
     this.fileSchemaName = fileSchemaName;
-    
-    // Initialize the last modified time 
-    File fileToMonitor = originalSource != null ? 
+
+    // Initialize the last modified time
+    File fileToMonitor = originalSource != null ?
         new File(originalSource.path()) : new File(source.path());
     if (fileToMonitor.exists()) {
       // For refresh scenarios, start with 0 so first refresh will detect changes
       this.lastModifiedTime = refreshInterval != null ? 0 : fileToMonitor.lastModified();
       LOGGER.info("RefreshableParquetCacheTable initialized for {} - monitoring {} (originalSource={}) with lastModifiedTime={} (refresh={})",
-                   source.path(), fileToMonitor.getPath(), originalSource != null ? originalSource.path() : "null", 
+                   source.path(), fileToMonitor.getPath(), originalSource != null ? originalSource.path() : "null",
                    this.lastModifiedTime, refreshInterval != null ? "enabled" : "disabled");
     } else {
       LOGGER.warn("RefreshableParquetCacheTable initialized for {} - file to monitor does not exist: {} (originalSource={})",
                   source.path(), fileToMonitor.getPath(), originalSource != null ? originalSource.path() : "null");
     }
-    
+
     // Initialize delegate table
     updateDelegateTable();
   }
@@ -140,7 +140,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   public void setDuckDBNames(String schemaName, String tableName) {
     this.schemaName = schemaName;
     this.tableName = tableName;
-    
+
     // No longer needed since DuckDB uses JDBC adapter
     // The DuckDB JDBC schema handles all table registration
   }
@@ -148,23 +148,23 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   @Override
   protected void doRefresh() {
     LOGGER.debug("doRefresh() called for RefreshableParquetCacheTable: {}", source.path());
-    
+
     // Check the original source if we have one (for converted files), otherwise check direct source
-    File fileToMonitor = originalSource != null ? 
+    File fileToMonitor = originalSource != null ?
         new File(originalSource.path()) : new File(source.path());
-    
-    LOGGER.debug("Monitoring file: {} (exists: {}, lastModified: {}, lastTracked: {})", 
+
+    LOGGER.debug("Monitoring file: {} (exists: {}, lastModified: {}, lastTracked: {})",
                  fileToMonitor.getPath(), fileToMonitor.exists(), fileToMonitor.lastModified(), lastModifiedTime);
-    
+
     // Check if monitored file has been modified since our last refresh
     if (isFileModified(fileToMonitor)) {
       LOGGER.info("Source file {} has been modified, updating parquet cache", fileToMonitor.getPath());
-      
+
       try {
         // If we have an original source, re-run the conversion pipeline
         if (originalSource != null) {
           rerunConversionsIfNeeded(fileToMonitor);
-          
+
           // IMPORTANT: Update the source file's timestamp to trigger parquet re-conversion
           // The JSON file needs to be newer than the parquet file for conversion to happen
           File jsonFile = new File(source.path());
@@ -173,15 +173,15 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
             LOGGER.debug("Updated JSON file timestamp to trigger parquet re-conversion");
           }
         }
-        
+
         // Force delete the old parquet file to ensure a fresh conversion
         if (parquetFile != null && parquetFile.exists()) {
           parquetFile.delete();
           LOGGER.debug("Deleted old parquet cache file: {}", parquetFile.getName());
         }
-        
+
         // Also delete any temporary parquet files that might be lingering
-        File[] tempFiles = cacheDir.listFiles((dir, name) -> 
+        File[] tempFiles = cacheDir.listFiles((dir, name) ->
             name.contains(".tmp.") && name.endsWith(".parquet"));
         if (tempFiles != null) {
           for (File tempFile : tempFiles) {
@@ -189,20 +189,20 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
             LOGGER.debug("Deleted temp parquet file: {}", tempFile.getName());
           }
         }
-        
+
         // Atomically update the cache using the standard conversion method
         // Note: createSourceTable() reads from 'source' which may be the converted JSON
-        this.parquetFile = ParquetConversionUtil.convertToParquet(source, 
-            new File(source.path()).getName(), 
+        this.parquetFile = ParquetConversionUtil.convertToParquet(source,
+            new File(source.path()).getName(),
             createSourceTable(), cacheDir, parentSchema, fileSchemaName, this.tableNameCasing);
-        
+
         // Update delegate table to use new parquet file
         updateDelegateTable();
-        
+
         // Update our tracking of when the monitored file was last seen
         updateLastModified(fileToMonitor);
-        
-        LOGGER.info("Updated parquet cache for {} (monitoring {})", 
+
+        LOGGER.info("Updated parquet cache for {} (monitoring {})",
             source.path(), fileToMonitor.getPath());
       } catch (Exception e) {
         LOGGER.error("Failed to update parquet cache for {}: {}", source.path(), e.getMessage(), e);
@@ -212,36 +212,36 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       LOGGER.debug("No refresh needed for {} - file not modified", fileToMonitor.getPath());
     }
   }
-  
+
   /**
    * Re-runs any necessary file conversions if the source requires it.
    * Uses the centralized FileConversionManager for all conversion logic.
-   * 
+   *
    * For JSONPath extractions, this method also finds all derived files that were
    * extracted from the source and re-runs their extractions.
    */
   private void rerunConversionsIfNeeded(File sourceFile) {
     try {
       File outputDir = sourceFile.getParentFile();
-      
+
       // First, try standard conversion (for format conversions like HTML->JSON)
       boolean converted = org.apache.calcite.adapter.file.converters.FileConversionManager.convertIfNeeded(
-          sourceFile, outputDir, columnNameCasing);
-      
+          sourceFile, outputDir, columnNameCasing, tableNameCasing);
+
       if (converted) {
         LOGGER.debug("Re-converted source file: {}", sourceFile.getName());
       }
-      
+
       // Additionally, for JSON source files, find and refresh any JSONPath extractions
       if (sourceFile.getName().toLowerCase().endsWith(".json")) {
         refreshJsonPathExtractions(sourceFile);
       }
-      
+
     } catch (Exception e) {
       LOGGER.error("Failed to re-run conversions for {}: {}", sourceFile.getName(), e.getMessage(), e);
     }
   }
-  
+
   /**
    * Finds and refreshes all JSONPath extractions that were derived from the given source JSON file.
    */
@@ -250,32 +250,32 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       // Create metadata instance using the same directory structure as the original extraction
       // This will automatically use the central metadata directory if it was configured
       File metadataDir = sourceFile.getParentFile();
-      org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+      org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
           new org.apache.calcite.adapter.file.metadata.ConversionMetadata(metadataDir);
-      
+
       // Find all files that were derived from this source via JSONPath extraction
       java.util.List<java.io.File> derivedFiles = metadata.findDerivedFiles(sourceFile);
-      
-      
+
+
       for (File derivedFile : derivedFiles) {
-        org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record = 
+        org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record =
             metadata.getConversionRecord(derivedFile);
-        
-        if (record != null && record.getConversionType() != null && 
+
+        if (record != null && record.getConversionType() != null &&
             record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
           // Extract the JSONPath from the conversion type
           String conversionType = record.getConversionType();
           String jsonPath = extractJsonPath(conversionType);
-          
+
           if (jsonPath != null) {
-            LOGGER.info("Re-running JSONPath extraction: {} -> {} using path {}", 
+            LOGGER.info("Re-running JSONPath extraction: {} -> {} using path {}",
                 sourceFile.getName(), derivedFile.getName(), jsonPath);
-            
+
             // Re-run the JSONPath extraction
             org.apache.calcite.adapter.file.converters.JsonPathConverter.extract(
                 sourceFile, derivedFile, jsonPath, metadataDir);
-            
-            LOGGER.info("Refreshed JSONPath extraction: {} -> {} (path: {})", 
+
+            LOGGER.info("Refreshed JSONPath extraction: {} -> {} (path: {})",
                 sourceFile.getName(), derivedFile.getName(), jsonPath);
           } else {
             LOGGER.warn("Could not extract JSONPath from conversion type: {}", conversionType);
@@ -286,7 +286,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       LOGGER.error("Failed to refresh JSONPath extractions for {}: {}", sourceFile.getName(), e.getMessage(), e);
     }
   }
-  
+
   /**
    * Extracts the JSONPath expression from a conversion type string.
    * E.g., "JSONPATH_EXTRACTION[$.data.users]" -> "$.data.users"
@@ -317,7 +317,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
         File outputDir = cacheDir != null ? cacheDir : excelFile.getParentFile();
         org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter.convertIfNeeded(
             excelFile, outputDir, true, tableNameCasing, columnNameCasing, outputDir.getParentFile());
-        
+
         // The source should already point to the correct JSON file
         // as it was set up during initial table discovery
         return new JsonScannableTable(source);
@@ -353,10 +353,10 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     // DuckDB now uses JDBC adapter, so always use ParquetScannableTable
     // For PARQUET engine, use ParquetScannableTable which properly implements ScannableTable
     // This avoids the type mismatch issues with ParquetTranslatableTable
-    
-    LOGGER.debug("Updating delegate table with parquet file: {}", 
+
+    LOGGER.debug("Updating delegate table with parquet file: {}",
                  parquetFile != null ? parquetFile.getName() : "null");
-    
+
     this.delegateTable = new org.apache.calcite.adapter.file.table.ParquetScannableTable(parquetFile);
   }
 
@@ -369,7 +369,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       return ((TranslatableTable) delegateTable).toRel(context, relOptTable);
     } else {
       // For ScannableTable delegates, use LogicalTableScan
-      return org.apache.calcite.rel.logical.LogicalTableScan.create(context.getCluster(), relOptTable, 
+      return org.apache.calcite.rel.logical.LogicalTableScan.create(context.getCluster(), relOptTable,
                                                                      context.getTableHints());
     }
   }
