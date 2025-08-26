@@ -1561,7 +1561,7 @@ public class FileSchema extends AbstractSchema {
           ? new File(baseDirectory, ".glob_cache")
           : new File(System.getProperty("java.io.tmpdir"), "calcite_glob_cache");
 
-      Table globTable = new GlobParquetTable(url, tableName, cacheDir, refreshDuration, csvTypeInferenceConfig);
+      Table globTable = new GlobParquetTable(url, tableName, cacheDir, refreshDuration, csvTypeInferenceConfig, columnNameCasing);
       // Use explicit table name as-is, without casing transformation
       builder.put(tableName, globTable);
       return true;

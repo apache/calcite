@@ -84,6 +84,7 @@ public class GlobParquetTable extends AbstractTable
   private final File cacheDir;
   private final @Nullable Duration refreshInterval;
   private final BufferAllocator allocator;
+  private final String columnNameCasing;
 
   private File parquetCacheFile;
   private @Nullable Instant lastRefreshTime;
@@ -155,12 +156,14 @@ public class GlobParquetTable extends AbstractTable
   private @Nullable CacheMetadata cacheMetadata;
 
   public GlobParquetTable(String globPattern, String tableName, File cacheDir,
-      @Nullable Duration refreshInterval, CsvTypeInferrer.TypeInferenceConfig csvTypeInferenceConfig) {
+      @Nullable Duration refreshInterval, CsvTypeInferrer.TypeInferenceConfig csvTypeInferenceConfig,
+      String columnNameCasing) {
     this.globPattern = globPattern;
     this.tableName = tableName;
     this.cacheDir = cacheDir;
     this.refreshInterval = refreshInterval;
     this.csvTypeInferenceConfig = csvTypeInferenceConfig;
+    this.columnNameCasing = columnNameCasing;
     this.allocator = new RootAllocator();
 
     // Initialize cache file path
@@ -319,7 +322,7 @@ public class GlobParquetTable extends AbstractTable
           conversionsDir.mkdirs();
         }
         List<File> jsonFiles =
-            HtmlToJsonConverter.convert(file, conversionsDir, cacheDir);
+            HtmlToJsonConverter.convert(file, conversionsDir, columnNameCasing, cacheDir);
         allFiles.addAll(jsonFiles);
       } else {
         // Other files (CSV, JSON, Parquet) - add directly
