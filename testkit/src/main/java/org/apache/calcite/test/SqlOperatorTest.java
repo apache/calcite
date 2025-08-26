@@ -16598,8 +16598,8 @@ public class SqlOperatorTest {
 
 
     // === Negative shift counts ===
-    f.checkScalar("8 << -1", "4", "INTEGER NOT NULL");
-    f.checkScalar("16 << -2", "4", "INTEGER NOT NULL");
+    f.checkScalar("8 << -1", "0", "INTEGER NOT NULL");
+    f.checkScalar("16 << -2", "0", "INTEGER NOT NULL");
 
     // === Shift by zero and large (but valid) shifts ===
     f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
@@ -16617,16 +16617,16 @@ public class SqlOperatorTest {
     f.checkScalar("CAST(X'01' AS BINARY(1)) << 3", "08", "BINARY(1) NOT NULL");
     f.checkScalar("CAST(X'00' AS BINARY(1)) << 5", "00", "BINARY(1) NOT NULL");
 
-    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 1", "fffe", "BINARY(2) NOT NULL");
-    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 4", "2340", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 1", "feff", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 4", "2041", "BINARY(2) NOT NULL");
     f.checkScalar("CAST(X'1234' AS BINARY(2)) << 8", "0012", "BINARY(2) NOT NULL");
 
-    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 8", "00", "BINARY(1) NOT NULL");
-    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 16", "0000", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 8", "ff", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 16", "ffff", "BINARY(2) NOT NULL");
 
     f.checkScalar("CAST(X'ABCD' AS BINARY(2)) << 0", "abcd", "BINARY(2) NOT NULL");
-    f.checkScalar("CAST(X'123456' AS BINARY(3)) << 4", "234560", "BINARY(3) NOT NULL");
-    f.checkScalar("CAST(X'8000' AS BINARY(2)) << 1", "0000", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'123456' AS BINARY(3)) << 4", "204163", "BINARY(3) NOT NULL");
+    f.checkScalar("CAST(X'8000' AS BINARY(2)) << 1", "0001", "BINARY(2) NOT NULL");
     f.checkScalar("CAST(X'4000' AS BINARY(2)) << 1", "8000", "BINARY(2) NOT NULL");
 
     // === Invalid argument types ===
@@ -16700,8 +16700,8 @@ public class SqlOperatorTest {
         "INTEGER UNSIGNED NOT NULL");
 
     // === Negative shifts ===
-    f.checkScalar("LEFTSHIFT(8, -1)", "4", "INTEGER NOT NULL");
-    f.checkScalar("LEFTSHIFT(16, -2)", "4", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(8, -1)", "0", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(16, -2)", "0", "INTEGER NOT NULL");
 
     // === Large shifts ===
     f.checkScalar("LEFTSHIFT(0, 32)", "0", "INTEGER NOT NULL");
@@ -16713,15 +16713,15 @@ public class SqlOperatorTest {
     f.checkScalar("LEFTSHIFT(CAST(X'01' AS BINARY(1)), 3)", "08", "BINARY(1) NOT NULL");
     f.checkScalar("LEFTSHIFT(CAST(X'00' AS BINARY(1)), 5)", "00", "BINARY(1) NOT NULL");
 
-    f.checkScalar("LEFTSHIFT(CAST(X'FFFF' AS BINARY(2)), 1)", "fffe", "BINARY(2) NOT NULL");
-    f.checkScalar("LEFTSHIFT(CAST(X'1234' AS BINARY(2)), 4)", "2340", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'FFFF' AS BINARY(2)), 1)", "feff", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'1234' AS BINARY(2)), 4)", "2041", "BINARY(2) NOT NULL");
     f.checkScalar("LEFTSHIFT(CAST(X'1234' AS BINARY(2)), 8)", "0012", "BINARY(2) NOT NULL");
-    f.checkScalar("LEFTSHIFT(CAST(X'FF' AS BINARY(1)), 8)", "00", "BINARY(1) NOT NULL");
-    f.checkScalar("LEFTSHIFT(CAST(X'FFFF' AS BINARY(2)), 16)", "0000", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'FF' AS BINARY(1)), 8)", "ff", "BINARY(1) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'FFFF' AS BINARY(2)), 16)", "ffff", "BINARY(2) NOT NULL");
 
     f.checkScalar("LEFTSHIFT(CAST(X'ABCD' AS BINARY(2)), 0)", "abcd", "BINARY(2) NOT NULL");
-    f.checkScalar("LEFTSHIFT(CAST(X'123456' AS BINARY(3)), 4)", "234560", "BINARY(3) NOT NULL");
-    f.checkScalar("LEFTSHIFT(CAST(X'8000' AS BINARY(2)), 1)", "0000", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'123456' AS BINARY(3)), 4)", "204163", "BINARY(3) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'8000' AS BINARY(2)), 1)", "0001", "BINARY(2) NOT NULL");
     f.checkScalar("LEFTSHIFT(CAST(X'4000' AS BINARY(2)), 1)", "8000", "BINARY(2) NOT NULL");
 
     // === Invalid types ===

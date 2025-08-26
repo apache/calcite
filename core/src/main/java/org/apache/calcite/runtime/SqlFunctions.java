@@ -3507,55 +3507,58 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on two integers.
-   * If the shift amount is positive, a left shift is applied.
-   * If the shift amount is negative, a logical right shift is applied.
-   * The shift amount is taken modulo 32.
+   * Performs PostgresSQL-style bitwise shift on a 32-bit integer.
+   *
+   * @param x the integer value to shift
+   * @param y the shift amount (positive: left shift, negative: right shift)
+   * @return the shifted integer
    */
   public static int leftShift(int x, int y) {
-    int shift = Math.abs(y % 32);
-    return y >= 0 ? x << shift : x >>> shift;
+    int shift = ((y % 32) + 32) % 32; // normalize to 0~31
+    return y >= 0 ? x << shift : x >> shift; // arithmetic right shift
   }
 
+
+  // ----------------- long -----------------
   /**
-   * Performs bitwise shift on a long value.
-   * If the shift amount is positive, a left shift is applied.
-   * If the shift amount is negative, a logical right shift is applied.
-   * The shift amount is taken modulo 64.
+   * Performs PostgresSQL-style bitwise shift on a 64-bit long value.
+   *
+   * @param x the long value to shift
+   * @param y the shift amount
+   * @return the shifted long value
    */
   public static long leftShift(long x, int y) {
-    int shift = Math.abs(y % 64);
-    return y >= 0 ? x << shift : x >>> shift;
+    int shift = ((y % 64) + 64) % 64; // normalize to 0~63
+    return y >= 0 ? x << shift : x >> shift;
   }
 
   /**
-   * Performs bitwise shift with long shift amount.
-   * Note: input x is int, so shift mod 32 is used.
-   * Returns long to prevent overflow.
+   * Performs PostgresSQL-style bitwise shift on an int value with a long shift amount.
+   *
+   * @param x the int value to shift
+   * @param y the long shift amount
+   * @return the shifted value as long
    */
   public static long leftShift(int x, long y) {
-    int shift = (int) Math.abs(y % 32);
-    return y >= 0 ? (long) x << shift : (long) x >>> shift;
+    int shift = (int) (((y % 32) + 32) % 32); // normalize to 0~31
+    return y >= 0 ? (long) x << shift : (long) x >> shift;
   }
 
   /**
-   * Performs bitwise shift on a byte array.
-   * A positive shift amount performs a left shift.
-   * A negative shift amount performs a logical right shift.
-   */
-  public static ByteString leftShift(ByteString bytes, int y) {
-    byte[] result = leftShift(bytes.getBytes(), y);
-    return new ByteString(result);
-  }
-
-  /**
-   * Performs bitwise shift on a byte array.
-   * A positive shift amount performs a left shift.
-   * A negative shift amount performs a logical right shift.
+   * Performs PostgresSQL-style bitwise shift on a byte array.
+   * Positive shift: left shift.
+   * Negative shift: arithmetic right shift.
+   *
+   * @param bytes the input byte array
+   * @param y the shift amount in bits
+   * @return the shifted byte array
    */
   public static byte[] leftShift(byte[] bytes, int y) {
-    int shift = Math.abs(y % 32);
-
+    if (bytes.length == 0) {
+      return new byte[0];
+    }
+    int bitLen = bytes.length * 8;
+    int shift = ((y % bitLen) + bitLen) % bitLen;
     if (shift == 0) {
       return bytes.clone();
     }
@@ -3563,89 +3566,92 @@ public class SqlFunctions {
     byte[] result = new byte[bytes.length];
 
     if (y >= 0) {
-      // Left shift
       int byteShift = shift / 8;
       int bitShift = shift % 8;
 
-      if (shift >= bytes.length * 8) {
-        return new byte[bytes.length];
-      }
-
-      if (bitShift == 0) {
-        System.arraycopy(bytes, 0, result, byteShift, bytes.length - byteShift);
-      } else {
-        int carry = 0;
-        for (int i = bytes.length - 1 - byteShift; i >= 0; i--) {
-          int current = (bytes[i] & 0xFF) << bitShift;
-          result[i + byteShift] = (byte) ((current | carry) & 0xFF);
-          carry = (current >> 8) & 0xFF;
+      for (int i = 0; i < bytes.length; i++) {
+        int srcIndex = i - byteShift;
+        int val = 0;
+        if (srcIndex >= 0) {
+          val = (bytes[srcIndex] & 0xFF) << bitShift;
         }
-        if (byteShift > 0) {
-          result[byteShift - 1] = (byte) carry;
+        if (srcIndex - 1 >= 0 && bitShift != 0) {
+          val |= (bytes[srcIndex - 1] & 0xFF) >>> (8 - bitShift);
         }
+        result[i] = (byte) val;
       }
     } else {
-      // Logical right shift
       int byteShift = shift / 8;
       int bitShift = shift % 8;
 
-      if (shift >= bytes.length * 8) {
-        return new byte[bytes.length];
-      }
-      if (bitShift == 0) {
-        System.arraycopy(bytes, byteShift, result, 0, bytes.length - byteShift);
-      } else {
-        int carry = 0;
-        for (int i = byteShift; i < bytes.length; i++) {
-          int current = (bytes[i] & 0xFF) >>> bitShift;
-          result[i - byteShift] = (byte) ((current | carry) & 0xFF);
-          carry = (bytes[i] & ((1 << bitShift) - 1)) << (8 - bitShift);
+      for (int i = bytes.length - 1; i >= 0; i--) {
+        int srcIndex = i + byteShift;
+        int val = 0;
+        if (srcIndex < bytes.length) {
+          val = (bytes[srcIndex] & 0xFF) >> bitShift;
         }
+        if (srcIndex + 1 < bytes.length && bitShift != 0) {
+          val |= (bytes[srcIndex + 1] & 0xFF) << (8 - bitShift);
+        }
+        result[i] = (byte) val;
       }
     }
     return result;
   }
 
   /**
-   * PostgreSQL-style bitwise shift for {@link UByte}. Returns {@code null} if any operand is null.
+   * Performs PostgresSQL-style bitwise shift on ByteString.
+   *
+   * @param bytes the ByteString to shift
+   * @param y the shift amount in bits
+   * @return shifted ByteString
+   */
+  public static ByteString leftShift(ByteString bytes, int y) {
+    return new ByteString(leftShift(bytes.getBytes(), y));
+  }
+
+  /**
+   * Performs PostgresSQL-style bitwise shift on UByte.
+   * Overflow bits are masked to 8 bits.
    */
   public static UByte leftShift(UByte x, int y) {
-    int shift = Math.abs(y % 8);
-    return y >= 0
-        ? UByte.valueOf(x.byteValue() << shift)
-        : UByte.valueOf(x.byteValue() >>> shift);
+    int shift = ((y % 8) + 8) % 8;
+    int val = x.byteValue() & 0xFF;
+    val = (y >= 0) ? (val << shift) & 0xFF : (val >> shift) & 0xFF;
+    return UByte.valueOf((byte) val);
   }
 
   /**
-   * PostgreSQL-style bitwise shift for {@link UShort}. Returns {@code null} if any operand is
-   * null.
+   * Performs PostgresSQL-style bitwise shift on UShort.
+   * Overflow bits are masked to 16 bits.
    */
   public static UShort leftShift(UShort x, int y) {
-    int shift = Math.abs(y % 16);
-    return y >= 0
-        ? UShort.valueOf(x.shortValue() << shift)
-        : UShort.valueOf(x.shortValue() >>> shift);
+    int shift = ((y % 16) + 16) % 16;
+    int val = x.shortValue() & 0xFFFF;
+    val = (y >= 0) ? (val << shift) & 0xFFFF : (val >> shift) & 0xFFFF;
+    return UShort.valueOf((short) val);
   }
 
   /**
-   * PostgresSQL-style bitwise shift for {@link UInteger}. Returns {@code null} if any operand is
-   * null.
+   * Performs PostgresSQL-style bitwise shift on UInteger.
+   * Overflow bits are masked to 32 bits.
    */
   public static UInteger leftShift(UInteger x, int y) {
-    int shift = Math.abs(y % 32);
-    return y >= 0
-        ? UInteger.valueOf(x.longValue() << shift)
-        : UInteger.valueOf(x.longValue() >>> shift);
+    int shift = ((y % 32) + 32) % 32;
+    long val = x.longValue() & 0xFFFFFFFFL;
+    val = (y >= 0) ? (val << shift) & 0xFFFFFFFFL : (val >> shift) & 0xFFFFFFFFL;
+    return UInteger.valueOf(val);
   }
 
   /**
-   * PostgreSQL-style bitwise shift for {@link ULong}. Returns {@code null} if any operand is null.
+   * Performs PostgresSQL-style bitwise shift on ULong.
+   * Overflow bits are masked to 64 bits (long shifts naturally truncate).
    */
   public static ULong leftShift(ULong x, int y) {
-    int shift = Math.abs(y % 64);
-    return y >= 0
-        ? ULong.valueOf(x.longValue() << shift)
-        : ULong.valueOf(x.longValue() >>> shift);
+    int shift = ((y % 64) + 64) % 64;
+    long val = x.longValue();
+    val = (y >= 0) ? val << shift : val >> shift;
+    return ULong.valueOf(val);
   }
 
   // EXP
