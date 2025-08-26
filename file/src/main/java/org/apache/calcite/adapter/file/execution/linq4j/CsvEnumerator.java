@@ -495,12 +495,13 @@ public class CsvEnumerator<E> implements Enumerator<E> {
                       fieldIndex, sqlType, caller);
           if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR || 
               sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) {
-            // For VARCHAR/CHAR fields, only convert empty strings to null if blankStringsAsNull is true
+            // For VARCHAR/CHAR fields, preserve empty strings regardless of blankStringsAsNull
+            // blankStringsAsNull should only apply to non-string types
             if (value.trim().isEmpty()) {
-              boolean convertToNull = arrayConverter.blankStringsAsNull;
-              LOGGER.info("[shouldConvertToNull] VARCHAR field {}: value='{}', blankStringsAsNull={}, convertToNull={}", 
-                          fieldIndex, value, arrayConverter.blankStringsAsNull, convertToNull);
-              return convertToNull;
+              // Always preserve empty strings for VARCHAR/CHAR fields
+              LOGGER.info("[shouldConvertToNull] VARCHAR field {}: value='{}', preserving empty string (blankStringsAsNull does not apply to strings)", 
+                          fieldIndex, value);
+              return false;  // Don't convert to null for string types
             }
             // For non-empty VARCHAR values, check explicit null markers only
             boolean isExplicitNull = NullEquivalents.DEFAULT_NULL_EQUIVALENTS.contains(value.trim().toUpperCase(java.util.Locale.ROOT));
