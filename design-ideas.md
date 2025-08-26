@@ -81,7 +81,7 @@ public class DoculyzerDeltaSchema extends AbstractSchema {
 #### Basic Search
 ```sql
 -- Simple text search
-SELECT * FROM documents 
+SELECT * FROM documents
 WHERE content LIKE '%quarterly report%';
 
 -- Vector similarity search
@@ -95,7 +95,7 @@ WHERE doc_id = 'report_123';
 #### Advanced Analytics
 ```sql
 -- Join documents with operational data
-SELECT 
+SELECT
     d.title,
     d.content,
     s.revenue,
@@ -105,7 +105,7 @@ JOIN sales_data s ON d.metadata->>'quarter' = s.quarter
 WHERE d.topic = 'earnings';
 
 -- Document version history
-SELECT 
+SELECT
     doc_id,
     COUNT(*) as version_count,
     MIN(ingested_at) as first_seen,
@@ -120,7 +120,7 @@ GROUP BY doc_id;
 SELECT * FROM doculyzer_status;
 
 -- See what's being processed
-SELECT * FROM document_processing_log 
+SELECT * FROM document_processing_log
 WHERE status IN ('PARSING', 'EMBEDDING')
 ORDER BY started_at DESC;
 ```
@@ -135,10 +135,10 @@ java -jar calcite-doculyzer.jar --path /my/documents
 sqlline> !connect jdbc:calcite:model=doculyzer.json
 
 # Query immediately (even while indexing continues)
-sqlline> SELECT title, summary(content, 100) as preview 
-         FROM documents 
+sqlline> SELECT title, summary(content, 100) as preview
+         FROM documents
          WHERE vector_search('customer complaints', 0.7)
-         ORDER BY relevance DESC 
+         ORDER BY relevance DESC
          LIMIT 10;
 ```
 
@@ -414,22 +414,22 @@ CREATE TABLE us_gov.naics_codes (
 #### Economic Analysis
 ```sql
 -- Correlate unemployment with company performance
-SELECT 
+SELECT
   u.date,
   u.value as unemployment_rate,
   AVG(s.revenue_growth) as avg_revenue_growth,
   COUNT(DISTINCT s.cik) as reporting_companies,
   CORR(u.value, s.revenue_growth) as correlation
 FROM us_gov.economic_indicators u
-JOIN us_gov.sec_quarterly_metrics s 
-  ON YEAR(u.date) = s.fiscal_year 
+JOIN us_gov.sec_quarterly_metrics s
+  ON YEAR(u.date) = s.fiscal_year
   AND QUARTER(u.date) = s.fiscal_quarter
 WHERE u.series_id = 'UNRATE'
   AND u.date >= '2020-01-01'
 GROUP BY u.date, u.value;
 
 -- Regional economic health dashboard
-SELECT 
+SELECT
   m.cbsa_name as metro_area,
   m.principal_city,
   e.unemployment_rate,
@@ -439,22 +439,22 @@ SELECT
   s.company_count,
   s.total_market_cap
 FROM us_gov.metropolitan_areas m
-JOIN (SELECT geography_code, value as unemployment_rate 
-      FROM us_gov.economic_indicators 
+JOIN (SELECT geography_code, value as unemployment_rate
+      FROM us_gov.economic_indicators
       WHERE series_id = 'UNEMPLOYMENT' AND date = CURRENT_DATE - INTERVAL 1 MONTH) e
   ON m.cbsa_code = e.geography_code
 JOIN us_gov.crime_statistics c ON m.cbsa_code = c.geography_code
 JOIN us_gov.census_housing h ON m.cbsa_code = h.geography_code
 JOIN us_gov.census_population p ON m.cbsa_code = p.geography_code
 JOIN (SELECT cbsa_code, COUNT(*) as company_count, SUM(market_cap) as total_market_cap
-      FROM us_gov.sec_company_locations 
+      FROM us_gov.sec_company_locations
       GROUP BY cbsa_code) s ON m.cbsa_code = s.cbsa_code;
 ```
 
 #### Business Intelligence
 ```sql
 -- Company location risk assessment
-SELECT 
+SELECT
   s.ticker,
   s.company_name,
   s.headquarters_zip,
@@ -480,7 +480,7 @@ JOIN us_gov.noaa_disaster_risk n ON z.county_fips = n.county_fips
 WHERE e.date = (SELECT MAX(date) FROM us_gov.economic_indicators);
 
 -- Financial statement quality analysis
-SELECT 
+SELECT
   fiscal_year,
   fiscal_quarter,
   COUNT(*) as total_filings,
@@ -497,7 +497,7 @@ ORDER BY fiscal_year, fiscal_quarter;
 
 #### Data Pipeline Components
 ```
-Government APIs → Rate-Limited Fetchers → Format Normalizers → 
+Government APIs → Rate-Limited Fetchers → Format Normalizers →
 Quality Validators → Iceberg Writers → Calcite Adapter
 ```
 
@@ -513,7 +513,7 @@ Quality Validators → Iceberg Writers → Calcite Adapter
 ```sql
 -- Built-in validation views
 CREATE VIEW us_gov.data_quality_metrics AS
-SELECT 
+SELECT
   source_agency,
   dataset_id,
   date,
@@ -526,7 +526,7 @@ GROUP BY source_agency, dataset_id, date;
 
 -- XBRL calculation validation
 CREATE VIEW us_gov.sec_validation_errors AS
-SELECT 
+SELECT
   accession_number,
   ticker,
   filing_date,

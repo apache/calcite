@@ -1,15 +1,20 @@
 #!/bin/bash
-
-# Run full regression tests for a Calcite adapter
-# Usage: ./run-adapter-regression.sh <adapter-name> [options]
 #
-# Examples:
-#   ./run-adapter-regression.sh file
-#   ./run-adapter-regression.sh splunk
-#   ./run-adapter-regression.sh sharepoint-list
-#   ./run-adapter-regression.sh file --engine=PARQUET
-#   ./run-adapter-regression.sh splunk --env-vars
-
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 set -e
 
 # Color codes for output
@@ -189,7 +194,7 @@ case $ADAPTER in
             exit 0
         fi
         ;;
-    
+
     splunk)
         echo -e "${GREEN}Running Splunk Adapter regression tests${NC}"
         export CALCITE_TEST_SPLUNK=true
@@ -197,7 +202,7 @@ case $ADAPTER in
             echo -e "${YELLOW}Note: Using default Splunk test instance. Use --env-vars to specify custom credentials.${NC}"
         fi
         ;;
-    
+
     sharepoint-list)
         echo -e "${GREEN}Running SharePoint List Adapter regression tests${NC}"
         export SHAREPOINT_INTEGRATION_TESTS=true
@@ -206,15 +211,15 @@ case $ADAPTER in
             echo "  SHAREPOINT_TENANT_ID, SHAREPOINT_CLIENT_ID, SHAREPOINT_CLIENT_SECRET, SHAREPOINT_SITE_URL"
         fi
         ;;
-    
+
     cloud-governance)
         echo -e "${GREEN}Running Cloud Governance Adapter regression tests${NC}"
         ;;
-    
+
     spark)
         echo -e "${GREEN}Running Spark Adapter regression tests${NC}"
         ;;
-    
+
     *)
         echo -e "${RED}Unknown adapter: $ADAPTER${NC}"
         print_usage

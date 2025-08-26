@@ -429,8 +429,8 @@ public class DataModelDiscovery {
       String calciteFieldName = normalizeFieldName(field.name);
       // For data model fields, check if Splunk returns them with model prefix
       // If the field doesn't start with the model name, add the prefix to the mapping
-      String splunkFieldName = field.name.startsWith(model.name + ".") 
-          ? field.name 
+      String splunkFieldName = field.name.startsWith(model.name + ".")
+          ? field.name
           : model.name + "." + field.name;
       fieldMapping.put(calciteFieldName, splunkFieldName);
 
@@ -460,7 +460,7 @@ public class DataModelDiscovery {
         // For data model fields, Splunk returns them with the model name as prefix
         String splunkFieldName = model.name + "." + fieldRef;
         fieldMapping.put(normalizedName, splunkFieldName);
-        LOGGER.debug("Added field '{}' from calculated field reference, mapped to '{}'", 
+        LOGGER.debug("Added field '{}' from calculated field reference, mapped to '{}'",
             fieldRef, splunkFieldName);
       }
     }

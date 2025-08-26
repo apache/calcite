@@ -121,7 +121,7 @@ public class HtmlTableScanner {
         // This will be handled specially by FileReader to select by index
         selector = "table[index=" + i + "]";
       }
-      
+
       // Count rows in the table
       int rowCount = table.select("tr").size();
 
@@ -206,10 +206,10 @@ public class HtmlTableScanner {
     if (name.isEmpty()) {
       name = "table";
     }
-    
+
     // Finally, apply the configured casing transformation and sanitization
     name = ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(name, columnNameCasing));
-    
+
     return name;
   }
 

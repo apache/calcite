@@ -106,8 +106,8 @@ public class ModelHandler {
       mapper = uri.endsWith(".yaml") || uri.endsWith(".yml") ? YAML_MAPPER : JSON_MAPPER;
       // Read file as string first to perform environment variable substitution
       File modelFile = new File(uri);
-      String fileContent = new String(java.nio.file.Files.readAllBytes(modelFile.toPath()), 
-                                     java.nio.charset.StandardCharsets.UTF_8);
+      String fileContent =
+                                     new String(java.nio.file.Files.readAllBytes(modelFile.toPath()), java.nio.charset.StandardCharsets.UTF_8);
       // Substitute environment variables before parsing
       String substituted = EnvironmentVariableSubstitutor.substituteInJson(fileContent);
       root = mapper.readValue(substituted, JsonRoot.class);

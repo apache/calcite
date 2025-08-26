@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.file.execution.arrow;
 
-import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
-import org.apache.calcite.adapter.file.execution.linq4j.JsonEnumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;

@@ -1066,7 +1066,7 @@ public class SplunkPushDownRule
     if (node instanceof RexInputRef || node instanceof RexSlot) {
       return true;
     }
-    
+
     // Check if it's a simple CAST that we can handle
     if (isSimpleCast(node)) {
       RexCall call = (RexCall) node;
@@ -1075,7 +1075,7 @@ public class SplunkPushDownRule
       String dummyField = "dummy";
       return generateSplunkCastExpression(dummyField, targetType) != null;
     }
-    
+
     // Reject all other expressions (arithmetic, CASE, functions, concatenation, etc.)
     if (node instanceof RexCall) {
       RexCall call = (RexCall) node;
@@ -1083,7 +1083,7 @@ public class SplunkPushDownRule
       LOGGER.debug("Cannot push down complex expression of kind: {}", kind);
       return false;
     }
-    
+
     // Default: don't push down unknown node types
     return false;
   }

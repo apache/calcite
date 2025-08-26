@@ -471,7 +471,7 @@ public final class SplunkDataConverter {
       return Integer.parseInt(value);
     } catch (NumberFormatException e) {
       // JDBC 4.3: throw exception if conversion fails
-      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value
           + "' to INTEGER: " + e.getMessage());
     }
   }
@@ -489,7 +489,7 @@ public final class SplunkDataConverter {
       return Long.parseLong(value);
     } catch (NumberFormatException e) {
       // JDBC 4.3: throw exception if conversion fails
-      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value
           + "' to BIGINT: " + e.getMessage());
     }
   }
@@ -503,7 +503,7 @@ public final class SplunkDataConverter {
       return new BigDecimal(value);
     } catch (NumberFormatException e) {
       // JDBC 4.3: throw exception if conversion fails
-      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value
           + "' to DECIMAL: " + e.getMessage());
     }
   }
@@ -517,7 +517,7 @@ public final class SplunkDataConverter {
       return Double.parseDouble(value);
     } catch (NumberFormatException e) {
       // JDBC 4.3: throw exception if conversion fails
-      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value
           + "' to DOUBLE: " + e.getMessage());
     }
   }
@@ -531,7 +531,7 @@ public final class SplunkDataConverter {
       return Float.parseFloat(value);
     } catch (NumberFormatException e) {
       // JDBC 4.3: throw exception if conversion fails
-      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value
           + "' to FLOAT: " + e.getMessage());
     }
   }

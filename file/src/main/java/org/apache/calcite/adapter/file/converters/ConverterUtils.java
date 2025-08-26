@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 
 /**
  * Shared utility methods for file format converters.
- * 
+ *
  * <p>Configuration options (via system properties):</p>
  * <ul>
  *   <li>{@code calcite.file.converter.timezone} - Default timezone for datetime values without TZ info
@@ -42,20 +42,20 @@ import java.util.regex.Pattern;
  * </ul>
  */
 public final class ConverterUtils {
-  
+
   /**
    * System property to specify default timezone for datetime values without timezone info.
    * If not set, datetime values are kept as LOCAL (no timezone).
    * Examples: "UTC", "America/New_York", "Europe/London"
    */
   public static final String TIMEZONE_PROPERTY = "calcite.file.converter.timezone";
-  
+
   /**
    * System property to enable strict date parsing (only obvious formats).
    * Default is false (permissive parsing).
    */
   public static final String STRICT_DATE_PROPERTY = "calcite.file.converter.date.strict";
-  
+
   private ConverterUtils() {
     // Utility class should not be instantiated
   }
@@ -113,14 +113,14 @@ public final class ConverterUtils {
       node.putNull(key);
       return;
     }
-    
+
     // Try to parse as date/time first
     String dateTimeResult = tryParseDateTimeToISO(value);
     if (dateTimeResult != null) {
       node.put(key, dateTimeResult);
       return;
     }
-    
+
     // Try numeric
     if (isNumeric(value)) {
       if (value.contains(".")) {
@@ -139,13 +139,13 @@ public final class ConverterUtils {
         }
       }
     }
-    
+
     // Try boolean
     if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
       node.put(key, Boolean.parseBoolean(value));
       return;
     }
-    
+
     // Default to string
     node.put(key, value);
   }
@@ -192,7 +192,7 @@ public final class ConverterUtils {
     }
 
     String str = result.toString();
-    
+
     // Collapse multiple underscores (3 or more) but preserve double underscores for hierarchy
     // Replace 3+ underscores with double underscore (preserving hierarchy separator)
     str = str.replaceAll("_{3,}", "__");
@@ -219,10 +219,10 @@ public final class ConverterUtils {
     if (input == null || input.isEmpty()) {
       return input;
     }
-    
+
     StringBuilder result = new StringBuilder();
     boolean capitalizeNext = true;
-    
+
     for (char c : input.toCharArray()) {
       if (Character.isWhitespace(c) || c == '_' || c == '-') {
         capitalizeNext = true;
@@ -233,17 +233,17 @@ public final class ConverterUtils {
         result.append(Character.toLowerCase(c));
       }
     }
-    
+
     return result.toString();
   }
 
   // Common date formats found in real-world data
-  private static final List<DateTimeFormatter> DATE_TIME_FORMATTERS = Arrays.asList(
-      // ISO formats
+  private static final List<DateTimeFormatter> DATE_TIME_FORMATTERS =
+      Arrays.asList(// ISO formats
       DateTimeFormatter.ISO_LOCAL_DATE_TIME,
       DateTimeFormatter.ISO_DATE_TIME,
       DateTimeFormatter.ISO_INSTANT,
-      
+
       // Common US formats
       DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss"),
       DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"),
@@ -253,7 +253,7 @@ public final class ConverterUtils {
       DateTimeFormatter.ofPattern("M/d/yyyy HH:mm"),
       DateTimeFormatter.ofPattern("M/d/yyyy h:mm:ss a"),
       DateTimeFormatter.ofPattern("M/d/yyyy h:mm a"),
-      
+
       // Common European formats
       DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"),
       DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"),
@@ -261,7 +261,7 @@ public final class ConverterUtils {
       DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm"),
       DateTimeFormatter.ofPattern("d/M/yyyy HH:mm:ss"),
       DateTimeFormatter.ofPattern("d/M/yyyy HH:mm"),
-      
+
       // With month names
       DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm:ss"),
       DateTimeFormatter.ofPattern("MMM d, yyyy h:mm:ss a"),
@@ -269,24 +269,23 @@ public final class ConverterUtils {
       DateTimeFormatter.ofPattern("MMMM d, yyyy h:mm:ss a"),
       DateTimeFormatter.ofPattern("d MMM yyyy HH:mm:ss"),
       DateTimeFormatter.ofPattern("d MMMM yyyy HH:mm:ss"),
-      
+
       // Database/log formats
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"),
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"),
-      DateTimeFormatter.ofPattern("yyyyMMdd HHmmss")
-  );
-  
-  private static final List<DateTimeFormatter> DATE_FORMATTERS = Arrays.asList(
-      // ISO format
+      DateTimeFormatter.ofPattern("yyyyMMdd HHmmss"));
+
+  private static final List<DateTimeFormatter> DATE_FORMATTERS =
+      Arrays.asList(// ISO format
       DateTimeFormatter.ISO_LOCAL_DATE,
-      
+
       // Common US formats
       DateTimeFormatter.ofPattern("MM/dd/yyyy"),
       DateTimeFormatter.ofPattern("M/d/yyyy"),
       DateTimeFormatter.ofPattern("MM-dd-yyyy"),
       DateTimeFormatter.ofPattern("M-d-yyyy"),
-      
+
       // Common European formats
       DateTimeFormatter.ofPattern("dd/MM/yyyy"),
       DateTimeFormatter.ofPattern("d/M/yyyy"),
@@ -294,7 +293,7 @@ public final class ConverterUtils {
       DateTimeFormatter.ofPattern("d-M-yyyy"),
       DateTimeFormatter.ofPattern("dd.MM.yyyy"),
       DateTimeFormatter.ofPattern("d.M.yyyy"),
-      
+
       // With month names
       DateTimeFormatter.ofPattern("MMM d, yyyy"),
       DateTimeFormatter.ofPattern("MMMM d, yyyy"),
@@ -304,43 +303,40 @@ public final class ConverterUtils {
       DateTimeFormatter.ofPattern("MMMM dd, yyyy"),
       DateTimeFormatter.ofPattern("dd MMM yyyy"),
       DateTimeFormatter.ofPattern("dd MMMM yyyy"),
-      
+
       // Compact formats
       DateTimeFormatter.ofPattern("yyyyMMdd"),
       DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-      DateTimeFormatter.ofPattern("yyyy/MM/dd")
-  );
-  
-  private static final List<DateTimeFormatter> TIME_FORMATTERS = Arrays.asList(
-      // ISO format
+      DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+
+  private static final List<DateTimeFormatter> TIME_FORMATTERS =
+      Arrays.asList(// ISO format
       DateTimeFormatter.ISO_LOCAL_TIME,
-      
+
       // 24-hour formats
       DateTimeFormatter.ofPattern("HH:mm:ss.SSS"),
       DateTimeFormatter.ofPattern("HH:mm:ss"),
       DateTimeFormatter.ofPattern("HH:mm"),
       DateTimeFormatter.ofPattern("HHmmss"),
-      
+
       // 12-hour formats with AM/PM
       DateTimeFormatter.ofPattern("h:mm:ss a"),
       DateTimeFormatter.ofPattern("h:mm a"),
       DateTimeFormatter.ofPattern("hh:mm:ss a"),
-      DateTimeFormatter.ofPattern("hh:mm a")
-  );
-  
+      DateTimeFormatter.ofPattern("hh:mm a"));
+
   // Pattern to detect if string might be a date/time
-  private static final Pattern POTENTIAL_DATE_PATTERN = Pattern.compile(
-      ".*(?:\\d{1,4}[-/.]\\d{1,2}[-/.]\\d{1,4}|" +  // Date patterns
+  private static final Pattern POTENTIAL_DATE_PATTERN =
+      Pattern.compile(".*(?:\\d{1,4}[-/.]\\d{1,2}[-/.]\\d{1,4}|" +  // Date patterns
       "\\d{1,2}:\\d{2}|" +                           // Time patterns
       "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*|" + // Month names
       "(?:AM|PM|am|pm)).*",                          // AM/PM markers
-      Pattern.CASE_INSENSITIVE
-  );
-  
+      Pattern.CASE_INSENSITIVE);
+
   /**
    * Attempts to parse a string as a date, time, or datetime and convert to ISO 8601 format.
    * Returns null if the string doesn't match any known date/time pattern.
-   * 
+   *
    * Important: DateTime values without explicit timezone information are kept as LOCAL datetime
    * (without timezone) to avoid incorrect assumptions about the data's timezone.
    *
@@ -351,25 +347,25 @@ public final class ConverterUtils {
     if (value == null || value.trim().isEmpty()) {
       return null;
     }
-    
+
     String trimmed = value.trim();
-    
+
     // Quick check to avoid expensive parsing for obviously non-date strings
     if (!POTENTIAL_DATE_PATTERN.matcher(trimmed).matches()) {
       return null;
     }
-    
+
     // Check if strict parsing is enabled
     boolean strictParsing = Boolean.getBoolean(STRICT_DATE_PROPERTY);
     if (strictParsing && !isObviousDateFormat(trimmed)) {
       return null;
     }
-    
+
     // Check if the string contains explicit timezone information
-    boolean hasTimezone = trimmed.matches(".*[+-]\\d{2}:\\d{2}.*") || 
+    boolean hasTimezone = trimmed.matches(".*[+-]\\d{2}:\\d{2}.*") ||
                          trimmed.matches(".*[+-]\\d{4}.*") ||
                          trimmed.matches(".*\\s+[A-Z]{3,4}$");  // Like EST, PST, GMT
-    
+
     // Get configured default timezone (if any)
     String defaultTimezone = System.getProperty(TIMEZONE_PROPERTY);
     ZoneId configuredZone = null;
@@ -380,7 +376,7 @@ public final class ConverterUtils {
         // Invalid timezone, ignore and use LOCAL
       }
     }
-    
+
     // Try parsing as datetime first
     for (DateTimeFormatter formatter : DATE_TIME_FORMATTERS) {
       try {
@@ -391,7 +387,7 @@ public final class ConverterUtils {
         } else {
           // Parse as local datetime
           LocalDateTime dateTime = LocalDateTime.parse(trimmed, formatter);
-          
+
           // Apply configured timezone if set, otherwise keep as LOCAL
           if (configuredZone != null) {
             ZonedDateTime zoned = dateTime.atZone(configuredZone);
@@ -405,7 +401,7 @@ public final class ConverterUtils {
         // Try next formatter
       }
     }
-    
+
     // Try parsing as date only
     for (DateTimeFormatter formatter : DATE_FORMATTERS) {
       try {
@@ -416,7 +412,7 @@ public final class ConverterUtils {
         // Try next formatter
       }
     }
-    
+
     // Try parsing as time only
     for (DateTimeFormatter formatter : TIME_FORMATTERS) {
       try {
@@ -427,10 +423,10 @@ public final class ConverterUtils {
         // Try next formatter
       }
     }
-    
+
     return null;
   }
-  
+
   /**
    * Checks if a string is in an obvious date format that should be parsed.
    * Used for strict parsing mode to avoid false positives.
