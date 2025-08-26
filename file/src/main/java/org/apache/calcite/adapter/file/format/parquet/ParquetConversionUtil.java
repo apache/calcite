@@ -337,20 +337,17 @@ public class ParquetConversionUtil {
 
           LOGGER.debug("Processing field {}: {} = {} (type: {})", i, fieldName, value, field.getType().getSqlTypeName());
 
-          // Handle blankStringsAsNull for VARCHAR/CHAR fields
+          // For VARCHAR/CHAR fields, always preserve empty strings
+          // blankStringsAsNull should only apply to non-string types
           org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
           if (value != null && (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
                sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) && value instanceof String) {
             String stringValue = (String) value;
             LOGGER.debug("Processing field {}: value='{}', blankStringsAsNull={}, isEmpty={}, trimIsEmpty={}",
                 fieldName, stringValue, blankStringsAsNull, stringValue.isEmpty(), stringValue.trim().isEmpty());
-
-            if (blankStringsAsNull && stringValue.isEmpty()) {
-              // Treat empty strings as null for VARCHAR/CHAR fields when configured
-              value = null;
-              LOGGER.debug("Converting empty string to null for field: {}", fieldName);
-            }
-            // When blankStringsAsNull=false, preserve empty strings as-is
+            // Always preserve empty strings for VARCHAR/CHAR fields
+            // blankStringsAsNull only affects non-string types
+            LOGGER.debug("Preserving string value as-is for field: {} (blankStringsAsNull does not apply to strings)", fieldName);
           }
 
           if (value != null) {
@@ -573,7 +570,8 @@ public class ParquetConversionUtil {
       }
     }
 
-    // Handle empty strings for VARCHAR/CHAR fields based on blankStringsAsNull setting
+    // For VARCHAR/CHAR fields, always preserve empty strings regardless of blankStringsAsNull
+    // The blankStringsAsNull setting only applies to non-string types
     LOGGER.info("[addValueToParquetGroup] Checking if value is String: {}, sqlType: {}", 
                 value instanceof String, sqlType);
     if (value instanceof String && 
@@ -583,17 +581,11 @@ public class ParquetConversionUtil {
       LOGGER.info("[addValueToParquetGroup] VARCHAR field '{}': value='{}', length={}, isEmpty={}", 
                   fieldName, strValue, strValue.length(), strValue.isEmpty());
       if (strValue.isEmpty()) {
-        if (blankStringsAsNull) {
-          // Convert empty strings to null (don't add to group)
-          LOGGER.info("[addValueToParquetGroup] Converting empty string to null for field '{}' with sqlType {}", fieldName, sqlType);
-          return;
-        } else {
-          // Store empty strings as empty strings
-          LOGGER.info("[addValueToParquetGroup] IMPORTANT: Storing empty string for field '{}' with sqlType {}", fieldName, sqlType);
-          group.append(fieldName, "");
-          LOGGER.info("[addValueToParquetGroup] Successfully appended empty string to field '{}'", fieldName);
-          return;
-        }
+        // Always preserve empty strings for VARCHAR/CHAR fields
+        LOGGER.info("[addValueToParquetGroup] Preserving empty string for field '{}' (blankStringsAsNull does not apply to strings)", fieldName);
+        group.append(fieldName, "");
+        LOGGER.info("[addValueToParquetGroup] Successfully appended empty string to field '{}'", fieldName);
+        return;
       }
     }
 
