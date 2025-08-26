@@ -86,10 +86,10 @@ public class FileSchemaFactory implements SchemaFactory {
     }
     
     // Get ephemeralCache option (default to false for backward compatibility)
-    final Boolean ephemeralCache = operand.get("ephemeralCache") != null
-        ? (Boolean) operand.get("ephemeralCache")
-        : operand.get("ephemeral_cache") != null  // Support snake_case too
-            ? (Boolean) operand.get("ephemeral_cache")
+    final Boolean ephemeralCache = parseBooleanValue(operand.get("ephemeralCache"))
+        != null ? parseBooleanValue(operand.get("ephemeralCache"))
+        : parseBooleanValue(operand.get("ephemeral_cache")) != null  // Support snake_case too
+            ? parseBooleanValue(operand.get("ephemeral_cache"))
             : Boolean.FALSE;  // Default to persistent cache
     
     // Handle ephemeralCache and baseDirectory configuration
@@ -452,5 +452,22 @@ public class FileSchemaFactory implements SchemaFactory {
       SchemaPlus metadataSchema = rootSchema.subSchemas().get("metadata");
       parentSchema.add("metadata", metadataSchema.unwrap(Schema.class));
     }
+  }
+
+  /**
+   * Parse boolean value from operand map, handling both Boolean and String types.
+   * This is needed because environment variable substitution can produce either type.
+   */
+  private static Boolean parseBooleanValue(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof Boolean) {
+      return (Boolean) value;
+    }
+    if (value instanceof String) {
+      return Boolean.parseBoolean((String) value);
+    }
+    return null;
   }
 }
