@@ -940,4 +940,9 @@ public class CoreRules {
   /** Rule that remove duplicate {@link Sort} keys. */
   public static final SortRemoveDuplicateKeysRule SORT_REMOVE_DUPLICATE_KEYS =
       SortRemoveDuplicateKeysRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts GROUPING SETS of {@link Aggregate}
+   *  into equivalent {@link Union} ALL of GROUP BY operations. */
+  public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
+      AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
 }

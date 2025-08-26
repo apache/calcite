@@ -4012,4 +4012,118 @@ EnumerableMergeUnion(all=[true])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-7116] Optimize queries with GROUPING SETS by converting them into equivalent UNION ALL of GROUP BY operations
+# Before SQL
+SELECT deptno, job, sal, SUM(comm),
+       GROUPING(deptno) AS deptno_flag,
+       GROUPING(job) AS job_flag,
+       GROUPING(sal) AS sal_flag,
+       GROUP_ID() AS group_id
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job));
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+| DEPTNO | JOB       | SAL     | EXPR$3  | DEPTNO_FLAG | JOB_FLAG | SAL_FLAG | GROUP_ID |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        0 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        1 |
+|     10 |           | 1300.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 2450.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 5000.00 |         |           0 |        1 |        0 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     20 |           | 1100.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 2975.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 3000.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           |  800.00 |         |           0 |        1 |        0 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        0 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        1 |
+|     30 |           | 1250.00 | 1900.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1500.00 |    0.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1600.00 |  300.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 2850.00 |         |           0 |        1 |        0 |        0 |
+|     30 |           |  950.00 |         |           0 |        1 |        0 |        0 |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+(30 rows)
+
+!ok
+
+# After SQL
+# This SQL comes from RelToSqlConverterTest#testAggregateGroupingSetsToUnionRule(). This result is the same as the result of Before SQL.
+SELECT DEPTNO, JOB, SAL, EXPR$3, DEPTNO_FLAG, JOB_FLAG, SAL_FLAG, 0 AS GROUP_ID
+FROM (
+    SELECT DEPTNO, JOB, CAST(NULL AS DECIMAL(7, 2)) AS SAL,
+        SUM(COMM) AS EXPR$3,
+        0 AS DEPTNO_FLAG,
+        0 AS JOB_FLAG,
+        1 AS SAL_FLAG
+    FROM EMP
+    GROUP BY DEPTNO, JOB
+    UNION ALL
+    SELECT DEPTNO, CAST(NULL AS VARCHAR(9)) AS JOB, SAL,
+        SUM(COMM) AS EXPR$3,
+        0 AS DEPTNO_FLAG,
+        1 AS JOB_FLAG,
+        0 AS SAL_FLAG
+    FROM EMP
+    GROUP BY DEPTNO, SAL
+) t5
+UNION ALL
+SELECT DEPTNO, JOB, CAST(NULL AS DECIMAL(7, 2)) AS SAL,
+    SUM(COMM),
+    GROUPING(DEPTNO) AS DEPTNO_FLAG,
+    GROUPING(JOB) AS JOB_FLAG,
+    1 AS SAL_FLAG,
+    1 AS GROUP_ID
+FROM EMP
+GROUP BY DEPTNO, JOB;
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+| DEPTNO | JOB       | SAL     | EXPR$3  | DEPTNO_FLAG | JOB_FLAG | SAL_FLAG | GROUP_ID |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        0 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        1 |
+|     10 |           | 1300.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 2450.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 5000.00 |         |           0 |        1 |        0 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     20 |           | 1100.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 2975.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 3000.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           |  800.00 |         |           0 |        1 |        0 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        0 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        1 |
+|     30 |           | 1250.00 | 1900.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1500.00 |    0.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1600.00 |  300.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 2850.00 |         |           0 |        1 |        0 |        0 |
+|     30 |           |  950.00 |         |           0 |        1 |        0 |        0 |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+(30 rows)
+
+!ok
+
 # End agg.iq
