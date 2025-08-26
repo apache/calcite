@@ -46,13 +46,13 @@ public class FunctionSqlTypeTest {
   @Test void testFailsOnNullParameterType() {
     assertThrows(NullPointerException.class, () -> {
       new FunctionSqlType(null, returnType);
-    });
+    }, "parameterType");
   }
 
   @Test void testFailsOnNonStructParameterType() {
     assertThrows(IllegalArgumentException.class, () -> {
       new FunctionSqlType(nonStructParameterType, returnType);
-    });
+    }, "ParameterType must be a struct");
   }
 
   @Test void testFailsOnNullReturnType() {
