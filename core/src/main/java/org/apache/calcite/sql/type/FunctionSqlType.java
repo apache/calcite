@@ -32,6 +32,12 @@ public class FunctionSqlType extends AbstractSqlType {
   private final RelDataType parameterType;
   private final RelDataType returnType;
 
+  /**
+   * Constructs a new function SQL type. This should only be called from a factory method.
+   *
+   * @param parameterType a struct type wrapping function's input parameter types.
+   * @param returnType function's return type.
+   */
   public FunctionSqlType(
       RelDataType parameterType, RelDataType returnType) {
     super(SqlTypeName.FUNCTION, true, null);
@@ -62,10 +68,20 @@ public class FunctionSqlType extends AbstractSqlType {
     return this;
   }
 
+  /**
+   * Returns the parameter type of the function.
+   *
+   * @return a struct wrapping function's parameter types.
+   */
   public RelDataType getParameterType() {
     return parameterType;
   }
 
+  /**
+   * Returns the return type of the function.
+   *
+   * @return the function's return type.
+   */
   public RelDataType getReturnType() {
     return returnType;
   }
