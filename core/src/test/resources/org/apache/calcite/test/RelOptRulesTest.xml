@@ -344,6 +344,71 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateGroupingSetsToUnionRule">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, job, sal, SUM(comm)
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1}, {0, 2}]], EXPR$3=[SUM($3)])
+  LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[null:INTEGER], EXPR$3=[$2])
+    LogicalAggregate(group=[{0, 1}], EXPR$3=[SUM($3)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0], JOB=[null:VARCHAR(10)], SAL=[$1], EXPR$3=[$2])
+    LogicalAggregate(group=[{0, 2}], EXPR$3=[SUM($3)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateGroupingSetsToUnionRuleGroupingGrouId">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, job, sal, SUM(comm),
+ GROUPING(deptno) AS deptno_flag,
+ GROUPING(job) AS job_flag,
+ GROUPING(sal) AS sal_flag,
+ GROUPING(deptno, sal) AS deptno_sal_flag,
+ GROUP_ID() AS group_id
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job),(deptno, job, sal),(deptno, sal))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[$4], JOB_FLAG=[$5], SAL_FLAG=[$6], DEPTNO_SAL_FLAG=[$7], GROUP_ID=[0:BIGINT])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}]], EXPR$3=[SUM($3)], DEPTNO_FLAG=[GROUPING($0)], JOB_FLAG=[GROUPING($1)], SAL_FLAG=[GROUPING($2)], DEPTNO_SAL_FLAG=[GROUPING($0, $2)])
+    LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[$4], JOB_FLAG=[$5], SAL_FLAG=[$6], DEPTNO_SAL_FLAG=[$7], GROUP_ID=[0:BIGINT])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[0:BIGINT], JOB_FLAG=[0:BIGINT], SAL_FLAG=[0:BIGINT], DEPTNO_SAL_FLAG=[0:BIGINT])
+      LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[SUM($3)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[null:INTEGER], EXPR$3=[$2], DEPTNO_FLAG=[0:BIGINT], JOB_FLAG=[0:BIGINT], SAL_FLAG=[1:BIGINT], DEPTNO_SAL_FLAG=[1:BIGINT])
+      LogicalAggregate(group=[{0, 1}], EXPR$3=[SUM($3)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], JOB=[null:VARCHAR(10)], SAL=[$1], EXPR$3=[$2], DEPTNO_FLAG=[0:BIGINT], JOB_FLAG=[1:BIGINT], SAL_FLAG=[0:BIGINT], DEPTNO_SAL_FLAG=[0:BIGINT])
+      LogicalAggregate(group=[{0, 2}], EXPR$3=[SUM($3)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateJoinRemove1">
     <Resource name="sql">
       <![CDATA[select distinct e.deptno from sales.emp e

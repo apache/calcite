@@ -34,6 +34,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.rules.AggregateGroupingSetsToUnionRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -10624,6 +10625,48 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"DEPT\"";
 
     relFn(relFn).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
+   * Optimize queries with GROUPING SETS by converting them
+   * into equivalent UNION ALL of GROUP BY operations</a>. */
+  @Test void testAggregateGroupingSetsToUnionRule() {
+    final String query = "SELECT deptno, job, sal, SUM(comm),\n"
+        + "       GROUPING(deptno) AS deptno_flag,\n"
+        + "       GROUPING(job) AS job_flag,\n"
+        + "       GROUPING(sal) AS sal_flag,\n"
+        + "       GROUP_ID() AS group_id\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job))";
+    final String expected = "SELECT \"DEPTNO\", \"JOB\", \"SAL\", \"EXPR$3\", \"DEPTNO_FLAG\","
+        + " \"JOB_FLAG\", \"SAL_FLAG\", 0 AS \"GROUP_ID\"\nFROM (SELECT \"DEPTNO\", \"JOB\","
+        + " CAST(NULL AS DECIMAL(7, 2)) AS \"SAL\", SUM(\"COMM\") AS \"EXPR$3\","
+        + " 0 AS \"DEPTNO_FLAG\", 0 AS \"JOB_FLAG\", 1 AS \"SAL_FLAG\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\", \"JOB\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"DEPTNO\", CAST(NULL AS VARCHAR(9) CHARACTER SET \"ISO-8859-1\") AS \"JOB\","
+        + " \"SAL\", SUM(\"COMM\") AS \"EXPR$3\", 0 AS \"DEPTNO_FLAG\", 1 AS \"JOB_FLAG\","
+        + " 0 AS \"SAL_FLAG\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\nGROUP BY \"DEPTNO\", \"SAL\") AS \"t5\"\n"
+        + "UNION ALL\nSELECT \"DEPTNO\", \"JOB\", CAST(NULL AS DECIMAL(7, 2)) AS \"SAL\","
+        + " SUM(\"COMM\"), GROUPING(\"DEPTNO\") AS \"DEPTNO_FLAG\","
+        + " GROUPING(\"JOB\") AS \"JOB_FLAG\", 1 AS \"SAL_FLAG\", 1 AS \"GROUP_ID\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\", \"JOB\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(AggregateGroupingSetsToUnionRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.AGGREGATE_GROUPING_SETS_TO_UNION);
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .optimize(rules, hepPlanner)
+        .ok(expected);
   }
 
   /** Fluid interface to run tests. */
