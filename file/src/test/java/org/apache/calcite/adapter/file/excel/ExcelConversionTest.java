@@ -17,20 +17,26 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
-import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.schema.Table;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,44 +45,81 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for Excel file conversion and conflict handling.
  */
 @Tag("unit")
-public class ExcelConversionTest {
-  @TempDir
-  Path tempDir;
+public class ExcelConversionTest extends BaseFileTest {
+  private Path tempDir;
 
   @BeforeEach
-  public void setUp() {
-    // Clear the conversion cache before each test
+  public void setUp() throws Exception {
+    // Clear static caches that might interfere with test isolation
+    Sources.clearFileCache();
     SafeExcelToJsonConverter.clearCache();
+    // Create a temporary directory for each test
+    tempDir = Files.createTempDirectory("excel-conversion-test");
+    // Force garbage collection to release any resources
+    System.gc();
+    // Wait to ensure cleanup is complete
+    Thread.sleep(100);
+  }
+  
+  @AfterEach
+  public void tearDown() throws Exception {
+    // Clear caches after test to prevent contamination
+    Sources.clearFileCache();
+    SafeExcelToJsonConverter.clearCache();
+    // Clean up temp directory
+    if (tempDir != null && Files.exists(tempDir)) {
+      try {
+        Files.walk(tempDir)
+            .sorted((a, b) -> b.compareTo(a)) // Delete files before directories
+            .forEach(path -> {
+              try {
+                Files.deleteIfExists(path);
+              } catch (IOException e) {
+                // Best effort cleanup
+              }
+            });
+      } catch (IOException e) {
+        // Best effort cleanup
+      }
+    }
+    System.gc();
+    Thread.sleep(100);
   }
 
-  @Test public void testExcelConversionWithoutConflicts() throws IOException {
+  @Test public void testExcelConversionWithoutConflicts() throws Exception {
     System.out.println("\n=== Test: Excel Conversion Without Conflicts ===");
 
     // Create a mock Excel file
     File excelFile = new File(tempDir.toFile(), "TestData.xlsx");
     excelFile.createNewFile();
 
-    // Set up execution engine config based on environment
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
-    if (engineType != null && !engineType.isEmpty()) {
-      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+      
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // Create operand map with ephemeralCache for test isolation
+      Map<String, Object> operand = new LinkedHashMap<>();
+      operand.put("directory", tempDir.toString());
+      operand.put("ephemeralCache", true);
+      String engine = getExecutionEngine();
+      if (engine != null && !engine.isEmpty()) {
+        operand.put("executionEngine", engine.toLowerCase());
+      }
+      
+      // Create schema with ephemeral cache
+      FileSchema schema = (FileSchema) FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+
+      // Note: Without POI dependencies working, we can't actually convert Excel files
+      // But we can test the schema creation and conflict detection logic
+
+      Map<String, org.apache.calcite.schema.Table> tables = schema.getTableMap();
+      System.out.println("Tables found: " + tables.keySet());
+
+      // In a real test with POI, we'd expect tables like:
+      // - TestData__Sheet1
+      // - TestData__Sheet2
     }
-    
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        engineConfig, false, null, null, null, null,
-        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
-
-    // Note: Without POI dependencies working, we can't actually convert Excel files
-    // But we can test the schema creation and conflict detection logic
-
-    Map<String, Table> tables = schema.getTableMap();
-    System.out.println("Tables found: " + tables.keySet());
-
-    // In a real test with POI, we'd expect tables like:
-    // - TestData__Sheet1
-    // - TestData__Sheet2
   }
 
   @Test public void testExcelConversionWithExistingJsonFiles() throws IOException {
@@ -107,7 +150,7 @@ public class ExcelConversionTest {
     assertTrue(existingJson.exists(), "Existing JSON should still exist");
   }
 
-  @Test public void testMixedFileTypesInDirectory() throws IOException {
+  @Test public void testMixedFileTypesInDirectory() throws Exception {
     System.out.println("\n=== Test: Mixed File Types in Directory ===");
 
     // Create various file types
@@ -124,25 +167,31 @@ public class ExcelConversionTest {
     File excelFile = new File(tempDir.toFile(), "report.xlsx");
     excelFile.createNewFile();
 
-    // Set up execution engine config based on environment
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
-    if (engineType != null && !engineType.isEmpty()) {
-      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+      
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      
+      // Create operand map with ephemeralCache for test isolation
+      Map<String, Object> operand = new LinkedHashMap<>();
+      operand.put("directory", tempDir.toString());
+      operand.put("ephemeralCache", true);
+      String engine = getExecutionEngine();
+      if (engine != null && !engine.isEmpty()) {
+        operand.put("executionEngine", engine.toLowerCase());
+      }
+      
+      // Create schema with ephemeral cache
+      FileSchema schema = (FileSchema) FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      Map<String, org.apache.calcite.schema.Table> tables = schema.getTableMap();
+
+      // Verify all file types are recognized (table names are lowercase with SMART_CASING)
+      assertNotNull(tables.get("data"), "CSV file should be recognized");
+      assertNotNull(tables.get("config"), "JSON file should be recognized");
+
+      System.out.println("Mixed directory tables: " + tables.keySet());
+      assertTrue(tables.size() >= 2, "Should have at least CSV and JSON tables");
     }
-    
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        engineConfig, false, null, null, null, null,
-        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
-    Map<String, Table> tables = schema.getTableMap();
-
-    // Verify all file types are recognized (table names are lowercase with SMART_CASING)
-    assertNotNull(tables.get("data"), "CSV file should be recognized");
-    assertNotNull(tables.get("config"), "JSON file should be recognized");
-
-    System.out.println("Mixed directory tables: " + tables.keySet());
-    assertTrue(tables.size() >= 2, "Should have at least CSV and JSON tables");
   }
 
   @Test public void testConversionCaching() throws IOException {

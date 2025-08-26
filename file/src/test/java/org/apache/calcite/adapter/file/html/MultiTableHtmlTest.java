@@ -17,11 +17,7 @@
 package org.apache.calcite.adapter.file.html;
 
 import org.apache.calcite.adapter.file.BaseFileTest;
-import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Table;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -36,9 +32,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -139,75 +133,53 @@ public class MultiTableHtmlTest extends BaseFileTest {
     }
   }
 
-  @Test @SuppressWarnings("deprecation") public void testMultiTableHtmlDetection() throws Exception {
+  @Test public void testMultiTableHtmlDetection() throws Exception {
     createMultiTableHtmlFile(); // Create only the file this test needs
 
+    // Build model with ephemeralCache
+    String model = buildTestModel("html", tempDir.toFile().getAbsolutePath());
+
     Properties info = new Properties();
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    info.put("model", "inline:" + model);
+    applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+         Statement statement = connection.createStatement()) {
+      // Query the first table (identified by id)
+      ResultSet rs1 =
+          statement.executeQuery("SELECT * FROM html.multi_table_test__sales_data ORDER BY product");
 
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
-      // modelBaseDirectory is the parent directory where .aperio will be created
-      // FileSchema will create tempDir/.aperio/html as the actual base directory
-      FileSchema fileSchema =
-          new FileSchema(rootSchema, "html", tempDir.toFile(), tempDir.toFile(), null, null,
-              getEngineConfig(), true, null, null, null, null,
-              "LOWER", "LOWER", null, null, null, null, true);
-      SchemaPlus htmlSchema = rootSchema.add("html", fileSchema);
+      assertTrue(rs1.next());
+      assertThat(rs1.getString("product"), is("Gadget"));
+      assertThat(rs1.getString("q1"), is("200"));
 
-      // Force table discovery
-      Map<String, Table> tables = new HashMap<>();
-      for (String tableName : htmlSchema.getTableNames()) {
-        tables.put(tableName, htmlSchema.getTable(tableName));
-      }
+      assertTrue(rs1.next());
+      assertThat(rs1.getString("product"), is("Widget"));
+      assertThat(rs1.getString("q1"), is("100"));
 
-      // Debug: List all discovered tables
-      System.out.println("Discovered tables:");
-      for (String tableName : tables.keySet()) {
-        System.out.println("  - " + tableName);
-      }
+      // Query the second table (identified by heading)
+      ResultSet rs2 =
+          statement.executeQuery("SELECT * FROM html.multi_table_test__employee_data ORDER BY name");
 
-      try (Statement statement = connection.createStatement()) {
-        // Query the first table (identified by id)
-        ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM html.multi_table_test__sales_data ORDER BY product");
+      assertTrue(rs2.next());
+      assertThat(rs2.getString("name"), is("Jane"));
+      assertThat(rs2.getString("department"), is("Engineering"));
 
-        assertTrue(rs1.next());
-        assertThat(rs1.getString("product"), is("Gadget"));
-        assertThat(rs1.getString("q1"), is("200"));
+      assertTrue(rs2.next());
+      assertThat(rs2.getString("name"), is("John"));
+      assertThat(rs2.getString("department"), is("Sales"));
 
-        assertTrue(rs1.next());
-        assertThat(rs1.getString("product"), is("Widget"));
-        assertThat(rs1.getString("q1"), is("100"));
+      // Query the third table (identified by caption)
+      ResultSet rs3 =
+          statement.executeQuery("SELECT * FROM html.multi_table_test__inventory_status ORDER BY item");
 
-        // Query the second table (identified by heading)
-        ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM html.multi_table_test__employee_data ORDER BY name");
+      assertTrue(rs3.next());
+      assertThat(rs3.getString("item"), is("Paper"));
+      assertThat(rs3.getString("reorder"), is("Yes"));
 
-        assertTrue(rs2.next());
-        assertThat(rs2.getString("name"), is("Jane"));
-        assertThat(rs2.getString("department"), is("Engineering"));
-
-        assertTrue(rs2.next());
-        assertThat(rs2.getString("name"), is("John"));
-        assertThat(rs2.getString("department"), is("Sales"));
-
-        // Query the third table (identified by caption)
-        ResultSet rs3 =
-            statement.executeQuery("SELECT * FROM html.multi_table_test__inventory_status ORDER BY item");
-
-        assertTrue(rs3.next());
-        assertThat(rs3.getString("item"), is("Paper"));
-        assertThat(rs3.getString("reorder"), is("Yes"));
-
-        assertTrue(rs3.next());
-        assertThat(rs3.getString("item"), is("Pencils"));
-        assertThat(rs3.getString("reorder"), is("No"));
-      }
+      assertTrue(rs3.next());
+      assertThat(rs3.getString("item"), is("Pencils"));
+      assertThat(rs3.getString("reorder"), is("No"));
     }
   }
 
@@ -215,131 +187,91 @@ public class MultiTableHtmlTest extends BaseFileTest {
     createMultiTableHtmlFile(); // Create only the file this test needs
     createComplexHtmlFile(); // This test expects both files for the count
 
-    // Test that HTML files are processed even when recursive=false (only affects subdirectory traversal)
+    // Build model with recursive=false and ephemeralCache
+    String model = buildTestModel("html", tempDir.toFile().getAbsolutePath(),
+        "recursive", "false");
+
     Properties info = new Properties();
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    info.put("model", "inline:" + model);
+    applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
-      // modelBaseDirectory is the parent directory where .aperio will be created
-      // FileSchema will create tempDir/.aperio/html as the actual base directory
-      rootSchema.add("html",
-          new FileSchema(rootSchema, "html", tempDir.toFile(), tempDir.toFile(), null, null,
-              getEngineConfig(), false, null, null, null, null,
-              "LOWER", "LOWER", null, null, null, null, true));
-
-      try (Statement statement = connection.createStatement()) {
-        // HTML files should be processed even when recursive=false
-        ResultSet tables = connection.getMetaData().getTables(null, "html", "%", null);
-        int htmlTableCount = 0;
-        while (tables.next()) {
-          String tableName = tables.getString("TABLE_NAME");
-          if (tableName.contains("multi_table_test") || tableName.contains("complex_tables")) {
-            htmlTableCount++;
-          }
+         Statement statement = connection.createStatement()) {
+      // HTML files should be processed even when recursive=false
+      ResultSet tables = connection.getMetaData().getTables(null, "html", "%", null);
+      int htmlTableCount = 0;
+      while (tables.next()) {
+        String tableName = tables.getString("TABLE_NAME");
+        if (tableName.contains("multi_table_test") || tableName.contains("complex_tables")) {
+          htmlTableCount++;
         }
-        // HTML files are discovered regardless of recursive setting
-        assertThat(htmlTableCount, is(6)); // 3 tables from each HTML file
       }
+      // HTML files are discovered regardless of recursive setting
+      assertThat(htmlTableCount, is(6)); // 3 tables from each HTML file
     }
   }
 
-  @Test @SuppressWarnings("deprecation") public void testComplexHtmlFile() throws Exception {
+  @Test public void testComplexHtmlFile() throws Exception {
     createComplexHtmlFile(); // Create only the complex HTML file for this test
 
+    // Build model with ephemeralCache
+    String model = buildTestModel("html", tempDir.toFile().getAbsolutePath());
+
     Properties info = new Properties();
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    info.put("model", "inline:" + model);
+    applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
-      // modelBaseDirectory is the parent directory where .aperio will be created
-      // FileSchema will create tempDir/.aperio/html as the actual base directory
-      FileSchema fileSchema =
-          new FileSchema(rootSchema, "html", tempDir.toFile(), tempDir.toFile(), null, null,
-              getEngineConfig(), true, null, null, null, null,
-              "LOWER", "LOWER", null, null, null, null, true);
-      SchemaPlus htmlSchema = rootSchema.add("html", fileSchema);
-
-      // Force table discovery
-      Map<String, Table> tables = new HashMap<>();
-      for (String tableName : htmlSchema.getTableNames()) {
-        tables.put(tableName, htmlSchema.getTable(tableName));
-      }
-
-      try (Statement statement = connection.createStatement()) {
-        // Count tables found
-        ResultSet tableList = connection.getMetaData().getTables(null, "html", "%", null);
-        int tableCount = 0;
-        System.out.println("Tables found in complex_tables.html:");
-        while (tableList.next()) {
-          String tableName = tableList.getString("TABLE_NAME");
-          if (tableName.toLowerCase(Locale.ROOT).startsWith("complex_tables")) {
-            tableCount++;
-            System.out.println("  - " + tableName);
-          }
+         Statement statement = connection.createStatement()) {
+      // Count tables found
+      ResultSet tableList = connection.getMetaData().getTables(null, "html", "%", null);
+      int tableCount = 0;
+      System.out.println("Tables found in complex_tables.html:");
+      while (tableList.next()) {
+        String tableName = tableList.getString("TABLE_NAME");
+        if (tableName.toLowerCase(Locale.ROOT).startsWith("complex_tables")) {
+          tableCount++;
+          System.out.println("  - " + tableName);
         }
-        // Should find 3 tables: revenue (id), expenses (id), and T3 (no identifier)
-        assertThat(tableCount, is(3));
-
-        // Query the revenue table
-        ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM html.complex_tables__revenue WHERE \"year\" = 2023");
-        assertTrue(rs1.next());
-        assertThat(rs1.getString("revenue"), is("1200000"));
-
-        // Query the expenses table
-        ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM html.complex_tables__expenses WHERE \"year\" = 2023");
-        assertTrue(rs2.next());
-        assertThat(rs2.getString("expenses"), is("900000"));
       }
+      // Should find 3 tables: revenue (id), expenses (id), and T3 (no identifier)
+      assertThat(tableCount, is(3));
+
+      // Query the revenue table
+      ResultSet rs1 =
+          statement.executeQuery("SELECT * FROM html.complex_tables__revenue WHERE \"year\" = 2023");
+      assertTrue(rs1.next());
+      assertThat(rs1.getString("revenue"), is("1200000"));
+
+      // Query the expenses table
+      ResultSet rs2 =
+          statement.executeQuery("SELECT * FROM html.complex_tables__expenses WHERE \"year\" = 2023");
+      assertTrue(rs2.next());
+      assertThat(rs2.getString("expenses"), is("900000"));
     }
   }
 
   @Test public void testExplicitHtmlTableWithSelector() throws Exception {
     createMultiTableHtmlFile(); // Create the multi-table file for selector testing
 
-    // Test explicit table definition with selector
+    // Build model with explicit table definition and selector
+    String model = buildTestModel("html", tempDir.toFile().getAbsolutePath(),
+        "ephemeralCache", "true",
+        "tables", "[{\"name\": \"sales_only\", \"url\": \"file://" + 
+            new File(tempDir.toFile(), "multi_table_test.html").getAbsolutePath().replace("\\", "\\\\") +
+            "\", \"selector\": \"#sales_data\"}]");
+
     Properties info = new Properties();
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    info.put("model", "inline:" + model);
+    applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-
-      // Create schema with explicit table definition
-      java.util.List<java.util.Map<String, Object>> tableDefs =
-          java.util.Collections.singletonList(
-              java.util.Map.of(
-                  "name", "sales_only",
-                  "url", "file://" + new File(tempDir.toFile(), "multi_table_test.html").getAbsolutePath(),
-                  "selector", "#sales_data"));
-
-      // Set up base directory for converted files
-      File baseDir = new File(tempDir.toFile(), ".aperio");
+         Statement statement = connection.createStatement()) {
       
-      rootSchema.add("html",
-          new FileSchema(rootSchema, "html", null, baseDir, null, tableDefs,
-              getEngineConfig(), false, null, null, null, null,
-              "LOWER", "LOWER", null, null, null, null, true));
-
-      try (Statement statement = connection.createStatement()) {
-        // Should only find the explicitly defined table
-        ResultSet rs =
-            statement.executeQuery("SELECT COUNT(*) as cnt FROM html.sales_only");
-        assertTrue(rs.next());
-        assertThat(rs.getLong("cnt"), is(2L)); // 2 rows in sales table
-      }
+      // Should only find the explicitly defined table
+      ResultSet rs = statement.executeQuery("SELECT COUNT(*) as cnt FROM html.sales_only");
+      assertTrue(rs.next());
+      assertThat(rs.getLong("cnt"), is(2L)); // 2 rows in sales table
     }
   }
 }

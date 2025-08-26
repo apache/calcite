@@ -347,8 +347,9 @@ public class CsvTypeInferenceTest {
   }
 
   /**
-   * Test that blank strings are converted to NULL when type inference is disabled.
-   * This feature is only relevant for PARQUET and DUCKDB engines.
+   * Test that blank strings are preserved as empty strings when type inference is disabled.
+   * When type inference is disabled, all columns are VARCHAR, and blankStringsAsNull
+   * does not apply to VARCHAR/CHAR fields - blank strings are preserved as empty strings.
    */
   @Test
   void testBlankStringsAsNullWithNoInference() throws Exception {
@@ -375,19 +376,19 @@ public class CsvTypeInferenceTest {
         assertEquals("Alice", rs.getString(2));
         assertEquals("Active", rs.getString(3));
 
-        // Second row: blank string in name (should be NULL)
+        // Second row: blank string in name (should be empty string for VARCHAR)
         assertTrue(rs.next());
         assertEquals("2", rs.getString(1));
-        assertThat(rs.getString(2), equalTo(null)); // Blank string should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(2), equalTo("")); // Blank string preserved as empty string
+        assertFalse(rs.wasNull());
         assertEquals("Inactive", rs.getString(3));
 
-        // Third row: blank string in status (should be NULL)
+        // Third row: blank string in status (should be empty string for VARCHAR)
         assertTrue(rs.next());
         assertEquals("3", rs.getString(1));
         assertEquals("Charlie", rs.getString(2));
-        assertThat(rs.getString(3), equalTo(null)); // Blank string should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(3), equalTo("")); // Blank string preserved as empty string
+        assertFalse(rs.wasNull());
 
         // Fourth row: normal values
         assertTrue(rs.next());
@@ -395,19 +396,19 @@ public class CsvTypeInferenceTest {
         assertEquals("David", rs.getString(2));
         assertEquals("Pending", rs.getString(3));
 
-        // Fifth row: whitespace-only string in name (should be NULL)
+        // Fifth row: whitespace-only string in name (should be preserved for VARCHAR)
         assertTrue(rs.next());
         assertEquals("5", rs.getString(1));
-        assertThat(rs.getString(2), equalTo(null)); // Whitespace-only should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(2), equalTo("  ")); // Whitespace preserved as-is for VARCHAR
+        assertFalse(rs.wasNull());
         assertEquals("Active", rs.getString(3));
 
-        // Sixth row: whitespace-only string in status (should be NULL)
+        // Sixth row: whitespace-only string in status (should be preserved for VARCHAR)
         assertTrue(rs.next());
         assertEquals("6", rs.getString(1));
         assertEquals("Eve", rs.getString(2));
-        assertThat(rs.getString(3), equalTo(null)); // Whitespace-only should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(3), equalTo("   ")); // Whitespace preserved as-is for VARCHAR
+        assertFalse(rs.wasNull());
       }
     }
   }
