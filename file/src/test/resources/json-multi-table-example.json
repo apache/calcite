@@ -8,6 +8,7 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "data",
+        "ephemeralCache": true,
         "tables": [
           {
             "name": "company_data",

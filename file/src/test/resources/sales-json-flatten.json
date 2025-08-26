@@ -26,6 +26,7 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "sales-json",
+        "ephemeralCache": true,
         "tables": [
           {
             "name": "NESTED_FLAT",

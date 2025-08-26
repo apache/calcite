@@ -15,7 +15,8 @@
           "clientSecret": "${SHAREPOINT_CLIENT_SECRET}"
         },
         "directory": "/Shared Documents",
-        "recursive": false
+        "recursive": false,
+        "ephemeralCache": true
       }
     }
   ]

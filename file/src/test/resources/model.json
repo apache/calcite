@@ -25,7 +25,8 @@
       "type": "custom",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
-        "directory": "sales"
+        "directory": "sales",
+        "ephemeralCache": true
       }
     }
   ]

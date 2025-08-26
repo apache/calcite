@@ -34,7 +34,8 @@
       "operand": {
         "directory": "sales",
         "flavor": "TRANSLATABLE",
-        "executionEngine": "LINQ4J"
+        "executionEngine": "LINQ4J",
+        "ephemeralCache": true
       }
     }
   ]

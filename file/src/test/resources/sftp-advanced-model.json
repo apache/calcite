@@ -16,7 +16,8 @@
         },
         "directory": "sftp://${sftp.host}:${sftp.port}/data/",
         "recursive": true,
-        "executionEngine": "vectorized"
+        "executionEngine": "vectorized",
+        "ephemeralCache": true
       }
     }
   ]

@@ -11,6 +11,7 @@
         "executionEngine": "parquet",
         "caseSensitive": false,
         "unquotedCasing": "TO_LOWER",
+        "ephemeralCache": true,
         "tables": [
           {
             "name": "date",
