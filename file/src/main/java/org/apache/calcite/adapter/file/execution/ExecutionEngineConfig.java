@@ -17,15 +17,11 @@
 package org.apache.calcite.adapter.file.execution;
 
 import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
-import org.apache.calcite.adapter.file.execution.duckdb.DuckDBExecutionEngine;
-
-import java.io.File;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Locale;
 
 /**
  * Configuration for execution engines in the file adapter.
@@ -146,7 +142,7 @@ public class ExecutionEngineConfig {
   /**
    * Determines the default execution engine based on driver availability.
    * Defaults to DuckDB if the driver is in the classpath, otherwise falls back to PARQUET.
-   * 
+   *
    * @return The default execution engine name
    */
   private static String getDefaultEngine() {

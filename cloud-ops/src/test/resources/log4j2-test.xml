@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<Configuration>
+  <Appenders>
+    <Console name="A1" target="SYSTEM_OUT">
+      <PatternLayout
+          pattern="%d [%t] %-5p - %m%n"/>
+    </Console>
+  </Appenders>
+
+  <Loggers>
+    <Root level="INFO">
+      <AppenderRef ref="A1"/>
+    </Root>
+    <!-- Silence ERROR logs from CalciteException, SqlValidatorException during tests -->
+    <logger name="org.apache.calcite.runtime.CalciteException" level="FATAL"/>
+    <logger name="org.apache.calcite.sql.validate.SqlValidatorException" level="ERROR"/>
+    <logger name="org.apache.calcite.plan.RexImplicationChecker" level="FATAL"/>
+    <!-- Silence anything but errors -->
+    <logger name="org.apache.calcite.plan.VisitorDataContext" level="ERROR"/>
+    <logger name="org.apache.calcite.avatica" level="ERROR"/>
+    <logger name="org.eclipse.jetty" level="ERROR"/>
+    <logger name="org.apache.calcite.sql.parser" level="ERROR"/>
+    <logger name="org.apache.calcite.plan.RelOptPlanner" level="ERROR">
+      <MarkerFilter marker="FULL_PLAN" onMatch="DENY" onMismatch="NEUTRAL"/>
+    </logger>
+    <logger name="org.apache.calcite.rel.rules.DpHyp" level="ERROR"/>
+    <!-- Cloud Ops adapter specific logging -->
+    <logger name="org.apache.calcite.adapter.ops" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.AbstractCloudOpsTable" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.KubernetesClustersTable" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.util.CloudOpsProjectionHandler" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.util.CloudOpsSortHandler" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.util.CloudOpsQueryOptimizer" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.provider.AzureProvider" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.provider.AWSProvider" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.ops.provider.GCPProvider" level="DEBUG"/>
+    <!-- Pagination integration tests -->
+    <logger name="org.apache.calcite.adapter.ops.PaginationPushdownIntegrationTest" level="DEBUG"/>
+  </Loggers>
+</Configuration>

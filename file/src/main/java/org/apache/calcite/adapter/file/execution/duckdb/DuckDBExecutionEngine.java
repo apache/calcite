@@ -21,10 +21,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * DuckDB-based execution engine for high-performance analytical processing.
- * 
+ *
  * <p>This engine leverages DuckDB's high-performance columnar query engine
  * for analytical workloads on Parquet files.
- * 
+ *
  * <p>Key advantages:
  * <ul>
  *   <li>10-100x performance improvements for complex analytics</li>
@@ -33,12 +33,12 @@ import org.slf4j.LoggerFactory;
  *   <li>Efficient handling of compressed Parquet data</li>
  *   <li>Fallback to Parquet engine when DuckDB unavailable</li>
  * </ul>
- * 
+ *
  * <p>Usage:
  * <pre>{@code
  * {
  *   "schemas": [{
- *     "name": "analytics", 
+ *     "name": "analytics",
  *     "operand": {
  *       "directory": "/data",
  *       "executionEngine": "DUCKDB",
@@ -56,7 +56,7 @@ public final class DuckDBExecutionEngine {
 
   /**
    * Check if DuckDB JDBC driver is available on the classpath.
-   * 
+   *
    * @return true if DuckDB is available, false otherwise
    */
   public static boolean isAvailable() {
@@ -74,7 +74,7 @@ public final class DuckDBExecutionEngine {
 
   /**
    * Get the engine type identifier.
-   * 
+   *
    * @return "DUCKDB"
    */
   public static String getEngineType() {

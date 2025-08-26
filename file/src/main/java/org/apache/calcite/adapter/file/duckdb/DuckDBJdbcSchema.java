@@ -18,25 +18,16 @@ package org.apache.calcite.adapter.file.duckdb;
 
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
-import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.plan.RelOptPlanner;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Map;
 import java.util.Set;
+import javax.sql.DataSource;
 
 /**
  * JDBC schema implementation for DuckDB that ensures complete query pushdown.
@@ -45,12 +36,12 @@ import java.util.Set;
  */
 public class DuckDBJdbcSchema extends JdbcSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(DuckDBJdbcSchema.class);
-  
+
   private final File directory;
   private final boolean recursive;
   private final Connection persistentConnection;
   private final org.apache.calcite.adapter.file.FileSchema fileSchema; // Keep reference for refreshes
-  
+
   public DuckDBJdbcSchema(DataSource dataSource, SqlDialect dialect,
                          JdbcConvention convention, String catalog, String schema,
                          File directory, boolean recursive, Connection persistentConnection,
@@ -62,21 +53,19 @@ public class DuckDBJdbcSchema extends JdbcSchema {
     this.recursive = recursive;
     this.persistentConnection = persistentConnection;
     this.fileSchema = fileSchema; // Keep FileSchema alive for refresh handling
-    
-    LOGGER.info("Created DuckDB JDBC schema for directory: {} (recursive={}) with persistent connection", 
+
+    LOGGER.info("Created DuckDB JDBC schema for directory: {} (recursive={}) with persistent connection",
                 directory, recursive);
   }
-  
-  
-  @Override
-  public Set<String> getTableNames() {
+
+
+  @Override public Set<String> getTableNames() {
     Set<String> tableNames = super.getTableNames();
     LOGGER.debug("DuckDB schema tables available: {}", tableNames);
     return tableNames;
   }
-  
-  @Override
-  public Table getTable(String name) {
+
+  @Override public Table getTable(String name) {
     LOGGER.info("Looking for table: '{}'", name);
     Table table = super.getTable(name);
     if (table != null) {

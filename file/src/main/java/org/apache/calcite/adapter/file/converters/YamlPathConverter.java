@@ -18,9 +18,6 @@ package org.apache.calcite.adapter.file.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import org.slf4j.Logger;
@@ -30,7 +27,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 
 /**
  * Converter that extracts data from YAML files using path expressions.
@@ -43,11 +39,11 @@ public class YamlPathConverter {
   private static final Logger LOGGER = LoggerFactory.getLogger(YamlPathConverter.class);
   private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-  
+
   /**
    * Extracts data from a YAML file using a path expression and writes it to an output file.
    * The output can be either YAML or JSON format based on the output file extension.
-   * 
+   *
    * @param sourceYaml The source YAML file to extract from
    * @param outputFile The output file (can be .yaml, .yml, or .json)
    * @param path The path expression to apply (uses same syntax as JsonPathConverter)
@@ -55,18 +51,18 @@ public class YamlPathConverter {
    */
   public static void extract(File sourceYaml, File outputFile, String path, File baseDirectory) throws IOException {
     LOGGER.debug("Extracting from {} using path: {}", sourceYaml.getName(), path);
-    
+
     // Read YAML file into JsonNode (YAML is JSON-compatible)
     JsonNode yamlData = YAML_MAPPER.readTree(sourceYaml);
-    
+
     // Reuse the JsonPathConverter's path extraction logic
     JsonNode extractedData = JsonPathConverter.extractPath(yamlData, path);
-    
+
     if (extractedData == null || extractedData.isNull()) {
       LOGGER.warn("Path {} not found in {}", path, sourceYaml.getName());
       extractedData = JSON_MAPPER.createObjectNode(); // Empty object
     }
-    
+
     // Write output based on file extension
     String outputName = outputFile.getName().toLowerCase();
     try (FileWriter writer = new FileWriter(outputFile, StandardCharsets.UTF_8)) {
@@ -85,12 +81,12 @@ public class YamlPathConverter {
         throw new IllegalArgumentException("Unsupported output format: " + outputName);
       }
     }
-    
+
     // Record the conversion for refresh tracking
-    ConversionRecorder.recordConversion(sourceYaml, outputFile, 
+    ConversionRecorder.recordConversion(sourceYaml, outputFile,
         "JSONPATH_EXTRACTION[" + path + "]", baseDirectory);
   }
-  
+
   /**
    * Convenience method to extract from YAML to JSON.
    */
@@ -100,7 +96,7 @@ public class YamlPathConverter {
     extract(sourceYaml, outputFile, jsonPath, outputDir.getParentFile());
     return outputFile;
   }
-  
+
   /**
    * Convenience method to extract from YAML to YAML.
    */

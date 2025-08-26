@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.adapter.file.execution.linq4j;
 
+import org.apache.calcite.adapter.file.FileSchemaFactory;
+import org.apache.calcite.adapter.file.cache.SourceFileLockManager;
 import org.apache.calcite.adapter.file.format.csv.CsvStreamReader;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeConverter;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.util.NullEquivalents;
-import org.apache.calcite.adapter.file.format.csv.CsvTypeConverter;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -30,11 +31,6 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.trace.CalciteLogger;
-
-import org.apache.calcite.adapter.file.cache.SourceFileLockManager;
-import org.apache.calcite.adapter.file.FileSchemaFactory;
-import org.apache.calcite.adapter.file.temporal.UtcTimestamp;
-import org.apache.calcite.adapter.file.temporal.LocalTimestamp;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.opencsv.CSVParserBuilder;
@@ -49,10 +45,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -64,13 +58,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
-import static java.lang.Boolean.parseBoolean;
-import static java.lang.Byte.parseByte;
-import static java.lang.Double.parseDouble;
-import static java.lang.Float.parseFloat;
 import static java.lang.Integer.parseInt;
-import static java.lang.Long.parseLong;
-import static java.lang.Short.parseShort;
 import static java.util.Objects.requireNonNull;
 
 /** Enumerator that reads from a CSV file.
@@ -145,7 +133,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields, typeInferenceConfig));
   }
-  
+
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
       @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
@@ -175,7 +163,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         this.reader = openCsv(source);
       }
       String[] header = this.reader.readNext(); // skip header row
-      LOGGER.debug("[CsvEnumerator] Header row read: {}", 
+      LOGGER.debug("[CsvEnumerator] Header row read: {}",
                   (header != null ? "length=" + header.length + ", content=" + String.join(",", header) : "null"));
     } catch (IOException | CsvValidationException e) {
       // Release lock if we failed to open the file
@@ -190,12 +178,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private static RowConverter<?> converter(List<RelDataType> fieldTypes,
       List<Integer> fields) {
     // Create CsvTypeConverter with default settings for backward compatibility
-    CsvTypeConverter typeConverter = new CsvTypeConverter(
-        new java.util.HashMap<>(), 
-        NullEquivalents.DEFAULT_NULL_EQUIVALENTS, 
-        true  // default: blank strings as null
-    );
-    
+    CsvTypeConverter typeConverter =
+        new CsvTypeConverter(new java.util.HashMap<>(),
+        NullEquivalents.DEFAULT_NULL_EQUIVALENTS,
+        true  // default: blank strings as null);
+
     if (fields.size() == 1) {
       final int field = fields.get(0);
       return new SingleColumnRowConverter(fieldTypes.get(field), field, typeConverter);
@@ -211,16 +198,15 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     if (typeInferenceConfig != null) {
       blankStringsAsNull = typeInferenceConfig.isBlankStringsAsNull();
     }
-    LOGGER.debug("CsvEnumerator.converter: typeInferenceConfig={}, blankStringsAsNull={}", 
+    LOGGER.debug("CsvEnumerator.converter: typeInferenceConfig={}, blankStringsAsNull={}",
                 typeInferenceConfig, blankStringsAsNull);
-    
+
     // Always create CsvTypeConverter - no fallback needed
-    CsvTypeConverter typeConverter = new CsvTypeConverter(
-        new java.util.HashMap<>(), 
-        typeInferenceConfig != null ? typeInferenceConfig.getNullEquivalents() : NullEquivalents.DEFAULT_NULL_EQUIVALENTS, 
-        blankStringsAsNull
-    );
-    
+    CsvTypeConverter typeConverter =
+        new CsvTypeConverter(new java.util.HashMap<>(),
+        typeInferenceConfig != null ? typeInferenceConfig.getNullEquivalents() : NullEquivalents.DEFAULT_NULL_EQUIVALENTS,
+        blankStringsAsNull);
+
     if (fields.size() == 1) {
       final int field = fields.get(0);
       return new SingleColumnRowConverter(fieldTypes.get(field), field, blankStringsAsNull, typeConverter);
@@ -240,7 +226,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   public static RowConverter<@Nullable Object[]> arrayConverter(
-      List<RelDataType> fieldTypes, List<Integer> fields, boolean stream, boolean blankStringsAsNull, 
+      List<RelDataType> fieldTypes, List<Integer> fields, boolean stream, boolean blankStringsAsNull,
       @Nullable CsvTypeConverter typeConverter) {
     return new ArrayRowConverter(fieldTypes, fields, stream, blankStringsAsNull, typeConverter);
   }
@@ -266,7 +252,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
     try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext();
-      LOGGER.debug("[CsvEnumerator.deduceRowType] Read header: {}", 
+      LOGGER.debug("[CsvEnumerator.deduceRowType] Read header: {}",
                   (strings != null ? "length=" + strings.length + ", content=" + String.join(",", strings) : "null"));
       if (strings == null) {
         strings = new String[]{"EmptyFileHasNoColumns:boolean"};
@@ -362,19 +348,19 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   static CSVReader openCsv(Source source) throws IOException {
     requireNonNull(source, "source");
     LOGGER.debug("[CsvEnumerator.openCsv] Opening CSV from source: {}, protocol: {}", source.path(), source.protocol());
-    
+
     // Check if this is a TSV file based on the file extension
     if (source.path().endsWith(".tsv")) {
       return new CSVReaderBuilder(source.reader())
           .withCSVParser(new CSVParserBuilder().withSeparator('\t').build())
           .build();
     }
-    
+
     Reader reader = source.reader();
     LOGGER.debug("[CsvEnumerator.openCsv] Reader created: {}", (reader != null ? reader.getClass().getName() : "null"));
-    
+
     CSVReader csvReader = new CSVReaderBuilder(reader).build();
-    
+
     // Debug: Try to peek at the first line
     try {
       reader.mark(1000);
@@ -385,7 +371,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     } catch (Exception e) {
       LOGGER.debug("[CsvEnumerator.openCsv] Could not peek at reader: {}", e.getMessage());
     }
-    
+
     return csvReader;
   }
 
@@ -455,7 +441,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       }
     }
   }
-  
+
   /**
    * Pre-process string array to convert null representations to actual nulls.
    * This ensures that parsers won't fail on strings like "NULL", "NA", etc.
@@ -473,7 +459,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
     return result;
   }
-  
+
   /**
    * Determine if a string value should be converted to null during preprocessing.
    * For VARCHAR/CHAR fields, only convert if blankStringsAsNull is true.
@@ -482,7 +468,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private static boolean shouldConvertToNull(String value, int fieldIndex, RowConverter<?> rowConverter) {
     StackTraceElement[] stack = Thread.currentThread().getStackTrace();
     String caller = stack.length > 3 ? stack[3].getClassName() + "." + stack[3].getMethodName() : "unknown";
-    
+
     // Get the field type if available
     if (rowConverter instanceof ArrayRowConverter) {
       ArrayRowConverter arrayConverter = (ArrayRowConverter) rowConverter;
@@ -491,30 +477,30 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         org.apache.calcite.rel.type.RelDataType fieldType = arrayConverter.fieldTypes.get(fieldIndex);
         if (fieldType != null) {
           org.apache.calcite.sql.type.SqlTypeName sqlType = fieldType.getSqlTypeName();
-          LOGGER.info("[shouldConvertToNull] Field {} type info: sqlType={}, called from {}", 
+          LOGGER.info("[shouldConvertToNull] Field {} type info: sqlType={}, called from {}",
                       fieldIndex, sqlType, caller);
-          if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR || 
+          if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
               sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) {
             // For VARCHAR/CHAR fields, only convert empty strings to null if blankStringsAsNull is true
             if (value.trim().isEmpty()) {
               boolean convertToNull = arrayConverter.blankStringsAsNull;
-              LOGGER.info("[shouldConvertToNull] VARCHAR field {}: value='{}', blankStringsAsNull={}, convertToNull={}", 
+              LOGGER.info("[shouldConvertToNull] VARCHAR field {}: value='{}', blankStringsAsNull={}, convertToNull={}",
                           fieldIndex, value, arrayConverter.blankStringsAsNull, convertToNull);
               return convertToNull;
             }
             // For non-empty VARCHAR values, check explicit null markers only
             boolean isExplicitNull = NullEquivalents.DEFAULT_NULL_EQUIVALENTS.contains(value.trim().toUpperCase(java.util.Locale.ROOT));
-            LOGGER.debug("[shouldConvertToNull] VARCHAR field {}: non-empty value='{}', isExplicitNull={}", 
+            LOGGER.debug("[shouldConvertToNull] VARCHAR field {}: non-empty value='{}', isExplicitNull={}",
                         fieldIndex, value, isExplicitNull);
             return isExplicitNull;
           }
         }
       }
     }
-    
+
     // For non-VARCHAR fields or when type is unknown, use standard null representation logic
     boolean isNullRep = NullEquivalents.isNullRepresentation(value);
-    LOGGER.info("[shouldConvertToNull] Non-VARCHAR field {} called from {}: value='{}', isNullRepresentation={}", 
+    LOGGER.info("[shouldConvertToNull] Non-VARCHAR field {} called from {}: value='{}', isNullRepresentation={}",
                 fieldIndex, caller, value, isNullRep);
     return isNullRep;
   }
@@ -591,7 +577,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         return null;
       }
       LOGGER.debug("[ArrayRowConverter] Converting row with {} columns, need fields: {}", strings.length, fields);
-      
+
       final @Nullable Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         int field = fields.get(i);
@@ -620,14 +606,14 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     @SuppressWarnings("JavaUtilDate")
     private @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
       if (fieldType == null || string == null) {
-        LOGGER.debug("[ArrayRowConverter.convert] fieldType={}, string={} -> returning string as-is", 
-                    (fieldType != null ? fieldType.getSqlTypeName() : "null"), 
+        LOGGER.debug("[ArrayRowConverter.convert] fieldType={}, string={} -> returning string as-is",
+                    (fieldType != null ? fieldType.getSqlTypeName() : "null"),
                     (string != null ? "'" + string + "'" : "null"));
         return string;
       }
-      LOGGER.debug("[ArrayRowConverter.convert] Processing fieldType={}, string='{}', blankStringsAsNull={}", 
+      LOGGER.debug("[ArrayRowConverter.convert] Processing fieldType={}, string='{}', blankStringsAsNull={}",
                   fieldType.getSqlTypeName(), string, blankStringsAsNull);
-      
+
       // Always use CsvTypeConverter - no fallback needed
       LOGGER.debug("[ArrayRowConverter] Using CsvTypeConverter for fieldType={}, string='{}'", fieldType.getSqlTypeName(), string);
       Object result = typeConverter.convert(string, fieldType.getSqlTypeName());
@@ -708,7 +694,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       if (fieldType == null || string == null) {
         return string;
       }
-      
+
       return typeConverter.convert(string, fieldType.getSqlTypeName());
     }
   }

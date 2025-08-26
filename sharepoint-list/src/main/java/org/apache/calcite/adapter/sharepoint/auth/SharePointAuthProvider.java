@@ -23,7 +23,7 @@ import java.util.Map;
  * Interface for SharePoint authentication providers.
  * Allows pluggable authentication mechanisms including direct OAuth2,
  * auth proxy services, and custom enterprise implementations.
- * 
+ *
  * <p>Follows the same phased approach as the file adapter's HTTP auth:
  * <ul>
  *   <li>Phase 1: Simple static authentication (client credentials, certificates)</li>
@@ -32,7 +32,7 @@ import java.util.Map;
  * </ul>
  */
 public interface SharePointAuthProvider {
-  
+
   /**
    * Gets a valid access token for SharePoint API access.
    * Implementations should handle token refresh internally.
@@ -41,7 +41,7 @@ public interface SharePointAuthProvider {
    * @throws IOException if authentication fails
    */
   String getAccessToken() throws IOException;
-  
+
   /**
    * Gets additional headers to include in API requests.
    * For example, custom correlation IDs or proxy headers.
@@ -49,19 +49,19 @@ public interface SharePointAuthProvider {
    * @return Map of header names to values, or empty map
    */
   Map<String, String> getAdditionalHeaders();
-  
+
   /**
    * Invalidates the current token, forcing refresh on next request.
    */
   void invalidateToken();
-  
+
   /**
    * Gets the SharePoint site URL this provider is configured for.
    *
    * @return SharePoint site URL
    */
   String getSiteUrl();
-  
+
   /**
    * Determines if this provider supports the given API type.
    *
@@ -69,7 +69,7 @@ public interface SharePointAuthProvider {
    * @return true if the provider supports the API type
    */
   boolean supportsApiType(String apiType);
-  
+
   /**
    * Gets the tenant ID if available.
    *

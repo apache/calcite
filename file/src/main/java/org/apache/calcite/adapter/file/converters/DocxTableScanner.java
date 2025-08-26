@@ -61,14 +61,14 @@ public final class DocxTableScanner {
 
   /**
    * Scans a DOCX file and extracts all tables, converting them to JSON files.
-   * 
+   *
    * @param inputFile The DOCX file to scan
    * @param outputDir The directory to write JSON files to
    */
   public static void scanAndConvertTables(File inputFile, File outputDir) throws IOException {
     scanAndConvertTables(inputFile, outputDir, null);
   }
-  
+
   public static void scanAndConvertTables(File inputFile, File outputDir, String relativePath) throws IOException {
     LOGGER.debug("Scanning DOCX file for tables: " + inputFile.getName());
 
@@ -96,14 +96,14 @@ public final class DocxTableScanner {
       // Convert each table to JSON
       String baseName = inputFile.getName().replaceFirst("\\.[^.]+$", "").toLowerCase()
           .replaceAll("[^a-z0-9_]", "_");
-      
+
       // Include directory structure in the basename if relativePath is provided
       if (relativePath != null && relativePath.contains(File.separator)) {
         String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
             .replace(File.separator, "_");
         baseName = dirPrefix + "_" + baseName;
       }
-      
+
       ObjectMapper mapper = new ObjectMapper();
 
       for (int i = 0; i < tables.size(); i++) {
@@ -115,7 +115,7 @@ public final class DocxTableScanner {
 
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
-          
+
           // Record the conversion for refresh tracking - use schema directory for metadata
           ConversionRecorder.recordConversion(inputFile, jsonFile, "DOCX_TO_JSON", outputDir.getParentFile());
         }
