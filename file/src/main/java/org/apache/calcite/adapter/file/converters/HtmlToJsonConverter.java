@@ -468,22 +468,16 @@ public class HtmlToJsonConverter {
           .collect(Collectors.toList());
     }
     
-    // Fall back to first row td elements
-    Elements firstRowCells = table.select("tr:first-child td");
-    if (!firstRowCells.isEmpty()) {
-      return firstRowCells.stream()
-          .map(HtmlToJsonConverter::extractTextFromElement)
-          .collect(Collectors.toList());
-    }
-    
-    // Default headers if no headers found
+    // When no th elements found, generate default headers
+    // DO NOT use first row td elements as headers - they are data!
     List<String> defaultHeaders = new ArrayList<>();
     int maxCells = table.select("tr").stream()
-        .mapToInt(row -> row.select("td").size())
+        .mapToInt(row -> row.select("td, th").size())
         .max()
         .orElse(0);
     for (int i = 0; i < maxCells; i++) {
-      defaultHeaders.add("column" + (i + 1));
+      // Use col0, col1, col2 format to match expected behavior
+      defaultHeaders.add("col" + i);
     }
     return defaultHeaders;
   }
@@ -498,23 +492,15 @@ public class HtmlToJsonConverter {
           .collect(Collectors.toList());
     }
     
-    // Fall back to first row td elements
-    Elements firstRowCells = table.select("tr:first-child td");
-    if (!firstRowCells.isEmpty()) {
-      return firstRowCells.stream()
-          .map(element -> extractTextFromElement(element))
-          .map(header -> ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing)))
-          .collect(Collectors.toList());
-    }
-    
-    // Default headers if no headers found
+    // No th elements found - generate default headers
+    // Use col0, col1, col2 format to match expected behavior
     List<String> defaultHeaders = new ArrayList<>();
     int maxCells = table.select("tr").stream()
-        .mapToInt(row -> row.select("td").size())
+        .mapToInt(row -> row.select("td, th").size())
         .max()
         .orElse(0);
     for (int i = 0; i < maxCells; i++) {
-      String defaultHeader = "column" + (i + 1);
+      String defaultHeader = "col" + i;
       defaultHeaders.add(ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(defaultHeader, columnNameCasing)));
     }
     return defaultHeaders;
@@ -524,14 +510,10 @@ public class HtmlToJsonConverter {
    * Determines if the first row should be skipped (used as headers).
    */
   private static boolean shouldSkipFirstRow(Element table, List<String> headers) {
-    // Skip first row if it contains headers (either th or td elements that were used for headers)
+    // Only skip first row if it contains th elements (actual header row)
+    // Do NOT skip first row when it contains td elements (data row)
     Elements firstRowTh = table.select("tr:first-child th");
-    if (!firstRowTh.isEmpty()) {
-      return true; // First row has th elements, so it's a header row - skip it
-    }
-    
-    Elements firstRowTd = table.select("tr:first-child td");
-    return !firstRowTd.isEmpty() && !headers.isEmpty();
+    return !firstRowTh.isEmpty();
   }
 
   /**
