@@ -123,11 +123,38 @@ public class HtmlToJsonConverter {
     Document doc = Jsoup.parse(htmlFile, "UTF-8");
     Elements tables = doc.select("table");
     
-    // If explicit table name is provided and there's exactly one table, use it
-    if (explicitTableName != null && tableInfos.size() == 1 && tables.size() > 0) {
-      Element table = tables.get(0);
+    // If explicit table name is provided, select appropriate table and use the explicit name
+    if (explicitTableName != null && tables.size() > 0) {
+      Element selectedTable;
+      
+      if (tables.size() == 1) {
+        // Single table - use it
+        selectedTable = tables.get(0);
+      } else {
+        // Multiple tables - select the largest one (most columns)
+        selectedTable = tables.get(0);
+        int maxColumns = selectedTable.select("tr").stream()
+            .mapToInt(row -> row.select("td, th").size())
+            .max()
+            .orElse(0);
+        
+        for (int i = 1; i < tables.size(); i++) {
+          Element table = tables.get(i);
+          int columns = table.select("tr").stream()
+              .mapToInt(row -> row.select("td, th").size())
+              .max()
+              .orElse(0);
+          if (columns > maxColumns) {
+            maxColumns = columns;
+            selectedTable = table;
+          }
+        }
+        LOGGER.info("Selected table with " + maxColumns + " columns from " + tables.size() 
+            + " tables for explicit name '" + explicitTableName + "'");
+      }
+      
       File jsonFile = new File(outputDir, explicitTableName + ".json");
-      writeTableAsJson(table, jsonFile, columnNameCasing);
+      writeTableAsJson(selectedTable, jsonFile, columnNameCasing);
       jsonFiles.add(jsonFile);
       
       // Update or create conversion record with explicit table name
@@ -139,7 +166,7 @@ public class HtmlToJsonConverter {
       }
       
       LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath() + " with explicit name: " + explicitTableName);
-    } else {
+    } else if (explicitTableName == null) {
       // Use the original logic for multiple tables or no explicit name
       for (int i = 0; i < tableInfos.size() && i < tables.size(); i++) {
         HtmlTableScanner.TableInfo tableInfo = tableInfos.get(i);
