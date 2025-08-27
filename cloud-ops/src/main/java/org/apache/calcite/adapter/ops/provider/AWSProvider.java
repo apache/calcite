@@ -38,6 +38,8 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.*;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -64,7 +66,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
  */
 public class AWSProvider implements CloudProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(AWSProvider.class);
-  
+
   private final CloudOpsConfig.AWSConfig config;
   private final Region region;
   private final AwsCredentials baseCredentials;
@@ -156,16 +158,17 @@ public class AWSProvider implements CloudProvider {
                                                           @Nullable CloudOpsSortHandler sortHandler,
                                                           @Nullable CloudOpsPaginationHandler paginationHandler,
                                                           @Nullable CloudOpsFilterHandler filterHandler) {
-    
+
     // Build comprehensive cache key including all optimization parameters
-    String cacheKey = CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "kubernetes_clusters",
-        projectionHandler, sortHandler, paginationHandler, filterHandler, accountIds);
-    
+    String cacheKey =
+        CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "kubernetes_clusters", projectionHandler, sortHandler, paginationHandler, filterHandler, accountIds);
+
     // Check if caching is beneficial for this query
     boolean shouldCache = CloudOpsCacheManager.shouldCache(filterHandler, paginationHandler);
-    
+
     if (shouldCache) {
-      return cacheManager.getOrCompute(cacheKey, () -> executeKubernetesClusterQuery(
+      return cacheManager.getOrCompute(
+          cacheKey, () -> executeKubernetesClusterQuery(
           accountIds, projectionHandler, sortHandler, paginationHandler, filterHandler));
     } else {
       // Execute directly without caching for highly specific queries
@@ -192,7 +195,7 @@ public class AWSProvider implements CloudProvider {
         CloudOpsProjectionHandler.ProjectionMetrics metrics = projectionHandler.calculateMetrics();
         LOGGER.debug("AWS EKS querying with client-side projection: {}", metrics);
       }
-      
+
       if (filterHandler != null && filterHandler.hasPushableFilters()) {
         CloudOpsFilterHandler.FilterMetrics metrics = filterHandler.calculateMetrics(true, filterParams.size());
         LOGGER.debug("AWS EKS with filter parameters: {} -> {}", filterParams.keySet(), metrics);
@@ -255,7 +258,7 @@ public class AWSProvider implements CloudProvider {
 
           // Build full cluster data (no server-side projection available)
           Map<String, Object> clusterData = buildClusterData(accountId, cluster);
-          
+
           // Apply client-side filtering for non-pushable filters
           if (filterHandler == null || passesClientSideFilters(clusterData, filterHandler)) {
             results.add(clusterData);
@@ -263,11 +266,11 @@ public class AWSProvider implements CloudProvider {
         }
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for EKS clusters in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for EKS clusters in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying EKS clusters in account {}: {}",
@@ -388,16 +391,17 @@ public class AWSProvider implements CloudProvider {
                                                          @Nullable CloudOpsSortHandler sortHandler,
                                                          @Nullable CloudOpsPaginationHandler paginationHandler,
                                                          @Nullable CloudOpsFilterHandler filterHandler) {
-    
+
     // Build comprehensive cache key including all optimization parameters
-    String cacheKey = CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "storage_resources",
-        projectionHandler, sortHandler, paginationHandler, filterHandler, accountIds);
-    
+    String cacheKey =
+        CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "storage_resources", projectionHandler, sortHandler, paginationHandler, filterHandler, accountIds);
+
     // Check if caching is beneficial for this query
     boolean shouldCache = CloudOpsCacheManager.shouldCache(filterHandler, paginationHandler);
-    
+
     if (shouldCache) {
-      return cacheManager.getOrCompute(cacheKey, () -> executeStorageResourceQuery(
+      return cacheManager.getOrCompute(
+          cacheKey, () -> executeStorageResourceQuery(
           accountIds, projectionHandler, sortHandler, paginationHandler, filterHandler));
     } else {
       // Execute directly without caching for highly specific queries
@@ -417,19 +421,20 @@ public class AWSProvider implements CloudProvider {
     boolean needsBasicInfo = true; // Always need basic info
     boolean needsLocation = isFieldProjected(projectionHandler, "region", "Location");
     boolean needsTags = isFieldProjected(projectionHandler, "application", "Application", "tags");
-    boolean needsEncryption = isFieldProjected(projectionHandler, "encryption_enabled", "encryption_type", 
-                                              "encryption_key_type", "EncryptionEnabled", "EncryptionType", "KmsKeyId");
-    boolean needsPublicAccess = isFieldProjected(projectionHandler, "public_access_enabled", "public_access_level",
-                                                "PublicAccessBlocked");
+    boolean needsEncryption =
+                                              isFieldProjected(projectionHandler, "encryption_enabled", "encryption_type", "encryption_key_type", "EncryptionEnabled", "EncryptionType", "KmsKeyId");
+    boolean needsPublicAccess =
+                                                isFieldProjected(projectionHandler, "public_access_enabled", "public_access_level", "PublicAccessBlocked");
     boolean needsVersioning = isFieldProjected(projectionHandler, "versioning_enabled", "VersioningEnabled");
     boolean needsLifecycle = isFieldProjected(projectionHandler, "lifecycle_rules_count", "LifecycleRuleCount");
-    
+    boolean needsSizeMetrics = isFieldProjected(projectionHandler, "size_bytes", "SizeBytes", "size_gb", "SizeGB");
+
     // Log optimization decisions
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("AWS S3 query optimization - Fetching: basic={}, location={}, tags={}, encryption={}, " +
-                   "publicAccess={}, versioning={}, lifecycle={}",
-                   needsBasicInfo, needsLocation, needsTags, needsEncryption, 
-                   needsPublicAccess, needsVersioning, needsLifecycle);
+                   "publicAccess={}, versioning={}, lifecycle={}, sizeMetrics={}",
+                   needsBasicInfo, needsLocation, needsTags, needsEncryption,
+                   needsPublicAccess, needsVersioning, needsLifecycle, needsSizeMetrics);
     }
 
     for (String accountId : accountIds) {
@@ -445,22 +450,22 @@ public class AWSProvider implements CloudProvider {
         // List buckets with pagination support
         ListBucketsRequest listRequest = ListBucketsRequest.builder().build();
         ListBucketsResponse listBucketsResponse = s3Client.listBuckets(listRequest);
-        
+
         List<Bucket> buckets = listBucketsResponse.buckets();
-        
+
         // Apply default pagination limit if no specific limit is set
         int maxBuckets = 100; // Default limit to prevent API overload
         if (paginationHandler != null && paginationHandler.hasPagination()) {
           maxBuckets = Math.min((int)paginationHandler.getLimit(), maxBuckets);
         }
-        
+
         int bucketCount = 0;
         for (Bucket bucket : buckets) {
           if (bucketCount >= maxBuckets) {
             LOGGER.debug("Reached pagination limit of {} buckets for account {}", maxBuckets, accountId);
             break;
           }
-          
+
           Map<String, Object> storageData = new HashMap<>();
 
           // Always include basic identity fields (low cost)
@@ -572,6 +577,20 @@ public class AWSProvider implements CloudProvider {
               storageData.put("LifecycleRuleCount", null);
             }
 
+            // Only fetch size metrics if needed (expensive CloudWatch API call)
+            if (needsSizeMetrics) {
+              Long sizeBytes = fetchBucketSizeFromCloudWatch(accountId, bucket.name(), credentials);
+              storageData.put("SizeBytes", sizeBytes);
+              if (sizeBytes != null) {
+                storageData.put("SizeGB", sizeBytes / (1024.0 * 1024.0 * 1024.0));
+              } else {
+                storageData.put("SizeGB", null);
+              }
+            } else {
+              storageData.put("SizeBytes", null);
+              storageData.put("SizeGB", null);
+            }
+
           } catch (Exception e) {
             // Error getting bucket details, still add basic info
             LOGGER.debug("Error getting details for bucket " + bucket.name() + ": " + e.getMessage());
@@ -582,11 +601,11 @@ public class AWSProvider implements CloudProvider {
         }
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for S3 buckets in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for S3 buckets in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying S3 buckets in account {}: {}",
@@ -597,12 +616,13 @@ public class AWSProvider implements CloudProvider {
 
     // Log performance metrics
     if (LOGGER.isDebugEnabled()) {
-      int totalApiCalls = results.size() * 
-          (1 + (needsLocation ? 1 : 0) + (needsTags ? 1 : 0) + (needsEncryption ? 1 : 0) + 
-           (needsPublicAccess ? 1 : 0) + (needsVersioning ? 1 : 0) + (needsLifecycle ? 1 : 0));
-      int maxPossibleApiCalls = results.size() * 7; // All API calls for all buckets
+      int totalApiCalls = results.size() *
+          (1 + (needsLocation ? 1 : 0) + (needsTags ? 1 : 0) + (needsEncryption ? 1 : 0) +
+           (needsPublicAccess ? 1 : 0) + (needsVersioning ? 1 : 0) + (needsLifecycle ? 1 : 0) + 
+           (needsSizeMetrics ? 1 : 0));
+      int maxPossibleApiCalls = results.size() * 8; // All API calls for all buckets (including CloudWatch)
       double reductionPercent = (1.0 - (double)totalApiCalls / maxPossibleApiCalls) * 100;
-      
+
       LOGGER.debug("AWS S3 query completed: {} buckets, {} API calls (vs {} max), {:.1f}% reduction",
                    results.size(), totalApiCalls, maxPossibleApiCalls, reductionPercent);
     }
@@ -617,7 +637,7 @@ public class AWSProvider implements CloudProvider {
     if (projectionHandler == null || projectionHandler.isSelectAll()) {
       return true; // All fields are needed for SELECT *
     }
-    
+
     List<String> projectedFields = projectionHandler.getProjectedFieldNames();
     for (String fieldName : fieldNames) {
       if (projectedFields.contains(fieldName)) {
@@ -698,11 +718,11 @@ public class AWSProvider implements CloudProvider {
         }
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for EC2 instances in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for EC2 instances in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying EC2 instances in account {}: {}",
@@ -820,11 +840,11 @@ public class AWSProvider implements CloudProvider {
 
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for network resources in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for network resources in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying network resources in account {}: {}",
@@ -971,11 +991,11 @@ public class AWSProvider implements CloudProvider {
 
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for IAM resources in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for IAM resources in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying IAM resources in account {}: {}",
@@ -1219,11 +1239,11 @@ public class AWSProvider implements CloudProvider {
 
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for database resources in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for database resources in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying database resources in account {}: {}",
@@ -1279,11 +1299,11 @@ public class AWSProvider implements CloudProvider {
         }
       } catch (Exception e) {
         String errorMessage = e.getMessage();
-        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+        if (errorMessage != null && (errorMessage.contains("not authorized") ||
                                      errorMessage.contains("AccessDenied") ||
                                      errorMessage.contains("UnauthorizedOperation") ||
                                      errorMessage.contains("Forbidden"))) {
-          LOGGER.warn("Authorization denied for ECR repositories in account {} - results may be incomplete: {}", 
+          LOGGER.warn("Authorization denied for ECR repositories in account {} - results may be incomplete: {}",
                      accountId, errorMessage);
         } else {
           LOGGER.debug("Error querying ECR repositories in account {}: {}",
@@ -1301,13 +1321,13 @@ public class AWSProvider implements CloudProvider {
   private boolean passesClientSideFilters(Map<String, Object> data, CloudOpsFilterHandler filterHandler) {
     // For now, implement basic filtering logic
     // This would be enhanced to handle all remaining filters that weren't pushed down
-    
+
     // Check application filters (tag-based)
     List<CloudOpsFilterHandler.FilterInfo> appFilters = filterHandler.getFiltersForField("application");
     for (CloudOpsFilterHandler.FilterInfo filter : appFilters) {
       Object appValue = data.get("Application");
       if (appValue == null) appValue = "Untagged/Orphaned";
-      
+
       switch (filter.operation) {
         case EQUALS:
           if (!appValue.toString().equals(filter.value.toString())) {
@@ -1350,7 +1370,7 @@ public class AWSProvider implements CloudProvider {
     for (CloudOpsFilterHandler.FilterInfo filter : nameFilters) {
       Object nameValue = data.get("ClusterName");
       if (nameValue == null) continue;
-      
+
       switch (filter.operation) {
         case EQUALS:
           if (!nameValue.toString().equals(filter.value.toString())) {
@@ -1394,7 +1414,7 @@ public class AWSProvider implements CloudProvider {
   public void invalidateAccountCache(String accountId) {
     // For now, invalidate all cache entries - in production, you might want more granular invalidation
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Invalidated AWS cache for account: {}", accountId);
     }
@@ -1406,7 +1426,7 @@ public class AWSProvider implements CloudProvider {
   public void invalidateRegionCache(String region) {
     // For now, invalidate all cache entries - in production, you might want more granular invalidation
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Invalidated AWS cache for region: {}", region);
     }
@@ -1417,9 +1437,68 @@ public class AWSProvider implements CloudProvider {
    */
   public void invalidateAllCache() {
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isInfoEnabled()) {
       LOGGER.info("Invalidated all AWS cache entries");
+    }
+  }
+
+  /**
+   * Fetch S3 bucket size from CloudWatch metrics.
+   * This is expensive and should only be called when size_bytes is projected.
+   */
+  private Long fetchBucketSizeFromCloudWatch(String accountId, String bucketName, AwsCredentials credentials) {
+    try {
+      CloudWatchClient cloudWatchClient = CloudWatchClient.builder()
+          .region(region)
+          .credentialsProvider(StaticCredentialsProvider.create(credentials))
+          .build();
+
+      // Get the bucket size metric from CloudWatch
+      Dimension bucketNameDimension = Dimension.builder()
+          .name("BucketName")
+          .value(bucketName)
+          .build();
+
+      Dimension storageTypeDimension = Dimension.builder()
+          .name("StorageType")
+          .value("StandardStorage") // Could also be "StandardIAStorage", "ReducedRedundancyStorage"
+          .build();
+
+      // Get the most recent metric data point (last 7 days)
+      java.time.Instant endTime = java.time.Instant.now();
+      java.time.Instant startTime = endTime.minus(java.time.Duration.ofDays(7));
+
+      GetMetricStatisticsRequest request = GetMetricStatisticsRequest.builder()
+          .namespace("AWS/S3")
+          .metricName("BucketSizeBytes")
+          .dimensions(bucketNameDimension, storageTypeDimension)
+          .startTime(startTime)
+          .endTime(endTime)
+          .period(86400) // Daily data points
+          .statistics(Statistic.MAXIMUM) // Use maximum value
+          .build();
+
+      GetMetricStatisticsResponse response = cloudWatchClient.getMetricStatistics(request);
+
+      // Get the most recent datapoint
+      if (!response.datapoints().isEmpty()) {
+        Datapoint latestDatapoint = response.datapoints().stream()
+            .max(java.util.Comparator.comparing(Datapoint::timestamp))
+            .orElse(null);
+
+        if (latestDatapoint != null) {
+          return latestDatapoint.maximum().longValue();
+        }
+      }
+
+      LOGGER.debug("No CloudWatch size metrics found for bucket {} in account {}", bucketName, accountId);
+      return null;
+
+    } catch (Exception e) {
+      LOGGER.debug("Error fetching CloudWatch metrics for bucket {} in account {}: {}", 
+                  bucketName, accountId, e.getMessage());
+      return null;
     }
   }
 }
