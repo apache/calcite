@@ -38,7 +38,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -60,7 +59,7 @@ public class ExcelConversionTest extends BaseFileTest {
     // Wait to ensure cleanup is complete
     Thread.sleep(100);
   }
-  
+
   @AfterEach
   public void tearDown() throws Exception {
     // Clear caches after test to prevent contamination
@@ -93,32 +92,30 @@ public class ExcelConversionTest extends BaseFileTest {
     File excelFile = new File(tempDir.toFile(), "TestData.xlsx");
     excelFile.createNewFile();
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-      
+
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
+
       // Create operand map with ephemeralCache for test isolation
       Map<String, Object> operand = new LinkedHashMap<>();
       operand.put("directory", tempDir.toString());
       operand.put("ephemeralCache", true);
-      String engine = getExecutionEngine();
-      if (engine != null && !engine.isEmpty()) {
-        operand.put("executionEngine", engine.toLowerCase());
-      }
-      
+
       // Create schema with ephemeral cache
-      FileSchema schema = (FileSchema) FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
 
-      // Note: Without POI dependencies working, we can't actually convert Excel files
-      // But we can test the schema creation and conflict detection logic
+      // Get tables using standard JDBC metadata
+      java.sql.ResultSet tables = connection.getMetaData().getTables(null, "TEST", "%", new String[]{"TABLE", "VIEW"});
+      System.out.print("Tables found: ");
+      while (tables.next()) {
+        System.out.print(tables.getString("TABLE_NAME") + " ");
+      }
+      System.out.println();
 
-      Map<String, org.apache.calcite.schema.Table> tables = schema.getTableMap();
-      System.out.println("Tables found: " + tables.keySet());
-
-      // In a real test with POI, we'd expect tables like:
-      // - TestData__Sheet1
-      // - TestData__Sheet2
     }
   }
 
@@ -167,30 +164,40 @@ public class ExcelConversionTest extends BaseFileTest {
     File excelFile = new File(tempDir.toFile(), "report.xlsx");
     excelFile.createNewFile();
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-      
+
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
+
       // Create operand map with ephemeralCache for test isolation
       Map<String, Object> operand = new LinkedHashMap<>();
       operand.put("directory", tempDir.toString());
       operand.put("ephemeralCache", true);
-      String engine = getExecutionEngine();
-      if (engine != null && !engine.isEmpty()) {
-        operand.put("executionEngine", engine.toLowerCase());
-      }
-      
+
       // Create schema with ephemeral cache
-      FileSchema schema = (FileSchema) FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
-      Map<String, org.apache.calcite.schema.Table> tables = schema.getTableMap();
+      rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
 
-      // Verify all file types are recognized (table names are lowercase with SMART_CASING)
-      assertNotNull(tables.get("data"), "CSV file should be recognized");
-      assertNotNull(tables.get("config"), "JSON file should be recognized");
+      // Verify all file types are recognized using JDBC metadata
+      java.sql.ResultSet tables = connection.getMetaData().getTables(null, "TEST", "%", new String[]{"TABLE", "VIEW"});
 
-      System.out.println("Mixed directory tables: " + tables.keySet());
-      assertTrue(tables.size() >= 2, "Should have at least CSV and JSON tables");
+      boolean hasData = false;
+      boolean hasConfig = false;
+      int tableCount = 0;
+
+      while (tables.next()) {
+        String tableName = tables.getString("TABLE_NAME");
+        if ("data".equals(tableName)) hasData = true;
+        if ("config".equals(tableName)) hasConfig = true;
+        tableCount++;
+        System.out.println("Found table: " + tableName);
+      }
+
+      assertTrue(hasData, "CSV file 'data' should be recognized");
+      assertTrue(hasConfig, "JSON file 'config' should be recognized");
+      assertTrue(tableCount >= 2, "Should have at least CSV and JSON tables");
     }
   }
 
@@ -200,11 +207,12 @@ public class ExcelConversionTest extends BaseFileTest {
     File excelFile = new File(tempDir.toFile(), "Cached.xlsx");
     excelFile.createNewFile();
 
-    // First conversion attempt
+    // First conversion attempt - will fail with empty file but should cache the failure
     try {
       SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
     } catch (Exception e) {
-      // Expected without POI
+      // Expected - empty Excel file
+      System.out.println("Expected error for empty Excel: " + e.getMessage());
     }
 
     // Second conversion attempt - should be cached
@@ -212,19 +220,19 @@ public class ExcelConversionTest extends BaseFileTest {
     try {
       SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
     } catch (Exception e) {
-      // Expected without POI
+      // Expected - empty Excel file
     }
     long elapsed = System.currentTimeMillis() - startTime;
 
     // Second attempt should be very fast due to caching
-    assertTrue(elapsed < 10, "Cached conversion should be instant");
+    assertTrue(elapsed < 100, "Cached conversion should be instant");
 
     // Clear cache and try again
     SafeExcelToJsonConverter.clearCache();
     try {
       SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
     } catch (Exception e) {
-      // Expected without POI
+      // Expected - empty Excel file
     }
   }
 

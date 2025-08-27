@@ -42,7 +42,6 @@ public class UniqueFileJoinTest extends BaseFileTest {
     // Create unique temporary directory and files
     File tempDir = new File(System.getProperty("java.io.tmpdir"), "test-" + System.nanoTime());
     tempDir.mkdirs();
-    String uniqueId = String.valueOf(System.nanoTime());
     
     try {
       // Create unique EMPS file with predictable table name
@@ -114,19 +113,20 @@ public class UniqueFileJoinTest extends BaseFileTest {
         writer.write("</html>\n");
       }
 
-      // Create a model that uses our unique files
-      String model = createUniqueModel(tempDir, uniqueId);
+      // Create a model that uses our unique files with ephemeralCache for test isolation
+      String model = createUniqueModel(tempDir);
+      String modelWithCache = addEphemeralCacheToModel(model);
       
       Properties info = new Properties();
-      info.setProperty("model", "inline:" + model);
-      info.setProperty("lex", "ORACLE");
-      info.setProperty("unquotedCasing", "TO_LOWER");
+      info.setProperty("model", "inline:" + modelWithCache);
+      applyEngineDefaults(info); // Apply default connection properties for consistency
       
       try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
            Statement statement = connection.createStatement()) {
         
         // Verify we can access the tables (they get the __t1 suffix from the file adapter)
-        ResultSet tables = connection.getMetaData().getTables(null, "SALES", null, new String[]{"TABLE"});
+        // Note: DuckDB returns VIEWs not TABLEs for these entries
+        ResultSet tables = connection.getMetaData().getTables(null, "SALES", null, new String[]{"TABLE", "VIEW"});
         boolean foundEmps = false, foundDepts = false;
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
@@ -178,12 +178,14 @@ public class UniqueFileJoinTest extends BaseFileTest {
     }
   }
   
-  private String createUniqueModel(File tempDir, String uniqueId) {
+  private String createUniqueModel(File tempDir) {
     String engineLine = "";
     String engine = getExecutionEngine();
     if (engine != null && !engine.isEmpty()) {
       engineLine = "        \"executionEngine\": \"" + engine.toLowerCase() + "\",\n";
     }
+    // Note: ephemeralCache will be added by addEphemeralCacheToModel() for test isolation
+    // This ensures each test run gets its own temporary cache directory
     return "{\n" +
            "  \"version\": \"1.0\",\n" +
            "  \"defaultSchema\": \"SALES\",\n" +
@@ -194,7 +196,6 @@ public class UniqueFileJoinTest extends BaseFileTest {
            "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n" +
            "      \"operand\": {\n" +
            "        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n" +
-           "        \"baseDirectory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n" +
            engineLine +
            "        \"flavor\": \"TRANSLATABLE\"\n" +
            "      }\n" +
@@ -215,8 +216,7 @@ public class UniqueFileJoinTest extends BaseFileTest {
       }
       directory.delete();
     } catch (Exception e) {
-      // Ignore cleanup failures
-      System.err.println("Warning: Could not delete temp file: " + directory + " (not a test failure)");
+      // Ignore cleanup failures - not a test failure
     }
   }
 }

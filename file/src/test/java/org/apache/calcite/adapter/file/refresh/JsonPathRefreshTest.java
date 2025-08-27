@@ -316,8 +316,7 @@ public class JsonPathRefreshTest extends BaseFileTest {
   private Connection createConnection(Properties info) throws Exception {
     String url = "jdbc:calcite:";
     Properties connectionProperties = new Properties();
-    connectionProperties.setProperty("lex", "ORACLE");
-    connectionProperties.setProperty("unquotedCasing", "TO_LOWER");
+    applyEngineDefaults(connectionProperties);
     
     // File adapter configuration
     StringBuilder model = new StringBuilder();

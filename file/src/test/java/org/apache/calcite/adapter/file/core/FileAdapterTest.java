@@ -750,9 +750,10 @@ public class FileAdapterTest {
     final String sql = "SELECT d.\"name\", COUNT(*) \"cnt\""
         + " FROM \"SALES\".emps AS e"
         + " JOIN \"SALES\".depts AS d ON e.\"deptno\" = d.\"deptno\""
-        + " GROUP BY d.\"name\"";
+        + " GROUP BY d.\"name\""
+        + " ORDER BY d.\"name\"";
     sql("smart", sql)
-        .returns("name=Sales; cnt=1", "name=Marketing; cnt=2").ok();
+        .returns("name=Marketing; cnt=2", "name=Sales; cnt=1").ok();
   }
 
   /** Test case for

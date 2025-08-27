@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
-
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
@@ -39,9 +36,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test that Parquet files work as regular input files in the file adapter.
  */
 @Tag("unit")
-public class ParquetFileTest {
+public class ParquetFileTest extends BaseFileTest {
   @TempDir
   java.nio.file.Path tempDir;
 
@@ -122,32 +118,43 @@ public class ParquetFileTest {
   @Test public void testQueryParquetFileDirectly() throws Exception {
     System.out.println("\n=== TESTING PARQUET FILE AS INPUT ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConnection =
-             connection.unwrap(CalciteConnection.class)) {
+    // Create model with ephemeralCache for test isolation
+    String model = "{"
+        + "  \"version\": \"1.0\","
+        + "  \"defaultSchema\": \"PARQUET_TEST\","
+        + "  \"schemas\": ["
+        + "    {"
+        + "      \"name\": \"PARQUET_TEST\","
+        + "      \"type\": \"custom\","
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\","
+        + "      \"operand\": {"
+        + "        \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\","
+        + "        \"ephemeralCache\": true"
+        + "      }"
+        + "    }"
+        + "  ]"
+        + "}";
 
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    Properties connectionProps = new Properties();
+    connectionProps.setProperty("model", "inline:" + model);
+    applyEngineDefaults(connectionProps);
 
-      // Configure file schema to read Parquet files
-      Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
-
-      System.out.println(
-          "\n1. Creating schema with directory containing Parquet file");
-      SchemaPlus fileSchema =
-          rootSchema.add("PARQUET_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_TEST", operand));
+    System.out.println("\n1. Creating connection with model containing Parquet file");
+    
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps)) {
 
       try (Statement stmt = connection.createStatement()) {
-        // List all available tables
+        // List all available tables (DuckDB creates VIEWs not TABLEs)
         System.out.println("\n2. Listing all tables in schema:");
         ResultSet tables =
-            connection.getMetaData().getTables(null, "PARQUET_TEST", "%", null);
+            connection.getMetaData().getTables(null, "PARQUET_TEST", "%", new String[]{"TABLE", "VIEW"});
 
         System.out.println("   Available tables:");
         boolean foundEmployees = false;
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
-          System.out.println("   - " + tableName);
+          String tableType = tables.getString("TABLE_TYPE");
+          System.out.println("   - " + tableName + " (" + tableType + ")");
           if (tableName.equals("employees")) {
             foundEmployees = true;
           }
@@ -160,7 +167,7 @@ public class ParquetFileTest {
         // Query the Parquet file
         System.out.println("\n3. Querying the Parquet file:");
         ResultSet rs =
-            stmt.executeQuery("SELECT * FROM PARQUET_TEST.\"employees\" ORDER BY \"id\"");
+            stmt.executeQuery("SELECT * FROM \"PARQUET_TEST\".\"employees\" ORDER BY \"id\"");
 
         System.out.println("   ID | Name     | Department  | Salary");
         System.out.println("   ---|----------|-------------|--------");
@@ -183,7 +190,7 @@ public class ParquetFileTest {
         System.out.println("\n4. Testing aggregation query on Parquet file:");
         ResultSet aggRs =
             stmt.executeQuery("SELECT \"department\", COUNT(*) as emp_count, AVG(\"salary\") as avg_salary "
-            + "FROM PARQUET_TEST.\"employees\" "
+            + "FROM \"PARQUET_TEST\".\"employees\" "
             + "GROUP BY \"department\" "
             + "ORDER BY \"department\"");
 
@@ -205,35 +212,44 @@ public class ParquetFileTest {
   @Test public void testParquetFileWithExplicitFormat() throws Exception {
     System.out.println("\n=== TESTING PARQUET FILE WITH EXPLICIT FORMAT ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConnection =
-             connection.unwrap(CalciteConnection.class)) {
+    // Create model with explicit table mapping and ephemeralCache for test isolation
+    String parquetPath = new File(tempDir.toFile(), "employees.parquet").getAbsolutePath().replace("\\", "\\\\");
+    String model = "{"
+        + "  \"version\": \"1.0\","
+        + "  \"defaultSchema\": \"PARQUET_EXPLICIT\","
+        + "  \"schemas\": ["
+        + "    {"
+        + "      \"name\": \"PARQUET_EXPLICIT\","
+        + "      \"type\": \"custom\","
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\","
+        + "      \"operand\": {"
+        + "        \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\","
+        + "        \"ephemeralCache\": true,"
+        + "        \"tables\": ["
+        + "          {"
+        + "            \"name\": \"emp_data\","
+        + "            \"url\": \"" + parquetPath + "\","
+        + "            \"format\": \"parquet\""
+        + "          }"
+        + "        ]"
+        + "      }"
+        + "    }"
+        + "  ]"
+        + "}";
 
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    Properties connectionProps = new Properties();
+    connectionProps.setProperty("model", "inline:" + model);
+    applyEngineDefaults(connectionProps);
 
-      // Configure file schema with explicit table mapping
-      Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
-
-      // Create explicit table mapping
-      Map<String, Object> tableMapping = new HashMap<>();
-      tableMapping.put("name", "emp_data");
-      tableMapping.put("url",
-          new File(tempDir.toFile(), "employees.parquet").getAbsolutePath());
-      tableMapping.put("format", "parquet");
-
-      operand.put("tables", java.util.Arrays.asList(tableMapping));
-
-      System.out.println(
-          "\n1. Creating schema with explicit Parquet table mapping");
-      SchemaPlus fileSchema =
-          rootSchema.add("PARQUET_EXPLICIT", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_EXPLICIT", operand));
+    System.out.println("\n1. Creating connection with explicit Parquet table mapping");
+    
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps)) {
 
       try (Statement stmt = connection.createStatement()) {
         // Query the explicitly mapped Parquet file
         System.out.println("\n2. Querying the explicitly mapped Parquet file:");
         ResultSet rs =
-            stmt.executeQuery("SELECT * FROM PARQUET_EXPLICIT.\"emp_data\" "
+            stmt.executeQuery("SELECT * FROM \"PARQUET_EXPLICIT\".\"emp_data\" "
             + "WHERE \"salary\" > 100000 ORDER BY \"salary\" DESC");
 
         System.out.println("   High earners (salary > 100k):");
