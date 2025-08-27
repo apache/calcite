@@ -24,7 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +48,7 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Test demonstrating materialized view functionality using the materializations operand.
@@ -57,11 +57,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class MaterializationTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(MaterializationTest.class);
   
-  @TempDir
-  Path tempDir;
+  private File tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Skip for engines that don't support materialized views
+    String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    assumeFalse(engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr)),
+        "Skipping materialized view test for " + engineStr + " engine (not supported)");
+        
+    tempDir = Files.createTempDirectory("materialization-test-").toFile();
+    
     // Clear any static caches that might interfere with test isolation
     Sources.clearFileCache();
     // Force garbage collection to release any file handles
@@ -75,6 +81,23 @@ public class MaterializationTest {
     Sources.clearFileCache();
     // Force cleanup to help with temp directory deletion
     forceCleanup();
+    
+    // Clean up temp directory
+    if (tempDir != null && tempDir.exists()) {
+      deleteDirectory(tempDir);
+    }
+  }
+  
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
   }
 
   /**
@@ -93,7 +116,7 @@ public class MaterializationTest {
 
   private void createTestData() throws Exception {
     // Create sales data
-    File salesCsv = new File(tempDir.toFile(), "sales.csv");
+    File salesCsv = new File(tempDir, "sales.csv");
     try (FileWriter writer = new FileWriter(salesCsv, StandardCharsets.UTF_8)) {
       writer.write("date:string,product:string,quantity:int,price:double\n");
       writer.write("2024-01-01,Widget,10,25.50\n");
@@ -105,7 +128,7 @@ public class MaterializationTest {
     }
 
     // Create products data
-    File productsCsv = new File(tempDir.toFile(), "products.csv");
+    File productsCsv = new File(tempDir, "products.csv");
     try (FileWriter writer = new FileWriter(productsCsv, StandardCharsets.UTF_8)) {
       writer.write("name:string,category:string,supplier:string\n");
       writer.write("Widget,Electronics,Acme Corp\n");

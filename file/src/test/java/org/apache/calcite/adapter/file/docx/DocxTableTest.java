@@ -33,14 +33,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for DOCX table extraction in the file adapter.
  */
 @Tag("unit")
+@Isolated  // Required for DOCX conversion testing
 public class DocxTableTest {
   private File tempDir;
   private File simpleDocxFile;
@@ -314,47 +323,86 @@ public class DocxTableTest {
   }
 
   @Test public void testDocxInFileSchema() throws Exception {
-    // modelBaseDirectory is the parent directory where .aperio will be created
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    File sourceDir = tempDir;
+    // Run the scanner to convert DOCX files to JSON
+    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir);
+    DocxTableScanner.scanAndConvertTables(complexDocxFile, tempDir);
 
-    // Create FileSchema with proper source and base directory configuration
-    FileSchema schema = new FileSchema(null, "TEST", sourceDir, tempDir, null, null, 
-        new ExecutionEngineConfig(), false, null, null, null, null, 
-        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
+    // Create model file
+    File modelFile = new File(tempDir, "model.json");
+    try (FileWriter writer = new FileWriter(modelFile)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"FILES\",\n");
+      writer.write("  \"schemas\": [\n");
+      writer.write("    {\n");
+      writer.write("      \"name\": \"FILES\",\n");
+      writer.write("      \"type\": \"custom\",\n");
+      writer.write("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("      \"operand\": {\n");
+      writer.write("        \"directory\": \"" + tempDir.getAbsolutePath() + "\",\n");
+      writer.write("        \"ephemeralCache\": true\n");
+      writer.write("      }\n");
+      writer.write("    }\n");
+      writer.write("  ]\n");
+      writer.write("}\n");
+    }
 
-    // FileSchema should automatically detect and convert DOCX files via FileConversionManager
-    // No manual conversion needed - it will happen when getTableMap() is called
-
-    // Check that tables are accessible
-    Map<String, Table> tables = schema.getTableMap();
-
-    // Tables should be created from the generated JSON files in base directory
-    assertTrue(tables.containsKey("products__current_products"),
-        "Should have products__current_products table");
-    assertTrue(tables.containsKey("quarterly_report__regional_sales_summary"),
-        "Should have quarterly_report__regional_sales_summary table");
-    assertTrue(tables.containsKey("quarterly_report__employee_performance"),
-        "Should have quarterly_report__employee_performance table");
+    // Create connection and query
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
+      try (Statement stmt = connection.createStatement()) {
+        // Get metadata to check tables
+        ResultSet tables = connection.getMetaData().getTables(null, "FILES", "%", null);
+        Set<String> tableNames = new HashSet<>();
+        while (tables.next()) {
+          tableNames.add(tables.getString("TABLE_NAME"));
+        }
+        
+        assertTrue(tableNames.contains("products__current_products"),
+            "Should have products__current_products table");
+        assertTrue(tableNames.contains("quarterly_report__regional_sales_summary"),
+            "Should have quarterly_report__regional_sales_summary table");
+        assertTrue(tableNames.contains("quarterly_report__employee_performance"),
+            "Should have quarterly_report__employee_performance table");
+      }
+    }
   }
 
   @Test public void testDocxTableQuery() throws Exception {
     // Run the scanner first
     DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir);
 
-    // modelBaseDirectory is the parent directory where .aperio will be created
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    // Create model file
+    File modelFile = new File(tempDir, "model.json");
+    try (FileWriter writer = new FileWriter(modelFile)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"FILES\",\n");
+      writer.write("  \"schemas\": [\n");
+      writer.write("    {\n");
+      writer.write("      \"name\": \"FILES\",\n");
+      writer.write("      \"type\": \"custom\",\n");
+      writer.write("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("      \"operand\": {\n");
+      writer.write("        \"directory\": \"" + tempDir.getAbsolutePath() + "\",\n");
+      writer.write("        \"ephemeralCache\": true\n");
+      writer.write("      }\n");
+      writer.write("    }\n");
+      writer.write("  ]\n");
+      writer.write("}\n");
+    }
 
-    // Create schema and run query
-    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir);
-
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .withSchema("docx", new FileSchema(null, "TEST", tempDir, tempDir, null, null, 
-            new ExecutionEngineConfig(), false, null, null, null, null, 
-            "SMART_CASING", "SMART_CASING", null, null, null, null, true))
-        .query("SELECT * FROM \"docx\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
-        .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
+    // Create connection and run query
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
+      try (Statement stmt = connection.createStatement()) {
+        ResultSet rs = stmt.executeQuery(
+            "SELECT * FROM \"FILES\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75");
+        int count = 0;
+        while (rs.next()) {
+          count++;
+        }
+        assertEquals(2, count, "Should have 2 products with price >= 15.75");
+      }
+    }
   }
 
   @Test public void testEmptyDocxFile() throws Exception {

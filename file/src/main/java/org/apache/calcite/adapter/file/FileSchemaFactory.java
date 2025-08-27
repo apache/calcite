@@ -36,6 +36,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -51,29 +52,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FileSchemaFactory implements SchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchemaFactory.class);
 
-  // Cache temp directories per model to ensure all schemas in the same model share the same base
-  private static final Map<String, File> modelTempDirectories = new ConcurrentHashMap<>();
-
   static {
     LOGGER.debug("[FileSchemaFactory] Class loaded and static initializer running");
-    
-    // Register cleanup hook for temp directories
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      for (File tempDir : modelTempDirectories.values()) {
-        try {
-          if (tempDir.exists()) {
-            // Recursively delete temp directory
-            Files.walk(tempDir.toPath())
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-            LOGGER.debug("Cleaned up temp directory: {}", tempDir);
-          }
-        } catch (Exception e) {
-          LOGGER.debug("Failed to cleanup temp directory: {}", tempDir, e);
-        }
-      }
-    }));
   }
 
   /** Public singleton, per factory contract. */
@@ -84,29 +64,6 @@ public class FileSchemaFactory implements SchemaFactory {
   public static final String ROWTIME_COLUMN_NAME = "ROWTIME";
 
   private FileSchemaFactory() {
-  }
-
-  /**
-   * Get or create a unique temp directory for this model instance.
-   * All schemas created from the same model will share this directory.
-   */
-  private static File getOrCreateModelTempDirectory(String modelIdentifier) {
-    return modelTempDirectories.computeIfAbsent(modelIdentifier, k -> {
-      try {
-        // Create unique temp directory for this model: /tmp/.aperio/model_{timestamp}_{random}
-        String tempDir = System.getProperty("java.io.tmpdir");
-        String uniqueId = String.format("model_%d_%s", 
-            System.currentTimeMillis(), 
-            UUID.randomUUID().toString().substring(0, 8));
-        File modelTempDir = new File(tempDir, ".aperio/" + uniqueId);
-        modelTempDir.mkdirs();
-        LOGGER.info("Created ephemeral cache directory: {}", modelTempDir.getAbsolutePath());
-        return modelTempDir;
-      } catch (Exception e) {
-        LOGGER.error("Failed to create ephemeral cache directory, falling back to system temp", e);
-        return new File(System.getProperty("java.io.tmpdir"));
-      }
-    });
   }
 
   @Override public Schema create(SchemaPlus parentSchema, String name,
@@ -131,27 +88,31 @@ public class FileSchemaFactory implements SchemaFactory {
     }
     
     // Get ephemeralCache option (default to false for backward compatibility)
-    final Boolean ephemeralCache = operand.get("ephemeralCache") != null
-        ? (Boolean) operand.get("ephemeralCache")
-        : operand.get("ephemeral_cache") != null  // Support snake_case too
-            ? (Boolean) operand.get("ephemeral_cache")
+    final Boolean ephemeralCache = parseBooleanValue(operand.get("ephemeralCache"))
+        != null ? parseBooleanValue(operand.get("ephemeralCache"))
+        : parseBooleanValue(operand.get("ephemeral_cache")) != null  // Support snake_case too
+            ? parseBooleanValue(operand.get("ephemeral_cache"))
             : Boolean.FALSE;  // Default to persistent cache
     
-    // Check if ephemeralCache is requested first
+    // Handle ephemeralCache and baseDirectory configuration
+    // baseConfigDirectory is the root directory (without .aperio/<schema>)
+    // baseDirectory is the full path including .aperio/<schema>
+    File baseConfigDirectory = null;
     File baseDirectory = null;
+    
     if (ephemeralCache) {
-      // Use ephemeral cache - temp directory that won't persist across restarts
-      // Generate model identifier for sharing across schemas in same model
-      String modelIdentifier;
-      if (modelFileDirectory != null && !modelFileDirectory.getPath().isEmpty()) {
-        modelIdentifier = modelFileDirectory.getAbsolutePath();
-      } else {
-        // Use UUID to ensure uniqueness across test runs
-        modelIdentifier = "inline_" + java.util.UUID.randomUUID().toString();
+      // Create a temp directory for this test instance
+      try {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        String uniqueId = UUID.randomUUID().toString();
+        baseConfigDirectory = new File(tempDir, uniqueId);
+        baseConfigDirectory.mkdirs();
+        LOGGER.info("Using ephemeral cache directory for schema '{}': {}", 
+            name, baseConfigDirectory.getAbsolutePath());
+        // baseDirectory will be computed from baseConfigDirectory later
+      } catch (Exception e) {
+        LOGGER.error("Failed to create ephemeral cache directory", e);
       }
-      baseDirectory = getOrCreateModelTempDirectory(modelIdentifier);
-      LOGGER.info("Using ephemeral cache directory for schema '{}': {}", 
-          name, baseDirectory.getAbsolutePath());
     } else {
       // User-configurable baseDirectory for cache/conversions (optional)
       // Handle both String and File types for baseDirectory
@@ -167,16 +128,23 @@ public class FileSchemaFactory implements SchemaFactory {
       
       if (baseDirConfig != null && !baseDirConfig.isEmpty()) {
         // User explicitly configured baseDirectory - respect their choice
-        baseDirectory = new File(baseDirConfig);
-        if (!baseDirectory.isAbsolute() && modelFileDirectory != null) {
+        baseConfigDirectory = new File(baseDirConfig);
+        if (!baseConfigDirectory.isAbsolute() && modelFileDirectory != null) {
           // If relative path, resolve against model.json location
-          baseDirectory = new File(modelFileDirectory, baseDirConfig);
+          baseConfigDirectory = new File(modelFileDirectory, baseDirConfig);
         }
-        baseDirectory = baseDirectory.getAbsoluteFile();
-        LOGGER.info("Using user-configured baseDirectory: {}", baseDirectory.getAbsolutePath());
+        baseConfigDirectory = baseConfigDirectory.getAbsoluteFile();
+        LOGGER.info("Using user-configured baseConfigDirectory: {}", baseConfigDirectory.getAbsolutePath());
       }
-      // If no explicit config and not ephemeral, baseDirectory remains null
+      // If no explicit config and not ephemeral, baseConfigDirectory remains null
       // and FileSchema will use its default (working directory)
+    }
+    
+    // Compute the full baseDirectory path (with .aperio/<schema>) if baseConfigDirectory is set
+    if (baseConfigDirectory != null) {
+      baseDirectory = baseConfigDirectory;  // For now, keep it as the root for backward compatibility
+      LOGGER.debug("baseConfigDirectory={}, baseDirectory={}", 
+          baseConfigDirectory.getAbsolutePath(), baseDirectory.getAbsolutePath());
     }
     
     // Schema-specific sourceDirectory operand (for reading source files)
@@ -349,24 +317,40 @@ public class FileSchemaFactory implements SchemaFactory {
       
       LOGGER.info("Using DuckDB: Running conversions first, then creating JDBC adapter for schema: {}", name);
       
-      // Step 1: Create FileSchema with PARQUET engine to handle all conversions
-      // DuckDB always uses Parquet for consistent performance and functionality
+      // Step 1: Create FileSchema with PARQUET engine
+      // Use the same baseDirectory that was computed for DuckDB (ephemeral or not)
       ExecutionEngineConfig conversionConfig = new ExecutionEngineConfig("PARQUET", 
           engineConfig.getBatchSize(), engineConfig.getMemoryThreshold(), 
           engineConfig.getMaterializedViewStoragePath(), engineConfig.getDuckDBConfig(),
           engineConfig.getParquetCacheDirectory());
       
-      FileSchema fileSchema = new FileSchema(parentSchema, name, directoryFile, baseDirectory,
+      LOGGER.info("DuckDB: Creating internal Parquet FileSchema with baseConfigDirectory: {}", baseConfigDirectory);
+      
+      // Create FileSchema with baseConfigDirectory (not baseDirectory)
+      // This allows FileSchema to add its own .aperio/<schema> suffix
+      FileSchema fileSchema = new FileSchema(parentSchema, name, directoryFile, baseConfigDirectory,
           directoryPattern, tables, conversionConfig, recursive, materializations, views, 
           partitionedTables, refreshInterval, tableNameCasing, columnNameCasing, 
           storageType, storageConfig, flatten, csvTypeInference, primeCache);
       
       // Force initialization to run conversions and populate the FileSchema for DuckDB
       LOGGER.debug("FileSchemaFactory: About to call fileSchema.getTableMap() for table discovery");
-      LOGGER.debug("FileSchemaFactory: Internal FileSchema engine type: {}", conversionConfig.getEngineType());
+      LOGGER.debug("FileSchemaFactory: Internal FileSchema engine type: PARQUET");
       LOGGER.debug("FileSchemaFactory: Internal FileSchema directory: {}", directoryFile);
       Map<String, Table> tableMap = fileSchema.getTableMap();
       LOGGER.info("FileSchemaFactory: DuckDB FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
+      
+      // Check the conversion metadata immediately after table discovery
+      if (fileSchema.getConversionMetadata() != null) {
+        java.util.Map<String, org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord> records = 
+            fileSchema.getAllTableRecords();
+        LOGGER.info("FileSchemaFactory: After getTableMap(), conversion metadata has {} records", records.size());
+        for (String key : records.keySet()) {
+          LOGGER.debug("FileSchemaFactory: Conversion record key: {}", key);
+        }
+      } else {
+        LOGGER.warn("FileSchemaFactory: FileSchema has no conversion metadata!");
+      }
       
       // Check if any JSON files were processed by the internal FileSchema
       LOGGER.debug("FileSchemaFactory: Checking if internal FileSchema processed JSON files from HTML conversion...");
@@ -500,5 +484,22 @@ public class FileSchemaFactory implements SchemaFactory {
       SchemaPlus metadataSchema = rootSchema.subSchemas().get("metadata");
       parentSchema.add("metadata", metadataSchema.unwrap(Schema.class));
     }
+  }
+
+  /**
+   * Parse boolean value from operand map, handling both Boolean and String types.
+   * This is needed because environment variable substitution can produce either type.
+   */
+  private static Boolean parseBooleanValue(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof Boolean) {
+      return (Boolean) value;
+    }
+    if (value instanceof String) {
+      return Boolean.parseBoolean((String) value);
+    }
+    return null;
   }
 }

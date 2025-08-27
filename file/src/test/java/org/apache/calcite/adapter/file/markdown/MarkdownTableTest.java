@@ -24,7 +24,7 @@ import org.apache.calcite.test.CalciteAssert;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
@@ -34,7 +34,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -179,50 +184,86 @@ public class MarkdownTableTest {
   }
 
   @Test @SuppressWarnings("deprecation") public void testMarkdownInFileSchema() throws Exception {
-    // Create a simple schema with Markdown files
-    Map<String, Object> operand = new HashMap<>();
-    operand.put("directory", tempDir);
-
-    // modelBaseDirectory is the parent directory where .aperio will be created
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-
-    FileSchema schema = new FileSchema(null, "TEST", tempDir, tempDir, null, null, 
-        new ExecutionEngineConfig(), false, null, null, null, null, 
-        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
-
     // Convert Markdown files first
     MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir);
     MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir);
 
-    // Check that tables are accessible
-    Set<String> tableNames = schema.getTableNames();
+    // Create model file
+    File modelFile = new File(tempDir, "model.json");
+    try (FileWriter writer = new FileWriter(modelFile, StandardCharsets.UTF_8)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"FILES\",\n");
+      writer.write("  \"schemas\": [\n");
+      writer.write("    {\n");
+      writer.write("      \"name\": \"FILES\",\n");
+      writer.write("      \"type\": \"custom\",\n");
+      writer.write("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("      \"operand\": {\n");
+      writer.write("        \"directory\": \"" + tempDir.getAbsolutePath() + "\",\n");
+      writer.write("        \"ephemeralCache\": true\n");
+      writer.write("      }\n");
+      writer.write("    }\n");
+      writer.write("  ]\n");
+      writer.write("}\n");
+    }
 
-    // Tables should be created from the generated JSON files
-    assertTrue(tableNames.contains("products__current_products"),
-        "Should have products__current_products table");
-    assertTrue(tableNames.contains("quarterly_report__sales_summary"),
-        "Should have quarterly_report__sales_summary table");
-    assertTrue(tableNames.contains("quarterly_report__employee_performance"),
-        "Should have quarterly_report__employee_performance table");
+    // Create connection and check tables
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
+      try (Statement stmt = connection.createStatement()) {
+        // Get metadata to check tables
+        ResultSet tables = connection.getMetaData().getTables(null, "FILES", "%", null);
+        Set<String> tableNames = new HashSet<>();
+        while (tables.next()) {
+          tableNames.add(tables.getString("TABLE_NAME"));
+        }
+        
+        assertTrue(tableNames.contains("products__current_products"),
+            "Should have products__current_products table");
+        assertTrue(tableNames.contains("quarterly_report__sales_summary"),
+            "Should have quarterly_report__sales_summary table");
+        assertTrue(tableNames.contains("quarterly_report__employee_performance"),
+            "Should have quarterly_report__employee_performance table");
+      }
+    }
   }
 
   @Test public void testMarkdownTableQuery() throws Exception {
     // Run the scanner first
     MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir);
 
-    // modelBaseDirectory is the parent directory where .aperio will be created
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
+    // Create model file
+    File modelFile = new File(tempDir, "model.json");
+    try (FileWriter writer = new FileWriter(modelFile, StandardCharsets.UTF_8)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"FILES\",\n");
+      writer.write("  \"schemas\": [\n");
+      writer.write("    {\n");
+      writer.write("      \"name\": \"FILES\",\n");
+      writer.write("      \"type\": \"custom\",\n");
+      writer.write("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("      \"operand\": {\n");
+      writer.write("        \"directory\": \"" + tempDir.getAbsolutePath() + "\",\n");
+      writer.write("        \"ephemeralCache\": true\n");
+      writer.write("      }\n");
+      writer.write("    }\n");
+      writer.write("  ]\n");
+      writer.write("}\n");
+    }
 
-    // Create schema and run query
-    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir);
-
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .withSchema("markdown", new FileSchema(null, "TEST", tempDir, tempDir, null, null, 
-            new ExecutionEngineConfig(), false, null, null, null, null, 
-            "SMART_CASING", "SMART_CASING", null, null, null, null, true))
-        .query("SELECT * FROM \"markdown\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
-        .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
+    // Create connection and run query
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
+      try (Statement stmt = connection.createStatement()) {
+        ResultSet rs = stmt.executeQuery(
+            "SELECT * FROM \"FILES\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75");
+        int count = 0;
+        while (rs.next()) {
+          count++;
+        }
+        assertEquals(2, count, "Should have 2 products with price >= 15.75");
+      }
+    }
   }
 
   @Test public void testMarkdownWithSpecialCharacters() throws Exception {

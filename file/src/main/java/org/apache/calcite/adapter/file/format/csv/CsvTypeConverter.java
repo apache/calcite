@@ -167,7 +167,7 @@ public final class CsvTypeConverter {
       }
       break;
     case TIMESTAMP:
-      LOGGER.debug("=== TIMESTAMPTZ DEBUG: Processing {} field with value='{}' ===", targetType, value);
+      LOGGER.debug("Processing {} field with value='{}'", targetType, value);
       if (isNullRepresentation(value)) {
         finalResult = null;
         LOGGER.debug("=== TIMESTAMPTZ DEBUG: Value is null representation for {} ===", targetType);
@@ -178,7 +178,7 @@ public final class CsvTypeConverter {
       }
       break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      LOGGER.debug("=== TIMESTAMPTZ DEBUG: Processing {} field with value='{}' ===", targetType, value);
+      LOGGER.debug("Processing {} field with value='{}'", targetType, value);
       if (isNullRepresentation(value)) {
         finalResult = null;
         LOGGER.debug("=== TIMESTAMPTZ DEBUG: Value is null representation for {} ===", targetType);
@@ -190,12 +190,9 @@ public final class CsvTypeConverter {
       break;
     case VARCHAR:
     case CHAR:
-      // For string types, respect the blankStringsAsNull setting
-      if (value != null && value.length() == 0) {
-        finalResult = blankStringsAsNull ? null : value;
-      } else {
-        finalResult = value;
-      }
+      // For string types, always preserve empty strings
+      // blankStringsAsNull should only apply to non-string types
+      finalResult = value;  // Always preserve the value as-is for strings
       break;
     default:
       LOGGER.warn("Unknown target type: {}, returning string value", targetType);
@@ -344,39 +341,68 @@ public final class CsvTypeConverter {
   }
 
   private Long parseTimestampWithTimezone(String value) {
-    LOGGER.debug("=== TIMESTAMPTZ DEBUG: parseTimestampWithTimezone called with value='{}' ===", value);
+    LOGGER.debug("parseTimestampWithTimezone called with value='{}'", value);
 
     // Timezone-aware formatters for TIMESTAMP_WITH_LOCAL_TIME_ZONE
     DateTimeFormatter[] TIMEZONE_AWARE_FORMATTERS = {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME,  // 2024-03-15T10:30:45Z, 2024-03-15T10:30:45+05:30
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX"),  // 2024-03-15 10:30:45+05:30
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssX"),     // 2024-03-15 10:30:45Z, +05:30
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX"),   // 2024-03-15T10:30:45Z, +05:30  
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX"),   // 2024-03-15 10:30:45+05:30
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"), // 2024-03-15T10:30:45+05:30
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss'Z'"),   // 2024-03-15 10:30:45Z (literal Z)
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"), // 2024-03-15T10:30:45Z (literal Z)
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss'Z'"),   // 2024-03-15 10:30:45Z (literal Z = UTC)
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"), // 2024-03-15T10:30:45Z (literal Z = UTC)
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"),    // 2024-03-15 10:30:45 EST
       DateTimeFormatter.RFC_1123_DATE_TIME,  // Fri, 15 Mar 2024 10:30:45 +0000
       DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z")  // RFC 2822 format
     };
 
     // First try parsing with timezone information
-    for (DateTimeFormatter formatter : TIMEZONE_AWARE_FORMATTERS) {
+    for (int i = 0; i < TIMEZONE_AWARE_FORMATTERS.length; i++) {
+      DateTimeFormatter formatter = TIMEZONE_AWARE_FORMATTERS[i];
       try {
+        // Handle literal 'Z' patterns specially
+        if ((i == 5 || i == 6) && value.endsWith("Z")) { // These are the literal 'Z' formatters
+          // Parse the timestamp part without the 'Z'
+          String timestampPart = value.substring(0, value.length() - 1);
+          String basePattern = i == 5 ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd'T'HH:mm:ss";
+          
+          // Try with milliseconds first, then without
+          String[] patterns = {
+            basePattern + ".SSS",  // With milliseconds
+            basePattern           // Without milliseconds
+          };
+          
+          for (String pattern : patterns) {
+            try {
+              LocalDateTime ldt = LocalDateTime.parse(timestampPart, DateTimeFormatter.ofPattern(pattern));
+              OffsetDateTime odt = ldt.atOffset(ZoneOffset.UTC);
+              long utcMillis = odt.toInstant().toEpochMilli();
+              LOGGER.debug("=== TIMESTAMPTZ DEBUG: SUCCESS! Parsed literal 'Z' as UTC: '{}' -> {} ===", value, utcMillis);
+              return Long.valueOf(utcMillis);
+            } catch (DateTimeParseException e) {
+              // Try next pattern
+            }
+          }
+        }
+        
         // Try parsing as OffsetDateTime first
         OffsetDateTime odt = OffsetDateTime.parse(value, formatter);
         long utcMillis = odt.toInstant().toEpochMilli();
-        LOGGER.debug("=== TIMESTAMPTZ DEBUG: Parsed '{}' with timezone offset using formatter={}, UTC millis: {} ===",
-            value, formatter, utcMillis);
+        LOGGER.debug("=== TIMESTAMPTZ DEBUG: SUCCESS! Parsed '{}' as OffsetDateTime, UTC millis: {} ===",
+            value, utcMillis);
         return Long.valueOf(utcMillis);
       } catch (DateTimeParseException e) {
+        LOGGER.debug("Failed to parse as OffsetDateTime '{}' with formatter: {}", value, e.getMessage());
         try {
           // Try parsing as ZonedDateTime for timezone abbreviations
           ZonedDateTime zdt = ZonedDateTime.parse(value, formatter);
           long utcMillis = zdt.toInstant().toEpochMilli();
-          LOGGER.debug("=== TIMESTAMPTZ DEBUG: Parsed '{}' with timezone name, UTC millis: {} ===",
+          LOGGER.debug("=== TIMESTAMPTZ DEBUG: SUCCESS! Parsed '{}' as ZonedDateTime, UTC millis: {} ===",
               value, utcMillis);
           return Long.valueOf(utcMillis);
         } catch (DateTimeParseException e2) {
-          LOGGER.debug("Failed to parse timestamptz '{}' with formatter {}: {}", value, formatter, e2.getMessage());
+          LOGGER.debug("Failed to parse as ZonedDateTime '{}' with formatter: {}", value, e2.getMessage());
         }
       }
     }

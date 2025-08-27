@@ -26,6 +26,7 @@ import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,6 +35,7 @@ import java.util.EnumSet;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -227,13 +229,20 @@ public class ErrorHandlingTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
          Statement stmt = conn.createStatement()) {
 
+      // Corrupted Parquet files should not be registered as tables
+      // The system correctly rejects them during discovery
       Exception e = assertThrows(Exception.class, () -> {
         stmt.executeQuery("SELECT * FROM \"corrupted\"");
       });
 
-      // Should get Parquet format error
-      assertThat(e.getMessage() + (e.getCause() != null ? e.getCause().getMessage() : ""),
-          containsString("is not a Parquet file"));
+      // Should get "not found" error since corrupted files are rejected during discovery
+      assertThat(e.getMessage(), containsString("Object 'corrupted' not found"));
+      
+      // Verify the corrupted file was not added to the schema
+      DatabaseMetaData metaData = conn.getMetaData();
+      try (ResultSet tables = metaData.getTables(null, null, "corrupted", null)) {
+        assertFalse(tables.next(), "Corrupted Parquet file should not be registered as a table");
+      }
     }
   }
 

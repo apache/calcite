@@ -25,7 +25,8 @@
       "operand": {
         "directory": "bug",
         "caseSensitive": false,
-        "unquotedCasing": "TO_LOWER"
+        "unquotedCasing": "TO_LOWER",
+        "ephemeralCache": true
       }
     }
   ]

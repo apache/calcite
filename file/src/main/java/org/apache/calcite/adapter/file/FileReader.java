@@ -99,7 +99,11 @@ public class FileReader implements Iterable<Elements> {
         if (source.url() == null) {
           throw new FileReaderException("URL is null for protocol " + proto + ": " + source);
         }
-        doc = Jsoup.parse(source.url(), (int) TimeUnit.SECONDS.toMillis(20));
+        // Use Jsoup.connect() to set User-Agent header for Wikipedia compatibility
+        doc = Jsoup.connect(source.url().toString())
+            .userAgent("Mozilla/5.0 (compatible; Apache Calcite/1.0; +https://calcite.apache.org)")
+            .timeout((int) TimeUnit.SECONDS.toMillis(20))
+            .get();
       } else {
         // generically read this source
         doc = Jsoup.parse(source.openStream(), charset.name(), "");

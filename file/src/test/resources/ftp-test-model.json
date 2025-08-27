@@ -27,6 +27,7 @@
       "operand": {
         "storageType": "ftp",
         "directory": "ftp://speedtest.tele2.net/",
+        "ephemeralCache": true,
         "tables": [
           {
             "name": "test_files",

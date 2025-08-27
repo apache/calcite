@@ -28,7 +28,8 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "sales",
-        "flavor": "FILTERABLE"
+        "flavor": "FILTERABLE",
+        "ephemeralCache": true
       }
     }
   ]

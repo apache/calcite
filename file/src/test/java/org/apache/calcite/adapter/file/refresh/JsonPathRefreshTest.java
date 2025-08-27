@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.refresh;
 
+import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.converters.JsonPathConverter;
 import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -31,8 +31,9 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -48,24 +49,20 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("unit")
 @Isolated  // Needs isolation due to static ConversionMetadata state
-public class JsonPathRefreshTest {
+public class JsonPathRefreshTest extends BaseFileTest {
 
-  @TempDir
-  Path tempDir;
-  
   private File schemaDir;
   
   @BeforeEach
   public void setupTestFiles() throws Exception {
-    schemaDir = tempDir.toFile();
-    
-    // Metadata now stored directly in the test directory
-    // This avoids conflicts when tests run in parallel
+    schemaDir = Files.createTempDirectory("jsonpath-refresh-test-").toFile();
   }
   
   @AfterEach
   public void cleanup() throws Exception {
-    // No longer need to reset central metadata directory
+    if (schemaDir != null && schemaDir.exists()) {
+      deleteDirectory(schemaDir);
+    }
     
     // Clear various static caches that might interfere between tests
     try {
@@ -334,6 +331,7 @@ public class JsonPathRefreshTest {
     model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
     model.append("      \"operand\": {\n");
     model.append("        \"directory\": \"").append(info.getProperty("directory").replace("\\", "\\\\")).append("\",\n");
+    model.append("        \"ephemeralCache\": true,\n");
     
     if (info.containsKey("refreshInterval")) {
       model.append("        \"refreshInterval\": \"").append(info.getProperty("refreshInterval")).append("\",\n");
@@ -352,5 +350,17 @@ public class JsonPathRefreshTest {
     connectionProperties.setProperty("model", "inline:" + model.toString());
     
     return DriverManager.getConnection(url, connectionProperties);
+  }
+  
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
   }
 }

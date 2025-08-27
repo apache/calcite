@@ -34,6 +34,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Tracks the lineage of converted files (Excel→JSON, HTML→JSON, etc.).
@@ -45,6 +46,11 @@ public class ConversionMetadata {
   private static final String METADATA_FILE = ".conversions.json";
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(SerializationFeature.INDENT_OUTPUT);
+  
+  // Intra-JVM synchronization: map of locks per metadata file path
+  // This ensures threads within the same JVM coordinate properly
+  private static final ConcurrentHashMap<String, ReentrantReadWriteLock> JVM_LOCKS = 
+      new ConcurrentHashMap<>();
 
   // Use FileConversionManager directly instead of static list
 
@@ -248,6 +254,22 @@ public class ConversionMetadata {
       return conversionType;
     }
     
+    public String getTableName() {
+      return tableName;
+    }
+    
+    public String getSourceFile() {
+      return sourceFile;
+    }
+    
+    public String getParquetCacheFile() {
+      return parquetCacheFile;
+    }
+    
+    public String getConvertedFile() {
+      return convertedFile;
+    }
+    
     /**
      * Checks if the original file has changed since this conversion record was created.
      * Uses appropriate change detection method based on file type (ETag vs timestamp).
@@ -438,8 +460,14 @@ public class ConversionMetadata {
   public void recordTable(String tableName, org.apache.calcite.schema.Table table, 
       org.apache.calcite.util.Source source, java.util.Map<String, Object> tableDef) {
     try {
+      LOGGER.info("=== CONVERSION RECORD UPDATE TRACE === recordTable({})", tableName);
+      LOGGER.info("Before update: conversions map size = {}", conversions.size());
+      
       // Extract metadata from table and source
       TableMetadata metadata = extractTableMetadata(tableName, table, source, tableDef);
+      
+      LOGGER.info("Extracted table metadata: tableName='{}', tableType='{}', sourceFile='{}', convertedFile='{}'", 
+          metadata.tableName, metadata.tableType, metadata.sourceFile, metadata.convertedFile);
       
       // Create comprehensive record
       ConversionRecord record = new ConversionRecord(
@@ -459,12 +487,96 @@ public class ConversionMetadata {
           metadata.tableConfig
       );
       
-      // Use table name as key for comprehensive table tracking
-      conversions.put(tableName, record);
+      LOGGER.info("Created new record: {}", formatRecord(record));
+      
+      // Check if record already exists for this table name
+      ConversionRecord existingRecord = conversions.get(tableName);
+      LOGGER.info("Existing record with tableName key '{}': {}", tableName, 
+          existingRecord != null ? formatRecord(existingRecord) : "null");
+      
+      if (existingRecord != null) {
+        LOGGER.info("Updating existing record fields...");
+        
+        // IMPORTANT: Check if this is a conversion record (has convertedFile set)
+        // If so, don't overwrite the conversion information
+        boolean isConversionRecord = existingRecord.convertedFile != null && 
+                                     existingRecord.conversionType != null && 
+                                     !"DIRECT".equals(existingRecord.conversionType);
+        
+        if (isConversionRecord) {
+          LOGGER.info("Preserving conversion record for table '{}' (conversionType={}, sourceFile={}, convertedFile={})", 
+              tableName, existingRecord.conversionType, existingRecord.sourceFile, existingRecord.convertedFile);
+          // Only update table type if not set
+          if (existingRecord.tableType == null) {
+            LOGGER.info("Setting null tableType: null -> '{}'", metadata.tableType);
+            existingRecord.tableType = metadata.tableType;
+          }
+          // Don't update sourceFile, originalFile, convertedFile, or conversionType for conversion records
+        } else {
+          // Normal update for non-conversion records
+          // Only update basic table info if not already set
+          if (existingRecord.tableType == null) {
+            LOGGER.info("Setting null tableType: null -> '{}'", metadata.tableType);
+            existingRecord.tableType = metadata.tableType;
+          }
+          if (existingRecord.sourceFile == null) {
+            LOGGER.info("Setting null sourceFile: null -> '{}'", metadata.sourceFile);
+            existingRecord.sourceFile = metadata.sourceFile;
+          }
+          if (existingRecord.sourceType == null) {
+            LOGGER.info("Setting null sourceType: null -> '{}'", metadata.sourceType);
+            existingRecord.sourceType = metadata.sourceType;
+          }
+          
+          // Only update these fields if they're not already set (preserve existing values)
+          if (existingRecord.originalFile == null) {
+            LOGGER.info("Setting null originalFile: null -> '{}'", metadata.originalFile);
+            existingRecord.originalFile = metadata.originalFile;
+          }
+          if (existingRecord.convertedFile == null) {
+            LOGGER.info("Setting null convertedFile: null -> '{}'", metadata.convertedFile);
+            existingRecord.convertedFile = metadata.convertedFile;
+          }
+          if (existingRecord.conversionType == null) {
+            LOGGER.info("Setting null conversionType: null -> '{}'", metadata.conversionType);
+            existingRecord.conversionType = metadata.conversionType;
+          }
+        }
+        if (existingRecord.parquetCacheFile == null) {
+          LOGGER.info("Setting null parquetCacheFile: null -> '{}'", metadata.parquetCacheFile);
+          existingRecord.parquetCacheFile = metadata.parquetCacheFile;
+        }
+        if (existingRecord.etag == null) {
+          LOGGER.info("Setting null etag: null -> '{}'", metadata.etag);
+          existingRecord.etag = metadata.etag;
+        }
+        if (existingRecord.contentLength == null) {
+          LOGGER.info("Setting null contentLength: null -> '{}'", metadata.contentLength);
+          existingRecord.contentLength = metadata.contentLength;
+        }
+        if (existingRecord.contentType == null) {
+          LOGGER.info("Setting null contentType: null -> '{}'", metadata.contentType);
+          existingRecord.contentType = metadata.contentType;
+        }
+        
+        // Always update refresh settings and table config as these are current operational settings
+        LOGGER.info("Updating refreshEnabled: '{}' -> '{}'", existingRecord.refreshEnabled, metadata.refreshEnabled);
+        LOGGER.info("Updating refreshInterval: '{}' -> '{}'", existingRecord.refreshInterval, metadata.refreshInterval);
+        existingRecord.refreshEnabled = metadata.refreshEnabled;
+        existingRecord.refreshInterval = metadata.refreshInterval;
+        existingRecord.tableConfig = metadata.tableConfig;
+        
+        LOGGER.info("Updated existing record: {}", formatRecord(existingRecord));
+      } else {
+        // Create new record for comprehensive table tracking
+        conversions.put(tableName, record);
+        LOGGER.info("Stored new record under tableName key '{}'", tableName);
+      }
       saveMetadata();
       
-      LOGGER.debug("Recorded table: {} (type: {}, source: {}, parquet: {})", 
-          tableName, metadata.tableType, metadata.sourceFile, metadata.parquetCacheFile);
+      LOGGER.info("After update: conversions map size = {}", conversions.size());
+      LOGGER.info("Final record under tableName '{}': {}", tableName, formatRecord(conversions.get(tableName)));
+      LOGGER.info("=== END CONVERSION RECORD UPDATE TRACE ===\\n");
       
     } catch (Exception e) {
       LOGGER.warn("Failed to record table metadata for {}: {}", tableName, e.getMessage());
@@ -848,6 +960,274 @@ public class ConversionMetadata {
   }
   
   /**
+   * Finds a conversion record by source file path.
+   * This is used by bulk conversion to find existing records to update.
+   * Searches through all records regardless of key (table name, converted file, etc).
+   * 
+   * @param sourceFile The original source file to look for
+   * @return The conversion record, or null if not found
+   */
+  public ConversionRecord findRecordBySourceFile(File sourceFile) {
+    try {
+      String sourcePath = sourceFile.getCanonicalPath();
+      LOGGER.debug("Looking for record with sourceFile: {}", sourcePath);
+      
+      // Search through all records to find one with matching source file
+      // Records can be keyed by table name, converted file path, or source file path
+      for (Map.Entry<String, ConversionRecord> entry : conversions.entrySet()) {
+        ConversionRecord record = entry.getValue();
+        LOGGER.debug("Checking record key='{}': originalFile='{}', sourceFile='{}'", 
+            entry.getKey(), record.originalFile, record.sourceFile);
+        if (sourcePath.equals(record.originalFile) || sourcePath.equals(record.sourceFile)) {
+          LOGGER.debug("Found matching record with key='{}'", entry.getKey());
+          return record;
+        }
+      }
+      
+      LOGGER.debug("No matching record found for sourceFile: {}", sourcePath);
+      return null;
+    } catch (IOException e) {
+      LOGGER.error("Failed to find conversion record by source file", e);
+      return null;
+    }
+  }
+  
+  /**
+   * Updates an existing conversion record, setting table name if null but preserving existing names.
+   * This is used by bulk conversion to update records without losing explicit names.
+   * 
+   * @param sourceFile The source file that was converted
+   * @param convertedFile The new converted file
+   * @param conversionType The type of conversion performed
+   * @param baseDirectory The base directory for metadata storage
+   * @param generatedTableName The generated table name to use if existing record has null table name
+   */
+  public void updateExistingRecord(File sourceFile, File convertedFile, String conversionType, File baseDirectory, String generatedTableName) {
+    try {
+      LOGGER.info("=== CONVERSION RECORD UPDATE TRACE === updateExistingRecord(sourceFile={}, generatedTableName={})", sourceFile.getName(), generatedTableName);
+      LOGGER.info("Before update: conversions map size = {}", conversions.size());
+      
+      ConversionRecord existingRecord = findRecordBySourceFile(sourceFile);
+      LOGGER.info("Found existing record by sourceFile: {}", existingRecord != null ? formatRecord(existingRecord) : "null");
+      
+      if (existingRecord != null) {
+        String oldConvertedFile = existingRecord.convertedFile;
+        String oldConversionType = existingRecord.conversionType;
+        String oldTableName = existingRecord.tableName;
+        
+        // Update the existing record with new conversion information
+        existingRecord.convertedFile = convertedFile.getCanonicalPath();
+        existingRecord.conversionType = conversionType;
+        
+        LOGGER.info("Updated convertedFile: '{}' -> '{}'", oldConvertedFile, existingRecord.convertedFile);
+        LOGGER.info("Updated conversionType: '{}' -> '{}'", oldConversionType, existingRecord.conversionType);
+        
+        // If table name is null, update it with the generated name; otherwise preserve existing name
+        if (existingRecord.tableName == null) {
+          existingRecord.tableName = generatedTableName;
+          LOGGER.info("Updated null tableName: null -> '{}'", generatedTableName);
+        } else {
+          LOGGER.info("Preserved existing tableName: '{}'", existingRecord.tableName);
+        }
+        
+        saveMetadata();
+        
+        LOGGER.info("Updated existing record: {}", formatRecord(existingRecord));
+      } else {
+        // No existing record found - create a new one with explicit table name
+        if (generatedTableName != null) {
+          LOGGER.info("Creating new conversion record with table name '{}'", generatedTableName);
+          recordConversionWithTableName(generatedTableName, sourceFile, convertedFile, conversionType);
+        } else {
+          LOGGER.info("Creating new conversion record without table name");
+          recordConversion(sourceFile, convertedFile, conversionType);
+        }
+      }
+      
+      LOGGER.info("After update: conversions map size = {}", conversions.size());
+      LOGGER.info("=== END CONVERSION RECORD UPDATE TRACE ===\\n");
+      
+    } catch (IOException e) {
+      LOGGER.error("Failed to update existing conversion record", e);
+    }
+  }
+  
+  /**
+   * Records a conversion with an explicit table name, using the table name as the key.
+   * This is used when converting HTML to JSON with explicit table definitions.
+   * 
+   * @param tableName The explicit table name to use as the key
+   * @param sourceFile The original source file
+   * @param convertedFile The converted file
+   * @param conversionType The type of conversion
+   */
+  public void recordConversionWithTableName(String tableName, File sourceFile, File convertedFile, String conversionType) {
+    try {
+      LOGGER.info("=== CONVERSION RECORD UPDATE TRACE === recordConversionWithTableName({})", tableName);
+      LOGGER.info("Before update: conversions map size = {}", conversions.size());
+      
+      String convertedPath = convertedFile.getCanonicalPath();
+      ConversionRecord existingTableNameRecord = conversions.get(tableName);
+      ConversionRecord existingConvertedFileRecord = conversions.get(convertedPath);
+      
+      LOGGER.info("Existing record with tableName key '{}': {}", tableName, 
+          existingTableNameRecord != null ? formatRecord(existingTableNameRecord) : "null");
+      LOGGER.info("Existing record with convertedFile key '{}': {}", convertedPath, 
+          existingConvertedFileRecord != null ? formatRecord(existingConvertedFileRecord) : "null");
+      
+      if (existingTableNameRecord != null) {
+        // Update existing record with conversion information, preserving existing values
+        LOGGER.info("Updating existing record with tableName key '{}'", tableName);
+        
+        String oldOriginalFile = existingTableNameRecord.originalFile;
+        String oldSourceFile = existingTableNameRecord.sourceFile;
+        String oldConvertedFile = existingTableNameRecord.convertedFile;
+        String oldConversionType = existingTableNameRecord.conversionType;
+        
+        // Update conversion-related fields
+        existingTableNameRecord.originalFile = sourceFile.getCanonicalPath();
+        existingTableNameRecord.sourceFile = sourceFile.getCanonicalPath();
+        existingTableNameRecord.convertedFile = convertedPath;
+        existingTableNameRecord.conversionType = conversionType;
+        
+        LOGGER.info("Updated originalFile: '{}' -> '{}'", oldOriginalFile, existingTableNameRecord.originalFile);
+        LOGGER.info("Updated sourceFile: '{}' -> '{}'", oldSourceFile, existingTableNameRecord.sourceFile);
+        LOGGER.info("Updated convertedFile: '{}' -> '{}'", oldConvertedFile, existingTableNameRecord.convertedFile);
+        LOGGER.info("Updated conversionType: '{}' -> '{}'", oldConversionType, existingTableNameRecord.conversionType);
+        
+        // Store under convertedFile key as an alternate key
+        // convertedFile is a valid surrogate key when sourceFile is not null (which it is here)
+        conversions.put(convertedPath, existingTableNameRecord);
+        LOGGER.info("Stored updated record under convertedFile key '{}' (alternate key for conversion lookups)", convertedPath);
+        
+        LOGGER.info("Updated existing record: {}", formatRecord(existingTableNameRecord));
+      } else {
+        // Create new record
+        LOGGER.info("Creating new record for tableName '{}'", tableName);
+        
+        ConversionRecord record = new ConversionRecord(
+            sourceFile.getCanonicalPath(), 
+            convertedFile.getCanonicalPath(), 
+            conversionType);
+        record.tableName = tableName;
+        record.sourceFile = sourceFile.getCanonicalPath();
+        
+        LOGGER.info("Created new record: {}", formatRecord(record));
+        
+        // Store under tableName key (primary surrogate key)
+        conversions.put(tableName, record);
+        LOGGER.info("Stored record under tableName key '{}' (primary key)", tableName);
+        
+        // Store under convertedFile key as an alternate key
+        // convertedFile is a valid surrogate key when sourceFile is not null (which it is here)
+        conversions.put(convertedPath, record);
+        LOGGER.info("Stored record under convertedFile key '{}' (alternate key for conversion lookups)", convertedPath);
+      }
+      
+      saveMetadata();
+      
+      LOGGER.info("After update: conversions map size = {}", conversions.size());
+      LOGGER.info("Final record under tableName '{}': {}", tableName, formatRecord(conversions.get(tableName)));
+      LOGGER.info("Final record under convertedFile '{}': {}", convertedPath, formatRecord(conversions.get(convertedPath)));
+      LOGGER.info("=== END CONVERSION RECORD UPDATE TRACE ===\\n");
+      
+    } catch (IOException e) {
+      LOGGER.error("Failed to record conversion with table name", e);
+    }
+  }
+  
+  /**
+   * Reloads the metadata from disk.
+   * This is needed when another process or instance has modified the metadata file.
+   */
+  public void reload() {
+    loadMetadata();
+  }
+  
+  /**
+   * Gets a conversion record by converted file path.
+   * This is used to find records when auto-discovering converted files.
+   * 
+   * @param convertedFilePath The path to the converted file (e.g., JSON file)
+   * @return The conversion record, or null if not found
+   */
+  public ConversionRecord getConversionRecordByConvertedFile(String convertedFilePath) {
+    try {
+      String canonicalPath = new File(convertedFilePath).getCanonicalPath();
+      LOGGER.debug("Looking for conversion record by converted file: {}", canonicalPath);
+      
+      // First try direct lookup
+      ConversionRecord record = conversions.get(canonicalPath);
+      if (record != null) {
+        LOGGER.debug("Found record by direct lookup with key: {}", canonicalPath);
+        return record;
+      }
+      
+      // Search through all records to find one with matching converted file
+      for (Map.Entry<String, ConversionRecord> entry : conversions.entrySet()) {
+        ConversionRecord r = entry.getValue();
+        LOGGER.debug("Checking record key='{}': convertedFile='{}'", entry.getKey(), r.convertedFile);
+        if (canonicalPath.equals(r.convertedFile)) {
+          LOGGER.debug("Found matching record with key='{}', tableName='{}'", entry.getKey(), r.tableName);
+          return r;
+        }
+      }
+      
+      LOGGER.debug("No conversion record found for converted file: {}", canonicalPath);
+      return null;
+    } catch (IOException e) {
+      LOGGER.error("Failed to get conversion record by converted file", e);
+      return null;
+    }
+  }
+  
+  /**
+   * Updates an existing record with parquet cache file information.
+   * This is used when a table is converted to Parquet for caching.
+   * 
+   * @param tableName The table name (key to find the record)
+   * @param parquetFile The parquet cache file
+   */
+  public void updateRecordWithParquetFile(String tableName, File parquetFile) {
+    ConversionRecord record = conversions.get(tableName);
+    if (record != null) {
+      try {
+        record.parquetCacheFile = parquetFile.getCanonicalPath();
+        record.tableType = "ParquetTranslatableTable";
+        saveMetadata();
+        LOGGER.debug("Updated record '{}' with parquet cache file: {}", tableName, parquetFile.getName());
+      } catch (IOException e) {
+        LOGGER.error("Failed to update record with parquet file", e);
+      }
+    } else {
+      LOGGER.warn("No record found with table name '{}' to update with parquet file", tableName);
+    }
+  }
+  
+  /**
+   * Updates an existing conversion record while preserving the table name.
+   * This is used by bulk conversion to update records without losing explicit names.
+   * 
+   * @param sourceFile The source file that was converted
+   * @param convertedFile The new converted file
+   * @param conversionType The type of conversion performed
+   * @param baseDirectory The base directory for metadata storage
+   */
+  public void updateExistingRecord(File sourceFile, File convertedFile, String conversionType, File baseDirectory) {
+    updateExistingRecord(sourceFile, convertedFile, conversionType, baseDirectory, null);
+  }
+  
+  /**
+   * Gets all conversion records from the registry.
+   * This provides access to all table metadata including conversions and cache locations.
+   * 
+   * @return Unmodifiable map of all conversion records
+   */
+  public Map<String, ConversionRecord> getAllConversions() {
+    return java.util.Collections.unmodifiableMap(conversions);
+  }
+  
+  /**
    * Loads metadata from disk with file locking for concurrent access.
    */
   private void loadMetadata() {
@@ -934,5 +1314,15 @@ public class ConversionMetadata {
     if (metadataFile.exists()) {
       metadataFile.delete();
     }
+  }
+  
+  /**
+   * Formats a conversion record for detailed logging.
+   */
+  private String formatRecord(ConversionRecord record) {
+    if (record == null) return "null";
+    return String.format(
+        "ConversionRecord{tableName='%s', tableType='%s', sourceFile='%s', originalFile='%s', convertedFile='%s', conversionType='%s', parquetCacheFile='%s'}", 
+        record.tableName, record.tableType, record.sourceFile, record.originalFile, record.convertedFile, record.conversionType, record.parquetCacheFile);
   }
 }

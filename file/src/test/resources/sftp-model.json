@@ -8,7 +8,8 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "sftp://demo:password@test.rebex.net/",
-        "recursive": false
+        "recursive": false,
+        "ephemeralCache": true
       }
     }
   ]

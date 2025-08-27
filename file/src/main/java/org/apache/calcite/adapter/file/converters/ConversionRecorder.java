@@ -41,13 +41,36 @@ public class ConversionRecorder {
    * @param baseDirectory The base directory for metadata storage (if null, uses converted file's parent)
    */
   public static void recordConversion(File originalFile, File convertedFile, String conversionType, File baseDirectory) {
+    recordConversion(originalFile, convertedFile, conversionType, baseDirectory, null);
+  }
+
+  /**
+   * Records a file conversion for refresh tracking with explicit table name.
+   * This should be called by all converters after successfully creating output files.
+   *
+   * @param originalFile The source file (e.g., Excel, HTML, XML)
+   * @param convertedFile The output file (typically JSON)
+   * @param conversionType Type of conversion (e.g., "EXCEL_TO_JSON", "HTML_TO_JSON")
+   * @param baseDirectory The base directory for metadata storage (if null, uses converted file's parent)
+   * @param explicitTableName The explicit table name to use (if null, uses generated name)
+   */
+  public static void recordConversion(File originalFile, File convertedFile, String conversionType, File baseDirectory, String explicitTableName) {
     try {
       // Use baseDirectory if provided, otherwise use the converted file's directory
       File metadataDir = baseDirectory != null ? baseDirectory : convertedFile.getParentFile();
       ConversionMetadata metadata = new ConversionMetadata(metadataDir);
-      metadata.recordConversion(originalFile, convertedFile, conversionType);
-      LOGGER.debug("Recorded {} conversion: {} -> {} (metadata in: {})",
-          conversionType, originalFile.getName(), convertedFile.getName(), metadataDir);
+
+      if (explicitTableName != null) {
+        // Create record with explicit table name and use table name as key
+        metadata.recordConversionWithTableName(explicitTableName, originalFile, convertedFile, conversionType);
+        LOGGER.debug("Recorded {} conversion with explicit name '{}': {} -> {} (metadata in: {})",
+            conversionType, explicitTableName, originalFile.getName(), convertedFile.getName(), metadataDir);
+      } else {
+        // Use default recording
+        metadata.recordConversion(originalFile, convertedFile, conversionType);
+        LOGGER.debug("Recorded {} conversion: {} -> {} (metadata in: {})",
+            conversionType, originalFile.getName(), convertedFile.getName(), metadataDir);
+      }
     } catch (Exception e) {
       // Don't fail the conversion if metadata recording fails
       LOGGER.warn("Failed to record conversion metadata for {}: {}",

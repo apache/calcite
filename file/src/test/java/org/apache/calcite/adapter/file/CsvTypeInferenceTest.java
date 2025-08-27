@@ -23,29 +23,19 @@ import org.apache.calcite.util.Sources;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.List;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for CSV type inference functionality.
@@ -60,22 +50,12 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testMixedTypesInference() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
     // Test with type inference enabled
     Properties info = new Properties();
     // Use dynamic model if engine is configured
-    if (engineType != null && !engineType.isEmpty()) {
-      String modelJson = buildModelJson(engineType);
-      info.put("model", "inline:" + modelJson);
-    } else {
-      info.put("model", resourcePath("csv-type-inference-model.json"));
-    }
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Query the table with type inference
@@ -122,19 +102,10 @@ public class CsvTypeInferenceTest {
   @Test
   void testNoInferenceByDefault() throws Exception {
     Properties info = new Properties();
-    // Build model dynamically to include execution engine if set
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
 
-    // Skip for engines with known CsvTableScan.project issues
-    if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
-      // These engines have a known issue with CsvTableScan.project method
-      return;
-    }
-
-    String modelJson = buildModelJson(engineType);
+    String modelJson = buildModelJson();
     info.put("model", "inline:" + modelJson);
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Query a different file to avoid cache conflicts
@@ -163,28 +134,12 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testTimestampInference() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
+
     Properties info = new Properties();
-    // Use dynamic model if engine is configured
 
-    // Skip for engines with known CsvTableScan.project issues
-    if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
-      // These engines have a known issue with CsvTableScan.project method
-      return;
-    }
-
-    if (engineType != null && !engineType.isEmpty()) {
-      String modelJson = buildModelJson(engineType);
-      info.put("model", "inline:" + modelJson);
-    } else {
-      info.put("model", resourcePath("csv-type-inference-model.json"));
-    }
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Query the table with timestamp inference
@@ -207,7 +162,8 @@ public class CsvTypeInferenceTest {
         // RFC formatted timestamps should be detected as TIMESTAMP types
         // DuckDB JDBC driver may return type 2000 (JAVA_OBJECT) for TIMESTAMP WITH TIME ZONE
         int utcType = metaData.getColumnType(4);
-        LOGGER.info("timestamp_utc column type from engine: {} (Types.TIMESTAMP={}, Types.TIMESTAMP_WITH_TIMEZONE={}, actual type name={})",
+        LOGGER.info("timestamp_utc column type from engine: {} (Types.TIMESTAMP={}, Types" +
+                ".TIMESTAMP_WITH_TIMEZONE={}, actual type name={})",
             utcType, Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE, metaData.getColumnTypeName(4));
         assertTrue(utcType == Types.TIMESTAMP || utcType == Types.TIMESTAMP_WITH_TIMEZONE || utcType == Types.JAVA_OBJECT,
             "timestamp_utc should be TIMESTAMP type but was " + utcType);
@@ -224,21 +180,14 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testNullHandling() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
+
     Properties info = new Properties();
     // Use dynamic model if engine is configured
-    if (engineType != null && !engineType.isEmpty()) {
-      String modelJson = buildModelJson(engineType);
-      info.put("model", "inline:" + modelJson);
-    } else {
-      info.put("model", resourcePath("csv-type-inference-model.json"));
-    }
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Note: DuckDB sanitizes hyphens in table names to underscores
@@ -248,11 +197,14 @@ public class CsvTypeInferenceTest {
       try (ResultSet rs = connection.createStatement().executeQuery(sql)) {
         ResultSetMetaData metaData = rs.getMetaData();
 
-        // Smart type inference should correctly handle null representations like "NULL", "NA", "NONE", etc.
-        // These should be treated as actual NULL values, allowing proper type inference for the real data.
+        // Smart type inference should correctly handle null representations like "NULL", "NA",
+        // "NONE", etc.
+        // These should be treated as actual NULL values, allowing proper type inference for the
+        // real data.
         // The test file contains:
         // - id: integers 1-10 (no nulls) → INTEGER
-        // - value1: integers 100,300,400,500,600 (with NULL/NA/NONE representations) → INTEGER nullable
+        // - value1: integers 100,300,400,500,600 (with NULL/NA/NONE representations) → INTEGER
+        // nullable
         // - value2: doubles 200.5,250.75,350.25,450.50,550.75 (with NULL/N/A/nil) → DOUBLE nullable
         // - value3: booleans true,false (with NULL/na/NIL representations) → BOOLEAN nullable
         // - value4: dates 2024-01-01 etc (with NULL/n/a representations) → DATE nullable
@@ -266,9 +218,12 @@ public class CsvTypeInferenceTest {
         assertTrue(value1Type == Types.INTEGER || value1Type == Types.BIGINT,
             "value1 should be INTEGER or BIGINT (nulls are NULL representations), but was " + value1Type);
 
-        assertEquals(Types.DOUBLE, metaData.getColumnType(3), "value2 should be DOUBLE (nulls are NULL representations)");
-        assertEquals(Types.BOOLEAN, metaData.getColumnType(4), "value3 should be BOOLEAN (nulls are NULL representations)");
-        assertEquals(Types.DATE, metaData.getColumnType(5), "value4 should be DATE (nulls are NULL representations)");
+        assertEquals(Types.DOUBLE, metaData.getColumnType(3), "value2 should be DOUBLE (nulls are" +
+            " NULL representations)");
+        assertEquals(Types.BOOLEAN, metaData.getColumnType(4), "value3 should be BOOLEAN (nulls " +
+            "are NULL representations)");
+        assertEquals(Types.DATE, metaData.getColumnType(5), "value4 should be DATE (nulls are " +
+            "NULL representations)");
 
         // All columns should be nullable
         for (int i = 1; i <= metaData.getColumnCount(); i++) {
@@ -323,24 +278,15 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testAggregationsWithInferredTypes() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
 
     Properties info = new Properties();
     // Use dynamic model if engine is configured
     LOGGER.info("=== Starting testAggregationsWithInferredTypes with engine: {} ===", engineType);
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+    BaseFileTest.applyEngineDefaults(info);
 
-    if (engineType != null && !engineType.isEmpty()) {
-      String modelJson = buildModelJson(engineType);
-      info.put("model", "inline:" + modelJson);
-    } else {
-      info.put("model", resourcePath("csv-type-inference-model.json"));
-    }
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
 
     LOGGER.debug("About to create Calcite connection");
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
@@ -349,7 +295,8 @@ public class CsvTypeInferenceTest {
       // Test numeric aggregations
       // Note: DuckDB sanitizes hyphens in table names to underscores
       String tableName = "mixed_types";
-      String sql = "SELECT AVG(salary), MAX(age), MIN(rating) FROM csv_infer." + tableName + " WHERE is_active = true";
+      String sql = "SELECT AVG(salary), MAX(age), MIN(rating) FROM csv_infer." + tableName + " " +
+          "WHERE is_active = true";
 
       try (ResultSet rs = connection.createStatement().executeQuery(sql)) {
         assertTrue(rs.next(), "Should have aggregation results");
@@ -372,27 +319,20 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testDateComparisons() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
+
     Properties info = new Properties();
     // Use dynamic model if engine is configured
-    if (engineType != null && !engineType.isEmpty()) {
-      String modelJson = buildModelJson(engineType);
-      info.put("model", "inline:" + modelJson);
-    } else {
-      info.put("model", resourcePath("csv-type-inference-model.json"));
-    }
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Test date filtering
       // Note: DuckDB sanitizes hyphens in table names to underscores
       String tableName = "mixed_types";
-      String sql = "SELECT COUNT(*) FROM csv_infer." + tableName + " WHERE hire_date >= DATE '2020-01-01'";
+      String sql = "SELECT COUNT(*) FROM csv_infer." + tableName + " WHERE hire_date >= DATE " +
+          "'2020-01-01'";
 
       try (ResultSet rs = connection.createStatement().executeQuery(sql)) {
         assertTrue(rs.next(), "Should have count result");
@@ -407,31 +347,20 @@ public class CsvTypeInferenceTest {
   }
 
   /**
-   * Test that blank strings are converted to NULL when type inference is disabled.
-   * This feature is only relevant for PARQUET and DUCKDB engines.
+   * Test that blank strings are preserved as empty strings when type inference is disabled.
+   * When type inference is disabled, all columns are VARCHAR, and blankStringsAsNull
+   * does not apply to VARCHAR/CHAR fields - blank strings are preserved as empty strings.
    */
   @Test
   void testBlankStringsAsNullWithNoInference() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
-
-    // Skip this test for engines that don't support this feature
-    if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
-      // blankStringsAsNull is only relevant for PARQUET and DUCKDB
-      return;
-    }
 
     Properties info = new Properties();
 
     // Build model with type inference disabled (should default to blankStringsAsNull=true)
     // Use a unique schema name to avoid cache conflicts
-    String modelJson = buildModelJsonWithBlankStringConfig(engineType, false, null, "csv_blank_as_null");
+    String modelJson = buildModelJsonWithBlankStringConfig(false, null, "csv_blank_as_null");
     info.put("model", "inline:" + modelJson);
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Create test data with blank strings
@@ -447,19 +376,19 @@ public class CsvTypeInferenceTest {
         assertEquals("Alice", rs.getString(2));
         assertEquals("Active", rs.getString(3));
 
-        // Second row: blank string in name (should be NULL)
+        // Second row: blank string in name (should be empty string for VARCHAR)
         assertTrue(rs.next());
         assertEquals("2", rs.getString(1));
-        assertThat(rs.getString(2), equalTo(null)); // Blank string should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(2), equalTo("")); // Blank string preserved as empty string
+        assertFalse(rs.wasNull());
         assertEquals("Inactive", rs.getString(3));
 
-        // Third row: blank string in status (should be NULL)
+        // Third row: blank string in status (should be empty string for VARCHAR)
         assertTrue(rs.next());
         assertEquals("3", rs.getString(1));
         assertEquals("Charlie", rs.getString(2));
-        assertThat(rs.getString(3), equalTo(null)); // Blank string should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(3), equalTo("")); // Blank string preserved as empty string
+        assertFalse(rs.wasNull());
 
         // Fourth row: normal values
         assertTrue(rs.next());
@@ -467,19 +396,19 @@ public class CsvTypeInferenceTest {
         assertEquals("David", rs.getString(2));
         assertEquals("Pending", rs.getString(3));
 
-        // Fifth row: whitespace-only string in name (should be NULL)
+        // Fifth row: whitespace-only string in name (should be preserved for VARCHAR)
         assertTrue(rs.next());
         assertEquals("5", rs.getString(1));
-        assertThat(rs.getString(2), equalTo(null)); // Whitespace-only should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(2), equalTo("  ")); // Whitespace preserved as-is for VARCHAR
+        assertFalse(rs.wasNull());
         assertEquals("Active", rs.getString(3));
 
-        // Sixth row: whitespace-only string in status (should be NULL)
+        // Sixth row: whitespace-only string in status (should be preserved for VARCHAR)
         assertTrue(rs.next());
         assertEquals("6", rs.getString(1));
         assertEquals("Eve", rs.getString(2));
-        assertThat(rs.getString(3), equalTo(null)); // Whitespace-only should be NULL
-        assertTrue(rs.wasNull());
+        assertThat(rs.getString(3), equalTo("   ")); // Whitespace preserved as-is for VARCHAR
+        assertFalse(rs.wasNull());
       }
     }
   }
@@ -490,26 +419,14 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testBlankStringsPreserved() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
-    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
-
-    // Skip this test for engines that don't support this feature
-    if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
-      // blankStringsAsNull is only relevant for PARQUET and DUCKDB
-      return;
-    }
 
     Properties info = new Properties();
 
     // Build model with blankStringsAsNull explicitly set to false
     // Use a unique schema name to avoid cache conflicts
-    String modelJson = buildModelJsonWithBlankStringConfig(engineType, true, false, "csv_blank_preserved");
+    String modelJson = buildModelJsonWithBlankStringConfig(true, false, "csv_blank_preserved");
     info.put("model", "inline:" + modelJson);
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+    BaseFileTest.applyEngineDefaults(info);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       String tableName = "blank_strings";
@@ -564,7 +481,7 @@ public class CsvTypeInferenceTest {
     }
   }
 
-  private static String buildModelJson(String engineType) {
+  private static String buildModelJson() {
     String resourceDir = CsvTypeInferenceTest.class.getResource("/csv-type-inference").getFile();
 
     StringBuilder model = new StringBuilder();
@@ -580,9 +497,6 @@ public class CsvTypeInferenceTest {
     model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
     model.append("      \"operand\": {\n");
     model.append("        \"directory\": \"").append(resourceDir).append("\"");
-    if (engineType != null && !engineType.isEmpty()) {
-      model.append(",\n        \"executionEngine\": \"").append(engineType).append("\"");
-    }
     model.append(",\n        \"csvTypeInference\": {\n");
     model.append("          \"enabled\": true,\n");
     model.append("          \"samplingRate\": 1.0,\n");
@@ -603,9 +517,6 @@ public class CsvTypeInferenceTest {
     model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
     model.append("      \"operand\": {\n");
     model.append("        \"directory\": \"").append(resourceDir).append("\"");
-    if (engineType != null && !engineType.isEmpty()) {
-      model.append(",\n        \"executionEngine\": \"").append(engineType).append("\"");
-    }
     model.append("\n      }\n");
     model.append("    }\n");
 
@@ -615,7 +526,8 @@ public class CsvTypeInferenceTest {
     return model.toString();
   }
 
-  private static String buildModelJsonWithBlankStringConfig(String engineType, boolean inferenceEnabled, Boolean blankStringsAsNull, String schemaName) {
+  private static String buildModelJsonWithBlankStringConfig(boolean inferenceEnabled,
+      Boolean blankStringsAsNull, String schemaName) {
     String resourceDir = CsvTypeInferenceTest.class.getResource("/csv-type-inference").getFile();
 
     StringBuilder model = new StringBuilder();
@@ -629,9 +541,6 @@ public class CsvTypeInferenceTest {
     model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
     model.append("      \"operand\": {\n");
     model.append("        \"directory\": \"").append(resourceDir).append("\"");
-    if (engineType != null && !engineType.isEmpty()) {
-      model.append(",\n        \"executionEngine\": \"").append(engineType).append("\"");
-    }
     if (inferenceEnabled) {
       model.append(",\n        \"csvTypeInference\": {\n");
       model.append("          \"enabled\": true,\n");
@@ -657,22 +566,45 @@ public class CsvTypeInferenceTest {
    */
   @Test
   @Tag("temp")
-  void testMixedTypesColumnTypes() throws Exception {
-    // Skip for ARROW engine - CSV type inference not supported
+  void testListAllTables() throws Exception {
+    // List all tables to see what's actually available
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("ARROW".equals(engineType)) {
-      return;
-    }
     Properties info = new Properties();
-    // Use dynamic model if engine is configured
-    if (engineType != null && !engineType.isEmpty()) {
-      String modelJson = buildModelJson(engineType);
-      info.put("model", "inline:" + modelJson);
-    } else {
-      info.put("model", resourcePath("csv-type-inference-model.json"));
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+    BaseFileTest.applyEngineDefaults(info);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
+      DatabaseMetaData metaData = connection.getMetaData();
+      System.out.println("=== Tables in csv_infer schema with engine: " + engineType + " ===");
+
+      try (ResultSet tables = metaData.getTables(null, "csv_infer", "%", null)) {
+        while (tables.next()) {
+          String tableName = tables.getString("TABLE_NAME");
+          String tableType = tables.getString("TABLE_TYPE");
+          System.out.println("Table: " + tableName + " (Type: " + tableType + ")");
+        }
+      }
+
+      System.out.println("=== Tables in csv_no_infer schema ===");
+      try (ResultSet tables = metaData.getTables(null, "csv_no_infer", "%", null)) {
+        while (tables.next()) {
+          String tableName = tables.getString("TABLE_NAME");
+          String tableType = tables.getString("TABLE_TYPE");
+          System.out.println("Table: " + tableName + " (Type: " + tableType + ")");
+        }
+      }
     }
-    info.put("lex", "ORACLE");
-    info.put("unquotedCasing", "TO_LOWER");
+  }
+
+  @Test
+  @Tag("temp")
+  void testMixedTypesColumnTypes() throws Exception {
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    Properties info = new Properties();
+    String modelJson = buildModelJson();
+    info.put("model", "inline:" + modelJson);
+    BaseFileTest.applyEngineDefaults(info);
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       String tableName = "mixed_types";
       String sql = "SELECT * FROM csv_infer." + tableName + " LIMIT 1";
@@ -685,15 +617,16 @@ public class CsvTypeInferenceTest {
           int sqlType = metaData.getColumnType(i);
           String typeName = metaData.getColumnTypeName(i);
           System.out.println(String.format("Column %d: %s - SQL Type: %d (%s)",
-                            i, columnName, sqlType, typeName));
+              i, columnName, sqlType, typeName));
         }
         // Focus on hire_date column (should be column 5)
         if (columnCount >= 5) {
           String hireDateColumnName = metaData.getColumnName(5);
           int hireDateSqlType = metaData.getColumnType(5);
           String hireDateTypeName = metaData.getColumnTypeName(5);
-          System.out.println(String.format("hire_date column details: name=%s, sqlType=%d, typeName=%s",
-                            hireDateColumnName, hireDateSqlType, hireDateTypeName));
+          System.out.println(String.format("hire_date column details: name=%s, sqlType=%d, " +
+                  "typeName=%s",
+              hireDateColumnName, hireDateSqlType, hireDateTypeName));
         }
       }
     }

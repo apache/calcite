@@ -22,6 +22,7 @@
     "type": "custom",
     "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
     "operand": {
+      "ephemeralCache": true,
       "tables": [ {
         "name": "EMPS",
         "url": "sales/EMPS.html"

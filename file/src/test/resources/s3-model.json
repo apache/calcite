@@ -29,6 +29,7 @@
         "directory": "s3://my-data-bucket/analytics",
         "recursive": true,
         "executionEngine": "parquet",
+        "ephemeralCache": true,
         "tables": [
           {
             "name": "events",

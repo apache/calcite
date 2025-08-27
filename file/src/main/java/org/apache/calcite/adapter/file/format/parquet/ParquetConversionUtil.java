@@ -287,7 +287,15 @@ public class ParquetConversionUtil {
     try {
       schema = new org.apache.parquet.schema.MessageType("record", parquetFields);
       LOGGER.debug("Successfully created MessageType schema with {} fields", parquetFields.size());
-      LOGGER.debug("Parquet schema details: {}", schema);
+      LOGGER.debug("=== Parquet Schema Details ===");
+      for (org.apache.parquet.schema.Type field : schema.getFields()) {
+        LOGGER.debug("  Field: {} | Type: {} | Repetition: {} | LogicalType: {}", 
+                    field.getName(), 
+                    field.asPrimitiveType().getPrimitiveTypeName(),
+                    field.getRepetition(),
+                    field.getLogicalTypeAnnotation());
+      }
+      LOGGER.debug("Full schema: {}", schema);
     } catch (Exception e) {
       LOGGER.error("Failed to create MessageType schema: {}", e.getMessage(), e);
       throw e;
@@ -337,20 +345,17 @@ public class ParquetConversionUtil {
 
           LOGGER.debug("Processing field {}: {} = {} (type: {})", i, fieldName, value, field.getType().getSqlTypeName());
 
-          // Handle blankStringsAsNull for VARCHAR/CHAR fields
+          // For VARCHAR/CHAR fields, always preserve empty strings
+          // blankStringsAsNull should only apply to non-string types
           org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
           if (value != null && (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
                sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) && value instanceof String) {
             String stringValue = (String) value;
             LOGGER.debug("Processing field {}: value='{}', blankStringsAsNull={}, isEmpty={}, trimIsEmpty={}",
                 fieldName, stringValue, blankStringsAsNull, stringValue.isEmpty(), stringValue.trim().isEmpty());
-
-            if (blankStringsAsNull && stringValue.isEmpty()) {
-              // Treat empty strings as null for VARCHAR/CHAR fields when configured
-              value = null;
-              LOGGER.debug("Converting empty string to null for field: {}", fieldName);
-            }
-            // When blankStringsAsNull=false, preserve empty strings as-is
+            // Always preserve empty strings for VARCHAR/CHAR fields
+            // blankStringsAsNull only affects non-string types
+            LOGGER.debug("Preserving string value as-is for field: {} (blankStringsAsNull does not apply to strings)", fieldName);
           }
 
           if (value != null) {
@@ -444,17 +449,20 @@ public class ParquetConversionUtil {
 
       case TIMESTAMP:
         // Use INT64 with timestamp logical type annotation
-        // For TIMESTAMP WITHOUT TIME ZONE, we use isAdjustedToUTC=true
-        // This means the stored value is already in UTC and readers should not adjust it
+        // For TIMESTAMP WITHOUT TIME ZONE, we use isAdjustedToUTC=false
+        // This tells DuckDB this is a naive timestamp (no timezone information)
+        LOGGER.debug("Creating TIMESTAMP field '{}' with isAdjustedToUTC=false (timezone-naive)", fieldName);
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         // Use INT64 with timestamp logical type annotation (milliseconds, adjusted to UTC)
-        // Store as milliseconds since epoch in UTC
+        // For TIMESTAMP WITH TIME ZONE, we use isAdjustedToUTC=true
+        // This tells DuckDB this timestamp has timezone information and is stored in UTC
+        LOGGER.debug("Creating TIMESTAMP_WITH_LOCAL_TIME_ZONE field '{}' with isAdjustedToUTC=true (timezone-aware)", fieldName);
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
             .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
@@ -573,7 +581,8 @@ public class ParquetConversionUtil {
       }
     }
 
-    // Handle empty strings for VARCHAR/CHAR fields based on blankStringsAsNull setting
+    // For VARCHAR/CHAR fields, always preserve empty strings regardless of blankStringsAsNull
+    // The blankStringsAsNull setting only applies to non-string types
     LOGGER.info("[addValueToParquetGroup] Checking if value is String: {}, sqlType: {}", 
                 value instanceof String, sqlType);
     if (value instanceof String && 
@@ -583,17 +592,11 @@ public class ParquetConversionUtil {
       LOGGER.info("[addValueToParquetGroup] VARCHAR field '{}': value='{}', length={}, isEmpty={}", 
                   fieldName, strValue, strValue.length(), strValue.isEmpty());
       if (strValue.isEmpty()) {
-        if (blankStringsAsNull) {
-          // Convert empty strings to null (don't add to group)
-          LOGGER.info("[addValueToParquetGroup] Converting empty string to null for field '{}' with sqlType {}", fieldName, sqlType);
-          return;
-        } else {
-          // Store empty strings as empty strings
-          LOGGER.info("[addValueToParquetGroup] IMPORTANT: Storing empty string for field '{}' with sqlType {}", fieldName, sqlType);
-          group.append(fieldName, "");
-          LOGGER.info("[addValueToParquetGroup] Successfully appended empty string to field '{}'", fieldName);
-          return;
-        }
+        // Always preserve empty strings for VARCHAR/CHAR fields
+        LOGGER.info("[addValueToParquetGroup] Preserving empty string for field '{}' (blankStringsAsNull does not apply to strings)", fieldName);
+        group.append(fieldName, "");
+        LOGGER.info("[addValueToParquetGroup] Successfully appended empty string to field '{}'", fieldName);
+        return;
       }
     }
 

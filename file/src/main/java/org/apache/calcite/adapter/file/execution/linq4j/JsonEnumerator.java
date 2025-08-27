@@ -41,9 +41,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Enumerator that reads from a Object List.
@@ -266,11 +269,48 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       list.add(0, jsonObj);
     }
 
+    // Scan up to 10 rows to determine column types (to handle nulls in first row)
+    Map<String, Class<?>> columnTypes = new HashMap<>();
+    int rowsToScan = Math.min(10, list.size());
+    
+    // First, collect all column names from the first row (or the jsonFieldMap for single objects)
+    Set<String> allColumns = new LinkedHashSet<>(jsonFieldMap.keySet());
+    
+    // Scan rows to find non-null values for type inference
+    for (int i = 0; i < rowsToScan; i++) {
+      Object rowObj = list.get(i);
+      Map<String, Object> row;
+      
+      if (rowObj instanceof Map) {
+        //noinspection unchecked
+        row = (Map<String, Object>) rowObj;
+      } else {
+        // Skip non-map rows
+        continue;
+      }
+      
+      for (String key : row.keySet()) {
+        if (!columnTypes.containsKey(key)) {
+          Object value = row.get(key);
+          if (value != null) {
+            columnTypes.put(key, value.getClass());
+          }
+        }
+      }
+      
+      // If we've determined types for all columns, we can stop
+      if (columnTypes.size() == allColumns.size()) {
+        break;
+      }
+    }
+
     final List<RelDataType> types = new ArrayList<RelDataType>(jsonFieldMap.size());
     final List<String> names = new ArrayList<String>(jsonFieldMap.size());
 
     for (Object key : jsonFieldMap.keySet()) {
-      final RelDataType type = typeFactory.createJavaType(jsonFieldMap.get(key).getClass());
+      // Use the discovered type, or default to String for columns that are all null
+      Class<?> clazz = columnTypes.getOrDefault(key.toString(), String.class);
+      final RelDataType type = typeFactory.createJavaType(clazz);
       String columnName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(key.toString(), columnNameCasing);
       names.add(columnName);
       types.add(type);

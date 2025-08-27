@@ -33,7 +33,8 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "sales",
-        "flavor": "TRANSLATABLE"
+        "flavor": "TRANSLATABLE",
+        "ephemeralCache": true
       }
     }
   ]
