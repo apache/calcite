@@ -100,26 +100,18 @@ public class CloudOpsSchemaFactory implements SchemaFactory {
         rootSchema = rootSchema.getParentSchema();
       }
 
-      // Add information_schema if not already present
+      // Add information_schema if not already present (lowercase schema name only)
       if (rootSchema.subSchemas().get("information_schema") == null) {
         // Pass parentSchema so it can see sibling schemas (following Splunk pattern)
         CloudOpsInformationSchema infoSchema = new CloudOpsInformationSchema(parentSchema, "CALCITE");
         rootSchema.add("information_schema", infoSchema);
-        // Also register with uppercase for ORACLE lex compatibility
-        if (rootSchema.subSchemas().get("INFORMATION_SCHEMA") == null) {
-          rootSchema.add("INFORMATION_SCHEMA", infoSchema);
-        }
       }
 
-      // Add pg_catalog if not already present
+      // Add pg_catalog if not already present (lowercase schema name only)
       if (rootSchema.subSchemas().get("pg_catalog") == null) {
         // Pass parentSchema so it can see sibling schemas (following Splunk pattern)
         CloudOpsPostgresMetadataSchema pgSchema = new CloudOpsPostgresMetadataSchema(parentSchema, "CALCITE");
         rootSchema.add("pg_catalog", pgSchema);
-        // Also register with uppercase for ORACLE lex compatibility
-        if (rootSchema.subSchemas().get("PG_CATALOG") == null) {
-          rootSchema.add("PG_CATALOG", pgSchema);
-        }
       }
 
       return cloudGovernanceSchema;
