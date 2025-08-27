@@ -134,6 +134,7 @@ public class CloudOpsConfigTest {
     // Check defaults
     assertThat(config.providers, hasSize(3));
     assertThat(config.cacheEnabled, is(true));
-    assertThat(config.cacheTtlMinutes, is(15));
+    assertThat(config.cacheTtlMinutes, is(5));
+    assertThat(config.cacheDebugMode, is(false));
   }
 }

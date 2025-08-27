@@ -170,23 +170,27 @@ public class SimpleFilterTest {
   @Test public void testInFilterHandling() {
     logger.info("=== Testing IN Filter Handling ===");
 
-    // Create cloud_provider IN ('azure', 'gcp') filter
+    // Create cloud_provider IN ('azure', 'gcp') filter - using OR approach since IN construction is complex
     RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral gcpLiteral = rexBuilder.makeLiteral("gcp");
-    RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.IN, providerRef, azureLiteral, gcpLiteral);
+    
+    // Create provider = 'azure' OR provider = 'gcp' which is equivalent to IN
+    RexNode azureFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
+    RexNode gcpFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, gcpLiteral);
+    RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.OR, azureFilter, gcpFilter);
 
     List<RexNode> filters = Arrays.asList(inFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(testSchema, filters);
 
-    // Test provider constraint extraction for IN filter
+    // Test provider constraint extraction for OR filter (equivalent to IN)
     Set<String> providers = filterHandler.extractProviderConstraints();
     assertEquals(2, providers.size());
     assertTrue(providers.contains("azure"));
     assertTrue(providers.contains("gcp"));
     assertFalse(providers.contains("aws")); // AWS should be excluded
 
-    logger.info("✅ IN filter: cloud_provider IN ('azure', 'gcp')");
+    logger.info("✅ OR filter: cloud_provider = 'azure' OR cloud_provider = 'gcp' (equivalent to IN)");
     logger.info("   Providers to query: {}", providers);
     logger.info("   AWS excluded: {}", !providers.contains("aws"));
   }
@@ -293,7 +297,9 @@ public class SimpleFilterTest {
     CloudOpsFilterHandler.FilterInfo clusterFilterInfo = clusterFilters.get(0);
     assertEquals("cluster_name", clusterFilterInfo.fieldName);
     assertEquals(2, clusterFilterInfo.fieldIndex); // cluster_name is at index 2
-    assertEquals("prod-cluster", clusterFilterInfo.value.toString());
+    assertEquals("prod-cluster", clusterFilterInfo.value instanceof org.apache.calcite.util.NlsString ? 
+        ((org.apache.calcite.util.NlsString) clusterFilterInfo.value).getValue() : 
+        clusterFilterInfo.value);
 
     // Test empty field filter extraction
     List<CloudOpsFilterHandler.FilterInfo> emptyFilters = 

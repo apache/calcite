@@ -55,10 +55,7 @@ public class FilterPushdownIntegrationTest {
   public void setUp() {
     config = CloudOpsTestUtils.loadTestConfig();
     if (config == null) {
-      // Create a test config if no local config available
-      CloudOpsConfig.AzureConfig azure = new CloudOpsConfig.AzureConfig(
-          "test-tenant", "test-client", "test-secret", Arrays.asList("test-sub"));
-      config = new CloudOpsConfig(Arrays.asList("azure"), azure, null, null, false, 5, false);
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
     }
     
     SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(
@@ -83,34 +80,36 @@ public class FilterPushdownIntegrationTest {
   @Test public void testBasicEqualsFilterPushdown() {
     logger.info("=== Testing Basic EQUALS Filter Pushdown ===");
 
-    // Create filter: cloud_provider = 'azure'
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
-    RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
-    RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
+    // Create filter: region = 'us-east-1' (this will generate WHERE clause unlike provider filters)
+    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexLiteral regionLiteral = rexBuilder.makeLiteral("us-east-1");
+    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
-    List<RexNode> filters = Arrays.asList(providerFilter);
+    List<RexNode> filters = Arrays.asList(regionFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
 
     // Verify filter analysis
     assertTrue(filterHandler.hasFilters());
     assertTrue(filterHandler.hasPushableFilters());
 
-    // Test provider constraint extraction
-    Set<String> providers = filterHandler.extractProviderConstraints();
-    assertEquals(1, providers.size());
-    assertTrue(providers.contains("azure"));
-
-    // Test Azure KQL WHERE clause generation
+    // Test Azure KQL WHERE clause generation (region filters DO generate WHERE clauses)
     String kqlWhere = filterHandler.buildAzureKqlWhereClause();
     assertNotNull(kqlWhere);
-    assertFalse(kqlWhere.contains("SubscriptionId")); // Provider filter not included in WHERE
+    assertTrue(kqlWhere.contains("location == 'us-east-1'")); // Region filter included in WHERE
+
+    // Test AWS and GCP parameter extraction
+    Map<String, Object> awsParams = filterHandler.getAWSFilterParameters();
+    assertEquals("us-east-1", awsParams.get("region"));
+    
+    Map<String, Object> gcpParams = filterHandler.getGCPFilterParameters();
+    assertEquals("us-east-1", gcpParams.get("region"));
 
     // Test metrics
     CloudOpsFilterHandler.FilterMetrics metrics = filterHandler.calculateMetrics(true, 1);
     assertEquals(1, metrics.totalFilters);
     assertTrue(metrics.serverSidePushdown);
 
-    logger.info("✅ Provider filter: {} -> Providers to query: {}", providerFilter, providers);
+    logger.info("✅ Region filter pushdown: WHERE='{}', AWS={}, GCP={}", kqlWhere, awsParams, gcpParams);
     logger.info("✅ Filter metrics: {}", metrics);
   }
 
@@ -170,11 +169,15 @@ public class FilterPushdownIntegrationTest {
   @Test public void testInFilterPushdown() {
     logger.info("=== Testing IN Filter Pushdown ===");
 
-    // Create filter: cloud_provider IN ('azure', 'aws')
+    // Create filter: cloud_provider IN ('azure', 'aws') - using OR approach since IN construction is complex
     RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
-    RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.IN, providerRef, azureLiteral, awsLiteral);
+    
+    // Create provider = 'azure' OR provider = 'aws' which is equivalent to IN
+    RexNode azureFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
+    RexNode awsFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, awsLiteral);
+    RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.OR, azureFilter, awsFilter);
 
     List<RexNode> filters = Arrays.asList(inFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);

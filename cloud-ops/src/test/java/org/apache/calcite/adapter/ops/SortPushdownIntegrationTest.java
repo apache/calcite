@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.ops;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -49,39 +50,34 @@ public class SortPushdownIntegrationTest {
   private static Connection connection;
   private static CloudOpsConfig config;
   
-  /**
-   * Check if live tests are enabled via system property.
-   */
-  static boolean isLiveTestsEnabled() {
-    return "true".equalsIgnoreCase(System.getProperty("cloud.ops.live.tests"));
-  }
-  
   @BeforeAll
   static void setUp() throws Exception {
     // Load test configuration
     config = CloudOpsTestUtils.loadTestConfig();
     if (config == null) {
-      logger.warn("No cloud provider credentials found - skipping live tests");
-      return;
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
     }
     
-    // Create model JSON
-    String modelJson = CloudOpsTestUtils.createModelJson(config);
+    // Set up Calcite connection with cloud-ops schema
+    Properties info = new Properties();
+    info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
+
+    connection = DriverManager.getConnection("jdbc:calcite:", info);
+    org.apache.calcite.jdbc.CalciteConnection calciteConnection = connection.unwrap(org.apache.calcite.jdbc.CalciteConnection.class);
+    org.apache.calcite.schema.SchemaPlus rootSchema = calciteConnection.getRootSchema();
+
+    CloudOpsSchemaFactory factory = new CloudOpsSchemaFactory();
+    rootSchema.add("cloud_ops", factory.create(rootSchema, "cloud_ops", configToOperands(config)));
+
+    // Set cloud_ops as the default schema
+    calciteConnection.setSchema("cloud_ops");
     
-    // Set up Calcite connection
-    Properties props = new Properties();
-    props.setProperty("model", "inline:" + modelJson);
-    props.setProperty("lex", "ORACLE");
-    props.setProperty("unquotedCasing", "TO_LOWER");
-    
-    connection = DriverManager.getConnection("jdbc:calcite:", props);
     logger.info("Connected to Calcite with cloud ops sort pushdown support");
   }
   
   @Test
-  @EnabledIf("isLiveTestsEnabled")
   void testSingleFieldSortPushdown() throws Exception {
-    if (connection == null) return;
     
     logger.info("=== Testing Single Field Sort Pushdown ===");
     
@@ -121,9 +117,7 @@ public class SortPushdownIntegrationTest {
   }
   
   @Test
-  @EnabledIf("isLiveTestsEnabled")
   void testMultiFieldSortPushdown() throws Exception {
-    if (connection == null) return;
     
     logger.info("=== Testing Multi-Field Sort Pushdown ===");
     
@@ -178,9 +172,7 @@ public class SortPushdownIntegrationTest {
   }
   
   @Test
-  @EnabledIf("isLiveTestsEnabled")
   void testSortWithProjectionPushdown() throws Exception {
-    if (connection == null) return;
     
     logger.info("=== Testing Combined Sort + Projection Pushdown ===");
     
@@ -209,9 +201,7 @@ public class SortPushdownIntegrationTest {
   }
   
   @Test
-  @EnabledIf("isLiveTestsEnabled")
   void testProviderSpecificSortOptimization() throws Exception {
-    if (connection == null) return;
     
     logger.info("=== Testing Provider-Specific Sort Optimization ===");
     
@@ -284,9 +274,7 @@ public class SortPushdownIntegrationTest {
   }
   
   @Test
-  @EnabledIf("isLiveTestsEnabled")
   void testSortOptimizationMetrics() throws Exception {
-    if (connection == null) return;
     
     logger.info("=== Testing Sort Optimization Metrics ===");
     
@@ -319,5 +307,33 @@ public class SortPushdownIntegrationTest {
       
       logger.info("Total results with sort optimization metrics: {}", rowCount);
     }
+  }
+
+  private static Map<String, Object> configToOperands(CloudOpsConfig config) {
+    Map<String, Object> operands = new HashMap<>();
+
+    if (config.azure != null) {
+      operands.put("azure.tenantId", config.azure.tenantId);
+      operands.put("azure.clientId", config.azure.clientId);
+      operands.put("azure.clientSecret", config.azure.clientSecret);
+      operands.put("azure.subscriptionIds", String.join(",", config.azure.subscriptionIds));
+    }
+
+    if (config.gcp != null) {
+      operands.put("gcp.credentialsPath", config.gcp.credentialsPath);
+      operands.put("gcp.projectIds", String.join(",", config.gcp.projectIds));
+    }
+
+    if (config.aws != null) {
+      operands.put("aws.accessKeyId", config.aws.accessKeyId);
+      operands.put("aws.secretAccessKey", config.aws.secretAccessKey);
+      operands.put("aws.region", config.aws.region);
+      operands.put("aws.accountIds", String.join(",", config.aws.accountIds));
+      if (config.aws.roleArn != null) {
+        operands.put("aws.roleArn", config.aws.roleArn);
+      }
+    }
+
+    return operands;
   }
 }

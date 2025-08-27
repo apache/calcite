@@ -19,11 +19,12 @@ package org.apache.calcite.adapter.ops;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Run with: ./gradlew :cloud-ops:integrationTest
  */
 @Tag("integration")
-@EnabledIfSystemProperty(named = "cloud.ops.integration.test", matches = "true|TRUE")
 public class ProjectionPushdownIntegrationTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ProjectionPushdownIntegrationTest.class);
   
@@ -46,15 +46,24 @@ public class ProjectionPushdownIntegrationTest {
   void setUp() throws Exception {
     // Load test configuration
     config = CloudOpsTestUtils.loadTestConfig();
-    assertNotNull(config, "Test configuration should be loaded");
+    if (config == null) {
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
+    }
     
-    // Create connection with cloud-ops schema
-    Properties props = new Properties();
-    props.setProperty("lex", "ORACLE");
-    props.setProperty("caseSensitive", "false");
-    
-    String modelJson = CloudOpsTestUtils.createModelJson(config);
-    connection = DriverManager.getConnection("jdbc:calcite:inline:" + modelJson, props);
+    // Set up Calcite connection with cloud-ops schema
+    Properties info = new Properties();
+    info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
+
+    connection = DriverManager.getConnection("jdbc:calcite:", info);
+    org.apache.calcite.jdbc.CalciteConnection calciteConnection = connection.unwrap(org.apache.calcite.jdbc.CalciteConnection.class);
+    org.apache.calcite.schema.SchemaPlus rootSchema = calciteConnection.getRootSchema();
+
+    CloudOpsSchemaFactory factory = new CloudOpsSchemaFactory();
+    rootSchema.add("cloud_ops", factory.create(rootSchema, "cloud_ops", configToOperands(config)));
+
+    // Set cloud_ops as the default schema
+    calciteConnection.setSchema("cloud_ops");
     
     LOGGER.info("Integration test setup complete with providers: {}", 
                 String.join(", ", config.providers));
@@ -274,5 +283,33 @@ public class ProjectionPushdownIntegrationTest {
     // "Azure KQL projection: ... -> X% data reduction"
     // "AWS EKS querying with client-side projection"
     // "GCP GKE querying with projection"
+  }
+  
+  private static Map<String, Object> configToOperands(CloudOpsConfig config) {
+    Map<String, Object> operands = new HashMap<>();
+
+    if (config.azure != null) {
+      operands.put("azure.tenantId", config.azure.tenantId);
+      operands.put("azure.clientId", config.azure.clientId);
+      operands.put("azure.clientSecret", config.azure.clientSecret);
+      operands.put("azure.subscriptionIds", String.join(",", config.azure.subscriptionIds));
+    }
+
+    if (config.gcp != null) {
+      operands.put("gcp.credentialsPath", config.gcp.credentialsPath);
+      operands.put("gcp.projectIds", String.join(",", config.gcp.projectIds));
+    }
+
+    if (config.aws != null) {
+      operands.put("aws.accessKeyId", config.aws.accessKeyId);
+      operands.put("aws.secretAccessKey", config.aws.secretAccessKey);
+      operands.put("aws.region", config.aws.region);
+      operands.put("aws.accountIds", String.join(",", config.aws.accountIds));
+      if (config.aws.roleArn != null) {
+        operands.put("aws.roleArn", config.aws.roleArn);
+      }
+    }
+
+    return operands;
   }
 }

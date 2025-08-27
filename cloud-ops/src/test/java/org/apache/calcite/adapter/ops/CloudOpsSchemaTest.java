@@ -78,16 +78,11 @@ public class CloudOpsSchemaTest {
   }
 
   private CloudOpsConfig createTestConfig() {
-    CloudOpsConfig.AzureConfig azure =
-        new CloudOpsConfig.AzureConfig("test-tenant", "test-client", "test-secret", Arrays.asList("sub1", "sub2"));
-
-    CloudOpsConfig.GCPConfig gcp =
-        new CloudOpsConfig.GCPConfig(Arrays.asList("project1", "project2"), "/path/to/credentials.json");
-
-    CloudOpsConfig.AWSConfig aws =
-        new CloudOpsConfig.AWSConfig(Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
-
-    return new CloudOpsConfig(
-        Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15, false);
+    // Only use real credentials from local properties file
+    CloudOpsConfig config = CloudOpsTestUtils.loadTestConfig();
+    if (config == null) {
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
+    }
+    return config;
   }
 }

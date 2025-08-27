@@ -55,7 +55,7 @@ public class CacheIntegrationTest {
         createMockAWSConfig(),
         true,  // cacheEnabled
         2,     // cacheTtlMinutes
-        false  // cacheDebugMode
+        true   // cacheDebugMode
     );
     
     logger.info("Test configuration created with caching enabled");

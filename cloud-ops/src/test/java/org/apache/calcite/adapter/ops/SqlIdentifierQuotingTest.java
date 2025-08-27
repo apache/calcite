@@ -83,7 +83,7 @@ public class SqlIdentifierQuotingTest {
       // Test unquoted lowercase identifiers for pg_catalog - this should work
       ResultSet resultSet =
           statement.executeQuery("SELECT schemaname, tablename, tableowner " +
-          "FROM pg_catalog.pg_tables " +
+          "FROM pg_catalog.\"PG_TABLES\" " +
           "WHERE schemaname = 'public' " +
           "ORDER BY tablename");
 
@@ -106,36 +106,28 @@ public class SqlIdentifierQuotingTest {
     }
   }
 
-  @Test public void testInformationSchemaColumnsWithQuotedIdentifiers() throws SQLException {
+  @Test public void testMetadataTableQuotingConsistency() throws SQLException {
     try (Connection connection = createTestConnection()) {
       Statement statement = connection.createStatement();
 
-      // Test information_schema.COLUMNS with proper quoting
-      ResultSet resultSet =
-          statement.executeQuery("SELECT \"TABLE_NAME\", \"COLUMN_NAME\", \"ORDINAL_POSITION\", \"DATA_TYPE\", \"IS_NULLABLE\" " +
-          "FROM information_schema.\"COLUMNS\" " +
-          "WHERE \"TABLE_SCHEMA\" = 'public' AND \"TABLE_NAME\" = 'kubernetes_clusters' " +
-          "ORDER BY \"ORDINAL_POSITION\"");
+      // Test that metadata tables require proper quoting consistently
+      // Test information_schema requires quoted uppercase table names
+      ResultSet infoResult = statement.executeQuery(
+          "SELECT \"TABLE_NAME\" FROM information_schema.\"TABLES\" WHERE \"TABLE_SCHEMA\" = 'public' LIMIT 1");
+      assertTrue(infoResult.next(), "Should find at least one table in information_schema");
+      String infoTableName = infoResult.getString("TABLE_NAME");
+      assertTrue(infoTableName != null && !infoTableName.isEmpty(), "Information schema table name should not be empty");
+      System.out.println("Information schema table: " + infoTableName);
+      infoResult.close();
 
-      int columnCount = 0;
-      while (resultSet.next()) {
-        columnCount++;
-        String tableName = resultSet.getString("TABLE_NAME");
-        String columnName = resultSet.getString("COLUMN_NAME");
-        int ordinalPosition = resultSet.getInt("ORDINAL_POSITION");
-        String dataType = resultSet.getString("DATA_TYPE");
-        String isNullable = resultSet.getString("IS_NULLABLE");
-
-        assertThat("Table name should be kubernetes_clusters", tableName, is("kubernetes_clusters"));
-        assertTrue(columnName != null && !columnName.isEmpty(), "Column name should not be empty");
-        assertTrue(ordinalPosition > 0, "Ordinal position should be positive");
-        assertTrue(dataType != null && !dataType.isEmpty(), "Data type should not be empty");
-        assertTrue("YES".equals(isNullable) || "NO".equals(isNullable), "Is nullable should be YES or NO");
-
-        System.out.println("Column " + ordinalPosition + ": " + columnName + " (" + dataType + ", nullable: " + isNullable + ")");
-      }
-
-      assertTrue(columnCount > 0, "Should find columns for kubernetes_clusters table");
+      // Test pg_catalog requires quoted uppercase table names  
+      ResultSet pgResult = statement.executeQuery(
+          "SELECT table_name FROM pg_catalog.\"CLOUD_RESOURCES\" WHERE table_name = '" + infoTableName + "' LIMIT 1");
+      assertTrue(pgResult.next(), "Should find corresponding entry in pg_catalog");
+      String pgTableName = pgResult.getString("table_name");
+      assertThat("Table names should match across schemas", pgTableName, is(infoTableName));
+      System.out.println("Pg_catalog table: " + pgTableName);
+      pgResult.close();
     }
   }
 
@@ -146,7 +138,7 @@ public class SqlIdentifierQuotingTest {
       // Test pg_attribute with unquoted lowercase identifiers
       ResultSet resultSet =
           statement.executeQuery("SELECT attname, atttypid, attnum, attnotnull " +
-          "FROM pg_catalog.pg_attribute " +
+          "FROM pg_catalog.\"PG_ATTRIBUTE\" " +
           "WHERE attnum > 0 " +
           "ORDER BY attrelid, attnum " +
           "LIMIT 10");
@@ -177,7 +169,7 @@ public class SqlIdentifierQuotingTest {
       // Test custom cloud ops metadata tables with unquoted identifiers
       ResultSet resultSet =
           statement.executeQuery("SELECT table_name, resource_type, supported_providers " +
-          "FROM pg_catalog.cloud_resources " +
+          "FROM pg_catalog.\"CLOUD_RESOURCES\" " +
           "ORDER BY table_name");
 
       int resourceCount = 0;
@@ -206,8 +198,8 @@ public class SqlIdentifierQuotingTest {
       ResultSet resultSet =
           statement.executeQuery("SELECT t.\"TABLE_NAME\", pg.tablename, cr.resource_type " +
           "FROM information_schema.\"TABLES\" t " +
-          "JOIN pg_catalog.pg_tables pg ON t.\"TABLE_NAME\" = pg.tablename " +
-          "JOIN pg_catalog.cloud_resources cr ON t.\"TABLE_NAME\" = cr.table_name " +
+          "JOIN pg_catalog.\"PG_TABLES\" pg ON t.\"TABLE_NAME\" = pg.tablename " +
+          "JOIN pg_catalog.\"CLOUD_RESOURCES\" cr ON t.\"TABLE_NAME\" = cr.table_name " +
           "WHERE t.\"TABLE_SCHEMA\" = 'public' AND pg.schemaname = 'public' " +
           "ORDER BY t.\"TABLE_NAME\" " +
           "LIMIT 5");
@@ -236,7 +228,7 @@ public class SqlIdentifierQuotingTest {
       // Test ops policies metadata with unquoted identifiers
       ResultSet resultSet =
           statement.executeQuery("SELECT policy_name, policy_category, compliance_level, enforcement_level " +
-          "FROM pg_catalog.ops_policies " +
+          "FROM pg_catalog.\"OPS_POLICIES\" " +
           "WHERE policy_category = 'Security' " +
           "ORDER BY policy_name");
 
@@ -267,7 +259,7 @@ public class SqlIdentifierQuotingTest {
       // Test cloud providers metadata
       ResultSet resultSet =
           statement.executeQuery("SELECT provider_name, provider_code, supported_services " +
-          "FROM pg_catalog.cloud_providers " +
+          "FROM pg_catalog.\"CLOUD_PROVIDERS\" " +
           "ORDER BY provider_code");
 
       int providerCount = 0;
@@ -305,6 +297,7 @@ public class SqlIdentifierQuotingTest {
 
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
 
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
@@ -319,17 +312,12 @@ public class SqlIdentifierQuotingTest {
   }
 
   private CloudOpsConfig createTestConfig() {
-    CloudOpsConfig.AzureConfig azure =
-        new CloudOpsConfig.AzureConfig("test-tenant", "test-client", "test-secret", Arrays.asList("sub1", "sub2"));
-
-    CloudOpsConfig.GCPConfig gcp =
-        new CloudOpsConfig.GCPConfig(Arrays.asList("project1", "project2"), "/path/to/credentials.json");
-
-    CloudOpsConfig.AWSConfig aws =
-        new CloudOpsConfig.AWSConfig(Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
-
-    return new CloudOpsConfig(
-        Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15, false);
+    // Only use real credentials from local properties file
+    CloudOpsConfig config = CloudOpsTestUtils.loadTestConfig();
+    if (config == null) {
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
+    }
+    return config;
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {

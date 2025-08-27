@@ -216,16 +216,17 @@ public class CacheManagerTest {
     String cacheKey = "error:test:key";
 
     // Test with supplier that throws exception
-    List<Map<String, Object>> result = cacheManager.getOrCompute(cacheKey, () -> {
-      apiCallCount.incrementAndGet();
-      throw new RuntimeException("Test exception");
-    });
+    // The cache manager should propagate the exception from the API call
+    assertThrows(RuntimeException.class, () -> {
+      cacheManager.getOrCompute(cacheKey, () -> {
+        apiCallCount.incrementAndGet();
+        throw new RuntimeException("Test exception");
+      });
+    }, "Exception should be propagated from API call");
 
-    // On exception, cache should return result from direct API call
-    // (The cache manager should handle exceptions gracefully)
     assertEquals(1, apiCallCount.get(), "API call should have been attempted");
 
-    logger.info("✅ Cache error handling: Exception handled gracefully");
+    logger.info("✅ Cache error handling: Exception properly propagated");
   }
 
   @Test public void testCacheValidation() {
