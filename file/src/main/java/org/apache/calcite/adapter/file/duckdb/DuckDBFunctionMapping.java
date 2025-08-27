@@ -103,6 +103,14 @@ public class DuckDBFunctionMapping {
   public static void unparseCall(SqlWriter writer, SqlCall call, 
                                 int leftPrec, int rightPrec) {
     SqlOperator operator = call.getOperator();
+    
+    // Special handling for CAST to avoid parentheses issues in DuckDB
+    if (operator.getKind() == SqlKind.CAST) {
+      // Don't handle CAST here - let the base dialect handle it
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      return;
+    }
+    
     String funcName = operator.getName().toUpperCase();
     
     if (FUNCTION_MAP.containsKey(funcName)) {

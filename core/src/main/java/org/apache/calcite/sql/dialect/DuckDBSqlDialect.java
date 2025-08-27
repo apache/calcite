@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -91,6 +92,23 @@ public class DuckDBSqlDialect extends PostgresqlSqlDialect {
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     switch (call.getKind()) {
+    case CAST:
+      // DuckDB requires CAST without extra parentheses around type
+      // Handle CAST specially to avoid issues with parentheses
+      writer.keyword("CAST");
+      writer.print("(");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep("AS");
+      // For the type operand, we need to avoid extra parentheses
+      // DuckDB doesn't accept CAST(x AS (INTEGER))
+      String typeStr = call.operand(1).toString();
+      // Remove any outer parentheses from the type specification
+      if (typeStr.startsWith("(") && typeStr.endsWith(")")) {
+        typeStr = typeStr.substring(1, typeStr.length() - 1);
+      }
+      writer.print(typeStr);
+      writer.print(")");
+      break;
     case MAP_VALUE_CONSTRUCTOR:
       writer.keyword(call.getOperator().getName());
       final SqlWriter.Frame mapFrame = writer.startList("{", "}");

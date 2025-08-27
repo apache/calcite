@@ -108,6 +108,7 @@ public class DuckDBJdbcSchemaFactory {
       setupConn.createStatement().execute("SET preserve_insertion_order = false");  // Better performance
       setupConn.createStatement().execute("SET enable_progress_bar = false");  // Cleaner output
       setupConn.createStatement().execute("SET enable_object_cache = true");  // Cache parsed files
+      setupConn.createStatement().execute("SET scalar_subquery_error_on_multiple_rows = false");  // Allow Calcite's scalar subquery rewriting
       
       // Create a schema matching the FileSchema name
       // ALWAYS quote the schema name to preserve casing as-is
@@ -143,7 +144,12 @@ public class DuckDBJdbcSchemaFactory {
         @Override
         public Connection getConnection() throws SQLException {
           // Create a new connection to the named in-memory database
-          return DriverManager.getConnection(finalJdbcUrl);
+          Connection conn = DriverManager.getConnection(finalJdbcUrl);
+          // Apply critical settings to new connections
+          try (Statement stmt = conn.createStatement()) {
+            stmt.execute("SET scalar_subquery_error_on_multiple_rows = false");
+          }
+          return conn;
         }
         
         @Override
