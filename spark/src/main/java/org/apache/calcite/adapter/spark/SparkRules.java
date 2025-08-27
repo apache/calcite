@@ -59,24 +59,14 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.Function;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import scala.Tuple2;
-
 import java.lang.reflect.Type;
-import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Random;
 
 /**
  * Rules for the {@link SparkRel#CONVENTION Spark calling convention}.

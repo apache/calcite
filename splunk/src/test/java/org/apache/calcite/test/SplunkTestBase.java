@@ -45,7 +45,7 @@ public abstract class SplunkTestBase {
       throw new RuntimeException("Failed to load Splunk driver", e);
     }
   }
-  
+
   @BeforeAll
   public static void loadConnectionProperties() {
     // Try to load from local-properties.settings
@@ -82,7 +82,7 @@ public abstract class SplunkTestBase {
         }
 
         splunkAvailable = SPLUNK_URL != null && SPLUNK_USER != null && SPLUNK_PASSWORD != null;
-        
+
         if (splunkAvailable) {
           System.out.println("Loaded Splunk connection from " + propsFile.getPath());
         }
@@ -96,7 +96,7 @@ public abstract class SplunkTestBase {
       String envUrl = System.getenv("SPLUNK_URL");
       String envUser = System.getenv("SPLUNK_USER");
       String envPassword = System.getenv("SPLUNK_PASSWORD");
-      
+
       if (envUrl != null && envUser != null && envPassword != null) {
         SPLUNK_URL = envUrl;
         SPLUNK_USER = envUser;
@@ -117,7 +117,7 @@ public abstract class SplunkTestBase {
     if (!splunkAvailable) {
       throw new IllegalStateException("Splunk connection not configured");
     }
-    
+
     Properties props = new Properties();
     props.setProperty("url", SPLUNK_URL);
     props.setProperty("user", SPLUNK_USER);
@@ -127,7 +127,7 @@ public abstract class SplunkTestBase {
     }
     props.setProperty("lex", "ORACLE");
     props.setProperty("unquotedCasing", "TO_LOWER");
-    
+
     return DriverManager.getConnection("jdbc:splunk:", props);
   }
 }

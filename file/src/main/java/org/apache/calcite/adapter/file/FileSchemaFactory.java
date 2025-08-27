@@ -68,6 +68,8 @@ public class FileSchemaFactory implements SchemaFactory {
 
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
+    // Validate that schema name is unique within parent schema
+    validateUniqueSchemaName(parentSchema, name);
     LOGGER.info("[FileSchemaFactory] ==> create() called for schema: '{}'", name);
     LOGGER.info("[FileSchemaFactory] ==> Parent schema: '{}'", parentSchema != null ? parentSchema.getName() : "null");
     LOGGER.info("[FileSchemaFactory] ==> Operand keys: {}", operand.keySet());
@@ -364,6 +366,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
       // Register the DuckDB JDBC schema with the parent so SQL queries can find the tables
       // This is critical for Calcite's SQL validator to see the tables
+      // Note: Schema uniqueness already validated at method start
       parentSchema.add(name, duckdbSchema);
       LOGGER.info("FileSchemaFactory: Registered DuckDB JDBC schema '{}' with parent schema for SQL validation", name);
 
@@ -391,6 +394,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
     // Register the FileSchema with the parent so metadata queries can find the tables
     // This is critical for DatabaseMetaData.getColumns() to work
+    // Note: Schema uniqueness already validated at method start
     parentSchema.add(name, fileSchema);
     LOGGER.info("FileSchemaFactory: Registered FileSchema '{}' with parent schema for metadata visibility", name);
 
@@ -427,6 +431,34 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     return fileSchema;
+  }
+
+  /**
+   * Validates that a schema with the given name does not already exist in the parent schema.
+   * This prevents configuration errors and silent schema replacement.
+   *
+   * @param parentSchema the parent schema to check
+   * @param name the schema name to validate
+   * @throws IllegalArgumentException if a schema with the same name already exists
+   */
+  private static void validateUniqueSchemaName(SchemaPlus parentSchema, String name) {
+    if (parentSchema == null || name == null) {
+      return;
+    }
+
+    // Check if schema with this name already exists
+    if (parentSchema.subSchemas().get(name) != null) {
+      String errorMessage = String.format(
+          "Schema with name '%s' already exists in parent schema. " +
+          "Each schema must have a unique name within the same connection. " +
+          "Existing schemas: %s",
+          name,
+          parentSchema.subSchemas().getNames(LikePattern.any()));
+      LOGGER.error("Duplicate schema name detected: {}", errorMessage);
+      throw new IllegalArgumentException(errorMessage);
+    }
+
+    LOGGER.debug("Schema name '{}' is unique within parent schema", name);
   }
 
   private static void addMetadataSchemas(SchemaPlus parentSchema) {

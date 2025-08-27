@@ -24,11 +24,11 @@ import java.util.Properties;
 
 /**
  * Configuration options specific to DuckDB execution engine.
- * 
+ *
  * <p>DuckDB has its own set of configuration parameters that control
  * memory usage, parallelism, and query optimization. These are separate
  * from the general ExecutionEngineConfig options.
- * 
+ *
  * <p>Example configuration:
  * <pre>{@code
  * {
@@ -71,33 +71,33 @@ public class DuckDBConfig {
    */
   public DuckDBConfig() {
     this(DEFAULT_MEMORY_LIMIT, DEFAULT_THREADS, DEFAULT_MAX_MEMORY, null,
-        DEFAULT_ENABLE_PROGRESS_BAR, DEFAULT_PRESERVE_INSERTION_ORDER, 
+        DEFAULT_ENABLE_PROGRESS_BAR, DEFAULT_PRESERVE_INSERTION_ORDER,
         DEFAULT_USE_ARROW_OPTIMIZATION, DEFAULT_ARROW_BATCH_SIZE, null);
   }
 
   /**
    * Creates DuckDB configuration from a map (typically from JSON/YAML config).
-   * 
+   *
    * @param configMap configuration map with DuckDB settings
    */
   public DuckDBConfig(Map<String, Object> configMap) {
     this.memoryLimit = (String) configMap.getOrDefault("memory_limit", DEFAULT_MEMORY_LIMIT);
-    
+
     Object threadsObj = configMap.get("threads");
-    this.threads = threadsObj instanceof Number 
-        ? ((Number) threadsObj).intValue() 
+    this.threads = threadsObj instanceof Number
+        ? ((Number) threadsObj).intValue()
         : DEFAULT_THREADS;
-    
+
     this.maxMemory = (String) configMap.getOrDefault("max_memory", DEFAULT_MAX_MEMORY);
     this.tempDirectory = (String) configMap.get("temp_directory");
-    
+
     this.enableProgressBar = Boolean.TRUE.equals(configMap.get("enable_progress_bar"));
-    this.preserveInsertionOrder = Boolean.TRUE.equals(
-        configMap.getOrDefault("preserve_insertion_order", DEFAULT_PRESERVE_INSERTION_ORDER));
-    
-    this.useArrowOptimization = Boolean.TRUE.equals(
-        configMap.getOrDefault("use_arrow_optimization", DEFAULT_USE_ARROW_OPTIMIZATION));
-    
+    this.preserveInsertionOrder =
+        Boolean.TRUE.equals(configMap.getOrDefault("preserve_insertion_order", DEFAULT_PRESERVE_INSERTION_ORDER));
+
+    this.useArrowOptimization =
+        Boolean.TRUE.equals(configMap.getOrDefault("use_arrow_optimization", DEFAULT_USE_ARROW_OPTIMIZATION));
+
     Object batchSizeObj = configMap.get("arrow_batch_size");
     this.arrowBatchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()
@@ -116,7 +116,7 @@ public class DuckDBConfig {
   /**
    * Creates DuckDB configuration with all parameters.
    */
-  public DuckDBConfig(String memoryLimit, int threads, String maxMemory, 
+  public DuckDBConfig(String memoryLimit, int threads, String maxMemory,
       String tempDirectory, boolean enableProgressBar, boolean preserveInsertionOrder,
       boolean useArrowOptimization, int arrowBatchSize, Properties additionalSettings) {
     this.memoryLimit = memoryLimit != null ? memoryLimit : DEFAULT_MEMORY_LIMIT;
@@ -132,29 +132,29 @@ public class DuckDBConfig {
 
   /**
    * Converts this configuration to DuckDB SET statements that can be executed.
-   * 
+   *
    * @return array of SQL SET statements to configure DuckDB
    */
   public String[] toDuckDBSettings() {
     java.util.List<String> settings = new java.util.ArrayList<>();
-    
+
     // Core memory and threading settings
     settings.add("SET memory_limit = '" + memoryLimit + "'");
     settings.add("SET threads = " + threads);
     settings.add("SET max_memory = '" + maxMemory + "'");
-    
+
     if (tempDirectory != null) {
       settings.add("SET temp_directory = '" + tempDirectory + "'");
     }
-    
+
     settings.add("SET enable_progress_bar = " + enableProgressBar);
     settings.add("SET preserve_insertion_order = " + preserveInsertionOrder);
-    
+
     // Add any additional settings
     for (Map.Entry<Object, Object> entry : additionalSettings.entrySet()) {
       String key = entry.getKey().toString();
       String value = entry.getValue().toString();
-      
+
       // Try to determine if value needs quotes
       if (isNumericValue(value) || isBooleanValue(value)) {
         settings.add("SET " + key + " = " + value);
@@ -162,7 +162,7 @@ public class DuckDBConfig {
         settings.add("SET " + key + " = '" + value + "'");
       }
     }
-    
+
     return settings.toArray(new String[0]);
   }
 
@@ -223,8 +223,7 @@ public class DuckDBConfig {
     return arrowBatchSize;
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "DuckDBConfig{" +
         "memoryLimit='" + memoryLimit + '\'' +
         ", threads=" + threads +

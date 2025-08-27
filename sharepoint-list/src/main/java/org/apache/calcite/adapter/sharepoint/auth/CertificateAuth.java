@@ -98,11 +98,11 @@ public class CertificateAuth implements SharePointAuth {
   private String calculateThumbprint() throws Exception {
     // Get the first alias (there should only be one)
     String alias = keyStore.aliases().nextElement();
-    
+
     // Get certificate
-    java.security.cert.X509Certificate certificate = 
+    java.security.cert.X509Certificate certificate =
         (java.security.cert.X509Certificate) keyStore.getCertificate(alias);
-    
+
     // Calculate thumbprint (SHA-1 hash of certificate)
     java.security.MessageDigest sha1 = java.security.MessageDigest.getInstance("SHA-1");
     byte[] certHash = sha1.digest(certificate.getEncoded());

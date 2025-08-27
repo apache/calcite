@@ -32,7 +32,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
@@ -54,7 +53,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * </ul>
  */
 public class DirectAuthProvider implements SharePointAuthProvider {
-  
+
   private final String siteUrl;
   private final @Nullable String tenantId;
   private final @Nullable String clientId;
@@ -69,15 +68,15 @@ public class DirectAuthProvider implements SharePointAuthProvider {
   private final boolean useLegacyAuth;
   private final boolean useGraphApi;
   private final Map<String, String> additionalHeaders;
-  
+
   private @Nullable String accessToken;
   private @Nullable Instant tokenExpiry;
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   private final ObjectMapper mapper = new ObjectMapper();
-  
+
   // Buffer time before token expiry to trigger refresh (5 minutes)
   private static final long REFRESH_BUFFER_SECONDS = 300;
-  
+
   /**
    * Creates a DirectAuthProvider from configuration map.
    */
@@ -86,7 +85,7 @@ public class DirectAuthProvider implements SharePointAuthProvider {
     if (siteUrl == null) {
       throw new IllegalArgumentException("siteUrl is required");
     }
-    
+
     // Phase 1: Direct auth configuration
     this.tenantId = (String) config.get("tenantId");
     this.clientId = (String) config.get("clientId");
@@ -94,25 +93,24 @@ public class DirectAuthProvider implements SharePointAuthProvider {
     this.certificatePath = (String) config.get("certificatePath");
     this.certificatePassword = (String) config.get("certificatePassword");
     this.staticToken = (String) config.get("accessToken");
-    
+
     // Phase 2: External token sources
     this.tokenCommand = (String) config.get("tokenCommand");
     this.tokenEnv = (String) config.get("tokenEnv");
     this.tokenFile = (String) config.get("tokenFile");
     this.tokenEndpoint = (String) config.get("tokenEndpoint");
-    
+
     // API selection
     this.useLegacyAuth = Boolean.TRUE.equals(config.get("useLegacyAuth"));
     this.useGraphApi = Boolean.TRUE.equals(config.get("useGraphApi"));
-    
+
     // Additional headers
     @SuppressWarnings("unchecked")
     Map<String, String> headers = (Map<String, String>) config.get("additionalHeaders");
     this.additionalHeaders = headers != null ? headers : Collections.emptyMap();
   }
-  
-  @Override
-  public String getAccessToken() throws IOException {
+
+  @Override public String getAccessToken() throws IOException {
     // Fast path - check with read lock
     lock.readLock().lock();
     try {
@@ -122,7 +120,7 @@ public class DirectAuthProvider implements SharePointAuthProvider {
     } finally {
       lock.readLock().unlock();
     }
-    
+
     // Slow path - refresh with write lock
     lock.writeLock().lock();
     try {
@@ -130,7 +128,7 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       if (isTokenValid()) {
         return accessToken;
       }
-      
+
       // Refresh the token
       refreshAccessToken();
       return accessToken;
@@ -138,14 +136,12 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       lock.writeLock().unlock();
     }
   }
-  
-  @Override
-  public Map<String, String> getAdditionalHeaders() {
+
+  @Override public Map<String, String> getAdditionalHeaders() {
     return additionalHeaders;
   }
-  
-  @Override
-  public void invalidateToken() {
+
+  @Override public void invalidateToken() {
     lock.writeLock().lock();
     try {
       this.tokenExpiry = Instant.now().minusSeconds(1);
@@ -153,14 +149,12 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       lock.writeLock().unlock();
     }
   }
-  
-  @Override
-  public String getSiteUrl() {
+
+  @Override public String getSiteUrl() {
     return siteUrl;
   }
-  
-  @Override
-  public boolean supportsApiType(String apiType) {
+
+  @Override public boolean supportsApiType(String apiType) {
     if ("graph".equals(apiType)) {
       // Graph API works with client credentials and static tokens
       return !useLegacyAuth;
@@ -170,22 +164,21 @@ public class DirectAuthProvider implements SharePointAuthProvider {
     }
     return false;
   }
-  
-  @Override
-  public String getTenantId() {
+
+  @Override public String getTenantId() {
     return tenantId;
   }
-  
+
   private boolean isTokenValid() {
     if (accessToken == null || tokenExpiry == null) {
       return false;
     }
-    
+
     // Check if token expires soon
     Instant bufferTime = Instant.now().plusSeconds(REFRESH_BUFFER_SECONDS);
     return tokenExpiry.isAfter(bufferTime);
   }
-  
+
   private void refreshAccessToken() throws IOException {
     // Phase 2: External token sources (highest priority)
     if (tokenCommand != null) {
@@ -208,17 +201,17 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       throw new IOException("No valid authentication method configured");
     }
   }
-  
+
   private void refreshFromCommand() throws IOException {
     try {
       ProcessBuilder pb = new ProcessBuilder(tokenCommand.split("\\s+"));
       Process process = pb.start();
-      try (BufferedReader reader = new BufferedReader(
-          new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+      try (BufferedReader reader =
+          new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
         this.accessToken = reader.readLine();
         this.tokenExpiry = Instant.now().plusSeconds(3600); // Assume 1 hour
       }
-      
+
       int exitCode = process.waitFor();
       if (exitCode != 0) {
         throw new IOException("Token command failed with exit code: " + exitCode);
@@ -228,7 +221,7 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       throw new IOException("Token command interrupted", e);
     }
   }
-  
+
   private void refreshFromEnvironment() {
     String token = System.getenv(tokenEnv);
     if (token == null || token.isEmpty()) {
@@ -237,37 +230,37 @@ public class DirectAuthProvider implements SharePointAuthProvider {
     this.accessToken = token;
     this.tokenExpiry = Instant.now().plusSeconds(3600); // Assume 1 hour
   }
-  
+
   private void refreshFromFile() throws IOException {
     File file = new File(tokenFile);
     if (!file.exists()) {
       throw new IOException("Token file not found: " + tokenFile);
     }
-    
+
     try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
       this.accessToken = reader.readLine();
       this.tokenExpiry = Instant.now().plusSeconds(3600); // Assume 1 hour
     }
   }
-  
+
   private void refreshFromEndpoint() throws IOException {
     URL url = URI.create(tokenEndpoint).toURL();
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod("GET");
-    
+
     // Add any authentication headers for the token endpoint
     for (Map.Entry<String, String> header : additionalHeaders.entrySet()) {
       conn.setRequestProperty(header.getKey(), header.getValue());
     }
-    
+
     int responseCode = conn.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
       throw new IOException("Token endpoint returned status: " + responseCode);
     }
-    
+
     try (Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8)) {
       String response = scanner.useDelimiter("\\A").next();
-      
+
       // Try to parse as JSON first
       try {
         @SuppressWarnings("unchecked")
@@ -276,7 +269,7 @@ public class DirectAuthProvider implements SharePointAuthProvider {
         if (this.accessToken == null) {
           this.accessToken = (String) json.get("token");
         }
-        
+
         // Get expiry if provided
         Object expiresIn = json.get("expires_in");
         long expirySeconds = 3600; // Default 1 hour
@@ -291,35 +284,35 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       }
     }
   }
-  
+
   private void useStaticToken() {
     this.accessToken = staticToken;
     this.tokenExpiry = Instant.now().plusSeconds(3600); // Assume 1 hour
   }
-  
+
   private void refreshWithClientCredentials() throws IOException {
     if (tenantId == null || clientId == null) {
       throw new IllegalStateException("tenantId and clientId required for client credentials");
     }
-    
+
     String tokenUrl;
     String scope;
-    
+
     if (useLegacyAuth) {
       // Legacy SharePoint authentication
-      tokenUrl = String.format(Locale.ROOT, 
-          "https://accounts.accesscontrol.windows.net/%s/tokens/OAuth/2", tenantId);
-      
+      tokenUrl =
+          String.format(Locale.ROOT, "https://accounts.accesscontrol.windows.net/%s/tokens/OAuth/2", tenantId);
+
       // Extract SharePoint resource from site URL
       URI uri = URI.create(siteUrl);
       String resource = uri.getHost();
-      scope = String.format(Locale.ROOT, "00000003-0000-0ff1-ce00-000000000000/%s@%s", 
-          resource, tenantId);
+      scope =
+          String.format(Locale.ROOT, "00000003-0000-0ff1-ce00-000000000000/%s@%s", resource, tenantId);
     } else {
       // Modern Azure AD authentication
-      tokenUrl = String.format(Locale.ROOT, 
-          "https://login.microsoftonline.com/%s/oauth2/v2.0/token", tenantId);
-      
+      tokenUrl =
+          String.format(Locale.ROOT, "https://login.microsoftonline.com/%s/oauth2/v2.0/token", tenantId);
+
       if (useGraphApi) {
         scope = "https://graph.microsoft.com/.default";
       } else {
@@ -328,18 +321,18 @@ public class DirectAuthProvider implements SharePointAuthProvider {
         scope = String.format(Locale.ROOT, "https://%s/.default", uri.getHost());
       }
     }
-    
+
     // Build request body
-    String requestBody = String.format(Locale.ROOT, 
-        "grant_type=client_credentials&client_id=%s&client_secret=%s&scope=%s",
+    String requestBody =
+        String.format(Locale.ROOT, "grant_type=client_credentials&client_id=%s&client_secret=%s&scope=%s",
         URLEncoder.encode(clientId, StandardCharsets.UTF_8),
         URLEncoder.encode(clientSecret, StandardCharsets.UTF_8),
         URLEncoder.encode(scope, StandardCharsets.UTF_8));
-    
+
     Map<String, Object> response = makeTokenRequest(tokenUrl, requestBody);
     updateTokenFromResponse(response);
   }
-  
+
   private void refreshWithCertificate() throws IOException {
     // Certificate authentication would require additional dependencies
     // For now, throw an informative error
@@ -347,18 +340,18 @@ public class DirectAuthProvider implements SharePointAuthProvider {
         "Certificate authentication not yet implemented. " +
         "Use client credentials or external token source instead.");
   }
-  
-  private Map<String, Object> makeTokenRequest(String tokenUrl, String requestBody) 
+
+  private Map<String, Object> makeTokenRequest(String tokenUrl, String requestBody)
       throws IOException {
     URL url = URI.create(tokenUrl).toURL();
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod("POST");
     conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
     conn.setDoOutput(true);
-    
+
     // Send request
     conn.getOutputStream().write(requestBody.getBytes(StandardCharsets.UTF_8));
-    
+
     // Read response
     int responseCode = conn.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -367,7 +360,7 @@ public class DirectAuthProvider implements SharePointAuthProvider {
         throw new IOException("Failed to refresh access token: " + error);
       }
     }
-    
+
     // Parse response
     try (Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8)) {
       String response = scanner.useDelimiter("\\A").next();
@@ -376,17 +369,17 @@ public class DirectAuthProvider implements SharePointAuthProvider {
       return json;
     }
   }
-  
+
   private void updateTokenFromResponse(Map<String, Object> response) {
     this.accessToken = (String) response.get("access_token");
-    
+
     // Calculate expiry time
     Object expiresIn = response.get("expires_in");
     long expirySeconds = 3600; // Default 1 hour
     if (expiresIn instanceof Number) {
       expirySeconds = ((Number) expiresIn).longValue();
     }
-    
+
     this.tokenExpiry = Instant.now().plusSeconds(expirySeconds);
   }
 }

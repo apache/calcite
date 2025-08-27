@@ -85,15 +85,15 @@
  * File excelFile = new File("data.xlsx");
  * File jsonFile = new File("data.json");
  * ExcelToJsonConverter.convert(excelFile, jsonFile);
- * 
+ *
  * // Extract multiple tables from Excel
  * MultiTableExcelToJsonConverter converter = new MultiTableExcelToJsonConverter();
  * Map<String, JsonNode> tables = converter.extractTables(excelFile);
- * 
+ *
  * // Extract tables from HTML
  * HtmlTableScanner scanner = new HtmlTableScanner();
  * List<Table> tables = scanner.scanDocument(htmlFile);
- * 
+ *
  * // Convert XML to JSON with XPath targeting
  * File xmlFile = new File("data.xml");
  * List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, "//product");

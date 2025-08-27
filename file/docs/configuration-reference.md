@@ -103,11 +103,30 @@ services:
 ### Schema-Level Configuration
 
 Each schema operates as an independent instance with its own:
+- **Unique name** (required) - Schema names must be unique within the same connection
 - Execution engine (Parquet (default), DuckDB, Arrow, Vectorized, LINQ4J)
 - Storage provider (Local, S3, HTTP, SharePoint)
 - Memory and performance settings
 - Name transformation rules
-- Statistics and caching configuration
+
+#### Schema Naming Requirements
+
+- **Uniqueness**: Schema names must be unique within the same connection
+- **Case-sensitive**: `"Sales"` and `"sales"` are different schemas
+- **No duplicates**: Attempting to create schemas with duplicate names will throw an `IllegalArgumentException`
+- **Validation**: Duplicate detection occurs early during schema creation to prevent configuration errors
+
+```json
+{
+  "schemas": [
+    {"name": "sales", "operand": {"directory": "/data/sales"}},
+    {"name": "hr", "operand": {"directory": "/data/hr"}},
+    {"name": "finance", "operand": {"directory": "/data/finance"}}
+  ]
+}
+```
+
+**Breaking Change Note**: Prior versions allowed duplicate schema names with silent replacement. Current versions validate uniqueness and throw descriptive errors to prevent unexpected behavior.
 
 **Example: Hybrid Architecture for Different Workloads**
 

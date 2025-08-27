@@ -18,10 +18,8 @@ package org.apache.calcite.adapter.file.duckdb;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,17 +29,17 @@ import java.util.Map;
  * This ensures proper function pushdown and SQL generation.
  */
 public class DuckDBFunctionMapping {
-  
+
   // Map of Calcite function names to DuckDB function names
   private static final Map<String, String> FUNCTION_MAP = new HashMap<>();
-  
+
   static {
     // String functions
     FUNCTION_MAP.put("CHAR_LENGTH", "LENGTH");
     FUNCTION_MAP.put("CHARACTER_LENGTH", "LENGTH");
     FUNCTION_MAP.put("SUBSTRING", "SUBSTR");
     FUNCTION_MAP.put("LOCATE", "INSTR");
-    
+
     // Date/Time functions
     FUNCTION_MAP.put("CURRENT_TIMESTAMP", "NOW");
     FUNCTION_MAP.put("CURRENT_DATE", "TODAY");
@@ -54,19 +52,19 @@ public class DuckDBFunctionMapping {
     FUNCTION_MAP.put("HOUR", "HOUR");
     FUNCTION_MAP.put("MINUTE", "MINUTE");
     FUNCTION_MAP.put("SECOND", "SECOND");
-    
+
     // Math functions
     FUNCTION_MAP.put("TRUNCATE", "TRUNC");
     FUNCTION_MAP.put("LOG10", "LOG10");
     FUNCTION_MAP.put("LOG", "LN");
     FUNCTION_MAP.put("POWER", "POW");
-    
+
     // Aggregate functions
     FUNCTION_MAP.put("STDDEV", "STDDEV_SAMP");
     FUNCTION_MAP.put("VARIANCE", "VAR_SAMP");
     FUNCTION_MAP.put("GROUP_CONCAT", "STRING_AGG");
     FUNCTION_MAP.put("LISTAGG", "STRING_AGG");
-    
+
     // Window functions
     FUNCTION_MAP.put("RANK", "RANK");
     FUNCTION_MAP.put("DENSE_RANK", "DENSE_RANK");
@@ -74,13 +72,13 @@ public class DuckDBFunctionMapping {
     FUNCTION_MAP.put("NTILE", "NTILE");
     FUNCTION_MAP.put("PERCENT_RANK", "PERCENT_RANK");
     FUNCTION_MAP.put("CUME_DIST", "CUME_DIST");
-    
+
     // DuckDB-specific functions for files
     FUNCTION_MAP.put("READ_CSV", "read_csv_auto");
     FUNCTION_MAP.put("READ_PARQUET", "read_parquet");
     FUNCTION_MAP.put("READ_JSON", "read_json_auto");
   }
-  
+
   /**
    * Gets the DuckDB equivalent of a Calcite function.
    */
@@ -88,7 +86,7 @@ public class DuckDBFunctionMapping {
     String upperFunc = calciteFunction.toUpperCase();
     return FUNCTION_MAP.getOrDefault(upperFunc, calciteFunction);
   }
-  
+
   /**
    * Checks if a function needs special handling in DuckDB.
    */
@@ -96,11 +94,11 @@ public class DuckDBFunctionMapping {
     String name = operator.getName().toUpperCase();
     return FUNCTION_MAP.containsKey(name);
   }
-  
+
   /**
    * Writes a function call with DuckDB-specific syntax.
    */
-  public static void unparseCall(SqlWriter writer, SqlCall call, 
+  public static void unparseCall(SqlWriter writer, SqlCall call,
                                 int leftPrec, int rightPrec) {
     SqlOperator operator = call.getOperator();
     
@@ -112,10 +110,10 @@ public class DuckDBFunctionMapping {
     }
     
     String funcName = operator.getName().toUpperCase();
-    
+
     if (FUNCTION_MAP.containsKey(funcName)) {
       String duckdbFunc = FUNCTION_MAP.get(funcName);
-      
+
       // Special handling for specific functions
       switch (funcName) {
       case "GROUP_CONCAT":
@@ -132,7 +130,7 @@ public class DuckDBFunctionMapping {
         }
         writer.print(")");
         break;
-        
+
       case "SUBSTRING":
         // DuckDB's SUBSTR has same syntax as SUBSTRING
         writer.keyword(duckdbFunc);
@@ -143,7 +141,7 @@ public class DuckDBFunctionMapping {
         }
         writer.print(")");
         break;
-        
+
       default:
         // Standard function replacement
         writer.keyword(duckdbFunc);
@@ -159,7 +157,7 @@ public class DuckDBFunctionMapping {
       call.getOperator().unparse(writer, call, leftPrec, rightPrec);
     }
   }
-  
+
   /**
    * Checks if DuckDB supports a specific SQL kind.
    */
@@ -176,10 +174,10 @@ public class DuckDBFunctionMapping {
     case UNION:
     case EXCEPT:
     case INTERSECT:
-    
-    // Joins  
+
+    // Joins
     case JOIN:
-    
+
     // Aggregates
     case COUNT:
     case SUM:
@@ -192,7 +190,7 @@ public class DuckDBFunctionMapping {
     case VAR_SAMP:
     case COLLECT:
     case LISTAGG:
-    
+
     // Window functions
     case OVER:
     case RANK:
@@ -203,7 +201,7 @@ public class DuckDBFunctionMapping {
     case LEAD:
     case LAG:
     case NTILE:
-    
+
     // Expressions
     case CASE:
     case CAST:
@@ -214,14 +212,14 @@ public class DuckDBFunctionMapping {
     case EXISTS:
     case IS_NULL:
     case IS_NOT_NULL:
-    
+
     // Arithmetic
     case PLUS:
     case MINUS:
     case TIMES:
     case DIVIDE:
     case MOD:
-    
+
     // Comparison
     case EQUALS:
     case NOT_EQUALS:
@@ -229,13 +227,13 @@ public class DuckDBFunctionMapping {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
-    
+
     // Logical
     case AND:
     case OR:
     case NOT:
       return true;
-      
+
     default:
       return false;
     }

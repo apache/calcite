@@ -26,13 +26,13 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Vectorized execution engine for file processing using Apache Arrow.
@@ -226,58 +226,58 @@ public final class VectorizedArrowExecutionEngine {
   public static VectorSchemaRoot filterWithColumnBatch(VectorSchemaRoot input, int columnIndex,
       Predicate<Object> predicate) {
     long startTime = System.nanoTime();
-    
+
     try (ColumnBatch batch = new ColumnBatch(input)) {
-      LOGGER.debug("Applying vectorized filter on column {} with {} rows", 
+      LOGGER.debug("Applying vectorized filter on column {} with {} rows",
                   columnIndex, batch.getRowCount());
-      
+
       // Use type-specific vectorized filtering
       boolean[] selection = applyVectorizedFilter(batch, columnIndex, predicate);
-      
+
       // Create output with filtered results
       VectorSchemaRoot filtered = createFilteredOutput(input, selection);
-      
+
       long elapsedMicros = (System.nanoTime() - startTime) / 1000;
-      LOGGER.debug("ColumnBatch filter took {} μs for {} rows", 
+      LOGGER.debug("ColumnBatch filter took {} μs for {} rows",
                   elapsedMicros, batch.getRowCount());
-      
+
       return filtered;
-      
+
     } catch (Exception e) {
       LOGGER.warn("ColumnBatch filter failed, falling back to standard filter: {}", e.getMessage());
       return filter(input, columnIndex, predicate);
     }
   }
-  
+
   /**
    * Apply vectorized filter using type-specific ColumnBatch readers.
    */
-  private static boolean[] applyVectorizedFilter(ColumnBatch batch, int columnIndex, 
+  private static boolean[] applyVectorizedFilter(ColumnBatch batch, int columnIndex,
       Predicate<Object> predicate) {
-    
+
     try {
       // Try integer column first
       ColumnBatch.IntColumnReader intCol = batch.getIntColumn(columnIndex);
       return intCol.filter(value -> predicate.test(value));
-      
+
     } catch (IllegalArgumentException e1) {
       try {
         // Try double column
         ColumnBatch.DoubleColumnReader doubleCol = batch.getDoubleColumn(columnIndex);
         return doubleCol.filter(value -> predicate.test(value));
-        
+
       } catch (IllegalArgumentException e2) {
         try {
           // Try string column
           ColumnBatch.StringColumnReader stringCol = batch.getStringColumn(columnIndex);
           return stringCol.filter(value -> predicate.test(value));
-          
+
         } catch (IllegalArgumentException e3) {
           try {
             // Try boolean column
             ColumnBatch.BooleanColumnReader boolCol = batch.getBooleanColumn(columnIndex);
             boolean[] selection = new boolean[batch.getRowCount()];
-            
+
             // For boolean columns, apply predicate row by row
             for (int i = 0; i < batch.getRowCount(); i++) {
               if (!boolCol.isNull(i)) {
@@ -285,12 +285,12 @@ public final class VectorizedArrowExecutionEngine {
               }
             }
             return selection;
-            
+
           } catch (IllegalArgumentException e4) {
             // Fall back to generic row-by-row processing
             boolean[] selection = new boolean[batch.getRowCount()];
             Object[][] rows = batch.toRowFormat();
-            
+
             for (int i = 0; i < rows.length; i++) {
               selection[i] = predicate.test(rows[i][columnIndex]);
             }
@@ -300,7 +300,7 @@ public final class VectorizedArrowExecutionEngine {
       }
     }
   }
-  
+
   /**
    * Create filtered output VectorSchemaRoot from selection array.
    * Uses Arrow's built-in filtering for zero-copy when possible.
@@ -311,7 +311,7 @@ public final class VectorizedArrowExecutionEngine {
     for (boolean selected : selection) {
       if (selected) selectedCount++;
     }
-    
+
     // Try zero-copy approach with selection vector
     try {
       return createFilteredOutputZeroCopy(input, selection, selectedCount);
@@ -320,13 +320,13 @@ public final class VectorizedArrowExecutionEngine {
       return createFilteredOutputWithCopy(input, selection, selectedCount);
     }
   }
-  
+
   /**
    * Zero-copy filtering using Arrow's selection vector mechanism.
    */
-  private static VectorSchemaRoot createFilteredOutputZeroCopy(VectorSchemaRoot input, 
+  private static VectorSchemaRoot createFilteredOutputZeroCopy(VectorSchemaRoot input,
       boolean[] selection, int selectedCount) {
-    
+
     // Create selection indices array for zero-copy filtering
     int[] indices = new int[selectedCount];
     int outputIdx = 0;
@@ -335,42 +335,42 @@ public final class VectorizedArrowExecutionEngine {
         indices[outputIdx++] = i;
       }
     }
-    
+
     // Use Arrow's built-in vector slicing for zero-copy
     VectorSchemaRoot output = VectorSchemaRoot.create(input.getSchema(), ALLOCATOR);
     output.allocateNew();
-    
+
     for (int col = 0; col < input.getFieldVectors().size(); col++) {
       org.apache.arrow.vector.FieldVector inputVector = input.getVector(col);
       org.apache.arrow.vector.FieldVector outputVector = output.getVector(col);
-      
+
       // Use Arrow's transfer mechanism with indices for zero-copy slicing
       try {
         // Create a dictionary-encoded view that references original data
-        org.apache.arrow.vector.ipc.message.ArrowRecordBatch recordBatch = 
+        org.apache.arrow.vector.ipc.message.ArrowRecordBatch recordBatch =
             createRecordBatchWithIndices(inputVector, indices);
         // This would normally use Arrow's compute kernels for true zero-copy
         // For now, fall back to copying approach
         throw new UnsupportedOperationException("Zero-copy selection not yet fully implemented");
-        
+
       } catch (Exception e) {
         throw new RuntimeException("Zero-copy selection failed", e);
       }
     }
-    
+
     output.setRowCount(selectedCount);
     return output;
   }
-  
+
   /**
    * Fallback filtered output creation with copying.
    */
-  private static VectorSchemaRoot createFilteredOutputWithCopy(VectorSchemaRoot input, 
+  private static VectorSchemaRoot createFilteredOutputWithCopy(VectorSchemaRoot input,
       boolean[] selection, int selectedCount) {
-    
+
     VectorSchemaRoot output = VectorSchemaRoot.create(input.getSchema(), ALLOCATOR);
     output.allocateNew();
-    
+
     // Copy selected rows
     int outputIdx = 0;
     for (int i = 0; i < selection.length; i++) {
@@ -381,11 +381,11 @@ public final class VectorizedArrowExecutionEngine {
         outputIdx++;
       }
     }
-    
+
     output.setRowCount(selectedCount);
     return output;
   }
-  
+
   /**
    * Helper for creating record batch with indices (placeholder for true zero-copy).
    */
@@ -395,31 +395,31 @@ public final class VectorizedArrowExecutionEngine {
     // For now, we indicate where true zero-copy would happen
     throw new UnsupportedOperationException("Requires Arrow compute kernels for zero-copy indexing");
   }
-  
+
   /**
    * Enhanced aggregation using ColumnBatch for optimal vectorized operations.
    */
   public static double aggregateSumWithColumnBatch(VectorSchemaRoot input, int columnIndex) {
     long startTime = System.nanoTime();
-    
+
     try (ColumnBatch batch = new ColumnBatch(input)) {
-      LOGGER.debug("Applying vectorized sum on column {} with {} rows", 
+      LOGGER.debug("Applying vectorized sum on column {} with {} rows",
                   columnIndex, batch.getRowCount());
-      
+
       double result = performVectorizedSum(batch, columnIndex);
-      
+
       long elapsedMicros = (System.nanoTime() - startTime) / 1000;
-      LOGGER.debug("ColumnBatch sum took {} μs for {} rows, result = {}", 
+      LOGGER.debug("ColumnBatch sum took {} μs for {} rows, result = {}",
                   elapsedMicros, batch.getRowCount(), result);
-      
+
       return result;
-      
+
     } catch (Exception e) {
       LOGGER.warn("ColumnBatch sum failed, falling back to standard sum: {}", e.getMessage());
       return aggregateSum(input, columnIndex);
     }
   }
-  
+
   /**
    * Perform vectorized sum using type-specific ColumnBatch readers.
    */
@@ -428,22 +428,22 @@ public final class VectorizedArrowExecutionEngine {
       // Try integer column
       ColumnBatch.IntColumnReader intCol = batch.getIntColumn(columnIndex);
       return intCol.sum();
-      
+
     } catch (IllegalArgumentException e1) {
       try {
         // Try long column
         ColumnBatch.LongColumnReader longCol = batch.getLongColumn(columnIndex);
         return longCol.sum();
-        
+
       } catch (IllegalArgumentException e2) {
         try {
           // Try double column
           ColumnBatch.DoubleColumnReader doubleCol = batch.getDoubleColumn(columnIndex);
           return doubleCol.sum();
-          
+
         } catch (IllegalArgumentException e3) {
           // Unsupported column type for sum
-          throw new IllegalArgumentException("Column " + columnIndex + 
+          throw new IllegalArgumentException("Column " + columnIndex +
               " is not a numeric type suitable for sum aggregation");
         }
       }

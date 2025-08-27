@@ -38,30 +38,30 @@ public class CrawlerConfiguration {
   private int maxPages = 100;
   private boolean followExternalLinks = false;
   private Set<String> excludePatterns = new HashSet<>();
-  
+
   // Data file pattern configuration
   private @Nullable Pattern dataFilePattern; // Regex pattern for data files to include
   private @Nullable Pattern dataFileExcludePattern; // Regex pattern for data files to exclude
-  
+
   // HTML table configuration
   private boolean generateTablesFromHtml = true; // Whether to extract HTML tables
   private int htmlTableMinRows = 1; // Minimum rows for HTML table extraction
   private int htmlTableMaxRows = Integer.MAX_VALUE; // Maximum rows to extract from HTML tables
-  
+
   // Content size limits
   private long maxHtmlSize = 10L * 1024 * 1024; // 10MB for HTML pages
   private long maxDataFileSize = 100L * 1024 * 1024; // 100MB for data files
   private Map<String, Long> extensionSizeLimits = new HashMap<>();
   private boolean enforceContentLengthHeader = true;
-  
+
   // Caching settings
   private Duration dataFileCacheTTL = Duration.ofHours(1);
   private Duration htmlCacheTTL = Duration.ofMinutes(30);
   private boolean honorHttpCacheHeaders = true;
-  
+
   // Refresh settings
   private @Nullable Duration refreshInterval;
-  
+
   public CrawlerConfiguration() {
     // Initialize default extension size limits
     extensionSizeLimits.put("html", 10L * 1024 * 1024);    // 10MB
@@ -73,7 +73,7 @@ public class CrawlerConfiguration {
     extensionSizeLimits.put("pdf", 25L * 1024 * 1024);     // 25MB
     extensionSizeLimits.put("json", 20L * 1024 * 1024);    // 20MB
     extensionSizeLimits.put("parquet", 200L * 1024 * 1024); // 200MB
-    
+
     // Default allowed file extensions for data files
     allowedFileExtensions.add("csv");
     allowedFileExtensions.add("xlsx");
@@ -84,49 +84,49 @@ public class CrawlerConfiguration {
     allowedFileExtensions.add("docx");
     allowedFileExtensions.add("pptx");
   }
-  
+
   /**
    * Creates a configuration from a map of options.
    */
   public static CrawlerConfiguration fromMap(Map<String, Object> options) {
     CrawlerConfiguration config = new CrawlerConfiguration();
-    
+
     if (options.containsKey("enabled")) {
       config.setEnabled(Boolean.parseBoolean(options.get("enabled").toString()));
     }
-    
+
     if (options.containsKey("maxDepth")) {
       config.setMaxDepth(Integer.parseInt(options.get("maxDepth").toString()));
     }
-    
+
     if (options.containsKey("linkPattern")) {
       config.setLinkPattern(Pattern.compile(options.get("linkPattern").toString()));
     }
-    
+
     if (options.containsKey("maxPages")) {
       config.setMaxPages(Integer.parseInt(options.get("maxPages").toString()));
     }
-    
+
     if (options.containsKey("followExternalLinks")) {
       config.setFollowExternalLinks(Boolean.parseBoolean(options.get("followExternalLinks").toString()));
     }
-    
+
     if (options.containsKey("maxHtmlSize")) {
       config.setMaxHtmlSize(parseSize(options.get("maxHtmlSize").toString()));
     }
-    
+
     if (options.containsKey("maxDataFileSize")) {
       config.setMaxDataFileSize(parseSize(options.get("maxDataFileSize").toString()));
     }
-    
+
     if (options.containsKey("dataFileCacheTTL")) {
       config.setDataFileCacheTTL(parseDuration(options.get("dataFileCacheTTL").toString()));
     }
-    
+
     if (options.containsKey("refreshInterval")) {
       config.setRefreshInterval(parseDuration(options.get("refreshInterval").toString()));
     }
-    
+
     if (options.containsKey("allowedDomains")) {
       Object domains = options.get("allowedDomains");
       if (domains instanceof String) {
@@ -137,30 +137,30 @@ public class CrawlerConfiguration {
         }
       }
     }
-    
+
     if (options.containsKey("dataFilePattern")) {
       config.setDataFilePattern(Pattern.compile(options.get("dataFilePattern").toString()));
     }
-    
+
     if (options.containsKey("dataFileExcludePattern")) {
       config.setDataFileExcludePattern(Pattern.compile(options.get("dataFileExcludePattern").toString()));
     }
-    
+
     if (options.containsKey("generateTablesFromHtml")) {
       config.setGenerateTablesFromHtml(Boolean.parseBoolean(options.get("generateTablesFromHtml").toString()));
     }
-    
+
     if (options.containsKey("htmlTableMinRows")) {
       config.setHtmlTableMinRows(Integer.parseInt(options.get("htmlTableMinRows").toString()));
     }
-    
+
     if (options.containsKey("htmlTableMaxRows")) {
       config.setHtmlTableMaxRows(Integer.parseInt(options.get("htmlTableMaxRows").toString()));
     }
-    
+
     return config;
   }
-  
+
   private static long parseSize(String sizeStr) {
     sizeStr = sizeStr.trim().toUpperCase();
     if (sizeStr.endsWith("KB")) {
@@ -172,17 +172,17 @@ public class CrawlerConfiguration {
     }
     return Long.parseLong(sizeStr);
   }
-  
+
   private static Duration parseDuration(String durationStr) {
     durationStr = durationStr.trim().toLowerCase();
     String[] parts = durationStr.split("\\s+");
     if (parts.length != 2) {
       throw new IllegalArgumentException("Invalid duration format: " + durationStr);
     }
-    
+
     long value = Long.parseLong(parts[0]);
     String unit = parts[1];
-    
+
     if (unit.startsWith("second")) {
       return Duration.ofSeconds(value);
     } else if (unit.startsWith("minute")) {
@@ -192,176 +192,176 @@ public class CrawlerConfiguration {
     } else if (unit.startsWith("day")) {
       return Duration.ofDays(value);
     }
-    
+
     throw new IllegalArgumentException("Unknown duration unit: " + unit);
   }
-  
+
   // Getters and setters
-  
+
   public boolean isEnabled() {
     return enabled;
   }
-  
+
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
   }
-  
+
   public int getMaxDepth() {
     return maxDepth;
   }
-  
+
   public void setMaxDepth(int maxDepth) {
     this.maxDepth = maxDepth;
   }
-  
+
   public @Nullable Pattern getLinkPattern() {
     return linkPattern;
   }
-  
+
   public void setLinkPattern(@Nullable Pattern linkPattern) {
     this.linkPattern = linkPattern;
   }
-  
+
   public Set<String> getAllowedFileExtensions() {
     return allowedFileExtensions;
   }
-  
+
   public void addAllowedFileExtension(String extension) {
     this.allowedFileExtensions.add(extension.toLowerCase());
   }
-  
+
   public Set<String> getAllowedDomains() {
     return allowedDomains;
   }
-  
+
   public void addAllowedDomain(String domain) {
     this.allowedDomains.add(domain.toLowerCase());
   }
-  
+
   public Duration getRequestDelay() {
     return requestDelay;
   }
-  
+
   public void setRequestDelay(Duration requestDelay) {
     this.requestDelay = requestDelay;
   }
-  
+
   public int getMaxPages() {
     return maxPages;
   }
-  
+
   public void setMaxPages(int maxPages) {
     this.maxPages = maxPages;
   }
-  
+
   public boolean isFollowExternalLinks() {
     return followExternalLinks;
   }
-  
+
   public void setFollowExternalLinks(boolean followExternalLinks) {
     this.followExternalLinks = followExternalLinks;
   }
-  
+
   public long getMaxHtmlSize() {
     return maxHtmlSize;
   }
-  
+
   public void setMaxHtmlSize(long maxHtmlSize) {
     this.maxHtmlSize = maxHtmlSize;
   }
-  
+
   public long getMaxDataFileSize() {
     return maxDataFileSize;
   }
-  
+
   public void setMaxDataFileSize(long maxDataFileSize) {
     this.maxDataFileSize = maxDataFileSize;
   }
-  
+
   public Long getSizeLimitForExtension(String extension) {
     return extensionSizeLimits.getOrDefault(extension.toLowerCase(), maxDataFileSize);
   }
-  
+
   public void setSizeLimitForExtension(String extension, long sizeLimit) {
     this.extensionSizeLimits.put(extension.toLowerCase(), sizeLimit);
   }
-  
+
   public Duration getDataFileCacheTTL() {
     return dataFileCacheTTL;
   }
-  
+
   public void setDataFileCacheTTL(Duration dataFileCacheTTL) {
     this.dataFileCacheTTL = dataFileCacheTTL;
   }
-  
+
   public Duration getHtmlCacheTTL() {
     return htmlCacheTTL;
   }
-  
+
   public void setHtmlCacheTTL(Duration htmlCacheTTL) {
     this.htmlCacheTTL = htmlCacheTTL;
   }
-  
+
   public boolean isHonorHttpCacheHeaders() {
     return honorHttpCacheHeaders;
   }
-  
+
   public void setHonorHttpCacheHeaders(boolean honorHttpCacheHeaders) {
     this.honorHttpCacheHeaders = honorHttpCacheHeaders;
   }
-  
+
   public @Nullable Duration getRefreshInterval() {
     return refreshInterval;
   }
-  
+
   public void setRefreshInterval(@Nullable Duration refreshInterval) {
     this.refreshInterval = refreshInterval;
   }
-  
+
   public boolean isEnforceContentLengthHeader() {
     return enforceContentLengthHeader;
   }
-  
+
   public void setEnforceContentLengthHeader(boolean enforceContentLengthHeader) {
     this.enforceContentLengthHeader = enforceContentLengthHeader;
   }
-  
+
   public @Nullable Pattern getDataFilePattern() {
     return dataFilePattern;
   }
-  
+
   public void setDataFilePattern(@Nullable Pattern dataFilePattern) {
     this.dataFilePattern = dataFilePattern;
   }
-  
+
   public @Nullable Pattern getDataFileExcludePattern() {
     return dataFileExcludePattern;
   }
-  
+
   public void setDataFileExcludePattern(@Nullable Pattern dataFileExcludePattern) {
     this.dataFileExcludePattern = dataFileExcludePattern;
   }
-  
+
   public boolean isGenerateTablesFromHtml() {
     return generateTablesFromHtml;
   }
-  
+
   public void setGenerateTablesFromHtml(boolean generateTablesFromHtml) {
     this.generateTablesFromHtml = generateTablesFromHtml;
   }
-  
+
   public int getHtmlTableMinRows() {
     return htmlTableMinRows;
   }
-  
+
   public void setHtmlTableMinRows(int htmlTableMinRows) {
     this.htmlTableMinRows = htmlTableMinRows;
   }
-  
+
   public int getHtmlTableMaxRows() {
     return htmlTableMaxRows;
   }
-  
+
   public void setHtmlTableMaxRows(int htmlTableMaxRows) {
     this.htmlTableMaxRows = htmlTableMaxRows;
   }

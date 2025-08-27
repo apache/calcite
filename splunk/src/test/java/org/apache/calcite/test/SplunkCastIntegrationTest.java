@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("integration")
 class SplunkCastIntegrationTest {
   private static final Logger logger = LoggerFactory.getLogger(SplunkCastIntegrationTest.class);
-  
+
   // Connection properties loaded from local-properties.settings
   private static String SPLUNK_URL = null;
   private static String SPLUNK_USER = null;

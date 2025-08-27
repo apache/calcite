@@ -44,11 +44,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @EnabledIfEnvironmentVariable(named = "CALCITE_TEST_SPLUNK", matches = "true")
 public class SplunkNonPushableOperationsTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkNonPushableOperationsTest.class);
-  
+
   private static String SPLUNK_URL;
   private static String SPLUNK_USER;
   private static String SPLUNK_PASSWORD;
-  
+
   @BeforeAll
   public static void setupConnection() {
     // Register the Splunk driver
@@ -57,39 +57,38 @@ public class SplunkNonPushableOperationsTest {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("Failed to load Splunk driver", e);
     }
-    
+
     // Get connection details from environment or use defaults
     SPLUNK_URL = System.getenv("SPLUNK_URL");
     if (SPLUNK_URL == null) {
       SPLUNK_URL = "https://kentest.xyz:8089";
     }
-    
+
     SPLUNK_USER = System.getenv("SPLUNK_USER");
     if (SPLUNK_USER == null) {
       SPLUNK_USER = "admin";
     }
-    
+
     SPLUNK_PASSWORD = System.getenv("SPLUNK_PASSWORD");
     if (SPLUNK_PASSWORD == null) {
       SPLUNK_PASSWORD = "changeme";
     }
-    
+
     LOGGER.info("Testing with Splunk instance at: {}", SPLUNK_URL);
   }
-  
+
   private Connection getConnection() throws SQLException {
     Properties props = new Properties();
     props.setProperty("user", SPLUNK_USER);
     props.setProperty("password", SPLUNK_PASSWORD);
     props.setProperty("ssl", "true");
     props.setProperty("disableSslValidation", "true");
-    
+
     String jdbcUrl = "jdbc:splunk:" + SPLUNK_URL.replace("https://", "//");
     return DriverManager.getConnection(jdbcUrl, props);
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testArithmeticOperationsNotPushedDown() throws SQLException {
     // These arithmetic operations should be handled by Calcite, not pushed to Splunk
     String[] queries = {
@@ -99,14 +98,14 @@ public class SplunkNonPushableOperationsTest {
         "SELECT 50 - 30 AS difference_result",
         "SELECT (10 + 20) * 3 AS complex_calc"
     };
-    
+
     try (Connection conn = getConnection()) {
       for (String sql : queries) {
         LOGGER.debug("Testing arithmetic query: {}", sql);
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
           assertTrue(rs.next(), "Expected result for: " + sql);
-          
+
           // Verify the calculations are correct
           if (sql.contains("10 + 20")) {
             assertEquals(30, rs.getInt(1));
@@ -123,39 +122,36 @@ public class SplunkNonPushableOperationsTest {
       }
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testCaseStatementNotPushedDown() throws SQLException {
     // CASE statements should be handled by Calcite
     String sql = "SELECT CASE WHEN 1 = 1 THEN 'true' ELSE 'false' END AS result";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       assertTrue(rs.next(), "Expected result for CASE statement");
       assertEquals("true", rs.getString("result"));
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testStringConcatenationNotPushedDown() throws SQLException {
     // String concatenation should be handled by Calcite
     String sql = "SELECT 'Hello' || ' ' || 'World' AS greeting";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       assertTrue(rs.next(), "Expected result for string concatenation");
       assertEquals("Hello World", rs.getString("greeting"));
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testComplexExpressionsWithTableData() throws SQLException {
     // Test complex expressions on actual table data
     String sql = "SELECT \"action\", "
@@ -164,61 +160,59 @@ public class SplunkNonPushableOperationsTest {
         + "FROM \"splunk\".\"web\" "
         + "WHERE \"bytes\" IS NOT NULL "
         + "LIMIT 5";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       int count = 0;
       while (rs.next()) {
         String action = rs.getString("action");
         String actionUpper = rs.getString("action_upper");
-        
+
         assertNotNull(action);
         assertNotNull(actionUpper);
-        assertEquals(action.toUpperCase(), actionUpper, 
+        assertEquals(action.toUpperCase(), actionUpper,
             "UPPER function should work correctly");
-        
+
         // Check that bytes_doubled is actually doubled
         // Note: We can't directly verify without the original bytes value,
         // but we can check it's not null when bytes was not null
         rs.getInt("bytes_doubled");
-        
+
         count++;
       }
-      
+
       assertTrue(count > 0, "Should have returned at least one row");
     }
   }
-  
-  @Test
-  @Tag("integration") 
+
+  @Test @Tag("integration")
   public void testMixedPushableAndNonPushable() throws SQLException {
     // Mix of pushable (simple field) and non-pushable (arithmetic) operations
     String sql = "SELECT \"status\", \"status\" + 100 AS status_plus "
         + "FROM \"splunk\".\"web\" "
         + "LIMIT 5";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       int count = 0;
       while (rs.next()) {
         int status = rs.getInt("status");
         int statusPlus = rs.getInt("status_plus");
-        
-        assertEquals(status + 100, statusPlus, 
+
+        assertEquals(status + 100, statusPlus,
             "Arithmetic should be computed correctly by Calcite");
         count++;
       }
-      
+
       assertTrue(count > 0, "Should have returned at least one row");
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testCastOperationsHandling() throws SQLException {
     // Test that CAST operations are handled appropriately
     // Some simple CASTs might be pushed down, complex ones should not
@@ -226,19 +220,18 @@ public class SplunkNonPushableOperationsTest {
         + "CAST('123' AS INTEGER) AS str_to_int, "
         + "CAST(456 AS VARCHAR) AS int_to_str "
         + "FROM (VALUES (1)) AS t(dummy)";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       assertTrue(rs.next(), "Expected result for CAST operations");
       assertEquals(123, rs.getInt("str_to_int"));
       assertEquals("456", rs.getString("int_to_str"));
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testComplexQueryWithMultipleNonPushableOperations() throws SQLException {
     // Comprehensive test combining multiple operations that shouldn't be pushed down
     String sql = "SELECT "
@@ -256,25 +249,25 @@ public class SplunkNonPushableOperationsTest {
         + "FROM \"splunk\".\"web\" "
         + "WHERE \"status\" IS NOT NULL AND \"action\" IS NOT NULL "
         + "LIMIT 10";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       int count = 0;
       while (rs.next()) {
         int status = rs.getInt("status");
-        
+
         // Verify arithmetic operations
-        assertEquals(status + 100, rs.getInt("status_plus_100"), 
+        assertEquals(status + 100, rs.getInt("status_plus_100"),
             "Addition should work");
-        assertEquals(status * 2, rs.getInt("status_times_2"), 
+        assertEquals(status * 2, rs.getInt("status_times_2"),
             "Multiplication should work");
-        assertEquals(status - 50, rs.getInt("status_minus_50"), 
+        assertEquals(status - 50, rs.getInt("status_minus_50"),
             "Subtraction should work");
-        assertEquals(status / 10, rs.getInt("status_div_10"), 
+        assertEquals(status / 10, rs.getInt("status_div_10"),
             "Division should work");
-        
+
         // Verify CASE statement
         String statusText = rs.getString("status_text");
         if (status == 200) {
@@ -284,7 +277,7 @@ public class SplunkNonPushableOperationsTest {
         } else {
           assertEquals("OTHER", statusText);
         }
-        
+
         // Verify string functions
         String action = rs.getString("action");
         assertEquals(action.toUpperCase(), rs.getString("action_upper"),
@@ -293,17 +286,16 @@ public class SplunkNonPushableOperationsTest {
             "LOWER should work");
         assertEquals(action.length(), rs.getInt("action_length"),
             "LENGTH should work");
-        
+
         count++;
       }
-      
+
       assertTrue(count > 0, "Should have returned at least one row");
       LOGGER.info("Successfully tested {} rows with complex non-pushable operations", count);
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testAggregatesWithArithmetic() throws SQLException {
     // Test aggregates combined with arithmetic
     String sql = "SELECT "
@@ -314,31 +306,30 @@ public class SplunkNonPushableOperationsTest {
         + "SUM(\"bytes\") / COUNT(*) AS avg_bytes_computed "
         + "FROM \"splunk\".\"web\" "
         + "WHERE \"status\" IS NOT NULL AND \"bytes\" IS NOT NULL";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       assertTrue(rs.next(), "Expected aggregate results");
-      
+
       int count = rs.getInt("total_count");
       assertEquals(count * 100, rs.getInt("count_times_100"),
           "Arithmetic on COUNT should work");
-      
+
       double avgStatus = rs.getDouble("avg_status");
       assertEquals(avgStatus + 10, rs.getDouble("avg_plus_10"), 0.01,
           "Arithmetic on AVG should work");
-      
+
       // avg_bytes_computed should equal SUM/COUNT
       double avgBytesComputed = rs.getDouble("avg_bytes_computed");
       assertTrue(avgBytesComputed > 0, "Computed average should be positive");
-      
+
       LOGGER.info("Aggregate arithmetic test passed with {} total rows", count);
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testSubqueryWithArithmetic() throws SQLException {
     // Test subquery with arithmetic operations
     String sql = "SELECT "
@@ -352,30 +343,29 @@ public class SplunkNonPushableOperationsTest {
         + "  WHERE \"status\" IS NOT NULL "
         + "  LIMIT 5"
         + ") t1";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       int count = 0;
       while (rs.next()) {
         int original = rs.getInt("status_original");
         int doubled = rs.getInt("status_doubled");
         int difference = rs.getInt("difference");
-        
+
         assertEquals(original * 2, doubled, "Doubling should work in subquery");
         assertEquals(doubled - original, difference, "Difference calculation should work");
         assertEquals(original, difference, "Difference should equal original (2x - x = x)");
-        
+
         count++;
       }
-      
+
       assertEquals(5, count, "Should return exactly 5 rows as per LIMIT");
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testDateArithmetic() throws SQLException {
     // Test date/time arithmetic operations
     String sql = "SELECT "
@@ -385,26 +375,25 @@ public class SplunkNonPushableOperationsTest {
         + "EXTRACT(YEAR FROM CURRENT_DATE) AS current_year, "
         + "EXTRACT(MONTH FROM CURRENT_DATE) AS current_month "
         + "FROM (VALUES (1)) AS t(dummy)";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       assertTrue(rs.next(), "Expected date arithmetic results");
-      
+
       // Just verify we get non-null results
       assertNotNull(rs.getDate("today"));
       assertNotNull(rs.getDate("tomorrow"));
       assertNotNull(rs.getDate("yesterday"));
       assertTrue(rs.getInt("current_year") > 2020);
       assertTrue(rs.getInt("current_month") >= 1 && rs.getInt("current_month") <= 12);
-      
+
       LOGGER.info("Date arithmetic test passed");
     }
   }
-  
-  @Test
-  @Tag("integration")
+
+  @Test @Tag("integration")
   public void testComplexWhereClauseWithArithmetic() throws SQLException {
     // Test WHERE clause with arithmetic expressions
     String sql = "SELECT \"status\", \"bytes\" "
@@ -414,23 +403,23 @@ public class SplunkNonPushableOperationsTest {
         + "  AND \"status\" IS NOT NULL "
         + "  AND \"bytes\" IS NOT NULL "
         + "LIMIT 10";
-    
+
     try (Connection conn = getConnection();
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-      
+
       int count = 0;
       while (rs.next()) {
         int status = rs.getInt("status");
         int bytes = rs.getInt("bytes");
-        
+
         // Verify the WHERE conditions are actually met
         assertTrue(status + 100 > 300, "Status + 100 should be > 300");
         assertTrue(bytes * 2 < 10000, "Bytes * 2 should be < 10000");
-        
+
         count++;
       }
-      
+
       LOGGER.info("Complex WHERE clause test returned {} rows", count);
     }
   }

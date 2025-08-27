@@ -18,7 +18,7 @@ For the specified adapter ($ARGUMENTS):
 CALCITE_FILE_ENGINE_TYPE=PARQUET gtimeout 300 ./gradlew :file:test --tests "*FileAdapterTest" --tests "*CsvTypeInferenceTest" --console=plain
 ```
 
-### Splunk Adapter Quick Tests  
+### Splunk Adapter Quick Tests
 ```bash
 CALCITE_TEST_SPLUNK=true gtimeout 300 ./gradlew :splunk:test --tests "*SplunkAdapterQueryTest" --console=plain
 ```

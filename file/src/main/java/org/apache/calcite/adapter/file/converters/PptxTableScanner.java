@@ -63,14 +63,14 @@ public final class PptxTableScanner {
 
   /**
    * Scans a PPTX file and extracts all tables, converting them to JSON files.
-   * 
+   *
    * @param inputFile The PPTX file to scan
    * @param outputDir The directory to write JSON files to
    */
   public static void scanAndConvertTables(File inputFile, File outputDir) throws IOException {
     scanAndConvertTables(inputFile, outputDir, null);
   }
-  
+
   public static void scanAndConvertTables(File inputFile, File outputDir, String relativePath) throws IOException {
     LOGGER.debug("Scanning PPTX file for tables: {}", inputFile.getName());
 
@@ -80,7 +80,7 @@ public final class PptxTableScanner {
       lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
       LOGGER.debug("Acquired read lock on PPTX file: {}", inputFile.getPath());
     } catch (IOException e) {
-      LOGGER.warn("Could not acquire lock on file: {} - proceeding without lock", 
+      LOGGER.warn("Could not acquire lock on file: {} - proceeding without lock",
           inputFile.getPath());
     }
 
@@ -97,33 +97,33 @@ public final class PptxTableScanner {
       // Convert each table to JSON
       String baseName = inputFile.getName().replaceFirst("\\.[^.]+$", "").toLowerCase()
           .replaceAll("[^a-z0-9_]", "_");
-      
+
       // Include directory structure in the basename if relativePath is provided
       if (relativePath != null && relativePath.contains(File.separator)) {
         String dirPrefix = relativePath.substring(0, relativePath.lastIndexOf(File.separator))
             .replace(File.separator, "_");
         baseName = dirPrefix + "_" + baseName;
       }
-      
+
       ObjectMapper mapper = new ObjectMapper();
-      
+
       // First pass: generate base filenames for all tables
       Map<String, Integer> fileNameCounts = new HashMap<>();
       List<String> baseFileNames = new ArrayList<>();
       for (PptxTable table : tables) {
-        String baseFileName = generateBaseFileName(baseName, table.title, table.slideTitle, 
-            table.slideNumber);
+        String baseFileName =
+            generateBaseFileName(baseName, table.title, table.slideTitle, table.slideNumber);
         baseFileNames.add(baseFileName);
         fileNameCounts.put(baseFileName, fileNameCounts.getOrDefault(baseFileName, 0) + 1);
       }
-      
+
       // Second pass: add indices only where there are duplicates
       Map<String, Integer> currentIndices = new HashMap<>();
       for (int i = 0; i < tables.size(); i++) {
         PptxTable table = tables.get(i);
         String baseFileName = baseFileNames.get(i);
         String jsonFileName;
-        
+
         if (fileNameCounts.get(baseFileName) > 1) {
           // Duplicate name, add index
           int index = currentIndices.getOrDefault(baseFileName, 0) + 1;
@@ -139,7 +139,7 @@ public final class PptxTableScanner {
 
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
-          
+
           // Record the conversion for refresh tracking - use schema directory for metadata
           ConversionRecorder.recordConversion(inputFile, jsonFile, "PPTX_TO_JSON", outputDir.getParentFile());
         }
@@ -162,19 +162,19 @@ public final class PptxTableScanner {
          XMLSlideShow ppt = new XMLSlideShow(fis)) {
 
       List<XSLFSlide> slides = ppt.getSlides();
-      
+
       for (int slideIdx = 0; slideIdx < slides.size(); slideIdx++) {
         XSLFSlide slide = slides.get(slideIdx);
         String slideTitle = getSlideTitle(slide);
-        
+
         // Find all tables on this slide
         List<XSLFTable> slideTables = findTablesOnSlide(slide);
-        
+
         for (int tableIdx = 0; tableIdx < slideTables.size(); tableIdx++) {
           XSLFTable slideTable = slideTables.get(tableIdx);
           // Try to find a title for this specific table
           String tableTitle = findTableTitle(slide, slideTable);
-          
+
           PptxTable table = parseTable(slideTable, tableTitle, slideTitle, slideIdx + 1);
           if (table != null && !table.data.isEmpty()) {
             table.tableIndexOnSlide = tableIdx;
@@ -228,13 +228,13 @@ public final class PptxTableScanner {
    */
   private static List<XSLFTable> findTablesOnSlide(XSLFSlide slide) {
     List<XSLFTable> tables = new ArrayList<>();
-    
+
     for (XSLFShape shape : slide.getShapes()) {
       if (shape instanceof XSLFTable) {
         tables.add((XSLFTable) shape);
       }
     }
-    
+
     return tables;
   }
 
@@ -246,10 +246,10 @@ public final class PptxTableScanner {
     double tableY = table.getAnchor().getY();
     double tableX = table.getAnchor().getX();
     double tableWidth = table.getAnchor().getWidth();
-    
+
     String closestTitle = null;
     double closestDistance = Double.MAX_VALUE;
-    
+
     // Look for text shapes above the table
     for (XSLFShape shape : slide.getShapes()) {
       if (shape instanceof XSLFTextShape && !(shape instanceof XSLFTable)) {
@@ -257,21 +257,21 @@ public final class PptxTableScanner {
         double textY = textShape.getAnchor().getY();
         double textX = textShape.getAnchor().getX();
         double textWidth = textShape.getAnchor().getWidth();
-        
+
         // Check if the text is above the table
         if (textY < tableY) {
           // Check for horizontal alignment - text should be roughly aligned with the table
           double textCenterX = textX + textWidth / 2;
           double tableCenterX = tableX + tableWidth / 2;
           double horizontalDistance = Math.abs(textCenterX - tableCenterX);
-          
+
           // Only consider text that is horizontally aligned with the table
           if (horizontalDistance < tableWidth) {
             String text = textShape.getText();
             if (text != null && !text.trim().isEmpty()) {
               double verticalDistance = tableY - textY;
               double totalDistance = verticalDistance + horizontalDistance / 10; // Weight vertical distance more
-              
+
               // Find the closest text above the table
               if (totalDistance < closestDistance && verticalDistance < 100) { // Within 100 points vertically
                 String trimmed = text.trim();
@@ -286,21 +286,21 @@ public final class PptxTableScanner {
         }
       }
     }
-    
+
     if (closestTitle != null) {
       // Clean up the title
       closestTitle = Pattern.compile("^#+\\s*").matcher(closestTitle).replaceAll("");
       closestTitle = Pattern.compile("^\\d+\\.\\s*").matcher(closestTitle).replaceAll("");
       closestTitle = Pattern.compile("^[•·-]\\s*").matcher(closestTitle).replaceAll("");
     }
-    
+
     return closestTitle;
   }
 
   /**
    * Parses a PowerPoint table into our internal representation.
    */
-  private static PptxTable parseTable(XSLFTable pptTable, String tableTitle, 
+  private static PptxTable parseTable(XSLFTable pptTable, String tableTitle,
       String slideTitle, int slideNumber) {
     List<XSLFTableRow> rows = pptTable.getRows();
     if (rows.isEmpty()) {
@@ -513,7 +513,7 @@ public final class PptxTableScanner {
   /**
    * Generates a base file name for the JSON output (without extension and index).
    */
-  private static String generateBaseFileName(String baseName, String tableTitle, 
+  private static String generateBaseFileName(String baseName, String tableTitle,
       String slideTitle, int slideNumber) {
     StringBuilder fileName = new StringBuilder(baseName);
 

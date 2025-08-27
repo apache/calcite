@@ -23,23 +23,19 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Scans XML files to discover repeating element patterns that can be treated as tables.
@@ -49,11 +45,11 @@ public class XmlTableScanner {
   private static final Pattern INVALID_NAME_CHARS = Pattern.compile("[^a-zA-Z0-9_]");
   private static final int MIN_REPEATING_ELEMENTS = 2;
   private static final int MAX_DISCOVERY_DEPTH = 5;
-  
+
   private XmlTableScanner() {
     // Utility class should not be instantiated
   }
-  
+
   /**
    * Information about a discovered XML table (repeating element pattern).
    */
@@ -62,7 +58,7 @@ public class XmlTableScanner {
     public final String xpath;
     public final List<Element> elements;
     public final int count;
-    
+
     TableInfo(String name, String xpath, List<Element> elements) {
       this.name = name;
       this.xpath = xpath;
@@ -70,7 +66,7 @@ public class XmlTableScanner {
       this.count = elements.size();
     }
   }
-  
+
   /**
    * Scans an XML source and returns information about all repeating element patterns.
    * Uses automatic pattern detection.
@@ -82,7 +78,7 @@ public class XmlTableScanner {
   public static List<TableInfo> scanTables(Source source) throws IOException {
     return scanTables(source, null);
   }
-  
+
   /**
    * Scans an XML source for tables using optional XPath expression.
    *
@@ -94,18 +90,18 @@ public class XmlTableScanner {
   public static List<TableInfo> scanTables(Source source, String xpath) throws IOException {
     try {
       Document document = parseXmlDocument(source);
-      
+
       if (xpath != null && !xpath.trim().isEmpty()) {
         return scanWithXPath(document, xpath);
       } else {
         return scanForRepeatingPatterns(document);
       }
-      
+
     } catch (Exception e) {
       throw new IOException("Failed to parse XML document: " + source.path(), e);
     }
   }
-  
+
   /**
    * Parse XML document from source.
    */
@@ -116,24 +112,24 @@ public class XmlTableScanner {
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
     factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
     factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-    
+
     DocumentBuilder builder = factory.newDocumentBuilder();
-    
+
     try (InputStream inputStream = source.openStream()) {
       return builder.parse(inputStream);
     }
   }
-  
+
   /**
    * Scan for tables using XPath expression.
    */
-  private static List<TableInfo> scanWithXPath(Document document, String xpathExpression) 
+  private static List<TableInfo> scanWithXPath(Document document, String xpathExpression)
       throws Exception {
     XPath xpath = XPathFactory.newInstance().newXPath();
     NodeList nodes = (NodeList) xpath.evaluate(xpathExpression, document, XPathConstants.NODESET);
-    
+
     List<TableInfo> tables = new ArrayList<>();
-    
+
     if (nodes.getLength() >= MIN_REPEATING_ELEMENTS) {
       List<Element> elements = new ArrayList<>();
       for (int i = 0; i < nodes.getLength(); i++) {
@@ -142,72 +138,72 @@ public class XmlTableScanner {
           elements.add((Element) node);
         }
       }
-      
+
       if (!elements.isEmpty()) {
         String tableName = deriveTableNameFromXPath(xpathExpression);
         tables.add(new TableInfo(tableName, xpathExpression, elements));
       }
     }
-    
+
     return tables;
   }
-  
+
   /**
    * Scan document for repeating element patterns automatically.
    */
   private static List<TableInfo> scanForRepeatingPatterns(Document document) {
     List<TableInfo> tables = new ArrayList<>();
     Map<String, Integer> nameConflicts = new HashMap<>();
-    
+
     // Find patterns by looking at sibling groups, preferring top-level patterns
     findSiblingPatternsWithPriority(document.getDocumentElement(), tables, nameConflicts, 0);
-    
+
     return tables;
   }
-  
+
   /**
    * Find repeating patterns prioritizing larger, top-level patterns over smaller nested ones.
    */
-  private static void findSiblingPatternsWithPriority(Element parent, 
+  private static void findSiblingPatternsWithPriority(Element parent,
                                                        List<TableInfo> tables,
                                                        Map<String, Integer> nameConflicts,
                                                        int depth) {
     if (depth > MAX_DISCOVERY_DEPTH) {
       return;
     }
-    
+
     // Group child elements by tag name
     Map<String, List<Element>> childGroups = new LinkedHashMap<>();
     NodeList children = parent.getChildNodes();
-    
+
     for (int i = 0; i < children.getLength(); i++) {
       Node child = children.item(i);
       if (child instanceof Element) {
         Element childElement = (Element) child;
-        String elementName = childElement.getLocalName() != null ? 
+        String elementName = childElement.getLocalName() != null ?
             childElement.getLocalName() : childElement.getTagName();
-        
+
         if (hasDataContent(childElement)) {
           childGroups.computeIfAbsent(elementName, k -> new ArrayList<>()).add(childElement);
         }
       }
     }
-    
+
     // Check for repeating patterns in this level
     List<String> processedNames = new ArrayList<>();
     for (Map.Entry<String, List<Element>> entry : childGroups.entrySet()) {
       List<Element> elements = entry.getValue();
-      
+
       if (elements.size() >= MIN_REPEATING_ELEMENTS && areElementsSimilar(elements)) {
         String elementName = entry.getKey();
         String tableName = resolveNameConflict(elementName, nameConflicts);
         String xpath = generateXPathForElements(elements);
-        
+
         tables.add(new TableInfo(tableName, xpath, elements));
         processedNames.add(elementName);
       }
     }
-    
+
     // Recursively process child elements, but skip those that became tables
     for (Map.Entry<String, List<Element>> entry : childGroups.entrySet()) {
       if (!processedNames.contains(entry.getKey())) {
@@ -217,7 +213,7 @@ public class XmlTableScanner {
       }
     }
   }
-  
+
   /**
    * Check if element has data content (text or child elements).
    */
@@ -227,12 +223,12 @@ public class XmlTableScanner {
     if (textContent != null && !textContent.trim().isEmpty()) {
       return true;
     }
-    
+
     // Check for attributes
     if (element.getAttributes().getLength() > 0) {
       return true;
     }
-    
+
     // Check for child elements
     NodeList children = element.getChildNodes();
     for (int i = 0; i < children.getLength(); i++) {
@@ -241,10 +237,10 @@ public class XmlTableScanner {
         return true;
       }
     }
-    
+
     return false;
   }
-  
+
   /**
    * Check if elements in the group have similar structure.
    */
@@ -252,14 +248,14 @@ public class XmlTableScanner {
     if (elements.size() < 2) {
       return false;
     }
-    
+
     // Compare first two elements to determine similarity
     Element first = elements.get(0);
     Element second = elements.get(1);
-    
+
     return haveSimilarStructure(first, second);
   }
-  
+
   /**
    * Check if two elements have similar structure.
    */
@@ -267,50 +263,50 @@ public class XmlTableScanner {
     // Compare number of attributes
     int attrs1 = e1.getAttributes().getLength();
     int attrs2 = e2.getAttributes().getLength();
-    
+
     // Allow some flexibility in attribute count
     if (Math.abs(attrs1 - attrs2) > 2) {
       return false;
     }
-    
+
     // Compare child element names
     List<String> childNames1 = getChildElementNames(e1);
     List<String> childNames2 = getChildElementNames(e2);
-    
+
     // Calculate similarity - at least 50% overlap in child element names
     long commonNames = childNames1.stream()
         .filter(childNames2::contains)
         .count();
-    
+
     int maxChildCount = Math.max(childNames1.size(), childNames2.size());
     if (maxChildCount == 0) {
       return true; // Both have no children
     }
-    
+
     double similarity = (double) commonNames / maxChildCount;
     return similarity >= 0.5;
   }
-  
+
   /**
    * Get child element names for structure comparison.
    */
   private static List<String> getChildElementNames(Element element) {
     List<String> names = new ArrayList<>();
     NodeList children = element.getChildNodes();
-    
+
     for (int i = 0; i < children.getLength(); i++) {
       Node child = children.item(i);
       if (child instanceof Element) {
         Element childElement = (Element) child;
-        String name = childElement.getLocalName() != null ? 
+        String name = childElement.getLocalName() != null ?
             childElement.getLocalName() : childElement.getTagName();
         names.add(name);
       }
     }
-    
+
     return names;
   }
-  
+
   /**
    * Generate XPath expression for a group of similar elements.
    */
@@ -318,15 +314,15 @@ public class XmlTableScanner {
     if (elements.isEmpty()) {
       return "";
     }
-    
+
     Element firstElement = elements.get(0);
-    String elementName = firstElement.getLocalName() != null ? 
+    String elementName = firstElement.getLocalName() != null ?
         firstElement.getLocalName() : firstElement.getTagName();
-    
+
     // Simple XPath - could be enhanced to be more specific
     return "//" + elementName;
   }
-  
+
   /**
    * Derive table name from XPath expression.
    */
@@ -335,36 +331,36 @@ public class XmlTableScanner {
     // Handle patterns like: //product, /catalog/product, //ns:product
     String[] segments = xpath.split("/");
     String lastSegment = segments[segments.length - 1];
-    
+
     // Remove namespace prefix if present
     if (lastSegment.contains(":")) {
       lastSegment = lastSegment.substring(lastSegment.lastIndexOf(":") + 1);
     }
-    
+
     // Remove array notation or predicates
     if (lastSegment.contains("[")) {
       lastSegment = lastSegment.substring(0, lastSegment.indexOf("["));
     }
-    
+
     return sanitizeName(lastSegment);
   }
-  
+
   /**
    * Resolve naming conflicts by adding index suffix.
    */
   private static String resolveNameConflict(String baseName, Map<String, Integer> nameConflicts) {
     String sanitized = sanitizeName(baseName);
-    
+
     if (!nameConflicts.containsKey(sanitized)) {
       nameConflicts.put(sanitized, 0);
       return sanitized;
     }
-    
+
     int count = nameConflicts.get(sanitized) + 1;
     nameConflicts.put(sanitized, count);
     return sanitized + "_" + count;
   }
-  
+
   /**
    * Sanitizes a string to be a valid table name.
    */
@@ -372,28 +368,28 @@ public class XmlTableScanner {
     if (name == null || name.isEmpty()) {
       return "Table";
     }
-    
+
     // Remove invalid characters
     name = INVALID_NAME_CHARS.matcher(name).replaceAll("_");
-    
+
     // Remove consecutive underscores
     while (name.contains("__")) {
       name = name.replace("__", "_");
     }
-    
+
     // Remove leading/trailing underscores
     name = name.replaceAll("^_+|_+$", "");
-    
+
     // Ensure it starts with a letter or underscore
     if (!name.isEmpty() && !Character.isLetter(name.charAt(0)) && name.charAt(0) != '_') {
       name = "_" + name;
     }
-    
+
     // Limit length
     if (name.length() > 50) {
       name = name.substring(0, 50);
     }
-    
+
     return name.isEmpty() ? "Table" : name;
   }
 }
