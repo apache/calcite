@@ -262,8 +262,17 @@ public class AWSProvider implements CloudProvider {
           }
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying EKS clusters in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for EKS clusters in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying EKS clusters in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -572,8 +581,17 @@ public class AWSProvider implements CloudProvider {
           bucketCount++;
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying S3 buckets in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for S3 buckets in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying S3 buckets in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -679,8 +697,17 @@ public class AWSProvider implements CloudProvider {
           }
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying EC2 instances in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for EC2 instances in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying EC2 instances in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -792,8 +819,17 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        LOGGER.debug("Error querying network resources in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for network resources in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying network resources in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -934,8 +970,17 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        LOGGER.debug("Error querying IAM resources in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for IAM resources in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying IAM resources in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -1173,8 +1218,17 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        LOGGER.debug("Error querying database resources in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for database resources in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying database resources in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -1224,8 +1278,17 @@ public class AWSProvider implements CloudProvider {
           results.add(registryData);
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying ECR repositories in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for ECR repositories in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying ECR repositories in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
