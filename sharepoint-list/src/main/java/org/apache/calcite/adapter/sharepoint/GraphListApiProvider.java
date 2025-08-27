@@ -59,7 +59,7 @@ public class GraphListApiProvider implements SharePointListApiProvider {
             metadata.getListId(),
             metadata.getListName(),
             metadata.getDisplayName(),
-            "" // Description not available in SharePointListMetadata));
+            "")); // Description not available in SharePointListMetadata
       }
 
       return result;
