@@ -67,29 +67,23 @@ public class CloudOpsCacheManager {
                                                Supplier<List<Map<String, Object>>> apiCall) {
     long startTime = System.currentTimeMillis();
     
-    try {
-      List<Map<String, Object>> result = cache.get(cacheKey, key -> {
-        if (debugMode && logger.isDebugEnabled()) {
-          logger.debug("Cache MISS for key: {} - executing API call", cacheKey);
-        }
-        return apiCall.get();
-      });
-
-      long duration = System.currentTimeMillis() - startTime;
-      
+    List<Map<String, Object>> result = cache.get(cacheKey, key -> {
       if (debugMode && logger.isDebugEnabled()) {
-        boolean wasFromCache = cache.getIfPresent(cacheKey) != null;
-        logger.debug("Cache {} for key: {} - {} results retrieved in {}ms", 
-                   wasFromCache ? "HIT" : "MISS", cacheKey, 
-                   result != null ? result.size() : 0, duration);
+        logger.debug("Cache MISS for key: {} - executing API call", cacheKey);
       }
-
-      return result;
-    } catch (Exception e) {
-      logger.warn("Error retrieving cached data for key '{}': {}", cacheKey, e.getMessage());
-      // On cache error, execute API call directly
       return apiCall.get();
+    });
+
+    long duration = System.currentTimeMillis() - startTime;
+    
+    if (debugMode && logger.isDebugEnabled()) {
+      boolean wasFromCache = cache.getIfPresent(cacheKey) != null;
+      logger.debug("Cache {} for key: {} - {} results retrieved in {}ms", 
+                 wasFromCache ? "HIT" : "MISS", cacheKey, 
+                 result != null ? result.size() : 0, duration);
     }
+
+    return result;
   }
 
   /**

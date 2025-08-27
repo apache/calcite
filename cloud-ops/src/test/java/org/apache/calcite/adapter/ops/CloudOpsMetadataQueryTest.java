@@ -48,7 +48,7 @@ public class CloudOpsMetadataQueryTest {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
           statement.executeQuery("SELECT schemaname, tablename, tableowner, tablespace, hasindexes, hasrules, hastriggers " +
-          "FROM pg_catalog.pg_tables " +
+          "FROM pg_catalog.\"PG_TABLES\" " +
           "WHERE schemaname = 'public' " +
           "ORDER BY tablename");
 
@@ -143,7 +143,7 @@ public class CloudOpsMetadataQueryTest {
       ResultSet resultSet =
           statement.executeQuery("SELECT table_name, resource_type, supported_providers, column_count, " +
           "       has_security_fields, has_encryption_fields " +
-          "FROM pg_catalog.cloud_resources " +
+          "FROM pg_catalog.\"CLOUD_RESOURCES\" " +
           "ORDER BY table_name");
 
       int resourceCount = 0;
@@ -176,7 +176,7 @@ public class CloudOpsMetadataQueryTest {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
           statement.executeQuery("SELECT provider_name, provider_code, supported_services, authentication_methods " +
-          "FROM pg_catalog.cloud_providers " +
+          "FROM pg_catalog.\"CLOUD_PROVIDERS\" " +
           "ORDER BY provider_code");
 
       int providerCount = 0;
@@ -206,7 +206,7 @@ public class CloudOpsMetadataQueryTest {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
           statement.executeQuery("SELECT policy_name, policy_category, applicable_resources, compliance_level, enforcement_level " +
-          "FROM pg_catalog.ops_policies " +
+          "FROM pg_catalog.\"OPS_POLICIES\" " +
           "ORDER BY policy_category, policy_name");
 
       int policyCount = 0;
@@ -238,22 +238,19 @@ public class CloudOpsMetadataQueryTest {
     try (Connection connection = createTestConnection()) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT t.\"TABLE_NAME\", COUNT(c.\"COLUMN_NAME\") as column_count, " +
-          "       cr.resource_type, cr.has_security_fields " +
+          statement.executeQuery("SELECT t.\"TABLE_NAME\", cr.resource_type, cr.has_security_fields, cr.column_count " +
           "FROM information_schema.\"TABLES\" t " +
-          "JOIN information_schema.\"COLUMNS\" c ON t.\"TABLE_NAME\" = c.\"TABLE_NAME\" " +
-          "JOIN pg_catalog.cloud_resources cr ON t.\"TABLE_NAME\" = cr.table_name " +
+          "JOIN pg_catalog.\"CLOUD_RESOURCES\" cr ON t.\"TABLE_NAME\" = cr.table_name " +
           "WHERE t.\"TABLE_SCHEMA\" = 'public' " +
-          "GROUP BY t.\"TABLE_NAME\", cr.resource_type, cr.has_security_fields " +
           "ORDER BY t.\"TABLE_NAME\"");
 
       int joinCount = 0;
       while (resultSet.next()) {
         joinCount++;
         String tableName = resultSet.getString("TABLE_NAME");
-        int columnCount = resultSet.getInt("column_count");
         String resourceType = resultSet.getString("resource_type");
         boolean hasSecurityFields = resultSet.getBoolean("has_security_fields");
+        int columnCount = resultSet.getInt("column_count");
 
         assertTrue(tableName != null && !tableName.isEmpty(), "Table name should not be empty");
         assertTrue(columnCount > 0, "Column count should be positive");
@@ -274,6 +271,7 @@ public class CloudOpsMetadataQueryTest {
 
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
 
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
@@ -288,17 +286,12 @@ public class CloudOpsMetadataQueryTest {
   }
 
   private CloudOpsConfig createTestConfig() {
-    CloudOpsConfig.AzureConfig azure =
-        new CloudOpsConfig.AzureConfig("test-tenant", "test-client", "test-secret", Arrays.asList("sub1", "sub2"));
-
-    CloudOpsConfig.GCPConfig gcp =
-        new CloudOpsConfig.GCPConfig(Arrays.asList("project1", "project2"), "/path/to/credentials.json");
-
-    CloudOpsConfig.AWSConfig aws =
-        new CloudOpsConfig.AWSConfig(Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
-
-    return new CloudOpsConfig(
-        Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15);
+    // Only use real credentials from local properties file
+    CloudOpsConfig config = CloudOpsTestUtils.loadTestConfig();
+    if (config == null) {
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
+    }
+    return config;
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {

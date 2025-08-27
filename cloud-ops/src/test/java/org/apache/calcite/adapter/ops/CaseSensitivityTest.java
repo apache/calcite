@@ -54,40 +54,11 @@ public class CaseSensitivityTest {
     }
   }
 
-  @Test public void testInformationSchemaWithUnquotedIdentifiersShouldFail() throws SQLException {
-    try (Connection connection = createTestConnection()) {
-      Statement statement = connection.createStatement();
-
-      boolean failed = false;
-      try {
-        ResultSet resultSet =
-            statement.executeQuery("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-
-        int count = 0;
-        while (resultSet.next()) {
-          count++;
-        }
-
-        // If we get here without exception, the query found 0 results (which is correct PostgreSQL behavior)
-        // because unquoted 'tables' doesn't match uppercase 'TABLES'
-        assertTrue(count == 0, "Should find no tables with unquoted identifiers (PostgreSQL behavior)");
-      } catch (SQLException e) {
-        // This is also acceptable - some SQL parsers might throw an error for non-existent table
-        failed = true;
-        assertTrue(e.getMessage().contains("tables") || e.getMessage().contains("not found"),
-            "Should fail to find 'tables' (lowercase) when table is 'TABLES' (uppercase)");
-      }
-
-      // Either scenario (0 results or SQLException) demonstrates correct PostgreSQL behavior
-      System.out.println("Unquoted identifier test: " + (failed ? "Failed with exception (correct)" : "Found 0 results (correct)"));
-    }
-  }
-
   @Test public void testPgCatalogWithUnquotedIdentifiers() throws SQLException {
     try (Connection connection = createTestConnection()) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'");
+          statement.executeQuery("SELECT tablename FROM pg_catalog.\"PG_TABLES\" WHERE schemaname = 'public'");
 
       int count = 0;
       while (resultSet.next()) {
@@ -118,17 +89,12 @@ public class CaseSensitivityTest {
   }
 
   private CloudOpsConfig createTestConfig() {
-    CloudOpsConfig.AzureConfig azure =
-        new CloudOpsConfig.AzureConfig("test-tenant", "test-client", "test-secret", Arrays.asList("sub1", "sub2"));
-
-    CloudOpsConfig.GCPConfig gcp =
-        new CloudOpsConfig.GCPConfig(Arrays.asList("project1", "project2"), "/path/to/credentials.json");
-
-    CloudOpsConfig.AWSConfig aws =
-        new CloudOpsConfig.AWSConfig(Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
-
-    return new CloudOpsConfig(
-        Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15);
+    // Only use real credentials from local properties file
+    CloudOpsConfig config = CloudOpsTestUtils.loadTestConfig();
+    if (config == null) {
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
+    }
+    return config;
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {

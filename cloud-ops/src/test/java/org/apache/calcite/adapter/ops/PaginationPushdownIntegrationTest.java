@@ -42,7 +42,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,46 +67,31 @@ public class PaginationPushdownIntegrationTest {
   private RexBuilder rexBuilder;
   
   @BeforeEach
-  void setUp() throws SQLException, IOException {
-    // Load test configuration if available
-    Properties props = new Properties();
-    try {
-      props.load(new FileInputStream("local-test.properties"));
-      logger.debug("Loaded local test configuration for live integration testing");
-    } catch (IOException e) {
-      logger.debug("local-test.properties not found - using mock configuration for integration tests");
-      // Set up minimal mock config for testing logic without live credentials
-      props.setProperty("cloud.ops.providers", "azure");
-      props.setProperty("cloud.ops.azure.subscriptionIds", "test-subscription");
-      props.setProperty("cloud.ops.azure.credentialsPath", "/dev/null");
+  void setUp() throws SQLException {
+    // Only use real credentials from local properties file
+    config = CloudOpsTestUtils.loadTestConfig();
+    if (config == null) {
+      throw new IllegalStateException("Real credentials required from local-test.properties file");
     }
-    
-    // Create mock config for testing
-    List<String> providers = Arrays.asList(props.getProperty("cloud.ops.providers", "azure").split(","));
-    CloudOpsConfig.AzureConfig azureConfig = new CloudOpsConfig.AzureConfig(
-        props.getProperty("cloud.ops.azure.tenantId", "test-tenant"),
-        props.getProperty("cloud.ops.azure.clientId", "test-client"),
-        props.getProperty("cloud.ops.azure.clientSecret", "test-secret"),
-        Arrays.asList(props.getProperty("cloud.ops.azure.subscriptionIds", "test-subscription").split(","))
-    );
-    
-    config = new CloudOpsConfig(
-        providers,
-        azureConfig,
-        null, // gcp
-        null, // aws
-        false, // cacheEnabled
-        60     // cacheTtlMinutes
-    );
     
     // Set up Calcite connection with cloud-ops schema
     Properties calciteProps = new Properties();
     calciteProps.setProperty("lex", "JAVA");
     connection = DriverManager.getConnection("jdbc:calcite:", calciteProps);
     
+    // Register cloud-ops schema
+    org.apache.calcite.jdbc.CalciteConnection calciteConnection = 
+        connection.unwrap(org.apache.calcite.jdbc.CalciteConnection.class);
+    org.apache.calcite.schema.SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    
+    CloudOpsSchemaFactory factory = new CloudOpsSchemaFactory();
+    rootSchema.add("cloud_ops", factory.create(rootSchema, "cloud_ops", configToOperands(config)));
+    
+    // Set cloud_ops as the default schema
+    calciteConnection.setSchema("cloud_ops");
+    
     // Create type factory and RexBuilder for testing utilities
-    typeFactory = connection.unwrap(org.apache.calcite.jdbc.CalciteConnection.class)
-        .getTypeFactory();
+    typeFactory = calciteConnection.getTypeFactory();
     rexBuilder = new RexBuilder(typeFactory);
   }
   
@@ -320,7 +307,7 @@ public class PaginationPushdownIntegrationTest {
     
     // Test combined optimization metrics
     CloudOpsProjectionHandler.ProjectionMetrics projMetrics = projectionHandler.calculateMetrics();
-    assertEquals(40.0, projMetrics.reductionPercent, 0.1, "Should reduce 3/5 columns = 40%");
+    assertEquals(60.0, projMetrics.reductionPercent, 0.1, "Should reduce 3/5 columns = 60%");
     
     CloudOpsPaginationHandler.PaginationMetrics pageMetrics = 
         paginationHandler.calculateMetrics(true, 100);
@@ -364,8 +351,17 @@ public class PaginationPushdownIntegrationTest {
         logger.debug("Returned {} rows (expected ≤ 5)", rowCount);
       }
     } catch (SQLException e) {
-      logger.debug("SQL query failed (expected if no live credentials): {}", e.getMessage());
-      // This is expected in CI/test environments without live cloud credentials
+      String errorMessage = e.getMessage();
+      if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                   errorMessage.contains("Access Denied") ||
+                                   errorMessage.contains("Forbidden") ||
+                                   errorMessage.contains("401") ||
+                                   errorMessage.contains("403"))) {
+        logger.warn("Cloud authentication/authorization failed - results may be incomplete: {}", errorMessage);
+      } else {
+        logger.debug("SQL query failed (expected if no live credentials): {}", errorMessage);
+      }
+      // This is expected when users have partial cloud permissions
     }
     
     // Test OFFSET + LIMIT query
@@ -391,7 +387,16 @@ public class PaginationPushdownIntegrationTest {
         logger.debug("Returned {} rows (expected ≤ 3)", rowCount);
       }
     } catch (SQLException e) {
-      logger.debug("SQL query failed (expected if no live credentials): {}", e.getMessage());
+      String errorMessage = e.getMessage();
+      if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                   errorMessage.contains("Access Denied") ||
+                                   errorMessage.contains("Forbidden") ||
+                                   errorMessage.contains("401") ||
+                                   errorMessage.contains("403"))) {
+        logger.warn("Cloud authentication/authorization failed - results may be incomplete: {}", errorMessage);
+      } else {
+        logger.debug("SQL query failed (expected if no live credentials): {}", errorMessage);
+      }
     }
     
     logger.debug("✅ Live SQL pagination queries test completed");
@@ -457,5 +462,33 @@ public class PaginationPushdownIntegrationTest {
     logger.debug("GCP strategy: {}", gcpOffset);
     
     logger.debug("✅ Provider-specific pagination strategies test passed");
+  }
+
+  private Map<String, Object> configToOperands(CloudOpsConfig config) {
+    Map<String, Object> operands = new HashMap<>();
+
+    if (config.azure != null) {
+      operands.put("azure.tenantId", config.azure.tenantId);
+      operands.put("azure.clientId", config.azure.clientId);
+      operands.put("azure.clientSecret", config.azure.clientSecret);
+      operands.put("azure.subscriptionIds", String.join(",", config.azure.subscriptionIds));
+    }
+
+    if (config.gcp != null) {
+      operands.put("gcp.credentialsPath", config.gcp.credentialsPath);
+      operands.put("gcp.projectIds", String.join(",", config.gcp.projectIds));
+    }
+
+    if (config.aws != null) {
+      operands.put("aws.accessKeyId", config.aws.accessKeyId);
+      operands.put("aws.secretAccessKey", config.aws.secretAccessKey);
+      operands.put("aws.region", config.aws.region);
+      operands.put("aws.accountIds", String.join(",", config.aws.accountIds));
+      if (config.aws.roleArn != null) {
+        operands.put("aws.roleArn", config.aws.roleArn);
+      }
+    }
+
+    return operands;
   }
 }

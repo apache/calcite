@@ -54,7 +54,7 @@ public class CacheIntegrationTest {
         createMockGCPConfig(), 
         createMockAWSConfig(),
         true,  // cacheEnabled
-        2,     // cacheTtlMinutes  
+        2,     // cacheTtlMinutes
         true   // cacheDebugMode
     );
     
@@ -253,7 +253,8 @@ public class CacheIntegrationTest {
     // Generate diverse cache activity
     for (int i = 0; i < 15; i++) {
       String key = "metrics:test:" + (i % 5); // Create some repeated keys for hits
-      cacheManager.getOrCompute(key, () -> Arrays.asList(Map.of("iteration", i)));
+      final int iteration = i; // Make variable effectively final for lambda
+      cacheManager.getOrCompute(key, () -> Arrays.asList(Map.of("iteration", iteration)));
     }
 
     CloudOpsCacheManager.CacheMetrics finalMetrics = cacheManager.getCacheMetrics();

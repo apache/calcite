@@ -262,8 +262,17 @@ public class AWSProvider implements CloudProvider {
           }
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying EKS clusters in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for EKS clusters in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying EKS clusters in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -367,7 +376,61 @@ public class AWSProvider implements CloudProvider {
   }
 
   @Override public List<Map<String, Object>> queryStorageResources(List<String> accountIds) {
+    return queryStorageResources(accountIds, null, null, null, null);
+  }
+
+  /**
+   * Query storage resources with projection-aware optimization.
+   * Only fetches expensive API details when those columns are actually projected.
+   */
+  public List<Map<String, Object>> queryStorageResources(List<String> accountIds,
+                                                         @Nullable CloudOpsProjectionHandler projectionHandler,
+                                                         @Nullable CloudOpsSortHandler sortHandler,
+                                                         @Nullable CloudOpsPaginationHandler paginationHandler,
+                                                         @Nullable CloudOpsFilterHandler filterHandler) {
+    
+    // Build comprehensive cache key including all optimization parameters
+    String cacheKey = CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "storage_resources",
+        projectionHandler, sortHandler, paginationHandler, filterHandler, accountIds);
+    
+    // Check if caching is beneficial for this query
+    boolean shouldCache = CloudOpsCacheManager.shouldCache(filterHandler, paginationHandler);
+    
+    if (shouldCache) {
+      return cacheManager.getOrCompute(cacheKey, () -> executeStorageResourceQuery(
+          accountIds, projectionHandler, sortHandler, paginationHandler, filterHandler));
+    } else {
+      // Execute directly without caching for highly specific queries
+      return executeStorageResourceQuery(
+          accountIds, projectionHandler, sortHandler, paginationHandler, filterHandler);
+    }
+  }
+
+  private List<Map<String, Object>> executeStorageResourceQuery(List<String> accountIds,
+                                                               @Nullable CloudOpsProjectionHandler projectionHandler,
+                                                               @Nullable CloudOpsSortHandler sortHandler,
+                                                               @Nullable CloudOpsPaginationHandler paginationHandler,
+                                                               @Nullable CloudOpsFilterHandler filterHandler) {
     List<Map<String, Object>> results = new ArrayList<>();
+
+    // Determine which fields are needed based on projection
+    boolean needsBasicInfo = true; // Always need basic info
+    boolean needsLocation = isFieldProjected(projectionHandler, "region", "Location");
+    boolean needsTags = isFieldProjected(projectionHandler, "application", "Application", "tags");
+    boolean needsEncryption = isFieldProjected(projectionHandler, "encryption_enabled", "encryption_type", 
+                                              "encryption_key_type", "EncryptionEnabled", "EncryptionType", "KmsKeyId");
+    boolean needsPublicAccess = isFieldProjected(projectionHandler, "public_access_enabled", "public_access_level",
+                                                "PublicAccessBlocked");
+    boolean needsVersioning = isFieldProjected(projectionHandler, "versioning_enabled", "VersioningEnabled");
+    boolean needsLifecycle = isFieldProjected(projectionHandler, "lifecycle_rules_count", "LifecycleRuleCount");
+    
+    // Log optimization decisions
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("AWS S3 query optimization - Fetching: basic={}, location={}, tags={}, encryption={}, " +
+                   "publicAccess={}, versioning={}, lifecycle={}",
+                   needsBasicInfo, needsLocation, needsTags, needsEncryption, 
+                   needsPublicAccess, needsVersioning, needsLifecycle);
+    }
 
     for (String accountId : accountIds) {
       AwsCredentials credentials = accountCredentials.get(accountId);
@@ -379,96 +442,135 @@ public class AWSProvider implements CloudProvider {
             .credentialsProvider(StaticCredentialsProvider.create(credentials))
             .build();
 
-        // List all buckets
-        ListBucketsResponse listBucketsResponse = s3Client.listBuckets();
-
-        for (Bucket bucket : listBucketsResponse.buckets()) {
+        // List buckets with pagination support
+        ListBucketsRequest listRequest = ListBucketsRequest.builder().build();
+        ListBucketsResponse listBucketsResponse = s3Client.listBuckets(listRequest);
+        
+        List<Bucket> buckets = listBucketsResponse.buckets();
+        
+        // Apply default pagination limit if no specific limit is set
+        int maxBuckets = 100; // Default limit to prevent API overload
+        if (paginationHandler != null && paginationHandler.hasPagination()) {
+          maxBuckets = Math.min((int)paginationHandler.getLimit(), maxBuckets);
+        }
+        
+        int bucketCount = 0;
+        for (Bucket bucket : buckets) {
+          if (bucketCount >= maxBuckets) {
+            LOGGER.debug("Reached pagination limit of {} buckets for account {}", maxBuckets, accountId);
+            break;
+          }
+          
           Map<String, Object> storageData = new HashMap<>();
 
-          // Identity fields
+          // Always include basic identity fields (low cost)
           storageData.put("AccountId", accountId);
           storageData.put("StorageResource", bucket.name());
           storageData.put("StorageType", "S3 Bucket");
           storageData.put("ResourceId", "arn:aws:s3:::" + bucket.name());
+          storageData.put("CreationDate", bucket.creationDate());
 
           try {
-            // Get bucket location
-            GetBucketLocationRequest locationRequest = GetBucketLocationRequest.builder()
-                .bucket(bucket.name())
-                .build();
-            String location = s3Client.getBucketLocation(locationRequest).locationConstraintAsString();
-            storageData.put("Location", location != null ? location : "us-east-1");
-
-            // Get bucket tags
-            GetBucketTaggingRequest taggingRequest = GetBucketTaggingRequest.builder()
-                .bucket(bucket.name())
-                .build();
-            Map<String, String> tags = new HashMap<>();
-            try {
-              GetBucketTaggingResponse taggingResponse = s3Client.getBucketTagging(taggingRequest);
-              taggingResponse.tagSet().forEach(tag -> tags.put(tag.key(), tag.value()));
-            } catch (Exception e) {
-              // Bucket may not have tags
+            // Only fetch location if needed
+            if (needsLocation) {
+              GetBucketLocationRequest locationRequest = GetBucketLocationRequest.builder()
+                  .bucket(bucket.name())
+                  .build();
+              String location = s3Client.getBucketLocation(locationRequest).locationConstraintAsString();
+              storageData.put("Location", location != null ? location : "us-east-1");
+            } else {
+              storageData.put("Location", null);
             }
-            String application =
-                tags.getOrDefault("Application", tags.getOrDefault("app", "Untagged/Orphaned"));
-            storageData.put("Application", application);
 
-            // Get bucket encryption
-            GetBucketEncryptionRequest encryptionRequest = GetBucketEncryptionRequest.builder()
-                .bucket(bucket.name())
-                .build();
-            try {
-              GetBucketEncryptionResponse encryptionResponse = s3Client.getBucketEncryption(encryptionRequest);
-              storageData.put("EncryptionEnabled", true);
-              if (encryptionResponse.serverSideEncryptionConfiguration() != null &&
-                  !encryptionResponse.serverSideEncryptionConfiguration().rules().isEmpty()) {
-                ServerSideEncryptionRule rule = encryptionResponse.serverSideEncryptionConfiguration().rules().get(0);
-                storageData.put("EncryptionType", rule.applyServerSideEncryptionByDefault().sseAlgorithmAsString());
-                storageData.put("KmsKeyId", rule.applyServerSideEncryptionByDefault().kmsMasterKeyID());
+            // Only fetch tags if needed
+            if (needsTags) {
+              GetBucketTaggingRequest taggingRequest = GetBucketTaggingRequest.builder()
+                  .bucket(bucket.name())
+                  .build();
+              Map<String, String> tags = new HashMap<>();
+              try {
+                GetBucketTaggingResponse taggingResponse = s3Client.getBucketTagging(taggingRequest);
+                taggingResponse.tagSet().forEach(tag -> tags.put(tag.key(), tag.value()));
+              } catch (Exception e) {
+                // Bucket may not have tags
               }
-            } catch (Exception e) {
-              storageData.put("EncryptionEnabled", false);
+              String application =
+                  tags.getOrDefault("Application", tags.getOrDefault("app", "Untagged/Orphaned"));
+              storageData.put("Application", application);
+            } else {
+              storageData.put("Application", null);
             }
 
-            // Get public access block configuration
-            GetPublicAccessBlockRequest publicAccessRequest = GetPublicAccessBlockRequest.builder()
-                .bucket(bucket.name())
-                .build();
-            try {
-              GetPublicAccessBlockResponse publicAccessResponse = s3Client.getPublicAccessBlock(publicAccessRequest);
-              PublicAccessBlockConfiguration config = publicAccessResponse.publicAccessBlockConfiguration();
-              storageData.put("PublicAccessBlocked",
-                  config.blockPublicAcls() && config.blockPublicPolicy() &&
-                  config.ignorePublicAcls() && config.restrictPublicBuckets());
-            } catch (Exception e) {
-              storageData.put("PublicAccessBlocked", false);
+            // Only fetch encryption if needed
+            if (needsEncryption) {
+              GetBucketEncryptionRequest encryptionRequest = GetBucketEncryptionRequest.builder()
+                  .bucket(bucket.name())
+                  .build();
+              try {
+                GetBucketEncryptionResponse encryptionResponse = s3Client.getBucketEncryption(encryptionRequest);
+                storageData.put("EncryptionEnabled", true);
+                if (encryptionResponse.serverSideEncryptionConfiguration() != null &&
+                    !encryptionResponse.serverSideEncryptionConfiguration().rules().isEmpty()) {
+                  ServerSideEncryptionRule rule = encryptionResponse.serverSideEncryptionConfiguration().rules().get(0);
+                  storageData.put("EncryptionType", rule.applyServerSideEncryptionByDefault().sseAlgorithmAsString());
+                  storageData.put("KmsKeyId", rule.applyServerSideEncryptionByDefault().kmsMasterKeyID());
+                }
+              } catch (Exception e) {
+                storageData.put("EncryptionEnabled", false);
+              }
+            } else {
+              storageData.put("EncryptionEnabled", null);
+              storageData.put("EncryptionType", null);
+              storageData.put("KmsKeyId", null);
             }
 
-            // Get versioning
-            GetBucketVersioningRequest versioningRequest = GetBucketVersioningRequest.builder()
-                .bucket(bucket.name())
-                .build();
-            GetBucketVersioningResponse versioningResponse = s3Client.getBucketVersioning(versioningRequest);
-            storageData.put("VersioningEnabled",
-                BucketVersioningStatus.ENABLED == versioningResponse.status());
-
-            // Get lifecycle configuration
-            GetBucketLifecycleConfigurationRequest lifecycleRequest =
-                GetBucketLifecycleConfigurationRequest.builder()
-                .bucket(bucket.name())
-                .build();
-            try {
-              GetBucketLifecycleConfigurationResponse lifecycleResponse =
-                  s3Client.getBucketLifecycleConfiguration(lifecycleRequest);
-              storageData.put("LifecycleRuleCount",
-                  lifecycleResponse.rules() != null ? lifecycleResponse.rules().size() : 0);
-            } catch (Exception e) {
-              storageData.put("LifecycleRuleCount", 0);
+            // Only fetch public access block if needed
+            if (needsPublicAccess) {
+              GetPublicAccessBlockRequest publicAccessRequest = GetPublicAccessBlockRequest.builder()
+                  .bucket(bucket.name())
+                  .build();
+              try {
+                GetPublicAccessBlockResponse publicAccessResponse = s3Client.getPublicAccessBlock(publicAccessRequest);
+                PublicAccessBlockConfiguration config = publicAccessResponse.publicAccessBlockConfiguration();
+                storageData.put("PublicAccessBlocked",
+                    config.blockPublicAcls() && config.blockPublicPolicy() &&
+                    config.ignorePublicAcls() && config.restrictPublicBuckets());
+              } catch (Exception e) {
+                storageData.put("PublicAccessBlocked", false);
+              }
+            } else {
+              storageData.put("PublicAccessBlocked", null);
             }
 
-            // Timestamps
-            storageData.put("CreationDate", bucket.creationDate());
+            // Only fetch versioning if needed
+            if (needsVersioning) {
+              GetBucketVersioningRequest versioningRequest = GetBucketVersioningRequest.builder()
+                  .bucket(bucket.name())
+                  .build();
+              GetBucketVersioningResponse versioningResponse = s3Client.getBucketVersioning(versioningRequest);
+              storageData.put("VersioningEnabled",
+                  BucketVersioningStatus.ENABLED == versioningResponse.status());
+            } else {
+              storageData.put("VersioningEnabled", null);
+            }
+
+            // Only fetch lifecycle if needed
+            if (needsLifecycle) {
+              GetBucketLifecycleConfigurationRequest lifecycleRequest =
+                  GetBucketLifecycleConfigurationRequest.builder()
+                  .bucket(bucket.name())
+                  .build();
+              try {
+                GetBucketLifecycleConfigurationResponse lifecycleResponse =
+                    s3Client.getBucketLifecycleConfiguration(lifecycleRequest);
+                storageData.put("LifecycleRuleCount",
+                    lifecycleResponse.rules() != null ? lifecycleResponse.rules().size() : 0);
+              } catch (Exception e) {
+                storageData.put("LifecycleRuleCount", 0);
+              }
+            } else {
+              storageData.put("LifecycleRuleCount", null);
+            }
 
           } catch (Exception e) {
             // Error getting bucket details, still add basic info
@@ -476,14 +578,53 @@ public class AWSProvider implements CloudProvider {
           }
 
           results.add(storageData);
+          bucketCount++;
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying S3 buckets in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for S3 buckets in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying S3 buckets in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
+    // Log performance metrics
+    if (LOGGER.isDebugEnabled()) {
+      int totalApiCalls = results.size() * 
+          (1 + (needsLocation ? 1 : 0) + (needsTags ? 1 : 0) + (needsEncryption ? 1 : 0) + 
+           (needsPublicAccess ? 1 : 0) + (needsVersioning ? 1 : 0) + (needsLifecycle ? 1 : 0));
+      int maxPossibleApiCalls = results.size() * 7; // All API calls for all buckets
+      double reductionPercent = (1.0 - (double)totalApiCalls / maxPossibleApiCalls) * 100;
+      
+      LOGGER.debug("AWS S3 query completed: {} buckets, {} API calls (vs {} max), {:.1f}% reduction",
+                   results.size(), totalApiCalls, maxPossibleApiCalls, reductionPercent);
+    }
+
     return results;
+  }
+
+  /**
+   * Check if a field is projected in the query.
+   */
+  private boolean isFieldProjected(@Nullable CloudOpsProjectionHandler projectionHandler, String... fieldNames) {
+    if (projectionHandler == null || projectionHandler.isSelectAll()) {
+      return true; // All fields are needed for SELECT *
+    }
+    
+    List<String> projectedFields = projectionHandler.getProjectedFieldNames();
+    for (String fieldName : fieldNames) {
+      if (projectedFields.contains(fieldName)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override public List<Map<String, Object>> queryComputeInstances(List<String> accountIds) {
@@ -556,8 +697,17 @@ public class AWSProvider implements CloudProvider {
           }
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying EC2 instances in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for EC2 instances in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying EC2 instances in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -669,8 +819,17 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        LOGGER.debug("Error querying network resources in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for network resources in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying network resources in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -811,8 +970,17 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        LOGGER.debug("Error querying IAM resources in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for IAM resources in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying IAM resources in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -1050,8 +1218,17 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        LOGGER.debug("Error querying database resources in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for database resources in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying database resources in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 
@@ -1101,8 +1278,17 @@ public class AWSProvider implements CloudProvider {
           results.add(registryData);
         }
       } catch (Exception e) {
-        LOGGER.debug("Error querying ECR repositories in account {}: {}",
-            accountId, e.getMessage());
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && (errorMessage.contains("not authorized") || 
+                                     errorMessage.contains("AccessDenied") ||
+                                     errorMessage.contains("UnauthorizedOperation") ||
+                                     errorMessage.contains("Forbidden"))) {
+          LOGGER.warn("Authorization denied for ECR repositories in account {} - results may be incomplete: {}", 
+                     accountId, errorMessage);
+        } else {
+          LOGGER.debug("Error querying ECR repositories in account {}: {}",
+                      accountId, e.getMessage());
+        }
       }
     }
 

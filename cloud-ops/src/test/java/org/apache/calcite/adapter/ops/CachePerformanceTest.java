@@ -274,11 +274,12 @@ public class CachePerformanceTest {
     
     for (int i = 0; i < iterations; i++) {
       String key = keyType + ":" + keys.get(i % keys.size()) + ":" + (i / keys.size());
+      final int iteration = i; // Make variable effectively final for lambda
       
       cacheManager.getOrCompute(key, () -> {
         localCallCount.incrementAndGet();
         apiCallCount.incrementAndGet();
-        return Arrays.asList(Map.of("type", keyType, "iteration", i));
+        return Arrays.asList(Map.of("type", keyType, "iteration", iteration));
       });
     }
     

@@ -201,7 +201,6 @@ public class CloudOpsInformationSchema extends AbstractSchema {
 
       // Need to check all schemas, not just direct children of root
       scanSchemaRecursively(null, rows, typeFactory);
-
       return Linq4j.asEnumerable(rows);
     }
 
@@ -216,33 +215,67 @@ public class CloudOpsInformationSchema extends AbstractSchema {
       for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
         SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
         if (subSchema != null && !"information_schema".equals(schemaName) && !"pg_catalog".equals(schemaName)) {
-          Schema unwrapped = subSchema.unwrap(Schema.class);
-
-          // CalciteSchema wraps the actual schema, so we need to get the real schema
-          if (unwrapped != null && unwrapped.getClass().getName().contains("CalciteSchema$SchemaPlusImpl")) {
+          
+          // Try multiple unwrapping approaches
+          CloudOpsSchema cloudOpsSchema = null;
+          
+          // Approach 1: Direct unwrap attempt
+          try {
+            cloudOpsSchema = subSchema.unwrap(CloudOpsSchema.class);
+          } catch (Exception e) {
+            // Continue to other approaches
+          }
+          
+          // Approach 2: If direct unwrap failed, try reflection on the SchemaPlusImpl
+          if (cloudOpsSchema == null) {
             try {
-              // Try to get the CalciteSchema field from SchemaPlusImpl
-              java.lang.reflect.Field calciteSchemaField = unwrapped.getClass().getDeclaredField("calciteSchema");
+              // Get the underlying CalciteSchema from SchemaPlusImpl
+              java.lang.reflect.Field calciteSchemaField = subSchema.getClass().getDeclaredField("calciteSchema");
               calciteSchemaField.setAccessible(true);
-              Object calciteSchema = calciteSchemaField.get(unwrapped);
+              Object calciteSchema = calciteSchemaField.get(subSchema);
 
               if (calciteSchema != null) {
-                // Now get the schema from CalciteSchema
+                // Get the actual schema from CalciteSchema
                 java.lang.reflect.Field schemaField = calciteSchema.getClass().getDeclaredField("schema");
                 schemaField.setAccessible(true);
                 Object actualSchema = schemaField.get(calciteSchema);
+                
                 if (actualSchema instanceof CloudOpsSchema) {
-                  unwrapped = (CloudOpsSchema) actualSchema;
+                  cloudOpsSchema = (CloudOpsSchema) actualSchema;
                 }
               }
             } catch (Exception e) {
-              // Ignore
+              // Continue to next approach
+            }
+          }
+          
+          // Approach 3: If still null, try generic Schema unwrap then reflection
+          if (cloudOpsSchema == null) {
+            try {
+              Schema unwrapped = subSchema.unwrap(Schema.class);
+              
+              if (unwrapped != null && unwrapped.getClass().getName().contains("CalciteSchema$SchemaPlusImpl")) {
+                // Try the same reflection approach on the unwrapped Schema
+                java.lang.reflect.Field calciteSchemaField = unwrapped.getClass().getDeclaredField("calciteSchema");
+                calciteSchemaField.setAccessible(true);
+                Object calciteSchema = calciteSchemaField.get(unwrapped);
+
+                if (calciteSchema != null) {
+                  java.lang.reflect.Field schemaField = calciteSchema.getClass().getDeclaredField("schema");
+                  schemaField.setAccessible(true);
+                  Object actualSchema = schemaField.get(calciteSchema);
+                  if (actualSchema instanceof CloudOpsSchema) {
+                    cloudOpsSchema = (CloudOpsSchema) actualSchema;
+                  }
+                }
+              }
+            } catch (Exception e) {
+              // No more approaches available
             }
           }
 
-          if (unwrapped instanceof CloudOpsSchema) {
-            CloudOpsSchema governanceSchema = (CloudOpsSchema) unwrapped;
-            Map<String, Table> tables = governanceSchema.getTableMapForMetadata();
+          if (cloudOpsSchema != null) {
+            Map<String, Table> tables = cloudOpsSchema.getTableMapForMetadata();
 
             for (Map.Entry<String, Table> entry : tables.entrySet()) {
               String tableName = entry.getKey();

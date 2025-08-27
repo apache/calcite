@@ -62,7 +62,7 @@ public class CloudOpsMetadataIntegrationTest {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
           statement.executeQuery("SELECT schemaname, tablename, tableowner " +
-          "FROM pg_catalog.pg_tables " +
+          "FROM pg_catalog.\"PG_TABLES\" " +
           "WHERE schemaname = 'public' " +
           "ORDER BY tablename");
 
@@ -91,18 +91,18 @@ public class CloudOpsMetadataIntegrationTest {
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT table_catalog, table_schema, table_name, table_type " +
-          "FROM information_schema.tables " +
-          "WHERE table_schema = 'public' " +
-          "ORDER BY table_name");
+          statement.executeQuery("SELECT \"TABLE_CATALOG\", \"TABLE_SCHEMA\", \"TABLE_NAME\", \"TABLE_TYPE\" " +
+          "FROM information_schema.\"TABLES\" " +
+          "WHERE \"TABLE_SCHEMA\" = 'public' " +
+          "ORDER BY \"TABLE_NAME\"");
 
       int tableCount = 0;
       while (resultSet.next()) {
         tableCount++;
-        String tableCatalog = resultSet.getString("table_catalog");
-        String tableSchema = resultSet.getString("table_schema");
-        String tableName = resultSet.getString("table_name");
-        String tableType = resultSet.getString("table_type");
+        String tableCatalog = resultSet.getString("TABLE_CATALOG");
+        String tableSchema = resultSet.getString("TABLE_SCHEMA");
+        String tableName = resultSet.getString("TABLE_NAME");
+        String tableType = resultSet.getString("TABLE_TYPE");
 
         assertTrue(tableCatalog != null && !tableCatalog.isEmpty(), "Table catalog should not be empty");
         assertThat("Table schema should be public", tableSchema, is("public"));
@@ -123,19 +123,19 @@ public class CloudOpsMetadataIntegrationTest {
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT table_name, column_name, ordinal_position, data_type, is_nullable " +
-          "FROM information_schema.columns " +
-          "WHERE table_schema = 'public' AND table_name = 'kubernetes_clusters' " +
-          "ORDER BY ordinal_position");
+          statement.executeQuery("SELECT \"TABLE_NAME\", \"COLUMN_NAME\", \"ORDINAL_POSITION\", \"DATA_TYPE\", \"IS_NULLABLE\" " +
+          "FROM information_schema.\"COLUMNS\" " +
+          "WHERE \"TABLE_SCHEMA\" = 'public' AND \"TABLE_NAME\" = 'kubernetes_clusters' " +
+          "ORDER BY \"ORDINAL_POSITION\"");
 
       int columnCount = 0;
       while (resultSet.next()) {
         columnCount++;
-        String tableName = resultSet.getString("table_name");
-        String columnName = resultSet.getString("column_name");
-        int ordinalPosition = resultSet.getInt("ordinal_position");
-        String dataType = resultSet.getString("data_type");
-        String isNullable = resultSet.getString("is_nullable");
+        String tableName = resultSet.getString("TABLE_NAME");
+        String columnName = resultSet.getString("COLUMN_NAME");
+        int ordinalPosition = resultSet.getInt("ORDINAL_POSITION");
+        String dataType = resultSet.getString("DATA_TYPE");
+        String isNullable = resultSet.getString("IS_NULLABLE");
 
         assertThat("Table name should be kubernetes_clusters", tableName, is("kubernetes_clusters"));
         assertTrue(columnName != null && !columnName.isEmpty(), "Column name should not be empty");
@@ -159,7 +159,7 @@ public class CloudOpsMetadataIntegrationTest {
       ResultSet resultSet =
           statement.executeQuery("SELECT table_name, resource_type, supported_providers, column_count, " +
           "       has_security_fields, has_encryption_fields " +
-          "FROM pg_catalog.cloud_resources " +
+          "FROM pg_catalog.\"CLOUD_RESOURCES\" " +
           "ORDER BY table_name");
 
       int resourceCount = 0;
@@ -194,7 +194,7 @@ public class CloudOpsMetadataIntegrationTest {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
           statement.executeQuery("SELECT provider_name, provider_code, supported_services, authentication_methods " +
-          "FROM pg_catalog.cloud_providers " +
+          "FROM pg_catalog.\"CLOUD_PROVIDERS\" " +
           "ORDER BY provider_code");
 
       int providerCount = 0;
@@ -226,7 +226,7 @@ public class CloudOpsMetadataIntegrationTest {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
           statement.executeQuery("SELECT policy_name, policy_category, applicable_resources, compliance_level, enforcement_level " +
-          "FROM pg_catalog.ops_policies " +
+          "FROM pg_catalog.\"OPS_POLICIES\" " +
           "ORDER BY policy_category, policy_name");
 
       int policyCount = 0;
@@ -260,19 +260,16 @@ public class CloudOpsMetadataIntegrationTest {
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT t.table_name, COUNT(c.column_name) as column_count, " +
-          "       cr.resource_type, cr.has_security_fields " +
-          "FROM information_schema.tables t " +
-          "JOIN information_schema.columns c ON t.table_name = c.table_name " +
-          "JOIN pg_catalog.cloud_resources cr ON t.table_name = cr.table_name " +
-          "WHERE t.table_schema = 'public' " +
-          "GROUP BY t.table_name, cr.resource_type, cr.has_security_fields " +
-          "ORDER BY t.table_name");
+          statement.executeQuery("SELECT t.\"TABLE_NAME\", cr.resource_type, cr.has_security_fields, cr.column_count " +
+          "FROM information_schema.\"TABLES\" t " +
+          "JOIN pg_catalog.\"CLOUD_RESOURCES\" cr ON t.\"TABLE_NAME\" = cr.table_name " +
+          "WHERE t.\"TABLE_SCHEMA\" = 'public' " +
+          "ORDER BY t.\"TABLE_NAME\"");
 
       int joinCount = 0;
       while (resultSet.next()) {
         joinCount++;
-        String tableName = resultSet.getString("table_name");
+        String tableName = resultSet.getString("TABLE_NAME");
         int columnCount = resultSet.getInt("column_count");
         String resourceType = resultSet.getString("resource_type");
         boolean hasSecurityFields = resultSet.getBoolean("has_security_fields");
@@ -296,6 +293,7 @@ public class CloudOpsMetadataIntegrationTest {
 
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
 
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
@@ -303,7 +301,7 @@ public class CloudOpsMetadataIntegrationTest {
 
     CloudOpsSchemaFactory factory = new CloudOpsSchemaFactory();
     rootSchema.add(
-        "cloud_ops", factory.create(rootSchema, "cloud_ops",
+        "public", factory.create(rootSchema, "public",
         configToOperands(config)));
 
     return connection;
@@ -375,7 +373,7 @@ public class CloudOpsMetadataIntegrationTest {
           testProperties.getProperty("aws.roleArn"));
     }
 
-    return new CloudOpsConfig(null, azure, gcp, aws, true, 15);
+    return new CloudOpsConfig(null, azure, gcp, aws, true, 15, false);
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {

@@ -59,7 +59,8 @@ public class CloudOpsFilterHandler {
       SqlKind.IN,
       SqlKind.LIKE,
       SqlKind.IS_NULL,
-      SqlKind.IS_NOT_NULL
+      SqlKind.IS_NOT_NULL,
+      SqlKind.OR
   );
 
   // Field name mappings for different cloud providers
@@ -167,9 +168,10 @@ public class CloudOpsFilterHandler {
         .filter(filter -> filter.operation == SqlKind.EQUALS || filter.operation == SqlKind.IN)
         .flatMap(filter -> {
           if (filter.operation == SqlKind.EQUALS) {
-            return List.of(filter.value.toString()).stream();
+            String stringValue = extractStringValue(filter.value);
+            return List.of(stringValue).stream();
           } else if (filter.operation == SqlKind.IN && filter.values != null) {
-            return filter.values.stream().map(Object::toString);
+            return filter.values.stream().map(this::extractStringValue);
           }
           return List.<String>of().stream();
         })
@@ -189,9 +191,10 @@ public class CloudOpsFilterHandler {
         .filter(filter -> filter.operation == SqlKind.EQUALS || filter.operation == SqlKind.IN)
         .flatMap(filter -> {
           if (filter.operation == SqlKind.EQUALS) {
-            return List.of(filter.value.toString()).stream();
+            String stringValue = extractStringValue(filter.value);
+            return List.of(stringValue).stream();
           } else if (filter.operation == SqlKind.IN && filter.values != null) {
-            return filter.values.stream().map(Object::toString);
+            return filter.values.stream().map(this::extractStringValue);
           }
           return List.<String>of().stream();
         })
@@ -263,7 +266,7 @@ public class CloudOpsFilterHandler {
     if (!regionFilters.isEmpty()) {
       FilterInfo regionFilter = regionFilters.get(0);
       if (regionFilter.operation == SqlKind.EQUALS) {
-        params.put("region", regionFilter.value.toString());
+        params.put("region", extractStringValue(regionFilter.value));
       }
     }
 
@@ -281,7 +284,7 @@ public class CloudOpsFilterHandler {
         String tagName = awsField.substring(5); // Remove "tags." prefix
         for (FilterInfo filter : filters) {
           if (filter.operation == SqlKind.EQUALS) {
-            params.put("tag:" + tagName, filter.value.toString());
+            params.put("tag:" + tagName, extractStringValue(filter.value));
           }
         }
       }
@@ -310,7 +313,7 @@ public class CloudOpsFilterHandler {
     if (!projectFilters.isEmpty()) {
       FilterInfo projectFilter = projectFilters.get(0);
       if (projectFilter.operation == SqlKind.EQUALS) {
-        params.put("projectId", projectFilter.value.toString());
+        params.put("projectId", extractStringValue(projectFilter.value));
       }
     }
 
@@ -319,7 +322,7 @@ public class CloudOpsFilterHandler {
     if (!regionFilters.isEmpty()) {
       FilterInfo regionFilter = regionFilters.get(0);
       if (regionFilter.operation == SqlKind.EQUALS) {
-        params.put("region", regionFilter.value.toString());
+        params.put("region", extractStringValue(regionFilter.value));
       }
     }
 
@@ -415,6 +418,17 @@ public class CloudOpsFilterHandler {
       return firstOperand instanceof RexInputRef;
     }
 
+    // For OR operations - check if both operands are pushable
+    if (kind == SqlKind.OR) {
+      if (call.getOperands().size() != 2) {
+        return false;
+      }
+      
+      // Both operands should be pushable filters
+      return isPushableFilter(call.getOperands().get(0)) && 
+             isPushableFilter(call.getOperands().get(1));
+    }
+
     return false;
   }
 
@@ -428,6 +442,14 @@ public class CloudOpsFilterHandler {
 
     RexCall call = (RexCall) filter;
     SqlKind kind = call.getKind();
+    
+    // Handle OR operations by recursively processing both operands
+    if (kind == SqlKind.OR) {
+      for (RexNode operand : call.getOperands()) {
+        extractFieldFilters(operand);
+      }
+      return;
+    }
     
     if (call.getOperands().isEmpty()) {
       return;
@@ -486,24 +508,24 @@ public class CloudOpsFilterHandler {
   private @Nullable String buildAzureKqlCondition(String kqlField, FilterInfo filter) {
     switch (filter.operation) {
       case EQUALS:
-        return kqlField + " == '" + filter.value + "'";
+        return kqlField + " == '" + extractStringValue(filter.value) + "'";
       case NOT_EQUALS:
-        return kqlField + " != '" + filter.value + "'";
+        return kqlField + " != '" + extractStringValue(filter.value) + "'";
       case GREATER_THAN:
-        return kqlField + " > " + filter.value;
+        return kqlField + " > " + extractStringValue(filter.value);
       case GREATER_THAN_OR_EQUAL:
-        return kqlField + " >= " + filter.value;
+        return kqlField + " >= " + extractStringValue(filter.value);
       case LESS_THAN:
-        return kqlField + " < " + filter.value;
+        return kqlField + " < " + extractStringValue(filter.value);
       case LESS_THAN_OR_EQUAL:
-        return kqlField + " <= " + filter.value;
+        return kqlField + " <= " + extractStringValue(filter.value);
       case LIKE:
-        String pattern = filter.value.toString().replace("%", "*");
+        String pattern = extractStringValue(filter.value).replace("%", "*");
         return kqlField + " contains '" + pattern.replace("*", "") + "'";
       case IN:
         if (filter.values != null && !filter.values.isEmpty()) {
           String valuesList = filter.values.stream()
-              .map(v -> "'" + v + "'")
+              .map(v -> "'" + extractStringValue(v) + "'")
               .collect(Collectors.joining(", "));
           return kqlField + " in (" + valuesList + ")";
         }
@@ -542,6 +564,16 @@ public class CloudOpsFilterHandler {
     }
 
     return Math.min(reduction, 0.9); // Cap at 90% reduction
+  }
+
+  /**
+   * Extract string value from RexLiteral, handling NlsString encoding.
+   */
+  private String extractStringValue(Object value) {
+    if (value instanceof org.apache.calcite.util.NlsString) {
+      return ((org.apache.calcite.util.NlsString) value).getValue();
+    }
+    return value != null ? value.toString() : "";
   }
 
   /**

@@ -201,6 +201,7 @@ public class CloudOpsIntegrationTest {
 
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
 
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
@@ -210,6 +211,9 @@ public class CloudOpsIntegrationTest {
     rootSchema.add(
         "cloud_ops", factory.create(rootSchema, "cloud_ops",
         configToOperands(config)));
+
+    // Set cloud_ops as the default schema
+    calciteConnection.setSchema("cloud_ops");
 
     return connection;
   }
@@ -280,7 +284,7 @@ public class CloudOpsIntegrationTest {
           testProperties.getProperty("aws.roleArn"));
     }
 
-    return new CloudOpsConfig(null, azure, gcp, aws, true, 15);
+    return new CloudOpsConfig(null, azure, gcp, aws, true, 15, false);
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {
