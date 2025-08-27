@@ -68,7 +68,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SuppressWarnings("deprecation")
 @Tag("unit")
 public class RefreshableTableTest extends BaseFileTest {
-  
+
   /**
    * Checks if refresh functionality is supported by the current engine.
    * Refresh only works with PARQUET and DUCKDB engines.
@@ -121,22 +121,17 @@ public class RefreshableTableTest extends BaseFileTest {
     assertNull(RefreshInterval.getEffectiveInterval(null, null));
   }
 
-  @Test 
+  @Test
   public void testRefreshableJsonTable() throws Exception {
     assumeFalse(!isRefreshSupported(), "Refresh functionality only supported by PARQUET and DUCKDB engines");
     // Create schema with refresh interval
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "2 seconds");
-    String engine = getExecutionEngine();
-    if (engine != null && !engine.isEmpty()) {
-      operand.put("executionEngine", engine.toLowerCase());
-    }
+    operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
 
     Properties connectionProps = new Properties();
-    connectionProps.setProperty("lex", "ORACLE");
-    connectionProps.setProperty("unquotedCasing", "TO_LOWER");
-    connectionProps.setProperty("caseSensitive", "false");
+    applyEngineDefaults(connectionProps);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
@@ -165,8 +160,8 @@ public class RefreshableTableTest extends BaseFileTest {
       // Update file content and ensure timestamp changes
       Thread.sleep(1100); // Ensure file timestamp changes (1+ second)
       writeJsonData("[{\"id\": 2, \"name\": \"Bob\"}]");
-      
-      
+
+
       // Force a newer timestamp to ensure filesystem detects the change
       testFile.setLastModified(System.currentTimeMillis());
 
@@ -194,10 +189,7 @@ public class RefreshableTableTest extends BaseFileTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "10 minutes");
-    String engine = getExecutionEngine();
-    if (engine != null && !engine.isEmpty()) {
-      operand.put("executionEngine", engine.toLowerCase());
-    }
+    operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
 
     // Add table with override
     Map<String, Object> tableConfig = new HashMap<>();
@@ -207,7 +199,10 @@ public class RefreshableTableTest extends BaseFileTest {
 
     operand.put("tables", java.util.Arrays.asList(tableConfig));
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -228,8 +223,12 @@ public class RefreshableTableTest extends BaseFileTest {
     // Create schema without refresh interval
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
+    operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -257,15 +256,10 @@ public class RefreshableTableTest extends BaseFileTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
-    String engine = getExecutionEngine();
-    if (engine != null && !engine.isEmpty()) {
-      operand.put("executionEngine", engine.toLowerCase());
-    }
+    operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
 
     Properties connectionProps = new Properties();
-    connectionProps.setProperty("lex", "ORACLE");
-    connectionProps.setProperty("unquotedCasing", "TO_LOWER");
-    connectionProps.setProperty("caseSensitive", "false");
+    applyEngineDefaults(connectionProps);
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
@@ -281,7 +275,7 @@ public class RefreshableTableTest extends BaseFileTest {
         ResultSet rs1 = stmt.executeQuery("SELECT COUNT(*) FROM test.data1");
         assertTrue(rs1.next(), "Should be able to query data1");
         rs1.close();
-        
+
         // Query data2 to ensure it exists and is converted if needed
         ResultSet rs2 = stmt.executeQuery("SELECT COUNT(*) FROM test.data2");
         assertTrue(rs2.next(), "Should be able to query data2");
@@ -303,7 +297,7 @@ public class RefreshableTableTest extends BaseFileTest {
           assertFalse(true, "Table 'data3' should NOT exist (directory scan doesn't add new files)");
         } catch (Exception e) {
           // Expected - table doesn't exist
-          assertTrue(e.getMessage().contains("data3") || e.getMessage().contains("DATA3") || 
+          assertTrue(e.getMessage().contains("data3") || e.getMessage().contains("DATA3") ||
                     e.getMessage().contains("not found") || e.getMessage().contains("Object"),
                     "Expected table not found error, got: " + e.getMessage());
         }
@@ -357,10 +351,7 @@ public class RefreshableTableTest extends BaseFileTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
-    String engine = getExecutionEngine();
-    if (engine != null && !engine.isEmpty()) {
-      operand.put("executionEngine", engine.toLowerCase());
-    } // Use parquet engine
+    operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
 
     // Configure partitioned table
     Map<String, Object> partitionConfig = new HashMap<>();
@@ -378,7 +369,10 @@ public class RefreshableTableTest extends BaseFileTest {
 
     operand.put("partitionedTables", Arrays.asList(partitionConfig));
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -528,7 +522,7 @@ public class RefreshableTableTest extends BaseFileTest {
     // Create directory structure for custom partition naming: sales_2023_01.parquet
     File salesDir = new File(tempDir.toFile(), "sales_data");
     salesDir.mkdirs();
-    
+
     System.out.println("[DEBUG] testCustomRegexPartitions - tempDir: " + tempDir.toString());
     System.out.println("[DEBUG] testCustomRegexPartitions - salesDir: " + salesDir.getAbsolutePath());
     System.out.println("[DEBUG] testCustomRegexPartitions - salesDir exists: " + salesDir.exists());
@@ -548,10 +542,10 @@ public class RefreshableTableTest extends BaseFileTest {
         createRecord(avroSchema, 1, 100.0, "Widget"));
     createParquetFile(file2, avroSchema,
         createRecord(avroSchema, 2, 200.0, "Gadget"));
-    
+
     System.out.println("[DEBUG] Created parquet file 1: " + file1.getAbsolutePath() + ", exists: " + file1.exists() + ", size: " + file1.length());
     System.out.println("[DEBUG] Created parquet file 2: " + file2.getAbsolutePath() + ", exists: " + file2.exists() + ", size: " + file2.length());
-    
+
     // List all files in salesDir
     System.out.println("[DEBUG] Files in salesDir:");
     File[] files = salesDir.listFiles();
@@ -565,11 +559,7 @@ public class RefreshableTableTest extends BaseFileTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
-    String engine = getExecutionEngine();
-    System.out.println("[DEBUG] Engine: " + engine);
-    if (engine != null && !engine.isEmpty()) {
-      operand.put("executionEngine", engine.toLowerCase());
-    }
+    operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
 
     // Configure custom regex partitioned table
     Map<String, Object> partitionConfig = new HashMap<>();
@@ -587,14 +577,17 @@ public class RefreshableTableTest extends BaseFileTest {
     partitionConfig.put("partitions", partitionSpec);
 
     operand.put("partitionedTables", Arrays.asList(partitionConfig));
-    
+
     System.out.println("[DEBUG] Operand configuration:");
     System.out.println("  - directory: " + operand.get("directory"));
     System.out.println("  - refreshInterval: " + operand.get("refreshInterval"));
     System.out.println("  - executionEngine: " + operand.get("executionEngine"));
     System.out.println("  - partitionedTables: " + operand.get("partitionedTables"));
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -602,7 +595,7 @@ public class RefreshableTableTest extends BaseFileTest {
       SchemaPlus fileSchema =
           rootSchema.add("CUSTOM", FileSchemaFactory.INSTANCE.create(rootSchema, "CUSTOM", operand));
       System.out.println("[DEBUG] FileSchema created: " + fileSchema);
-      
+
       // List tables in the schema - for DuckDB, just try to query the expected table
       System.out.println("[DEBUG] Checking if sales_custom table exists in CUSTOM schema:");
       try (Statement stmt = connection.createStatement()) {

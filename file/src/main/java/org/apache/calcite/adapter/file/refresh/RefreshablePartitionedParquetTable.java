@@ -73,6 +73,17 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
     refreshTableDefinition();
   }
 
+  /**
+   * Get the list of parquet file paths for this partitioned table.
+   * Used by conversion metadata to register with DuckDB.
+   */
+  public List<String> getFilePaths() {
+    if (currentTable != null) {
+      return currentTable.getFilePaths();
+    }
+    return lastDiscoveredFiles != null ? lastDiscoveredFiles : java.util.Collections.emptyList();
+  }
+
   @Override public @Nullable Duration getRefreshInterval() {
     return refreshInterval;
   }

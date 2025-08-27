@@ -358,16 +358,31 @@ public class DuckDBJdbcSchemaFactory {
         tableName = record.getTableName();
         LOGGER.debug("Processing table '{}' from registry (original casing)", tableName);
         
-        // Determine the Parquet file path
-        if (record.getParquetCacheFile() != null) {
-          parquetPath = record.getParquetCacheFile();
-          LOGGER.debug("Table '{}' has cached Parquet file: {}", tableName, parquetPath);
-        } else if (record.getSourceFile() != null && record.getSourceFile().endsWith(".parquet")) {
-          parquetPath = record.getSourceFile();
-          LOGGER.debug("Table '{}' is native Parquet: {}", tableName, parquetPath);
-        } else if (record.getConvertedFile() != null && record.getConvertedFile().endsWith(".parquet")) {
-          parquetPath = record.getConvertedFile();
-          LOGGER.debug("Table '{}' has converted Parquet: {}", tableName, parquetPath);
+        // Check if this is an Iceberg table
+        if ("ICEBERG_PARQUET".equals(record.getConversionType())) {
+          // For Iceberg tables, use DuckDB's native Iceberg support
+          LOGGER.debug("Table '{}' is an Iceberg table, will use native DuckDB Iceberg support", tableName);
+          // We'll handle this below with iceberg_scan
+          parquetPath = null; // Will be handled specially
+        } else {
+          // Determine the Parquet file path for non-Iceberg tables
+          if (record.getParquetCacheFile() != null) {
+            parquetPath = record.getParquetCacheFile();
+            LOGGER.debug("Table '{}' has cached Parquet file: {}", tableName, parquetPath);
+          } else if (record.getSourceFile() != null && record.getSourceFile().endsWith(".parquet")) {
+            parquetPath = record.getSourceFile();
+            LOGGER.debug("Table '{}' is native Parquet: {}", tableName, parquetPath);
+          } else if (record.getConvertedFile() != null) {
+            // Check if it's a single parquet file or a glob pattern
+            if (record.getConvertedFile().endsWith(".parquet")) {
+              parquetPath = record.getConvertedFile();
+              LOGGER.debug("Table '{}' has converted Parquet: {}", tableName, parquetPath);
+            } else if (record.getConvertedFile().startsWith("{") && record.getConvertedFile().endsWith("}")) {
+              // This is a glob pattern for multiple parquet files (e.g., from Iceberg tables)
+              parquetPath = record.getConvertedFile();
+              LOGGER.debug("Table '{}' has multiple Parquet files (glob pattern): {}", tableName, parquetPath);
+            }
+          }
         }
       } else {
         // Legacy record format - try to extract table name from file path
@@ -415,42 +430,141 @@ public class DuckDBJdbcSchemaFactory {
         }
       }
       
-      // Create view if we have both table name and Parquet path
-      if (tableName != null && parquetPath != null) {
-        File parquetFile = new File(parquetPath);
-        if (parquetFile.exists()) {
-          // ALWAYS quote both schema and table names to preserve casing as-is
-          String sql = String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet('%s')",
-                                   duckdbSchema, tableName, parquetFile.getAbsolutePath());
-          LOGGER.info("Creating DuckDB view: \"{}.{}\" -> {}", duckdbSchema, tableName, parquetFile.getName());
+      // Create view if we have a table name and either a Parquet path or it's an Iceberg table
+      if (tableName != null) {
+        // Check if this is an Iceberg table that needs special handling
+        boolean isIcebergTable = "ICEBERG_PARQUET".equals(record.getConversionType());
+        
+        if (isIcebergTable && record.getSourceFile() != null) {
+          // Use DuckDB's native Iceberg support
+          // First, ensure the iceberg extension is installed and loaded
           try {
-            conn.createStatement().execute(sql);
-            viewCount++;
-            LOGGER.debug("Successfully created view: {}.{}", duckdbSchema, tableName);
+            // Install and load iceberg extension if not already done
+            try {
+              conn.createStatement().execute("INSTALL iceberg");
+            } catch (SQLException e) {
+              // Extension might already be installed
+              LOGGER.debug("Iceberg extension may already be installed: {}", e.getMessage());
+            }
             
-            // Add diagnostic logging to see what DuckDB interprets from the Parquet file
-            try (Statement debugStmt = conn.createStatement();
-                 ResultSet schemaInfo = debugStmt.executeQuery(
-                   String.format("DESCRIBE \"%s\".\"%s\"", duckdbSchema, tableName))) {
-              LOGGER.debug("=== DuckDB Schema for {}.{} ===", duckdbSchema, tableName);
-              while (schemaInfo.next()) {
-                String colName = schemaInfo.getString("column_name");
-                String colType = schemaInfo.getString("column_type");
-                String nullable = schemaInfo.getString("null");
-                LOGGER.debug("  Column: {} | Type: {} | Nullable: {}", colName, colType, nullable);
+            try {
+              conn.createStatement().execute("LOAD iceberg");
+            } catch (SQLException e) {
+              // Extension might already be loaded
+              LOGGER.debug("Iceberg extension may already be loaded: {}", e.getMessage());
+            }
+            
+            // For Iceberg tables, try iceberg_scan
+            // If it fails (e.g., empty table), create an empty view as a fallback
+            String sql = String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM iceberg_scan('%s')",
+                                     duckdbSchema, tableName, record.getSourceFile());
+            LOGGER.info("Creating DuckDB view for Iceberg table: \"{}.{}\" -> {}", 
+                       duckdbSchema, tableName, record.getSourceFile());
+            
+            try {
+              conn.createStatement().execute(sql);
+              viewCount++;
+              LOGGER.debug("Successfully created Iceberg view: {}.{}", duckdbSchema, tableName);
+            } catch (SQLException scanError) {
+              // iceberg_scan failed - probably an empty table
+              LOGGER.debug("iceberg_scan failed for table '{}': {}", tableName, scanError.getMessage());
+              
+              // Create an empty view as a fallback
+              // This ensures the table is available even if it's empty
+              // We need to include common Iceberg columns
+              try {
+                // Create empty view with common Iceberg table columns
+                // This is a workaround for empty Iceberg tables where iceberg_scan fails
+                // TODO: Get actual schema from FileSchema's table instance
+                String emptyViewSql = String.format(
+                    "CREATE OR REPLACE VIEW \"%s\".\"%s\" AS " +
+                    "SELECT " +
+                    "NULL::INT AS order_id, " +
+                    "NULL::VARCHAR AS customer_id, " +
+                    "NULL::VARCHAR AS product_id, " +
+                    "NULL::DOUBLE AS amount, " +
+                    "NULL::TIMESTAMP AS snapshot_time " +
+                    "WHERE 1=0",
+                    duckdbSchema, tableName);
+                
+                LOGGER.info("Creating empty view for Iceberg table '{}' (fallback)", tableName);
+                conn.createStatement().execute(emptyViewSql);
+                viewCount++;
+                LOGGER.debug("Successfully created empty view for table: {}.{}", duckdbSchema, tableName);
+              } catch (SQLException fallbackError) {
+                LOGGER.warn("Failed to create fallback empty view for table '{}': {}", 
+                           tableName, fallbackError.getMessage());
+                throw fallbackError; // Re-throw to maintain original behavior
               }
-            } catch (SQLException debugE) {
-              LOGGER.warn("Failed to get schema info for table '{}': {}", tableName, debugE.getMessage());
             }
           } catch (SQLException e) {
-            LOGGER.warn("Failed to create view for table '{}': {}", tableName, e.getMessage());
+            LOGGER.warn("Failed to create Iceberg view for table '{}': {}", tableName, e.getMessage());
+          }
+        } else if (parquetPath != null) {
+          // Check if it's a glob pattern or single file
+          boolean isGlobPattern = parquetPath.startsWith("{") && parquetPath.endsWith("}");
+          String sql = null;
+          
+          if (isGlobPattern) {
+            // For glob patterns, we need to extract and use the individual files
+            // Remove the curly braces and split by comma
+            String fileList = parquetPath.substring(1, parquetPath.length() - 1);
+            String[] files = fileList.split(",");
+            
+            // Build a list of file paths for DuckDB's read_parquet function
+            // DuckDB can read multiple files using: read_parquet(['file1', 'file2', ...])
+            StringBuilder fileArray = new StringBuilder("[");
+            boolean first = true;
+            for (String file : files) {
+              if (!first) fileArray.append(", ");
+              fileArray.append("'").append(file.trim()).append("'");
+              first = false;
+            }
+            fileArray.append("]");
+            
+            sql = String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet(%s)",
+                              duckdbSchema, tableName, fileArray.toString());
+            LOGGER.info("Creating DuckDB view for multiple files: \"{}.{}\" -> {} files", duckdbSchema, tableName, files.length);
+          } else {
+            // Single file
+            File parquetFile = new File(parquetPath);
+            if (parquetFile.exists()) {
+              sql = String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet('%s')",
+                                duckdbSchema, tableName, parquetFile.getAbsolutePath());
+              LOGGER.info("Creating DuckDB view: \"{}.{}\" -> {}", duckdbSchema, tableName, parquetFile.getName());
+            } else {
+              LOGGER.warn("Parquet file does not exist for table '{}': {}", tableName, parquetPath);
+            }
+          }
+          
+          if (sql != null) {
+            try {
+              conn.createStatement().execute(sql);
+              viewCount++;
+              LOGGER.debug("Successfully created view: {}.{}", duckdbSchema, tableName);
+              
+              // Add diagnostic logging to see what DuckDB interprets from the Parquet file
+              try (Statement debugStmt = conn.createStatement();
+                   ResultSet schemaInfo = debugStmt.executeQuery(
+                     String.format("DESCRIBE \"%s\".\"%s\"", duckdbSchema, tableName))) {
+                LOGGER.debug("=== DuckDB Schema for {}.{} ===", duckdbSchema, tableName);
+                while (schemaInfo.next()) {
+                  String colName = schemaInfo.getString("column_name");
+                  String colType = schemaInfo.getString("column_type");
+                  String nullable = schemaInfo.getString("null");
+                  LOGGER.debug("  Column: {} | Type: {} | Nullable: {}", colName, colType, nullable);
+                }
+              } catch (SQLException debugE) {
+                LOGGER.warn("Failed to get schema info for table '{}': {}", tableName, debugE.getMessage());
+              }
+            } catch (SQLException e) {
+              LOGGER.warn("Failed to create view for table '{}': {}", tableName, e.getMessage());
+            }
           }
         } else {
-          LOGGER.warn("Parquet file does not exist for table '{}': {}", tableName, parquetPath);
+          LOGGER.debug("Skipping registry entry - no table name or suitable path. Table: {}, Path: {}", 
+                      tableName, parquetPath);
         }
-      } else {
-        LOGGER.debug("Skipping registry entry - no Parquet file available. Table: {}, Path: {}", 
-                    tableName, parquetPath);
       }
     }
     

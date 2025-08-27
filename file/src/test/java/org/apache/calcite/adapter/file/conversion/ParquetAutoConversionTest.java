@@ -37,6 +37,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,19 +55,19 @@ public class ParquetAutoConversionTest {
   @BeforeEach
   public void setUp() throws Exception {
     // Create unique temp directory for this test
-    tempDir = new File(System.getProperty("java.io.tmpdir"), 
+    tempDir = new File(System.getProperty("java.io.tmpdir"),
                        "parquet_conv_test_" + System.nanoTime());
     tempDir.mkdirs();
-    
+
     // Check if we should skip tests based on the current execution engine
     String currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
     shouldSkipTests = "LINQ4J".equals(currentEngine) || "ARROW".equals(currentEngine);
-    
+
     if (shouldSkipTests) {
       System.out.println("Skipping ParquetAutoConversionTest - not relevant for " + currentEngine + " engine");
       return;
     }
-    
+
     // Clear any static caches that might interfere with test isolation
     Sources.clearFileCache();
     // Force garbage collection to release any file handles and clear caches
@@ -81,13 +82,13 @@ public class ParquetAutoConversionTest {
     Sources.clearFileCache();
     System.gc();
     Thread.sleep(100);
-    
+
     // Clean up temp directory
     if (tempDir != null && tempDir.exists()) {
       deleteRecursively(tempDir);
     }
   }
-  
+
   private void deleteRecursively(File file) {
     if (file.isDirectory()) {
       File[] children = file.listFiles();
@@ -100,7 +101,7 @@ public class ParquetAutoConversionTest {
     file.delete();
   }
 
-  @Test 
+  @Test
   public void testAutoConversionToParquet() throws Exception {
     String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (currentEngine == null) {
@@ -141,7 +142,12 @@ public class ParquetAutoConversionTest {
     File cacheDir = new File(uniqueTempDir, "test_cache_auto");
     assertFalse(cacheDir.exists(), "Cache directory should not exist initially");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    connectionProps.setProperty("lex", "ORACLE");
+    connectionProps.setProperty("unquotedCasing", "TO_LOWER");
+    connectionProps.setProperty("caseSensitive", "false");
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -151,6 +157,11 @@ public class ParquetAutoConversionTest {
       operand.put("directory", uniqueTempDir.getAbsolutePath());
       // Use unique cache directory for test isolation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
+      operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      String engine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+      if (engine != null && !engine.isEmpty()) {
+        operand.put("executionEngine", engine.toLowerCase());
+      }
 
       System.out.println("\n1. Creating schema with PARQUET execution engine");
       SchemaPlus fileSchema =
@@ -227,7 +238,7 @@ public class ParquetAutoConversionTest {
   }
 
 
-  @Test 
+  @Test
   public void testCacheInvalidation() throws Exception {
     String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (currentEngine == null) {
@@ -254,7 +265,12 @@ public class ParquetAutoConversionTest {
     }
 
     // First query - should create cache
-    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    connectionProps.setProperty("lex", "ORACLE");
+    connectionProps.setProperty("unquotedCasing", "TO_LOWER");
+    connectionProps.setProperty("caseSensitive", "false");
+
+    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConn1 = conn1.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConn1.getRootSchema();
@@ -262,6 +278,11 @@ public class ParquetAutoConversionTest {
       operand.put("directory", uniqueTempDir.getAbsolutePath());
       // Use unique cache directory for test isolation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
+      operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      String engine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+      if (engine != null && !engine.isEmpty()) {
+        operand.put("executionEngine", engine.toLowerCase());
+      }
 
       rootSchema.add("INVENTORY1", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY1", operand));
 
@@ -299,7 +320,7 @@ public class ParquetAutoConversionTest {
     Thread.sleep(100);
 
     // Second query with updated file - should regenerate cache
-    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConn2 = conn2.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConn2.getRootSchema();
@@ -307,6 +328,11 @@ public class ParquetAutoConversionTest {
       operand.put("directory", uniqueTempDir.getAbsolutePath());
       // Use same cache directory to test invalidation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
+      operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      String engine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+      if (engine != null && !engine.isEmpty()) {
+        operand.put("executionEngine", engine.toLowerCase());
+      }
 
       rootSchema.add("INVENTORY1", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY1", operand));
 
@@ -332,12 +358,9 @@ public class ParquetAutoConversionTest {
     System.out.println("   ✓ Cache invalidation is working correctly!");
   }
 
-  @Test 
+  @Test
   public void testJsonFileCacheInvalidation() throws Exception {
     String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if (currentEngine == null) {
-      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
-    }
     if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
       throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);
     }

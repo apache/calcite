@@ -104,6 +104,14 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     }
   }
 
+  /**
+   * Get the list of parquet file paths for this partitioned table.
+   * Used by conversion metadata to register with DuckDB.
+   */
+  public List<String> getFilePaths() {
+    return filePaths;
+  }
+
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);

@@ -141,8 +141,7 @@ public class MaterializationTest {
     System.out.println("\n=== FILE ADAPTER MATERIALIZATIONS TEST ===");
 
     Properties info = new Properties();
-    info.setProperty("lex", "ORACLE");
-    info.setProperty("unquotedCasing", "TO_LOWER");
+    BaseFileTest.applyEngineDefaults(info);
     info.setProperty("quotedCasing", "UNCHANGED");
     info.setProperty("caseSensitive", "false");
 
@@ -187,6 +186,7 @@ public class MaterializationTest {
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", tempDir.toString());
       operand.put("executionEngine", "parquet");  // Use Parquet engine for MV storage
+      operand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
       operand.put("materializations", materializations);
 
       System.out.println("\n1. Creating file schema with materializations...");
@@ -310,8 +310,7 @@ public class MaterializationTest {
     System.out.println("\n=== PARQUET ENGINE MATERIALIZATION TEST ===");
 
     Properties info = new Properties();
-    info.setProperty("lex", "ORACLE");
-    info.setProperty("unquotedCasing", "TO_LOWER");
+    BaseFileTest.applyEngineDefaults(info);
     info.setProperty("quotedCasing", "UNCHANGED");
     info.setProperty("caseSensitive", "false");
 

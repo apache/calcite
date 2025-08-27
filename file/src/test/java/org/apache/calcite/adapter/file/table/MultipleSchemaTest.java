@@ -36,6 +36,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -43,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for multiple schema configurations with File adapter.
  */
 @Tag("unit")
-public class MultipleSchemaTest {
+public class MultipleSchemaTest extends org.apache.calcite.adapter.file.BaseFileTest {
 
   @TempDir
   File tempDir;
@@ -76,7 +77,10 @@ public class MultipleSchemaTest {
 
   @Test public void testDuplicateSchemaNames() throws Exception {
     // Try to create two schemas with the same name - this should now throw an exception
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -84,11 +88,20 @@ public class MultipleSchemaTest {
       // Add first DATA schema pointing to sales directory
       Map<String, Object> salesOperand = new HashMap<>();
       salesOperand.put("directory", salesDir.getAbsolutePath());
+      salesOperand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      String engine = getExecutionEngine();
+      if (engine != null && !engine.isEmpty()) {
+        salesOperand.put("executionEngine", engine.toLowerCase());
+      }
       rootSchema.add("data", FileSchemaFactory.INSTANCE.create(rootSchema, "data", salesOperand));
 
       // Try to add second DATA schema pointing to hr directory - this should throw an exception
       Map<String, Object> hrOperand = new HashMap<>();
       hrOperand.put("directory", hrDir.getAbsolutePath());
+      hrOperand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      if (engine != null && !engine.isEmpty()) {
+        hrOperand.put("executionEngine", engine.toLowerCase());
+      }
 
       // This should now throw an IllegalArgumentException due to duplicate schema name
       IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
@@ -111,7 +124,10 @@ public class MultipleSchemaTest {
 
   @Test public void testMultipleDistinctSchemas() throws Exception {
     // Test multiple schemas with different names
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+    Properties connectionProps = new Properties();
+    applyEngineDefaults(connectionProps);
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -119,11 +135,20 @@ public class MultipleSchemaTest {
       // Add SALES schema
       Map<String, Object> salesOperand = new HashMap<>();
       salesOperand.put("directory", salesDir.getAbsolutePath());
+      salesOperand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      String engine = getExecutionEngine();
+      if (engine != null && !engine.isEmpty()) {
+        salesOperand.put("executionEngine", engine.toLowerCase());
+      }
       rootSchema.add("sales", FileSchemaFactory.INSTANCE.create(rootSchema, "sales", salesOperand));
 
       // Add HR schema
       Map<String, Object> hrOperand = new HashMap<>();
       hrOperand.put("directory", hrDir.getAbsolutePath());
+      hrOperand.put("ephemeralCache", true);  // Use ephemeral cache for test isolation
+      if (engine != null && !engine.isEmpty()) {
+        hrOperand.put("executionEngine", engine.toLowerCase());
+      }
       rootSchema.add("hr", FileSchemaFactory.INSTANCE.create(rootSchema, "hr", hrOperand));
 
       // Test cross-schema query
