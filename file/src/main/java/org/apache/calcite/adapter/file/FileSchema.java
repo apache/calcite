@@ -676,8 +676,7 @@ public class FileSchema extends AbstractSchema {
     // Process local files if source directory exists
     if (sourceDir != null && sourceDir.exists() && sourceDir.isDirectory()) {
       convertLocalSupportedFilesToJson(sourceDir);
-      // After converting other formats to JSON, process JSON flattening if needed
-      processJsonFlattening(sourceDir);
+      // JSON flattening now happens earlier in getTableMap(), before explicit table processing
     }
 
     // Also process files from storage provider if configured
@@ -713,12 +712,8 @@ public class FileSchema extends AbstractSchema {
     
     // Initialize conversion metadata
     if (conversionMetadata == null) {
-      try {
-        conversionMetadata = new org.apache.calcite.adapter.file.metadata.ConversionMetadata(baseDirectory);
-      } catch (Exception e) {
-        LOGGER.error("Failed to initialize conversion metadata for JSON flattening: {}", e.getMessage());
-        return;
-      }
+      LOGGER.warn("ConversionMetadata is null - cannot perform JSON flattening");
+      return;
     }
     
     // Find JSON files that need flattening
@@ -837,15 +832,16 @@ public class FileSchema extends AbstractSchema {
       JsonScannableTable jsonTable = new JsonScannableTable(source, options, columnNameCasing);
       
       // Get the flattened data
-      org.apache.calcite.adapter.java.JavaTypeFactory typeFactory = 
-          new org.apache.calcite.adapter.java.JavaTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
+      org.apache.calcite.jdbc.JavaTypeFactoryImpl typeFactory = 
+          new org.apache.calcite.jdbc.JavaTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
       List<Object> flattenedData = jsonTable.getDataList(typeFactory);
       org.apache.calcite.rel.type.RelDataType rowType = jsonTable.getRowType(typeFactory);
       
       // Create the flattened JSON filename
+      // Use the original filename so it replaces the original file in the conversion pipeline
       String originalName = originalFile.getName();
       String baseName = originalName.replaceAll("\\.(json|json\\.gz)$", "");
-      String flattenedFileName = baseName + "_flattened.json";
+      String flattenedFileName = originalName; // Use same name to replace the original
       File flattenedFile = new File(conversionDir, flattenedFileName);
       
       // Convert the flattened data back to JSON format
@@ -862,7 +858,7 @@ public class FileSchema extends AbstractSchema {
       com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
       mapper.writerWithDefaultPrettyPrinter().writeValue(flattenedFile, jsonArray);
       
-      // Register the conversion in metadata
+      // Update the existing conversion record to point to the flattened file
       // For explicit table definitions, preserve the original table name
       String tableName = getTableNameForFile(originalFile);
       if (tableName == null) {
@@ -870,27 +866,21 @@ public class FileSchema extends AbstractSchema {
         tableName = applyCasing(baseName, tableNameCasing);
       }
       
-      org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record = 
-          new org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord();
-      record.tableName = tableName;
-      record.originalFile = originalFile.getAbsolutePath();
-      record.convertedFile = flattenedFile.getAbsolutePath();
-      record.conversionType = "JSON_FLATTEN";
-      record.sourceFile = originalFile.getAbsolutePath();
-      record.sourceType = "json";
-      
-      conversionMetadata.recordConversion(originalFile.getAbsolutePath(), record);
+      // Write the conversion record now that flattening is complete
+      // This creates ONE record accessible by TWO keys (tableName and convertedFile path)
+      conversionMetadata.recordConversionWithTableName(tableName, originalFile, flattenedFile, "JSON_FLATTEN");
+      LOGGER.info("Recorded flattened JSON conversion: table '{}', sourceFile='{}', convertedFile='{}'", 
+          tableName, originalFile.getName(), flattenedFile.getName());
       
       LOGGER.info("Created flattened JSON file: {} -> {}", originalFile.getName(), flattenedFile.getName());
       
       // Log the conversion metadata state after flattening
       LOGGER.info("=== CONVERSION METADATA AFTER FLATTENING ===");
-      LOGGER.info("Conversion record for {}: sourceFile={}, convertedFile={}, parquetCacheFile={}", 
-          originalFile.getAbsolutePath(), record.sourceFile, record.convertedFile, record.getParquetCacheFile());
+      LOGGER.info("Recorded flattened conversion for table '{}': originalFile={}, flattenedFile={}", 
+          tableName, originalFile.getName(), flattenedFile.getName());
       
       // Also log the full conversions.json content
       try {
-        conversionMetadata.saveMetadata();
         File conversionsFile = new File(baseDirectory, ".conversions.json");
         if (conversionsFile.exists()) {
           LOGGER.info("Contents of .conversions.json after flattening:");
@@ -967,16 +957,15 @@ public class FileSchema extends AbstractSchema {
     Set<String> alreadyProcessedFiles = new HashSet<>();
     if (conversionMetadata != null) {
       Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
-      LOGGER.debug("Before bulk conversion - examining conversion records:");
+      LOGGER.info("=== FILES TO EXCLUDE FROM BULK CONVERSION ===");
       for (Map.Entry<String, ConversionMetadata.ConversionRecord> entry : allRecords.entrySet()) {
         ConversionMetadata.ConversionRecord record = entry.getValue();
-        LOGGER.debug("  Table '{}': sourceFile='{}', convertedFile='{}', conversionType='{}'", 
-            record.tableName, record.sourceFile, record.convertedFile, record.conversionType);
         if (record.sourceFile != null) {
           alreadyProcessedFiles.add(new File(record.sourceFile).getAbsolutePath());
+          LOGGER.info("  Excluding: {} (from table '{}')", record.sourceFile, record.tableName);
         }
       }
-      LOGGER.debug("Found {} files already processed via tableDef", alreadyProcessedFiles.size());
+      LOGGER.info("Total files to exclude: {}", alreadyProcessedFiles.size());
     }
 
     // Convert each file using FileConversionManager
@@ -989,8 +978,9 @@ public class FileSchema extends AbstractSchema {
       }
       
       // Skip files that have already been processed via tableDef
-      if (alreadyProcessedFiles.contains(file.getAbsolutePath())) {
-        LOGGER.debug("Skipping file {} - already processed via tableDef", file.getName());
+      String fileAbsPath = file.getAbsolutePath();
+      if (alreadyProcessedFiles.contains(fileAbsPath)) {
+        LOGGER.debug("EXCLUDING FROM BULK: {} - already processed via tableDef", fileAbsPath);
         continue;
       }
       
@@ -1024,17 +1014,21 @@ public class FileSchema extends AbstractSchema {
     
     // Log conversion metadata after bulk conversion
     if (conversionMetadata != null) {
-      LOGGER.info("=== CONVERSION METADATA AFTER BULK CONVERSION ===");
       Map<String, ConversionMetadata.ConversionRecord> allRecordsAfter = conversionMetadata.getAllConversions();
-      for (Map.Entry<String, ConversionMetadata.ConversionRecord> entry : allRecordsAfter.entrySet()) {
-        ConversionMetadata.ConversionRecord record = entry.getValue();
-        LOGGER.info("Table '{}': sourceFile='{}', convertedFile='{}', parquetCacheFile='{}', conversionType='{}'", 
-            record.tableName, record.sourceFile, record.convertedFile, record.getParquetCacheFile(), record.conversionType);
+      LOGGER.info("=== ALL CONVERSION RECORDS AFTER BULK CONVERSION ({} records) ===", allRecordsAfter.size());
+      for (ConversionMetadata.ConversionRecord record : allRecordsAfter.values()) {
+        LOGGER.info("  tableName: {}", record.tableName);
+        LOGGER.info("  sourceFile: {}", record.sourceFile);
+        LOGGER.info("  convertedFile: {}", record.convertedFile);
+        LOGGER.info("  conversionType: {}", record.conversionType);
+        LOGGER.info("  parquetCacheFile: {}", record.parquetCacheFile);
+        LOGGER.info("  tableType: {}", record.tableType);
+        LOGGER.info("  ---");
       }
+      LOGGER.info("=== END CONVERSION RECORDS AFTER BULK CONVERSION ===");
       
       // Also log the full conversions.json content after bulk conversion
       try {
-        conversionMetadata.saveMetadata();
         File conversionsFile = new File(baseDirectory, ".conversions.json");
         if (conversionsFile.exists()) {
           LOGGER.info("Contents of .conversions.json after bulk conversion:");
@@ -1382,6 +1376,27 @@ public class FileSchema extends AbstractSchema {
     for (Map<String, Object> tableDef : this.tables) {
       addTable(builder, tableDef);
     }
+    
+    // Process JSON flattening AFTER explicit table definitions but BEFORE bulk conversion
+    if (sourceDirectory != null && sourceDirectory.exists() && sourceDirectory.isDirectory()) {
+      processJsonFlattening(sourceDirectory);
+    }
+    
+    // Report ALL conversion.json records after tableDef processing and flattening
+    if (conversionMetadata != null) {
+      Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
+      LOGGER.info("=== ALL CONVERSION RECORDS AFTER TABLEDEF PROCESSING ({} records) ===", allRecords.size());
+      for (ConversionMetadata.ConversionRecord record : allRecords.values()) {
+        LOGGER.info("  tableName: {}", record.tableName);
+        LOGGER.info("  sourceFile: {}", record.sourceFile);
+        LOGGER.info("  convertedFile: {}", record.convertedFile);
+        LOGGER.info("  conversionType: {}", record.conversionType);
+        LOGGER.info("  parquetCacheFile: {}", record.parquetCacheFile);
+        LOGGER.info("  tableType: {}", record.tableType);
+        LOGGER.info("  ---");
+      }
+      LOGGER.info("=== END ALL CONVERSION RECORDS ===");
+    }
 
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
@@ -1409,6 +1424,24 @@ public class FileSchema extends AbstractSchema {
 
       // Build a map from table name to table; each file becomes a table.
       for (File file : files) {
+        // Skip files that were already processed during tableDef processing
+        boolean shouldSkip = false;
+        if (conversionMetadata != null) {
+          Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
+          for (ConversionMetadata.ConversionRecord record : allRecords.values()) {
+            if (record.sourceFile != null && 
+                new File(record.sourceFile).getAbsolutePath().equals(file.getAbsolutePath())) {
+              LOGGER.info("Skipping file {} - already processed as table '{}'", 
+                  file.getName(), record.tableName);
+              shouldSkip = true;
+              break;
+            }
+          }
+        }
+        if (shouldSkip) {
+          continue;
+        }
+        
         // Use DirectFileSource for PARQUET engine to bypass Sources cache, but handle gzip properly
         Source source;
         // Check if this is a StorageProviderFile
@@ -1434,6 +1467,9 @@ public class FileSchema extends AbstractSchema {
           sourceSansJson = sourceSansGz.trimOrNull(".yml");
         }
         if (sourceSansJson != null) {
+          LOGGER.info("=== PROCESSING JSON FILE IN BULK CONVERSION ===");
+          LOGGER.info("  JSON file: {}", source.path());
+          
           // For files in the conversions directory, use just the filename as the table name
           String rawName;
           if (baseDirectory != null && file.getAbsolutePath().startsWith(
@@ -1540,25 +1576,79 @@ public class FileSchema extends AbstractSchema {
                   }
                   
                   if (needsParquetCreation) {
-                    LOGGER.info("Creating Parquet cache for converted JSON file: table '{}', source '{}'", 
-                        tableName, source.path());
+                    // For JSON_FLATTEN conversions, use the converted (flattened) file as the source
+                    Source tableSource = source;
+                    if ("JSON_FLATTEN".equals(conversionRecord.conversionType) && 
+                        conversionRecord.convertedFile != null) {
+                      tableSource = Sources.of(new File(conversionRecord.convertedFile));
+                      LOGGER.info("Creating Parquet cache for flattened JSON: table '{}', using flattened file '{}'", 
+                          tableName, conversionRecord.convertedFile);
+                    } else {
+                      LOGGER.info("Creating Parquet cache for converted JSON file: table '{}', source '{}'", 
+                          tableName, source.path());
+                    }
                     
                     // Create the JSON table temporarily to convert it
+                    // No need to pass flatten options since we're reading from already-flattened file
                     Map<String, Object> options = null;
-                    if (this.flatten != null && this.flatten) {
+                    if (this.flatten != null && this.flatten && !"JSON_FLATTEN".equals(conversionRecord.conversionType)) {
                       options = new HashMap<>();
                       options.put("flatten", this.flatten);
                     }
-                    Table jsonTable = new JsonScannableTable(source, options, columnNameCasing);
+                    
+                    LOGGER.info("=== CREATING PARQUET FROM SOURCE FILE ===");
+                    LOGGER.info("  Source file for Parquet generation: {}", tableSource.path());
+                    LOGGER.info("  Table name: {}", tableName);
+                    LOGGER.info("  Conversion type: {}", conversionRecord != null ? conversionRecord.conversionType : "null");
+                    
+                    Table jsonTable = new JsonScannableTable(tableSource, options, columnNameCasing);
+                    
+                    // Log what the JsonScannableTable sees
+                    try {
+                      if ("JSON_FLATTEN".equals(conversionRecord.conversionType)) {
+                        LOGGER.info("=== JSONTABLE SCHEMA ===");
+                        org.apache.calcite.rel.type.RelDataType rowType = jsonTable.getRowType(null);
+                        for (org.apache.calcite.rel.type.RelDataTypeField field : rowType.getFieldList()) {
+                          LOGGER.info("  Field: {} (type: {})", field.getName(), field.getType());
+                        }
+                      }
+                    } catch (Exception e) {
+                      LOGGER.warn("Failed to get JsonTable schema: {}", e.getMessage());
+                    }
                     
                     // Convert to Parquet
                     File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory, 
                         engineConfig.getParquetCacheDirectory(), name);
-                    File createdParquetFile = ParquetConversionUtil.convertToParquet(source, tableName, 
+                    File createdParquetFile = ParquetConversionUtil.convertToParquet(tableSource, tableName, 
                         jsonTable, cacheDir, parentSchema, name, tableNameCasing);
                     
                     // Update the conversion record with the actual Parquet file path
                     conversionMetadata.updateRecordWithParquetFile(tableName, createdParquetFile);
+                    
+                    LOGGER.info("  Created Parquet file: {}", createdParquetFile.getName());
+                    LOGGER.info("  Source used for Parquet generation: {}", tableSource.path());
+                    
+                    // Read and report the keys from the first record of the JSON file
+                    try {
+                      if ("JSON_FLATTEN".equals(conversionRecord.conversionType)) {
+                        File jsonFile = new File(tableSource.path());
+                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(jsonFile);
+                        if (root.isArray() && root.size() > 0) {
+                          com.fasterxml.jackson.databind.JsonNode firstRecord = root.get(0);
+                          java.util.Iterator<String> keys = firstRecord.fieldNames();
+                          java.util.List<String> keyList = new java.util.ArrayList<>();
+                          while (keys.hasNext()) {
+                            keyList.add(keys.next());
+                          }
+                          LOGGER.info("=== FIRST RECORD KEYS FROM SOURCE JSON ===");
+                          LOGGER.info("  Source file: {}", tableSource.path());
+                          LOGGER.info("  Keys: {}", String.join(", ", keyList));
+                        }
+                      }
+                    } catch (Exception e) {
+                      LOGGER.warn("Failed to read JSON keys: {}", e.getMessage());
+                    }
                     
                     LOGGER.info("Successfully created Parquet cache for table '{}': {}", 
                         tableName, createdParquetFile.getAbsolutePath());
@@ -1640,17 +1730,11 @@ public class FileSchema extends AbstractSchema {
               .replace(File.separator, "_"))
               .replaceAll("_"), tableNameCasing);
           LOGGER.debug("Found Parquet file in directory scan: {} -> table: {}", source.path(), tableName);
-          try {
-            // Add Parquet file using appropriate table type based on execution engine
-            // DuckDB engine will be handled same as PARQUET for initial setup
-            // FileSchemaFactory will create the actual DuckDB JDBC adapter later
-            // Use standard Parquet table
-            Table table = new ParquetTranslatableTable(new java.io.File(source.path()), name);
-            builder.put(tableName, table);
-            recordTableMetadata(tableName, table, source, null);
-          } catch (Exception e) {
-            LOGGER.error("Failed to add Parquet table: {}", e.getMessage());
-          }
+          // Always try to create ParquetTranslatableTable - let it fail at query time if corrupted
+          // This is important for error handling tests that expect to query corrupted files
+          Table table = new ParquetTranslatableTable(new java.io.File(source.path()), name);
+          builder.put(tableName, table);
+          recordTableMetadata(tableName, table, source, null);
         }
         final Source sourceSansArrow = sourceSansGz.trimOrNull(".arrow");
         if (sourceSansArrow != null) {
@@ -2225,7 +2309,14 @@ public class FileSchema extends AbstractSchema {
         String finalTableName = getTableName(tableName, source.path(), tableNameCasing);
         LOGGER.debug("Created JSON table of type: {} for table '{}' -> registered as '{}'", jsonTable.getClass().getName(), tableName, finalTableName);
         builder.put(finalTableName, jsonTable);
-        recordTableMetadata(finalTableName, jsonTable, source, tableDef);
+        
+        // Skip recording metadata for tables with flatten=true - metadata will be written after flattening
+        boolean hasFlatten = tableDef != null && Boolean.TRUE.equals(tableDef.get("flatten"));
+        if (!hasFlatten) {
+          recordTableMetadata(finalTableName, jsonTable, source, tableDef);
+        } else {
+          LOGGER.debug("Skipping metadata recording for table '{}' with flatten=true - will be recorded after flattening", finalTableName);
+        }
         return true;
       case "csv":
         String csvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
