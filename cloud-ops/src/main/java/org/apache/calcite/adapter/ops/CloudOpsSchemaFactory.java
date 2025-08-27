@@ -71,13 +71,25 @@ public class CloudOpsSchemaFactory implements SchemaFactory {
         }
       }
 
+      // Extract cache configuration
+      Boolean cacheEnabled = getBooleanConfigValue(operand, "cache.enabled", "CLOUD_OPS_CACHE_ENABLED", true);
+      Integer cacheTtlMinutes = getIntegerConfigValue(operand, "cache.ttlMinutes", "CLOUD_OPS_CACHE_TTL_MINUTES", 5);
+      Boolean cacheDebugMode = getBooleanConfigValue(operand, "cache.debugMode", "CLOUD_OPS_CACHE_DEBUG_MODE", false);
+
+      // Extract providers configuration
+      String providersStr = getConfigValue(operand, "providers", "CLOUD_OPS_PROVIDERS");
+      List<String> providers = null;
+      if (providersStr != null) {
+        providers = parseList(providersStr);
+      }
+
       // Validate that at least one provider is configured
       if (azure == null && gcp == null && aws == null) {
         throw new IllegalArgumentException("At least one cloud provider must be configured");
       }
 
       final CloudOpsConfig config =
-          new CloudOpsConfig(null, azure, gcp, aws, true, 15, false);
+          new CloudOpsConfig(providers, azure, gcp, aws, cacheEnabled, cacheTtlMinutes, cacheDebugMode);
 
       // Create the main Cloud Governance schema
       CloudOpsSchema cloudGovernanceSchema = new CloudOpsSchema(config);
@@ -138,6 +150,33 @@ public class CloudOpsSchemaFactory implements SchemaFactory {
     }
 
     return null;
+  }
+
+  /**
+   * Gets a boolean configuration value from query parameters first, then falls back to environment variables.
+   */
+  private Boolean getBooleanConfigValue(Map<String, Object> operand, String paramKey, String envKey, Boolean defaultValue) {
+    String value = getConfigValue(operand, paramKey, envKey);
+    if (value != null) {
+      return Boolean.parseBoolean(value);
+    }
+    return defaultValue;
+  }
+
+  /**
+   * Gets an integer configuration value from query parameters first, then falls back to environment variables.
+   */
+  private Integer getIntegerConfigValue(Map<String, Object> operand, String paramKey, String envKey, Integer defaultValue) {
+    String value = getConfigValue(operand, paramKey, envKey);
+    if (value != null) {
+      try {
+        return Integer.parseInt(value);
+      } catch (NumberFormatException e) {
+        // Log warning and use default
+        System.err.println("Warning: Invalid integer value '" + value + "' for " + paramKey + ", using default: " + defaultValue);
+      }
+    }
+    return defaultValue;
   }
 
   private List<String> parseList(String value) {
