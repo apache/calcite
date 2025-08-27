@@ -56,18 +56,19 @@ public class CloudOpsPostgresMetadataSchema extends AbstractSchema {
 
   @Override protected Map<String, Table> getTableMap() {
     // Create a case-insensitive map for PostgreSQL catalog tables
+    // Table names should be UPPERCASE within pg_catalog schema
     Map<String, Table> caseInsensitiveMap = new CaseInsensitiveTableMap();
-    caseInsensitiveMap.put("pg_namespace", new PgNamespaceTable());
-    caseInsensitiveMap.put("pg_class", new PgClassTable());
-    caseInsensitiveMap.put("pg_attribute", new PgAttributeTable());
-    caseInsensitiveMap.put("pg_tables", new PgTablesTable());
-    caseInsensitiveMap.put("pg_type", new PgTypeTable());
-    caseInsensitiveMap.put("pg_database", new PgDatabaseTable());
-    caseInsensitiveMap.put("pg_views", new PgViewsTable());
-    // Cloud Governance-specific tables
-    caseInsensitiveMap.put("cloud_resources", new CloudResourcesTable());
-    caseInsensitiveMap.put("cloud_providers", new CloudProvidersTable());
-    caseInsensitiveMap.put("ops_policies", new GovernancePoliciesTable());
+    caseInsensitiveMap.put("PG_NAMESPACE", new PgNamespaceTable());
+    caseInsensitiveMap.put("PG_CLASS", new PgClassTable());
+    caseInsensitiveMap.put("PG_ATTRIBUTE", new PgAttributeTable());
+    caseInsensitiveMap.put("PG_TABLES", new PgTablesTable());
+    caseInsensitiveMap.put("PG_TYPE", new PgTypeTable());
+    caseInsensitiveMap.put("PG_DATABASE", new PgDatabaseTable());
+    caseInsensitiveMap.put("PG_VIEWS", new PgViewsTable());
+    // Cloud Governance-specific tables (also UPPERCASE)
+    caseInsensitiveMap.put("CLOUD_RESOURCES", new CloudResourcesTable());
+    caseInsensitiveMap.put("CLOUD_PROVIDERS", new CloudProvidersTable());
+    caseInsensitiveMap.put("OPS_POLICIES", new GovernancePoliciesTable());
     return caseInsensitiveMap;
   }
 
