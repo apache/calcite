@@ -2486,9 +2486,12 @@ public class FileSchema extends AbstractSchema {
         // FileSchemaFactory will create the actual DuckDB JDBC adapter later
         // Use standard Parquet table
         final Table parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()), name);
-        builder.put(
-            applyCasing(Util.first(tableName, source.path()),
-            tableNameCasing), parquetTable);
+        String parquetTableName = applyCasing(Util.first(tableName, source.path()), tableNameCasing);
+        builder.put(parquetTableName, parquetTable);
+        
+        // Record table metadata for comprehensive tracking (same as other table types)
+        recordTableMetadata(parquetTableName, parquetTable, source, tableDef);
+        
         return true;
       case "excel":
       case "xlsx":
@@ -2535,6 +2538,16 @@ public class FileSchema extends AbstractSchema {
 
         // Add metadata tables if this is an Iceberg table
         addIcebergMetadataTables(builder, icebergTableName, icebergTable);
+        
+        // Create conversion record for Iceberg table
+        if (conversionMetadata != null && icebergTable instanceof IcebergTable) {
+          LOGGER.info("Creating Iceberg conversion record for table: {}", icebergTableName);
+          createIcebergConversionRecord((IcebergTable) icebergTable, source, icebergTableName);
+        } else {
+          LOGGER.info("NOT creating Iceberg conversion record: conversionMetadata={}, isIcebergTable={}", 
+              conversionMetadata != null, icebergTable instanceof IcebergTable);
+        }
+        
         return true;
       default:
         throw new RuntimeException("Unsupported format override: " + forcedFormat
@@ -3177,7 +3190,13 @@ public class FileSchema extends AbstractSchema {
    * Process partitioned table configurations.
    */
   private void processPartitionedTables(ImmutableMap.Builder<String, Table> builder) {
+    LOGGER.info("=== PARTITIONED TABLE PROCESSING START ===");
+    LOGGER.info("partitionedTables: {}, baseDirectory: {}", 
+                partitionedTables != null ? partitionedTables.size() + " tables" : "null", baseDirectory);
+    
     if (partitionedTables == null || baseDirectory == null) {
+      LOGGER.warn("Early return from processPartitionedTables - partitionedTables: {}, baseDirectory: {}", 
+                  partitionedTables != null ? "present" : "null", baseDirectory != null ? "present" : "null");
       return;
     }
 
@@ -3258,6 +3277,32 @@ public class FileSchema extends AbstractSchema {
         }
         // Storage provider config explicitly defines table name - use as-is
         builder.put(config.getName(), table);
+        LOGGER.info("Added partitioned table '{}' to builder, matchingFiles.size: {}", config.getName(), matchingFiles.size());
+        
+        // Record table metadata for comprehensive tracking (same as other table types)
+        // Use the first file as representative source for partitioned tables
+        if (!matchingFiles.isEmpty()) {
+          String firstFile = matchingFiles.get(0);
+          LOGGER.info("Recording metadata for partitioned table '{}' using first file: {}", config.getName(), firstFile);
+          try {
+            Source partitionSource = Sources.of(firstFile);
+            LOGGER.info("Created Source for partitioned table '{}': {}", config.getName(), partitionSource);
+            
+            // Record the partitioned table in conversion metadata for DuckDB discovery
+            LOGGER.info("About to record partitioned table '{}' in conversion metadata, conversionMetadata: {}", 
+                        config.getName(), conversionMetadata != null ? "present" : "null");
+            if (conversionMetadata != null) {
+              conversionMetadata.recordTable(config.getName(), table, partitionSource, partTableConfig);
+              LOGGER.info("Successfully recorded partitioned table '{}' in conversion metadata", config.getName());
+            } else {
+              LOGGER.error("ConversionMetadata is null - cannot record partitioned table '{}'", config.getName());
+            }
+          } catch (Exception recordEx) {
+            LOGGER.error("Failed to record metadata for partitioned table '{}': {}", config.getName(), recordEx.getMessage(), recordEx);
+          }
+        } else {
+          LOGGER.warn("No matching files found for partitioned table '{}', skipping metadata recording", config.getName());
+        }
 
       } catch (Exception e) {
         LOGGER.error("Failed to process partitioned table: {}", e.getMessage());
@@ -3788,6 +3833,70 @@ public class FileSchema extends AbstractSchema {
     }
   }
 
+  /**
+   * Creates a conversion record for an Iceberg table, mapping the metadata file to its underlying Parquet file(s).
+   */
+  private void createIcebergConversionRecord(IcebergTable icebergTable, Source source, String tableName) {
+    try {
+      // Always create a conversion record for Iceberg tables, even if they're empty
+      // This allows DuckDB to create a view using iceberg_scan
+      ConversionMetadata.ConversionRecord record = new ConversionMetadata.ConversionRecord();
+      record.tableName = tableName;
+      record.tableType = "IcebergTable";
+      record.sourceFile = source.path();
+      record.originalFile = source.path();
+      record.conversionType = "ICEBERG_PARQUET";
+      record.timestamp = System.currentTimeMillis();
+      
+      // Get the underlying Iceberg table to check for data files
+      org.apache.iceberg.Table table = icebergTable.getIcebergTable();
+      org.apache.iceberg.Snapshot currentSnapshot = table.currentSnapshot();
+      
+      if (currentSnapshot != null) {
+        // Collect all data files from the Iceberg table
+        List<String> parquetFiles = new ArrayList<>();
+        try (org.apache.iceberg.io.CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks = 
+             table.newScan().planFiles()) {
+          
+          for (org.apache.iceberg.FileScanTask fileScanTask : fileScanTasks) {
+            org.apache.iceberg.DataFile dataFile = fileScanTask.file();
+            String parquetPath = dataFile.path().toString();
+            parquetFiles.add(parquetPath);
+          }
+        }
+        
+        if (!parquetFiles.isEmpty()) {
+          // For tables with data, store the parquet files (though DuckDB will use iceberg_scan)
+          if (parquetFiles.size() == 1) {
+            record.convertedFile = parquetFiles.get(0);
+          } else {
+            // Use glob-style pattern for multiple files
+            record.convertedFile = "{" + String.join(",", parquetFiles) + "}";
+          }
+          LOGGER.info("Iceberg table '{}' has {} data file(s)", tableName, parquetFiles.size());
+        } else {
+          // Empty table - DuckDB's iceberg_scan will handle this
+          LOGGER.info("Iceberg table '{}' is empty (no data files)", tableName);
+        }
+      } else {
+        LOGGER.info("Iceberg table '{}' has no current snapshot (empty table)", tableName);
+      }
+      
+      // Save the conversion record - DuckDB will use this to create an iceberg_scan view
+      File sourceFile = source.file();
+      if (sourceFile != null) {
+        LOGGER.info("Saving Iceberg conversion record: tableName={}, sourceFile={}, conversionType={}", 
+            record.tableName, record.sourceFile, record.conversionType);
+        conversionMetadata.recordConversion(sourceFile, record);
+        LOGGER.info("Successfully saved Iceberg conversion record for table: {}", tableName);
+      } else {
+        LOGGER.warn("Could not save Iceberg conversion record - source.file() is null");
+      }
+    } catch (Exception e) {
+      LOGGER.error("Failed to create Iceberg conversion record: {}", e.getMessage(), e);
+    }
+  }
+  
   /**
    * Adds Iceberg metadata tables for a given Iceberg table.
    */

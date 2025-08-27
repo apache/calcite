@@ -656,6 +656,40 @@ public class ConversionMetadata {
       }
     }
     
+    // Extract parquet file information from partitioned tables
+    if (table.getClass().getSimpleName().equals("RefreshablePartitionedParquetTable") ||
+        table.getClass().getSimpleName().equals("PartitionedParquetTable")) {
+      try {
+        // For partitioned tables, get the file paths to use as parquet cache files
+        // This allows DuckDB to discover the table structure and create views
+        java.lang.reflect.Method getFilePathsMethod = table.getClass().getMethod("getFilePaths");
+        
+        @SuppressWarnings("unchecked")
+        java.util.List<String> partitionFiles = (java.util.List<String>) getFilePathsMethod.invoke(table);
+        if (partitionFiles != null && !partitionFiles.isEmpty()) {
+          // Use first partition file as representative parquet cache file for DuckDB
+          String firstPartitionFile = partitionFiles.get(0);
+          metadata.parquetCacheFile = firstPartitionFile;
+          LOGGER.debug("Extracted parquet cache file for partitioned table '{}': {}", tableName, firstPartitionFile);
+        }
+        
+        // Extract refresh interval if it's a refreshable partitioned table
+        if (table.getClass().getSimpleName().equals("RefreshablePartitionedParquetTable")) {
+          try {
+            java.lang.reflect.Method getRefreshIntervalMethod = table.getClass().getMethod("getRefreshInterval");
+            Object interval = getRefreshIntervalMethod.invoke(table);
+            if (interval != null) {
+              metadata.refreshInterval = interval.toString();
+            }
+          } catch (Exception e) {
+            LOGGER.debug("Could not extract refresh interval from partitioned table: {}", e.getMessage());
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.debug("Could not extract parquet file from partitioned table '{}': {}", tableName, e.getMessage());
+      }
+    }
+    
     // Try to get HTTP metadata for remote sources
     if (isRemoteFile(source.path())) {
       try {
