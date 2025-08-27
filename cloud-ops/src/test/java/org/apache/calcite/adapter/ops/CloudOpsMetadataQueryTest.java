@@ -298,7 +298,7 @@ public class CloudOpsMetadataQueryTest {
         new CloudOpsConfig.AWSConfig(Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
 
     return new CloudOpsConfig(
-        Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15);
+        Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15, false);
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {

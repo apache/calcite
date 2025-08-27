@@ -79,7 +79,7 @@ public class CloudOpsTestUtils {
       }
       
       CloudOpsConfig config = new CloudOpsConfig(
-          providers, azureConfig, gcpConfig, awsConfig, true, 15);
+          providers, azureConfig, gcpConfig, awsConfig, true, 15, false);
       
       LOGGER.info("Loaded test config with providers: {}", String.join(", ", providers));
       return config;

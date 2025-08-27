@@ -375,7 +375,7 @@ public class CloudOpsMetadataIntegrationTest {
           testProperties.getProperty("aws.roleArn"));
     }
 
-    return new CloudOpsConfig(null, azure, gcp, aws, true, 15);
+    return new CloudOpsConfig(null, azure, gcp, aws, true, 15, false);
   }
 
   private java.util.Map<String, Object> configToOperands(CloudOpsConfig config) {

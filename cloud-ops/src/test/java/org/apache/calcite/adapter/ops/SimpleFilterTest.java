@@ -89,7 +89,7 @@ public class SimpleFilterTest {
     logger.info("=== Testing Provider Filter Logic ===");
 
     // Create cloud_provider = 'azure' filter
-    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0));
+    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
 
@@ -115,7 +115,7 @@ public class SimpleFilterTest {
     logger.info("=== Testing Region Filter Generation ===");
 
     // Create region = 'us-east-1' filter
-    RexInputRef regionRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(4));
+    RexInputRef regionRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-east-1");
     RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
@@ -146,7 +146,7 @@ public class SimpleFilterTest {
     logger.info("=== Testing Application Filter Generation ===");
 
     // Create application = 'WebApp' filter
-    RexInputRef appRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(3));
+    RexInputRef appRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(3).getType(), 3);
     RexLiteral appLiteral = rexBuilder.makeLiteral("WebApp");
     RexNode appFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
 
@@ -171,7 +171,7 @@ public class SimpleFilterTest {
     logger.info("=== Testing IN Filter Handling ===");
 
     // Create cloud_provider IN ('azure', 'gcp') filter
-    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0));
+    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral gcpLiteral = rexBuilder.makeLiteral("gcp");
     RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.IN, providerRef, azureLiteral, gcpLiteral);
@@ -198,9 +198,9 @@ public class SimpleFilterTest {
     // 1. cloud_provider = 'aws'
     // 2. region = 'us-west-2'
     // 3. application = 'MyService'
-    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0));
-    RexInputRef regionRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(4));
-    RexInputRef appRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(3));
+    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef regionRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef appRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(3).getType(), 3);
 
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-west-2");
@@ -239,8 +239,8 @@ public class SimpleFilterTest {
     logger.info("=== Testing Filter Metrics Calculation ===");
 
     // Create sample filters
-    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0));
-    RexInputRef regionRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(4));
+    RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef regionRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(4).getType(), 4);
 
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral regionLiteral = rexBuilder.makeLiteral("eastus");
@@ -278,7 +278,7 @@ public class SimpleFilterTest {
     logger.info("=== Testing Field Filter Extraction ===");
 
     // Create various filters for testing field extraction
-    RexInputRef clusterRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(2));
+    RexInputRef clusterRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(2).getType(), 2);
     RexLiteral clusterLiteral = rexBuilder.makeLiteral("prod-cluster");
     RexNode clusterFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, clusterRef, clusterLiteral);
 

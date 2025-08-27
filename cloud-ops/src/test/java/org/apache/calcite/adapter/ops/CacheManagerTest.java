@@ -169,7 +169,8 @@ public class CacheManagerTest {
     
     for (int i = 0; i < 10; i++) {
       String key = "eviction:test:" + i;
-      smallCache.getOrCompute(key, () -> Arrays.asList(Map.of("id", String.valueOf(i))));
+      final int id = i; // Make variable effectively final for lambda
+      smallCache.getOrCompute(key, () -> Arrays.asList(Map.of("id", String.valueOf(id))));
     }
 
     CloudOpsCacheManager.CacheMetrics metrics = smallCache.getCacheMetrics();

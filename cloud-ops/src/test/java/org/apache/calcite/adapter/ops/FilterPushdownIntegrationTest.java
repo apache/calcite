@@ -53,7 +53,13 @@ public class FilterPushdownIntegrationTest {
 
   @BeforeEach
   public void setUp() {
-    config = CloudOpsTestUtils.createTestConfig();
+    config = CloudOpsTestUtils.loadTestConfig();
+    if (config == null) {
+      // Create a test config if no local config available
+      CloudOpsConfig.AzureConfig azure = new CloudOpsConfig.AzureConfig(
+          "test-tenant", "test-client", "test-secret", Arrays.asList("test-sub"));
+      config = new CloudOpsConfig(Arrays.asList("azure"), azure, null, null, false, 5, false);
+    }
     
     SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(
         org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
@@ -78,7 +84,7 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing Basic EQUALS Filter Pushdown ===");
 
     // Create filter: cloud_provider = 'azure'
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0));
+    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
 
@@ -112,7 +118,7 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing Region Filter Pushdown ===");
 
     // Create filter: region = 'us-east-1'
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4));
+    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-east-1");
     RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
@@ -141,7 +147,7 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing Application Filter Pushdown ===");
 
     // Create filter: application = 'MyApp'
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3));
+    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
     RexLiteral appLiteral = rexBuilder.makeLiteral("MyApp");
     RexNode appFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
 
@@ -165,7 +171,7 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing IN Filter Pushdown ===");
 
     // Create filter: cloud_provider IN ('azure', 'aws')
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0));
+    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
     RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.IN, providerRef, azureLiteral, awsLiteral);
@@ -187,7 +193,7 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing LIKE Filter Pushdown ===");
 
     // Create filter: cluster_name LIKE 'prod%'
-    RexInputRef nameRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(2));
+    RexInputRef nameRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(2).getType(), 2);
     RexLiteral patternLiteral = rexBuilder.makeLiteral("prod%");
     RexNode likeFilter = rexBuilder.makeCall(SqlStdOperatorTable.LIKE, nameRef, patternLiteral);
 
@@ -209,15 +215,15 @@ public class FilterPushdownIntegrationTest {
     // 1. cloud_provider = 'azure'
     // 2. region = 'eastus'  
     // 3. application = 'WebApp'
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0));
+    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
 
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4));
+    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("eastus");
     RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3));
+    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
     RexLiteral appLiteral = rexBuilder.makeLiteral("WebApp");
     RexNode appFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
 
@@ -255,11 +261,11 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing Filter Optimization Strategies ===");
 
     // Create filters targeting different optimization scenarios
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0));
+    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral gcpLiteral = rexBuilder.makeLiteral("gcp");
     RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, gcpLiteral);
 
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4));
+    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-central1");
     RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
@@ -288,7 +294,7 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing NULL and NOT NULL Filter Pushdown ===");
 
     // Create filter: application IS NOT NULL
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3));
+    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
     RexNode notNullFilter = rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, appRef);
 
     List<RexNode> filters = Arrays.asList(notNullFilter);
@@ -308,9 +314,9 @@ public class FilterPushdownIntegrationTest {
     logger.info("=== Testing Filter Pushdown Metrics ===");
 
     // Create comprehensive filter scenario
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0));
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4));
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3));
+    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
 
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral regionLiteral = rexBuilder.makeLiteral("westus");
@@ -354,9 +360,9 @@ public class FilterPushdownIntegrationTest {
 
     logger.info("Scenario 1: Mixed provider and resource constraints");
     // cloud_provider = 'aws' AND region = 'us-west-2' AND node_count > 3
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0));
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4));
-    RexInputRef nodeCountRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(7));
+    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef nodeCountRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(7).getType(), 7);
 
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-west-2");

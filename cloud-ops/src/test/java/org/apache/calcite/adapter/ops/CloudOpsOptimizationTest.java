@@ -65,8 +65,9 @@ public class CloudOpsOptimizationTest {
         null,  // Azure config
         null,  // GCP config
         null,  // AWS config
-        false, // debug
-        60);   // cacheTtlMinutes
+        false, // cacheEnabled
+        60,    // cacheTtlMinutes
+        false); // cacheDebugMode
 
     SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
@@ -307,21 +308,24 @@ public class CloudOpsOptimizationTest {
     @Override protected List<Object[]> queryAzure(List<String> subscriptionIds,
                                         org.apache.calcite.adapter.ops.util.CloudOpsProjectionHandler projectionHandler,
                                         org.apache.calcite.adapter.ops.util.CloudOpsSortHandler sortHandler,
-                                        org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler paginationHandler) {
+                                        org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler paginationHandler,
+                                        org.apache.calcite.adapter.ops.util.CloudOpsFilterHandler filterHandler) {
       return new ArrayList<>();
     }
 
     @Override protected List<Object[]> queryGCP(List<String> projectIds,
                                       org.apache.calcite.adapter.ops.util.CloudOpsProjectionHandler projectionHandler,
                                       org.apache.calcite.adapter.ops.util.CloudOpsSortHandler sortHandler,
-                                      org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler paginationHandler) {
+                                      org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler paginationHandler,
+                                      org.apache.calcite.adapter.ops.util.CloudOpsFilterHandler filterHandler) {
       return new ArrayList<>();
     }
 
     @Override protected List<Object[]> queryAWS(List<String> accountIds,
                                       org.apache.calcite.adapter.ops.util.CloudOpsProjectionHandler projectionHandler,
                                       org.apache.calcite.adapter.ops.util.CloudOpsSortHandler sortHandler,
-                                      org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler paginationHandler) {
+                                      org.apache.calcite.adapter.ops.util.CloudOpsPaginationHandler paginationHandler,
+                                      org.apache.calcite.adapter.ops.util.CloudOpsFilterHandler filterHandler) {
       return new ArrayList<>();
     }
   }

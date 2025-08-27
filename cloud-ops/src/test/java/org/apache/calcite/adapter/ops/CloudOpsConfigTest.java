@@ -80,7 +80,7 @@ public class CloudOpsConfigTest {
         "aws-key", "aws-secret", null);
 
     CloudOpsConfig config =
-        new CloudOpsConfig(Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15);
+        new CloudOpsConfig(Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15, false);
 
     // Verify all configs are set
     assertThat(config.azure, is(notNullValue()));
@@ -129,7 +129,7 @@ public class CloudOpsConfigTest {
 
   @Test public void testConfigDefaults() {
     CloudOpsConfig config =
-        new CloudOpsConfig(null, null, null, null, null, null);
+        new CloudOpsConfig(null, null, null, null, null, null, null);
 
     // Check defaults
     assertThat(config.providers, hasSize(3));

@@ -94,7 +94,8 @@ public class PaginationPushdownIntegrationTest {
         null, // gcp
         null, // aws
         false, // cacheEnabled
-        60     // cacheTtlMinutes
+        60,    // cacheTtlMinutes
+        false  // cacheDebugMode
     );
     
     // Set up Calcite connection with cloud-ops schema

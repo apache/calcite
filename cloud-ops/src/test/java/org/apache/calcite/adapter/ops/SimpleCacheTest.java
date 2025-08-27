@@ -135,9 +135,10 @@ public class SimpleCacheTest {
     // Generate some cache activity
     for (int i = 0; i < 10; i++) {
       String key = "metrics:test:" + (i % 3); // This creates hits for repeated keys
+      final int id = i; // Make variable effectively final for lambda
       cacheManager.getOrCompute(key, () -> {
         apiCallCount.incrementAndGet();
-        return Arrays.asList(Map.of("id", i));
+        return Arrays.asList(Map.of("id", id));
       });
     }
 
