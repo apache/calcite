@@ -30,6 +30,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
@@ -58,7 +59,7 @@ public class SqlSubstringFunction extends SqlFunction {
     super(
         "SUBSTRING",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.ARG0_NULLABLE_VARYING,
+        ReturnTypes.ARG0_FORCE_NULLABLE.andThen(SqlTypeTransforms.TO_VARYING),
         null,
         null,
         SqlFunctionCategory.STRING);
