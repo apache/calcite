@@ -82,3 +82,4 @@ local.properties
 a
 # Aperio cache directory
 .aperio/
+local-test.properties
