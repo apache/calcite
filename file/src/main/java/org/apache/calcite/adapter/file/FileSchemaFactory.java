@@ -326,19 +326,25 @@ public class FileSchemaFactory implements SchemaFactory {
       
       LOGGER.info("DuckDB: Creating internal Parquet FileSchema with baseConfigDirectory: {}", baseConfigDirectory);
       
-      // Create FileSchema with baseConfigDirectory (not baseDirectory)
-      // This allows FileSchema to add its own .aperio/<schema> suffix
+      // Create internal FileSchema for DuckDB processing
       FileSchema fileSchema = new FileSchema(parentSchema, name, directoryFile, baseConfigDirectory,
           directoryPattern, tables, conversionConfig, recursive, materializations, views, 
           partitionedTables, refreshInterval, tableNameCasing, columnNameCasing, 
           storageType, storageConfig, flatten, csvTypeInference, primeCache);
       
       // Force initialization to run conversions and populate the FileSchema for DuckDB
-      LOGGER.debug("FileSchemaFactory: About to call fileSchema.getTableMap() for table discovery");
-      LOGGER.debug("FileSchemaFactory: Internal FileSchema engine type: PARQUET");
-      LOGGER.debug("FileSchemaFactory: Internal FileSchema directory: {}", directoryFile);
+      LOGGER.info("DuckDB: About to call fileSchema.getTableMap() for table discovery");
+      LOGGER.info("DuckDB: Internal FileSchema created successfully: {}", fileSchema.getClass().getSimpleName());
+      LOGGER.info("DuckDB: Internal FileSchema directory: {}", directoryFile);
+      
       Map<String, Table> tableMap = fileSchema.getTableMap();
-      LOGGER.info("FileSchemaFactory: DuckDB FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
+      LOGGER.info("DuckDB: Internal FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
+      
+      if (tableMap.containsKey("sales_custom")) {
+        LOGGER.info("DuckDB: Found sales_custom table in internal FileSchema!");
+      } else {
+        LOGGER.warn("DuckDB: sales_custom table NOT found in internal FileSchema");
+      }
       
       // Check the conversion metadata immediately after table discovery
       if (fileSchema.getConversionMetadata() != null) {
