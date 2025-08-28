@@ -24,13 +24,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Stream;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
@@ -495,28 +495,31 @@ public final class CalciteSystemProperty<T> {
   }
 
   private static Properties loadProperties() {
-    Properties saffronProperties = new Properties();
-    ClassLoader classLoader =
-        firstNonNull(Thread.currentThread().getContextClassLoader(),
-            CalciteSystemProperty.class.getClassLoader());
-    // Read properties from the file "saffron.properties", if it exists in classpath
-    try (InputStream stream = requireNonNull(classLoader, "classLoader")
-        .getResourceAsStream("saffron.properties")) {
-      if (stream != null) {
-        saffronProperties.load(stream);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException("while reading from saffron.properties file", e);
-    } catch (SecurityException ignore) {
-      // Ignore SecurityException on purpose because if
-      // we can't get to the file we fall through.
-    }
+    Stream<Entry<Object, Object>> saffronProperties =
+            Stream.of(CalciteSystemProperty.class.getClassLoader(),
+            Thread.currentThread().getContextClassLoader())
+            .filter(Objects::nonNull).flatMap(classLoader -> {
+              Properties properties = new Properties();
+              // Read properties from the file "saffron.properties", if it exists in classpath
+              try (InputStream stream = requireNonNull(classLoader, "classLoader")
+                  .getResourceAsStream("saffron.properties")) {
+                if (stream != null) {
+                  properties.load(stream);
+                }
+              } catch (IOException e) {
+                throw new RuntimeException("while reading from saffron.properties file", e);
+              } catch (SecurityException ignore) {
+                // Ignore SecurityException on purpose because if
+                // we can't get to the file we fall through.
+              }
+              return properties.entrySet().stream();
+            });
 
     // Merge system and saffron properties, mapping deprecated saffron
     // namespaces to calcite
     final Properties allProperties = new Properties();
     Stream.concat(
-        saffronProperties.entrySet().stream(),
+        saffronProperties,
         System.getProperties().entrySet().stream())
         .forEach(prop -> {
           String deprecatedKey = (String) prop.getKey();
