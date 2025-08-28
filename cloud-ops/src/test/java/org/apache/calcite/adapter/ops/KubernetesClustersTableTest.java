@@ -27,7 +27,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 

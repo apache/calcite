@@ -30,7 +30,7 @@ import java.util.Properties;
  */
 public class CloudOpsTestUtils {
   private static final Logger LOGGER = LoggerFactory.getLogger(CloudOpsTestUtils.class);
-  
+
   /**
    * Load test configuration from local-test.properties file.
    */
@@ -38,58 +38,58 @@ public class CloudOpsTestUtils {
     try {
       Properties props = new Properties();
       props.load(new FileInputStream("src/test/resources/local-test.properties"));
-      
+
       List<String> providers = new ArrayList<>();
-      
+
       // Azure config
       CloudOpsConfig.AzureConfig azureConfig = null;
       if (props.containsKey("azure.tenantId") && props.containsKey("azure.clientId")) {
-        azureConfig = new CloudOpsConfig.AzureConfig(
-            props.getProperty("azure.tenantId"),
+        azureConfig =
+            new CloudOpsConfig.AzureConfig(props.getProperty("azure.tenantId"),
             props.getProperty("azure.clientId"),
             props.getProperty("azure.clientSecret"),
             parseList(props.getProperty("azure.subscriptionIds")));
         providers.add("azure");
       }
-      
+
       // AWS config
       CloudOpsConfig.AWSConfig awsConfig = null;
       if (props.containsKey("aws.accessKeyId") && props.containsKey("aws.secretAccessKey")) {
-        awsConfig = new CloudOpsConfig.AWSConfig(
-            parseList(props.getProperty("aws.accountIds")),
+        awsConfig =
+            new CloudOpsConfig.AWSConfig(parseList(props.getProperty("aws.accountIds")),
             props.getProperty("aws.region", "us-east-1"),
             props.getProperty("aws.accessKeyId"),
             props.getProperty("aws.secretAccessKey"),
             props.getProperty("aws.roleArn"));
         providers.add("aws");
       }
-      
-      // GCP config  
+
+      // GCP config
       CloudOpsConfig.GCPConfig gcpConfig = null;
       if (props.containsKey("gcp.credentialsPath") && props.containsKey("gcp.projectIds")) {
-        gcpConfig = new CloudOpsConfig.GCPConfig(
-            parseList(props.getProperty("gcp.projectIds")),
+        gcpConfig =
+            new CloudOpsConfig.GCPConfig(parseList(props.getProperty("gcp.projectIds")),
             props.getProperty("gcp.credentialsPath"));
         providers.add("gcp");
       }
-      
+
       if (providers.isEmpty()) {
         LOGGER.warn("No cloud provider credentials found in local-test.properties");
         return null;
       }
-      
-      CloudOpsConfig config = new CloudOpsConfig(
-          providers, azureConfig, gcpConfig, awsConfig, true, 15, false);
-      
+
+      CloudOpsConfig config =
+          new CloudOpsConfig(providers, azureConfig, gcpConfig, awsConfig, true, 15, false);
+
       LOGGER.info("Loaded test config with providers: {}", String.join(", ", providers));
       return config;
-      
+
     } catch (IOException e) {
       LOGGER.warn("Could not load local-test.properties: {}", e.getMessage());
       return null;
     }
   }
-  
+
   /**
    * Create model JSON for testing.
    */
@@ -104,7 +104,7 @@ public class CloudOpsTestUtils {
     json.append("      \"type\": \"custom\",\n");
     json.append("      \"factory\": \"org.apache.calcite.adapter.ops.CloudOpsSchemaFactory\",\n");
     json.append("      \"operand\": {\n");
-    
+
     // Add provider configs
     if (config.azure != null) {
       json.append("        \"azure.tenantId\": \"").append(config.azure.tenantId).append("\",\n");
@@ -112,33 +112,33 @@ public class CloudOpsTestUtils {
       json.append("        \"azure.clientSecret\": \"").append(config.azure.clientSecret).append("\",\n");
       json.append("        \"azure.subscriptionIds\": \"").append(String.join(",", config.azure.subscriptionIds)).append("\",\n");
     }
-    
+
     if (config.aws != null) {
       json.append("        \"aws.accessKeyId\": \"").append(config.aws.accessKeyId).append("\",\n");
       json.append("        \"aws.secretAccessKey\": \"").append(config.aws.secretAccessKey).append("\",\n");
       json.append("        \"aws.region\": \"").append(config.aws.region).append("\",\n");
       json.append("        \"aws.accountIds\": \"").append(String.join(",", config.aws.accountIds)).append("\",\n");
     }
-    
+
     if (config.gcp != null) {
       json.append("        \"gcp.credentialsPath\": \"").append(config.gcp.credentialsPath).append("\",\n");
       json.append("        \"gcp.projectIds\": \"").append(String.join(",", config.gcp.projectIds)).append("\",\n");
     }
-    
+
     // Remove trailing comma
     if (json.toString().endsWith(",\n")) {
       json.setLength(json.length() - 2);
       json.append("\n");
     }
-    
+
     json.append("      }\n");
     json.append("    }\n");
     json.append("  ]\n");
     json.append("}");
-    
+
     return json.toString();
   }
-  
+
   private static List<String> parseList(String value) {
     List<String> result = new ArrayList<>();
     if (value != null && !value.trim().isEmpty()) {

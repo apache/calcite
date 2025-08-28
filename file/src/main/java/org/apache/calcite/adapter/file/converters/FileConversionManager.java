@@ -117,14 +117,14 @@ public class FileConversionManager {
             ConversionMetadata.ConversionRecord existingRecord = metadata.findRecordBySourceFile(sourceFile);
             if (existingRecord != null) {
               existingTableName = existingRecord.tableName;
-              LOGGER.debug("Found existing conversion record for {}, preserving table name: {}", 
+              LOGGER.debug("Found existing conversion record for {}, preserving table name: {}",
                   sourceFile.getName(), existingTableName);
             }
           } catch (Exception e) {
             LOGGER.warn("Failed to check for existing conversion record: {}", e.getMessage());
           }
         }
-        
+
         List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath, existingTableName);
         LOGGER.debug("Converted HTML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;

@@ -41,7 +41,7 @@ Integrated with `CloudOpsCacheManager` to cache results based on:
 
 ### Example 1: Basic Query
 ```sql
-SELECT cloud_provider, account_id, resource_name 
+SELECT cloud_provider, account_id, resource_name
 FROM storage_resources
 WHERE cloud_provider = 'aws'
 ```
@@ -102,7 +102,7 @@ The implementation uses the `isFieldProjected()` helper method to check if speci
 ```java
 boolean needsLocation = isFieldProjected(projectionHandler, "region", "Location");
 boolean needsTags = isFieldProjected(projectionHandler, "application", "Application", "tags");
-boolean needsEncryption = isFieldProjected(projectionHandler, "encryption_enabled", 
+boolean needsEncryption = isFieldProjected(projectionHandler, "encryption_enabled",
     "encryption_type", "encryption_key_type");
 // ... etc
 ```
@@ -129,7 +129,7 @@ Debug logging tracks optimization effectiveness:
 ```java
 LOGGER.debug("AWS S3 query optimization - Fetching: basic={}, location={}, tags={}, " +
              "encryption={}, publicAccess={}, versioning={}, lifecycle={}",
-             needsBasicInfo, needsLocation, needsTags, needsEncryption, 
+             needsBasicInfo, needsLocation, needsTags, needsEncryption,
              needsPublicAccess, needsVersioning, needsLifecycle);
 
 LOGGER.debug("AWS S3 query completed: {} buckets, {} API calls (vs {} max), {:.1f}% reduction",

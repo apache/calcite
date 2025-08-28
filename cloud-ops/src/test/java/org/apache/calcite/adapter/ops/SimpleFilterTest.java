@@ -52,9 +52,9 @@ public class SimpleFilterTest {
   @BeforeEach
   public void setUp() {
     logger.info("=== Setting up Simple Filter Test ===");
-    
-    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(
-        org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
+
+    SqlTypeFactoryImpl typeFactory =
+        new SqlTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
 
     // Create simple test schema
@@ -76,12 +76,12 @@ public class SimpleFilterTest {
     CloudOpsFilterHandler emptyHandler = new CloudOpsFilterHandler(testSchema, null);
     assertFalse(emptyHandler.hasFilters());
     assertFalse(emptyHandler.hasPushableFilters());
-    
+
     // Test with empty filter list
     CloudOpsFilterHandler emptyListHandler = new CloudOpsFilterHandler(testSchema, Arrays.asList());
     assertFalse(emptyListHandler.hasFilters());
-    
-    logger.info("✅ Empty filter handler creation: No filters = {}, No pushable = {}", 
+
+    logger.info("✅ Empty filter handler creation: No filters = {}, No pushable = {}",
                emptyHandler.hasFilters(), emptyHandler.hasPushableFilters());
   }
 
@@ -174,7 +174,7 @@ public class SimpleFilterTest {
     RexInputRef providerRef = rexBuilder.makeInputRef(testSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral gcpLiteral = rexBuilder.makeLiteral("gcp");
-    
+
     // Create provider = 'azure' OR provider = 'gcp' which is equivalent to IN
     RexNode azureFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
     RexNode gcpFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, gcpLiteral);
@@ -232,8 +232,8 @@ public class SimpleFilterTest {
     assertEquals("MyService", awsParams.get("tag:Application"));
 
     logger.info("✅ Multiple filter coordination:");
-    logger.info("   Total filters: {}, Pushable: {}, Remaining: {}", 
-               filters.size(), filterHandler.getPushableFilters().size(), 
+    logger.info("   Total filters: {}, Pushable: {}, Remaining: {}",
+               filters.size(), filterHandler.getPushableFilters().size(),
                filterHandler.getRemainingFilters().size());
     logger.info("   Provider selection: {}", providers);
     logger.info("   AWS parameters: {}", awsParams);
@@ -256,18 +256,18 @@ public class SimpleFilterTest {
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(testSchema, filters);
 
     // Test server-side metrics
-    CloudOpsFilterHandler.FilterMetrics serverMetrics = 
+    CloudOpsFilterHandler.FilterMetrics serverMetrics =
         filterHandler.calculateMetrics(true, 2);
-    
+
     assertEquals(2, serverMetrics.totalFilters);
     assertEquals(2, serverMetrics.filtersApplied);
     assertEquals(100.0, serverMetrics.pushdownPercent, 0.1);
     assertTrue(serverMetrics.serverSidePushdown);
 
     // Test client-side metrics
-    CloudOpsFilterHandler.FilterMetrics clientMetrics = 
+    CloudOpsFilterHandler.FilterMetrics clientMetrics =
         filterHandler.calculateMetrics(false, 2);
-    
+
     assertEquals(2, clientMetrics.totalFilters);
     assertEquals(2, clientMetrics.filtersApplied);
     assertFalse(clientMetrics.serverSidePushdown);
@@ -290,19 +290,19 @@ public class SimpleFilterTest {
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(testSchema, filters);
 
     // Test field-specific filter extraction
-    List<CloudOpsFilterHandler.FilterInfo> clusterFilters = 
+    List<CloudOpsFilterHandler.FilterInfo> clusterFilters =
         filterHandler.getFiltersForField("cluster_name");
-    
+
     assertEquals(1, clusterFilters.size());
     CloudOpsFilterHandler.FilterInfo clusterFilterInfo = clusterFilters.get(0);
     assertEquals("cluster_name", clusterFilterInfo.fieldName);
     assertEquals(2, clusterFilterInfo.fieldIndex); // cluster_name is at index 2
-    assertEquals("prod-cluster", clusterFilterInfo.value instanceof org.apache.calcite.util.NlsString ? 
-        ((org.apache.calcite.util.NlsString) clusterFilterInfo.value).getValue() : 
+    assertEquals("prod-cluster", clusterFilterInfo.value instanceof org.apache.calcite.util.NlsString ?
+        ((org.apache.calcite.util.NlsString) clusterFilterInfo.value).getValue() :
         clusterFilterInfo.value);
 
     // Test empty field filter extraction
-    List<CloudOpsFilterHandler.FilterInfo> emptyFilters = 
+    List<CloudOpsFilterHandler.FilterInfo> emptyFilters =
         filterHandler.getFiltersForField("nonexistent_field");
     assertTrue(emptyFilters.isEmpty());
 

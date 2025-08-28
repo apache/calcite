@@ -17,22 +17,14 @@
 package org.apache.calcite.adapter.sharepoint;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.sharepoint.auth.SharePointAuth;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -45,13 +37,13 @@ import java.util.Map;
  * for regular column storage due to their binary nature and size.
  */
 public class SharePointAttachmentFunctions {
-  
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  
+
   /**
    * Gets attachments for a SharePoint list item.
    * Returns a table of (filename, url, size) for each attachment.
-   * 
+   *
    * @param context Data context containing connection info
    * @param listName Name of the SharePoint list
    * @param itemId ID of the item
@@ -61,14 +53,13 @@ public class SharePointAttachmentFunctions {
       final DataContext context,
       final String listName,
       final String itemId) {
-    
+
     return new AbstractEnumerable<Object[]>() {
-      @Override
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         try {
           // Get the SharePoint schema from context
           SharePointListSchema schema = getSchema(context);
-          
+
           List<Object[]> attachments;
           if (schema.useRestApi()) {
             // Use REST API
@@ -83,7 +74,7 @@ public class SharePointAttachmentFunctions {
             }
             attachments = fetchAttachments(client, listId, itemId);
           }
-          
+
           return new ListEnumerator<>(attachments);
         } catch (Exception e) {
           throw new RuntimeException("Failed to get attachments", e);
@@ -91,10 +82,10 @@ public class SharePointAttachmentFunctions {
       }
     };
   }
-  
+
   /**
    * Adds an attachment to a SharePoint list item.
-   * 
+   *
    * @param context Data context
    * @param listName Name of the SharePoint list
    * @param itemId ID of the item
@@ -108,10 +99,10 @@ public class SharePointAttachmentFunctions {
       String itemId,
       String filename,
       byte[] content) {
-    
+
     try {
       SharePointListSchema schema = getSchema(context);
-      
+
       if (schema.useRestApi()) {
         // Use REST API
         SharePointRestListClient restClient = schema.getRestClient();
@@ -125,15 +116,15 @@ public class SharePointAttachmentFunctions {
         }
         return uploadAttachment(client, listId, itemId, filename, content);
       }
-      
+
     } catch (Exception e) {
       throw new RuntimeException("Failed to add attachment: " + e.getMessage(), e);
     }
   }
-  
+
   /**
    * Deletes an attachment from a SharePoint list item.
-   * 
+   *
    * @param context Data context
    * @param listName Name of the SharePoint list
    * @param itemId ID of the item
@@ -145,10 +136,10 @@ public class SharePointAttachmentFunctions {
       String listName,
       String itemId,
       String filename) {
-    
+
     try {
       SharePointListSchema schema = getSchema(context);
-      
+
       if (schema.useRestApi()) {
         // Use REST API
         SharePointRestListClient restClient = schema.getRestClient();
@@ -162,15 +153,15 @@ public class SharePointAttachmentFunctions {
         }
         return removeAttachment(client, listId, itemId, filename);
       }
-      
+
     } catch (Exception e) {
       throw new RuntimeException("Failed to delete attachment: " + e.getMessage(), e);
     }
   }
-  
+
   /**
    * Gets the content of an attachment.
-   * 
+   *
    * @param context Data context
    * @param listName Name of the SharePoint list
    * @param itemId ID of the item
@@ -182,10 +173,10 @@ public class SharePointAttachmentFunctions {
       String listName,
       String itemId,
       String filename) {
-    
+
     try {
       SharePointListSchema schema = getSchema(context);
-      
+
       if (schema.useRestApi()) {
         // Use REST API
         SharePointRestListClient restClient = schema.getRestClient();
@@ -199,15 +190,15 @@ public class SharePointAttachmentFunctions {
         }
         return downloadAttachment(client, listId, itemId, filename);
       }
-      
+
     } catch (Exception e) {
       throw new RuntimeException("Failed to get attachment content: " + e.getMessage(), e);
     }
   }
-  
+
   /**
    * Counts attachments for a SharePoint list item.
-   * 
+   *
    * @param context Data context
    * @param listName Name of the SharePoint list
    * @param itemId ID of the item
@@ -217,10 +208,10 @@ public class SharePointAttachmentFunctions {
       DataContext context,
       String listName,
       String itemId) {
-    
+
     try {
       SharePointListSchema schema = getSchema(context);
-      
+
       List<Object[]> attachments;
       if (schema.useRestApi()) {
         // Use REST API
@@ -235,16 +226,16 @@ public class SharePointAttachmentFunctions {
         }
         attachments = fetchAttachments(client, listId, itemId);
       }
-      
+
       return attachments.size();
-      
+
     } catch (Exception e) {
       return 0; // Return 0 on error
     }
   }
-  
+
   // Helper methods
-  
+
   @SuppressWarnings("deprecation")
   private static SharePointListSchema getSchema(DataContext context) {
     // Get the schema from the data context
@@ -254,8 +245,8 @@ public class SharePointAttachmentFunctions {
     }
     throw new IllegalStateException("SharePoint schema not found in context");
   }
-  
-  private static String findListId(MicrosoftGraphListClient client, String listName) 
+
+  private static String findListId(MicrosoftGraphListClient client, String listName)
       throws IOException, InterruptedException {
     Map<String, SharePointListMetadata> lists = client.getAvailableLists();
     for (SharePointListMetadata metadata : lists.values()) {
@@ -266,84 +257,84 @@ public class SharePointAttachmentFunctions {
     }
     return null;
   }
-  
+
   private static List<Object[]> fetchAttachments(
-      MicrosoftGraphListClient client, 
-      String listId, 
+      MicrosoftGraphListClient client,
+      String listId,
       String itemId) throws IOException, InterruptedException {
-    
+
     List<Object[]> result = new ArrayList<>();
-    
+
     // Call Graph API to get attachments
     // GET /sites/{site-id}/lists/{list-id}/items/{item-id}/attachments
-    String url = String.format("%s/sites/%s/lists/%s/items/%s/attachments",
-        client.getGraphApiBase(), client.getSiteId(), listId, itemId);
-    
+    String url =
+        String.format("%s/sites/%s/lists/%s/items/%s/attachments", client.getGraphApiBase(), client.getSiteId(), listId, itemId);
+
     JsonNode response = client.executeGraphCall("GET", url, null);
-    
+
     if (response.has("value")) {
       for (JsonNode attachment : response.get("value")) {
         String filename = attachment.get("name").asText();
         String attachUrl = attachment.get("webUrl").asText();
         long size = attachment.has("size") ? attachment.get("size").asLong() : 0;
-        
+
         result.add(new Object[]{filename, attachUrl, size});
       }
     }
-    
+
     return result;
   }
-  
+
   private static boolean uploadAttachment(
       MicrosoftGraphListClient client,
       String listId,
       String itemId,
       String filename,
       byte[] content) throws IOException, InterruptedException {
-    
+
     // POST /sites/{site-id}/lists/{list-id}/items/{item-id}/attachments/add
-    String url = String.format("%s/sites/%s/lists/%s/items/%s/attachments/add",
-        client.getGraphApiBase(), client.getSiteId(), listId, itemId);
-    
+    String url =
+        String.format("%s/sites/%s/lists/%s/items/%s/attachments/add", client.getGraphApiBase(), client.getSiteId(), listId, itemId);
+
     // Create request body with filename and content
     Map<String, Object> body = new HashMap<>();
     body.put("name", filename);
     body.put("content", Base64.getEncoder().encodeToString(content));
-    
+
     JsonNode requestBody = OBJECT_MAPPER.valueToTree(body);
     JsonNode response = client.executeGraphCall("POST", url, requestBody);
-    
+
     return response != null;
   }
-  
+
   private static boolean removeAttachment(
       MicrosoftGraphListClient client,
       String listId,
       String itemId,
       String filename) throws IOException, InterruptedException {
-    
+
     // DELETE /sites/{site-id}/lists/{list-id}/items/{item-id}/attachments/{filename}
-    String url = String.format("%s/sites/%s/lists/%s/items/%s/attachments/%s",
-        client.getGraphApiBase(), client.getSiteId(), listId, itemId, filename);
-    
+    String url =
+        String.format("%s/sites/%s/lists/%s/items/%s/attachments/%s", client.getGraphApiBase(), client.getSiteId(), listId, itemId, filename);
+
     client.executeGraphCall("DELETE", url, null);
     return true;
   }
-  
+
   private static byte[] downloadAttachment(
       MicrosoftGraphListClient client,
       String listId,
       String itemId,
       String filename) throws IOException, InterruptedException {
-    
+
     // GET /sites/{site-id}/lists/{list-id}/items/{item-id}/attachments/{filename}/$value
-    String url = String.format("%s/sites/%s/lists/%s/items/%s/attachments/%s/$value",
-        client.getGraphApiBase(), client.getSiteId(), listId, itemId, filename);
-    
+    String url =
+        String.format("%s/sites/%s/lists/%s/items/%s/attachments/%s/$value", client.getGraphApiBase(), client.getSiteId(), listId, itemId, filename);
+
     // Direct binary download
     return client.downloadBinary(url);
   }
-  
+
   private static <T> Enumerator<T> emptyEnumerator() {
     return new Enumerator<T>() {
       @Override public T current() { return null; }
@@ -352,35 +343,31 @@ public class SharePointAttachmentFunctions {
       @Override public void close() { }
     };
   }
-  
+
   /**
    * Simple list-based enumerator.
    */
   private static class ListEnumerator<T> implements Enumerator<T> {
     private final List<T> list;
     private int index = -1;
-    
+
     ListEnumerator(List<T> list) {
       this.list = list;
     }
-    
-    @Override
-    public T current() {
+
+    @Override public T current() {
       return list.get(index);
     }
-    
-    @Override
-    public boolean moveNext() {
+
+    @Override public boolean moveNext() {
       return ++index < list.size();
     }
-    
-    @Override
-    public void reset() {
+
+    @Override public void reset() {
       index = -1;
     }
-    
-    @Override
-    public void close() {
+
+    @Override public void close() {
       // Nothing to close
     }
   }

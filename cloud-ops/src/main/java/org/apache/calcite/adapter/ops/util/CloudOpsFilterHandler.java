@@ -49,8 +49,8 @@ public class CloudOpsFilterHandler {
   private final List<RexNode> remainingFilters;
 
   // Supported filter operations for pushdown
-  private static final Set<SqlKind> PUSHABLE_OPERATIONS = Set.of(
-      SqlKind.EQUALS,
+  private static final Set<SqlKind> PUSHABLE_OPERATIONS =
+      Set.of(SqlKind.EQUALS,
       SqlKind.NOT_EQUALS,
       SqlKind.GREATER_THAN,
       SqlKind.GREATER_THAN_OR_EQUAL,
@@ -60,12 +60,12 @@ public class CloudOpsFilterHandler {
       SqlKind.LIKE,
       SqlKind.IS_NULL,
       SqlKind.IS_NOT_NULL,
-      SqlKind.OR
-  );
+      SqlKind.OR);
 
   // Field name mappings for different cloud providers
-  private static final Map<String, ProviderFieldMapping> FIELD_MAPPINGS = Map.of(
-      "azure", new ProviderFieldMapping(
+  private static final Map<String, ProviderFieldMapping> FIELD_MAPPINGS =
+      Map.of(
+          "azure", new ProviderFieldMapping(
           Map.of(
               "cloud_provider", "SubscriptionId", // Special handling needed
               "account_id", "SubscriptionId",
@@ -73,9 +73,7 @@ public class CloudOpsFilterHandler {
               "cluster_name", "name",
               "application", "Application",
               "resource_name", "name",
-              "resource_type", "type"
-          )
-      ),
+              "resource_type", "type")),
       "aws", new ProviderFieldMapping(
           Map.of(
               "cloud_provider", "provider", // Logical field
@@ -84,9 +82,7 @@ public class CloudOpsFilterHandler {
               "cluster_name", "name",
               "application", "tags.Application",
               "resource_name", "name",
-              "resource_type", "resourceType"
-          )
-      ),
+              "resource_type", "resourceType")),
       "gcp", new ProviderFieldMapping(
           Map.of(
               "cloud_provider", "provider", // Logical field
@@ -95,10 +91,7 @@ public class CloudOpsFilterHandler {
               "cluster_name", "name",
               "application", "labels.application",
               "resource_name", "name",
-              "resource_type", "resourceType"
-          )
-      )
-  );
+              "resource_type", "resourceType")));
 
   public CloudOpsFilterHandler(RelDataType rowType, List<RexNode> filters) {
     this.rowType = rowType;
@@ -254,7 +247,7 @@ public class CloudOpsFilterHandler {
    */
   public Map<String, Object> getAWSFilterParameters() {
     Map<String, Object> params = new HashMap<>();
-    
+
     if (!hasPushableFilters()) {
       return params;
     }
@@ -303,7 +296,7 @@ public class CloudOpsFilterHandler {
    */
   public Map<String, Object> getGCPFilterParameters() {
     Map<String, Object> params = new HashMap<>();
-    
+
     if (!hasPushableFilters()) {
       return params;
     }
@@ -343,10 +336,10 @@ public class CloudOpsFilterHandler {
     }
 
     int filtersApplied = serverSidePushdown ? pushableFilters.size() : totalFiltersApplied;
-    double pushdownPercent = filters.isEmpty() ? 0.0 : 
+    double pushdownPercent = filters.isEmpty() ? 0.0 :
         (double) pushableFilters.size() / filters.size() * 100;
 
-    String strategy = serverSidePushdown ? 
+    String strategy = serverSidePushdown ?
         "Server-side filter pushdown" : "Client-side filtering";
 
     return new FilterMetrics(filters.size(), filtersApplied, pushdownPercent,
@@ -387,7 +380,7 @@ public class CloudOpsFilterHandler {
         kind == SqlKind.GREATER_THAN || kind == SqlKind.LESS_THAN ||
         kind == SqlKind.GREATER_THAN_OR_EQUAL || kind == SqlKind.LESS_THAN_OR_EQUAL ||
         kind == SqlKind.LIKE) {
-      
+
       if (call.getOperands().size() != 2) {
         return false;
       }
@@ -403,7 +396,7 @@ public class CloudOpsFilterHandler {
       if (call.getOperands().size() != 1) {
         return false;
       }
-      
+
       return call.getOperands().get(0) instanceof RexInputRef;
     }
 
@@ -412,7 +405,7 @@ public class CloudOpsFilterHandler {
       if (call.getOperands().size() < 2) {
         return false;
       }
-      
+
       // First operand should be field reference, rest should be literals
       RexNode firstOperand = call.getOperands().get(0);
       return firstOperand instanceof RexInputRef;
@@ -423,9 +416,9 @@ public class CloudOpsFilterHandler {
       if (call.getOperands().size() != 2) {
         return false;
       }
-      
+
       // Both operands should be pushable filters
-      return isPushableFilter(call.getOperands().get(0)) && 
+      return isPushableFilter(call.getOperands().get(0)) &&
              isPushableFilter(call.getOperands().get(1));
     }
 
@@ -442,7 +435,7 @@ public class CloudOpsFilterHandler {
 
     RexCall call = (RexCall) filter;
     SqlKind kind = call.getKind();
-    
+
     // Handle OR operations by recursively processing both operands
     if (kind == SqlKind.OR) {
       for (RexNode operand : call.getOperands()) {
@@ -450,7 +443,7 @@ public class CloudOpsFilterHandler {
       }
       return;
     }
-    
+
     if (call.getOperands().isEmpty()) {
       return;
     }
@@ -462,15 +455,15 @@ public class CloudOpsFilterHandler {
 
     RexInputRef inputRef = (RexInputRef) firstOperand;
     int fieldIndex = inputRef.getIndex();
-    
+
     if (fieldIndex >= rowType.getFieldCount()) {
       return;
     }
 
     String fieldName = rowType.getFieldNames().get(fieldIndex);
-    
+
     FilterInfo filterInfo;
-    
+
     if (kind == SqlKind.IN) {
       // Handle IN operation
       List<Object> values = new ArrayList<>();
@@ -550,15 +543,15 @@ public class CloudOpsFilterHandler {
 
     // Conservative estimate based on filter selectivity
     double reduction = 0.0;
-    
+
     if (getFiltersForField("cloud_provider").size() > 0) {
       reduction += 0.3; // Provider filtering can reduce by ~30%
     }
-    
+
     if (getFiltersForField("region").size() > 0) {
       reduction += 0.4; // Region filtering can reduce by ~40%
     }
-    
+
     if (getFiltersForField("application").size() > 0) {
       reduction += 0.2; // Application filtering can reduce by ~20%
     }

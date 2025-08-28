@@ -21,7 +21,6 @@ import org.apache.calcite.schema.Table;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;

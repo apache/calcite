@@ -38,7 +38,7 @@ import java.util.Locale;
  * (AWS, Azure, GCP) are properly converted to the types expected by Calcite's
  * internal representation and JDBC layer. Supports:</p>
  * <ul>
- *   <li><strong>Boolean types:</strong> Handles strings ("true"/"false", "1"/"0", "enabled"/"disabled"), 
+ *   <li><strong>Boolean types:</strong> Handles strings ("true"/"false", "1"/"0", "enabled"/"disabled"),
  *       integers (0=false, non-zero=true), and natural language variants</li>
  *   <li><strong>Numeric types:</strong> Integer, Long, Float, Double, BigDecimal with string parsing</li>
  *   <li><strong>Temporal types:</strong> Timestamp, Date, Time with comprehensive format support</li>
@@ -56,7 +56,7 @@ public class CloudOpsDataConverter {
    * Determines if a value represents null/missing/blank data from cloud provider APIs
    * for non-string data types. For VARCHAR/CHAR, we preserve all string representations.
    * Cloud providers often return various representations for missing data.
-   * 
+   *
    * @param value The value to check
    * @return true if the value should be treated as SQL NULL
    */
@@ -64,10 +64,10 @@ public class CloudOpsDataConverter {
     if (value == null) {
       return true;
     }
-    
+
     if (value instanceof String) {
       String strValue = ((String) value).trim();
-      return strValue.isEmpty() || 
+      return strValue.isEmpty() ||
              "null".equalsIgnoreCase(strValue) ||
              "nil".equalsIgnoreCase(strValue) ||
              "none".equalsIgnoreCase(strValue) ||
@@ -77,7 +77,7 @@ public class CloudOpsDataConverter {
              "-".equals(strValue) ||
              "—".equals(strValue); // em dash, sometimes used in cloud UIs
     }
-    
+
     return false;
   }
 
@@ -109,7 +109,7 @@ public class CloudOpsDataConverter {
         case BIGINT:
           return convertToBigInteger(value);
 
-        // Floating point types - handle cloud provider numeric formats  
+        // Floating point types - handle cloud provider numeric formats
         case REAL:
         case FLOAT:
           return convertToFloat(value);
@@ -171,26 +171,26 @@ public class CloudOpsDataConverter {
     // String representations - common in cloud APIs
     if (value instanceof String) {
       String strValue = ((String) value).trim().toLowerCase(Locale.ROOT);
-      
+
       // True values
-      if ("true".equals(strValue) || "1".equals(strValue) || 
+      if ("true".equals(strValue) || "1".equals(strValue) ||
           "yes".equals(strValue) || "y".equals(strValue) ||
           "enabled".equals(strValue) || "active".equals(strValue) ||
           "on".equals(strValue)) {
         return Boolean.TRUE;
       }
-      
-      // False values  
-      if ("false".equals(strValue) || "0".equals(strValue) || 
+
+      // False values
+      if ("false".equals(strValue) || "0".equals(strValue) ||
           "no".equals(strValue) || "n".equals(strValue) ||
           "disabled".equals(strValue) || "inactive".equals(strValue) ||
           "off".equals(strValue)) {
         return Boolean.FALSE;
       }
-      
+
       throw new IllegalArgumentException("Cannot parse boolean from: " + value);
     }
-    
+
     throw new IllegalArgumentException("Unsupported boolean type: " + value.getClass());
   }
 

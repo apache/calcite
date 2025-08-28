@@ -46,18 +46,17 @@ public class CacheIntegrationTest {
   @BeforeAll
   public static void setUpClass() {
     logger.info("=== Setting up Cache Integration Test ===");
-    
+
     // Create test configuration with caching enabled
-    testConfig = new CloudOpsConfig(
-        Arrays.asList("azure", "aws", "gcp"),
+    testConfig =
+        new CloudOpsConfig(Arrays.asList("azure", "aws", "gcp"),
         createMockAzureConfig(),
-        createMockGCPConfig(), 
+        createMockGCPConfig(),
         createMockAWSConfig(),
         true,  // cacheEnabled
         2,     // cacheTtlMinutes
-        true   // cacheDebugMode
-    );
-    
+        true); // cacheDebugMode
+
     logger.info("Test configuration created with caching enabled");
   }
 
@@ -71,7 +70,7 @@ public class CacheIntegrationTest {
   @Test public void testCacheConfigurationValidation() {
     logger.info("=== Testing Cache Configuration Validation ===");
 
-    CloudOpsCacheValidator.CacheValidationResult result = 
+    CloudOpsCacheValidator.CacheValidationResult result =
         CloudOpsCacheValidator.validateCacheConfig(testConfig);
 
     assertTrue(result.isValid(), "Test configuration should be valid");
@@ -81,7 +80,7 @@ public class CacheIntegrationTest {
     if (!result.getWarnings().isEmpty()) {
       logger.warn("Configuration warnings: {}", result.getWarnings());
     }
-    
+
     if (!result.getRecommendations().isEmpty()) {
       logger.info("Configuration recommendations: {}", result.getRecommendations());
     }
@@ -93,7 +92,7 @@ public class CacheIntegrationTest {
     logger.info("=== Testing Cache Manager Creation ===");
 
     assertNotNull(cacheManager, "Cache manager should be created");
-    
+
     CloudOpsCacheManager.CacheMetrics initialMetrics = cacheManager.getCacheMetrics();
     assertEquals(0, initialMetrics.size, "Initial cache should be empty");
     assertEquals(0, initialMetrics.requestCount, "Initial request count should be 0");
@@ -115,8 +114,8 @@ public class CacheIntegrationTest {
     logger.debug("Basic cache key: {}", basicKey);
 
     // Test comprehensive cache key building (with null handlers)
-    String comprehensiveKey = CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "eks", 
-        null, null, null, null, Arrays.asList("account1", "account2"));
+    String comprehensiveKey =
+        CloudOpsCacheManager.buildComprehensiveCacheKey("aws", "eks", null, null, null, null, Arrays.asList("account1", "account2"));
     assertNotNull(comprehensiveKey);
     assertTrue(comprehensiveKey.contains("aws:eks"));
     logger.debug("Comprehensive cache key: {}", comprehensiveKey);
@@ -126,7 +125,7 @@ public class CacheIntegrationTest {
     String key2 = CloudOpsCacheManager.buildCacheKey("gcp", "gke", "project2");
     assertNotEquals(key1, key2, "Keys should be unique for different parameters");
 
-    logger.info("✅ Cache key building: Basic={}, Comprehensive={}, Unique=verified", 
+    logger.info("✅ Cache key building: Basic={}, Comprehensive={}, Unique=verified",
                basicKey.length(), comprehensiveKey.length());
   }
 
@@ -136,11 +135,10 @@ public class CacheIntegrationTest {
     // Simulate rapid repeated queries
     String cacheKey = "performance:test:key";
     long startTime = System.currentTimeMillis();
-    
-    List<Map<String, Object>> testData = Arrays.asList(
-        Map.of("cluster", "test-cluster-1", "region", "us-east-1"),
-        Map.of("cluster", "test-cluster-2", "region", "us-west-2")
-    );
+
+    List<Map<String, Object>> testData =
+        Arrays.asList(Map.of("cluster", "test-cluster-1", "region", "us-east-1"),
+        Map.of("cluster", "test-cluster-2", "region", "us-west-2"));
 
     // First call - cache miss
     List<Map<String, Object>> result1 = cacheManager.getOrCompute(cacheKey, () -> {
@@ -168,7 +166,7 @@ public class CacheIntegrationTest {
     assertTrue(metrics.hitCount >= 10, "Should have multiple cache hits");
     assertTrue(firstCallTime > cachedCallsTime, "Cached calls should be faster");
 
-    logger.info("✅ Cache performance: First call={}ms, 10 cached calls={}ms, Metrics={}", 
+    logger.info("✅ Cache performance: First call={}ms, 10 cached calls={}ms, Metrics={}",
                firstCallTime, cachedCallsTime, metrics);
   }
 
@@ -177,20 +175,20 @@ public class CacheIntegrationTest {
 
     String key1 = "invalidation:test:1";
     String key2 = "invalidation:test:2";
-    
+
     // Populate cache with multiple entries
     List<Map<String, Object>> data1 = Arrays.asList(Map.of("id", "1"));
     List<Map<String, Object>> data2 = Arrays.asList(Map.of("id", "2"));
-    
+
     cacheManager.getOrCompute(key1, () -> data1);
     cacheManager.getOrCompute(key2, () -> data2);
-    
+
     CloudOpsCacheManager.CacheMetrics beforeInvalidation = cacheManager.getCacheMetrics();
     assertTrue(beforeInvalidation.size >= 2, "Cache should contain entries");
 
     // Test specific key invalidation
     cacheManager.invalidate(key1);
-    
+
     // key1 should be invalidated, key2 should still be cached
     cacheManager.getOrCompute(key1, () -> Arrays.asList(Map.of("id", "1-new")));
     List<Map<String, Object>> stillCached = cacheManager.getOrCompute(key2, () -> {
@@ -202,8 +200,8 @@ public class CacheIntegrationTest {
     // Test full cache invalidation
     cacheManager.invalidateAll();
     CloudOpsCacheManager.CacheMetrics afterFullInvalidation = cacheManager.getCacheMetrics();
-    
-    logger.info("✅ Cache invalidation: Before={} entries, After full invalidation={} entries", 
+
+    logger.info("✅ Cache invalidation: Before={} entries, After full invalidation={} entries",
                beforeInvalidation.size, afterFullInvalidation.size);
   }
 
@@ -212,7 +210,7 @@ public class CacheIntegrationTest {
 
     // Simulate queries to different cloud providers
     String azureKey = CloudOpsCacheManager.buildCacheKey("azure", "aks", "subscription1");
-    String awsKey = CloudOpsCacheManager.buildCacheKey("aws", "eks", "account1");  
+    String awsKey = CloudOpsCacheManager.buildCacheKey("aws", "eks", "account1");
     String gcpKey = CloudOpsCacheManager.buildCacheKey("gcp", "gke", "project1");
 
     List<Map<String, Object>> azureData = Arrays.asList(Map.of("provider", "azure", "clusters", 3));
@@ -228,22 +226,25 @@ public class CacheIntegrationTest {
     assertTrue(multiProviderMetrics.size >= 3, "Cache should contain entries for all providers");
 
     // Verify each provider's data is correctly cached
-    assertEquals(azureData, cacheManager.getOrCompute(azureKey, () -> {
+    assertEquals(
+        azureData, cacheManager.getOrCompute(azureKey, () -> {
       fail("Azure data should be cached");
       return null;
     }));
 
-    assertEquals(awsData, cacheManager.getOrCompute(awsKey, () -> {
+    assertEquals(
+        awsData, cacheManager.getOrCompute(awsKey, () -> {
       fail("AWS data should be cached");
       return null;
     }));
 
-    assertEquals(gcpData, cacheManager.getOrCompute(gcpKey, () -> {
-      fail("GCP data should be cached");  
+    assertEquals(
+        gcpData, cacheManager.getOrCompute(gcpKey, () -> {
+      fail("GCP data should be cached");
       return null;
     }));
 
-    logger.info("✅ Multi-provider caching: {} entries, Hit rate: {:.2f}%", 
+    logger.info("✅ Multi-provider caching: {} entries, Hit rate: {:.2f}%",
                multiProviderMetrics.size, multiProviderMetrics.hitRate * 100);
   }
 
@@ -258,7 +259,7 @@ public class CacheIntegrationTest {
     }
 
     CloudOpsCacheManager.CacheMetrics finalMetrics = cacheManager.getCacheMetrics();
-    
+
     assertTrue(finalMetrics.requestCount >= 15, "Should have at least 15 requests");
     assertTrue(finalMetrics.hitCount > 0, "Should have some cache hits");
     assertTrue(finalMetrics.missCount > 0, "Should have some cache misses");
@@ -274,17 +275,17 @@ public class CacheIntegrationTest {
 
   // Helper methods to create mock configurations
   private static CloudOpsConfig.AzureConfig createMockAzureConfig() {
-    return new CloudOpsConfig.AzureConfig("tenant-id", "client-id", "client-secret", 
+    return new CloudOpsConfig.AzureConfig("tenant-id", "client-id", "client-secret",
         Arrays.asList("subscription-1", "subscription-2"));
   }
 
   private static CloudOpsConfig.AWSConfig createMockAWSConfig() {
-    return new CloudOpsConfig.AWSConfig(Arrays.asList("account-1", "account-2"), 
+    return new CloudOpsConfig.AWSConfig(Arrays.asList("account-1", "account-2"),
         "us-east-1", "access-key", "secret-key", null);
   }
 
   private static CloudOpsConfig.GCPConfig createMockGCPConfig() {
-    return new CloudOpsConfig.GCPConfig(Arrays.asList("project-1", "project-2"), 
+    return new CloudOpsConfig.GCPConfig(Arrays.asList("project-1", "project-2"),
         "/path/to/credentials.json");
   }
 }

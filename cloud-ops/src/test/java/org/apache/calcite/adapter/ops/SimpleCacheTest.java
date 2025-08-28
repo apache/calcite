@@ -52,10 +52,9 @@ public class SimpleCacheTest {
     logger.info("=== Testing Basic Cache Hit and Miss ===");
 
     String cacheKey = "test:basic:cache";
-    List<Map<String, Object>> testData = Arrays.asList(
-        Map.of("id", "1", "name", "test1"),
-        Map.of("id", "2", "name", "test2")
-    );
+    List<Map<String, Object>> testData =
+        Arrays.asList(Map.of("id", "1", "name", "test1"),
+        Map.of("id", "2", "name", "test2"));
 
     // First call - should be a cache miss
     List<Map<String, Object>> result1 = cacheManager.getOrCompute(cacheKey, () -> {
@@ -88,7 +87,7 @@ public class SimpleCacheTest {
     assertEquals("azure:clusters:sub1:sub2", key1);
 
     // Test key with null parameters
-    String key2 = CloudOpsCacheManager.buildCacheKey("gcp", "storage", "project1", null, "project2");  
+    String key2 = CloudOpsCacheManager.buildCacheKey("gcp", "storage", "project1", null, "project2");
     assertEquals("gcp:storage:project1:project2", key2);
 
     // Test key uniqueness
@@ -152,7 +151,7 @@ public class SimpleCacheTest {
     logger.info("✅ Cache metrics: {}", metrics);
     logger.info("   Hit rate: {:.1f}%", metrics.hitRate * 100);
     logger.info("   API calls made: {}", apiCallCount.get());
-    
+
     // We expect 3 unique keys, so API should be called 3 times
     assertEquals(3, apiCallCount.get(), "API should be called once per unique key");
   }

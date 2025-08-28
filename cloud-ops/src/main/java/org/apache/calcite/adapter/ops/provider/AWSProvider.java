@@ -618,7 +618,7 @@ public class AWSProvider implements CloudProvider {
     if (LOGGER.isDebugEnabled()) {
       int totalApiCalls = results.size() *
           (1 + (needsLocation ? 1 : 0) + (needsTags ? 1 : 0) + (needsEncryption ? 1 : 0) +
-           (needsPublicAccess ? 1 : 0) + (needsVersioning ? 1 : 0) + (needsLifecycle ? 1 : 0) + 
+           (needsPublicAccess ? 1 : 0) + (needsVersioning ? 1 : 0) + (needsLifecycle ? 1 : 0) +
            (needsSizeMetrics ? 1 : 0));
       int maxPossibleApiCalls = results.size() * 8; // All API calls for all buckets (including CloudWatch)
       double reductionPercent = (1.0 - (double)totalApiCalls / maxPossibleApiCalls) * 100;
@@ -1496,7 +1496,7 @@ public class AWSProvider implements CloudProvider {
       return null;
 
     } catch (Exception e) {
-      LOGGER.debug("Error fetching CloudWatch metrics for bucket {} in account {}: {}", 
+      LOGGER.debug("Error fetching CloudWatch metrics for bucket {} in account {}: {}",
                   bucketName, accountId, e.getMessage());
       return null;
     }

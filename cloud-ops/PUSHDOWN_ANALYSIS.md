@@ -17,8 +17,8 @@ When a query includes `WHERE cloud_provider = 'azure'` or `WHERE cloud_provider 
 Example optimization:
 ```sql
 -- Query
-SELECT cluster_name, region 
-FROM kubernetes_clusters 
+SELECT cluster_name, region
+FROM kubernetes_clusters
 WHERE cloud_provider = 'azure' AND region = 'eastus'
 
 -- Without provider pushdown: 3 API calls (Azure, AWS, GCP)
@@ -32,15 +32,15 @@ WHERE cloud_provider = 'azure' AND region = 'eastus'
 public Enumerable<Object[]> scan(...) {
     // CRITICAL: Extract provider filter FIRST
     Set<String> requestedProviders = extractProviderFilter(filters);
-    
+
     // If no provider filter, check all configured providers
     if (requestedProviders.isEmpty()) {
         requestedProviders = config.providers;
     }
-    
+
     // Only make API calls to requested providers
     List<CompletableFuture<List<Object[]>>> futures = new ArrayList<>();
-    
+
     if (requestedProviders.contains("azure") && config.azure != null) {
         futures.add(queryAzureAsync(...));
     }
@@ -118,7 +118,7 @@ Manages Kubernetes cluster information across AKS (Azure), EKS (AWS), and GKE (G
   - Can only filter by cluster names in ListClusters API
   - Tag filtering requires separate DescribeCluster calls
   - No native support for property-based filtering
-  
+
 - **Projection Pushdown**: ❌ **NONE**
   - SDK returns complete cluster objects
   - Must filter fields client-side
@@ -139,7 +139,7 @@ Manages Kubernetes cluster information across AKS (Azure), EKS (AWS), and GKE (G
 - **Filter Pushdown**: ⚠️ **LIMITED**
   - Can filter by parent (project/location)
   - No support for property filtering
-  
+
 - **Projection Pushdown**: ❌ **NONE**
   - API returns full cluster objects
 
@@ -175,7 +175,7 @@ Manages storage resources like Azure Storage Accounts, AWS S3 Buckets, and GCP C
 - **Filter Pushdown**: ⚠️ **LIMITED**
   - Bucket name prefix filtering only
   - Region filtering by bucket location (requires additional API call)
-  
+
 - **Projection Pushdown**: ❌ **NONE**
 
 - **Sort Pushdown**: ⚠️ **PARTIAL**
@@ -379,7 +379,7 @@ Manages container image registries.
 ### 🔴 High Priority (Maximum Impact)
 
 #### 1. Azure Resource Graph KQL Builder
-**Impact**: All 7 tables for Azure  
+**Impact**: All 7 tables for Azure
 **Implementation**:
 ```java
 public class KQLQueryBuilder {
@@ -395,7 +395,7 @@ public class KQLQueryBuilder {
 ```
 
 #### 2. AWS EC2 Filter Builder
-**Impact**: ComputeResources, NetworkResources  
+**Impact**: ComputeResources, NetworkResources
 **Implementation**:
 ```java
 public class EC2FilterBuilder {
@@ -406,7 +406,7 @@ public class EC2FilterBuilder {
 ```
 
 #### 3. GCP Compute Filter Translator
-**Impact**: ComputeResources, NetworkResources  
+**Impact**: ComputeResources, NetworkResources
 **Implementation**:
 ```java
 public class GCPFilterTranslator {

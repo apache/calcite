@@ -30,7 +30,7 @@ import java.util.Map;
  * and SharePoint deployment type.
  */
 public class SharePointListApiProviderFactory {
-  
+
   /**
    * Creates a SharePointListApiProvider based on configuration.
    *
@@ -40,11 +40,11 @@ public class SharePointListApiProviderFactory {
   public static SharePointListApiProvider create(Map<String, Object> config) {
     // First create the auth provider
     SharePointAuthProvider authProvider = createAuthProvider(config);
-    
+
     // Then select the API provider
     return createApiProvider(authProvider, config);
   }
-  
+
   /**
    * Creates the appropriate auth provider based on configuration.
    */
@@ -53,7 +53,7 @@ public class SharePointListApiProviderFactory {
     if (config.containsKey("authProxy")) {
       return new ProxyAuthProvider(config);
     }
-    
+
     // Check for custom auth provider class
     if (config.containsKey("authProvider")) {
       String className = (String) config.get("authProvider");
@@ -71,19 +71,19 @@ public class SharePointListApiProviderFactory {
         throw new RuntimeException("Failed to instantiate auth provider: " + className, e);
       }
     }
-    
+
     // Default to direct auth provider (Phases 1 & 2)
     return new DirectAuthProvider(config);
   }
-  
+
   /**
    * Creates the appropriate API provider based on auth capabilities and configuration.
    */
   private static SharePointListApiProvider createApiProvider(
       SharePointAuthProvider authProvider, Map<String, Object> config) {
-    
+
     String siteUrl = authProvider.getSiteUrl();
-    
+
     // Explicit API selection
     if (Boolean.TRUE.equals(config.get("useGraphApi"))) {
       if (!authProvider.supportsApiType("graph")) {
@@ -92,8 +92,8 @@ public class SharePointListApiProviderFactory {
       }
       return new GraphListApiProvider(authProvider);
     }
-    
-    if (Boolean.TRUE.equals(config.get("useRestApi")) || 
+
+    if (Boolean.TRUE.equals(config.get("useRestApi")) ||
         Boolean.TRUE.equals(config.get("useLegacyAuth"))) {
       if (!authProvider.supportsApiType("rest")) {
         throw new IllegalArgumentException(
@@ -101,7 +101,7 @@ public class SharePointListApiProviderFactory {
       }
       return new SharePointRestListApiProvider(authProvider);
     }
-    
+
     // Auto-detection based on site URL and auth type
     if (isOnPremisesSharePoint(siteUrl)) {
       // On-premises SharePoint requires REST API
@@ -112,7 +112,7 @@ public class SharePointListApiProviderFactory {
       }
       return new SharePointRestListApiProvider(authProvider);
     }
-    
+
     // SharePoint Online - prefer Graph API if supported, fallback to REST
     if (authProvider.supportsApiType("graph")) {
       return new GraphListApiProvider(authProvider);
@@ -123,7 +123,7 @@ public class SharePointListApiProviderFactory {
           "Auth provider doesn't support any compatible API");
     }
   }
-  
+
   /**
    * Determines if a SharePoint site is on-premises based on URL.
    */
@@ -131,19 +131,19 @@ public class SharePointListApiProviderFactory {
     if (siteUrl == null) {
       return false;
     }
-    
+
     URI uri = URI.create(siteUrl);
     String host = uri.getHost().toLowerCase(Locale.ROOT);
-    
+
     // SharePoint Online domains
-    if (host.endsWith(".sharepoint.com") || 
+    if (host.endsWith(".sharepoint.com") ||
         host.endsWith(".sharepoint.cn") ||
         host.endsWith(".sharepoint.de") ||
         host.endsWith(".sharepoint-mil.us") ||
         host.endsWith(".sharepoint.us")) {
       return false;
     }
-    
+
     // Check for common on-premises patterns
     if (host.startsWith("sharepoint.") ||
         host.contains(".local") ||
@@ -152,11 +152,11 @@ public class SharePointListApiProviderFactory {
         isPrivateIP(host)) {
       return true;
     }
-    
+
     // When in doubt, assume on-premises for non-Microsoft domains
     return true;
   }
-  
+
   /**
    * Checks if a hostname is a private IP address.
    */
@@ -165,18 +165,18 @@ public class SharePointListApiProviderFactory {
     if (!host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
       return false;
     }
-    
+
     String[] parts = host.split("\\.");
     int first = Integer.parseInt(parts[0]);
     int second = Integer.parseInt(parts[1]);
-    
+
     // Private IP ranges
     return (first == 10) ||
            (first == 172 && second >= 16 && second <= 31) ||
            (first == 192 && second == 168) ||
            (first == 127);
   }
-  
+
   private SharePointListApiProviderFactory() {
     // Utility class
   }

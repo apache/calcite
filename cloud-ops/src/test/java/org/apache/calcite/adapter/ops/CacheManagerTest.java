@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -54,10 +53,9 @@ public class CacheManagerTest {
     logger.info("=== Testing Basic Cache Operations ===");
 
     String cacheKey = "test:basic:operation";
-    List<Map<String, Object>> testData = Arrays.asList(
-        Map.of("id", "1", "name", "test1"),
-        Map.of("id", "2", "name", "test2")
-    );
+    List<Map<String, Object>> testData =
+        Arrays.asList(Map.of("id", "1", "name", "test1"),
+        Map.of("id", "2", "name", "test2"));
 
     // Test cache miss - should execute supplier
     List<Map<String, Object>> result1 = cacheManager.getOrCompute(cacheKey, () -> {
@@ -98,7 +96,7 @@ public class CacheManagerTest {
     String key4 = CloudOpsCacheManager.buildCacheKey("aws", "ec2", "account2");
     assertNotEquals(key3, key4);
 
-    logger.info("✅ Cache key generation: Simple={}, Null-handling={}, Uniqueness=verified", 
+    logger.info("✅ Cache key generation: Simple={}, Null-handling={}, Uniqueness=verified",
                key1, key2);
   }
 
@@ -124,11 +122,11 @@ public class CacheManagerTest {
       apiCallCount.incrementAndGet();
       return Arrays.asList(Map.of("new", "data"));
     });
-    
+
     assertEquals("data", result2.get(0).get("new"));
     assertEquals(2, apiCallCount.get(), "API should be called again after invalidation");
 
-    logger.info("✅ Cache invalidation: Before={}, After invalidation={}", 
+    logger.info("✅ Cache invalidation: Before={}, After invalidation={}",
                testData.size(), result2.size());
   }
 
@@ -166,7 +164,7 @@ public class CacheManagerTest {
     // This test verifies that the cache doesn't grow indefinitely
     // but actual eviction testing would require filling beyond maxSize=1000
     // For this test, we just verify cache size tracking works
-    
+
     for (int i = 0; i < 10; i++) {
       String key = "eviction:test:" + i;
       final int id = i; // Make variable effectively final for lambda
@@ -233,22 +231,22 @@ public class CacheManagerTest {
     logger.info("=== Testing Cache Validation ===");
 
     // Test valid configuration
-    CloudOpsConfig validConfig = new CloudOpsConfig(
-        Arrays.asList("azure"), null, null, null, true, 5, false);
-    
-    CloudOpsCacheValidator.CacheValidationResult result = 
+    CloudOpsConfig validConfig =
+        new CloudOpsConfig(Arrays.asList("azure"), null, null, null, true, 5, false);
+
+    CloudOpsCacheValidator.CacheValidationResult result =
         CloudOpsCacheValidator.validateCacheConfig(validConfig);
-    
+
     assertTrue(result.isValid());
     logger.info("✅ Valid config validation: {}", result);
 
-    // Test invalid configuration  
-    CloudOpsConfig invalidConfig = new CloudOpsConfig(
-        Arrays.asList("azure"), null, null, null, true, -1, false);
-    
-    CloudOpsCacheValidator.CacheValidationResult invalidResult = 
+    // Test invalid configuration
+    CloudOpsConfig invalidConfig =
+        new CloudOpsConfig(Arrays.asList("azure"), null, null, null, true, -1, false);
+
+    CloudOpsCacheValidator.CacheValidationResult invalidResult =
         CloudOpsCacheValidator.validateCacheConfig(invalidConfig);
-    
+
     assertFalse(invalidResult.isValid());
     assertFalse(invalidResult.getErrors().isEmpty());
     logger.info("✅ Invalid config validation: {}", invalidResult);

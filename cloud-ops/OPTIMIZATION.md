@@ -29,12 +29,12 @@ The foundational infrastructure for query optimization has been **completed**:
 Azure Resource Graph supports KQL `order by` clause natively:
 ```java
 public class AzureProvider implements CloudProvider {
-    public List<Map<String, Object>> queryWithSort(String resourceType, 
+    public List<Map<String, Object>> queryWithSort(String resourceType,
                                                    List<SortField> sortFields,
                                                    int limit) {
         StringBuilder kql = new StringBuilder();
         kql.append("Resources | where type == '").append(resourceType).append("'");
-        
+
         // Push sort to Azure Resource Graph
         if (!sortFields.isEmpty()) {
             kql.append(" | order by ");
@@ -44,11 +44,11 @@ public class AzureProvider implements CloudProvider {
                    .append(", ");
             }
         }
-        
+
         if (limit > 0) {
             kql.append(" | limit ").append(limit);
         }
-        
+
         return executeKqlQuery(kql.toString());
     }
 }
@@ -66,24 +66,24 @@ public class AWSProvider implements CloudProvider {
                 .values("running")
                 .build())
             .build();
-        
+
         // AWS doesn't support server-side sorting for EC2
         // But we can optimize by fetching only required fields
         List<Instance> instances = ec2Client.describeInstances(request)
             .reservations().stream()
             .flatMap(r -> r.instances().stream())
             .collect(Collectors.toList());
-            
+
         // Client-side sort only when necessary
         return sortLocally(instances, sortOrder);
     }
-    
+
     // For services that support sorting (like S3)
     public List<S3Bucket> getBucketsSorted() {
         ListBucketsV2Request request = ListBucketsV2Request.builder()
             .sortBy(BucketSortBy.CREATION_DATE)  // Native sort support
             .build();
-        
+
         return s3Client.listBucketsV2(request).buckets();
     }
 }
@@ -99,7 +99,7 @@ public class GCPProvider implements CloudProvider {
             .setOrderBy(orderBy)  // e.g., "name desc", "createTime"
             .setPageSize(500)
             .build();
-        
+
         return assetClient.searchAllResources(request)
             .iterateAll()
             .stream()
@@ -113,12 +113,12 @@ public class GCPProvider implements CloudProvider {
 ```java
 public class CloudOpsSortRule extends RelOptRule {
     public static final CloudOpsSortRule INSTANCE = new CloudOpsSortRule();
-    
+
     @Override
     public void onMatch(RelOptRuleCall call) {
         final Sort sort = call.rel(0);
         final CloudOpsTableScan scan = call.rel(1);
-        
+
         // Check if provider supports sort pushdown
         if (scan.getTable().supportsSort()) {
             CloudOpsTableScan newScan = scan.withSort(
@@ -143,13 +143,13 @@ public class CloudOpsSortRule extends RelOptRule {
 
 ##### Limit Pushdown
 ```java
-public abstract class AbstractCloudOpsTable extends AbstractTable 
+public abstract class AbstractCloudOpsTable extends AbstractTable
     implements ProjectableFilterableTable {
-    
+
     protected Integer limit;
     protected Integer offset;
-    
-    public Enumerable<Object[]> scan(DataContext root, 
+
+    public Enumerable<Object[]> scan(DataContext root,
                                      List<RexNode> filters,
                                      int[] projects,
                                      Integer fetchLimit,
@@ -157,14 +157,14 @@ public abstract class AbstractCloudOpsTable extends AbstractTable
         // Push limit to cloud provider
         this.limit = fetchLimit;
         this.offset = fetchOffset;
-        
+
         List<Map<String, Object>> results = queryCloudProvider(
-            filters, 
-            projects, 
-            limit, 
+            filters,
+            projects,
+            limit,
             offset
         );
-        
+
         return Linq4j.asEnumerable(results)
             .select(row -> projectRow(row, projects));
     }
@@ -175,8 +175,8 @@ public abstract class AbstractCloudOpsTable extends AbstractTable
 
 **Azure Resource Graph** (supports top/skip):
 ```java
-public List<Map<String, Object>> queryWithPagination(String kql, 
-                                                     int limit, 
+public List<Map<String, Object>> queryWithPagination(String kql,
+                                                     int limit,
                                                      int offset) {
     String paginatedKql = kql;
     if (offset > 0) {
@@ -185,13 +185,13 @@ public List<Map<String, Object>> queryWithPagination(String kql,
     if (limit > 0) {
         paginatedKql += " | top " + limit;
     }
-    
+
     QueryRequest request = new QueryRequest()
         .withQuery(paginatedKql)
         .withOptions(new QueryRequestOptions()
             .withTop(limit)
             .withSkip(offset));
-    
+
     return resourceGraphClient.resources(request);
 }
 ```
@@ -203,24 +203,24 @@ public class AWSPaginationHandler {
         List<Instance> allInstances = new ArrayList<>();
         String nextToken = null;
         int fetched = 0;
-        
+
         do {
             DescribeInstancesRequest request = DescribeInstancesRequest.builder()
                 .nextToken(nextToken)
                 .maxResults(Math.min(100, maxResults - fetched))
                 .build();
-            
+
             DescribeInstancesResponse response = ec2Client.describeInstances(request);
-            
+
             response.reservations().forEach(reservation ->
                 allInstances.addAll(reservation.instances())
             );
-            
+
             nextToken = response.nextToken();
             fetched = allInstances.size();
-            
+
         } while (nextToken != null && fetched < maxResults);
-        
+
         return allInstances;
     }
 }
@@ -233,30 +233,30 @@ public class GCPPaginationHandler {
         List<Asset> allAssets = new ArrayList<>();
         String pageToken = null;
         int pagesRetrieved = 0;
-        
+
         while (pagesRetrieved < maxPages) {
-            SearchAllResourcesRequest.Builder requestBuilder = 
+            SearchAllResourcesRequest.Builder requestBuilder =
                 SearchAllResourcesRequest.newBuilder()
                     .setScope("projects/" + projectId)
                     .setPageSize(pageSize);
-            
+
             if (pageToken != null) {
                 requestBuilder.setPageToken(pageToken);
             }
-            
-            SearchAllResourcesPagedResponse response = 
+
+            SearchAllResourcesPagedResponse response =
                 assetClient.searchAllResources(requestBuilder.build());
-            
+
             for (ResourceSearchResult result : response.getPage().getValues()) {
                 allAssets.add(convertToAsset(result));
             }
-            
+
             pageToken = response.getNextPageToken();
             pagesRetrieved++;
-            
+
             if (pageToken == null) break;
         }
-        
+
         return allAssets;
     }
 }
@@ -269,12 +269,12 @@ public class GCPPaginationHandler {
 public class CloudOpsFilterTranslator {
     public CloudProviderFilter translate(List<RexNode> filters) {
         CloudProviderFilter result = new CloudProviderFilter();
-        
+
         for (RexNode filter : filters) {
             if (filter instanceof RexCall) {
                 RexCall call = (RexCall) filter;
                 SqlOperator op = call.getOperator();
-                
+
                 // Translate to provider-specific filter
                 if (op == SqlStdOperatorTable.EQUALS) {
                     result.addEqualsFilter(
@@ -295,7 +295,7 @@ public class CloudOpsFilterTranslator {
                 }
             }
         }
-        
+
         return result;
     }
 }
@@ -306,20 +306,20 @@ public class CloudOpsFilterTranslator {
 #### Minimize Data Transfer
 ```java
 public class ProjectionOptimizer {
-    public List<String> optimizeProjection(int[] projects, 
+    public List<String> optimizeProjection(int[] projects,
                                           RelDataType rowType) {
         List<String> requestedFields = new ArrayList<>();
-        
+
         // Only request fields that are actually needed
         for (int project : projects) {
             String fieldName = rowType.getFieldList()
                 .get(project).getName();
             requestedFields.add(fieldName);
         }
-        
+
         // Add fields required for filters/sorts even if not projected
         requestedFields.addAll(getRequiredFields());
-        
+
         return requestedFields;
     }
 }
@@ -330,19 +330,19 @@ public class ProjectionOptimizer {
 #### Multi-Account/Project Parallelization
 ```java
 public class ParallelCloudQueryExecutor {
-    private final ExecutorService executor = 
+    private final ExecutorService executor =
         Executors.newFixedThreadPool(10);
-    
+
     public List<Map<String, Object>> queryAllAccounts(
             List<String> accounts,
             QuerySpec querySpec) {
-        
-        List<CompletableFuture<List<Map<String, Object>>>> futures = 
+
+        List<CompletableFuture<List<Map<String, Object>>>> futures =
             accounts.stream()
                 .map(account -> CompletableFuture.supplyAsync(() ->
                     queryAccount(account, querySpec), executor))
                 .collect(Collectors.toList());
-        
+
         // Combine results from all accounts
         return futures.stream()
             .map(CompletableFuture::join)
@@ -358,18 +358,18 @@ public class ParallelCloudQueryExecutor {
 ```java
 public class CloudOpsCacheManager {
     private final Cache<QueryKey, List<Map<String, Object>>> cache;
-    
+
     public CloudOpsCacheManager() {
         this.cache = Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
     }
-    
+
     public List<Map<String, Object>> getCachedOrQuery(
             QueryKey key,
             Supplier<List<Map<String, Object>>> querySupplier) {
-        
+
         return cache.get(key, k -> querySupplier.get());
     }
 }
@@ -423,29 +423,29 @@ public void testSortPushdownPerformance() {
         "SELECT * FROM kubernetes_clusters ORDER BY cluster_name",
         false
     );
-    
+
     long withPushdown = measureQuery(
         "SELECT * FROM kubernetes_clusters ORDER BY cluster_name",
         true
     );
-    
+
     double improvement = (1.0 - (withPushdown / (double) withoutPushdown)) * 100;
-    assertTrue("Sort pushdown should improve performance by >50%", 
+    assertTrue("Sort pushdown should improve performance by >50%",
                improvement > 50);
 }
 
 @Test
 @Category(PerformanceTest.class)
 public void testPaginationMemoryUsage() {
-    long memoryBefore = Runtime.getRuntime().totalMemory() - 
+    long memoryBefore = Runtime.getRuntime().totalMemory() -
                        Runtime.getRuntime().freeMemory();
-    
+
     // Query with pagination
     executeQuery("SELECT * FROM storage_resources LIMIT 100 OFFSET 1000");
-    
-    long memoryAfter = Runtime.getRuntime().totalMemory() - 
+
+    long memoryAfter = Runtime.getRuntime().totalMemory() -
                        Runtime.getRuntime().freeMemory();
-    
+
     long memoryUsed = memoryAfter - memoryBefore;
     assertTrue("Memory usage should be under 10MB for paginated query",
                memoryUsed < 10 * 1024 * 1024);
@@ -458,17 +458,17 @@ public void testPaginationMemoryUsage() {
 ```java
 public class CloudOpsMetrics {
     private final MeterRegistry registry;
-    
+
     public void recordQueryMetrics(QueryExecution execution) {
         registry.timer("cloud.ops.query.time")
             .record(execution.getDuration());
-        
+
         registry.counter("cloud.ops.rows.fetched")
             .increment(execution.getRowCount());
-        
-        registry.gauge("cloud.ops.memory.used", 
+
+        registry.gauge("cloud.ops.memory.used",
             execution.getPeakMemoryUsage());
-        
+
         registry.counter("cloud.ops.optimization.pushdown",
             "type", execution.getPushdownType())
             .increment();

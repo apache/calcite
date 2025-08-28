@@ -207,14 +207,14 @@ public class StorageResourcesTable extends AbstractCloudOpsTable {
     try {
       // Use the optimized AWS provider with projection support
       AWSProvider awsProvider = new AWSProvider(config.aws);
-      List<Map<String, Object>> storageResults = awsProvider.queryStorageResources(accountIds, 
-          projectionHandler, sortHandler, paginationHandler, filterHandler);
+      List<Map<String, Object>> storageResults =
+          awsProvider.queryStorageResources(accountIds, projectionHandler, sortHandler, paginationHandler, filterHandler);
 
       for (Map<String, Object> storage : storageResults) {
         // Handle null values gracefully for fields that may not have been fetched
-        Boolean publicAccessBlocked = storage.get("PublicAccessBlocked") != null ? 
+        Boolean publicAccessBlocked = storage.get("PublicAccessBlocked") != null ?
             (Boolean) storage.get("PublicAccessBlocked") : null;
-        
+
         results.add(new Object[]{
             "aws",
             storage.get("AccountId"),
@@ -229,7 +229,7 @@ public class StorageResourcesTable extends AbstractCloudOpsTable {
             null, // replication_type - would need to check replication rules
             storage.get("EncryptionEnabled"),
             storage.get("EncryptionType"),
-            storage.get("KmsKeyId") != null ? "customer-managed" : 
+            storage.get("KmsKeyId") != null ? "customer-managed" :
                 (storage.get("EncryptionEnabled") != null ? "service-managed" : null),
             publicAccessBlocked != null ? !publicAccessBlocked : null,
             publicAccessBlocked != null ? (publicAccessBlocked ? "blocked" : "allowed") : null,

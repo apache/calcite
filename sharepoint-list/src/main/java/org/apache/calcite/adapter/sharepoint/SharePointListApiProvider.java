@@ -26,7 +26,7 @@ import java.util.Map;
  * to allow dual API support for both cloud and on-premises deployments.
  */
 public interface SharePointListApiProvider {
-  
+
   /**
    * Gets all lists available in the SharePoint site.
    *
@@ -34,7 +34,7 @@ public interface SharePointListApiProvider {
    * @throws IOException if API call fails
    */
   List<SharePointListInfo> getListsInSite() throws IOException;
-  
+
   /**
    * Gets the schema (columns) for a specific list.
    *
@@ -43,7 +43,7 @@ public interface SharePointListApiProvider {
    * @throws IOException if API call fails
    */
   ListSchemaInfo getListSchema(String listId) throws IOException;
-  
+
   /**
    * Gets items from a SharePoint list with optional filtering and pagination.
    *
@@ -56,9 +56,9 @@ public interface SharePointListApiProvider {
    * @return List of items as maps of field names to values
    * @throws IOException if API call fails
    */
-  List<Map<String, Object>> getListItems(String listId, String filter, 
+  List<Map<String, Object>> getListItems(String listId, String filter,
       String select, String orderBy, int top, int skip) throws IOException;
-  
+
   /**
    * Gets a single item from a SharePoint list.
    *
@@ -68,7 +68,7 @@ public interface SharePointListApiProvider {
    * @throws IOException if API call fails
    */
   Map<String, Object> getListItem(String listId, String itemId) throws IOException;
-  
+
   /**
    * Creates a new item in a SharePoint list.
    *
@@ -78,7 +78,7 @@ public interface SharePointListApiProvider {
    * @throws IOException if API call fails
    */
   String createListItem(String listId, Map<String, Object> item) throws IOException;
-  
+
   /**
    * Updates an existing item in a SharePoint list.
    *
@@ -87,9 +87,9 @@ public interface SharePointListApiProvider {
    * @param updates Map of field names to updated values
    * @throws IOException if API call fails
    */
-  void updateListItem(String listId, String itemId, Map<String, Object> updates) 
+  void updateListItem(String listId, String itemId, Map<String, Object> updates)
       throws IOException;
-  
+
   /**
    * Deletes an item from a SharePoint list.
    *
@@ -98,19 +98,19 @@ public interface SharePointListApiProvider {
    * @throws IOException if API call fails
    */
   void deleteListItem(String listId, String itemId) throws IOException;
-  
+
   /**
    * Gets the API type this provider uses.
    *
    * @return "graph" for Microsoft Graph API, "rest" for SharePoint REST API
    */
   String getApiType();
-  
+
   /**
    * Closes any resources held by this provider.
    */
   void close();
-  
+
   /**
    * Simple data class for SharePoint list information.
    */
@@ -119,20 +119,20 @@ public interface SharePointListApiProvider {
     private final String name;
     private final String displayName;
     private final String description;
-    
+
     public SharePointListInfo(String id, String name, String displayName, String description) {
       this.id = id;
       this.name = name;
       this.displayName = displayName;
       this.description = description;
     }
-    
+
     public String getId() { return id; }
     public String getName() { return name; }
     public String getDisplayName() { return displayName; }
     public String getDescription() { return description; }
   }
-  
+
   /**
    * Simple data class for list schema information.
    */
@@ -140,13 +140,13 @@ public interface SharePointListApiProvider {
     private final String name;
     private final String displayName;
     private final List<SharePointColumn> columns;
-    
+
     public ListSchemaInfo(String name, String displayName, List<SharePointColumn> columns) {
       this.name = name;
       this.displayName = displayName;
       this.columns = columns;
     }
-    
+
     public String getName() { return name; }
     public String getDisplayName() { return displayName; }
     public List<SharePointColumn> getColumns() { return columns; }

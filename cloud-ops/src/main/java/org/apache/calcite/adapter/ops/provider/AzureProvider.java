@@ -47,7 +47,7 @@ import java.util.Map;
  */
 public class AzureProvider implements CloudProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(AzureProvider.class);
-  
+
   private final CloudOpsConfig.AzureConfig config;
   private final ResourceGraphManager resourceGraphManager;
   private final ObjectMapper objectMapper;
@@ -67,7 +67,7 @@ public class AzureProvider implements CloudProvider {
 
     this.resourceGraphManager = ResourceGraphManager
         .authenticate(credential, profile);
-    
+
     // Initialize cache manager with defaults (will be updated to use CloudOpsConfig)
     this.cacheManager = new CloudOpsCacheManager(5, false);
   }
@@ -91,9 +91,9 @@ public class AzureProvider implements CloudProvider {
 
   private List<Map<String, Object>> executeKqlQuery(String kql, List<String> subscriptionIds) {
     // Build cache key for the query
-    String cacheKey = CloudOpsCacheManager.buildCacheKey("azure", "kql", 
-        kql.hashCode(), subscriptionIds);
-    
+    String cacheKey =
+        CloudOpsCacheManager.buildCacheKey("azure", "kql", kql.hashCode(), subscriptionIds);
+
     return cacheManager.getOrCompute(cacheKey, () -> {
       List<Map<String, Object>> results = new ArrayList<>();
 
@@ -160,16 +160,17 @@ public class AzureProvider implements CloudProvider {
                                                           @Nullable CloudOpsSortHandler sortHandler,
                                                           @Nullable CloudOpsPaginationHandler paginationHandler,
                                                           @Nullable CloudOpsFilterHandler filterHandler) {
-    
+
     // Build comprehensive cache key including all optimization parameters
-    String cacheKey = CloudOpsCacheManager.buildComprehensiveCacheKey("azure", "kubernetes_clusters",
-        projectionHandler, sortHandler, paginationHandler, filterHandler, subscriptionIds);
-    
+    String cacheKey =
+        CloudOpsCacheManager.buildComprehensiveCacheKey("azure", "kubernetes_clusters", projectionHandler, sortHandler, paginationHandler, filterHandler, subscriptionIds);
+
     // Check if caching is beneficial for this query
     boolean shouldCache = CloudOpsCacheManager.shouldCache(filterHandler, paginationHandler);
-    
+
     if (shouldCache) {
-      return cacheManager.getOrCompute(cacheKey, () -> executeKubernetesClusterQuery(
+      return cacheManager.getOrCompute(
+          cacheKey, () -> executeKubernetesClusterQuery(
           subscriptionIds, projectionHandler, sortHandler, paginationHandler, filterHandler));
     } else {
       // Execute directly without caching for highly specific queries
@@ -190,7 +191,7 @@ public class AzureProvider implements CloudProvider {
         CloudOpsProjectionHandler.ProjectionMetrics metrics = projectionHandler.calculateMetrics();
         LOGGER.debug("Azure KQL with projection optimization: {}", metrics);
       }
-      
+
       if (filterHandler != null && filterHandler.hasPushableFilters()) {
         CloudOpsFilterHandler.FilterMetrics metrics = filterHandler.calculateMetrics(true, 0);
         LOGGER.debug("Azure KQL with filter optimization: {}", metrics);
@@ -214,7 +215,7 @@ public class AzureProvider implements CloudProvider {
     // Invalidate all cache entries that contain this subscription ID
     // This is a simplified approach - in production, you might want more granular invalidation
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Invalidated Azure cache for subscription: {}", subscriptionId);
     }
@@ -225,7 +226,7 @@ public class AzureProvider implements CloudProvider {
    */
   public void invalidateAllCache() {
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isInfoEnabled()) {
       LOGGER.info("Invalidated all Azure cache entries");
     }
