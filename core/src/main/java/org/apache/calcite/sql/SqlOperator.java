@@ -473,7 +473,7 @@ public abstract class SqlOperator {
    * Validates a call to this operator.
    *
    * <p>This method should not perform type-derivation or perform validation
-   * related related to types. That is done later, by
+   * related to types. That is done later, by
    * {@link #deriveType(SqlValidator, SqlValidatorScope, SqlCall)}. This method
    * should focus on structural validation.
    *

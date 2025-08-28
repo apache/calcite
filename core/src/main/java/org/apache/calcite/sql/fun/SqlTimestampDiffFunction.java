@@ -20,13 +20,16 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
@@ -111,5 +114,45 @@ class SqlTimestampDiffFunction extends SqlFunction {
     } else {
       validator.validateTimeFrame(call.operand(0));
     }
+  }
+
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+    // Coerce type first.
+    SqlValidator validator = callBinding.getValidator();
+    SqlCall call = callBinding.getCall();
+    int leftIndex = 1;
+    int rightIndex = 2;
+    if (call.operand(2) instanceof SqlIntervalQualifier) {
+      leftIndex = 0;
+      rightIndex = 1;
+    }
+
+    RelDataType left = callBinding.getOperandType(leftIndex);
+    RelDataType right = callBinding.getOperandType(rightIndex);
+
+    // For a subtraction between DATE and TIME cast the DATE operand to TIMESTAMP
+    if (left.getSqlTypeName() == SqlTypeName.DATE && right.getSqlTypeName() == SqlTypeName.TIME) {
+      RelDataType common = validator.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+      common = validator.getTypeFactory().createTypeWithNullability(common, left.isNullable());
+
+      SqlNode castLeft =
+          SqlStdOperatorTable.CAST.createCall(
+              call.getParserPosition(), call.getOperandList().get(leftIndex),
+              SqlTypeUtil.convertTypeToSpec(common).withNullable(common.isNullable()));
+      call.setOperand(leftIndex, castLeft);
+      validator.setValidatedNodeType(castLeft, common);
+    }
+    if (right.getSqlTypeName() == SqlTypeName.DATE && left.getSqlTypeName() == SqlTypeName.TIME) {
+      RelDataType common = validator.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+      common = validator.getTypeFactory().createTypeWithNullability(common, right.isNullable());
+
+      SqlNode castRight =
+          SqlStdOperatorTable.CAST.createCall(
+              call.getParserPosition(), call.getOperandList().get(rightIndex),
+              SqlTypeUtil.convertTypeToSpec(common).withNullable(common.isNullable()));
+      call.setOperand(rightIndex, castRight);
+      validator.setValidatedNodeType(castRight, common);
+    }
+    return super.checkOperandTypes(callBinding, throwOnFailure);
   }
 }
