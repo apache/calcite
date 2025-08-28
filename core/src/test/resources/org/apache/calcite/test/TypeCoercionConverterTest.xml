@@ -50,7 +50,7 @@ from t1]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(F0=[true], F1=[true], F2=[false], F3=[NOT($10)], F4=[=($1, CASE($10, 1:SMALLINT, 0:SMALLINT))], F5=[false])
+LogicalProject(F0=[true], F1=[true], F2=[false], F3=[$10], F4=[=($1, CASE($10, 1:SMALLINT, 0:SMALLINT))], F5=[true])
   LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
     </Resource>
