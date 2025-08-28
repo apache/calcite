@@ -19,6 +19,9 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.SubQueryAliasTrait;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
@@ -79,7 +82,7 @@ public class PivotRelToSqlUtil {
     }
 
     //create axisList parameter
-    SqlNodeList axisNodeList = getAxisNodeList(selectColumnList, hasSubquery);
+    SqlNodeList axisNodeList = getAxisNodeList(selectColumnList, hasSubquery, e);
 
     //create pivotAggregateColumnList parameter
     SqlNodeList pivotAggregateColumnList = getAggregateColumnNode(e);
@@ -176,7 +179,7 @@ public class PivotRelToSqlUtil {
     return new SqlNodeList(aggArgList, pos);
   }
 
-  private SqlNodeList getAxisNodeList(List<SqlNode> selectColumnList, boolean hasSubquery) {
+  private SqlNodeList getAxisNodeList(List<SqlNode> selectColumnList, boolean hasSubquery, Aggregate e) {
 
     final Set<SqlNode> modifiedAxisNodeList = new HashSet<>();
 
@@ -213,7 +216,7 @@ public class PivotRelToSqlUtil {
 
     if (axisNodeList.getOperator().kind == SqlKind.AS) {
       if (isLowerFunction(axisNodeList.operand(0))) {
-        modifiedAxisNodeList.add(axisNodeList.operand(0));
+        addAxisNodeOperand(modifiedAxisNodeList, axisNodeList.operand(0), e);
       } else if (axisNodeList.operand(1) instanceof SqlCharStringLiteral) {
         modifiedAxisNodeList.add(getSqlIdentifier(axisNodeList.operand(1)));
       } else {
@@ -232,6 +235,37 @@ public class PivotRelToSqlUtil {
   private boolean isLowerFunction(SqlNode node) {
     return node instanceof SqlBasicCall
         && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.LOWER;
+  }
+
+  private String getSubQueryAlias(RelTraitSet relTraitSet) {
+    SubQueryAliasTrait relTrait = relTraitSet.getTrait(SubQueryAliasTraitDef.instance);
+    if (relTrait  != null) {
+      return relTrait.getSubQueryAlias();
+    }
+    return null;
+  }
+
+  private boolean hasSameAliasNotInAxisColumn(SqlBasicCall call, String subQueryAlias) {
+    if (!(call.getOperandList().get(0) instanceof SqlIdentifier)) {
+      return false;
+    }
+    SqlIdentifier sqlIdentifier = (SqlIdentifier) call.getOperandList().get(0);
+    return sqlIdentifier.names.size() == 2 && !Objects.equals(sqlIdentifier.names.get(0),
+        subQueryAlias);
+  }
+
+  private void addAxisNodeOperand(Set<SqlNode> modifiedAxisNodeList, SqlBasicCall call,
+      Aggregate e) {
+    String subQueryAlias = getSubQueryAlias(e.getInput().getTraitSet());
+    if (hasSameAliasNotInAxisColumn(call, subQueryAlias)) {
+      SqlIdentifier columnIdentifier =
+          new SqlIdentifier(((SqlIdentifier) call.getOperandList().get(0)).names.get(1), pos);
+      modifiedAxisNodeList.add(
+          SqlStdOperatorTable.LOWER.createCall(SqlParserPos.ZERO,
+          columnIdentifier));
+    } else {
+      modifiedAxisNodeList.add(call);
+    }
   }
 
   private SqlNode extractSecondOperand(SqlBasicCall sqlBasicCall) {

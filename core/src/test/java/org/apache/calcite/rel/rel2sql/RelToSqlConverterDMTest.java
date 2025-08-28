@@ -5912,6 +5912,17 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testSession() {
+    final RelBuilder builder = relBuilder();
+    builder.push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(builder.alias(builder.call(SqlLibraryOperators.SESSION), "EXPR$"));
+    final RelNode root = builder.build();
+    final String expectedTDQuery =
+        "SELECT SESSION()";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
   @Test public void testParseTimestampFunctionFormat() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
@@ -13711,5 +13722,18 @@ class RelToSqlConverterDMTest {
     final String expectedTDSql = "SELECT FORMAT_DATE('%m%Y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
+  }
+
+  @Test public void testTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFormatNode =
+        builder.call(SqlLibraryOperators.TRUNC_VERTICA, builder.call(CURRENT_DATE), builder.literal("HH"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateFormatNode)
+        .build();
+    final String expectedSql = "SELECT TRUNC(CURRENT_DATE, 'HH') AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.VERTICA.getDialect()), isLinux(expectedSql));
   }
 }
