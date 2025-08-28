@@ -4657,7 +4657,7 @@ public class SqlToRelConverter {
       case ARRAY_QUERY_CONSTRUCTOR:
       case MAP_QUERY_CONSTRUCTOR:
         final RelRoot root = convertQuery(call.operand(0), false, true);
-        input = root.rel;
+        input = root.project();
         break;
       default:
         lastList.add(operand);
