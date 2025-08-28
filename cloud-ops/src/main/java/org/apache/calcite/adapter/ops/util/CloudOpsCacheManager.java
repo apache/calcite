@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -39,7 +38,7 @@ public class CloudOpsCacheManager {
   private final Cache<String, List<Map<String, Object>>> cache;
   private final Duration cacheTtl;
   private final boolean debugMode;
-  
+
   // Default cache settings
   private static final int DEFAULT_TTL_MINUTES = 5;
   private static final int MAX_CACHE_SIZE = 1000;
@@ -47,7 +46,7 @@ public class CloudOpsCacheManager {
   public CloudOpsCacheManager(int ttlMinutes, boolean debugMode) {
     this.cacheTtl = Duration.ofMinutes(ttlMinutes > 0 ? ttlMinutes : DEFAULT_TTL_MINUTES);
     this.debugMode = debugMode;
-    
+
     this.cache = Caffeine.newBuilder()
         .maximumSize(MAX_CACHE_SIZE)
         .expireAfterWrite(this.cacheTtl)
@@ -55,7 +54,7 @@ public class CloudOpsCacheManager {
         .build();
 
     if (logger.isInfoEnabled()) {
-      logger.info("CloudOpsCacheManager initialized: TTL={}min, MaxSize={}, Debug={}", 
+      logger.info("CloudOpsCacheManager initialized: TTL={}min, MaxSize={}, Debug={}",
                  this.cacheTtl.toMinutes(), MAX_CACHE_SIZE, debugMode);
     }
   }
@@ -63,10 +62,10 @@ public class CloudOpsCacheManager {
   /**
    * Get cached result or compute if not present.
    */
-  public List<Map<String, Object>> getOrCompute(String cacheKey, 
+  public List<Map<String, Object>> getOrCompute(String cacheKey,
                                                Supplier<List<Map<String, Object>>> apiCall) {
     long startTime = System.currentTimeMillis();
-    
+
     List<Map<String, Object>> result = cache.get(cacheKey, key -> {
       if (debugMode && logger.isDebugEnabled()) {
         logger.debug("Cache MISS for key: {} - executing API call", cacheKey);
@@ -75,11 +74,11 @@ public class CloudOpsCacheManager {
     });
 
     long duration = System.currentTimeMillis() - startTime;
-    
+
     if (debugMode && logger.isDebugEnabled()) {
       boolean wasFromCache = cache.getIfPresent(cacheKey) != null;
-      logger.debug("Cache {} for key: {} - {} results retrieved in {}ms", 
-                 wasFromCache ? "HIT" : "MISS", cacheKey, 
+      logger.debug("Cache {} for key: {} - {} results retrieved in {}ms",
+                 wasFromCache ? "HIT" : "MISS", cacheKey,
                  result != null ? result.size() : 0, duration);
     }
 
@@ -91,9 +90,9 @@ public class CloudOpsCacheManager {
    */
   public void put(String cacheKey, List<Map<String, Object>> result) {
     cache.put(cacheKey, result);
-    
+
     if (debugMode && logger.isDebugEnabled()) {
-      logger.debug("Cache PUT for key: {} - {} results cached", cacheKey, 
+      logger.debug("Cache PUT for key: {} - {} results cached", cacheKey,
                  result != null ? result.size() : 0);
     }
   }
@@ -103,7 +102,7 @@ public class CloudOpsCacheManager {
    */
   public void invalidate(String cacheKey) {
     cache.invalidate(cacheKey);
-    
+
     if (debugMode && logger.isDebugEnabled()) {
       logger.debug("Cache INVALIDATE for key: {}", cacheKey);
     }
@@ -115,7 +114,7 @@ public class CloudOpsCacheManager {
   public void invalidateAll() {
     long sizeBefore = cache.estimatedSize();
     cache.invalidateAll();
-    
+
     if (logger.isInfoEnabled()) {
       logger.info("Cache INVALIDATE ALL - {} entries cleared", sizeBefore);
     }
@@ -134,8 +133,7 @@ public class CloudOpsCacheManager {
         stats.hitRate(),
         stats.missRate(),
         stats.averageLoadPenalty(),
-        stats.evictionCount()
-    );
+        stats.evictionCount());
   }
 
   /**
@@ -144,36 +142,36 @@ public class CloudOpsCacheManager {
   public static String buildCacheKey(String provider, String operation, Object... params) {
     StringBuilder keyBuilder = new StringBuilder();
     keyBuilder.append(provider).append(":").append(operation);
-    
+
     for (Object param : params) {
       if (param != null) {
         keyBuilder.append(":").append(param.toString());
       }
     }
-    
+
     return keyBuilder.toString();
   }
 
   /**
    * Build cache key for filtered API calls (includes filter hash for uniqueness).
    */
-  public static String buildFilteredCacheKey(String provider, String operation, 
+  public static String buildFilteredCacheKey(String provider, String operation,
                                            CloudOpsFilterHandler filterHandler, Object... params) {
     StringBuilder keyBuilder = new StringBuilder();
     keyBuilder.append(provider).append(":").append(operation);
-    
+
     // Add filter hash for uniqueness
     if (filterHandler != null && filterHandler.hasPushableFilters()) {
       int filterHash = filterHandler.getPushableFilters().hashCode();
       keyBuilder.append(":filters:").append(filterHash);
     }
-    
+
     for (Object param : params) {
       if (param != null) {
         keyBuilder.append(":").append(param.toString());
       }
     }
-    
+
     return keyBuilder.toString();
   }
 
@@ -184,19 +182,19 @@ public class CloudOpsCacheManager {
                                             CloudOpsPaginationHandler paginationHandler, Object... params) {
     StringBuilder keyBuilder = new StringBuilder();
     keyBuilder.append(provider).append(":").append(operation);
-    
+
     // Add pagination parameters for uniqueness
     if (paginationHandler != null && paginationHandler.hasPagination()) {
       keyBuilder.append(":offset:").append(paginationHandler.getOffset());
       keyBuilder.append(":limit:").append(paginationHandler.getLimit());
     }
-    
+
     for (Object param : params) {
       if (param != null) {
         keyBuilder.append(":").append(param.toString());
       }
     }
-    
+
     return keyBuilder.toString();
   }
 
@@ -211,38 +209,38 @@ public class CloudOpsCacheManager {
                                                 Object... params) {
     StringBuilder keyBuilder = new StringBuilder();
     keyBuilder.append(provider).append(":").append(operation);
-    
+
     // Add projection hash
     if (projectionHandler != null && !projectionHandler.isSelectAll()) {
       int projectionHash = projectionHandler.getProjectedFieldNames().hashCode();
       keyBuilder.append(":proj:").append(projectionHash);
     }
-    
+
     // Add sort hash
     if (sortHandler != null && sortHandler.hasSort()) {
       int sortHash = sortHandler.getSortFields().hashCode();
       keyBuilder.append(":sort:").append(sortHash);
     }
-    
+
     // Add pagination parameters
     if (paginationHandler != null && paginationHandler.hasPagination()) {
       keyBuilder.append(":page:").append(paginationHandler.getOffset())
                 .append(":").append(paginationHandler.getLimit());
     }
-    
+
     // Add filter hash
     if (filterHandler != null && filterHandler.hasPushableFilters()) {
       int filterHash = filterHandler.getPushableFilters().hashCode();
       keyBuilder.append(":filt:").append(filterHash);
     }
-    
+
     // Add additional parameters
     for (Object param : params) {
       if (param != null) {
         keyBuilder.append(":").append(param.toString());
       }
     }
-    
+
     return keyBuilder.toString();
   }
 
@@ -250,19 +248,19 @@ public class CloudOpsCacheManager {
    * Check if caching is beneficial for the current query.
    * Caching may not be beneficial for heavily filtered or paginated queries.
    */
-  public static boolean shouldCache(CloudOpsFilterHandler filterHandler, 
+  public static boolean shouldCache(CloudOpsFilterHandler filterHandler,
                                   CloudOpsPaginationHandler paginationHandler) {
     // Don't cache if we have many specific filters (results may be too specific)
     if (filterHandler != null && filterHandler.getPushableFilters().size() > 3) {
       return false;
     }
-    
+
     // Don't cache if pagination is very specific (e.g., high offset)
-    if (paginationHandler != null && paginationHandler.hasPagination() && 
+    if (paginationHandler != null && paginationHandler.hasPagination() &&
         paginationHandler.getOffset() > 100) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -270,7 +268,7 @@ public class CloudOpsCacheManager {
    * Get cache configuration summary.
    */
   public String getConfigSummary() {
-    return String.format("TTL=%dmin, MaxSize=%d, Debug=%s", 
+    return String.format("TTL=%dmin, MaxSize=%d, Debug=%s",
                         cacheTtl.toMinutes(), MAX_CACHE_SIZE, debugMode);
   }
 
@@ -288,7 +286,7 @@ public class CloudOpsCacheManager {
     public final long evictionCount;
 
     public CacheMetrics(long size, long requestCount, long hitCount, long missCount,
-                       double hitRate, double missRate, double averageLoadTime, 
+                       double hitRate, double missRate, double averageLoadTime,
                        long evictionCount) {
       this.size = size;
       this.requestCount = requestCount;

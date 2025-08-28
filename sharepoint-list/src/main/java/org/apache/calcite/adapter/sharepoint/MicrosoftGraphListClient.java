@@ -388,7 +388,7 @@ public class MicrosoftGraphListClient {
   public String getGraphApiBase() {
     return GRAPH_API_BASE;
   }
-  
+
   /**
    * Gets the site ID.
    */
@@ -396,7 +396,7 @@ public class MicrosoftGraphListClient {
     ensureInitialized();
     return siteId;
   }
-  
+
   /**
    * Downloads binary content from a URL.
    */
@@ -407,7 +407,7 @@ public class MicrosoftGraphListClient {
     conn.setRequestProperty("Authorization", "Bearer " + authenticator.getAccessToken());
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(60000);
-    
+
     int responseCode = conn.getResponseCode();
     if (responseCode >= 200 && responseCode < 300) {
       try (InputStream in = conn.getInputStream()) {
@@ -423,7 +423,7 @@ public class MicrosoftGraphListClient {
       throw new IOException("Failed to download binary: HTTP " + responseCode);
     }
   }
-  
+
   /**
    * Executes a Microsoft Graph API call.
    */

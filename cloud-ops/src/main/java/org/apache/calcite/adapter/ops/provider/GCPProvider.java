@@ -44,7 +44,7 @@ import java.util.Map;
  */
 public class GCPProvider implements CloudProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(GCPProvider.class);
-  
+
   private final CloudOpsConfig.GCPConfig config;
   private final GoogleCredentials credentials;
   private final CloudOpsCacheManager cacheManager;
@@ -104,16 +104,17 @@ public class GCPProvider implements CloudProvider {
                                                           @Nullable CloudOpsSortHandler sortHandler,
                                                           @Nullable CloudOpsPaginationHandler paginationHandler,
                                                           @Nullable CloudOpsFilterHandler filterHandler) {
-    
+
     // Build comprehensive cache key including all optimization parameters
-    String cacheKey = CloudOpsCacheManager.buildComprehensiveCacheKey("gcp", "kubernetes_clusters",
-        projectionHandler, sortHandler, paginationHandler, filterHandler, projectIds);
-    
+    String cacheKey =
+        CloudOpsCacheManager.buildComprehensiveCacheKey("gcp", "kubernetes_clusters", projectionHandler, sortHandler, paginationHandler, filterHandler, projectIds);
+
     // Check if caching is beneficial for this query
     boolean shouldCache = CloudOpsCacheManager.shouldCache(filterHandler, paginationHandler);
-    
+
     if (shouldCache) {
-      return cacheManager.getOrCompute(cacheKey, () -> executeKubernetesClusterQuery(
+      return cacheManager.getOrCompute(
+          cacheKey, () -> executeKubernetesClusterQuery(
           projectIds, projectionHandler, sortHandler, paginationHandler, filterHandler));
     } else {
       // Execute directly without caching for highly specific queries
@@ -312,7 +313,7 @@ public class GCPProvider implements CloudProvider {
   public void invalidateProjectCache(String projectId) {
     // For now, invalidate all cache entries - in production, you might want more granular invalidation
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Invalidated GCP cache for project: {}", projectId);
     }
@@ -324,7 +325,7 @@ public class GCPProvider implements CloudProvider {
   public void invalidateRegionCache(String region) {
     // For now, invalidate all cache entries - in production, you might want more granular invalidation
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Invalidated GCP cache for region: {}", region);
     }
@@ -335,7 +336,7 @@ public class GCPProvider implements CloudProvider {
    */
   public void invalidateAllCache() {
     cacheManager.invalidateAll();
-    
+
     if (LOGGER.isInfoEnabled()) {
       LOGGER.info("Invalidated all GCP cache entries");
     }

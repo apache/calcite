@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.ops;
 
 import org.apache.calcite.adapter.ops.util.CloudOpsFilterHandler;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -57,9 +56,9 @@ public class FilterPushdownIntegrationTest {
     if (config == null) {
       throw new IllegalStateException("Real credentials required from local-test.properties file");
     }
-    
-    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(
-        org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
+
+    SqlTypeFactoryImpl typeFactory =
+        new SqlTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
 
     // Create Kubernetes table schema for testing
@@ -100,7 +99,7 @@ public class FilterPushdownIntegrationTest {
     // Test AWS and GCP parameter extraction
     Map<String, Object> awsParams = filterHandler.getAWSFilterParameters();
     assertEquals("us-east-1", awsParams.get("region"));
-    
+
     Map<String, Object> gcpParams = filterHandler.getGCPFilterParameters();
     assertEquals("us-east-1", gcpParams.get("region"));
 
@@ -173,7 +172,7 @@ public class FilterPushdownIntegrationTest {
     RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
-    
+
     // Create provider = 'azure' OR provider = 'aws' which is equivalent to IN
     RexNode azureFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
     RexNode awsFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, awsLiteral);
@@ -216,7 +215,7 @@ public class FilterPushdownIntegrationTest {
 
     // Create multiple filters:
     // 1. cloud_provider = 'azure'
-    // 2. region = 'eastus'  
+    // 2. region = 'eastus'
     // 3. application = 'WebApp'
     RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
@@ -235,7 +234,7 @@ public class FilterPushdownIntegrationTest {
 
     // Test comprehensive filter analysis
     assertEquals(3, filterHandler.getPushableFilters().size());
-    
+
     // Test provider selection (should only query Azure)
     Set<String> providers = filterHandler.extractProviderConstraints();
     assertEquals(1, providers.size());
@@ -333,9 +332,9 @@ public class FilterPushdownIntegrationTest {
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
 
     // Calculate server-side metrics
-    CloudOpsFilterHandler.FilterMetrics serverSideMetrics = 
+    CloudOpsFilterHandler.FilterMetrics serverSideMetrics =
         filterHandler.calculateMetrics(true, 3);
-    
+
     assertEquals(3, serverSideMetrics.totalFilters);
     assertEquals(3, serverSideMetrics.filtersApplied);
     assertEquals(100.0, serverSideMetrics.pushdownPercent, 0.1);
@@ -343,16 +342,16 @@ public class FilterPushdownIntegrationTest {
     assertEquals("Server-side filter pushdown", serverSideMetrics.strategy);
 
     // Simulate client-side metrics for comparison
-    CloudOpsFilterHandler.FilterMetrics clientSideMetrics = 
+    CloudOpsFilterHandler.FilterMetrics clientSideMetrics =
         filterHandler.calculateMetrics(false, 3);
-    
+
     assertEquals(3, clientSideMetrics.totalFilters);
     assertFalse(clientSideMetrics.serverSidePushdown);
     assertEquals("Client-side filtering", clientSideMetrics.strategy);
 
     logger.info("✅ Server-side metrics: {}", serverSideMetrics);
     logger.info("✅ Client-side metrics: {}", clientSideMetrics);
-    
+
     // Verify optimization benefits
     assertTrue(serverSideMetrics.pushdownPercent > 50.0,
                "Server-side pushdown should provide significant optimization");

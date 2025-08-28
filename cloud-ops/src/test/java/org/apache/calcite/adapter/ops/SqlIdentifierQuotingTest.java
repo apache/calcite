@@ -27,7 +27,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -112,17 +111,17 @@ public class SqlIdentifierQuotingTest {
 
       // Test that metadata tables require proper quoting consistently
       // Test information_schema requires quoted uppercase table names
-      ResultSet infoResult = statement.executeQuery(
-          "SELECT \"TABLE_NAME\" FROM information_schema.\"TABLES\" WHERE \"TABLE_SCHEMA\" = 'public' LIMIT 1");
+      ResultSet infoResult =
+          statement.executeQuery("SELECT \"TABLE_NAME\" FROM information_schema.\"TABLES\" WHERE \"TABLE_SCHEMA\" = 'public' LIMIT 1");
       assertTrue(infoResult.next(), "Should find at least one table in information_schema");
       String infoTableName = infoResult.getString("TABLE_NAME");
       assertTrue(infoTableName != null && !infoTableName.isEmpty(), "Information schema table name should not be empty");
       System.out.println("Information schema table: " + infoTableName);
       infoResult.close();
 
-      // Test pg_catalog requires quoted uppercase table names  
-      ResultSet pgResult = statement.executeQuery(
-          "SELECT table_name FROM pg_catalog.\"CLOUD_RESOURCES\" WHERE table_name = '" + infoTableName + "' LIMIT 1");
+      // Test pg_catalog requires quoted uppercase table names
+      ResultSet pgResult =
+          statement.executeQuery("SELECT table_name FROM pg_catalog.\"CLOUD_RESOURCES\" WHERE table_name = '" + infoTableName + "' LIMIT 1");
       assertTrue(pgResult.next(), "Should find corresponding entry in pg_catalog");
       String pgTableName = pgResult.getString("table_name");
       assertThat("Table names should match across schemas", pgTableName, is(infoTableName));

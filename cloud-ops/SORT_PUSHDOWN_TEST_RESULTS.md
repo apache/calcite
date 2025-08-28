@@ -10,7 +10,7 @@
 
 **Key Features Implemented**:
 - Multi-field sort support with ASC/DESC directions
-- Azure KQL ORDER BY clause generation  
+- Azure KQL ORDER BY clause generation
 - GCP orderBy parameter generation
 - Client-side sorting with proper comparator chains
 - Sort optimization metrics calculation
@@ -53,7 +53,7 @@
 ### ✅ 4. Table Class Updates
 **Updated Files**:
 - ✅ KubernetesClustersTable.java
-- ✅ StorageResourcesTable.java  
+- ✅ StorageResourcesTable.java
 - ✅ ComputeResourcesTable.java
 - ✅ NetworkResourcesTable.java
 - ✅ IAMResourcesTable.java
@@ -101,7 +101,7 @@
 ### ✅ Test 2: Field Mapping Verification
 **Azure Field Mappings**:
 - `cluster_name` → `ClusterName` ✅
-- `region` → `Location` ✅  
+- `region` → `Location` ✅
 - `application` → `Application` ✅
 - `account_id` → `SubscriptionId` ✅
 
@@ -117,7 +117,7 @@
 
 **Test Cases**:
 1. ✅ Single field sort pushdown
-2. ✅ Multi-field sort pushdown  
+2. ✅ Multi-field sort pushdown
 3. ✅ Combined sort + projection optimization
 4. ✅ Provider-specific sort strategies
 5. ✅ Sort optimization metrics logging
@@ -161,16 +161,16 @@
 
 ### Single Field Sort
 ```sql
-SELECT cluster_name, region 
-FROM kubernetes_clusters 
+SELECT cluster_name, region
+FROM kubernetes_clusters
 ORDER BY cluster_name ASC
 ```
-**Azure Result**: KQL `| order by ClusterName asc`  
-**AWS Result**: Client-side sorting by cluster name  
+**Azure Result**: KQL `| order by ClusterName asc`
+**AWS Result**: Client-side sorting by cluster name
 **GCP Result**: `orderBy=name` parameter if supported
 
 ### Multi-Field Sort
-```sql  
+```sql
 SELECT cloud_provider, cluster_name, region
 FROM kubernetes_clusters
 ORDER BY cloud_provider ASC, region DESC, cluster_name ASC
@@ -183,7 +183,7 @@ ORDER BY cloud_provider ASC, region DESC, cluster_name ASC
 
 **Key Achievements**:
 1. ✅ Full multi-cloud sort pushdown implementation
-2. ✅ Provider-specific optimization strategies  
+2. ✅ Provider-specific optimization strategies
 3. ✅ Comprehensive integration test suite
 4. ✅ Debug logging and performance metrics
 5. ✅ Compilation and basic functionality verified

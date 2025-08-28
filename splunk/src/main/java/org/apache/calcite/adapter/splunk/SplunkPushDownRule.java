@@ -236,7 +236,8 @@ public class SplunkPushDownRule
     StringBuilder updateSearchStr = new StringBuilder(splunkRel.search);
 
     if (!toAppend.isEmpty()) {
-      updateSearchStr.append(" ").append(toAppend);
+      // In SPL, filters need to use the "| where" command, not raw conditions
+      updateSearchStr.append(" | where ").append(toAppend);
     }
     List<RelDataTypeField> bottomFields =
         bottomRow == null ? null : bottomRow.getFieldList();

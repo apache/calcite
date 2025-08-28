@@ -43,7 +43,7 @@ public class SharePointListSchemaFactory implements SchemaFactory {
     // Pass the entire operand map to support all auth patterns
     // This includes Phase 1-3 auth options and API selection flags
     Map<String, Object> config = new java.util.HashMap<>(operand);
-    
+
     // Ensure siteUrl is in the config
     config.put("siteUrl", siteUrl);
 

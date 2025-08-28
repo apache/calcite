@@ -96,7 +96,7 @@ When a query like `SELECT cloud_provider, account_id, resource_name FROM storage
 3. **StorageResourcesTable** passes handler to `AWSProvider`
 4. **AWSProvider** checks projected fields:
    - `needsLocation`: false
-   - `needsTags`: false  
+   - `needsTags`: false
    - `needsEncryption`: false
    - `needsPublicAccess`: false
    - `needsVersioning`: false

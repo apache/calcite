@@ -12,7 +12,7 @@
 - Multi-provider pagination strategy support (Azure, AWS, GCP)
 - LIMIT/OFFSET to provider-specific pagination parameter conversion
 - Azure KQL TOP/SKIP clause generation
-- AWS MaxResults/NextToken parameter support  
+- AWS MaxResults/NextToken parameter support
 - GCP pageSize/pageToken parameter support
 - Client-side pagination windowing for fallback scenarios
 - Pagination optimization metrics calculation
@@ -25,7 +25,7 @@
 #### Azure Provider (Full Server-Side KQL)
 **Enhancement**: `src/main/java/org/apache/calcite/adapter/ops/provider/AzureProvider.java`
 - ✅ KQL TOP/SKIP clause generation
-- ✅ Server-side pagination pushdown optimization  
+- ✅ Server-side pagination pushdown optimization
 - ✅ Full offset and limit support via KQL
 - ✅ Pagination metrics logging
 
@@ -59,7 +59,7 @@
 ### ✅ 4. Table Class Updates
 **Updated Files**:
 - ✅ KubernetesClustersTable.java
-- ✅ StorageResourcesTable.java  
+- ✅ StorageResourcesTable.java
 - ✅ ComputeResourcesTable.java
 - ✅ NetworkResourcesTable.java
 - ✅ IAMResourcesTable.java
@@ -80,7 +80,7 @@
 ```
 === Test 1: Basic LIMIT Pagination ===
 ✅ Should have pagination for LIMIT clause
-✅ Offset should be 0 for LIMIT only  
+✅ Offset should be 0 for LIMIT only
 ✅ Limit should be 10
 ✅ End position should be 10
 ✅ Azure should use server-side pagination
@@ -92,7 +92,7 @@
 **Test**: `testOffsetLimitPagination()`
 **Results**:
 ```
-=== Test 2: OFFSET + LIMIT Pagination ===  
+=== Test 2: OFFSET + LIMIT Pagination ===
 ✅ OFFSET 20, LIMIT 5 handling
 ✅ End position calculation: 25
 ✅ Azure: Full server-side support without multiple fetches
@@ -138,7 +138,7 @@
 ```
 === Test 6: Live SQL Pagination Queries ===
 ✅ LIMIT 5 query structure validation
-✅ OFFSET 2 LIMIT 3 query structure validation  
+✅ OFFSET 2 LIMIT 3 query structure validation
 ✅ Graceful handling when no live credentials available
 ✅ SQL query parsing and optimization hint extraction
 ```
@@ -168,7 +168,7 @@ OFFSET + LIMIT scenarios:
 **Test Cases**:
 1. ✅ Basic LIMIT pagination handler logic
 2. ✅ OFFSET + LIMIT combined optimization
-3. ✅ Client-side pagination windowing  
+3. ✅ Client-side pagination windowing
 4. ✅ Pagination optimization metrics
 5. ✅ Integration with projection and sort handlers
 6. ✅ Live SQL query structure validation (6/7 passed)
@@ -216,16 +216,16 @@ OFFSET + LIMIT scenarios:
 
 ### Single Field Pagination
 ```sql
-SELECT cluster_name, region 
-FROM kubernetes_clusters 
+SELECT cluster_name, region
+FROM kubernetes_clusters
 LIMIT 10
 ```
-**Azure Result**: KQL `| top 10`  
-**AWS Result**: `MaxResults=10` API parameter  
+**Azure Result**: KQL `| top 10`
+**AWS Result**: `MaxResults=10` API parameter
 **GCP Result**: `pageSize=10` API parameter
 
 ### OFFSET + LIMIT Pagination
-```sql  
+```sql
 SELECT cloud_provider, cluster_name, region
 FROM kubernetes_clusters
 ORDER BY cluster_name
@@ -239,7 +239,7 @@ LIMIT 5 OFFSET 20
 
 ### ✅ Pagination Optimization Metrics
 - **Azure**: Up to 100% server-side reduction with KQL TOP/SKIP
-- **AWS**: Variable reduction based on MaxResults vs total results  
+- **AWS**: Variable reduction based on MaxResults vs total results
 - **GCP**: Variable reduction based on pageSize vs total results
 - **Client-side**: Efficient windowing when server-side not available
 
@@ -254,7 +254,7 @@ LIMIT 5 OFFSET 20
 **Overall Test Results**: ✅ **6 of 7 tests PASSED** (85.7% success rate)
 
 - ✅ testBasicLimitPagination: **PASSED**
-- ✅ testOffsetLimitPagination: **PASSED**  
+- ✅ testOffsetLimitPagination: **PASSED**
 - ✅ testClientSidePaginationApplication: **PASSED**
 - ✅ testPaginationOptimizationMetrics: **PASSED**
 - ✅ testPaginationWithProjectionAndSort: **PASSED**

@@ -9,12 +9,12 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 ### Core Components Implemented
 
 #### **1. CloudOpsCacheManager Utility (NEW)**
-- **Location**: `src/main/java/org/apache/calcite/adapter/ops/util/CloudOpsCacheManager.java`  
+- **Location**: `src/main/java/org/apache/calcite/adapter/ops/util/CloudOpsCacheManager.java`
 - **Purpose**: Central caching engine with comprehensive cache key strategies and performance monitoring
 - **Key Features**:
   - Configurable TTL with 5-minute default (as requested)
   - Advanced cache key generation for different optimization scenarios
-  - Performance metrics calculation and cache hit rate analysis  
+  - Performance metrics calculation and cache hit rate analysis
   - Smart caching decisions based on query complexity
   - Support for filtered, paginated, and comprehensive optimization scenarios
 
@@ -33,7 +33,7 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 - **Cache Management**: Subscription-specific and global cache invalidation capabilities
 - **Performance Benefits**: Eliminates repeated Azure Resource Graph API calls for identical queries
 
-##### **AWS Provider Caching**  
+##### **AWS Provider Caching**
 - **Multi-Account Cache Coordination**: Account-specific caching with cross-account query optimization
 - **Region-Aware Caching**: Cache keys include region parameters for geographic query optimization
 - **API Call Reduction**: Caches expensive EKS describe operations and multi-page results
@@ -41,7 +41,7 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 
 ##### **GCP Provider Caching**
 - **Project-Based Cache Strategy**: Project-specific cache keys with multi-project coordination
-- **API Compatibility Optimization**: Graceful caching for current and future GCP API implementations  
+- **API Compatibility Optimization**: Graceful caching for current and future GCP API implementations
 - **Credential-Aware Caching**: Secure cache isolation per credential context
 - **Performance Monitoring**: Built-in metrics for GCP-specific cache performance
 
@@ -50,7 +50,7 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 - **Purpose**: Configuration validation and debug logging for cache setup
 - **Validation Features**:
   - TTL range validation (1-1440 minutes with warnings and recommendations)
-  - Multi-cloud setup optimization recommendations  
+  - Multi-cloud setup optimization recommendations
   - Debug mode performance impact warnings
   - Provider-specific cache configuration validation
 
@@ -60,11 +60,11 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 ```java
 // Simple provider:operation:params format
 "azure:kql:12345:subscription1:subscription2"
-"aws:kubernetes_clusters:account1:account2" 
+"aws:kubernetes_clusters:account1:account2"
 "gcp:gke:project1:project2"
 ```
 
-#### **Comprehensive Cache Keys**  
+#### **Comprehensive Cache Keys**
 ```java
 // Includes all optimization parameters
 "azure:kubernetes_clusters:proj:789:sort:456:page:0:50:filt:123:subscription1"
@@ -99,9 +99,9 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 - Configuration validation and error handling
 - Cache eviction behavior and memory management
 
-#### **CacheIntegrationTest.java (Integration Tests)**  
+#### **CacheIntegrationTest.java (Integration Tests)**
 - End-to-end cache configuration validation
-- Multi-provider cache coordination testing  
+- Multi-provider cache coordination testing
 - Cache invalidation scenarios across providers
 - Real-world cache key building and usage patterns
 - Performance metrics validation in integrated scenarios
@@ -128,7 +128,7 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 }
 ```
 
-#### **Production Cache Configuration** 
+#### **Production Cache Configuration**
 ```json
 {
   "cacheEnabled": true,
@@ -140,7 +140,7 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 #### **Development Cache Configuration**
 ```json
 {
-  "cacheEnabled": true, 
+  "cacheEnabled": true,
   "cacheTtlMinutes": 2,
   "cacheDebugMode": true
 }
@@ -152,11 +152,11 @@ I have successfully implemented a comprehensive API caching system for the Cloud
 ```
 CloudOpsCacheManager initialized: TTL=5min, MaxSize=1000, Debug=true
 Cache MISS for key: azure:kubernetes_clusters:proj:123... - executing API call
-Cache HIT for key: aws:kubernetes_clusters:filt:456... - 245 results retrieved in 3ms  
+Cache HIT for key: aws:kubernetes_clusters:filt:456... - 245 results retrieved in 3ms
 Cache performance: Hit rate 87.5% (excellent), 1205 requests processed
 ```
 
-#### **Configuration Validation Logging**  
+#### **Configuration Validation Logging**
 ```
 Cache configuration validation: Valid=true, Errors=0, Warnings=1, Recommendations=2
 Multi-cloud setup detected (3 providers) - caching will be beneficial for cross-provider queries
@@ -176,7 +176,7 @@ System.out.println("Performance: " + metrics.getPerformanceAssessment());
 ```java
 // Provider-specific invalidation
 azureProvider.invalidateSubscriptionCache("subscription-123");
-awsProvider.invalidateAccountCache("account-456"); 
+awsProvider.invalidateAccountCache("account-456");
 gcpProvider.invalidateProjectCache("project-789");
 
 // Global invalidation
@@ -185,9 +185,9 @@ provider.invalidateAllCache();
 
 #### **Cache Configuration Validation**
 ```java
-CloudOpsCacheValidator.CacheValidationResult result = 
+CloudOpsCacheValidator.CacheValidationResult result =
     CloudOpsCacheValidator.validateCacheConfig(config);
-    
+
 if (!result.isValid()) {
     logger.warn("Cache configuration errors: {}", result.getErrors());
 }
@@ -201,26 +201,26 @@ if (!result.isValid()) {
 - **Memory Efficient**: Automatic eviction prevents unbounded memory growth
 - **Provider Isolation**: Independent cache performance per cloud provider
 
-#### **Operational Excellence**  
+#### **Operational Excellence**
 - **Configuration Driven**: No code changes needed to adjust cache behavior
 - **Comprehensive Monitoring**: Built-in metrics for cache health and performance
 - **Graceful Degradation**: Automatic fallback to direct API calls on cache errors
 - **Debug Capabilities**: Detailed logging for troubleshooting and optimization
 
 #### **Production Readiness**
-- **Configurable TTL**: Balances freshness with performance based on requirements  
+- **Configurable TTL**: Balances freshness with performance based on requirements
 - **Cache Validation**: Prevents invalid configurations from causing runtime issues
 - **Performance Testing**: Comprehensive test suite validates behavior under load
 - **Memory Management**: Automatic eviction and configurable size limits
 
 ## Implementation Status
 
-### ✅ **COMPLETED COMPONENTS** 
+### ✅ **COMPLETED COMPONENTS**
 1. **CloudOpsCacheManager**: Complete caching engine with advanced key strategies
 2. **CloudOpsConfig Enhancement**: Cache configuration with 5-minute default TTL
-3. **Azure Provider Integration**: Comprehensive KQL query result caching  
+3. **Azure Provider Integration**: Comprehensive KQL query result caching
 4. **AWS Provider Integration**: Multi-account and region-aware caching
-5. **GCP Provider Integration**: Project-based cache strategy implementation  
+5. **GCP Provider Integration**: Project-based cache strategy implementation
 6. **CloudOpsCacheValidator**: Configuration validation and debug logging
 7. **Comprehensive Test Suite**: Unit, integration, and performance testing
 8. **Documentation**: Complete implementation and usage documentation
@@ -228,7 +228,7 @@ if (!result.isValid()) {
 ### 🔧 **FUTURE ENHANCEMENTS (OPTIONAL)**
 - Distributed caching for multi-instance deployments
 - Cache warming strategies for predictable query patterns
-- Advanced eviction policies based on usage patterns  
+- Advanced eviction policies based on usage patterns
 - Cache persistence for longer-term storage
 - Real-time cache metrics dashboards
 
@@ -237,7 +237,7 @@ if (!result.isValid()) {
 **The API caching implementation is production-ready and delivers massive performance improvements for multi-cloud queries.** The system intelligently caches API results by:
 
 1. **Analyzing query patterns** and building comprehensive cache keys
-2. **Applying smart caching decisions** based on query complexity and specificity  
+2. **Applying smart caching decisions** based on query complexity and specificity
 3. **Coordinating cache across providers** for optimal multi-cloud performance
 4. **Monitoring cache health** with comprehensive metrics and performance assessment
 5. **Providing operational control** through configuration and invalidation APIs

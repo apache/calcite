@@ -5,13 +5,13 @@
 ### Completed Work
 
 #### 1. Enhanced Table Scan Interface
-**Date**: 2024  
+**Date**: 2024
 **Status**: ✅ COMPLETED
 
 - **Changed**: `AbstractCloudOpsTable` from `FilterableTable` to `ProjectableFilterableTable`
 - **Added**: Enhanced `scan()` method signature:
   ```java
-  public Enumerable<Object[]> scan(DataContext root, 
+  public Enumerable<Object[]> scan(DataContext root,
                                    List<RexNode> filters,
                                    int[] projects,
                                    RelCollation collation,
@@ -21,19 +21,19 @@
 - **Result**: Tables now receive complete query optimization information
 
 #### 2. CloudOpsQueryOptimizer Utility
-**Date**: 2024  
-**Status**: ✅ COMPLETED  
+**Date**: 2024
+**Status**: ✅ COMPLETED
 **File**: `/cloud-ops/src/main/java/org/apache/calcite/adapter/ops/util/CloudOpsQueryOptimizer.java`
 
 Created comprehensive optimization analysis utility with:
 - `FilterInfo` - Extracts filters for specific fields
 - `SortInfo` - Captures sort field information
-- `PaginationInfo` - Handles offset/limit details  
+- `PaginationInfo` - Handles offset/limit details
 - `ProjectionInfo` - Manages column projections
 - Helper methods to check optimization availability
 
 #### 3. Logging Infrastructure
-**Date**: 2024  
+**Date**: 2024
 **Status**: ✅ COMPLETED
 
 Added detailed logging in `AbstractCloudOpsTable.logOptimizationHints()`:
@@ -44,8 +44,8 @@ Added detailed logging in `AbstractCloudOpsTable.logOptimizationHints()`:
 - Uses SLF4J debug level for performance
 
 #### 4. Updated Table Implementations
-**Date**: 2024  
-**Status**: ✅ COMPLETED  
+**Date**: 2024
+**Status**: ✅ COMPLETED
 **Example**: `KubernetesClustersTable`
 
 - Override enhanced `scan()` method
@@ -54,8 +54,8 @@ Added detailed logging in `AbstractCloudOpsTable.logOptimizationHints()`:
 - Pass all hints to parent implementation
 
 #### 5. Comprehensive Test Suite
-**Date**: 2024  
-**Status**: ✅ COMPLETED  
+**Date**: 2024
+**Status**: ✅ COMPLETED
 **File**: `/cloud-ops/src/test/java/org/apache/calcite/adapter/ops/CloudOpsOptimizationTest.java`
 
 Test coverage includes:
@@ -79,10 +79,10 @@ With this infrastructure in place, the cloud-ops adapter can now:
 
 When running a query like:
 ```sql
-SELECT cloud_provider, cluster_name 
-FROM kubernetes_clusters 
-WHERE region = 'us-east-1' 
-ORDER BY cluster_name 
+SELECT cloud_provider, cluster_name
+FROM kubernetes_clusters
+WHERE region = 'us-east-1'
+ORDER BY cluster_name
 LIMIT 10 OFFSET 5
 ```
 

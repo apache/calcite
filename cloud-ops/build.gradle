@@ -50,6 +50,7 @@ dependencies {
     implementation 'software.amazon.awssdk:elasticache'
     implementation 'software.amazon.awssdk:sts'
     implementation 'software.amazon.awssdk:resourcegroupstaggingapi'
+    implementation 'software.amazon.awssdk:cloudwatch'
     
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine'

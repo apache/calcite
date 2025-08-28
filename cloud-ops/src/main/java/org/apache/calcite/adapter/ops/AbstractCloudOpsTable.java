@@ -178,7 +178,7 @@ public abstract class AbstractCloudOpsTable extends AbstractTable implements Pro
     if (logger.isDebugEnabled() && !providers.isEmpty()) {
       logger.debug("Provider constraints extracted from filters: {}", providers);
     }
-    
+
     return providers;
   }
 
@@ -194,7 +194,7 @@ public abstract class AbstractCloudOpsTable extends AbstractTable implements Pro
     if (logger.isDebugEnabled() && !accounts.isEmpty()) {
       logger.debug("Account constraints extracted from filters: {}", accounts);
     }
-    
+
     return accounts;
   }
 
@@ -211,7 +211,7 @@ public abstract class AbstractCloudOpsTable extends AbstractTable implements Pro
     if (logger.isDebugEnabled()) {
       logger.debug("Client-side filter application: {} remaining filter(s) to evaluate", filters.size());
     }
-    
+
     return rows;
   }
 

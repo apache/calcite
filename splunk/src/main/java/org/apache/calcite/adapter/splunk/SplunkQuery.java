@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -50,6 +51,10 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private final Set<String> explicitFields;
   private final Map<String, String> fieldMapping;
   private final RelDataType schema;
+  
+  // Cache the results to support OFFSET/LIMIT operations
+  private volatile List<Object> cachedResults = null;
+  private final Object cacheLock = new Object();
 
   /** Creates a SplunkQuery. */
   public SplunkQuery(
@@ -113,30 +118,57 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
   @SuppressWarnings("unchecked")
   @Override public Enumerator<T> enumerator() {
-    // Create a reverse mapping for result processing (Splunk field -> schema field)
-    Map<String, String> reverseMapping = createReverseMapping();
-
-    // Get the raw enumerator from the connection
-    // With JSON, we pass schema field names directly - much simpler!
-    Enumerator<T> rawEnumerator =
-        (Enumerator<T>) splunkConnection.getSearchResultEnumerator(search, getArgs(), fieldList,
-            explicitFields, reverseMapping);
-
-    LOGGER.debug("SplunkQuery.enumerator() - JSON Mode");
-    LOGGER.debug("  Query field list: {}", fieldList);
-    LOGGER.debug("  Field mapping: {}", fieldMapping);
-    LOGGER.debug("  Schema is null? {}", schema == null);
-
-    // Type conversion is simpler with JSON since types are better preserved
-    if (schema != null) {
-      LOGGER.debug("  Creating SimpleTypeConverter...");
-      // CRITICAL FIX: Pass the actual query field list so SimpleTypeConverter knows the array order
-      return (Enumerator<T>) new SimpleTypeConverter((Enumerator<Object>) rawEnumerator,
-          schema, fieldList);
+    // Check if we have cached results
+    if (cachedResults != null) {
+      LOGGER.debug("SplunkQuery.enumerator() - Using cached results (size: {})", 
+          cachedResults.size());
+      return (Enumerator<T>) Linq4j.enumerator(cachedResults);
     }
+    
+    synchronized (cacheLock) {
+      // Double-check after acquiring lock
+      if (cachedResults != null) {
+        return (Enumerator<T>) Linq4j.enumerator(cachedResults);
+      }
+      
+      // Create a reverse mapping for result processing (Splunk field -> schema field)
+      Map<String, String> reverseMapping = createReverseMapping();
 
-    LOGGER.debug("  Using raw enumerator (no schema conversion)");
-    return rawEnumerator;
+      // Get the raw enumerator from the connection
+      // With JSON, we pass schema field names directly - much simpler!
+      Enumerator<Object> rawEnumerator =
+          (Enumerator<Object>) splunkConnection.getSearchResultEnumerator(search, getArgs(), 
+              fieldList, explicitFields, reverseMapping);
+
+      LOGGER.debug("SplunkQuery.enumerator() - JSON Mode (first call, will cache)");
+      LOGGER.debug("  Query field list: {}", fieldList);
+      LOGGER.debug("  Field mapping: {}", fieldMapping);
+      LOGGER.debug("  Schema is null? {}", schema == null);
+
+      // Collect all results into cache
+      List<Object> results = new ArrayList<>();
+      Enumerator<Object> collectingEnumerator;
+      
+      // Type conversion is simpler with JSON since types are better preserved
+      if (schema != null) {
+        LOGGER.debug("  Creating SimpleTypeConverter...");
+        collectingEnumerator = new SimpleTypeConverter(rawEnumerator, schema, fieldList);
+      } else {
+        LOGGER.debug("  Using raw enumerator (no schema conversion)");
+        collectingEnumerator = rawEnumerator;
+      }
+      
+      // Collect all results
+      while (collectingEnumerator.moveNext()) {
+        results.add(collectingEnumerator.current());
+      }
+      collectingEnumerator.close();
+      
+      LOGGER.debug("Cached {} results from Splunk query", results.size());
+      cachedResults = results;
+      
+      return (Enumerator<T>) Linq4j.enumerator(cachedResults);
+    }
   }
 
   /**

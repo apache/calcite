@@ -215,17 +215,17 @@ public class CloudOpsInformationSchema extends AbstractSchema {
       for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
         SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
         if (subSchema != null && !"information_schema".equals(schemaName) && !"pg_catalog".equals(schemaName)) {
-          
+
           // Try multiple unwrapping approaches
           CloudOpsSchema cloudOpsSchema = null;
-          
+
           // Approach 1: Direct unwrap attempt
           try {
             cloudOpsSchema = subSchema.unwrap(CloudOpsSchema.class);
           } catch (Exception e) {
             // Continue to other approaches
           }
-          
+
           // Approach 2: If direct unwrap failed, try reflection on the SchemaPlusImpl
           if (cloudOpsSchema == null) {
             try {
@@ -239,7 +239,7 @@ public class CloudOpsInformationSchema extends AbstractSchema {
                 java.lang.reflect.Field schemaField = calciteSchema.getClass().getDeclaredField("schema");
                 schemaField.setAccessible(true);
                 Object actualSchema = schemaField.get(calciteSchema);
-                
+
                 if (actualSchema instanceof CloudOpsSchema) {
                   cloudOpsSchema = (CloudOpsSchema) actualSchema;
                 }
@@ -248,12 +248,12 @@ public class CloudOpsInformationSchema extends AbstractSchema {
               // Continue to next approach
             }
           }
-          
+
           // Approach 3: If still null, try generic Schema unwrap then reflection
           if (cloudOpsSchema == null) {
             try {
               Schema unwrapped = subSchema.unwrap(Schema.class);
-              
+
               if (unwrapped != null && unwrapped.getClass().getName().contains("CalciteSchema$SchemaPlusImpl")) {
                 // Try the same reflection approach on the unwrapped Schema
                 java.lang.reflect.Field calciteSchemaField = unwrapped.getClass().getDeclaredField("calciteSchema");

@@ -29,7 +29,7 @@ import java.util.List;
  */
 public class CloudOpsCacheValidator {
   private static final Logger logger = LoggerFactory.getLogger(CloudOpsCacheValidator.class);
-  
+
   // Configuration limits and recommendations
   private static final int MIN_TTL_MINUTES = 1;
   private static final int MAX_TTL_MINUTES = 1440; // 24 hours
@@ -52,19 +52,23 @@ public class CloudOpsCacheValidator {
     // Validate cache enabled setting
     if (config.cacheEnabled) {
       logger.debug("Cache is ENABLED for Cloud Ops adapter");
-      
+
       // Validate TTL configuration
       if (config.cacheTtlMinutes < MIN_TTL_MINUTES) {
-        errors.add(String.format("Cache TTL (%d minutes) is below minimum (%d minutes)", 
+        errors.add(
+            String.format("Cache TTL (%d minutes) is below minimum (%d minutes)",
                                 config.cacheTtlMinutes, MIN_TTL_MINUTES));
       } else if (config.cacheTtlMinutes > MAX_TTL_MINUTES) {
-        warnings.add(String.format("Cache TTL (%d minutes) is very high (max recommended: %d minutes)", 
+        warnings.add(
+            String.format("Cache TTL (%d minutes) is very high (max recommended: %d minutes)",
                                   config.cacheTtlMinutes, MAX_TTL_MINUTES));
       } else if (config.cacheTtlMinutes < RECOMMENDED_MIN_TTL) {
-        warnings.add(String.format("Cache TTL (%d minutes) is very low (recommended min: %d minutes)", 
+        warnings.add(
+            String.format("Cache TTL (%d minutes) is very low (recommended min: %d minutes)",
                                   config.cacheTtlMinutes, RECOMMENDED_MIN_TTL));
       } else if (config.cacheTtlMinutes > RECOMMENDED_MAX_TTL) {
-        recommendations.add(String.format("Cache TTL (%d minutes) is high - consider shorter TTL for fresher data", 
+        recommendations.add(
+            String.format("Cache TTL (%d minutes) is high - consider shorter TTL for fresher data",
                                         config.cacheTtlMinutes));
       } else {
         logger.debug("Cache TTL configuration is optimal: {} minutes", config.cacheTtlMinutes);
@@ -87,9 +91,9 @@ public class CloudOpsCacheValidator {
     }
 
     boolean isValid = errors.isEmpty();
-    
+
     if (logger.isInfoEnabled()) {
-      logger.info("Cache configuration validation: Valid={}, Errors={}, Warnings={}, Recommendations={}", 
+      logger.info("Cache configuration validation: Valid={}, Errors={}, Warnings={}, Recommendations={}",
                  isValid, errors.size(), warnings.size(), recommendations.size());
     }
 
@@ -98,21 +102,21 @@ public class CloudOpsCacheValidator {
 
   private static void validateProviderCacheConfiguration(CloudOpsConfig config, List<String> recommendations) {
     int enabledProviders = 0;
-    
+
     if (config.providers.contains("azure")) {
       enabledProviders++;
       if (config.azure == null) {
         recommendations.add("Azure provider enabled but no Azure configuration found");
       }
     }
-    
+
     if (config.providers.contains("aws")) {
       enabledProviders++;
       if (config.aws == null) {
         recommendations.add("AWS provider enabled but no AWS configuration found");
       }
     }
-    
+
     if (config.providers.contains("gcp")) {
       enabledProviders++;
       if (config.gcp == null) {
@@ -121,9 +125,9 @@ public class CloudOpsCacheValidator {
     }
 
     if (enabledProviders > 1) {
-      logger.debug("Multi-cloud setup detected ({} providers) - caching will be beneficial for cross-provider queries", 
+      logger.debug("Multi-cloud setup detected ({} providers) - caching will be beneficial for cross-provider queries",
                   enabledProviders);
-      
+
       if (config.cacheTtlMinutes < 5) {
         recommendations.add("Multi-cloud setup benefits from longer cache TTL (consider 5+ minutes)");
       }
@@ -139,16 +143,16 @@ public class CloudOpsCacheValidator {
    */
   public static CloudOpsCacheManager createValidatedCacheManager(CloudOpsConfig config) {
     CacheValidationResult validation = validateCacheConfig(config);
-    
+
     if (!validation.isValid()) {
       logger.warn("Cache configuration has errors: {}", validation.getErrors());
       // Log errors but don't fail - create cache manager with safe defaults
     }
-    
+
     if (!validation.getWarnings().isEmpty()) {
       logger.warn("Cache configuration warnings: {}", validation.getWarnings());
     }
-    
+
     if (!validation.getRecommendations().isEmpty() && logger.isDebugEnabled()) {
       logger.debug("Cache configuration recommendations: {}", validation.getRecommendations());
     }
@@ -160,11 +164,11 @@ public class CloudOpsCacheValidator {
 
     int ttl = Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, config.cacheTtlMinutes));
     CloudOpsCacheManager cacheManager = new CloudOpsCacheManager(ttl, config.cacheDebugMode);
-    
+
     if (logger.isInfoEnabled()) {
       logger.info("Created cache manager: {}", cacheManager.getConfigSummary());
     }
-    
+
     return cacheManager;
   }
 
@@ -179,26 +183,26 @@ public class CloudOpsCacheValidator {
     logger.debug("Cache TTL: {} minutes", config.cacheTtlMinutes);
     logger.debug("Cache Debug Mode: {}", config.cacheDebugMode);
     logger.debug("Cache Manager Config: {}", cacheManager.getConfigSummary());
-    
+
     // Log provider configuration
     logger.debug("Enabled Providers: {}", config.providers);
-    
+
     if (config.providers.contains("azure") && config.azure != null) {
-      logger.debug("Azure: {} subscriptions", 
+      logger.debug("Azure: {} subscriptions",
                   config.azure.subscriptionIds != null ? config.azure.subscriptionIds.size() : 0);
     }
-    
+
     if (config.providers.contains("aws") && config.aws != null) {
-      logger.debug("AWS: {} accounts, region: {}", 
-                  config.aws.accountIds != null ? config.aws.accountIds.size() : 0, 
+      logger.debug("AWS: {} accounts, region: {}",
+                  config.aws.accountIds != null ? config.aws.accountIds.size() : 0,
                   config.aws.region);
     }
-    
+
     if (config.providers.contains("gcp") && config.gcp != null) {
-      logger.debug("GCP: {} projects", 
+      logger.debug("GCP: {} projects",
                   config.gcp.projectIds != null ? config.gcp.projectIds.size() : 0);
     }
-    
+
     logger.debug("=======================================");
   }
 
@@ -211,7 +215,7 @@ public class CloudOpsCacheValidator {
     private final List<String> warnings;
     private final List<String> recommendations;
 
-    public CacheValidationResult(boolean valid, List<String> errors, 
+    public CacheValidationResult(boolean valid, List<String> errors,
                                List<String> warnings, List<String> recommendations) {
       this.valid = valid;
       this.errors = new ArrayList<>(errors);
