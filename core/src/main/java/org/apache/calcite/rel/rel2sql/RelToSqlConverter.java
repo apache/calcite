@@ -938,7 +938,8 @@ public class RelToSqlConverter extends SqlImplementor
         generateGroupList(builder, selectList, e, groupKeyList);
 
     ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
-    if (projectExpansionUtil.isJoinWithBasicCall(builder)) {
+    if (projectExpansionUtil.isJoinWithBasicCall(builder)
+        && !projectExpansionUtil.hasNestedJoinWithSelectOperands(builder)) {
       projectExpansionUtil.updateSelectIfColumnIsUsedInGroupBy(builder, groupByList);
     }
 

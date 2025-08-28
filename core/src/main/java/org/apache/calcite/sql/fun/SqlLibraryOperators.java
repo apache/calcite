@@ -3909,6 +3909,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction SESSION =
+      new SqlFunction("SESSION",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   /** The "ISNULL(value, value)" function. */
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction ISNULL =
@@ -4431,5 +4440,17 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL_NULLABLE,
           null,
           OperandTypes.GEOMETRY_GEOMETRY,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {VERTICA})
+  public static final SqlFunction TRUNC_VERTICA =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.STRING),
+              OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING)),
           SqlFunctionCategory.SYSTEM);
 }

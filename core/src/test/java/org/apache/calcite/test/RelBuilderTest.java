@@ -19,9 +19,11 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
@@ -2998,6 +3000,31 @@ public class RelBuilderTest {
         + "    LogicalProject(DEPTNO=[$7], $f1=[20])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test void testAggregateOnCteColumn() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("EMP_alias")
+            .project(builder.field("DEPTNO"),
+                builder.alias(builder.literal(20), "twenty"),
+                builder.alias(builder.literal(30), "thirty"),
+                builder.alias(builder.literal(40), "fourty")).build();
+    RelTrait traitSet = new CTEDefinationTrait(true, "CTE1");
+    RelTraitSet relTraitSet = root.getTraitSet().plus(traitSet);
+    builder.push(root.copy(relTraitSet, root.getInputs()));
+    RelNode rel =
+        builder.aggregate(builder.groupKey(),
+            builder.sum(builder.field(0)))
+        .project(builder.alias(builder.field(0), "sum"), builder.field(0))
+        .build();
+    final String expected = ""
+        + "LogicalProject(sum=[$0], $f0=[$0])\n"
+        + "  LogicalAggregate(group=[{}], agg#0=[SUM($0)])\n"
+        + "    LogicalProject(DEPTNO=[$7], twenty=[20], thirty=[30], fourty=[40])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(rel, hasTree(expected));
   }
 
   /** Tests that a projection retains field names after a join. */

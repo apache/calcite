@@ -491,4 +491,35 @@ class ProjectExpansionUtil {
       return false;
     }
   }
+
+  // Checks if the query's FROM clause is a join whose sides are both SELECT statements.
+  boolean hasNestedJoinWithSelectOperands(SqlImplementor.Builder builder) {
+    SqlNode fromNode = builder.select.getFrom();
+    if (!(fromNode instanceof SqlJoin)) {
+      return false;
+    }
+    SqlJoin join = (SqlJoin) fromNode;
+    if (!(join.getLeft() instanceof SqlBasicCall)) {
+      return false;
+    }
+    SqlBasicCall basicCall = (SqlBasicCall) join.getLeft();
+    List<SqlNode> operands = basicCall.getOperandList();
+    if (operands.isEmpty() || !(operands.get(0) instanceof SqlSelect)) {
+      return false;
+    }
+    SqlSelect innerSelect = (SqlSelect) operands.get(0);
+    if (!(innerSelect.getFrom() instanceof SqlJoin)) {
+      return false;
+    }
+    SqlJoin innerJoin = (SqlJoin) innerSelect.getFrom();
+    return firstOperandIsSelect(innerJoin.getLeft()) && firstOperandIsSelect(innerJoin.getRight());
+  }
+
+  boolean firstOperandIsSelect(SqlNode node) {
+    if (!(node instanceof SqlBasicCall)) {
+      return false;
+    }
+    List<SqlNode> operands = ((SqlBasicCall) node).getOperandList();
+    return !operands.isEmpty() && operands.get(0) instanceof SqlSelect;
+  }
 }
