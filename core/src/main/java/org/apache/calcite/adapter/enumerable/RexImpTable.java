@@ -4048,8 +4048,8 @@ public class RexImpTable {
         }
         break;
       case TIME:
-        trop1 = normalize(typeName, trop1);
-        trop1 = Expressions.convert_(trop1, int.class);
+        // trop1 may be wider (e.g., TIMESTAMP); we should do the arithmetic
+        // using the wider type.
         break;
       default:
         break;
