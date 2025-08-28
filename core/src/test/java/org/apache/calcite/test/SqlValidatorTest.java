@@ -1898,6 +1898,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature FOO..");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7149">[CALCITE-7149]
+   * Constant TIMESTAMPADD expression causes assertion failure in validator</a>. */
+  @Test void testTimestampAdd() {
+    sql("SELECT TIMESTAMPADD(^DOY^, 2, TIMESTAMP '2020-06-21 14:23:44.123')")
+        .fails("'DOY' is not a valid time frame in 'TIMESTAMPADD'");
+    sql("SELECT TIMESTAMPDIFF(^EPOCH^, TIMESTAMP '2020-06-21 14:23:44.123', "
+        + "TIMESTAMP '2022-06-21 14:23:44.123')")
+        .fails("'EPOCH' is not a valid time frame in 'TIMESTAMPDIFF'");
+  }
+
   @Test void testInvalidTableFunction() {
     // A table function at most have one input table with row semantics
     sql("select * from table(^invalid(table orders, table emp)^)")
