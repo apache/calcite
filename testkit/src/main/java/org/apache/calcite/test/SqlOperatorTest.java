@@ -14494,14 +14494,15 @@ public class SqlOperatorTest {
         f.checkScalar("timestampdiff(" + s + ", "
                 + "time '12:42:25', time '12:42:25')",
             "0", "INTEGER NOT NULL"));
+    // 2 test cases for [CALCITE-7146] TIMESTAMPDIFF accepts arguments with mismatched types
     MONTH_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
                 + "time '12:42:25', date '2016-06-14')",
-            "-1502389", "INTEGER NOT NULL"));
+            "557", "INTEGER NOT NULL"));
     MONTH_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
                 + "date '2016-06-14', time '12:42:25')",
-            "1502389", "INTEGER NOT NULL"));
+            "-557", "INTEGER NOT NULL"));
     DAY_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
                 + "date '2016-06-15', date '2016-06-14')",
