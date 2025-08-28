@@ -754,6 +754,22 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expected);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7147">[CALCITE-7147]
+   * Comparison of INTEGER and BOOLEAN produces strange results</a>. */
+  @Test void testIntBool() {
+    String query = "select FALSE = 256";
+    String expected = "SELECT *\nFROM (VALUES (FALSE)) AS \"t\" (\"EXPR$0\")";
+    sql(query).ok(expected);
+
+    query = "select FALSE = 0.0001e0";
+    expected = "SELECT *\nFROM (VALUES (FALSE)) AS \"t\" (\"EXPR$0\")";
+    sql(query).ok(expected);
+
+    query = "select FALSE = 0.0e0";
+    expected = "SELECT *\nFROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")";
+    sql(query).ok(expected);
+  }
+
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
     String query = "select * from \"product\" "
         + "where (\"product_id\" = 10 OR \"product_id\" <= 5) "

@@ -346,12 +346,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       // Case1: numeric literal and boolean
       if (lNode.getKind() == SqlKind.LITERAL) {
         BigDecimal val = ((SqlLiteral) lNode).getValueAs(BigDecimal.class);
-        if (val.compareTo(BigDecimal.ONE) == 0) {
-          SqlNode lNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+        if (val.compareTo(BigDecimal.ZERO) == 0) {
+          SqlNode lNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
           binding.getCall().setOperand(0, lNode1);
           return true;
         } else {
-          SqlNode lNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+          SqlNode lNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
           binding.getCall().setOperand(0, lNode1);
           return true;
         }
@@ -366,12 +366,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       // Case1: literal numeric + boolean
       if (rNode.getKind() == SqlKind.LITERAL) {
         BigDecimal val = ((SqlLiteral) rNode).getValueAs(BigDecimal.class);
-        if (val.compareTo(BigDecimal.ONE) == 0) {
-          SqlNode rNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+        if (val.compareTo(BigDecimal.ZERO) == 0) {
+          SqlNode rNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
           binding.getCall().setOperand(1, rNode1);
           return true;
         } else {
-          SqlNode rNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+          SqlNode rNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
           binding.getCall().setOperand(1, rNode1);
           return true;
         }

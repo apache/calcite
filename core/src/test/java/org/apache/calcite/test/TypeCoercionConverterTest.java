@@ -127,10 +127,6 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
   /** Test case for
    * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.{@code booleanEquality}. */
   @Test void testBooleanEquality() {
-    // REVIEW Danny 2018-05-16: Now we do not support cast between numeric <-> boolean for
-    // Calcite execution runtime, but we still add cast in the plan so other systems
-    // using Calcite can rewrite Cast operator implementation.
-    // for this case, we replace the boolean literal with numeric 1.
     sql("select\n"
         + "1=true as f0,\n"
         + "1.0=true as f1,\n"
