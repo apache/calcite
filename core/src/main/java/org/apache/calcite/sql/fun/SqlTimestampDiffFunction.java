@@ -33,6 +33,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
  * The <code>TIMESTAMPDIFF</code> function, which calculates the difference
  * between two timestamps.
@@ -110,9 +112,25 @@ class SqlTimestampDiffFunction extends SqlFunction {
     //
     // If the latter, check that timeFrameName is valid.
     if (call.operand(2) instanceof SqlIntervalQualifier) {
-      validator.validateTimeFrame(call.operand(2));
+      SqlIntervalQualifier op2 = call.operand(2);
+      validator.validateTimeFrame(op2);
+      if (op2.timeFrameName == null
+          && op2.timeUnitRange.startUnit.multiplier == null) {
+        // Not all time frames can be used in date arithmetic, e.g., DOW
+        throw validator.newValidationError(op2,
+            RESOURCE.invalidTimeFrameInOperation(
+                op2.timeUnitRange.toString(), call.getOperator().getName()));
+      }
     } else {
-      validator.validateTimeFrame(call.operand(0));
+      SqlIntervalQualifier op0 = call.operand(0);
+      validator.validateTimeFrame(op0);
+      if (op0.timeFrameName == null
+          && op0.timeUnitRange.startUnit.multiplier == null) {
+        // Not all time frames can be used in date arithmetic, e.g., DOW
+        throw validator.newValidationError(op0,
+            RESOURCE.invalidTimeFrameInOperation(
+                op0.timeUnitRange.toString(), call.getOperator().getName()));
+      }
     }
   }
 

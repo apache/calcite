@@ -645,6 +645,9 @@ public interface CalciteResource {
   @BaseMessage("''{0}'' is not a valid time frame")
   ExInst<SqlValidatorException> invalidTimeFrame(String a0);
 
+  @BaseMessage("''{0}'' is not a valid time frame in ''{1}''")
+  ExInst<SqlValidatorException> invalidTimeFrameInOperation(String a0, String a1);
+
   @BaseMessage("Cannot INSERT into generated column ''{0}''")
   ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);
 

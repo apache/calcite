@@ -2350,6 +2350,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
 
       RexNode interval2Add;
+      BigDecimal multiplier = unit.multiplier;
+      if (multiplier == null) {
+        throw new IllegalArgumentException("Impossible conversion to " + unit);
+      }
       switch (unit) {
       case MICROSECOND:
       case NANOSECOND:
@@ -2357,13 +2361,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             divide(pos, rexBuilder,
                 multiply(pos, rexBuilder,
                     rexBuilder.makeIntervalLiteral(BigDecimal.ONE, qualifier), op1),
-                BigDecimal.ONE.divide(unit.multiplier,
-                    RoundingMode.UNNECESSARY));
+                BigDecimal.ONE.divide(multiplier, RoundingMode.UNNECESSARY));
         break;
       default:
         interval2Add =
             multiply(pos, rexBuilder,
-                rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
+                rexBuilder.makeIntervalLiteral(multiplier, qualifier), op1);
       }
 
       return rexBuilder.makeCall(pos, SqlStdOperatorTable.DATETIME_PLUS,
