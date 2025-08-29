@@ -2817,14 +2817,23 @@ public abstract class RelOptUtil {
         ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
 
     final List<RexNode> filtersToRemove = new ArrayList<>();
+    boolean hasAndCondition = isAndCondition(joinRel);
     for (RexNode filter : filters) {
       final InputFinder inputFinder = InputFinder.analyze(filter);
       final ImmutableBitSet inputBits = inputFinder.build();
-
-      // REVIEW - are there any expressions that need special handling
+      boolean isScalarQuery = false;
+      if (hasAndCondition && filter instanceof RexCall) {
+        RexCall call = (RexCall) filter;
+        // Check first operand exists
+        if (!call.getOperands().isEmpty()) {
+          RexNode firstOperand = call.getOperands().get(0);
+          isScalarQuery = hasScalarSubQuery(firstOperand);
+        }
+      }
+      // REVIEW - are there any expres
       // and therefore cannot be pushed?
 
-      if (pushLeft && leftBitmap.contains(inputBits)) {
+      if (pushLeft && leftBitmap.contains(inputBits) && !isScalarQuery) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
@@ -2844,7 +2853,7 @@ public abstract class RelOptUtil {
           leftFilters.add(shiftedFilter);
         }
         filtersToRemove.add(filter);
-      } else if (pushRight && rightBitmap.contains(inputBits)) {
+      } else if (pushRight && rightBitmap.contains(inputBits) && !isScalarQuery) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
           // that fields in the right now shift over to the left
@@ -2880,6 +2889,28 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
+  }
+
+  private static boolean isAndCondition(RelNode joinRel) {
+    return LogicalJoin.class.isInstance(joinRel)
+        && RexCall.class.isInstance(((LogicalJoin) joinRel).getCondition())
+        && ((RexCall) ((LogicalJoin) joinRel).getCondition()).op.getName().equals("AND");
+  }
+
+  private static boolean hasScalarSubQuery(RexNode rexNode) {
+    if (RexSubQuery.class.isInstance(rexNode)) {
+      RexSubQuery subQuery = (RexSubQuery) rexNode;
+      return "$SCALAR_QUERY".equals(subQuery.op.getName());
+    }
+    if (RexCall.class.isInstance(rexNode)) {
+      RexCall call = (RexCall) rexNode;
+      for (RexNode operand : call.getOperands()) {
+        if (hasScalarSubQuery(operand)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
