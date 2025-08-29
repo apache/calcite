@@ -8194,7 +8194,7 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
         .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
+        .check();
   }
 
   /** Test case for
