@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -265,6 +266,22 @@ public class Strong {
         return anyNull(rexCall.getOperands());
       }
       return false;
+    case DIVIDE: {
+      RexNode op1 = ((RexCall) node).getOperands().get(1);
+      if (isNull(op1)) {
+        return true;
+      }
+      if (!op1.isA(SqlKind.LITERAL)) {
+        return false;
+      }
+      Comparable<?> comparable = ((RexLiteral) op1).getValue();
+      if (comparable instanceof BigDecimal
+          && BigDecimal.ZERO.compareTo((BigDecimal) comparable) == 0) {
+        return false;
+      }
+      RexNode op0 = ((RexCall) node).getOperands().get(0);
+      return isNull(op0);
+    }
     default:
       return false;
     }
@@ -356,7 +373,7 @@ public class Strong {
     map.put(SqlKind.CHECKED_TIMES, Policy.ANY);
     map.put(SqlKind.CHECKED_DIVIDE, Policy.ANY);
 
-    map.put(SqlKind.DIVIDE, Policy.ANY);
+    map.put(SqlKind.DIVIDE, Policy.CUSTOM);
     map.put(SqlKind.CAST, Policy.ANY);
     map.put(SqlKind.REINTERPRET, Policy.ANY);
     map.put(SqlKind.TRIM, Policy.ANY);
