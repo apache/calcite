@@ -81,7 +81,6 @@ public class SortJoinTransposeRule
   @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
-    final RelMetadataQuery mq = call.getMetadataQuery();
 
     // 1) If sort has dynamic parameter, we bail out
     // 2) If join is not a left or right outer, we bail out
