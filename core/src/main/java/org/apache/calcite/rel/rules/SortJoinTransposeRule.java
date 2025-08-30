@@ -23,17 +23,22 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+
+import java.math.BigDecimal;
 
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Sort} past a
@@ -76,54 +81,40 @@ public class SortJoinTransposeRule
   @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
-    final RelMetadataQuery mq = call.getMetadataQuery();
-    final JoinInfo joinInfo =
-        JoinInfo.createWithStrictEquality(join.getLeft(), join.getRight(), join.getCondition());
 
-    // 1) If sort has dynamic parameter, we bail out
-    // 2) If join is not a left or right outer, we bail out
-    // 3) If sort is not a trivial order-by, and if there is
-    // any sort column that is not part of the input where the
-    // sort is pushed, we bail out
-    // 4) If sort has an offset, and if the non-preserved side
-    // of the join is not count-preserving against the join
-    // condition, we bail out
+    // Do nothing if SORT contains dynamic parameters in offset or fetch
     if (sort.offset instanceof RexDynamicParam
         || sort.fetch instanceof RexDynamicParam) {
       return false;
     }
 
-    if (join.getJoinType() == JoinRelType.LEFT) {
-      if (sort.getCollation() != RelCollations.EMPTY) {
-        for (RelFieldCollation relFieldCollation
-            : sort.getCollation().getFieldCollations()) {
-          if (relFieldCollation.getFieldIndex()
-              >= join.getLeft().getRowType().getFieldCount()) {
-            return false;
-          }
+    final JoinRelType joinType = join.getJoinType();
+    final boolean isLeft = joinType == JoinRelType.LEFT;
+    final boolean isRight = joinType == JoinRelType.RIGHT;
+    final RelCollation collation = sort.getCollation();
+
+    // Do nothing if neither LEFT JOIN nor RIGHT JOIN
+    if (!isLeft && !isRight) {
+      return false;
+    }
+
+    // Check collation fields if not trivial order-by
+    if (collation != RelCollations.EMPTY) {
+      final int leftFieldCnt = join.getLeft().getRowType().getFieldCount();
+      for (RelFieldCollation fc : collation.getFieldCollations()) {
+        int idx = fc.getFieldIndex();
+        // Do nothing if the sort column of SORT is not completely contained
+        // in the left child or right child
+        if (isLeft && idx >= leftFieldCnt) {
+          return false;
+        }
+        if (isRight && idx < leftFieldCnt) {
+          return false;
         }
       }
-      if (sort.offset != null
-          && !RelMdUtil.areColumnsDefinitelyUnique(
-              mq, join.getRight(), joinInfo.rightSet())) {
-        return false;
-      }
-    } else if (join.getJoinType() == JoinRelType.RIGHT) {
-      if (sort.getCollation() != RelCollations.EMPTY) {
-        for (RelFieldCollation relFieldCollation
-            : sort.getCollation().getFieldCollations()) {
-          if (relFieldCollation.getFieldIndex()
-              < join.getLeft().getRowType().getFieldCount()) {
-            return false;
-          }
-        }
-      }
-      if (sort.offset != null
-          && !RelMdUtil.areColumnsDefinitelyUnique(
-              mq, join.getLeft(), joinInfo.leftSet())) {
-        return false;
-      }
-    } else {
+    } else if (sort.fetch == null) {
+      // Do nothing if there is no sort column and no fetch in SORT.
+      // This means that no pushdown will be performed when there is only offset.
       return false;
     }
 
@@ -145,9 +136,11 @@ public class SortJoinTransposeRule
           sort.getCollation(), sort.offset, sort.fetch)) {
         return;
       }
+
+      final RexNode newFetch =
+          calculateInnerSortFetch(sort, call.builder().getRexBuilder());
       newLeftInput =
-          sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
-              sort.offset, sort.fetch);
+          sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(), null, newFetch);
       newRightInput = join.getRight();
     } else {
       final RelCollation rightCollation =
@@ -159,9 +152,11 @@ public class SortJoinTransposeRule
         return;
       }
       newLeftInput = join.getLeft();
+      final RexNode newFetch =
+          calculateInnerSortFetch(sort, call.builder().getRexBuilder());
       newRightInput =
-          sort.copy(sort.getTraitSet().replace(rightCollation),
-              join.getRight(), rightCollation, sort.offset, sort.fetch);
+          sort.copy(sort.getTraitSet().replace(rightCollation), join.getRight(), rightCollation,
+              null, newFetch);
     }
     // We copy the join and the top sort operator
     final RelNode joinCopy =
@@ -172,6 +167,24 @@ public class SortJoinTransposeRule
             sort.offset, sort.fetch);
 
     call.transformTo(sortCopy);
+  }
+
+  /**
+   * Returns the fetch value for the inner sort when pushing sort past join.
+   * The value is outer sort's offset + fetch.
+   *
+   * @param sort the outer sort
+   * @param rexBuilder RexBuilder to create literals
+   * @return fetch for inner sort
+   */
+  private static @Nullable RexNode calculateInnerSortFetch(Sort sort, RexBuilder rexBuilder) {
+    if (sort.fetch == null) {
+      return null;
+    }
+    final long outerFetch = RexLiteral.longValue(sort.fetch);
+    final long outerOffset = sort.offset != null ? RexLiteral.longValue(sort.offset) : 0;
+    final long totalFetch = outerOffset + outerFetch;
+    return rexBuilder.makeExactLiteral(BigDecimal.valueOf(totalFetch));
   }
 
   /** Rule configuration. */
