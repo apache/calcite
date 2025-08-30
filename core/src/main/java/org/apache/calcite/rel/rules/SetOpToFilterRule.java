@@ -115,7 +115,7 @@ public class SetOpToFilterRule
     config.matchHandler().accept(this, call);
   }
 
-  private void match(RelOptRuleCall call) {
+  private static void match(RelOptRuleCall call) {
     final SetOp setOp = call.rel(0);
     final List<RelNode> inputs = setOp.getInputs();
     if (setOp.all || inputs.size() < 2) {
@@ -235,7 +235,7 @@ public class SetOpToFilterRule
    * INTERSECT: AND combination
    * MINUS: Special handling where first source uses AND-NOT combination.
    */
-  private RexNode combineConditions(RelBuilder builder, List<RexNode> conds,
+  private static RexNode combineConditions(RelBuilder builder, List<RexNode> conds,
       SetOp setOp, boolean isFirstSource) {
     if (setOp instanceof Union) {
       return builder.or(conds);
@@ -254,21 +254,21 @@ public class SetOpToFilterRule
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
     Config UNION = ImmutableSetOpToFilterRule.Config.builder()
-        .withMatchHandler(SetOpToFilterRule::match)
+        .withMatchHandler((rule, call) -> SetOpToFilterRule.match(call))
         .build()
         .withOperandSupplier(
             b0 -> b0.operand(Union.class).anyInputs())
         .as(Config.class);
 
     Config INTERSECT = ImmutableSetOpToFilterRule.Config.builder()
-        .withMatchHandler(SetOpToFilterRule::match)
+        .withMatchHandler((rule, call) -> SetOpToFilterRule.match(call))
         .build()
         .withOperandSupplier(
             b0 -> b0.operand(Intersect.class).anyInputs())
         .as(Config.class);
 
     Config MINUS = ImmutableSetOpToFilterRule.Config.builder()
-        .withMatchHandler(SetOpToFilterRule::match)
+        .withMatchHandler((rule, call) -> SetOpToFilterRule.match(call))
         .build()
         .withOperandSupplier(
             b0 -> b0.operand(Minus.class).anyInputs())

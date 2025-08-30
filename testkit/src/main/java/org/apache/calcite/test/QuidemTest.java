@@ -277,7 +277,7 @@ public abstract class QuidemTest {
     }
   }
 
-  private void updatePlanner(RelOptPlanner planner, String value) {
+  private static void updatePlanner(RelOptPlanner planner, String value) {
     List<RelOptRule> rulesAdd = new ArrayList<>();
     List<RelOptRule> rulesRemove = new ArrayList<>();
     parseRules(value, rulesAdd, rulesRemove);
@@ -292,7 +292,8 @@ public abstract class QuidemTest {
     }
   }
 
-  private void parseRules(String value, List<RelOptRule> rulesAdd, List<RelOptRule> rulesRemove) {
+  private static void parseRules(String value, List<RelOptRule> rulesAdd,
+      List<RelOptRule> rulesRemove) {
     Pattern pattern = Pattern.compile("([+-])((CoreRules|EnumerableRules)\\.)?(\\w+)");
     Matcher matcher = pattern.matcher(value);
 
@@ -330,7 +331,7 @@ public abstract class QuidemTest {
     }
   }
 
-  private void setRules(char operation, RelOptRule rule,
+  private static void setRules(char operation, RelOptRule rule,
       List<RelOptRule> rulesAdd, List<RelOptRule> rulesRemove) {
     if (operation == '+') {
       rulesAdd.add(rule);

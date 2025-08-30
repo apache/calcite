@@ -280,7 +280,7 @@ public class MongoFilter extends Filter implements MongoRel {
       }
     }
 
-    private void translateOp2(String op, String name, RexLiteral right,
+    private static void translateOp2(String op, String name, RexLiteral right,
         Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       if (op == null) {
         // E.g.: {deptno: 100}
