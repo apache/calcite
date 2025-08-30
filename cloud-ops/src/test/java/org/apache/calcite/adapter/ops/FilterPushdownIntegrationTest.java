@@ -37,14 +37,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for filter pushdown optimization across multi-cloud providers.
  */
 @Tag("integration")
 public class FilterPushdownIntegrationTest {
-  private static final Logger logger = LoggerFactory.getLogger(FilterPushdownIntegrationTest.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(FilterPushdownIntegrationTest.class);
 
   private CloudOpsConfig config;
   private RexBuilder rexBuilder;
@@ -77,12 +81,15 @@ public class FilterPushdownIntegrationTest {
   }
 
   @Test public void testBasicEqualsFilterPushdown() {
-    logger.info("=== Testing Basic EQUALS Filter Pushdown ===");
+    LOGGER.info("=== Testing Basic EQUALS Filter Pushdown ===");
 
-    // Create filter: region = 'us-east-1' (this will generate WHERE clause unlike provider filters)
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    // Create filter: region = 'us-east-1'
+    // (this will generate WHERE clause unlike provider filters)
+    RexInputRef regionRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-east-1");
-    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
+    RexNode regionFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
     List<RexNode> filters = Arrays.asList(regionFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
@@ -94,7 +101,8 @@ public class FilterPushdownIntegrationTest {
     // Test Azure KQL WHERE clause generation (region filters DO generate WHERE clauses)
     String kqlWhere = filterHandler.buildAzureKqlWhereClause();
     assertNotNull(kqlWhere);
-    assertTrue(kqlWhere.contains("location == 'us-east-1'")); // Region filter included in WHERE
+    // Region filter included in WHERE
+    assertTrue(kqlWhere.contains("location == 'us-east-1'"));
 
     // Test AWS and GCP parameter extraction
     Map<String, Object> awsParams = filterHandler.getAWSFilterParameters();
@@ -108,17 +116,20 @@ public class FilterPushdownIntegrationTest {
     assertEquals(1, metrics.totalFilters);
     assertTrue(metrics.serverSidePushdown);
 
-    logger.info("✅ Region filter pushdown: WHERE='{}', AWS={}, GCP={}", kqlWhere, awsParams, gcpParams);
-    logger.info("✅ Filter metrics: {}", metrics);
+    LOGGER.info("✅ Region filter pushdown: WHERE='{}', AWS={}, GCP={}",
+        kqlWhere, awsParams, gcpParams);
+    LOGGER.info("✅ Filter metrics: {}", metrics);
   }
 
   @Test public void testRegionFilterPushdown() {
-    logger.info("=== Testing Region Filter Pushdown ===");
+    LOGGER.info("=== Testing Region Filter Pushdown ===");
 
     // Create filter: region = 'us-east-1'
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef regionRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-east-1");
-    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
+    RexNode regionFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
     List<RexNode> filters = Arrays.asList(regionFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
@@ -136,16 +147,17 @@ public class FilterPushdownIntegrationTest {
     Map<String, Object> gcpParams = filterHandler.getGCPFilterParameters();
     assertEquals("us-east-1", gcpParams.get("region"));
 
-    logger.info("✅ Azure KQL WHERE: {}", azureKql);
-    logger.info("✅ AWS parameters: {}", awsParams);
-    logger.info("✅ GCP parameters: {}", gcpParams);
+    LOGGER.info("✅ Azure KQL WHERE: {}", azureKql);
+    LOGGER.info("✅ AWS parameters: {}", awsParams);
+    LOGGER.info("✅ GCP parameters: {}", gcpParams);
   }
 
   @Test public void testApplicationFilterPushdown() {
-    logger.info("=== Testing Application Filter Pushdown ===");
+    LOGGER.info("=== Testing Application Filter Pushdown ===");
 
     // Create filter: application = 'MyApp'
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
+    RexInputRef appRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
     RexLiteral appLiteral = rexBuilder.makeLiteral("MyApp");
     RexNode appFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
 
@@ -161,21 +173,25 @@ public class FilterPushdownIntegrationTest {
     Map<String, Object> awsParams = filterHandler.getAWSFilterParameters();
     assertEquals("MyApp", awsParams.get("tag:Application"));
 
-    logger.info("✅ Azure KQL WHERE: {}", azureKql);
-    logger.info("✅ AWS tag filter: {}", awsParams);
+    LOGGER.info("✅ Azure KQL WHERE: {}", azureKql);
+    LOGGER.info("✅ AWS tag filter: {}", awsParams);
   }
 
   @Test public void testInFilterPushdown() {
-    logger.info("=== Testing IN Filter Pushdown ===");
+    LOGGER.info("=== Testing IN Filter Pushdown ===");
 
-    // Create filter: cloud_provider IN ('azure', 'aws') - using OR approach since IN construction is complex
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    // Create filter: cloud_provider IN ('azure', 'aws')
+    // Using OR approach since IN construction is complex
+    RexInputRef providerRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
 
     // Create provider = 'azure' OR provider = 'aws' which is equivalent to IN
-    RexNode azureFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
-    RexNode awsFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, awsLiteral);
+    RexNode azureFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
+    RexNode awsFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, awsLiteral);
     RexNode inFilter = rexBuilder.makeCall(SqlStdOperatorTable.OR, azureFilter, awsFilter);
 
     List<RexNode> filters = Arrays.asList(inFilter);
@@ -186,16 +202,18 @@ public class FilterPushdownIntegrationTest {
     assertEquals(2, providers.size());
     assertTrue(providers.contains("azure"));
     assertTrue(providers.contains("aws"));
-    assertFalse(providers.contains("gcp")); // Should not query GCP
+    // Should not query GCP
+    assertFalse(providers.contains("gcp"));
 
-    logger.info("✅ IN filter: {} -> Providers to query: {}", inFilter, providers);
+    LOGGER.info("✅ IN filter: {} -> Providers to query: {}", inFilter, providers);
   }
 
   @Test public void testLikeFilterPushdown() {
-    logger.info("=== Testing LIKE Filter Pushdown ===");
+    LOGGER.info("=== Testing LIKE Filter Pushdown ===");
 
     // Create filter: cluster_name LIKE 'prod%'
-    RexInputRef nameRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(2).getType(), 2);
+    RexInputRef nameRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(2).getType(), 2);
     RexLiteral patternLiteral = rexBuilder.makeLiteral("prod%");
     RexNode likeFilter = rexBuilder.makeCall(SqlStdOperatorTable.LIKE, nameRef, patternLiteral);
 
@@ -205,29 +223,36 @@ public class FilterPushdownIntegrationTest {
     // Test Azure KQL generation for LIKE
     String azureKql = filterHandler.buildAzureKqlWhereClause();
     assertNotNull(azureKql);
-    assertTrue(azureKql.contains("name contains 'prod'")); // KQL uses contains for LIKE patterns
+    // KQL uses contains for LIKE patterns
+    assertTrue(azureKql.contains("name contains 'prod'"));
 
-    logger.info("✅ LIKE filter: {} -> Azure KQL: {}", likeFilter, azureKql);
+    LOGGER.info("✅ LIKE filter: {} -> Azure KQL: {}", likeFilter, azureKql);
   }
 
   @Test public void testMultipleFiltersCoordination() {
-    logger.info("=== Testing Multiple Filter Coordination ===");
+    LOGGER.info("=== Testing Multiple Filter Coordination ===");
 
     // Create multiple filters:
     // 1. cloud_provider = 'azure'
     // 2. region = 'eastus'
     // 3. application = 'WebApp'
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef providerRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
-    RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
+    RexNode providerFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
 
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef regionRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("eastus");
-    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
+    RexNode regionFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
+    RexInputRef appRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
     RexLiteral appLiteral = rexBuilder.makeLiteral("WebApp");
-    RexNode appFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
+    RexNode appFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
 
     List<RexNode> filters = Arrays.asList(providerFilter, regionFilter, appFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
@@ -245,7 +270,8 @@ public class FilterPushdownIntegrationTest {
     assertNotNull(azureKql);
     assertTrue(azureKql.contains("location == 'eastus'"));
     assertTrue(azureKql.contains("Application == 'WebApp'"));
-    assertTrue(azureKql.contains(" and ")); // Multiple conditions joined
+    // Multiple conditions joined
+    assertTrue(azureKql.contains(" and "));
 
     // Test optimization metrics
     CloudOpsFilterHandler.FilterMetrics metrics = filterHandler.calculateMetrics(true, 3);
@@ -253,23 +279,27 @@ public class FilterPushdownIntegrationTest {
     assertEquals(3, metrics.filtersApplied);
     assertEquals(100.0, metrics.pushdownPercent, 0.1);
 
-    logger.info("✅ Multi-filter coordination:");
-    logger.info("   Providers to query: {}", providers);
-    logger.info("   Azure KQL WHERE: {}", azureKql);
-    logger.info("   Optimization metrics: {}", metrics);
+    LOGGER.info("✅ Multi-filter coordination:");
+    LOGGER.info("   Providers to query: {}", providers);
+    LOGGER.info("   Azure KQL WHERE: {}", azureKql);
+    LOGGER.info("   Optimization metrics: {}", metrics);
   }
 
   @Test public void testFilterOptimizationStrategies() {
-    logger.info("=== Testing Filter Optimization Strategies ===");
+    LOGGER.info("=== Testing Filter Optimization Strategies ===");
 
     // Create filters targeting different optimization scenarios
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef providerRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
     RexLiteral gcpLiteral = rexBuilder.makeLiteral("gcp");
-    RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, gcpLiteral);
+    RexNode providerFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, gcpLiteral);
 
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef regionRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-central1");
-    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
+    RexNode regionFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
 
     List<RexNode> filters = Arrays.asList(providerFilter, regionFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
@@ -284,19 +314,21 @@ public class FilterPushdownIntegrationTest {
 
     // Verify AWS and Azure are not queried
     Map<String, Object> awsParams = filterHandler.getAWSFilterParameters();
-    Map<String, Object> azureParams = Map.of(); // Azure won't be queried due to provider filter
+    // Azure won't be queried due to provider filter
+    Map<String, Object> azureParams = Map.of();
 
-    logger.info("✅ GCP-targeted optimization:");
-    logger.info("   Only GCP will be queried: {}", providers);
-    logger.info("   GCP region constraint: {}", gcpParams);
-    logger.info("   AWS parameters (empty): {}", awsParams);
+    LOGGER.info("✅ GCP-targeted optimization:");
+    LOGGER.info("   Only GCP will be queried: {}", providers);
+    LOGGER.info("   GCP region constraint: {}", gcpParams);
+    LOGGER.info("   AWS parameters (empty): {}", awsParams);
   }
 
   @Test public void testNullAndNotNullFilters() {
-    logger.info("=== Testing NULL and NOT NULL Filter Pushdown ===");
+    LOGGER.info("=== Testing NULL and NOT NULL Filter Pushdown ===");
 
     // Create filter: application IS NOT NULL
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
+    RexInputRef appRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
     RexNode notNullFilter = rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, appRef);
 
     List<RexNode> filters = Arrays.asList(notNullFilter);
@@ -309,24 +341,30 @@ public class FilterPushdownIntegrationTest {
     assertNotNull(azureKql);
     assertTrue(azureKql.contains("isnotempty(Application)"));
 
-    logger.info("✅ NOT NULL filter -> Azure KQL: {}", azureKql);
+    LOGGER.info("✅ NOT NULL filter -> Azure KQL: {}", azureKql);
   }
 
   @Test public void testFilterPushdownMetricsCalculation() {
-    logger.info("=== Testing Filter Pushdown Metrics ===");
+    LOGGER.info("=== Testing Filter Pushdown Metrics ===");
 
     // Create comprehensive filter scenario
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
-    RexInputRef appRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
+    RexInputRef providerRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef regionRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef appRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(3).getType(), 3);
 
     RexLiteral azureLiteral = rexBuilder.makeLiteral("azure");
     RexLiteral regionLiteral = rexBuilder.makeLiteral("westus");
     RexLiteral appLiteral = rexBuilder.makeLiteral("CriticalApp");
 
-    RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
-    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
-    RexNode appFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
+    RexNode providerFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, azureLiteral);
+    RexNode regionFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
+    RexNode appFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, appRef, appLiteral);
 
     List<RexNode> filters = Arrays.asList(providerFilter, regionFilter, appFilter);
     CloudOpsFilterHandler filterHandler = new CloudOpsFilterHandler(kubernetesSchema, filters);
@@ -349,8 +387,8 @@ public class FilterPushdownIntegrationTest {
     assertFalse(clientSideMetrics.serverSidePushdown);
     assertEquals("Client-side filtering", clientSideMetrics.strategy);
 
-    logger.info("✅ Server-side metrics: {}", serverSideMetrics);
-    logger.info("✅ Client-side metrics: {}", clientSideMetrics);
+    LOGGER.info("✅ Server-side metrics: {}", serverSideMetrics);
+    LOGGER.info("✅ Client-side metrics: {}", clientSideMetrics);
 
     // Verify optimization benefits
     assertTrue(serverSideMetrics.pushdownPercent > 50.0,
@@ -358,24 +396,33 @@ public class FilterPushdownIntegrationTest {
   }
 
   @Test public void testComplexFilterScenarios() {
-    logger.info("=== Testing Complex SQL Filter Scenarios ===");
+    LOGGER.info("=== Testing Complex SQL Filter Scenarios ===");
 
-    logger.info("Scenario 1: Mixed provider and resource constraints");
+    LOGGER.info("Scenario 1: Mixed provider and resource constraints");
     // cloud_provider = 'aws' AND region = 'us-west-2' AND node_count > 3
-    RexInputRef providerRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
-    RexInputRef regionRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
-    RexInputRef nodeCountRef = rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(7).getType(), 7);
+    RexInputRef providerRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(0).getType(), 0);
+    RexInputRef regionRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(4).getType(), 4);
+    RexInputRef nodeCountRef =
+        rexBuilder.makeInputRef(kubernetesSchema.getFieldList().get(7).getType(), 7);
 
     RexLiteral awsLiteral = rexBuilder.makeLiteral("aws");
     RexLiteral regionLiteral = rexBuilder.makeLiteral("us-west-2");
-    RexLiteral nodeCountLiteral = rexBuilder.makeExactLiteral(new java.math.BigDecimal(3));
+    RexLiteral nodeCountLiteral =
+        rexBuilder.makeExactLiteral(new java.math.BigDecimal(3));
 
-    RexNode providerFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, awsLiteral);
-    RexNode regionFilter = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
-    RexNode nodeCountFilter = rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, nodeCountRef, nodeCountLiteral);
+    RexNode providerFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, providerRef, awsLiteral);
+    RexNode regionFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, regionRef, regionLiteral);
+    RexNode nodeCountFilter =
+        rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN, nodeCountRef, nodeCountLiteral);
 
-    List<RexNode> complexFilters = Arrays.asList(providerFilter, regionFilter, nodeCountFilter);
-    CloudOpsFilterHandler complexHandler = new CloudOpsFilterHandler(kubernetesSchema, complexFilters);
+    List<RexNode> complexFilters =
+        Arrays.asList(providerFilter, regionFilter, nodeCountFilter);
+    CloudOpsFilterHandler complexHandler =
+        new CloudOpsFilterHandler(kubernetesSchema, complexFilters);
 
     // Verify AWS-only querying
     Set<String> providers = complexHandler.extractProviderConstraints();
@@ -386,9 +433,9 @@ public class FilterPushdownIntegrationTest {
     Map<String, Object> awsParams = complexHandler.getAWSFilterParameters();
     assertEquals("us-west-2", awsParams.get("region"));
 
-    logger.info("   ✅ Complex filters -> AWS only: {}", providers);
-    logger.info("   ✅ AWS region constraint: {}", awsParams);
+    LOGGER.info("   ✅ Complex filters -> AWS only: {}", providers);
+    LOGGER.info("   ✅ AWS region constraint: {}", awsParams);
 
-    logger.info("All complex filter pushdown scenarios validated successfully!");
+    LOGGER.info("All complex filter pushdown scenarios validated successfully!");
   }
 }

@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -678,12 +679,12 @@ public class CloudOpsPostgresMetadataSchema extends AbstractSchema {
 
     @Override public Table put(String key, Table value) {
       // Store with uppercase key for ORACLE lex compatibility
-      return map.put(key.toUpperCase(), value);
+      return map.put(key.toUpperCase(Locale.ROOT), value);
     }
 
     @Override public Table get(Object key) {
       if (key instanceof String) {
-        return map.get(((String) key).toUpperCase());
+        return map.get(((String) key).toUpperCase(Locale.ROOT));
       }
       return null;
     }
@@ -694,7 +695,7 @@ public class CloudOpsPostgresMetadataSchema extends AbstractSchema {
 
     @Override public boolean containsKey(Object key) {
       if (key instanceof String) {
-        return map.containsKey(((String) key).toUpperCase());
+        return map.containsKey(((String) key).toUpperCase(Locale.ROOT));
       }
       return false;
     }

@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Utility class for analyzing and optimizing Cloud Ops queries.
@@ -257,9 +258,9 @@ public class CloudOpsQueryOptimizer {
 
     @Override public String toString() {
       if (operator == SqlKind.IN && values != null) {
-        return String.format("%s[%d] %s %s", fieldName, fieldIndex, operator, values);
+        return String.format(Locale.ROOT, "%s[%d] %s %s", fieldName, fieldIndex, operator, values);
       }
-      return String.format("%s[%d] %s %s", fieldName, fieldIndex, operator, value);
+      return String.format(Locale.ROOT, "%s[%d] %s %s", fieldName, fieldIndex, operator, value);
     }
   }
 

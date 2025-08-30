@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -294,7 +295,7 @@ public class CloudOpsSortHandler {
     }
 
     @Override public String toString() {
-      return String.format("Sort: %d fields, %s", sortFields, strategy);
+      return String.format(Locale.ROOT, "Sort: %d fields, %s", sortFields, strategy);
     }
   }
 }

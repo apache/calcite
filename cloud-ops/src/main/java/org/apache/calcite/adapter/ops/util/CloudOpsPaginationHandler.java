@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Handles pagination pushdown for multi-cloud query optimization.
@@ -276,7 +277,7 @@ public class CloudOpsPaginationHandler {
     }
 
     @Override public String toString() {
-      return String.format("Strategy: %s (%s)%s",
+      return String.format(Locale.ROOT, "Strategy: %s (%s)%s",
                           providerStrategy,
                           useServerSidePagination ? "server-side" : "client-side",
                           needsMultipleFetches ? " + multi-fetch" : "");
@@ -347,7 +348,7 @@ public class CloudOpsPaginationHandler {
     }
 
     @Override public String toString() {
-      return String.format("Pagination: %d/%d results (%.1f%% reduction) via %s",
+      return String.format(Locale.ROOT, "Pagination: %d/%d results (%.1f%% reduction) via %s",
                           resultsFetched, totalResults, reductionPercent, strategy);
     }
   }

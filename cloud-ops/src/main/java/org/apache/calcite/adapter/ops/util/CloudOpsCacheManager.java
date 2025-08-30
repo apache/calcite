@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -268,7 +269,7 @@ public class CloudOpsCacheManager {
    * Get cache configuration summary.
    */
   public String getConfigSummary() {
-    return String.format("TTL=%dmin, MaxSize=%d, Debug=%s",
+    return String.format(Locale.ROOT, "TTL=%dmin, MaxSize=%d, Debug=%s",
                         cacheTtl.toMinutes(), MAX_CACHE_SIZE, debugMode);
   }
 
@@ -299,7 +300,7 @@ public class CloudOpsCacheManager {
     }
 
     @Override public String toString() {
-      return String.format(
+      return String.format(Locale.ROOT,
           "CacheMetrics[size=%d, requests=%d, hits=%d (%.1f%%), misses=%d (%.1f%%), " +
           "avgLoad=%.2fms, evictions=%d]",
           size, requestCount, hitCount, hitRate * 100, missCount, missRate * 100,

@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Utility for validating cache configuration and providing debug information.
@@ -56,19 +57,19 @@ public class CloudOpsCacheValidator {
       // Validate TTL configuration
       if (config.cacheTtlMinutes < MIN_TTL_MINUTES) {
         errors.add(
-            String.format("Cache TTL (%d minutes) is below minimum (%d minutes)",
+            String.format(Locale.ROOT, "Cache TTL (%d minutes) is below minimum (%d minutes)",
                                 config.cacheTtlMinutes, MIN_TTL_MINUTES));
       } else if (config.cacheTtlMinutes > MAX_TTL_MINUTES) {
         warnings.add(
-            String.format("Cache TTL (%d minutes) is very high (max recommended: %d minutes)",
+            String.format(Locale.ROOT, "Cache TTL (%d minutes) is very high (max recommended: %d minutes)",
                                   config.cacheTtlMinutes, MAX_TTL_MINUTES));
       } else if (config.cacheTtlMinutes < RECOMMENDED_MIN_TTL) {
         warnings.add(
-            String.format("Cache TTL (%d minutes) is very low (recommended min: %d minutes)",
+            String.format(Locale.ROOT, "Cache TTL (%d minutes) is very low (recommended min: %d minutes)",
                                   config.cacheTtlMinutes, RECOMMENDED_MIN_TTL));
       } else if (config.cacheTtlMinutes > RECOMMENDED_MAX_TTL) {
         recommendations.add(
-            String.format("Cache TTL (%d minutes) is high - consider shorter TTL for fresher data",
+            String.format(Locale.ROOT, "Cache TTL (%d minutes) is high - consider shorter TTL for fresher data",
                                         config.cacheTtlMinutes));
       } else {
         logger.debug("Cache TTL configuration is optimal: {} minutes", config.cacheTtlMinutes);
@@ -244,7 +245,7 @@ public class CloudOpsCacheValidator {
     }
 
     @Override public String toString() {
-      return String.format("CacheValidationResult[valid=%s, errors=%d, warnings=%d, recommendations=%d]",
+      return String.format(Locale.ROOT, "CacheValidationResult[valid=%s, errors=%d, warnings=%d, recommendations=%d]",
                           valid, errors.size(), warnings.size(), recommendations.size());
     }
   }

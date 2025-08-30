@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -590,9 +591,9 @@ public class CloudOpsFilterHandler {
 
     @Override public String toString() {
       if (operation == SqlKind.IN && values != null) {
-        return String.format("%s[%d] %s %s", fieldName, fieldIndex, operation, values);
+        return String.format(Locale.ROOT, "%s[%d] %s %s", fieldName, fieldIndex, operation, values);
       }
-      return String.format("%s[%d] %s %s", fieldName, fieldIndex, operation, value);
+      return String.format(Locale.ROOT, "%s[%d] %s %s", fieldName, fieldIndex, operation, value);
     }
   }
 
@@ -631,7 +632,7 @@ public class CloudOpsFilterHandler {
     }
 
     @Override public String toString() {
-      return String.format("Filters: %d/%d applied (%.1f%% pushdown) via %s",
+      return String.format(Locale.ROOT, "Filters: %d/%d applied (%.1f%% pushdown) via %s",
                           filtersApplied, totalFilters, pushdownPercent, strategy);
     }
   }
