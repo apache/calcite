@@ -1274,6 +1274,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7149">[CALCITE-7149]
+   * Constant TIMESTAMPADD expression causes assertion failure in validator</a>. */
+  @Test void testTimestampAdd() {
+    sql("SELECT TIMESTAMPADD(DOY, 2, TIMESTAMP '2020-06-21 14:23:44.123')").ok();
+  }
+
   @Test void testWithAlias() {
     final String sql = "with w(x, y) as\n"
         + "  (select * from dept where deptno > 10)\n"

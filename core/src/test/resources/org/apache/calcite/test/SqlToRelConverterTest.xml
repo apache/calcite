@@ -8685,6 +8685,17 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTimestampAdd">
+    <Resource name="sql">
+      <![CDATA[SELECT TIMESTAMPADD(DOY, 2, TIMESTAMP '2020-06-21 14:23:44.123')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[+(2020-06-21 14:23:44.123:TIMESTAMP(3), *(86400000:INTERVAL DOY, 2))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTranslateFunc1">
     <Resource name="sql">
       <![CDATA[select translate(ename using utf8) as new_ename

@@ -2350,6 +2350,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
 
       RexNode interval2Add;
+      BigDecimal multiplier = unit.multiplier;
       switch (unit) {
       case MICROSECOND:
       case NANOSECOND:
@@ -2357,13 +2358,17 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             divide(pos, rexBuilder,
                 multiply(pos, rexBuilder,
                     rexBuilder.makeIntervalLiteral(BigDecimal.ONE, qualifier), op1),
-                BigDecimal.ONE.divide(unit.multiplier,
-                    RoundingMode.UNNECESSARY));
+                BigDecimal.ONE.divide(multiplier, RoundingMode.UNNECESSARY));
         break;
+      case DOY:
+      case DOW:
+        multiplier = TimeUnit.DAY.multiplier;
+        // There is no multiplier for these units; treat as if the unit is DAY
+        // fall through
       default:
         interval2Add =
             multiply(pos, rexBuilder,
-                rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
+                rexBuilder.makeIntervalLiteral(multiplier, qualifier), op1);
       }
 
       return rexBuilder.makeCall(pos, SqlStdOperatorTable.DATETIME_PLUS,
