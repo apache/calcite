@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -93,32 +94,12 @@ public class CloudOpsProjectionHandler {
    * Azure Resource Graph supports full projection via KQL.
    */
   public String buildAzureKqlProjectClause() {
-    if (isSelectAll) {
-      // Return default project for all fields - this could be optimized
-      return null; // Let the existing queries handle full projection
-    }
-
-    StringBuilder kqlProject = new StringBuilder("| project ");
-    List<String> projectedFields = new ArrayList<>();
-
-    for (int i = 0; i < projections.length; i++) {
-      int columnIndex = projections[i];
-      if (columnIndex < rowType.getFieldCount()) {
-        String fieldName = rowType.getFieldList().get(columnIndex).getName();
-        String azureFieldName = AZURE_FIELD_MAPPING.getOrDefault(fieldName, fieldName);
-        projectedFields.add(azureFieldName);
-      }
-    }
-
-    kqlProject.append(String.join(", ", projectedFields));
-
-    if (logger.isDebugEnabled()) {
-      double reductionPercent = (1.0 - (double) projections.length / rowType.getFieldCount()) * 100;
-      logger.debug("Azure KQL projection: {} -> {:.1f}% data reduction",
-                  kqlProject.toString(), reductionPercent);
-    }
-
-    return kqlProject.toString();
+    // For now, always return null to use the default projection
+    // The issue is that we need to project the extended fields (ClusterName, NodePoolCount, etc.)
+    // which are created in the extend clauses, not the raw fields from the resource
+    // The default project clause in AzureProvider properly maps these
+    // TODO: Implement selective projection that properly references extended fields
+    return null;
   }
 
   /**
@@ -281,7 +262,7 @@ public class CloudOpsProjectionHandler {
     }
 
     @Override public String toString() {
-      return String.format("Projection: %d/%d fields (%.1f%% reduction)",
+      return String.format(Locale.ROOT, "Projection: %d/%d fields (%.1f%% reduction)",
                           projectedFields, totalFields, reductionPercent);
     }
   }
