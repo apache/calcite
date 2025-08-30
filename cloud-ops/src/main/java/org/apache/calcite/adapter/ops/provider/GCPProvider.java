@@ -24,9 +24,13 @@ import org.apache.calcite.adapter.ops.util.CloudOpsProjectionHandler;
 import org.apache.calcite.adapter.ops.util.CloudOpsSortHandler;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.container.v1.ClusterManagerClient;
+import com.google.cloud.container.v1.ClusterManagerSettings;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.container.v1.Cluster;
+import com.google.container.v1.ListClustersResponse;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -38,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 /**
  * GCP provider implementation using Google Cloud SDK for Java.
  * Simplified implementation that only handles Cloud Storage for now.
@@ -179,9 +184,84 @@ public class GCPProvider implements CloudProvider {
       }
     }
 
-    // TODO: Implement actual GKE cluster query with Container Engine API
-    // For now, return empty results with debug logging
-    LOGGER.debug("GCP GKE implementation placeholder - returning empty results");
+    // Query GKE clusters using the Container API
+    for (String projectId : projectIds) {
+      try {
+        // Create GKE client with credentials
+        ClusterManagerSettings settings = ClusterManagerSettings.newBuilder()
+            .setCredentialsProvider(() -> credentials)
+            .build();
+        
+        try (ClusterManagerClient clusterClient = ClusterManagerClient.create(settings)) {
+          // List clusters in all zones (use "-" for all zones)
+          String parent = String.format("projects/%s/locations/-", projectId);
+          ListClustersResponse response = clusterClient.listClusters(parent);
+          
+          for (Cluster cluster : response.getClustersList()) {
+            Map<String, Object> clusterData = new HashMap<>();
+            
+            // Identity fields
+            clusterData.put("CloudProvider", "gcp");
+            clusterData.put("AccountId", projectId);
+            clusterData.put("ClusterName", cluster.getName());
+            clusterData.put("Application", cluster.getResourceLabelsOrDefault("app", 
+                cluster.getResourceLabelsOrDefault("application", "Untagged/Orphaned")));
+            clusterData.put("Location", cluster.getLocation());
+            clusterData.put("ResourceGroup", null); // GCP doesn't have resource groups
+            clusterData.put("ResourceId", cluster.getSelfLink());
+            
+            // Configuration facts
+            clusterData.put("KubernetesVersion", cluster.getCurrentMasterVersion());
+            // Calculate total node count from node pools
+            int totalNodes = 0;
+            for (int i = 0; i < cluster.getNodePoolsCount(); i++) {
+              totalNodes += cluster.getNodePools(i).getInitialNodeCount();
+            }
+            clusterData.put("NodeCount", totalNodes);
+            clusterData.put("NodePools", cluster.getNodePoolsCount());
+            clusterData.put("MinNodes", null); // Would need to aggregate from node pools
+            clusterData.put("MaxNodes", null); // Would need to aggregate from node pools
+            
+            // Security facts
+            clusterData.put("RBACEnabled", !cluster.hasLegacyAbac() || !cluster.getLegacyAbac().getEnabled());
+            clusterData.put("PrivateCluster", cluster.hasPrivateClusterConfig() && 
+                cluster.getPrivateClusterConfig().getEnablePrivateNodes());
+            clusterData.put("PublicEndpoint", !cluster.hasPrivateClusterConfig() || 
+                !cluster.getPrivateClusterConfig().getEnablePrivateEndpoint());
+            clusterData.put("AuthorizedIPRanges", cluster.hasMasterAuthorizedNetworksConfig() ? 
+                cluster.getMasterAuthorizedNetworksConfig().getCidrBlocksCount() : 0);
+            
+            // Network configuration
+            clusterData.put("NetworkPolicyProvider", cluster.hasNetworkPolicy() ? 
+                cluster.getNetworkPolicy().getProvider().name() : null);
+            clusterData.put("PodSecurityPolicyEnabled", false); // PSP is deprecated in newer GKE versions
+            
+            // Encryption and logging
+            clusterData.put("EncryptionAtRestEnabled", cluster.hasDatabaseEncryption() && 
+                cluster.getDatabaseEncryption().getState().name().equals("ENCRYPTED"));
+            clusterData.put("EncryptionKeyType", cluster.hasDatabaseEncryption() && 
+                !cluster.getDatabaseEncryption().getKeyName().isEmpty() ? 
+                "customer-managed" : "service-managed");
+            clusterData.put("LoggingEnabled", cluster.getLoggingService() != null && 
+                !cluster.getLoggingService().equals("none"));
+            clusterData.put("MonitoringEnabled", cluster.getMonitoringService() != null && 
+                !cluster.getMonitoringService().equals("none"));
+            
+            // Timestamps
+            clusterData.put("CreatedDate", cluster.getCreateTime());
+            clusterData.put("ModifiedDate", null); // Not directly available
+            
+            // Tags
+            clusterData.put("Tags", cluster.getResourceLabelsMap() != null ? 
+                cluster.getResourceLabelsMap().toString() : null);
+            
+            results.add(clusterData);
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.warn("Failed to query GKE clusters for project {}: {}", projectId, e.getMessage());
+      }
+    }
 
     // Apply client-side pagination if needed (when actual implementation is added)
     if (paginationHandler != null) {
