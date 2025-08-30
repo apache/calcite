@@ -82,8 +82,9 @@ public class SortJoinTransposeRule
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
 
-    // Do nothing if sort offset/fetch is dynamic param
-    if (sort.offset instanceof RexDynamicParam || sort.fetch instanceof RexDynamicParam) {
+    // Do nothing if SORT contains dynamic parameters in offset or fetch
+    if (sort.offset instanceof RexDynamicParam
+        || sort.fetch instanceof RexDynamicParam) {
       return false;
     }
 
@@ -92,6 +93,7 @@ public class SortJoinTransposeRule
     final boolean isRight = joinType == JoinRelType.RIGHT;
     final RelCollation collation = sort.getCollation();
 
+    // Do nothing if neither LEFT JOIN nor RIGHT JOIN
     if (!isLeft && !isRight) {
       return false;
     }
@@ -101,6 +103,8 @@ public class SortJoinTransposeRule
       final int leftFieldCnt = join.getLeft().getRowType().getFieldCount();
       for (RelFieldCollation fc : collation.getFieldCollations()) {
         int idx = fc.getFieldIndex();
+        // Do nothing if the sort column of SORT is not completely contained
+        // in the left child or right child
         if (isLeft && idx >= leftFieldCnt) {
           return false;
         }
@@ -109,7 +113,8 @@ public class SortJoinTransposeRule
         }
       }
     } else if (sort.fetch == null) {
-      // If no order-by, must have limit
+      // Do nothing if there is no sort column and no fetch in SORT.
+      // This means that no pushdown will be performed when there is only offset.
       return false;
     }
 
