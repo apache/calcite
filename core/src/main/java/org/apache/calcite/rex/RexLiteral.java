@@ -1278,6 +1278,11 @@ public class RexLiteral extends RexNode {
     return number.intValue();
   }
 
+  public static long longValue(RexNode node) {
+    final Number number = numberValue(node);
+    return number.longValue();
+  }
+
   public static @Nullable String stringValue(RexNode node) {
     final Comparable value = findValue(node);
     return (value == null) ? null : ((NlsString) value).getValue();

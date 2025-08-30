@@ -82,41 +82,34 @@ public class SortJoinTransposeRule
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
 
-    // 1) If sort has dynamic parameter, we bail out
-    // 2) If join is not a left or right outer, we bail out
-    // 3) If sort is not a trivial order-by, and if there is
-    // any sort column that is not part of the input where the
-    // sort is pushed, we bail out
-    if (sort.offset instanceof RexDynamicParam
-        || sort.fetch instanceof RexDynamicParam) {
+    // Do nothing if sort offset/fetch is dynamic param
+    if (sort.offset instanceof RexDynamicParam || sort.fetch instanceof RexDynamicParam) {
       return false;
     }
 
-    if (join.getJoinType() == JoinRelType.LEFT) {
-      if (sort.getCollation() != RelCollations.EMPTY) {
-        for (RelFieldCollation relFieldCollation
-            : sort.getCollation().getFieldCollations()) {
-          if (relFieldCollation.getFieldIndex()
-              >= join.getLeft().getRowType().getFieldCount()) {
-            return false;
-          }
+    final JoinRelType joinType = join.getJoinType();
+    final boolean isLeft = joinType == JoinRelType.LEFT;
+    final boolean isRight = joinType == JoinRelType.RIGHT;
+    final RelCollation collation = sort.getCollation();
+
+    if (!isLeft && !isRight) {
+      return false;
+    }
+
+    // Check collation fields if not trivial order-by
+    if (collation != RelCollations.EMPTY) {
+      final int leftFieldCnt = join.getLeft().getRowType().getFieldCount();
+      for (RelFieldCollation fc : collation.getFieldCollations()) {
+        int idx = fc.getFieldIndex();
+        if (isLeft && idx >= leftFieldCnt) {
+          return false;
         }
-      } else if (sort.fetch == null) {
-        return false;
-      }
-    } else if (join.getJoinType() == JoinRelType.RIGHT) {
-      if (sort.getCollation() != RelCollations.EMPTY) {
-        for (RelFieldCollation relFieldCollation
-            : sort.getCollation().getFieldCollations()) {
-          if (relFieldCollation.getFieldIndex()
-              < join.getLeft().getRowType().getFieldCount()) {
-            return false;
-          }
+        if (isRight && idx < leftFieldCnt) {
+          return false;
         }
-      } else if (sort.fetch == null) {
-        return false;
       }
-    } else {
+    } else if (sort.fetch == null) {
+      // If no order-by, must have limit
       return false;
     }
 
@@ -183,9 +176,9 @@ public class SortJoinTransposeRule
     if (sort.fetch == null) {
       return null;
     }
-    final int outerFetch = RexLiteral.intValue(sort.fetch);
-    final int outerOffset = sort.offset != null ? RexLiteral.intValue(sort.offset) : 0;
-    final int totalFetch = outerOffset + outerFetch;
+    final long outerFetch = RexLiteral.longValue(sort.fetch);
+    final long outerOffset = sort.offset != null ? RexLiteral.longValue(sort.offset) : 0;
+    final long totalFetch = outerOffset + outerFetch;
     return rexBuilder.makeExactLiteral(BigDecimal.valueOf(totalFetch));
   }
 
