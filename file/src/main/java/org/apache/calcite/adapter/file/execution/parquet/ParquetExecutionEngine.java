@@ -30,14 +30,14 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Parquet-based execution engine for columnar data processing.
@@ -65,7 +65,7 @@ public final class ParquetExecutionEngine {
   private ParquetExecutionEngine() {
     // Utility class
   }
-  
+
   private static final BufferAllocator ALLOCATOR = new RootAllocator();
 
   /**

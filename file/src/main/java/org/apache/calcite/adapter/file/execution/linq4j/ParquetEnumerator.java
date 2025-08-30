@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.adapter.file.execution.linq4j;
 
-import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
-import org.apache.calcite.adapter.file.execution.linq4j.JsonEnumerator;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Source;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -37,9 +38,6 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Universal enumerator that reads various file formats using streaming columnar processing.
@@ -113,7 +111,7 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
                           List<RelDataType> fieldTypes, int[] projectedFields) {
     this(source, cancelFlag, fieldTypes, projectedFields, 10000, "UNCHANGED"); // 10K rows default
   }
-  
+
   public ParquetEnumerator(Source source, AtomicBoolean cancelFlag,
                           List<RelDataType> fieldTypes, int[] projectedFields, String columnNameCasing) {
     this(source, cancelFlag, fieldTypes, projectedFields, 10000, columnNameCasing); // 10K rows default
@@ -124,7 +122,7 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
     this(source, cancelFlag, fieldTypes, projectedFields, batchSize,
         80 * 1024 * 1024, "UNCHANGED"); // 80MB default
   }
-  
+
   public ParquetEnumerator(Source source, AtomicBoolean cancelFlag,
                           List<RelDataType> fieldTypes, int[] projectedFields, int batchSize, String columnNameCasing) {
     this(source, cancelFlag, fieldTypes, projectedFields, batchSize,
@@ -136,7 +134,7 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
                           int batchSize, long memoryThreshold) {
     this(source, cancelFlag, fieldTypes, projectedFields, batchSize, memoryThreshold, "UNCHANGED");
   }
-  
+
   public ParquetEnumerator(Source source, AtomicBoolean cancelFlag,
                           List<RelDataType> fieldTypes, int[] projectedFields,
                           int batchSize, long memoryThreshold, String columnNameCasing) {

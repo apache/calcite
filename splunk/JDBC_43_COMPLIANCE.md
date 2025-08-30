@@ -34,7 +34,7 @@ The enhancement was implemented in the `SplunkDataConverter` class by:
 The following VARCHAR to numeric conversions are now supported:
 
 - **VARCHAR → INTEGER**: Parses numeric strings to integers, truncates decimals
-- **VARCHAR → BIGINT**: Parses numeric strings to longs, truncates decimals  
+- **VARCHAR → BIGINT**: Parses numeric strings to longs, truncates decimals
 - **VARCHAR → DOUBLE**: Parses numeric strings including scientific notation
 - **VARCHAR → FLOAT/REAL**: Parses numeric strings to float values
 - **VARCHAR → DECIMAL**: Parses numeric strings to BigDecimal with full precision

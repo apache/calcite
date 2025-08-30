@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.adapter.file.execution.linq4j;
 
-import org.apache.calcite.adapter.file.util.ComparableArrayList;
-import org.apache.calcite.adapter.file.util.ComparableLinkedHashMap;
 import org.apache.calcite.adapter.file.cache.SourceFileLockManager;
 import org.apache.calcite.adapter.file.format.json.JsonFlattener;
-
+import org.apache.calcite.adapter.file.util.ComparableArrayList;
+import org.apache.calcite.adapter.file.util.ComparableLinkedHashMap;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
@@ -101,20 +100,20 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
   public static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source) {
     return deduceRowType(typeFactory, source, (Map<String, Object>) null);
   }
-  
+
 
   public static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
       Map<String, Object> options) {
     return deduceRowType(typeFactory, source, options, "UNCHANGED");
   }
-  
+
   public static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
       Map<String, Object> options, String columnNameCasing) {
     // If source is a StorageProviderSource, assume JSON format since it's used in JsonTable
     if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
       return deduceRowType(typeFactory, source, "json", options, columnNameCasing);
     }
-    
+
     Source sourceSansGz = source.trim(".gz");
     Source sourceSansJson = sourceSansGz.trimOrNull(".json");
     Source sourceSansYaml = sourceSansGz.trimOrNull(".yaml");
@@ -137,7 +136,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
           String dataType) {
     return deduceRowType(typeFactory, source, dataType, (Map<String, Object>) null);
   }
-  
+
   public static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
           String dataType, String columnNameCasing) {
     return deduceRowType(typeFactory, source, dataType, (Map<String, Object>) null, columnNameCasing);
@@ -228,14 +227,14 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     } else if (jsonObj instanceof Collection) {
       //noinspection unchecked
       list = (List<Object>) jsonObj;
-      
+
       if (list.isEmpty()) {
         jsonFieldMap.put("EmptyCollectionHasNoColumns", Boolean.TRUE);
       } else {
         //noinspection unchecked
         jsonFieldMap = (LinkedHashMap) list.get(0);
       }
-      
+
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
         String flattenSeparator = options.containsKey("flattenSeparator")
@@ -272,15 +271,15 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     // Scan up to 10 rows to determine column types (to handle nulls in first row)
     Map<String, Class<?>> columnTypes = new HashMap<>();
     int rowsToScan = Math.min(10, list.size());
-    
+
     // First, collect all column names from the first row (or the jsonFieldMap for single objects)
     Set<String> allColumns = new LinkedHashSet<>(jsonFieldMap.keySet());
-    
+
     // Scan rows to find non-null values for type inference
     for (int i = 0; i < rowsToScan; i++) {
       Object rowObj = list.get(i);
       Map<String, Object> row;
-      
+
       if (rowObj instanceof Map) {
         //noinspection unchecked
         row = (Map<String, Object>) rowObj;
@@ -288,7 +287,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
         // Skip non-map rows
         continue;
       }
-      
+
       for (String key : row.keySet()) {
         if (!columnTypes.containsKey(key)) {
           Object value = row.get(key);
@@ -297,7 +296,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
           }
         }
       }
-      
+
       // If we've determined types for all columns, we can stop
       if (columnTypes.size() == allColumns.size()) {
         break;

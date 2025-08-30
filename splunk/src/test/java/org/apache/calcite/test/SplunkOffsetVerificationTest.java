@@ -33,7 +33,6 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -43,17 +42,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @EnabledIfEnvironmentVariable(named = "CALCITE_TEST_SPLUNK", matches = "true")
 public class SplunkOffsetVerificationTest extends SplunkTestBase {
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkOffsetVerificationTest.class);
-  
+
   private Connection connection;
 
   @BeforeAll
   public void setUp() throws Exception {
     loadConnectionProperties();
-    
+
     if (!splunkAvailable) {
       throw new IllegalStateException("Splunk connection not configured");
     }
-    
+
     // Create a test table with more diverse data
     String modelJson = String.format("{"
         + "version:'1.0',"
@@ -81,74 +80,72 @@ public class SplunkOffsetVerificationTest extends SplunkTestBase {
         + "}]"
         + "}",
         SPLUNK_URL, SPLUNK_USER, SPLUNK_PASSWORD, DISABLE_SSL_VALIDATION);
-    
+
     Properties info = new Properties();
     info.setProperty("model", "inline:" + modelJson);
     info.setProperty("lex", "ORACLE");
     info.setProperty("unquotedCasing", "TO_LOWER");
-    
+
     connection = DriverManager.getConnection("jdbc:calcite:", info);
     LOGGER.info("Connected to Splunk for OFFSET verification");
   }
 
-  @Test
-  public void testOffsetWithUniqueColumn() throws Exception {
+  @Test public void testOffsetWithUniqueColumn() throws Exception {
     // Use _time which should have unique values
     String sql1 = "SELECT _time FROM test_data ORDER BY _time DESC LIMIT 5";
     List<String> firstBatch = new ArrayList<>();
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql1)) {
       while (rs.next()) {
         firstBatch.add(rs.getString("_time"));
       }
     }
-    
+
     assertEquals(5, firstBatch.size(), "Should get 5 rows in first batch");
-    
+
     // Get next 5 with OFFSET
     String sql2 = "SELECT _time FROM test_data ORDER BY _time DESC LIMIT 5 OFFSET 5";
     List<String> secondBatch = new ArrayList<>();
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql2)) {
       while (rs.next()) {
         secondBatch.add(rs.getString("_time"));
       }
     }
-    
+
     assertEquals(5, secondBatch.size(), "Should get 5 rows in second batch");
-    
+
     // Verify no overlap between batches
     for (String time1 : firstBatch) {
       for (String time2 : secondBatch) {
-        assertNotEquals(time1, time2, 
+        assertNotEquals(time1, time2,
             "OFFSET should skip rows - found duplicate: " + time1);
       }
     }
-    
+
     LOGGER.info("OFFSET correctly skipped {} rows", firstBatch.size());
   }
 
-  @Test
-  public void testOffsetBeyondResultSet() throws Exception {
+  @Test public void testOffsetBeyondResultSet() throws Exception {
     // First count total rows
     String countSql = "SELECT COUNT(*) as total FROM test_data";
     int totalRows = 0;
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(countSql)) {
       if (rs.next()) {
         totalRows = rs.getInt("total");
       }
     }
-    
+
     LOGGER.info("Total rows in dataset: {}", totalRows);
-    
+
     // Try OFFSET beyond total rows
-    String sql = String.format("SELECT source FROM test_data LIMIT 10 OFFSET %d", 
-        totalRows + 10);
-    
+    String sql =
+        String.format("SELECT source FROM test_data LIMIT 10 OFFSET %d", totalRows + 10);
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -157,36 +154,35 @@ public class SplunkOffsetVerificationTest extends SplunkTestBase {
       }
       assertEquals(0, count, "OFFSET beyond dataset should return 0 rows");
     }
-    
+
     LOGGER.info("OFFSET beyond dataset correctly returned 0 rows");
   }
 
-  @Test
-  public void testOffsetWithDistinctValues() throws Exception {
+  @Test public void testOffsetWithDistinctValues() throws Exception {
     // Get distinct sourcetypes ordered
     String sql = "SELECT DISTINCT sourcetype FROM test_data ORDER BY sourcetype";
     List<String> allDistinct = new ArrayList<>();
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       while (rs.next()) {
         allDistinct.add(rs.getString("sourcetype"));
       }
     }
-    
+
     LOGGER.info("Found {} distinct sourcetypes", allDistinct.size());
-    
+
     if (allDistinct.size() >= 2) {
       // Test OFFSET with distinct values
       String sqlOffset = "SELECT DISTINCT sourcetype FROM test_data "
           + "ORDER BY sourcetype LIMIT 1 OFFSET 1";
-      
+
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(sqlOffset)) {
         assertTrue(rs.next(), "Should get one result with OFFSET 1");
         String offsetValue = rs.getString("sourcetype");
-        
-        assertEquals(allDistinct.get(1), offsetValue, 
+
+        assertEquals(allDistinct.get(1), offsetValue,
             "OFFSET 1 should return second distinct value");
         LOGGER.info("OFFSET correctly returned second distinct value: {}", offsetValue);
       }

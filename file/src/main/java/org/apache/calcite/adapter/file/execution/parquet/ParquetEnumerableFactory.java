@@ -33,13 +33,13 @@ import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Factory for creating Enumerable instances from Parquet files.
@@ -64,7 +64,7 @@ public class ParquetEnumerableFactory {
         String systemProperty = System.getProperty("parquet.enable.vectorized.reader", "false");
         conf.set("parquet.enable.vectorized.reader", systemProperty);
         boolean useVectorized = "true".equals(systemProperty);
-        
+
         if (useVectorized) {
           LOGGER.debug("Using batch reader for {} (batches rows for better I/O efficiency)", filePath);
           return new VectorizedParquetEnumerator(filePath);
@@ -88,7 +88,7 @@ public class ParquetEnumerableFactory {
         String systemProperty = System.getProperty("parquet.enable.vectorized.reader", "false");
         conf.set("parquet.enable.vectorized.reader", systemProperty);
         boolean useVectorized = "true".equals(systemProperty);
-        
+
         if (useVectorized) {
           LOGGER.debug("Using batch filtered reader for {} (batches rows for better I/O efficiency)", filePath);
           return new VectorizedFilteredParquetEnumerator(filePath, nullFilters);
@@ -132,7 +132,7 @@ public class ParquetEnumerableFactory {
       try {
         Path hadoopPath = new Path(filePath);
         Configuration conf = new Configuration();
-        
+
         // Enable vectorized reading for better performance
         conf.set("parquet.enable.vectorized.reader", "true");
 
@@ -140,16 +140,16 @@ public class ParquetEnumerableFactory {
         try (ParquetFileReader fileReader = ParquetFileReader.open(conf, hadoopPath)) {
           ParquetMetadata metadata = fileReader.getFooter();
           MessageType schema = metadata.getFileMetaData().getSchema();
-          
+
           // Build map of field names to isAdjustedToUTC flags
           for (Type field : schema.getFields()) {
             if (field.isPrimitive()) {
               LogicalTypeAnnotation logicalType = field.getLogicalTypeAnnotation();
               if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
-                LogicalTypeAnnotation.TimestampLogicalTypeAnnotation tsType = 
+                LogicalTypeAnnotation.TimestampLogicalTypeAnnotation tsType =
                     (LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) logicalType;
                 timestampAdjustedMap.put(field.getName(), tsType.isAdjustedToUTC());
-                LOGGER.debug("[ParquetEnumerator] Field {} has isAdjustedToUTC={}", 
+                LOGGER.debug("[ParquetEnumerator] Field {} has isAdjustedToUTC={}",
                     field.getName(), tsType.isAdjustedToUTC());
               }
             }
@@ -219,7 +219,7 @@ public class ParquetEnumerableFactory {
                 value = null;
               } else {
                 // Log unexpected value type
-                LOGGER.debug("[ParquetEnumerableFactory] Unexpected DATE value type: {}", 
+                LOGGER.debug("[ParquetEnumerableFactory] Unexpected DATE value type: {}",
                     (value != null ? value.getClass().getName() : "null"));
               }
             } else if ("time-millis".equals(logicalTypeName)) {
@@ -234,7 +234,7 @@ public class ParquetEnumerableFactory {
               if (value instanceof Long) {
                 long milliseconds = (Long) value;
                 String fieldName = field.name();
-                
+
                 // For Parquet engine, return long values for timestamps to avoid casting issues
                 // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
                 // by the result set processing.
@@ -298,7 +298,7 @@ public class ParquetEnumerableFactory {
       try {
         Path hadoopPath = new Path(filePath);
         Configuration conf = new Configuration();
-        
+
         // Enable vectorized reading for better performance
         conf.set("parquet.enable.vectorized.reader", "true");
 
@@ -306,16 +306,16 @@ public class ParquetEnumerableFactory {
         try (ParquetFileReader fileReader = ParquetFileReader.open(conf, hadoopPath)) {
           ParquetMetadata metadata = fileReader.getFooter();
           MessageType schema = metadata.getFileMetaData().getSchema();
-          
+
           // Build map of field names to isAdjustedToUTC flags
           for (Type field : schema.getFields()) {
             if (field.isPrimitive()) {
               LogicalTypeAnnotation logicalType = field.getLogicalTypeAnnotation();
               if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
-                LogicalTypeAnnotation.TimestampLogicalTypeAnnotation tsType = 
+                LogicalTypeAnnotation.TimestampLogicalTypeAnnotation tsType =
                     (LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) logicalType;
                 timestampAdjustedMap.put(field.getName(), tsType.isAdjustedToUTC());
-                LOGGER.debug("[FilteredParquetEnumerator] Field {} has isAdjustedToUTC={}", 
+                LOGGER.debug("[FilteredParquetEnumerator] Field {} has isAdjustedToUTC={}",
                     field.getName(), tsType.isAdjustedToUTC());
               }
             }
@@ -381,7 +381,7 @@ public class ParquetEnumerableFactory {
                 } else if (value == null) {
                   value = null;
                 } else {
-                  LOGGER.debug("[FilteredParquetEnumerator] Unexpected DATE value type: {}", 
+                  LOGGER.debug("[FilteredParquetEnumerator] Unexpected DATE value type: {}",
                       (value != null ? value.getClass().getName() : "null"));
                 }
               } else if ("time-millis".equals(logicalTypeName)) {
@@ -395,7 +395,7 @@ public class ParquetEnumerableFactory {
                 if (value instanceof Long) {
                   long milliseconds = (Long) value;
                   String fieldName = field.name();
-                  
+
                   // For Parquet engine, return long values for timestamps to avoid casting issues
                   // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
                   // by the result set processing.
@@ -472,7 +472,7 @@ public class ParquetEnumerableFactory {
       try {
         Path hadoopPath = new Path(filePath);
         Configuration conf = new Configuration();
-        
+
         // Enable vectorized reading for better performance
         conf.set("parquet.enable.vectorized.reader", "true");
 
@@ -480,16 +480,16 @@ public class ParquetEnumerableFactory {
         try (ParquetFileReader fileReader = ParquetFileReader.open(conf, hadoopPath)) {
           ParquetMetadata metadata = fileReader.getFooter();
           MessageType schema = metadata.getFileMetaData().getSchema();
-          
+
           // Build map of field names to isAdjustedToUTC flags
           for (Type field : schema.getFields()) {
             if (field.isPrimitive()) {
               LogicalTypeAnnotation logicalType = field.getLogicalTypeAnnotation();
               if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
-                LogicalTypeAnnotation.TimestampLogicalTypeAnnotation tsType = 
+                LogicalTypeAnnotation.TimestampLogicalTypeAnnotation tsType =
                     (LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) logicalType;
                 timestampAdjustedMap.put(field.getName(), tsType.isAdjustedToUTC());
-                LOGGER.debug("[TimeFilteredParquetEnumerator] Field {} has isAdjustedToUTC={}", 
+                LOGGER.debug("[TimeFilteredParquetEnumerator] Field {} has isAdjustedToUTC={}",
                     field.getName(), tsType.isAdjustedToUTC());
               }
             }
@@ -566,7 +566,7 @@ public class ParquetEnumerableFactory {
                 if (value instanceof Long) {
                   long milliseconds = (Long) value;
                   String fieldName = field.name();
-                  
+
                   // For Parquet engine, return long values for timestamps to avoid casting issues
                   // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
                   // by the result set processing.
@@ -612,7 +612,7 @@ public class ParquetEnumerableFactory {
       }
     }
   }
-  
+
   /**
    * Vectorized enumerator that reads from Parquet files in batches.
    */
@@ -623,12 +623,12 @@ public class ParquetEnumerableFactory {
     private int batchPosition = 0;
     private Object[] currentRow;
     private boolean finished = false;
-    
+
     VectorizedParquetEnumerator(String filePath) {
       this.filePath = filePath;
       initReader();
     }
-    
+
     private void initReader() {
       try {
         reader = new VectorizedParquetReader(filePath);
@@ -637,11 +637,11 @@ public class ParquetEnumerableFactory {
         throw new RuntimeException("Failed to initialize vectorized Parquet reader for " + filePath, e);
       }
     }
-    
+
     private void loadNextBatch() throws IOException {
       currentBatch = reader.readBatch();
       batchPosition = 0;
-      
+
       if (currentBatch == null || currentBatch.isEmpty()) {
         finished = true;
         currentBatch = null;
@@ -649,18 +649,16 @@ public class ParquetEnumerableFactory {
         LOGGER.trace("Loaded batch with {} rows", currentBatch.size());
       }
     }
-    
-    @Override 
-    public Object[] current() {
+
+    @Override public Object[] current() {
       return currentRow;
     }
-    
-    @Override 
-    public boolean moveNext() {
+
+    @Override public boolean moveNext() {
       if (finished) {
         return false;
       }
-      
+
       try {
         // Check if we need to load the next batch
         if (currentBatch == null || batchPosition >= currentBatch.size()) {
@@ -669,26 +667,24 @@ public class ParquetEnumerableFactory {
             return false;
           }
         }
-        
+
         // Get the next row from the current batch
         currentRow = currentBatch.get(batchPosition);
         batchPosition++;
         return true;
-        
+
       } catch (IOException e) {
         throw new RuntimeException("Error reading vectorized Parquet data", e);
       }
     }
-    
-    @Override 
-    public void reset() {
+
+    @Override public void reset() {
       close();
       finished = false;
       initReader();
     }
-    
-    @Override 
-    public void close() {
+
+    @Override public void close() {
       if (reader != null) {
         try {
           reader.close();
@@ -700,7 +696,7 @@ public class ParquetEnumerableFactory {
       currentBatch = null;
     }
   }
-  
+
   /**
    * Vectorized filtered enumerator that reads from Parquet files in batches with null filtering.
    */
@@ -712,13 +708,13 @@ public class ParquetEnumerableFactory {
     private int batchPosition = 0;
     private Object[] currentRow;
     private boolean finished = false;
-    
+
     VectorizedFilteredParquetEnumerator(String filePath, boolean[] nullFilters) {
       this.filePath = filePath;
       this.nullFilters = nullFilters;
       initReader();
     }
-    
+
     private void initReader() {
       try {
         reader = new VectorizedParquetReader(filePath);
@@ -727,11 +723,11 @@ public class ParquetEnumerableFactory {
         throw new RuntimeException("Failed to initialize vectorized Parquet reader for " + filePath, e);
       }
     }
-    
+
     private void loadNextBatch() throws IOException {
       currentBatch = reader.readBatch();
       batchPosition = 0;
-      
+
       if (currentBatch == null || currentBatch.isEmpty()) {
         finished = true;
         currentBatch = null;
@@ -739,18 +735,16 @@ public class ParquetEnumerableFactory {
         LOGGER.trace("Loaded batch with {} rows for filtering", currentBatch.size());
       }
     }
-    
-    @Override 
-    public Object[] current() {
+
+    @Override public Object[] current() {
       return currentRow;
     }
-    
-    @Override 
-    public boolean moveNext() {
+
+    @Override public boolean moveNext() {
       if (finished) {
         return false;
       }
-      
+
       try {
         while (true) {
           // Check if we need to load the next batch
@@ -760,11 +754,11 @@ public class ParquetEnumerableFactory {
               return false;
             }
           }
-          
+
           // Get the next row from the current batch
           Object[] row = currentBatch.get(batchPosition);
           batchPosition++;
-          
+
           // Apply null filters - skip rows that have null values in filtered columns
           boolean shouldSkip = false;
           for (int i = 0; i < nullFilters.length && i < row.length; i++) {
@@ -773,28 +767,26 @@ public class ParquetEnumerableFactory {
               break;
             }
           }
-          
+
           if (!shouldSkip) {
             currentRow = row;
             return true; // Found a valid row
           }
           // Continue to next row if this one should be skipped
         }
-        
+
       } catch (IOException e) {
         throw new RuntimeException("Error reading vectorized Parquet data", e);
       }
     }
-    
-    @Override 
-    public void reset() {
+
+    @Override public void reset() {
       close();
       finished = false;
       initReader();
     }
-    
-    @Override 
-    public void close() {
+
+    @Override public void close() {
       if (reader != null) {
         try {
           reader.close();

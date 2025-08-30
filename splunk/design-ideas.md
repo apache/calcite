@@ -28,21 +28,21 @@ while ((line = reader.readLine()) != null) {
 public class ParallelSplunkResultProcessor {
     private static final int BATCH_SIZE = 500;  // Smaller batches for lower latency
     private static final int PROCESSOR_THREADS = 4;
-    
-    public void processQueryResults(InputStream is, SearchResultListener listener, 
+
+    public void processQueryResults(InputStream is, SearchResultListener listener,
                                    RelDataType schema) {
         // Use ring buffer for low-latency processing
         Disruptor<ResultEvent> disruptor = new Disruptor<>(
-            ResultEvent::new, 
+            ResultEvent::new,
             1024,  // Ring buffer size
             DaemonThreadFactory.INSTANCE);
-        
+
         // Parallel processing pipeline
         disruptor.handleEventsWithWorkerPool(
             createWorkers(PROCESSOR_THREADS, schema, listener));
-        
+
         RingBuffer<ResultEvent> ringBuffer = disruptor.start();
-        
+
         // Producer - reads and publishes to ring buffer
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(is, StandardCharsets.UTF_8))) {
@@ -57,20 +57,20 @@ public class ParallelSplunkResultProcessor {
             disruptor.shutdown();
         }
     }
-    
-    private WorkHandler<ResultEvent>[] createWorkers(int count, RelDataType schema, 
+
+    private WorkHandler<ResultEvent>[] createWorkers(int count, RelDataType schema,
                                                      SearchResultListener listener) {
         WorkHandler<ResultEvent>[] workers = new WorkHandler[count];
         for (int i = 0; i < count; i++) {
             workers[i] = event -> {
                 // Parse line
                 Object[] row = parseLine(event.getLine());
-                
+
                 // Type conversion based on schema
                 if (schema != null) {
                     row = convertTypes(row, schema);
                 }
-                
+
                 // Process row
                 listener.processRow(row);
             };
@@ -84,12 +84,12 @@ public class ParallelSplunkResultProcessor {
 ```java
 public class StreamingResultProcessor {
     private final ForkJoinPool customThreadPool = new ForkJoinPool(4);
-    
-    public void processResults(InputStream is, SearchResultListener listener, 
+
+    public void processResults(InputStream is, SearchResultListener listener,
                               RelDataType schema) {
         try (Stream<String> lines = new BufferedReader(
                 new InputStreamReader(is)).lines()) {
-            
+
             // Process in parallel while maintaining some order
             lines.parallel()
                  .map(line -> CompletableFuture.supplyAsync(() -> {
@@ -106,9 +106,9 @@ public class StreamingResultProcessor {
 }
 ```
 
-**Expected Speedup**: 
+**Expected Speedup**:
 - **Small queries (< 1000 rows)**: 1.5-2x faster
-- **Medium queries (1K-10K rows)**: 2-3x faster  
+- **Medium queries (1K-10K rows)**: 2-3x faster
 - **Large queries (> 10K rows)**: 3-4x faster
 - **Impact**: EVERY query benefits, thousands of times per day!
 
@@ -133,7 +133,7 @@ public class VectorizedTypeConverter {
     public Object[][] convertBatch(Object[][] rows, RelDataType schema) {
         int numRows = rows.length;
         int numCols = schema.getFieldCount();
-        
+
         // Parallel column-wise conversion (better for cache locality)
         IntStream.range(0, numCols).parallel().forEach(col -> {
             SqlTypeName targetType = schema.getFieldList().get(col).getType();
@@ -141,7 +141,7 @@ public class VectorizedTypeConverter {
                 rows[row][col] = convertValue(rows[row][col], targetType);
             }
         });
-        
+
         return rows;
     }
 }
@@ -184,12 +184,12 @@ Map<String, Table> tables = models.parallelStream()
 **Parallel Implementation**:
 ```java
 public class ParallelAppDiscovery {
-    private final ExecutorService executorService = 
+    private final ExecutorService executorService =
         Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    
-    public Map<String, Table> discoverAcrossApps(String[] appContexts, 
+
+    public Map<String, Table> discoverAcrossApps(String[] appContexts,
                                                   RelDataTypeFactory typeFactory) {
-        List<CompletableFuture<Map<String, Table>>> futures = 
+        List<CompletableFuture<Map<String, Table>>> futures =
             Arrays.stream(appContexts)
                 .map(app -> CompletableFuture.supplyAsync(() -> {
                     try {
@@ -197,13 +197,13 @@ public class ParallelAppDiscovery {
                             createConnectionForApp(app), app, cacheTtl);
                         return discovery.discoverDataModels(typeFactory, modelFilter);
                     } catch (Exception e) {
-                        LOGGER.error("Failed to discover models in app '{}': {}", 
+                        LOGGER.error("Failed to discover models in app '{}': {}",
                             app, e.getMessage());
                         return new HashMap<>();
                     }
                 }, executorService))
                 .collect(Collectors.toList());
-        
+
         // Merge results with duplicate handling
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
             .thenApply(v -> futures.stream()
@@ -213,7 +213,7 @@ public class ParallelAppDiscovery {
                     Map.Entry::getKey,
                     Map.Entry::getValue,
                     (v1, v2) -> {
-                        LOGGER.warn("Duplicate table name '{}' across apps", 
+                        LOGGER.warn("Duplicate table name '{}' across apps",
                             ((Table) v1).getTableName());
                         return v1; // Keep first occurrence
                     },
@@ -254,7 +254,7 @@ rootSchema.subSchemas().getNames().parallelStream()
     .forEach(rows::add);
 
 // Alternative with better ordering preservation
-ConcurrentSkipListMap<String, List<Object[]>> orderedResults = 
+ConcurrentSkipListMap<String, List<Object[]>> orderedResults =
     new ConcurrentSkipListMap<>();
 
 rootSchema.subSchemas().getNames().parallelStream()
@@ -293,7 +293,7 @@ for (Table table : tables) {
 public class RateLimitedFieldDiscovery {
     private final RateLimiter rateLimiter = RateLimiter.create(10.0); // 10 requests/sec
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
-    
+
     public void discoverFieldsParallel(List<Table> tables) {
         List<CompletableFuture<Void>> futures = tables.stream()
             .map(table -> CompletableFuture.runAsync(() -> {
@@ -302,12 +302,12 @@ public class RateLimitedFieldDiscovery {
                     Map<String, RelDataType> fields = discoverFields(table);
                     table.setFields(fields);
                 } catch (Exception e) {
-                    LOGGER.error("Failed to discover fields for table '{}': {}", 
+                    LOGGER.error("Failed to discover fields for table '{}': {}",
                         table.getName(), e.getMessage());
                 }
             }, executor))
             .collect(Collectors.toList());
-        
+
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 }
@@ -334,13 +334,13 @@ while ((line = reader.readLine()) != null) {
 public class ParallelResultProcessor {
     private static final int BATCH_SIZE = 1000;
     private static final int PROCESSOR_THREADS = 4;
-    
+
     public void processResults(InputStream is, SearchResultListener listener) {
-        BlockingQueue<List<String>> batchQueue = 
+        BlockingQueue<List<String>> batchQueue =
             new LinkedBlockingQueue<>(PROCESSOR_THREADS * 2);
         ExecutorService processors = Executors.newFixedThreadPool(PROCESSOR_THREADS);
         AtomicBoolean producerDone = new AtomicBoolean(false);
-        
+
         // Producer thread - reads lines into batches
         CompletableFuture<Void> producer = CompletableFuture.runAsync(() -> {
             try (BufferedReader reader = new BufferedReader(
@@ -364,7 +364,7 @@ public class ParallelResultProcessor {
                 producerDone.set(true);
             }
         });
-        
+
         // Consumer threads - parse batches in parallel
         List<CompletableFuture<Void>> consumers = IntStream.range(0, PROCESSOR_THREADS)
             .mapToObj(i -> CompletableFuture.runAsync(() -> {
@@ -386,7 +386,7 @@ public class ParallelResultProcessor {
                 }
             }, processors))
             .collect(Collectors.toList());
-        
+
         // Wait for completion
         producer.join();
         CompletableFuture.allOf(consumers.toArray(new CompletableFuture[0])).join();
@@ -423,7 +423,7 @@ Map<String, Table> tables = tableNames.parallelStream()
                 Map<String, Object> config = loadTableConfig(tableName);
                 return createTable(config);
             } catch (Exception e) {
-                LOGGER.error("Failed to create table '{}': {}", 
+                LOGGER.error("Failed to create table '{}': {}",
                     tableName, e.getMessage());
                 return null;
             }
@@ -442,10 +442,10 @@ Map<String, Table> tables = tableNames.parallelStream()
 **Parallel Implementation**:
 ```java
 public class SplunkCacheWarmer {
-    private final ScheduledExecutorService scheduler = 
+    private final ScheduledExecutorService scheduler =
         Executors.newScheduledThreadPool(2);
     private final Set<String> frequentlyUsedModels = ConcurrentHashMap.newKeySet();
-    
+
     public void startWarmingCycle(SplunkConnection connection, long intervalMinutes) {
         scheduler.scheduleAtFixedRate(() -> {
             try {
@@ -455,7 +455,7 @@ public class SplunkCacheWarmer {
             }
         }, 0, intervalMinutes, TimeUnit.MINUTES);
     }
-    
+
     private void warmCache(SplunkConnection connection) {
         frequentlyUsedModels.parallelStream()
             .forEach(model -> {
@@ -465,12 +465,12 @@ public class SplunkCacheWarmer {
                     discovery.discoverDataModels(typeFactory, null, true);
                     LOGGER.debug("Warmed cache for model: {}", model);
                 } catch (Exception e) {
-                    LOGGER.warn("Failed to warm cache for model '{}': {}", 
+                    LOGGER.warn("Failed to warm cache for model '{}': {}",
                         model, e.getMessage());
                 }
             });
     }
-    
+
     public void trackModelUsage(String modelName) {
         frequentlyUsedModels.add(modelName);
         // Keep only top N models
@@ -494,33 +494,33 @@ public class SplunkConnectionPool {
     private final Semaphore semaphore;
     private final ConnectionConfig config;
     private final int maxSize;
-    
+
     public SplunkConnectionPool(ConnectionConfig config, int size) {
         this.config = config;
         this.maxSize = size;
         this.semaphore = new Semaphore(size);
-        
+
         // Pre-create connections
         for (int i = 0; i < size; i++) {
             available.offer(createNewConnection());
         }
     }
-    
-    public SplunkConnection acquire(long timeout, TimeUnit unit) 
+
+    public SplunkConnection acquire(long timeout, TimeUnit unit)
             throws InterruptedException, TimeoutException {
         if (!semaphore.tryAcquire(timeout, unit)) {
             throw new TimeoutException("Could not acquire connection within timeout");
         }
-        
+
         SplunkConnection conn = available.poll();
         if (conn == null || !conn.isValid()) {
             conn = createNewConnection();
         }
-        
+
         inUse.add(conn);
         return conn;
     }
-    
+
     public void release(SplunkConnection conn) {
         if (inUse.remove(conn)) {
             if (conn.isValid()) {
@@ -529,7 +529,7 @@ public class SplunkConnectionPool {
             semaphore.release();
         }
     }
-    
+
     private SplunkConnection createNewConnection() {
         return new SplunkConnectionImpl(
             config.getUrl(),
@@ -548,14 +548,14 @@ public class SplunkApiRateLimiter {
     private final ExecutorService executor;
     private final int maxConcurrent;
     private final Semaphore concurrentLimit;
-    
+
     public SplunkApiRateLimiter(double requestsPerSecond, int maxConcurrent) {
         this.rateLimiter = RateLimiter.create(requestsPerSecond);
         this.maxConcurrent = maxConcurrent;
         this.concurrentLimit = new Semaphore(maxConcurrent);
         this.executor = Executors.newFixedThreadPool(maxConcurrent);
     }
-    
+
     public <T> CompletableFuture<T> submit(Callable<T> task) {
         return CompletableFuture.supplyAsync(() -> {
             try {

@@ -16,7 +16,7 @@ The Splunk adapter provides SQL:2003 compatibility through Apache Calcite's exec
 
 ### Aggregation
 - **COUNT(*)** - Works through EnumerableAggregate
-- **COUNT(DISTINCT)** - Works through EnumerableAggregate  
+- **COUNT(DISTINCT)** - Works through EnumerableAggregate
 - **GROUP BY** - Works through EnumerableAggregate
 - **HAVING clause** - Works with GROUP BY
 - **Multiple aggregate functions** - SUM, AVG, MIN, MAX all work
@@ -62,13 +62,13 @@ The Splunk adapter provides SQL:2003 compatibility through Apache Calcite's exec
 
 ## ✅ Window Functions (Working)
 - **ROW_NUMBER()** - Works correctly through Calcite's EnumerableWindow
-- **RANK()/DENSE_RANK()** - Works correctly (avoid using "rank" as column alias - it's a reserved word)  
+- **RANK()/DENSE_RANK()** - Works correctly (avoid using "rank" as column alias - it's a reserved word)
 - **LAG()/LEAD()** - Works correctly through Calcite's EnumerableWindow (✅ tested and verified)
 - **Note**: Window functions are executed by Calcite, not pushed down to Splunk
 
 ## ✅ Advanced Grouping Features (Working)
 - **GROUPING SETS** - Works correctly through Calcite's EnumerableAggregate (✅ tested and verified)
-- **ROLLUP** - Works correctly for hierarchical grouping (✅ tested and verified) 
+- **ROLLUP** - Works correctly for hierarchical grouping (✅ tested and verified)
 - **CUBE** - Works correctly for all possible grouping combinations (✅ tested and verified)
 - **Note**: Advanced grouping operations are executed by Calcite, not pushed down to Splunk
 

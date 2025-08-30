@@ -198,7 +198,7 @@ public class FileJdbcDriver extends Driver {
     storagePath = info.getProperty("storage_path", storagePath);
     engineType = info.getProperty("engine", engineType);
     dataPath = info.getProperty("data_path", dataPath);
-    
+
     // Support legacy materialized_view properties for backward compatibility
     storagePath = info.getProperty("materialized_view.storage_path", storagePath);
     engineType = info.getProperty("materialized_view.engine", engineType);

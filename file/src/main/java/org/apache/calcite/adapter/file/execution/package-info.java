@@ -24,7 +24,7 @@
  * query patterns.</p>
  *
  * <h2>Execution Engine Types</h2>
- * 
+ *
  * <h3>Traditional Row-based (LINQ4J)</h3>
  * <p>The default execution model using Calcite's LINQ4J framework:</p>
  * <ul>
@@ -76,12 +76,12 @@
  *     .withEngineType(ExecutionEngineType.VECTORIZED)
  *     .withBatchSize(4096)
  *     .withMemoryThreshold(128 * 1024 * 1024);
- * 
+ *
  * // Create schema with execution engine
  * FileSchema schema = new FileSchema(
  *     parentSchema, name, directory, pattern, tables,
  *     config, recursive, materializations, views
- * );
+ *);
  * }</pre>
  *
  * <h2>Performance Considerations</h2>

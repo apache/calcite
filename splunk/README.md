@@ -327,7 +327,7 @@ Fields that don't have hardcoded mappings or can't be dynamically discovered app
         },
         {
           "name": "authentication_enhanced",
-          "type": "view", 
+          "type": "view",
           "sql": [
             "SELECT *,",
             "  JSON_VALUE(_extra, '$.\\"Authentication.signature\\"') as signature,",
@@ -389,7 +389,7 @@ FROM "splunk"."threat";
 **2. Dynamic Field Discovery Supplements**
 ```sql
 -- Fields that can't be automatically discovered
-CREATE VIEW web_complete AS  
+CREATE VIEW web_complete AS
 SELECT *,
   JSON_VALUE(_extra, '$."Web.is_Proxy"') as is_proxy,
   JSON_VALUE(_extra, '$."Web.is_Storage"') as is_storage,
@@ -401,12 +401,12 @@ FROM "splunk"."web";
 ```sql
 -- Transform and categorize data
 CREATE VIEW security_summary AS
-SELECT 
+SELECT
   _time,
   user,
   src,
   dest,
-  CASE 
+  CASE
     WHEN JSON_VALUE(_extra, '$."risk_score"') > '80' THEN 'High'
     WHEN JSON_VALUE(_extra, '$."risk_score"') > '50' THEN 'Medium'
     ELSE 'Low'
@@ -599,7 +599,7 @@ LIMIT 20;
 -- Analyze proxy traffic (using mapped calculated field)
 SELECT is_Proxy, COUNT(*) as request_count,
        AVG(CAST(bytes AS INTEGER)) as avg_bytes
-FROM web  
+FROM web
 WHERE _time > CURRENT_TIMESTAMP - INTERVAL '1' HOUR
 GROUP BY is_Proxy;
 ```
@@ -621,7 +621,7 @@ WHERE JSON_VALUE(_extra, '$."Web.vendor_product"') IS NOT NULL
 LIMIT 10;
 
 -- Use ad-hoc JSON extraction for analysis
-SELECT 
+SELECT
   JSON_VALUE(_extra, '$."Web.vendor_product"') as vendor,
   COUNT(*) as request_count
 FROM web

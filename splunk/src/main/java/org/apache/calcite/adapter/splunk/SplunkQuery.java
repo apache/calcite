@@ -51,7 +51,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private final Set<String> explicitFields;
   private final Map<String, String> fieldMapping;
   private final RelDataType schema;
-  
+
   // Cache the results to support OFFSET/LIMIT operations
   private volatile List<Object> cachedResults = null;
   private final Object cacheLock = new Object();
@@ -120,24 +120,24 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   @Override public Enumerator<T> enumerator() {
     // Check if we have cached results
     if (cachedResults != null) {
-      LOGGER.debug("SplunkQuery.enumerator() - Using cached results (size: {})", 
+      LOGGER.debug("SplunkQuery.enumerator() - Using cached results (size: {})",
           cachedResults.size());
       return (Enumerator<T>) Linq4j.enumerator(cachedResults);
     }
-    
+
     synchronized (cacheLock) {
       // Double-check after acquiring lock
       if (cachedResults != null) {
         return (Enumerator<T>) Linq4j.enumerator(cachedResults);
       }
-      
+
       // Create a reverse mapping for result processing (Splunk field -> schema field)
       Map<String, String> reverseMapping = createReverseMapping();
 
       // Get the raw enumerator from the connection
       // With JSON, we pass schema field names directly - much simpler!
       Enumerator<Object> rawEnumerator =
-          (Enumerator<Object>) splunkConnection.getSearchResultEnumerator(search, getArgs(), 
+          (Enumerator<Object>) splunkConnection.getSearchResultEnumerator(search, getArgs(),
               fieldList, explicitFields, reverseMapping);
 
       LOGGER.debug("SplunkQuery.enumerator() - JSON Mode (first call, will cache)");
@@ -148,7 +148,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       // Collect all results into cache
       List<Object> results = new ArrayList<>();
       Enumerator<Object> collectingEnumerator;
-      
+
       // Type conversion is simpler with JSON since types are better preserved
       if (schema != null) {
         LOGGER.debug("  Creating SimpleTypeConverter...");
@@ -157,16 +157,16 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         LOGGER.debug("  Using raw enumerator (no schema conversion)");
         collectingEnumerator = rawEnumerator;
       }
-      
+
       // Collect all results
       while (collectingEnumerator.moveNext()) {
         results.add(collectingEnumerator.current());
       }
       collectingEnumerator.close();
-      
+
       LOGGER.debug("Cached {} results from Splunk query", results.size());
       cachedResults = results;
-      
+
       return (Enumerator<T>) Linq4j.enumerator(cachedResults);
     }
   }

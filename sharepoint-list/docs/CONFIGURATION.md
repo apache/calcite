@@ -14,12 +14,12 @@ The SharePoint List adapter for Apache Calcite provides comprehensive configurat
     "operand": {
       // Required
       "siteUrl": "string",
-      
+
       // API Selection (optional)
       "useGraphApi": "boolean",
       "useRestApi": "boolean",
       "useLegacyAuth": "boolean",
-      
+
       // Phase 1: Direct Authentication
       "clientId": "string",
       "clientSecret": "string",
@@ -27,13 +27,13 @@ The SharePoint List adapter for Apache Calcite provides comprehensive configurat
       "certificatePath": "string",
       "certificatePassword": "string",
       "accessToken": "string",
-      
+
       // Phase 2: External Token Sources
       "tokenCommand": "string",
       "tokenEnv": "string",
       "tokenFile": "string",
       "tokenEndpoint": "string",
-      
+
       // Phase 3: Auth Proxy
       "authProxy": {
         "endpoint": "string",
@@ -42,10 +42,10 @@ The SharePoint List adapter for Apache Calcite provides comprehensive configurat
         "cacheEnabled": "boolean",
         "cacheTtl": "number"
       },
-      
+
       // Custom Auth Provider
       "authProvider": "string",
-      
+
       // Additional Headers
       "additionalHeaders": {
         "key": "value"
@@ -262,7 +262,7 @@ public class SharePointVaultProvider implements SharePointAuthProvider {
     private final String siteUrl;
     private String cachedToken;
     private long tokenExpiry;
-    
+
     public SharePointVaultProvider(Map<String, Object> config) {
         this.siteUrl = (String) config.get("siteUrl");
         this.vaultPath = (String) config.get("vaultPath");
@@ -271,43 +271,43 @@ public class SharePointVaultProvider implements SharePointAuthProvider {
             (String) config.get("vaultRole")
         );
     }
-    
+
     @Override
     public String getAccessToken() throws IOException {
         if (cachedToken != null && System.currentTimeMillis() < tokenExpiry) {
             return cachedToken;
         }
-        
+
         Map<String, Object> secret = vaultClient.readSecret(vaultPath);
         cachedToken = (String) secret.get("token");
         tokenExpiry = System.currentTimeMillis() + 3600000; // 1 hour
-        
+
         return cachedToken;
     }
-    
+
     @Override
     public Map<String, String> getAdditionalHeaders() {
         Map<String, String> headers = new HashMap<>();
         headers.put("X-Vault-Namespace", vaultClient.getNamespace());
         return headers;
     }
-    
+
     @Override
     public void invalidateToken() {
         cachedToken = null;
         tokenExpiry = 0;
     }
-    
+
     @Override
     public String getSiteUrl() {
         return siteUrl;
     }
-    
+
     @Override
     public boolean supportsApiType(String apiType) {
         return true; // Support both APIs
     }
-    
+
     @Override
     public String getTenantId() {
         // Fetch from vault if needed
@@ -383,7 +383,7 @@ No changes required for existing configurations. The adapter maintains backward 
      "clientId": "...",
      "clientSecret": "..."
    }
-   
+
    // After
    {
      "authProxy": {

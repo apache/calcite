@@ -16,21 +16,14 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.adapter.file.converters.DocxTableScanner;
 import org.apache.calcite.adapter.file.converters.FileConversionManager;
-import org.apache.calcite.adapter.file.converters.MarkdownTableScanner;
-import org.apache.calcite.adapter.file.converters.PptxTableScanner;
-import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
-import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
-import org.apache.calcite.adapter.file.format.json.JsonMultiTableFactory;
-import org.apache.calcite.adapter.file.format.json.JsonSearchConfig;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.iceberg.IcebergMetadataTables;
 import org.apache.calcite.adapter.file.iceberg.IcebergTable;
 import org.apache.calcite.adapter.file.materialized.MaterializedViewTable;
+import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 import org.apache.calcite.adapter.file.partition.PartitionDetector;
 import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
 import org.apache.calcite.adapter.file.refresh.RefreshInterval;
@@ -45,13 +38,13 @@ import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
 import org.apache.calcite.adapter.file.storage.StorageProviderFile;
 import org.apache.calcite.adapter.file.storage.StorageProviderSource;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
 import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
 import org.apache.calcite.adapter.file.table.EnhancedCsvTranslatableTable;
 import org.apache.calcite.adapter.file.table.EnhancedJsonScannableTable;
 import org.apache.calcite.adapter.file.table.FileTable;
 import org.apache.calcite.adapter.file.table.GlobParquetTable;
 import org.apache.calcite.adapter.file.table.JsonScannableTable;
-import org.apache.calcite.adapter.file.table.ParquetJsonScannableTable;
 import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
 import org.apache.calcite.adapter.file.table.PartitionedParquetTable;
 import org.apache.calcite.schema.SchemaPlus;
@@ -119,45 +112,42 @@ public class FileSchema extends AbstractSchema {
    * Set of file extensions that need conversion to JSON for table creation.
    * These include spreadsheets, documents, and markup files.
    */
-  private static final Set<String> CONVERTIBLE_EXTENSIONS = Collections.unmodifiableSet(
-      new HashSet<>(Arrays.asList(
+  private static final Set<String> CONVERTIBLE_EXTENSIONS =
+      Collections.unmodifiableSet(
+          new HashSet<>(Arrays.asList(
           ".xlsx", ".xls",        // Excel spreadsheets
           ".md", ".markdown",     // Markdown files
           ".docx",                 // Word documents
           ".pptx",                 // PowerPoint presentations
-          ".html", ".htm"         // HTML files
-      ))
-  );
+          ".html", ".htm")));     // HTML files
 
   /**
    * Set of file extensions that are native table source primitives.
    * These files can be directly used as tables without conversion.
    * Note: Compression extensions are handled separately.
    */
-  private static final Set<String> TABLE_SOURCE_EXTENSIONS = Collections.unmodifiableSet(
-      new HashSet<>(Arrays.asList(
+  private static final Set<String> TABLE_SOURCE_EXTENSIONS =
+      Collections.unmodifiableSet(
+          new HashSet<>(Arrays.asList(
           ".csv",                  // Comma-separated values
           ".tsv",                  // Tab-separated values
           ".json",                 // JSON data
           ".yaml", ".yml",        // YAML data
           ".arrow",                // Apache Arrow format
-          ".parquet"               // Apache Parquet format
-      ))
-  );
+          ".parquet")));           // Apache Parquet format
 
   /**
    * Set of supported compressed file extensions.
    * Files with these extensions will be automatically decompressed.
    */
-  private static final Set<String> COMPRESSED_EXTENSIONS = Collections.unmodifiableSet(
-      new HashSet<>(Arrays.asList(
+  private static final Set<String> COMPRESSED_EXTENSIONS =
+      Collections.unmodifiableSet(
+          new HashSet<>(Arrays.asList(
           ".gz",                   // Gzip compression
           ".gzip",                 // Alternative gzip extension
           ".bz2",                  // Bzip2 compression
           ".xz",                   // XZ compression
-          ".zip"                   // ZIP compression
-      ))
-  );
+          ".zip")));               // ZIP compression
 
   /**
    * Gets the table name to use for registration.
@@ -167,13 +157,13 @@ public class FileSchema extends AbstractSchema {
   private String getTableName(String explicitName, String derivedName, String casing) {
     if (explicitName != null) {
       // Explicit name - use as-is without casing transformation
-      LOGGER.debug("getTableName: preserving explicit name '{}' (derivedName='{}', casing='{}')", 
+      LOGGER.debug("getTableName: preserving explicit name '{}' (derivedName='{}', casing='{}')",
           explicitName, derivedName, casing);
       return explicitName;
     } else {
       // Derived name - apply casing transformation
       String result = applyCasing(derivedName, casing);
-      LOGGER.debug("getTableName: transformed derived name '{}' to '{}' using casing '{}'", 
+      LOGGER.debug("getTableName: transformed derived name '{}' to '{}' using casing '{}'",
           derivedName, result, casing);
       return result;
     }
@@ -639,7 +629,7 @@ public class FileSchema extends AbstractSchema {
     String name = file.getName().toLowerCase();
     return name.endsWith(".html") || name.endsWith(".htm");
   }
-  
+
   /**
    * Checks if an HTML file has an explicit table definition with selector/index.
    * This is used to skip bulk conversion for HTML files that will be processed specifically.
@@ -648,12 +638,12 @@ public class FileSchema extends AbstractSchema {
     if (tables == null) {
       return false;
     }
-    
+
     // Check if any table definition references this HTML file and has a selector
     for (Map<String, Object> tableDef : tables) {
       String url = (String) tableDef.get("url");
       String selector = (String) tableDef.get("selector");
-      
+
       if (selector != null && url != null) {
         // For URL-based HTML files, check if the URL corresponds to this file
         // This is a simplified check - in practice, URL-based files create temp files
@@ -694,32 +684,32 @@ public class FileSchema extends AbstractSchema {
     if (baseDirectory == null) {
       return;
     }
-    
+
     // Check if flattening is enabled at schema level or in table definitions
     boolean hasFlattening = (flatten != null && flatten) || hasTableWithFlattening();
     if (!hasFlattening) {
       return;
     }
-    
+
     LOGGER.info("Processing JSON flattening for directory: {}", sourceDir.getAbsolutePath());
-    
+
     // Ensure conversions directory exists
     File conversionDir = new File(baseDirectory, "conversions");
     if (!conversionDir.exists()) {
       conversionDir.mkdirs();
       LOGGER.debug("Created conversions directory for flattened JSON: {}", conversionDir.getAbsolutePath());
     }
-    
+
     // Initialize conversion metadata
     if (conversionMetadata == null) {
       LOGGER.warn("ConversionMetadata is null - cannot perform JSON flattening");
       return;
     }
-    
+
     // Find JSON files that need flattening
     processJsonFilesForFlattening(sourceDir, conversionDir);
   }
-  
+
   /**
    * Checks if any table definition has flattening enabled.
    */
@@ -731,7 +721,7 @@ public class FileSchema extends AbstractSchema {
     }
     return false;
   }
-  
+
   /**
    * Processes JSON files for flattening, creating flattened versions when needed.
    */
@@ -740,7 +730,7 @@ public class FileSchema extends AbstractSchema {
       // Find all JSON files in the source directory
       List<File> jsonFiles = new ArrayList<>();
       findJsonFiles(sourceDir, jsonFiles);
-      
+
       for (File jsonFile : jsonFiles) {
         // Check if this JSON file needs flattening
         Map<String, Object> options = getFlattteningOptionsForFile(jsonFile);
@@ -752,7 +742,7 @@ public class FileSchema extends AbstractSchema {
       LOGGER.error("Failed to process JSON files for flattening: {}", e.getMessage());
     }
   }
-  
+
   /**
    * Recursively finds JSON files in the given directory.
    */
@@ -768,7 +758,7 @@ public class FileSchema extends AbstractSchema {
       }
     }
   }
-  
+
   /**
    * Checks if a file is a JSON file.
    */
@@ -776,13 +766,13 @@ public class FileSchema extends AbstractSchema {
     String name = file.getName().toLowerCase();
     return name.endsWith(".json") || name.endsWith(".json.gz");
   }
-  
+
   /**
    * Gets flattening options for a specific JSON file based on table definitions or schema settings.
    */
   private Map<String, Object> getFlattteningOptionsForFile(File jsonFile) {
     String filePath = jsonFile.getAbsolutePath();
-    
+
     // First check explicit table definitions
     for (Map<String, Object> tableDef : tables) {
       String url = (String) tableDef.get("url");
@@ -808,7 +798,7 @@ public class FileSchema extends AbstractSchema {
         }
       }
     }
-    
+
     // If no explicit table definition, check schema-level flatten setting
     if (flatten != null && flatten) {
       Map<String, Object> options = new HashMap<>();
@@ -816,34 +806,34 @@ public class FileSchema extends AbstractSchema {
       options.put("flattenSeparator", "_"); // default separator
       return options;
     }
-    
+
     return null;
   }
-  
+
   /**
    * Creates a flattened version of a JSON file in the conversions directory.
    */
   private void createFlattenedJsonFile(File originalFile, File conversionDir, Map<String, Object> options) {
     try {
       LOGGER.info("Creating flattened JSON file for: {}", originalFile.getName());
-      
+
       // Create JsonScannableTable to get flattened data
       Source source = Sources.of(originalFile);
       JsonScannableTable jsonTable = new JsonScannableTable(source, options, columnNameCasing);
-      
+
       // Get the flattened data
-      org.apache.calcite.jdbc.JavaTypeFactoryImpl typeFactory = 
+      org.apache.calcite.jdbc.JavaTypeFactoryImpl typeFactory =
           new org.apache.calcite.jdbc.JavaTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
       List<Object> flattenedData = jsonTable.getDataList(typeFactory);
       org.apache.calcite.rel.type.RelDataType rowType = jsonTable.getRowType(typeFactory);
-      
+
       // Create the flattened JSON filename
       // Use the original filename so it replaces the original file in the conversion pipeline
       String originalName = originalFile.getName();
       String baseName = originalName.replaceAll("\\.(json|json\\.gz)$", "");
       String flattenedFileName = originalName; // Use same name to replace the original
       File flattenedFile = new File(conversionDir, flattenedFileName);
-      
+
       // Convert the flattened data back to JSON format
       List<Map<String, Object>> jsonArray = new ArrayList<>();
       for (Object row : flattenedData) {
@@ -853,11 +843,11 @@ public class FileSchema extends AbstractSchema {
           jsonArray.add(rowMap);
         }
       }
-      
+
       // Write the flattened JSON file
       com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
       mapper.writerWithDefaultPrettyPrinter().writeValue(flattenedFile, jsonArray);
-      
+
       // Update the existing conversion record to point to the flattened file
       // For explicit table definitions, preserve the original table name
       String tableName = getTableNameForFile(originalFile);
@@ -865,20 +855,20 @@ public class FileSchema extends AbstractSchema {
         // Apply proper casing for auto-discovered tables
         tableName = applyCasing(baseName, tableNameCasing);
       }
-      
+
       // Write the conversion record now that flattening is complete
       // This creates ONE record accessible by TWO keys (tableName and convertedFile path)
       conversionMetadata.recordConversionWithTableName(tableName, originalFile, flattenedFile, "JSON_FLATTEN");
-      LOGGER.info("Recorded flattened JSON conversion: table '{}', sourceFile='{}', convertedFile='{}'", 
+      LOGGER.info("Recorded flattened JSON conversion: table '{}', sourceFile='{}', convertedFile='{}'",
           tableName, originalFile.getName(), flattenedFile.getName());
-      
+
       LOGGER.info("Created flattened JSON file: {} -> {}", originalFile.getName(), flattenedFile.getName());
-      
+
       // Log the conversion metadata state after flattening
       LOGGER.info("=== CONVERSION METADATA AFTER FLATTENING ===");
-      LOGGER.info("Recorded flattened conversion for table '{}': originalFile={}, flattenedFile={}", 
+      LOGGER.info("Recorded flattened conversion for table '{}': originalFile={}, flattenedFile={}",
           tableName, originalFile.getName(), flattenedFile.getName());
-      
+
       // Also log the full conversions.json content
       try {
         File conversionsFile = new File(baseDirectory, ".conversions.json");
@@ -889,18 +879,18 @@ public class FileSchema extends AbstractSchema {
       } catch (Exception e) {
         LOGGER.warn("Failed to log conversions.json content: {}", e.getMessage());
       }
-      
+
     } catch (Exception e) {
       LOGGER.error("Failed to create flattened JSON file for {}: {}", originalFile.getName(), e.getMessage());
     }
   }
-  
+
   /**
    * Gets the table name for a file from explicit table definitions.
    */
   private String getTableNameForFile(File jsonFile) {
     String filePath = jsonFile.getAbsolutePath();
-    
+
     // Check explicit table definitions to find the table name
     for (Map<String, Object> tableDef : tables) {
       String url = (String) tableDef.get("url");
@@ -916,7 +906,7 @@ public class FileSchema extends AbstractSchema {
         }
       }
     }
-    
+
     return null; // No explicit table definition found
   }
 
@@ -952,7 +942,7 @@ public class FileSchema extends AbstractSchema {
         LOGGER.debug("Created conversions directory: {}", conversionDir.getAbsolutePath());
       }
     }
-    
+
     // Get list of source files that have already been processed via tableDef
     Set<String> alreadyProcessedFiles = new HashSet<>();
     if (conversionMetadata != null) {
@@ -976,14 +966,14 @@ public class FileSchema extends AbstractSchema {
       if (file.getName().startsWith("~")) {
         continue;
       }
-      
+
       // Skip files that have already been processed via tableDef
       String fileAbsPath = file.getAbsolutePath();
       if (alreadyProcessedFiles.contains(fileAbsPath)) {
         LOGGER.debug("EXCLUDING FROM BULK: {} - already processed via tableDef", fileAbsPath);
         continue;
       }
-      
+
       // Skip HTML files that have explicit table definitions with selectors
       // These will be processed specifically in addTable() with selector/index parameters
       if (isHtmlFile(file) && hasExplicitHtmlTableDefinition(file)) {
@@ -1002,8 +992,8 @@ public class FileSchema extends AbstractSchema {
         // Output to conversions directory if available, otherwise fallback to source directory
         File outputDir = conversionDir != null ? conversionDir : file.getParentFile();
         // Pass baseDirectory for metadata storage and relativePath for directory preservation
-        boolean converted = FileConversionManager.convertIfNeeded(
-            file, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath);
+        boolean converted =
+            FileConversionManager.convertIfNeeded(file, outputDir, columnNameCasing, tableNameCasing, baseDirectory, relativePath);
         if (converted) {
           LOGGER.debug("Converted file: {} to directory: {}", file.getName(), outputDir.getAbsolutePath());
         }
@@ -1011,7 +1001,7 @@ public class FileSchema extends AbstractSchema {
         LOGGER.warn("Failed to convert file {}: {}", file.getName(), e.getMessage());
       }
     }
-    
+
     // Log conversion metadata after bulk conversion
     if (conversionMetadata != null) {
       Map<String, ConversionMetadata.ConversionRecord> allRecordsAfter = conversionMetadata.getAllConversions();
@@ -1026,7 +1016,7 @@ public class FileSchema extends AbstractSchema {
         LOGGER.info("  ---");
       }
       LOGGER.info("=== END CONVERSION RECORDS AFTER BULK CONVERSION ===");
-      
+
       // Also log the full conversions.json content after bulk conversion
       try {
         File conversionsFile = new File(baseDirectory, ".conversions.json");
@@ -1096,14 +1086,13 @@ public class FileSchema extends AbstractSchema {
 
             // Convert the cached file
             // Pass baseDirectory for metadata storage and relativePath for directory preservation
-            boolean converted = FileConversionManager.convertIfNeeded(
-                cachedFile,
+            boolean converted =
+                FileConversionManager.convertIfNeeded(cachedFile,
                 conversionDir,
                 columnNameCasing,
                 tableNameCasing,
                 baseDirectory,
-                relativePath
-            );
+                relativePath);
 
             if (converted) {
               LOGGER.debug("Converted storage provider file: {}", entry.getName());
@@ -1304,7 +1293,7 @@ public class FileSchema extends AbstractSchema {
   private Source findOriginalSource(File jsonFile) {
     if (baseDirectory != null) {
       try {
-        LOGGER.debug("Looking for conversion metadata for {} in baseDirectory: {}", 
+        LOGGER.debug("Looking for conversion metadata for {} in baseDirectory: {}",
             jsonFile.getName(), baseDirectory.getAbsolutePath());
         org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
             new org.apache.calcite.adapter.file.metadata.ConversionMetadata(baseDirectory);
@@ -1323,7 +1312,7 @@ public class FileSchema extends AbstractSchema {
     // Also try the JSON file's parent directory (for JSONPath extractions)
     try {
       File parentDir = jsonFile.getParentFile();
-      LOGGER.debug("Also looking for conversion metadata for {} in parentDir: {}", 
+      LOGGER.debug("Also looking for conversion metadata for {} in parentDir: {}",
           jsonFile.getName(), parentDir.getAbsolutePath());
       org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
           new org.apache.calcite.adapter.file.metadata.ConversionMetadata(parentDir);
@@ -1376,12 +1365,12 @@ public class FileSchema extends AbstractSchema {
     for (Map<String, Object> tableDef : this.tables) {
       addTable(builder, tableDef);
     }
-    
+
     // Process JSON flattening AFTER explicit table definitions but BEFORE bulk conversion
     if (sourceDirectory != null && sourceDirectory.exists() && sourceDirectory.isDirectory()) {
       processJsonFlattening(sourceDirectory);
     }
-    
+
     // Report ALL conversion.json records after tableDef processing and flattening
     if (conversionMetadata != null) {
       Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
@@ -1403,12 +1392,12 @@ public class FileSchema extends AbstractSchema {
     // If storage provider is configured, skip local file operations
     LOGGER.debug("[FileSchema.getTableMap] Checking conditions: sourceDirectory={}, baseDirectory={}, storageProvider={}, refreshInterval={}",
                  sourceDirectory, baseDirectory, storageProvider, refreshInterval);
-    
+
     // Reload conversion metadata to pick up any updates from bulk conversion
     if (conversionMetadata != null) {
       conversionMetadata.reload();
     }
-    
+
     if (sourceDirectory != null && storageProvider == null) {
       LOGGER.debug("[FileSchema.getTableMap] Using local file system with sourceDirectory: {}", sourceDirectory);
 
@@ -1429,9 +1418,9 @@ public class FileSchema extends AbstractSchema {
         if (conversionMetadata != null) {
           Map<String, ConversionMetadata.ConversionRecord> allRecords = conversionMetadata.getAllConversions();
           for (ConversionMetadata.ConversionRecord record : allRecords.values()) {
-            if (record.sourceFile != null && 
+            if (record.sourceFile != null &&
                 new File(record.sourceFile).getAbsolutePath().equals(file.getAbsolutePath())) {
-              LOGGER.info("Skipping file {} - already processed as table '{}'", 
+              LOGGER.info("Skipping file {} - already processed as table '{}'",
                   file.getName(), record.tableName);
               shouldSkip = true;
               break;
@@ -1441,7 +1430,7 @@ public class FileSchema extends AbstractSchema {
         if (shouldSkip) {
           continue;
         }
-        
+
         // Use DirectFileSource for PARQUET engine to bypass Sources cache, but handle gzip properly
         Source source;
         // Check if this is a StorageProviderFile
@@ -1469,7 +1458,7 @@ public class FileSchema extends AbstractSchema {
         if (sourceSansJson != null) {
           LOGGER.info("=== PROCESSING JSON FILE IN BULK CONVERSION ===");
           LOGGER.info("  JSON file: {}", source.path());
-          
+
           // For files in the conversions directory, use just the filename as the table name
           String rawName;
           if (baseDirectory != null && file.getAbsolutePath().startsWith(
@@ -1517,12 +1506,12 @@ public class FileSchema extends AbstractSchema {
           ConversionMetadata.ConversionRecord conversionRecord = null;
           if (conversionMetadata != null) {
             // Step 1: Check if this file is a convertedFile in any record (it's a conversion result)
-            ConversionMetadata.ConversionRecord existingRecord = 
+            ConversionMetadata.ConversionRecord existingRecord =
                 conversionMetadata.getConversionRecordByConvertedFile(source.path());
             if (existingRecord != null && existingRecord.tableName != null) {
               // This JSON file is a converted file from another source (e.g., HTML)
               // The table was already created during explicit table definition processing.
-              LOGGER.debug("Found conversion record for JSON file {} - table '{}' already exists (as convertedFile), handling side effects only", 
+              LOGGER.debug("Found conversion record for JSON file {} - table '{}' already exists (as convertedFile), handling side effects only",
                   source.path(), existingRecord.tableName);
               isConvertedFile = true;
               tableName = existingRecord.tableName;
@@ -1534,7 +1523,7 @@ public class FileSchema extends AbstractSchema {
               for (ConversionMetadata.ConversionRecord record : allRecords.values()) {
                 if (source.path().equals(record.sourceFile) && record.convertedFile == null) {
                   // This JSON file is a direct source that was already registered
-                  LOGGER.debug("Found conversion record for JSON file {} - table '{}' already exists (as direct sourceFile), handling side effects only", 
+                  LOGGER.debug("Found conversion record for JSON file {} - table '{}' already exists (as direct sourceFile), handling side effects only",
                       source.path(), record.tableName);
                   isConvertedFile = true;
                   tableName = record.tableName;
@@ -1544,12 +1533,12 @@ public class FileSchema extends AbstractSchema {
               }
             }
           }
-          
+
           if (isConvertedFile) {
             // This is a converted file - table already exists, just handle side effects (e.g., Parquet cache)
             // but don't register as a new table to avoid duplicates
             LOGGER.debug("Handling side effects for converted file {} (table '{}' already registered)", source.path(), tableName);
-            
+
             // For PARQUET/DUCKDB engines, ensure the Parquet cache is created
             if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET ||
                 engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
@@ -1560,13 +1549,13 @@ public class FileSchema extends AbstractSchema {
                   // Check if Parquet cache file needs to be created
                   File parquetFile = null;
                   boolean needsParquetCreation = false;
-                  
+
                   if (conversionRecord.getParquetCacheFile() != null) {
                     // Parquet file path is set, check if it exists
                     parquetFile = new File(conversionRecord.getParquetCacheFile());
                     needsParquetCreation = !parquetFile.exists();
                     if (needsParquetCreation) {
-                      LOGGER.info("Parquet cache file recorded but missing for table '{}': {}", 
+                      LOGGER.info("Parquet cache file recorded but missing for table '{}': {}",
                           tableName, parquetFile.getAbsolutePath());
                     }
                   } else {
@@ -1574,20 +1563,20 @@ public class FileSchema extends AbstractSchema {
                     needsParquetCreation = true;
                     LOGGER.info("No Parquet cache recorded for converted JSON table '{}', will create it", tableName);
                   }
-                  
+
                   if (needsParquetCreation) {
                     // For JSON_FLATTEN conversions, use the converted (flattened) file as the source
                     Source tableSource = source;
-                    if ("JSON_FLATTEN".equals(conversionRecord.conversionType) && 
+                    if ("JSON_FLATTEN".equals(conversionRecord.conversionType) &&
                         conversionRecord.convertedFile != null) {
                       tableSource = Sources.of(new File(conversionRecord.convertedFile));
-                      LOGGER.info("Creating Parquet cache for flattened JSON: table '{}', using flattened file '{}'", 
+                      LOGGER.info("Creating Parquet cache for flattened JSON: table '{}', using flattened file '{}'",
                           tableName, conversionRecord.convertedFile);
                     } else {
-                      LOGGER.info("Creating Parquet cache for converted JSON file: table '{}', source '{}'", 
+                      LOGGER.info("Creating Parquet cache for converted JSON file: table '{}', source '{}'",
                           tableName, source.path());
                     }
-                    
+
                     // Create the JSON table temporarily to convert it
                     // No need to pass flatten options since we're reading from already-flattened file
                     Map<String, Object> options = null;
@@ -1595,14 +1584,14 @@ public class FileSchema extends AbstractSchema {
                       options = new HashMap<>();
                       options.put("flatten", this.flatten);
                     }
-                    
+
                     LOGGER.info("=== CREATING PARQUET FROM SOURCE FILE ===");
                     LOGGER.info("  Source file for Parquet generation: {}", tableSource.path());
                     LOGGER.info("  Table name: {}", tableName);
                     LOGGER.info("  Conversion type: {}", conversionRecord != null ? conversionRecord.conversionType : "null");
-                    
+
                     Table jsonTable = new JsonScannableTable(tableSource, options, columnNameCasing);
-                    
+
                     // Log what the JsonScannableTable sees
                     try {
                       if ("JSON_FLATTEN".equals(conversionRecord.conversionType)) {
@@ -1615,19 +1604,19 @@ public class FileSchema extends AbstractSchema {
                     } catch (Exception e) {
                       LOGGER.warn("Failed to get JsonTable schema: {}", e.getMessage());
                     }
-                    
+
                     // Convert to Parquet
-                    File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory, 
-                        engineConfig.getParquetCacheDirectory(), name);
-                    File createdParquetFile = ParquetConversionUtil.convertToParquet(tableSource, tableName, 
-                        jsonTable, cacheDir, parentSchema, name, tableNameCasing);
-                    
+                    File cacheDir =
+                        ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
+                    File createdParquetFile =
+                        ParquetConversionUtil.convertToParquet(tableSource, tableName, jsonTable, cacheDir, parentSchema, name, tableNameCasing);
+
                     // Update the conversion record with the actual Parquet file path
                     conversionMetadata.updateRecordWithParquetFile(tableName, createdParquetFile);
-                    
+
                     LOGGER.info("  Created Parquet file: {}", createdParquetFile.getName());
                     LOGGER.info("  Source used for Parquet generation: {}", tableSource.path());
-                    
+
                     // Read and report the keys from the first record of the JSON file
                     try {
                       if ("JSON_FLATTEN".equals(conversionRecord.conversionType)) {
@@ -1649,18 +1638,18 @@ public class FileSchema extends AbstractSchema {
                     } catch (Exception e) {
                       LOGGER.warn("Failed to read JSON keys: {}", e.getMessage());
                     }
-                    
-                    LOGGER.info("Successfully created Parquet cache for table '{}': {}", 
+
+                    LOGGER.info("Successfully created Parquet cache for table '{}': {}",
                         tableName, createdParquetFile.getAbsolutePath());
                   } else {
-                    LOGGER.debug("Parquet cache already exists for table '{}': {}", 
+                    LOGGER.debug("Parquet cache already exists for table '{}': {}",
                         tableName, parquetFile.getAbsolutePath());
                   }
                 } else {
                   LOGGER.warn("No conversion record found for table '{}' to create Parquet cache", tableName);
                 }
               } catch (Exception e) {
-                LOGGER.error("Failed to create Parquet cache for converted JSON file '{}': {}", 
+                LOGGER.error("Failed to create Parquet cache for converted JSON file '{}': {}",
                     source.path(), e.getMessage(), e);
                 // Continue without Parquet cache - will use JSON directly
               }
@@ -1688,14 +1677,14 @@ public class FileSchema extends AbstractSchema {
                   WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
               .replace(File.separator, "_"))
               .replaceAll("_"), tableNameCasing);
-          
+
           // Check if table name already exists and disambiguate if needed
           String tableName = baseName;
           if (registeredTableNames.contains(baseName)) {
             tableName = baseName + "_csv";
             LOGGER.debug("Table name '{}' already exists, using disambiguated name '{}'", baseName, tableName);
           }
-          
+
           LOGGER.debug("CSV file {} -> table name: {}", source.path(), tableName);
           tableNameToFileType.put(tableName, "csv");
           if (addTable(builder, source, tableName, null)) {
@@ -1709,12 +1698,12 @@ public class FileSchema extends AbstractSchema {
                   WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
               .replace(File.separator, "_"))
               .replaceAll("_"), tableNameCasing);
-          
+
           // Check if table name already exists and disambiguate if needed
           String tableName = baseName;
           if (registeredTableNames.contains(baseName)) {
             tableName = baseName + "_tsv";
-            LOGGER.debug("Table name '{}' already exists, using disambiguated name '{}'", 
+            LOGGER.debug("Table name '{}' already exists, using disambiguated name '{}'",
                 baseName, tableName);
           }
           tableNameToFileType.put(tableName, "tsv");
@@ -1818,8 +1807,8 @@ public class FileSchema extends AbstractSchema {
             File mvParquetFile = null;
             if (baseDirectory != null) {
               // Use schema-aware cache directory for materialized views
-              File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory,
-                  engineConfig.getParquetCacheDirectory(), name);
+              File cacheDir =
+                  ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
               File mvDir = new File(cacheDir, ".materialized_views");
               if (!mvDir.exists()) {
                 mvDir.mkdirs();
@@ -1888,7 +1877,7 @@ public class FileSchema extends AbstractSchema {
 
     // Log the final table names
     LOGGER.info("Final table cache contains {} tables: {}", tableCache.size(), tableCache.keySet());
-    
+
     return tableCache;
     } catch (Exception e) {
       LOGGER.error("[FileSchema.getTableMap] Error computing tables: {}", e.getMessage());
@@ -1946,7 +1935,7 @@ public class FileSchema extends AbstractSchema {
     List<Map<String, Object>> fields = (List<Map<String, Object>>) tableDef.get("fields");
     if (fields != null) {
       for (Map<String, Object> field : fields) {
-        if (field.containsKey("selector") || field.containsKey("selectedElement") || 
+        if (field.containsKey("selector") || field.containsKey("selectedElement") ||
             field.containsKey("th")) {
           return true;
         }
@@ -1954,7 +1943,7 @@ public class FileSchema extends AbstractSchema {
     }
     return false;
   }
-  
+
   /**
    * Checks if a URL contains glob patterns like *, ?, or [].
    */
@@ -2211,14 +2200,14 @@ public class FileSchema extends AbstractSchema {
             // Determine the correct table name to use
             String finalTableName;
             ConversionMetadata.ConversionRecord existingRecord = null;
-            
+
             // First check if there's an existing conversion record
             if (conversionMetadata != null) {
               LOGGER.debug("Looking for conversion record for file: {}", source.path());
-              
+
               // Try to find by source file first
               existingRecord = conversionMetadata.findRecordBySourceFile(new File(source.path()));
-              
+
               // If not found, check if this file is a converted file (e.g., JSON from HTML)
               if (existingRecord == null) {
                 existingRecord = conversionMetadata.getConversionRecordByConvertedFile(source.path());
@@ -2226,12 +2215,12 @@ public class FileSchema extends AbstractSchema {
                   LOGGER.debug("Found existing record by convertedFile lookup for: {}", source.path());
                 }
               }
-              
+
               if (existingRecord == null) {
                 LOGGER.debug("No existing conversion record found for: {}", source.path());
               }
             }
-            
+
             if (existingRecord != null && existingRecord.tableName != null) {
               // Use the table name from the existing record to preserve original casing
               finalTableName = existingRecord.tableName;
@@ -2245,9 +2234,9 @@ public class FileSchema extends AbstractSchema {
               finalTableName = applyCasing(source.path(), tableNameCasing);
               LOGGER.debug("Using casing-transformed table name '{}'", finalTableName);
             }
-            
+
             builder.put(finalTableName, parquetTable);
-            
+
             // Update the existing record with parquet file information
             // or create a new record if none exists
             if (conversionMetadata != null) {
@@ -2309,7 +2298,7 @@ public class FileSchema extends AbstractSchema {
         String finalTableName = getTableName(tableName, source.path(), tableNameCasing);
         LOGGER.debug("Created JSON table of type: {} for table '{}' -> registered as '{}'", jsonTable.getClass().getName(), tableName, finalTableName);
         builder.put(finalTableName, jsonTable);
-        
+
         // Skip recording metadata for tables with flatten=true - metadata will be written after flattening
         boolean hasFlatten = tableDef != null && Boolean.TRUE.equals(tableDef.get("flatten"));
         if (!hasFlatten) {
@@ -2357,7 +2346,7 @@ public class FileSchema extends AbstractSchema {
             try {
               File htmlFile;
               // Check if this is a URL-based source
-              if (source.path().startsWith("http://") || source.path().startsWith("https://") 
+              if (source.path().startsWith("http://") || source.path().startsWith("https://")
                   || source.path().startsWith("//")) {
                 // For URLs, we need to fetch the content first
                 // Create a temporary file to store the fetched HTML
@@ -2366,10 +2355,10 @@ public class FileSchema extends AbstractSchema {
                   tempDir.mkdirs();
                 }
                 // Use table name or sanitized URL as filename
-                String fileName = (tableName != null) ? tableName : 
+                String fileName = (tableName != null) ? tableName :
                     source.path().replaceAll("[^a-zA-Z0-9.-]", "_");
                 htmlFile = new File(tempDir, fileName + ".html");
-                
+
                 // Fetch the HTML content and save it
                 // Use URLConnection with proper headers to avoid being blocked
                 try {
@@ -2384,7 +2373,7 @@ public class FileSchema extends AbstractSchema {
                   conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
                   conn.setConnectTimeout(30000);
                   conn.setReadTimeout(30000);
-                  
+
                   try (java.io.InputStream is = conn.getInputStream();
                        java.io.FileOutputStream fos = new java.io.FileOutputStream(htmlFile)) {
                     byte[] buffer = new byte[8192];
@@ -2409,12 +2398,12 @@ public class FileSchema extends AbstractSchema {
                 // For local files, use directly
                 htmlFile = new File(source.path());
               }
-              
+
               File conversionsDir = new File(baseDirectory, "conversions");
               if (!conversionsDir.exists()) {
                 conversionsDir.mkdirs();
               }
-              
+
               // Check if table definition has selector and index for specific table extraction
               String selector = tableDef != null ? (String) tableDef.get("selector") : null;
               Integer index = null;
@@ -2425,39 +2414,39 @@ public class FileSchema extends AbstractSchema {
                   LOGGER.warn("Index value is not a number: {}", tableDef.get("index"));
                 }
               }
-              
+
               // Extract field definitions for HTML header mapping
               List<Map<String, Object>> fieldConfigs = extractFieldConfigurations(tableDef, tableName);
-              
+
               List<File> convertedFiles;
               if (selector != null && index != null) {
                 // Use specific table selector and index - this should create exactly one table
                 LOGGER.info("Converting HTML with selector='{}' and index={} to create single table '{}'", selector, index, tableName);
-                convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(
-                    htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
+                convertedFiles =
+                    org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
               } else {
                 // Use regular conversion that processes all tables
                 LOGGER.info("Converting HTML without selector/index - will process all tables and use first one for '{}'", tableName);
-                convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
-                    htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
+                convertedFiles =
+                    org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
               }
-              
+
               if (convertedFiles != null && !convertedFiles.isEmpty()) {
                 // Use the first converted file (there should only be one for explicit table definitions)
                 File jsonFile = convertedFiles.get(0);
-                LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'", 
+                LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'",
                     htmlFile.getName(), jsonFile.getName(), tableName);
-                
+
                 // Now create a JSON table instead of HTML table
                 Source jsonSource = Sources.of(jsonFile);
                 final Table htmlJsonTable = createEnhancedJsonTable(jsonSource, tableName, null, null);
                 String htmlJsonTableName = (tableName != null) ? tableName : getTableName(null, jsonFile.getPath(), tableNameCasing);
                 LOGGER.info("Adding HTML-converted JSON table to builder: name='{}', source='{}'", htmlJsonTableName, jsonFile.getPath());
                 builder.put(htmlJsonTableName, htmlJsonTable);
-                
+
                 // Record table metadata with JSON file as source
                 recordTableMetadata(htmlJsonTableName, htmlJsonTable, jsonSource, tableDef);
-                
+
                 return true;
               }
             } catch (Exception e) {
@@ -2465,21 +2454,21 @@ public class FileSchema extends AbstractSchema {
               // Fall through to create HTML table directly
             }
           }
-        
+
         // If conversion failed or baseDirectory is null, use HTML directly
         final Table htmlTable = FileTable.create(source, tableDef);
         // For explicit tables, use the explicit name; otherwise generate from file path
         String htmlTableName = (tableName != null) ? tableName : getTableName(null, source.path(), tableNameCasing);
         builder.put(htmlTableName, htmlTable);
-        
+
         // For explicit tables, store the mapping so bulk conversion can use it
         if (tableName != null && conversionMetadata != null) {
           storeExplicitTableMapping(tableName, source);
         }
-        
+
         // Record table metadata for comprehensive tracking (same as other table types)
         recordTableMetadata(htmlTableName, htmlTable, source, tableDef);
-        
+
         return true;
       case "parquet":
         // DuckDB engine will be handled same as PARQUET for initial setup
@@ -2488,10 +2477,10 @@ public class FileSchema extends AbstractSchema {
         final Table parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()), name);
         String parquetTableName = applyCasing(Util.first(tableName, source.path()), tableNameCasing);
         builder.put(parquetTableName, parquetTable);
-        
+
         // Record table metadata for comprehensive tracking (same as other table types)
         recordTableMetadata(parquetTableName, parquetTable, source, tableDef);
-        
+
         return true;
       case "excel":
       case "xlsx":
@@ -2538,16 +2527,16 @@ public class FileSchema extends AbstractSchema {
 
         // Add metadata tables if this is an Iceberg table
         addIcebergMetadataTables(builder, icebergTableName, icebergTable);
-        
+
         // Create conversion record for Iceberg table
         if (conversionMetadata != null && icebergTable instanceof IcebergTable) {
           LOGGER.info("Creating Iceberg conversion record for table: {}", icebergTableName);
           createIcebergConversionRecord((IcebergTable) icebergTable, source, icebergTableName);
         } else {
-          LOGGER.info("NOT creating Iceberg conversion record: conversionMetadata={}, isIcebergTable={}", 
+          LOGGER.info("NOT creating Iceberg conversion record: conversionMetadata={}, isIcebergTable={}",
               conversionMetadata != null, icebergTable instanceof IcebergTable);
         }
-        
+
         return true;
       default:
         throw new RuntimeException("Unsupported format override: " + forcedFormat
@@ -2672,7 +2661,7 @@ public class FileSchema extends AbstractSchema {
             if (!conversionsDir.exists()) {
               conversionsDir.mkdirs();
             }
-            
+
             // Check if table definition has selector and index for specific table extraction
             String selector = tableDef != null ? (String) tableDef.get("selector") : null;
             Integer index = null;
@@ -2683,40 +2672,40 @@ public class FileSchema extends AbstractSchema {
                 LOGGER.warn("Index value is not a number: {}", tableDef.get("index"));
               }
             }
-            
+
             // Extract field definitions for HTML header mapping
             List<Map<String, Object>> fieldConfigs = extractFieldConfigurations(tableDef, tableName);
-            
+
             List<File> convertedFiles;
             if (selector != null && index != null) {
               // Use specific table selector and index - this should create exactly one table
               LOGGER.info("Converting HTML with selector='{}' and index={} to create single table '{}'", selector, index, tableName);
-              convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(
-                  htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
+              convertedFiles =
+                  org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
             } else {
               // Use regular conversion that processes all tables
               LOGGER.info("Converting HTML without selector/index - will process all tables and use first one for '{}'", tableName);
-              convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
-                  htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
+              convertedFiles =
+                  org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
             }
-            
+
             if (convertedFiles != null && !convertedFiles.isEmpty()) {
               // Use the first converted file (there should only be one for explicit table definitions)
               File jsonFile = convertedFiles.get(0);
-              LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'", 
+              LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'",
                   htmlFile.getName(), jsonFile.getName(), tableName);
-              
+
               // Now create a JSON table instead of HTML table
               Source jsonSource = Sources.of(jsonFile);
               final Table htmlJsonTable = createEnhancedJsonTable(jsonSource, tableName, null, null);
               String htmlJsonTableName = (tableName != null) ? tableName : getTableName(null, jsonFile.getPath(), tableNameCasing);
               LOGGER.info("Adding HTML-converted JSON table to builder: name='{}', source='{}'", htmlJsonTableName, jsonFile.getPath());
               builder.put(htmlJsonTableName, htmlJsonTable);
-              
+
               // Don't create a new record for the JSON table - the HtmlToJsonConverter
               // should have already created/updated the conversion record properly
               // with sourceFile=HTML and convertedFile=JSON
-              
+
               return true;
             }
           } catch (Exception e) {
@@ -2724,19 +2713,19 @@ public class FileSchema extends AbstractSchema {
             // Fall through to create HTML table directly
           }
         }
-        
+
         // If conversion failed or baseDirectory is null, use HTML directly
         try {
           FileTable table = FileTable.create(source, tableDef);
-          LOGGER.debug("HTML table: tableName='{}', source.path='{}', tableNameCasing='{}'", 
+          LOGGER.debug("HTML table: tableName='{}', source.path='{}', tableNameCasing='{}'",
               tableName, source.path(), tableNameCasing);
           String htmlTableName = getTableName(tableName, source.path(), tableNameCasing);
           LOGGER.debug("HTML table: resulting htmlTableName='{}'", htmlTableName);
           builder.put(htmlTableName, table);
-          
+
           // Record table metadata so bulk conversion can find the table name
           recordTableMetadata(htmlTableName, table, source, tableDef);
-          
+
           return true;
         } catch (Exception e) {
           throw new RuntimeException("Unable to instantiate HTML table for: "
@@ -2749,13 +2738,13 @@ public class FileSchema extends AbstractSchema {
       // Check if this is an HTML table based on table definition attributes
       boolean isHtmlTable = tableDef.containsKey("selector") || tableDef.containsKey("index") ||
           (tableDef.containsKey("fields") && hasHtmlFieldSelectors(tableDef));
-      
+
       if (isHtmlTable && baseDirectory != null) {
         // This is an HTML table - convert to JSON for consistency
         try {
           File htmlFile;
           // Check if this is a URL-based source
-          if (source.path().startsWith("http://") || source.path().startsWith("https://") 
+          if (source.path().startsWith("http://") || source.path().startsWith("https://")
               || source.path().startsWith("//")) {
             // For URLs, we need to fetch the content first
             // Create a temporary file to store the fetched HTML
@@ -2764,10 +2753,10 @@ public class FileSchema extends AbstractSchema {
               tempDir.mkdirs();
             }
             // Use table name or sanitized URL as filename
-            String fileName = (tableName != null) ? tableName : 
+            String fileName = (tableName != null) ? tableName :
                 source.path().replaceAll("[^a-zA-Z0-9.-]", "_");
             htmlFile = new File(tempDir, fileName + ".html");
-            
+
             // Fetch the HTML content and save it
             // Use URLConnection with proper headers to avoid being blocked
             try {
@@ -2782,7 +2771,7 @@ public class FileSchema extends AbstractSchema {
               conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
               conn.setConnectTimeout(30000);
               conn.setReadTimeout(30000);
-              
+
               try (java.io.InputStream is = conn.getInputStream();
                    java.io.FileOutputStream fos = new java.io.FileOutputStream(htmlFile)) {
                 byte[] buffer = new byte[8192];
@@ -2807,12 +2796,12 @@ public class FileSchema extends AbstractSchema {
             // For local files, use directly
             htmlFile = new File(source.path());
           }
-          
+
           File conversionsDir = new File(baseDirectory, "conversions");
           if (!conversionsDir.exists()) {
             conversionsDir.mkdirs();
           }
-          
+
           // Check if table definition has selector and index for specific table extraction
           String selector = tableDef != null ? (String) tableDef.get("selector") : null;
           Integer index = null;
@@ -2823,39 +2812,39 @@ public class FileSchema extends AbstractSchema {
               LOGGER.warn("Index value is not a number: {}", tableDef.get("index"));
             }
           }
-          
+
           // Extract field definitions for HTML header mapping
           List<Map<String, Object>> fieldConfigs = extractFieldConfigurations(tableDef, tableName);
-          
+
           List<File> convertedFiles;
           if (selector != null && index != null) {
             // Use specific table selector and index - this should create exactly one table
             LOGGER.info("Converting HTML with selector='{}' and index={} to create single table '{}'", selector, index, tableName);
-            convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(
-                htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
+            convertedFiles =
+                org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convertWithSelector(htmlFile, conversionsDir, columnNameCasing, tableNameCasing, selector, index, tableName, baseDirectory, fieldConfigs);
           } else {
             // Use regular conversion that processes all tables
             LOGGER.info("Converting HTML without selector/index - will process all tables and use first one for '{}'", tableName);
-            convertedFiles = org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
-                htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
+            convertedFiles =
+                org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(htmlFile, conversionsDir, columnNameCasing, tableNameCasing, baseDirectory, null, tableName);
           }
-          
+
           if (convertedFiles != null && !convertedFiles.isEmpty()) {
             // Use the first converted file (there should only be one for explicit table definitions)
             File jsonFile = convertedFiles.get(0);
-            LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'", 
+            LOGGER.debug("Converted HTML file {} to JSON {} with table name '{}'",
                 htmlFile.getName(), jsonFile.getName(), tableName);
-            
+
             // Now create a JSON table instead of HTML table
             Source jsonSource = Sources.of(jsonFile);
             final Table htmlJsonTable = createEnhancedJsonTable(jsonSource, tableName, null, null);
             String htmlJsonTableName = (tableName != null) ? tableName : getTableName(null, jsonFile.getPath(), tableNameCasing);
             LOGGER.info("Adding HTML-converted JSON table to builder: name='{}', source='{}'", htmlJsonTableName, jsonFile.getPath());
             builder.put(htmlJsonTableName, htmlJsonTable);
-            
+
             // Record table metadata with JSON file as source
             recordTableMetadata(htmlJsonTableName, htmlJsonTable, jsonSource, tableDef);
-            
+
             return true;
           }
         } catch (Exception e) {
@@ -2863,7 +2852,7 @@ public class FileSchema extends AbstractSchema {
           // Fall through to create HTML table directly
         }
       }
-      
+
       // If not HTML or conversion failed, try the generic FileTable approach
       try {
         FileTable table = FileTable.create(source, tableDef);
@@ -3142,12 +3131,12 @@ public class FileSchema extends AbstractSchema {
             if (jsonFile != null) {
               File metadataDir = jsonFile.getParentFile();
               LOGGER.debug("Looking for conversion metadata for {} in directory: {}", jsonFile.getName(), metadataDir.getAbsolutePath());
-              
+
               org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata =
                   new org.apache.calcite.adapter.file.metadata.ConversionMetadata(metadataDir);
               File origFile = metadata.findOriginalSource(jsonFile);
               LOGGER.debug("Metadata lookup result for {}: origFile={}", jsonFile.getName(), origFile);
-              
+
               if (origFile != null && origFile.exists()) {
                 originalSource = Sources.of(origFile);
                 LOGGER.info("Found original source {} for JSON file {} - will monitor original for changes",
@@ -3191,11 +3180,11 @@ public class FileSchema extends AbstractSchema {
    */
   private void processPartitionedTables(ImmutableMap.Builder<String, Table> builder) {
     LOGGER.info("=== PARTITIONED TABLE PROCESSING START ===");
-    LOGGER.info("partitionedTables: {}, baseDirectory: {}", 
+    LOGGER.info("partitionedTables: {}, baseDirectory: {}",
                 partitionedTables != null ? partitionedTables.size() + " tables" : "null", baseDirectory);
-    
+
     if (partitionedTables == null || baseDirectory == null) {
-      LOGGER.warn("Early return from processPartitionedTables - partitionedTables: {}, baseDirectory: {}", 
+      LOGGER.warn("Early return from processPartitionedTables - partitionedTables: {}, baseDirectory: {}",
                   partitionedTables != null ? "present" : "null", baseDirectory != null ? "present" : "null");
       return;
     }
@@ -3278,7 +3267,7 @@ public class FileSchema extends AbstractSchema {
         // Storage provider config explicitly defines table name - use as-is
         builder.put(config.getName(), table);
         LOGGER.info("Added partitioned table '{}' to builder, matchingFiles.size: {}", config.getName(), matchingFiles.size());
-        
+
         // Record table metadata for comprehensive tracking (same as other table types)
         // Use the first file as representative source for partitioned tables
         if (!matchingFiles.isEmpty()) {
@@ -3287,9 +3276,9 @@ public class FileSchema extends AbstractSchema {
           try {
             Source partitionSource = Sources.of(firstFile);
             LOGGER.info("Created Source for partitioned table '{}': {}", config.getName(), partitionSource);
-            
+
             // Record the partitioned table in conversion metadata for DuckDB discovery
-            LOGGER.info("About to record partitioned table '{}' in conversion metadata, conversionMetadata: {}", 
+            LOGGER.info("About to record partitioned table '{}' in conversion metadata, conversionMetadata: {}",
                         config.getName(), conversionMetadata != null ? "present" : "null");
             if (conversionMetadata != null) {
               conversionMetadata.recordTable(config.getName(), table, partitionSource, partTableConfig);
@@ -3847,24 +3836,24 @@ public class FileSchema extends AbstractSchema {
       record.originalFile = source.path();
       record.conversionType = "ICEBERG_PARQUET";
       record.timestamp = System.currentTimeMillis();
-      
+
       // Get the underlying Iceberg table to check for data files
       org.apache.iceberg.Table table = icebergTable.getIcebergTable();
       org.apache.iceberg.Snapshot currentSnapshot = table.currentSnapshot();
-      
+
       if (currentSnapshot != null) {
         // Collect all data files from the Iceberg table
         List<String> parquetFiles = new ArrayList<>();
-        try (org.apache.iceberg.io.CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks = 
+        try (org.apache.iceberg.io.CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks =
              table.newScan().planFiles()) {
-          
+
           for (org.apache.iceberg.FileScanTask fileScanTask : fileScanTasks) {
             org.apache.iceberg.DataFile dataFile = fileScanTask.file();
             String parquetPath = dataFile.path().toString();
             parquetFiles.add(parquetPath);
           }
         }
-        
+
         if (!parquetFiles.isEmpty()) {
           // For tables with data, store the parquet files (though DuckDB will use iceberg_scan)
           if (parquetFiles.size() == 1) {
@@ -3881,11 +3870,11 @@ public class FileSchema extends AbstractSchema {
       } else {
         LOGGER.info("Iceberg table '{}' has no current snapshot (empty table)", tableName);
       }
-      
+
       // Save the conversion record - DuckDB will use this to create an iceberg_scan view
       File sourceFile = source.file();
       if (sourceFile != null) {
-        LOGGER.info("Saving Iceberg conversion record: tableName={}, sourceFile={}, conversionType={}", 
+        LOGGER.info("Saving Iceberg conversion record: tableName={}, sourceFile={}, conversionType={}",
             record.tableName, record.sourceFile, record.conversionType);
         conversionMetadata.recordConversion(sourceFile, record);
         LOGGER.info("Successfully saved Iceberg conversion record for table: {}", tableName);
@@ -3896,7 +3885,7 @@ public class FileSchema extends AbstractSchema {
       LOGGER.error("Failed to create Iceberg conversion record: {}", e.getMessage(), e);
     }
   }
-  
+
   /**
    * Adds Iceberg metadata tables for a given Iceberg table.
    */
@@ -4019,7 +4008,7 @@ public class FileSchema extends AbstractSchema {
 
   // Map to store explicit table mappings: source file path -> explicit table name
   private final Map<String, String> explicitTableMappings = new ConcurrentHashMap<>();
-  
+
   /**
    * Stores the mapping from source file to explicit table name.
    * This will be used during bulk conversion to ensure explicit names are preserved.
@@ -4028,15 +4017,15 @@ public class FileSchema extends AbstractSchema {
     try {
       String sourceFilePath = new File(source.path()).getCanonicalPath();
       explicitTableMappings.put(sourceFilePath, explicitTableName);
-      
+
       // The explicit table mapping is now handled through conversion metadata updates during bulk conversion
-      
+
       LOGGER.debug("Stored explicit table mapping: {} -> '{}'", sourceFilePath, explicitTableName);
     } catch (Exception e) {
       LOGGER.warn("Failed to store explicit table mapping for '{}': {}", explicitTableName, e.getMessage());
     }
   }
-  
+
   /**
    * Gets the explicit table name for a source file, if any.
    */
@@ -4098,7 +4087,7 @@ public class FileSchema extends AbstractSchema {
   /**
    * Extracts field configurations from table definition for HTML header mapping.
    * This method eliminates code duplication across multiple HTML conversion locations.
-   * 
+   *
    * @param tableDef the table definition map
    * @param tableName the table name for logging
    * @return the list of field configurations or null if none found
@@ -4108,7 +4097,7 @@ public class FileSchema extends AbstractSchema {
     if (tableDef == null) {
       return null;
     }
-    
+
     return (List<Map<String, Object>>) tableDef.get("fields");
   }
 
