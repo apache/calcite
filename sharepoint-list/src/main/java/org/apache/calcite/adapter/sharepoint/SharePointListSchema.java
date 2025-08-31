@@ -94,36 +94,46 @@ public class SharePointListSchema extends AbstractSchema {
       // get_attachments - table function that returns attachments for an item
       Method getAttachmentsMethod = SharePointAttachmentFunctions.class
           .getMethod("getAttachments", org.apache.calcite.DataContext.class, String.class, String.class);
-      builder.put("get_attachments",
-          TableFunctionImpl.create(getAttachmentsMethod));
+      Function getAttachmentsFunc = TableFunctionImpl.create(getAttachmentsMethod);
+      if (getAttachmentsFunc != null) {
+        builder.put("get_attachments", getAttachmentsFunc);
+      }
 
       // add_attachment - scalar function to add an attachment
       Method addAttachmentMethod = SharePointAttachmentFunctions.class
           .getMethod("addAttachment", org.apache.calcite.DataContext.class,
               String.class, String.class, String.class, byte[].class);
-      builder.put("add_attachment",
-          ScalarFunctionImpl.create(addAttachmentMethod));
+      Function addAttachmentFunc = ScalarFunctionImpl.create(addAttachmentMethod);
+      if (addAttachmentFunc != null) {
+        builder.put("add_attachment", addAttachmentFunc);
+      }
 
       // delete_attachment - scalar function to delete an attachment
       Method deleteAttachmentMethod = SharePointAttachmentFunctions.class
           .getMethod("deleteAttachment", org.apache.calcite.DataContext.class,
               String.class, String.class, String.class);
-      builder.put("delete_attachment",
-          ScalarFunctionImpl.create(deleteAttachmentMethod));
+      Function deleteAttachmentFunc = ScalarFunctionImpl.create(deleteAttachmentMethod);
+      if (deleteAttachmentFunc != null) {
+        builder.put("delete_attachment", deleteAttachmentFunc);
+      }
 
       // get_attachment_content - scalar function to get attachment content
       Method getContentMethod = SharePointAttachmentFunctions.class
           .getMethod("getAttachmentContent", org.apache.calcite.DataContext.class,
               String.class, String.class, String.class);
-      builder.put("get_attachment_content",
-          ScalarFunctionImpl.create(getContentMethod));
+      Function getContentFunc = ScalarFunctionImpl.create(getContentMethod);
+      if (getContentFunc != null) {
+        builder.put("get_attachment_content", getContentFunc);
+      }
 
       // count_attachments - scalar function to count attachments
       Method countAttachmentsMethod = SharePointAttachmentFunctions.class
           .getMethod("countAttachments", org.apache.calcite.DataContext.class,
               String.class, String.class);
-      builder.put("count_attachments",
-          ScalarFunctionImpl.create(countAttachmentsMethod));
+      Function countAttachmentsFunc = ScalarFunctionImpl.create(countAttachmentsMethod);
+      if (countAttachmentsFunc != null) {
+        builder.put("count_attachments", countAttachmentsFunc);
+      }
 
     } catch (NoSuchMethodException e) {
       throw new RuntimeException("Failed to register SharePoint attachment functions", e);
