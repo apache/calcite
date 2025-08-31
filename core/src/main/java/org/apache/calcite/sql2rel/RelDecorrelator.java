@@ -3053,7 +3053,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       onMatch2(d, call, correlate, left, aggOutputProject, aggregate);
     }
 
-    private void onMatch2(
+    private static void onMatch2(
         RelDecorrelator d,
         RelOptRuleCall call,
         Correlate correlate,

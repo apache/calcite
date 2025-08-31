@@ -229,7 +229,7 @@ class ArrowTranslator {
   }
 
   /** Combines a field name and a unary operator to produce a predicate string. */
-  private String translateUnaryOp(String op, String name) {
+  private static String translateUnaryOp(String op, String name) {
     return name + " " + op;
   }
 

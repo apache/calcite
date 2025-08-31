@@ -79,7 +79,7 @@ public class NumberCompiledPattern extends CompiledPattern {
     return stringValue;
   }
 
-  private String getOrdinalSuffix(String stringValue) {
+  private static String getOrdinalSuffix(String stringValue) {
     // 10 through 19 have a th suffix
     if (stringValue.length() >= 2 && stringValue.charAt(stringValue.length() - 2) == '1') {
       return "th";
