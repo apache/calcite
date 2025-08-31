@@ -120,7 +120,7 @@ public class JoinExpandOrToUnionRule
     call.transformTo(expanded);
   }
 
-  private List<RexNode> splitCond(Join join) {
+  private static List<RexNode> splitCond(Join join) {
     final RexBuilder builder = join.getCluster().getRexBuilder();
     final List<RexNode> orConds = RelOptUtil.disjunctions(join.getCondition());
     final int leftFieldCount = join.getLeft().getRowType().getFieldCount();
@@ -147,7 +147,7 @@ public class JoinExpandOrToUnionRule
     return result;
   }
 
-  private boolean isValidCond(RexNode node, int leftFieldCount) {
+  private static boolean isValidCond(RexNode node, int leftFieldCount) {
     boolean hasJoinKeyCond = false;
     List<RexNode> conds = RelOptUtil.conjunctions(node);
     for (RexNode cond : conds) {
@@ -176,7 +176,7 @@ public class JoinExpandOrToUnionRule
     return hasJoinKeyCond;
   }
 
-  private boolean isEquiJoinCond(RexCall call, int leftFieldCount) {
+  private static boolean isEquiJoinCond(RexCall call, int leftFieldCount) {
     if (call.getKind() != SqlKind.EQUALS
         && call.getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
       return false;
@@ -195,7 +195,7 @@ public class JoinExpandOrToUnionRule
     return false;
   }
 
-  private boolean doesNotReferToBothInputs(RexNode rex, int leftFieldCount) {
+  private static boolean doesNotReferToBothInputs(RexNode rex, int leftFieldCount) {
     RexInputRefCounter counter = new RexInputRefCounter(leftFieldCount);
     rex.accept(counter);
     return counter.doesNotReferToBothInputs();
