@@ -1278,6 +1278,13 @@ public class RexLiteral extends RexNode {
     return number.intValue();
   }
 
+  /** Returns the value of a literal, cast, or unary minus, as a long;
+   * never null. */
+  public static long longValue(RexNode node) {
+    final Number number = numberValue(node);
+    return number.longValue();
+  }
+
   public static @Nullable String stringValue(RexNode node) {
     final Comparable value = findValue(node);
     return (value == null) ? null : ((NlsString) value).getValue();
