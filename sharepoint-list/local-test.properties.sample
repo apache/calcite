@@ -1,0 +1,50 @@
+# SharePoint List JDBC Driver - Local Test Properties Sample
+# Copy this file to local-test.properties and configure with your SharePoint details
+
+# SharePoint Site Configuration
+sharepoint.siteUrl=https://yourcompany.sharepoint.com/sites/yoursite
+
+# Authentication Configuration
+# Supported values: CLIENT_CREDENTIALS, USERNAME_PASSWORD, CERTIFICATE, DEVICE_CODE, MANAGED_IDENTITY
+sharepoint.authType=CLIENT_CREDENTIALS
+
+# Azure AD Application Registration (required for most auth types)
+sharepoint.tenantId=your-azure-tenant-id
+sharepoint.clientId=your-azure-app-client-id
+
+# Client Credentials Authentication (recommended for automated testing)
+sharepoint.clientSecret=your-azure-app-client-secret
+
+# Username/Password Authentication (for interactive testing)
+sharepoint.username=your-sharepoint-username@yourcompany.com
+sharepoint.password=your-sharepoint-password
+
+# Certificate Authentication (for high-security scenarios)
+sharepoint.certificatePath=/path/to/your/certificate.pfx
+sharepoint.certificatePassword=your-certificate-password
+
+# Optional: Custom authority URL (defaults to login.microsoftonline.com)
+sharepoint.authorityUrl=https://login.microsoftonline.com
+
+# Optional: Default schema name (defaults to "sharepoint")
+sharepoint.defaultSchema=sharepoint
+
+# Optional: Connection timeout in milliseconds (defaults to 30000)
+sharepoint.connectionTimeout=30000
+
+# Test Configuration
+# Lists to use for testing (these should exist in your SharePoint site)
+test.listNames=Tasks,Documents,CustomList1,CustomList2
+
+# Test data for CRUD operations
+test.createTable=TestTable
+test.insertData=true
+test.cleanupAfterTests=true
+
+# Performance Testing
+test.enablePerformanceTests=false
+test.maxRowsForPerformanceTest=1000
+
+# Logging Configuration for Tests
+test.enableDebugLogging=false
+test.logSqlQueries=false

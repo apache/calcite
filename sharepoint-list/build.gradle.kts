@@ -27,7 +27,10 @@ dependencies {
     api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
+    implementation("org.apache.calcite.avatica:avatica-core") {
+        exclude(group = "org.slf4j", module = "slf4j-log4j12")
+        exclude(group = "org.slf4j", module = "slf4j-reload4j")
+    }
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
 
@@ -36,12 +39,20 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
-    testImplementation(project(":testkit"))
-    testImplementation(project(":file"))
+    testImplementation(project(":testkit")) {
+        exclude(group = "org.slf4j", module = "slf4j-log4j12")
+        exclude(group = "org.slf4j", module = "slf4j-reload4j")
+    }
+    testImplementation(project(":file")) {
+        exclude(group = "org.slf4j", module = "slf4j-log4j12")
+        exclude(group = "org.slf4j", module = "slf4j-reload4j")
+    }
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl:2.23.1")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.23.1")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-api:2.23.1")
 }
 
 fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
