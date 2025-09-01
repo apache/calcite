@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.Sources;
 
 import org.junit.jupiter.api.AfterEach;
@@ -36,11 +34,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Test materialized views with Parquet execution engine.
@@ -166,61 +160,80 @@ public class MaterializedViewParquetTest {
     
     System.out.println("\n=== MATERIALIZED VIEWS WITH PARQUET ENGINE TEST ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+    // Create model.json file with proper configuration
+    File modelFile = new File(tempDir.toFile(), "model.json");
+    try (FileWriter writer = new FileWriter(modelFile, StandardCharsets.UTF_8)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"PARQUET_MV_TEST\",\n");
+      writer.write("  \"schemas\": [{\n");
+      writer.write("    \"name\": \"PARQUET_MV_TEST\",\n");
+      writer.write("    \"type\": \"custom\",\n");
+      writer.write("    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("    \"operand\": {\n");
+      writer.write("      \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\",\n");
+      writer.write("      \"executionEngine\": \"parquet\",\n");
+      writer.write("      \"ephemeralCache\": true,\n");
+      writer.write("      \"materializations\": [{\n");
+      writer.write("        \"view\": \"daily_summary\",\n");
+      writer.write("        \"table\": \"daily_summary_mv\",\n");
+      writer.write("        \"sql\": \"SELECT \\\"date\\\", COUNT(*) as transaction_count, SUM(\\\"quantity\\\") as total_quantity, SUM(\\\"quantity\\\" * \\\"price\\\") as total_revenue FROM sales GROUP BY \\\"date\\\"\"\n");
+      writer.write("      }]\n");
+      writer.write("    }\n");
+      writer.write("  }]\n");
+      writer.write("}\n");
+    }
 
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    // Use proper connection with model file
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath() + ";lex=ORACLE;unquotedCasing=TO_LOWER");
+         Statement stmt = connection.createStatement()) {
 
-      // Create materialization definitions
-      List<Map<String, Object>> materializations = new ArrayList<>();
+      System.out.println("\n1. Created schema with Parquet engine and materialized view 'daily_summary' using model.json");
 
-      Map<String, Object> dailySalesMV = new HashMap<>();
-      dailySalesMV.put("view", "daily_summary");
-      dailySalesMV.put("table", "daily_summary_mv");
-      dailySalesMV.put("sql", "SELECT \"date\", " +
-          "COUNT(*) as transaction_count, " +
-          "SUM(\"quantity\") as total_quantity, " +
-          "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM \"sales\" " +
-          "GROUP BY \"date\"");
-      materializations.add(dailySalesMV);
+      // Check if .parquet file was expected
+      File aperioDir = new File(tempDir.toFile(), ".aperio/PARQUET_MV_TEST");
+      File mvParquetFile = new File(aperioDir, ".parquet_cache/.materialized_views/daily_summary_mv.parquet");
+      System.out.println("\n2. Checking for materialized view Parquet file:");
+      System.out.println("   Expected location: " + mvParquetFile.getAbsolutePath());
+      System.out.println("   File exists: " + mvParquetFile.exists());
 
-      // Configure file schema with materializations (engine determined by environment)
-      Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
-      operand.put("materializations", materializations);
+      // List all available tables
+      System.out.println("\n3. Listing all tables in schema:");
+      ResultSet tables =
+          connection.getMetaData().getTables(null, "PARQUET_MV_TEST", "%", null);
 
-      System.out.println("\n1. Creating schema with Parquet engine and materialized view 'daily_summary'");
-      SchemaPlus fileSchema =
-          rootSchema.add("PARQUET_MV_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_MV_TEST", operand));
+      while (tables.next()) {
+        String tableName = tables.getString("TABLE_NAME");
+        System.out.println("   - " + tableName);
+      }
 
-      try (Statement stmt = connection.createStatement()) {
-        // Check if .parquet file was expected
-        File mvParquetFile = new File(tempDir.toFile(), ".materialized_views/daily_summary_mv.parquet");
-        System.out.println("\n2. Checking for materialized view Parquet file:");
-        System.out.println("   Expected location: " + mvParquetFile.getAbsolutePath());
-        System.out.println("   File exists: " + mvParquetFile.exists());
-
-        // List all available tables
-        System.out.println("\n3. Listing all tables in schema:");
-        ResultSet tables =
-            connection.getMetaData().getTables(null, "PARQUET_MV_TEST", "%", null);
-
-        while (tables.next()) {
-          String tableName = tables.getString("TABLE_NAME");
-          System.out.println("   - " + tableName);
-        }
-
-        // Show that without Parquet engine, we get an error message
-        System.out.println("\n4. Testing with non-Parquet engine:");
-        Map<String, Object> linq4jOperand = new HashMap<>();
-        linq4jOperand.put("directory", tempDir.toString());
-        linq4jOperand.put("executionEngine", "linq4j");
-        linq4jOperand.put("materializations", materializations);
-
-        System.out.println("   Creating schema with LINQ4J engine and materializations...");
-        SchemaPlus linq4jSchema =
-            rootSchema.add("LINQ4J_MV_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "LINQ4J_MV_TEST", linq4jOperand));
+      // Test LINQ4J with separate model
+      System.out.println("\n4. Testing with non-Parquet engine:");
+      File linq4jModelFile = new File(tempDir.toFile(), "model-linq4j.json");
+      try (FileWriter writer = new FileWriter(linq4jModelFile, StandardCharsets.UTF_8)) {
+        writer.write("{\n");
+        writer.write("  \"version\": \"1.0\",\n");
+        writer.write("  \"defaultSchema\": \"LINQ4J_MV_TEST\",\n");
+        writer.write("  \"schemas\": [{\n");
+        writer.write("    \"name\": \"LINQ4J_MV_TEST\",\n");
+        writer.write("    \"type\": \"custom\",\n");
+        writer.write("    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+        writer.write("    \"operand\": {\n");
+        writer.write("      \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\",\n");
+        writer.write("      \"executionEngine\": \"linq4j\",\n");
+        writer.write("      \"ephemeralCache\": true,\n");
+        writer.write("      \"materializations\": [{\n");
+        writer.write("        \"view\": \"daily_summary\",\n");
+        writer.write("        \"table\": \"daily_summary_mv\",\n");
+        writer.write("        \"sql\": \"SELECT \\\"date\\\", COUNT(*) as transaction_count FROM sales GROUP BY \\\"date\\\"\"\n");
+        writer.write("      }]\n");
+        writer.write("    }\n");
+        writer.write("  }]\n");
+        writer.write("}\n");
+      }
+      
+      try (Connection linq4jConn = DriverManager.getConnection("jdbc:calcite:model=" + linq4jModelFile.getAbsolutePath())) {
+        System.out.println("   Created schema with LINQ4J engine and materializations");
         System.out.println("   Expected: Error message that MV only works with Parquet");
       }
     }

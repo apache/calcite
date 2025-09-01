@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -32,11 +30,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Test that proves we can query materialized views.
@@ -64,43 +58,41 @@ public class MaterializedViewQueryTest {
   @Test public void testQueryMaterializedViews() throws Exception {
     System.out.println("\n=== QUERYING MATERIALIZED VIEWS TEST ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-
-      // Create materialization definitions
-      List<Map<String, Object>> materializations = new ArrayList<>();
-
-      // Daily sales summary materialization
-      Map<String, Object> dailySalesMV = new HashMap<>();
-      dailySalesMV.put("view", "daily_summary");
-      dailySalesMV.put("table", "daily_summary_mv");
-      dailySalesMV.put("sql", "SELECT \"date\", " +
-          "COUNT(*) as transaction_count, " +
-          "SUM(\"quantity\") as total_quantity, " +
-          "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM sales " +
-          "GROUP BY \"date\"");
-      materializations.add(dailySalesMV);
-
-      // Configure file schema with materializations
-      Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
+    // Create model.json file with proper configuration
+    File modelFile = new File(tempDir.toFile(), "model.json");
+    try (FileWriter writer = new FileWriter(modelFile, StandardCharsets.UTF_8)) {
+      writer.write("{\n");
+      writer.write("  \"version\": \"1.0\",\n");
+      writer.write("  \"defaultSchema\": \"MV_TEST\",\n");
+      writer.write("  \"schemas\": [{\n");
+      writer.write("    \"name\": \"MV_TEST\",\n");
+      writer.write("    \"type\": \"custom\",\n");
+      writer.write("    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+      writer.write("    \"operand\": {\n");
+      writer.write("      \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\",\n");
       
       // Use global engine configuration if set, otherwise default to parquet
       String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
       if (engineType != null && !engineType.isEmpty()) {
-        operand.put("executionEngine", engineType.toLowerCase(Locale.ROOT));
+        writer.write("      \"executionEngine\": \"" + engineType.toLowerCase(Locale.ROOT) + "\",\n");
       } else {
-        operand.put("executionEngine", "parquet");
+        writer.write("      \"executionEngine\": \"parquet\",\n");
       }
       
-      operand.put("materializations", materializations);
+      writer.write("      \"ephemeralCache\": true,\n");
+      writer.write("      \"materializations\": [{\n");
+      writer.write("        \"view\": \"daily_summary\",\n");
+      writer.write("        \"table\": \"daily_summary_mv\",\n");
+      writer.write("        \"sql\": \"SELECT \\\"date\\\", COUNT(*) as transaction_count, SUM(\\\"quantity\\\") as total_quantity, SUM(\\\"quantity\\\" * \\\"price\\\") as total_revenue FROM sales GROUP BY \\\"date\\\"\"\n");
+      writer.write("      }]\n");
+      writer.write("    }\n");
+      writer.write("  }]\n");
+      writer.write("}\n");
+    }
 
-      System.out.println("\n1. Creating schema with materialized view 'daily_summary'");
-      SchemaPlus fileSchema =
-          rootSchema.add("MV_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "MV_TEST", operand));
+    System.out.println("\n1. Creating schema with materialized view 'daily_summary' using model.json");
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath() + ";lex=ORACLE;unquotedCasing=TO_LOWER")){
 
       try (Statement stmt = connection.createStatement()) {
         // ATTEMPT 1: Query the materialized view by its view name
