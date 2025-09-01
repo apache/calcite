@@ -448,35 +448,27 @@ public class StatisticsCache {
 
 ### MaterializedViewTable
 
-Pre-computed query results with automatic refresh.
+Pre-computed query results stored as Parquet.
 
 ```java
-public class MaterializedViewTable extends AbstractTable {
-    public MaterializedViewTable(String sql, RefreshInterval interval);
-    public void refresh();
-    public boolean isStale();
-    public Timestamp getLastRefresh();
+public class MaterializedViewTable extends AbstractTable implements TranslatableTable {
+    public MaterializedViewTable(SchemaPlus parentSchema, String schemaName, 
+                                String viewName, String sql, File parquetFile, 
+                                Map<String, Table> existingTables);
+    // Materializes on first access, stores as Parquet
 }
 ```
 
-**Usage:**
+**Note:** Materialized views are configured in model.json, not created programmatically.
 
-```java
-String sql = "SELECT region, SUM(sales) as total FROM sales_data GROUP BY region";
-RefreshInterval interval = RefreshInterval.hours(1);
-
-MaterializedViewTable mvTable = new MaterializedViewTable(sql, interval);
-```
-
-### RefreshableMaterializedViewTable
-
-Materialized view with automatic refresh capabilities.
-
-```java
-public class RefreshableMaterializedViewTable extends MaterializedViewTable {
-    public void setRefreshSchedule(ScheduledExecutorService executor);
-    public void enableAutoRefresh();
-    public void disableAutoRefresh();
+Configuration example:
+```json
+{
+  "materializations": [{
+    "view": "summary",        // Query name
+    "table": "summary_mv",    // Storage file
+    "sql": "SELECT ..."       // SQL to materialize
+  }]
 }
 ```
 

@@ -44,7 +44,7 @@ Mix storage types by using explicit table URLs or multiple schemas.
 - **Automatic Parquet Conversion** - Convert all formats to optimized columnar storage
 - **HyperLogLog Statistics** - Advanced cardinality estimation for query optimization
 - **Query Optimization** - Column pruning, filter pushdown, join reordering
-- **Unlimited Dataset Sizes** - Automatic disk spillover for memory management (Parquet engine)
+- **Large Dataset Support** - Automatic disk spillover for data processing (Parquet engine) supporting datasets of several hundred GB, though metadata must fit in memory
 - **Distributed Caching** - Redis support for cluster environments
 
 #### Why Use File Adapter with DuckDB?
@@ -78,7 +78,13 @@ ORDER BY total_sales DESC;
 - **Flexibility**: Mix any file formats (CSV + JSON + Parquet + Excel) seamlessly
 - **Scale**: Handle datasets larger than memory with automatic spillover
 - **SQL Ecosystem**: Use any SQL tool (BI tools, notebooks, applications)
-- **Advanced Optimization**: Pre-optimizer with HyperLogLog statistics provides instant COUNT(DISTINCT) results that DuckDB alone cannot achieve
+
+**Unique Pre-Optimizer Architecture**: The File Adapter enhances DuckDB with a Calcite pre-optimization layer that:
+- Returns COUNT(DISTINCT) in <1ms using cached HyperLogLog sketches (vs seconds/minutes scanning data)
+- Optimizes join ordering using persistent statistics that DuckDB lacks for external files
+- Eliminates partitions before DuckDB sees the query
+- Provides rich statistics for external Parquet files where DuckDB only has basic metadata
+- Persists all statistics across restarts for consistent performance
 
 ### Data Discovery
 - **Automatic Schema Discovery** - Zero-configuration table creation
@@ -150,8 +156,12 @@ export AWS_REGION=us-west-2
 ### Connect and Query
 
 ```bash
-# Start Calcite with the File Adapter
-./sqlline -m model.json
+# Start Calcite with the File Adapter (DuckDB engine)
+./sqlline "jdbc:calcite:model=model.json;executionEngine=duckdb"
+
+# Or with different engines:
+./sqlline "jdbc:calcite:model=model.json;executionEngine=parquet"
+./sqlline "jdbc:calcite:model=model.json;executionEngine=arrow"
 
 # Query discovered tables
 SELECT * FROM files.customers LIMIT 10;
@@ -326,12 +336,12 @@ GROUP BY a.product_category;
 
 **Note:** The File Adapter is read-only. Materialized views are defined in the model configuration, not via SQL DDL.
 
-Configure pre-computed views in your schema (requires Parquet execution engine):
+Configure pre-computed views in your schema (requires Parquet or DuckDB execution engine):
 
 ```json
 {
-  "executionEngine": "parquet",  // Required for materialized views
-  "materializedViews": [
+  "executionEngine": "parquet",  // Required: parquet or duckdb
+  "materializations": [           // Note: use "materializations" not "materializedViews"
     {
       "view": "monthly_summary",      // Name used in SQL queries
       "table": "monthly_sales_data",  // Filename for cached Parquet file (.parquet added)
@@ -354,7 +364,7 @@ The schema containing the MV must use Parquet engine, but can query data from an
 {
   "name": "analytics",
   "executionEngine": "parquet",  // This schema must use parquet
-  "materializedViews": [
+  "materializations": [
     {
       "view": "unified_customer_view",
       "table": "unified_customer_view",
@@ -595,7 +605,7 @@ The File Adapter automatically optimizes queries through:
         "executionEngine": "parquet",
         "primeCache": true,
         "tableNameCasing": "LOWER",
-        "materializedViews": [
+        "materializations": [
           {
             "view": "quarterly_summary",
             "table": "quarterly_summary_cache",

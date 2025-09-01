@@ -198,20 +198,20 @@ JOIN data_lake.purchase_history lake
 WHERE cache.last_active > CURRENT_TIMESTAMP - INTERVAL '1' HOUR;
 ```
 
-2. **Create cross-engine materialized views:**
-```sql
--- Combine data from multiple sources into optimized view
-CREATE MATERIALIZED VIEW unified_analytics AS
-SELECT 
-  api.current_price,
-  analytics.prediction,
-  lake.historical_avg
-FROM realtime_api.prices api
-JOIN analytics.ml_predictions analytics 
-  ON api.symbol = analytics.symbol
-JOIN data_lake.price_history lake 
-  ON api.symbol = lake.ticker
+2. **Configure cross-engine materialized views:**
+```json
+// In the model.json configuration for analytics schema:
+{
+  "name": "analytics",
+  "executionEngine": "parquet",
+  "materializations": [{
+    "view": "unified_analytics",
+    "table": "unified_analytics_mv",
+    "sql": "SELECT api.current_price, analytics.prediction, lake.historical_avg FROM realtime_api.prices api JOIN analytics.ml_predictions analytics ON api.symbol = analytics.symbol JOIN data_lake.price_history lake ON api.symbol = lake.ticker"
+  }]
+}
 ```
+Note: Materialized views are configured in model.json, not created via SQL DDL.
 
 3. **Optimize query execution paths:**
 - Filter pushdown happens at the schema level
@@ -507,16 +507,11 @@ For complete configuration options for each storage provider, see:
 
 ```json
 {
-  "materializedViews": [
+  "materializations": [
     {
-      "name": "monthly_sales",
-      "sql": "SELECT YEAR(order_date) as year, MONTH(order_date) as month, SUM(amount) as total FROM sales GROUP BY YEAR(order_date), MONTH(order_date)",
-      "refreshInterval": "1 HOUR",
-      "dependencies": ["sales"],
-      "options": {
-        "enableCache": true,
-        "compression": "snappy"
-      }
+      "view": "monthly_sales",        // Name to use in queries
+      "table": "monthly_sales_mv",    // Storage file name
+      "sql": "SELECT YEAR(order_date) as year, MONTH(order_date) as month, SUM(amount) as total FROM sales GROUP BY YEAR(order_date), MONTH(order_date)"
     }
   ]
 }
@@ -739,7 +734,7 @@ For 10-20x performance improvement on temporal analytics:
   "name": "high_performance_analytics",
   "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
   "operand": {
-    "engineType": "DUCKDB",
+    "executionEngine": "duckdb",
     "tables": [
       {
         "name": "sales_history",
@@ -936,11 +931,11 @@ Fine-tune which HTML tables are extracted:
             "url": "https://example.com/data.html"
           }
         ],
-        "materializedViews": [
+        "materializations": [
           {
-            "name": "daily_summary",
-            "sql": "SELECT DATE(timestamp) as date, COUNT(*) as records FROM events GROUP BY DATE(timestamp)",
-            "refreshInterval": "1 HOUR"
+            "view": "daily_summary",
+            "table": "daily_summary_mv",
+            "sql": "SELECT DATE(timestamp) as date, COUNT(*) as records FROM events GROUP BY DATE(timestamp)"
           }
         ]
       }
