@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
@@ -114,6 +115,9 @@ public class CTERelToSqlUtil {
       if (((SqlWith) sqlNode).withList.size() > 0) {
         fetchSqlWithItems(((SqlWith) sqlNode).withList.get(0), sqlNodes);
       }
+    } else if (sqlNode instanceof SqlUnpivot) {
+      SqlUnpivot unpivot = (SqlUnpivot) sqlNode;
+      fetchSqlWithItems(unpivot.query, sqlNodes);
     }
   }
 
@@ -237,6 +241,14 @@ public class CTERelToSqlUtil {
       } else {
         ((SqlSelect) sqlNode).setFrom(((SqlWithItem) fromNode).name);
       }
+    } else if (fromNode instanceof SqlUnpivot
+        && ((SqlUnpivot) fromNode).query instanceof SqlWithItem) {
+      SqlIdentifier identifier = ((SqlWithItem) ((SqlUnpivot) fromNode).query).name;
+      SqlUnpivot unpivot = (SqlUnpivot) fromNode;
+      SqlUnpivot unpivotNode =
+          new SqlUnpivot(unpivot.getParserPosition(), identifier, unpivot.includeNulls,
+              unpivot.measureList, unpivot.axisList, unpivot.inList);
+      ((SqlSelect) sqlNode).setFrom(unpivotNode);
     }
   }
 
