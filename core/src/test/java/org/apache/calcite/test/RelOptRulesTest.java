@@ -8194,7 +8194,7 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
         .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
+        .check();
   }
 
   /** Test case for
@@ -8227,6 +8227,16 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.SORT_PROJECT_TRANSPOSE)
         .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
         .checkUnchanged();
+  }
+
+  @Test void testSortJoinTranspose10() {
+    final String sql = "select * from sales.emp e left join (\n"
+        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
+        + "limit 3000000000 offset 2500000000";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
+        .check();
   }
 
   @Test void testSortProjectTranspose1() {

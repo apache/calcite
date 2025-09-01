@@ -351,4 +351,64 @@ FROM "scott"."EMP";
 
 !ok
 
+# [CALCITE-4617] Wrong offset when SortJoinTransposeRule pushes a Sort with an offset
+select d.deptno, empno from "scott"."DEPT" d
+right join "scott"."EMP" e using (deptno) limit 10 offset 2;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     10 |  7934 |
+|     20 |  7369 |
+|     20 |  7566 |
+|     20 |  7788 |
+|     20 |  7876 |
+|     20 |  7902 |
+|     30 |  7499 |
+|     30 |  7521 |
+|     30 |  7654 |
+|     30 |  7698 |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[2], fetch=[10])
+    EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Removing this rule CoreRules.SORT_JOIN_TRANSPOSE does not affect the calculation results
+!set planner-rules "
+-CoreRules.SORT_JOIN_TRANSPOSE"
+select d.deptno, empno from "scott"."DEPT" d
+right join "scott"."EMP" e using (deptno) limit 10 offset 2;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     10 |  7934 |
+|     20 |  7369 |
+|     20 |  7566 |
+|     20 |  7788 |
+|     20 |  7876 |
+|     20 |  7902 |
+|     30 |  7499 |
+|     30 |  7521 |
+|     30 |  7654 |
+|     30 |  7698 |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[2], fetch=[10])
+    EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End planner.iq
