@@ -28,7 +28,7 @@ public class ColumnStatistics {
   private final HyperLogLogSketch hllSketch;
   private final String columnName;
 
-  public ColumnStatistics(String columnName, Object minValue, Object maxValue, 
+  public ColumnStatistics(String columnName, Object minValue, Object maxValue,
                          long nullCount, long totalCount, HyperLogLogSketch hllSketch) {
     this.columnName = columnName;
     this.minValue = minValue;
@@ -115,18 +115,18 @@ public class ColumnStatistics {
       case "=":
         // Equality selectivity = 1 / distinct_values
         return 1.0 / Math.max(1, getDistinctCount());
-      
+
       case "!=":
         // Not-equal selectivity = 1 - equality_selectivity
         return 1.0 - (1.0 / Math.max(1, getDistinctCount()));
-      
+
       case "<":
       case "<=":
       case ">":
       case ">=":
         // Range selectivity based on min/max values
         return calculateRangeSelectivity(operator, value);
-      
+
       default:
         return 0.1; // Default selectivity for unknown operators
     }
@@ -175,36 +175,39 @@ public class ColumnStatistics {
       double minNum = ((Number) min).doubleValue();
       double maxNum = ((Number) max).doubleValue();
       double valNum = ((Number) value).doubleValue();
-      
+
       if (maxNum == minNum) {
         return 0.5; // Single value
       }
-      
+
       return (valNum - minNum) / (maxNum - minNum);
     }
-    
+
     if (min instanceof String && max instanceof String && value instanceof String) {
       // Simple lexicographic position estimate
       String minStr = (String) min;
       String maxStr = (String) max;
       String valStr = (String) value;
-      
-      if (valStr.compareTo(minStr) <= 0) return 0.0;
-      if (valStr.compareTo(maxStr) >= 0) return 1.0;
-      
+
+      if (valStr.compareTo(minStr) <= 0) {
+        return 0.0;
+      }
+      if (valStr.compareTo(maxStr) >= 0) {
+        return 1.0;
+      }
+
       // Rough estimate based on string comparison
       return 0.5; // Simplified - could be improved with more sophisticated string positioning
     }
-    
+
     // For other types, assume middle position
     // In a full implementation, this would handle other Comparable types properly
     return 0.5; // Assume middle position for non-Number, non-String types
   }
 
-  @Override
-  public String toString() {
-    return String.format("ColumnStatistics{column='%s', min=%s, max=%s, nulls=%d, " +
-        "total=%d, distinct=%d}", 
+  @Override public String toString() {
+    return String.format("ColumnStatistics{column='%s', min=%s, max=%s, nulls=%d, "
+        + "total=%d, distinct=%d}",
         columnName, minValue, maxValue, nullCount, totalCount, getDistinctCount());
   }
 }

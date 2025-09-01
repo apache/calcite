@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.adapter.file.statistics;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Statistics for a table including row count, data size, and column statistics.
@@ -30,7 +30,7 @@ public class TableStatistics {
   private final long lastUpdated;
   private final String sourceHash;
 
-  public TableStatistics(long rowCount, long dataSize, 
+  public TableStatistics(long rowCount, long dataSize,
                         Map<String, ColumnStatistics> columnStats,
                         String sourceHash) {
     this.rowCount = rowCount;
@@ -92,7 +92,7 @@ public class TableStatistics {
 
   /**
    * Get the selectivity estimate for a column predicate.
-   * 
+   *
    * @param columnName The column name
    * @param operator The comparison operator (=, <, >, etc.)
    * @param value The comparison value
@@ -103,7 +103,7 @@ public class TableStatistics {
     if (colStats == null) {
       return 0.1; // Default selectivity when no statistics available
     }
-    
+
     return colStats.getSelectivity(operator, value);
   }
 
@@ -114,8 +114,7 @@ public class TableStatistics {
     return new TableStatistics(rowCount, rowCount * 100, new HashMap<>(), null);
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return String.format("TableStatistics{rowCount=%d, dataSize=%d, columns=%d, lastUpdated=%d}",
         rowCount, dataSize, columnStats.size(), lastUpdated);
   }

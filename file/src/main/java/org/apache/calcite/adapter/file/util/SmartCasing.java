@@ -16,24 +16,21 @@
  */
 package org.apache.calcite.adapter.file.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Utility class for intelligent PostgreSQL-style snake_case conversion.
- * 
+ *
  * <p>This class provides smart conversion from camelCase/PascalCase to snake_case
  * using a comprehensive dictionary of known acronyms and product names to avoid
  * over-segmentation and maintain readability.
- * 
+ *
  * <p>Examples:
  * <ul>
  *   <li>XMLHttpRequest → xml_http_request</li>
@@ -49,10 +46,10 @@ public final class SmartCasing {
    * Maps input terms to their preferred snake_case output.
    */
   private static final Map<String, String> DEFAULT_MAPPINGS;
-  
+
   static {
     Map<String, String> defaults = new java.util.HashMap<>();
-    
+
     // Programming & Web Technologies
     defaults.put("API", "api");
     defaults.put("REST", "rest");
@@ -86,7 +83,7 @@ public final class SmartCasing {
     defaults.put("GUID", "guid");
     defaults.put("ID", "id");
     defaults.put("IDs", "ids");
-    
+
     // Database Technologies
     defaults.put("MySQL", "mysql");
     defaults.put("PostgreSQL", "postgresql");
@@ -102,7 +99,7 @@ public final class SmartCasing {
     defaults.put("DDL", "ddl");
     defaults.put("DML", "dml");
     defaults.put("ACID", "acid");
-    
+
     // Cloud & Infrastructure
     defaults.put("AWS", "aws");
     defaults.put("GCP", "gcp");
@@ -125,7 +122,7 @@ public final class SmartCasing {
     defaults.put("CD", "cd");
     defaults.put("DevOps", "devops");
     defaults.put("MLOps", "mlops");
-    
+
     // File Formats & Protocols
     defaults.put("CSV", "csv");
     defaults.put("TSV", "tsv");
@@ -141,7 +138,7 @@ public final class SmartCasing {
     defaults.put("BASE64", "base64");
     defaults.put("UTF8", "utf8");
     defaults.put("ASCII", "ascii");
-    
+
     // Programming Languages & Frameworks
     defaults.put("Java", "java");
     defaults.put("Python", "python");
@@ -164,7 +161,7 @@ public final class SmartCasing {
     defaults.put("YARN", "yarn");
     defaults.put("Maven", "maven");
     defaults.put("Gradle", "gradle");
-    
+
     // Business & Enterprise
     defaults.put("CRM", "crm");
     defaults.put("ERP", "erp");
@@ -179,13 +176,13 @@ public final class SmartCasing {
     defaults.put("CIO", "cio");
     defaults.put("CFO", "cfo");
     defaults.put("COO", "coo");
-    
+
     // Common compound terms with specific mappings
     defaults.put("GraphQL", "graphql");
     defaults.put("GitHub", "github");
     defaults.put("GitLab", "gitlab");
     defaults.put("LinkedIn", "linkedin");
-    
+
     DEFAULT_MAPPINGS = Collections.unmodifiableMap(defaults);
   }
 
@@ -204,13 +201,12 @@ public final class SmartCasing {
    * Matches transitions from lowercase to uppercase, sequences of uppercase letters
    * followed by lowercase, and digits.
    */
-  private static final Pattern WORD_BOUNDARY_PATTERN = Pattern.compile(
-      "(?<=[a-z])(?=[A-Z])|" +     // camelCase boundary: lowercase to uppercase
+  private static final Pattern WORD_BOUNDARY_PATTERN =
+      Pattern.compile("(?<=[a-z])(?=[A-Z])|" +     // camelCase boundary: lowercase to uppercase
       "(?<=[A-Z])(?=[A-Z][a-z])|" + // PascalCase boundary: uppercase sequence to mixed case
       "(?<=[a-zA-Z])(?=[0-9])|" +   // letter to digit
       "(?<=[0-9])(?=[a-zA-Z])|" +   // digit to letter
-      "(?<=[0-9])(?=[0-9])"         // digit to digit (for version numbers like TLS12 -> TLS1_2)
-  );
+      "(?<=[0-9])(?=[0-9])");       // digit to digit (for version numbers like TLS12 -> TLS1_2
 
   private SmartCasing() {
     // Utility class - prevent instantiation
@@ -219,7 +215,7 @@ public final class SmartCasing {
   /**
    * Adds additional term mappings to the smart casing dictionary.
    * These extend the default mappings without overriding them.
-   * 
+   *
    * @param termMappings Map of input terms to their desired output forms
    */
   public static void addTermMappings(Map<String, String> termMappings) {
@@ -231,7 +227,7 @@ public final class SmartCasing {
   /**
    * Adds term mappings that override the default dictionary.
    * Use this when you need different behavior than the built-in defaults.
-   * 
+   *
    * @param termMappings Map of input terms to their desired output forms
    */
   public static void overrideTermMappings(Map<String, String> termMappings) {
@@ -253,7 +249,7 @@ public final class SmartCasing {
   public static void clearOverrides() {
     USER_OVERRIDES.clear();
   }
-  
+
   /**
    * Clears all user-configured mappings (both additions and overrides).
    */
@@ -266,7 +262,7 @@ public final class SmartCasing {
 
   /**
    * Converts a string to PostgreSQL-style snake_case using intelligent segmentation.
-   * 
+   *
    * @param input The input string in camelCase, PascalCase, or mixed format
    * @return The converted snake_case string, or null if input is null
    */
@@ -280,13 +276,13 @@ public final class SmartCasing {
     if (exactMapping != null) {
       return exactMapping;
     }
-    
+
     // Special handling for simple compounds with preserved terms
     // If input ends with a preserved term and has only 2 parts, consider preserving the entire input
     if (hasSimplePreservedTermSuffix(input)) {
       return input;
     }
-    
+
     // If input already contains underscores, process each part separately
     if (input.contains("_")) {
       String[] parts = input.split("_");
@@ -300,7 +296,7 @@ public final class SmartCasing {
       }
       return result.toString();
     }
-    
+
     // Special case: if the input is all uppercase and not an acronym, just convert to lowercase
     // This handles table names like DEPTS, EMPS that shouldn't be split
     if (isAllUpperCase(input) && !isKnownAcronym(input)) {
@@ -309,27 +305,27 @@ public final class SmartCasing {
 
     // First, handle known terms by protecting them from segmentation
     String processed = protectKnownTerms(input);
-    
+
     // Split on word boundaries, but be careful with placeholders
     java.util.List<String> parts = splitWithPlaceholderProtection(processed);
-    
+
     StringBuilder result = new StringBuilder();
     for (int i = 0; i < parts.size(); i++) {
       String part = parts.get(i);
-      
+
       // Skip empty parts
       if (part.isEmpty()) {
         continue;
       }
-      
+
       // Restore the current part to determine underscore logic
       String currentRestored = restoreKnownTerms(part);
-      
+
       // Determine if we should add an underscore before this part
       boolean shouldAddUnderscore = false;
       if (i > 0 && result.length() > 0) {
         String previousResult = result.toString();
-        
+
         // Check if current part is a preserved term by checking the placeholder cache
         boolean isPreservedTerm = false;
         if (part.matches("§§\\d+§§")) {
@@ -345,7 +341,7 @@ public final class SmartCasing {
           String termMapping = getTermMapping(part);
           isPreservedTerm = termMapping != null && termMapping.equals(part);
         }
-        
+
         // Don't add underscore if:
         // 1. Previous part ends with a letter and current part is a single digit
         // 2. Both parts are single digits (for version numbers like TLS12 -> tls1_2 not tls_1_2)
@@ -354,7 +350,7 @@ public final class SmartCasing {
         boolean prevEndsWithLetter = Character.isLetter(lastChar);
         boolean currIsSingleDigit = currentRestored.length() == 1 && Character.isDigit(currentRestored.charAt(0));
         boolean prevIsSingleDigit = previousResult.length() == 1 && Character.isDigit(previousResult.charAt(0));
-        
+
         if (prevEndsWithLetter && currIsSingleDigit) {
           // Letter followed by digit: no underscore (TLS1 not TLS_1)
           shouldAddUnderscore = false;
@@ -370,15 +366,15 @@ public final class SmartCasing {
           shouldAddUnderscore = true;
         }
       }
-      
+
       if (shouldAddUnderscore) {
         result.append('_');
       }
-      
+
       // Add the already restored current part
       result.append(currentRestored);
     }
-    
+
     return result.toString();
   }
 
@@ -392,7 +388,7 @@ public final class SmartCasing {
     if (parts.length != 2) {
       return false;
     }
-    
+
     // Check if the second part is preserved (maps to itself)
     String secondPart = parts[1];
     String mapping = getTermMapping(secondPart);
@@ -400,10 +396,10 @@ public final class SmartCasing {
       // The suffix is preserved, so preserve the entire compound
       return true;
     }
-    
+
     return false;
   }
-  
+
   /**
    * Checks if a string is all uppercase letters.
    */
@@ -415,14 +411,14 @@ public final class SmartCasing {
     }
     return true;
   }
-  
+
   /**
    * Checks if the input is a known acronym (exists in our dictionary).
    */
   private static boolean isKnownAcronym(String input) {
     return getTermMapping(input) != null;
   }
-  
+
   /**
    * Gets the mapping for a term using the layered dictionary system.
    * Priority: USER_OVERRIDES > USER_ADDITIONS > DEFAULT_MAPPINGS
@@ -432,20 +428,20 @@ public final class SmartCasing {
     if (USER_OVERRIDES.containsKey(term)) {
       return USER_OVERRIDES.get(term);
     }
-    
+
     // Then check user additions
     if (USER_ADDITIONS.containsKey(term)) {
       return USER_ADDITIONS.get(term);
     }
-    
+
     // Finally check defaults
     if (DEFAULT_MAPPINGS.containsKey(term)) {
       return DEFAULT_MAPPINGS.get(term);
     }
-    
+
     return null;
   }
-  
+
   /**
    * Protects known terms using a greedy longest-match algorithm.
    * This approach handles consecutive acronyms better by finding the best segmentation.
@@ -453,21 +449,21 @@ public final class SmartCasing {
   private static String protectKnownTerms(String input) {
     // Clear previous cache to ensure clean state for this conversion
     TERM_CACHE.get().clear();
-    
+
     // Get all known terms from the layered dictionary
     Map<String, String> allMappings = new HashMap<>();
     allMappings.putAll(DEFAULT_MAPPINGS);
     allMappings.putAll(USER_ADDITIONS);
     allMappings.putAll(USER_OVERRIDES); // overrides win
-    
+
     // Reset placeholder counter for this call to ensure consistent placeholders
     int startCounter = 0;
     PLACEHOLDER_COUNTER.set(startCounter);
-    
+
     // Use greedy longest-match approach with term keys
     return protectTermsGreedy(input, allMappings.keySet(), startCounter);
   }
-  
+
   /**
    * Recursive greedy longest-match algorithm for term protection.
    * Only matches terms at proper word boundaries to avoid false matches.
@@ -476,11 +472,11 @@ public final class SmartCasing {
     if (input.isEmpty()) {
       return input;
     }
-    
+
     // Find the longest matching term at the current position that respects word boundaries
     String longestMatch = null;
     int longestLength = 0;
-    
+
     for (String term : terms) {
       if (input.length() >= term.length()) {
         String prefix = input.substring(0, term.length());
@@ -494,7 +490,7 @@ public final class SmartCasing {
         }
       }
     }
-    
+
     if (longestMatch != null) {
       // Replace the matched term with a placeholder and store its mapping
       String placeholderKey = "§§" + placeholderCounter + "§§";
@@ -505,7 +501,7 @@ public final class SmartCasing {
         // Fallback to lowercase if no mapping found
         TERM_CACHE.get().put(placeholderKey, longestMatch.toLowerCase(Locale.ROOT));
       }
-      
+
       // Recursively process the rest of the string
       String remaining = input.substring(longestLength);
       return placeholderKey + protectTermsGreedy(remaining, terms, placeholderCounter + 1);
@@ -516,7 +512,7 @@ public final class SmartCasing {
       return firstChar + protectTermsGreedy(remaining, terms, placeholderCounter);
     }
   }
-  
+
   /**
    * Checks if a term match at the current position respects word boundaries.
    * This prevents matching terms in the middle of words (like "IDE" in "Provider").
@@ -526,14 +522,14 @@ public final class SmartCasing {
       // Term extends to end of input - valid
       return true;
     }
-    
+
     char nextChar = input.charAt(termLength);
-    
+
     // For valid term boundaries, the next character should indicate a word break:
     // - Uppercase letter (camelCase/PascalCase boundary)
     // - Digit (version numbers, etc.)
     // - Non-letter character (punctuation, whitespace, etc.)
-    // 
+    //
     // Lowercase letters after a term usually indicate the term is part of a larger word
     return Character.isUpperCase(nextChar) || Character.isDigit(nextChar) || !Character.isLetter(nextChar);
   }
@@ -542,14 +538,14 @@ public final class SmartCasing {
    * Thread-local cache to store placeholder-to-term mappings during processing.
    * Each thread gets its own cache to avoid interference.
    */
-  private static final ThreadLocal<java.util.Map<String, String>> TERM_CACHE = 
+  private static final ThreadLocal<java.util.Map<String, String>> TERM_CACHE =
       ThreadLocal.withInitial(java.util.HashMap::new);
-  
+
   /**
    * Thread-local counter for generating unique placeholders.
    * Each thread gets its own counter to avoid conflicts.
    */
-  private static final ThreadLocal<Integer> PLACEHOLDER_COUNTER = 
+  private static final ThreadLocal<Integer> PLACEHOLDER_COUNTER =
       ThreadLocal.withInitial(() -> 0);
 
   /**
@@ -557,26 +553,26 @@ public final class SmartCasing {
    */
   private static String restoreKnownTerms(String input) {
     String result = input;
-    
+
     // Get the thread-local cache
     Map<String, String> cache = TERM_CACHE.get();
-    
+
     // Sort by placeholder key length (longest first) to avoid partial replacements
-    java.util.List<java.util.Map.Entry<String, String>> sortedEntries = 
+    java.util.List<java.util.Map.Entry<String, String>> sortedEntries =
         new java.util.ArrayList<>(cache.entrySet());
     sortedEntries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
-    
+
     for (java.util.Map.Entry<String, String> entry : sortedEntries) {
       if (result.contains(entry.getKey())) {
         result = result.replace(entry.getKey(), entry.getValue());
       }
     }
-    
+
     // If no placeholders were found, convert to lowercase as fallback
     if (result.equals(input) && !result.matches(".*§§\\d+§§.*")) {
       result = result.toLowerCase(Locale.ROOT);
     }
-    
+
     return result;
   }
 
@@ -585,11 +581,11 @@ public final class SmartCasing {
    */
   private static java.util.List<String> splitWithPlaceholderProtection(String input) {
     java.util.List<String> parts = new java.util.ArrayList<>();
-    
+
     // Pattern to match placeholders (support both old and new formats)
     Pattern placeholderPattern = Pattern.compile("§§\\d+(?:_\\d+)?§§");
     Matcher placeholderMatcher = placeholderPattern.matcher(input);
-    
+
     int lastEnd = 0;
     while (placeholderMatcher.find()) {
       // Add parts before the placeholder
@@ -597,12 +593,12 @@ public final class SmartCasing {
       if (!beforePlaceholder.isEmpty()) {
         addWordBoundaryParts(beforePlaceholder, parts);
       }
-      
+
       // Add the placeholder as a single part
       parts.add(placeholderMatcher.group());
       lastEnd = placeholderMatcher.end();
     }
-    
+
     // Add remaining parts after the last placeholder
     if (lastEnd < input.length()) {
       String afterPlaceholder = input.substring(lastEnd);
@@ -610,15 +606,15 @@ public final class SmartCasing {
         addWordBoundaryParts(afterPlaceholder, parts);
       }
     }
-    
+
     // If no placeholders were found, split the entire string
     if (parts.isEmpty()) {
       addWordBoundaryParts(input, parts);
     }
-    
+
     return parts;
   }
-  
+
   /**
    * Splits a string on word boundaries and adds the parts to the list.
    */
@@ -633,7 +629,7 @@ public final class SmartCasing {
 
   /**
    * Applies column name casing transformation based on the specified strategy.
-   * 
+   *
    * @param name The column name to transform
    * @param casing The casing strategy: "UPPER", "LOWER", "UNCHANGED", or "SMART_CASING"
    * @return The transformed column name
@@ -642,10 +638,10 @@ public final class SmartCasing {
     if (name == null) {
       return null;
     }
-    
+
     // First sanitize to convert hyphens to underscores
     String sanitized = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(name);
-    
+
     switch (casing) {
     case "UPPER":
       return sanitized.toUpperCase(Locale.ROOT);

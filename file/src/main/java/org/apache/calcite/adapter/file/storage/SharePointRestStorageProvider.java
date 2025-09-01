@@ -19,6 +19,9 @@ package org.apache.calcite.adapter.file.storage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,17 +32,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Storage provider implementation for SharePoint using SharePoint REST API.
@@ -48,19 +46,19 @@ import org.slf4j.LoggerFactory;
 public class SharePointRestStorageProvider implements StorageProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SharePointRestStorageProvider.class);
-  
+
   // Common document library names in different languages
-  private static final Set<String> DOCUMENT_LIBRARY_NAMES = new HashSet<>(Arrays.asList(
-      "Shared Documents",
-      "Documents",
-      "Documents Partagés",  // French
-      "Documentos compartidos",  // Spanish  
-      "Gemeinsame Dokumente",  // German
-      "Documenti condivisi",  // Italian
-      "共享文档",  // Chinese
-      "共有ドキュメント"  // Japanese
-  ));
-  
+  private static final Set<String> DOCUMENT_LIBRARY_NAMES =
+      new HashSet<>(
+          Arrays.asList("Shared Documents",
+              "Documents",
+              "Documents Partagés",  // French
+              "Documentos compartidos",  // Spanish
+              "Gemeinsame Dokumente",  // German
+              "Documenti condivisi",  // Italian
+              "共享文档",  // Chinese
+              "共有ドキュメント"));
+
   private final String siteUrl;
   private final SharePointTokenManager tokenManager;
   private final ObjectMapper mapper = new ObjectMapper();
@@ -89,7 +87,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
     } else {
       this.tokenManager = tokenManager;
     }
-    
+
     this.webUrl = siteUrl;
   }
 
@@ -108,20 +106,20 @@ public class SharePointRestStorageProvider implements StorageProvider {
   private void initializeDocumentLibrary() throws IOException {
     // Get the default document library (usually "Shared Documents")
     String apiUrl = String.format(Locale.ROOT, "%s/_api/web/lists?$filter=BaseTemplate eq 101", webUrl);
-    
+
     JsonNode response = executeRestCall(apiUrl);
     JsonNode results = response.get("d").get("results");
-    
+
     if (results != null && results.isArray() && results.size() > 0) {
       // Get the first document library (usually "Shared Documents")
       JsonNode firstLibrary = results.get(0);
       String libraryTitle = firstLibrary.get("Title").asText();
       String libraryServerRelativeUrl = firstLibrary.get("RootFolder").get("__deferred").get("uri").asText();
-      
+
       // Get the actual root folder URL
       JsonNode folderResponse = executeRestCall(libraryServerRelativeUrl);
       this.documentLibraryUrl = folderResponse.get("d").get("ServerRelativeUrl").asText();
-      
+
       LOGGER.debug("Initialized document library: {} at {}", libraryTitle, documentLibraryUrl);
     } else {
       // Fallback to "Shared Documents"
@@ -151,23 +149,24 @@ public class SharePointRestStorageProvider implements StorageProvider {
     }
 
     // Get files in the folder
-    String filesApiUrl = String.format(Locale.ROOT, 
-        "%s/_api/web/GetFolderByServerRelativeUrl('%s')/Files", 
-        webUrl, 
+    String filesApiUrl =
+        String.format(Locale.ROOT, "%s/_api/web/GetFolderByServerRelativeUrl('%s')/Files",
+        webUrl,
         URLEncoder.encode(folderPath, StandardCharsets.UTF_8).replace("+", "%20"));
-    
+
     try {
       JsonNode filesResponse = executeRestCall(filesApiUrl);
       JsonNode files = filesResponse.get("d").get("results");
-      
+
       if (files != null && files.isArray()) {
         for (JsonNode file : files) {
           String fileName = file.get("Name").asText();
           // Use originalPath to preserve the full path structure
-          String itemPath = originalPath.isEmpty() ? fileName : 
+          String itemPath = originalPath.isEmpty() ? fileName :
               (originalPath.startsWith("/") ? originalPath.substring(1) : originalPath) + "/" + fileName;
-          
-          entries.add(new FileEntry(
+
+          entries.add(
+              new FileEntry(
               itemPath,
               fileName,
               false,
@@ -180,35 +179,36 @@ public class SharePointRestStorageProvider implements StorageProvider {
     }
 
     // Get subfolders
-    String foldersApiUrl = String.format(Locale.ROOT, 
-        "%s/_api/web/GetFolderByServerRelativeUrl('%s')/Folders", 
-        webUrl, 
+    String foldersApiUrl =
+        String.format(Locale.ROOT, "%s/_api/web/GetFolderByServerRelativeUrl('%s')/Folders",
+        webUrl,
         URLEncoder.encode(folderPath, StandardCharsets.UTF_8).replace("+", "%20"));
-    
+
     try {
       JsonNode foldersResponse = executeRestCall(foldersApiUrl);
       JsonNode folders = foldersResponse.get("d").get("results");
-      
+
       if (folders != null && folders.isArray()) {
         for (JsonNode folder : folders) {
           String folderName = folder.get("Name").asText();
-          
+
           // Skip system folders
           if (folderName.startsWith("_") || folderName.equals("Forms")) {
             continue;
           }
-          
+
           // Use originalPath to preserve the full path structure
-          String itemPath = originalPath.isEmpty() ? folderName : 
+          String itemPath = originalPath.isEmpty() ? folderName :
               (originalPath.startsWith("/") ? originalPath.substring(1) : originalPath) + "/" + folderName;
-          
-          entries.add(new FileEntry(
+
+          entries.add(
+              new FileEntry(
               itemPath,
               folderName,
               true,
               0,
               parseDateTime(folder.get("TimeLastModified").asText())));
-          
+
           if (recursive) {
             // Recursively list folder contents
             entries.addAll(listFiles(itemPath, true));
@@ -227,7 +227,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
 
     // Preserve original path for return value
     String originalPath = path;
-    
+
     // Normalize path
     if (path.startsWith("/")) {
       path = path.substring(1);
@@ -240,9 +240,9 @@ public class SharePointRestStorageProvider implements StorageProvider {
     String filePath = documentLibraryUrl + "/" + path;
 
     // Get file metadata
-    String apiUrl = String.format(Locale.ROOT, 
-        "%s/_api/web/GetFileByServerRelativeUrl('%s')", 
-        webUrl, 
+    String apiUrl =
+        String.format(Locale.ROOT, "%s/_api/web/GetFileByServerRelativeUrl('%s')",
+        webUrl,
         URLEncoder.encode(filePath, StandardCharsets.UTF_8).replace("+", "%20"));
 
     JsonNode response = executeRestCall(apiUrl);
@@ -258,7 +258,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
 
   @Override public InputStream openInputStream(String path) throws IOException {
     ensureInitialized();
-    
+
     LOGGER.debug("SharePointRestStorageProvider.openInputStream called with path: {}", path);
 
     // Normalize path
@@ -268,18 +268,18 @@ public class SharePointRestStorageProvider implements StorageProvider {
 
     // Remove document library prefix if present
     path = removeDocumentLibraryPrefix(path);
-    
+
     LOGGER.debug("After normalization: path={}, documentLibraryUrl={}", path, documentLibraryUrl);
 
     // Build the file path
     String filePath = documentLibraryUrl + "/" + path;
 
     // Build download URL using $value endpoint
-    String downloadUrl = String.format(Locale.ROOT, 
-        "%s/_api/web/GetFileByServerRelativeUrl('%s')/$value", 
-        webUrl, 
+    String downloadUrl =
+        String.format(Locale.ROOT, "%s/_api/web/GetFileByServerRelativeUrl('%s')/$value",
+        webUrl,
         URLEncoder.encode(filePath, StandardCharsets.UTF_8).replace("+", "%20"));
-    
+
     LOGGER.debug("Download URL: {}", downloadUrl);
 
     URL url = URI.create(downloadUrl).toURL();
@@ -292,11 +292,11 @@ public class SharePointRestStorageProvider implements StorageProvider {
     int responseCode = conn.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
       conn.disconnect();
-      LOGGER.error("Failed to download file: responseCode={}, path={}, downloadUrl={}", 
+      LOGGER.error("Failed to download file: responseCode={}, path={}, downloadUrl={}",
           responseCode, path, downloadUrl);
       throw new IOException("Failed to download file from path '" + path + "': HTTP " + responseCode);
     }
-    
+
     LOGGER.debug("Successfully opened input stream for path: {}", path);
 
     return conn.getInputStream();
@@ -339,14 +339,14 @@ public class SharePointRestStorageProvider implements StorageProvider {
     }
 
     // Check if it's a folder
-    String apiUrl = String.format(Locale.ROOT, 
-        "%s/_api/web/GetFolderByServerRelativeUrl('%s')", 
-        webUrl, 
+    String apiUrl =
+        String.format(Locale.ROOT, "%s/_api/web/GetFolderByServerRelativeUrl('%s')",
+        webUrl,
         URLEncoder.encode(folderPath, StandardCharsets.UTF_8).replace("+", "%20"));
 
     try {
       JsonNode response = executeRestCall(apiUrl);
-      return response.has("d") && response.get("d").has("Exists") 
+      return response.has("d") && response.get("d").has("Exists")
           && response.get("d").get("Exists").asBoolean();
     } catch (IOException e) {
       if (e.getMessage().contains("404")) {
@@ -414,7 +414,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
     conn.setRequestProperty("Content-Type", "application/json;odata=verbose");
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(30000);
-    
+
     LOGGER.debug("SharePoint REST API Call:");
     LOGGER.debug("  URL: " + apiUrl);
     LOGGER.debug("  Token length: " + (token != null ? token.length() : "null"));
@@ -426,13 +426,13 @@ public class SharePointRestStorageProvider implements StorageProvider {
         String error = "";
         String wwwAuthenticate = conn.getHeaderField("WWW-Authenticate");
         String xMsErrorCode = conn.getHeaderField("x-ms-diagnostics");
-        
+
         try (InputStream errorStream = conn.getErrorStream()) {
           if (errorStream != null) {
             byte[] errorBytes = errorStream.readAllBytes();
             String errorBody = new String(errorBytes, StandardCharsets.UTF_8);
             LOGGER.debug("Error response body: " + errorBody);
-            
+
             try {
               JsonNode errorJson = mapper.readTree(errorBytes);
               if (errorJson.has("error") && errorJson.get("error").has("message")) {
@@ -453,7 +453,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
         } catch (Exception e) {
           // Ignore stream reading errors
         }
-        
+
         String errorMessage = "SharePoint REST API error: HTTP " + responseCode;
         if (!error.isEmpty()) {
           errorMessage += " - " + error;
@@ -464,7 +464,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
         if (xMsErrorCode != null) {
           errorMessage += " (x-ms-diagnostics: " + xMsErrorCode + ")";
         }
-        
+
         throw new IOException(errorMessage);
       }
 
@@ -491,7 +491,7 @@ public class SharePointRestStorageProvider implements StorageProvider {
         }
         return Long.parseLong(timestamp);
       }
-      
+
       // Try ISO 8601 format as fallback
       return Instant.parse(dateTime).toEpochMilli();
     } catch (Exception e) {
@@ -499,14 +499,14 @@ public class SharePointRestStorageProvider implements StorageProvider {
       return System.currentTimeMillis();
     }
   }
-  
+
   /**
    * Checks if the given path represents a document library root.
    */
   private boolean isDocumentLibraryRoot(String path) {
     return DOCUMENT_LIBRARY_NAMES.contains(path);
   }
-  
+
   /**
    * Removes common document library prefixes from a path for API calls.
    * This handles both single and nested document library paths.
@@ -515,10 +515,10 @@ public class SharePointRestStorageProvider implements StorageProvider {
     // Special handling for the nested "Shared Documents/Shared Documents" pattern
     // This occurs when the URL structure duplicates the library name
     if (path.startsWith("Shared Documents/Shared Documents/")) {
-      // Remove only the first "Shared Documents/" 
+      // Remove only the first "Shared Documents/"
       return path.substring("Shared Documents/".length());
     }
-    
+
     // For other document library names, only remove if it's the root
     for (String libraryName : DOCUMENT_LIBRARY_NAMES) {
       if (path.equals(libraryName)) {
@@ -533,12 +533,12 @@ public class SharePointRestStorageProvider implements StorageProvider {
         }
       }
     }
-    
+
     // Default case for "Shared Documents/" when not nested
     if (path.startsWith("Shared Documents/") && !path.startsWith("Shared Documents/Shared Documents/")) {
       return path.substring("Shared Documents/".length());
     }
-    
+
     return path;
   }
 }

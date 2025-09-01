@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.file.statistics;
 
 import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 
@@ -30,17 +29,24 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Utility to prime statistics cache for optimal performance testing and production use.
  * Loads statistics from smallest to largest tables to maximize cache effectiveness.
  */
 public class CachePrimer {
+  private CachePrimer() {
+    // Utility class - prevent instantiation
+  }
   private static final Logger LOGGER = LoggerFactory.getLogger(CachePrimer.class);
-  
+
   /**
    * Table information for cache priming.
    */
@@ -50,7 +56,7 @@ public class CachePrimer {
     public final Table table;
     public final File file;
     public final long fileSize;
-    
+
     public TableInfo(String schemaName, String tableName, Table table, File file) {
       this.schemaName = schemaName;
       this.tableName = tableName;
@@ -58,14 +64,13 @@ public class CachePrimer {
       this.file = file;
       this.fileSize = file != null ? file.length() : 0;
     }
-    
-    @Override
-    public String toString() {
-      return String.format("%s.%s (%.2f MB)", 
+
+    @Override public String toString() {
+      return String.format("%s.%s (%.2f MB)",
           schemaName, tableName, fileSize / (1024.0 * 1024.0));
     }
   }
-  
+
   /**
    * Statistics cache priming result.
    */
@@ -77,7 +82,7 @@ public class CachePrimer {
     public final long totalBytesProcessed;
     public final Map<String, Long> tableTimings;
     public final List<String> failures;
-    
+
     public PrimingResult(int totalTables, int successfullyPrimed, int failed,
                          long totalTimeMs, long totalBytesProcessed,
                          Map<String, Long> tableTimings, List<String> failures) {
@@ -89,26 +94,26 @@ public class CachePrimer {
       this.tableTimings = tableTimings;
       this.failures = failures;
     }
-    
+
     public void printSummary() {
       LOGGER.info("\n=== Cache Priming Summary ===");
       LOGGER.info("Total tables: {}", totalTables);
       LOGGER.info("Successfully primed: {}", successfullyPrimed);
       LOGGER.info("Failed: {}", failed);
       LOGGER.info("Total time: {} ms", totalTimeMs);
-      LOGGER.info("Total data processed: {} MB", 
+      LOGGER.info("Total data processed: {} MB",
           String.format("%.2f", totalBytesProcessed / (1024.0 * 1024.0)));
-      
+
       if (successfullyPrimed > 0) {
-        LOGGER.info("Average time per table: {} ms", 
+        LOGGER.info("Average time per table: {} ms",
             totalTimeMs / successfullyPrimed);
       }
-      
+
       if (!failures.isEmpty()) {
         LOGGER.info("\nFailed tables:");
         failures.forEach(f -> LOGGER.info("  - {}", f));
       }
-      
+
       // Show slowest tables
       if (!tableTimings.isEmpty()) {
         LOGGER.info("\nSlowest tables to prime:");
@@ -119,54 +124,54 @@ public class CachePrimer {
       }
     }
   }
-  
+
   /**
    * Prime statistics cache for all tables in a schema, processing from smallest to largest.
    * This ensures that larger tables (which are more important for performance) are more
    * likely to remain in cache.
-   * 
+   *
    * @param connection Calcite connection
    * @param schemaName Schema to prime
    * @return Priming result with statistics
    */
   @SuppressWarnings("deprecation")
-  public static PrimingResult primeSchema(Connection connection, String schemaName) 
+  public static PrimingResult primeSchema(Connection connection, String schemaName)
       throws Exception {
     CalciteConnection calciteConn = connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConn.getRootSchema();
     SchemaPlus schema = rootSchema.getSubSchema(schemaName);
-    
+
     if (schema == null) {
       throw new IllegalArgumentException("Schema not found: " + schemaName);
     }
-    
+
     // Collect all tables with their file sizes
     List<TableInfo> tables = collectTables(schemaName, schema);
-    
+
     // Sort by file size (smallest first)
     tables.sort(Comparator.comparingLong(t -> t.fileSize));
-    
-    LOGGER.info("Priming statistics cache for {} tables in schema '{}', " +
-                "ordered from smallest to largest", tables.size(), schemaName);
-    
+
+    LOGGER.info("Priming statistics cache for {} tables in schema '{}', "
+                + "ordered from smallest to largest", tables.size(), schemaName);
+
     // Prime the cache
     return primeTablesInOrder(connection, tables);
   }
-  
+
   /**
    * Prime statistics cache for multiple schemas, processing tables from smallest to largest
    * across all schemas.
-   * 
+   *
    * @param connection Calcite connection
    * @param schemaNames Schemas to prime
    * @return Combined priming result
    */
   @SuppressWarnings("deprecation")
-  public static PrimingResult primeSchemas(Connection connection, String... schemaNames) 
+  public static PrimingResult primeSchemas(Connection connection, String... schemaNames)
       throws Exception {
     CalciteConnection calciteConn = connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConn.getRootSchema();
-    
+
     // Collect all tables from all schemas
     List<TableInfo> allTables = new ArrayList<>();
     for (String schemaName : schemaNames) {
@@ -175,72 +180,73 @@ public class CachePrimer {
         allTables.addAll(collectTables(schemaName, schema));
       }
     }
-    
+
     // Sort by file size globally (smallest first across all schemas)
     allTables.sort(Comparator.comparingLong(t -> t.fileSize));
-    
-    LOGGER.info("Priming statistics cache for {} tables across {} schemas, " +
-                "globally ordered from smallest to largest", 
+
+    LOGGER.info("Priming statistics cache for {} tables across {} schemas, "
+                + "globally ordered from smallest to largest",
                 allTables.size(), schemaNames.length);
-    
+
     return primeTablesInOrder(connection, allTables);
   }
-  
+
   /**
    * Prime cache with parallel loading for better performance.
    * Still processes in size order but uses parallelism within size buckets.
-   * 
+   *
    * @param connection Calcite connection
    * @param tables Tables to prime
    * @param parallelism Number of parallel threads
    * @return Priming result
    */
-  public static PrimingResult primeTablesParallel(Connection connection, 
+  public static PrimingResult primeTablesParallel(Connection connection,
                                                   List<TableInfo> tables,
                                                   int parallelism) throws Exception {
     // Sort by size
     tables.sort(Comparator.comparingLong(t -> t.fileSize));
-    
+
     // Group into buckets for parallel processing
     int bucketSize = Math.max(1, tables.size() / (parallelism * 2));
     List<List<TableInfo>> buckets = new ArrayList<>();
-    
+
     for (int i = 0; i < tables.size(); i += bucketSize) {
       buckets.add(tables.subList(i, Math.min(i + bucketSize, tables.size())));
     }
-    
+
     ExecutorService executor = Executors.newFixedThreadPool(parallelism);
     Map<String, Long> tableTimings = new ConcurrentHashMap<>();
     List<String> failures = Collections.synchronizedList(new ArrayList<>());
     long totalBytes = 0;
     int successCount = 0;
-    
+
     long startTime = System.currentTimeMillis();
-    
+
     try {
       // Process buckets in order
       for (List<TableInfo> bucket : buckets) {
         List<Future<Boolean>> futures = new ArrayList<>();
-        
+
         // Submit tables in current bucket for parallel processing
         for (TableInfo table : bucket) {
-          futures.add(executor.submit(() -> {
-            long tableStart = System.currentTimeMillis();
-            try {
-              primeTable(connection, table);
-              long duration = System.currentTimeMillis() - tableStart;
-              tableTimings.put(table.toString(), duration);
-              LOGGER.debug("Primed {} in {} ms", table, duration);
-              return true;
-            } catch (Exception e) {
-              failures.add(table.toString() + ": " + e.getMessage());
-              LOGGER.warn("Failed to prime {}: {}", table, e.getMessage());
-              return false;
-            }
-          }));
+          futures.add(
+              executor.submit(() -> {
+                long tableStart = System.currentTimeMillis();
+                try {
+                  primeTable(connection, table);
+                  long duration = System.currentTimeMillis() - tableStart;
+                  tableTimings.put(table.toString(), duration);
+                  LOGGER.debug("Primed {} in {} ms", table, duration);
+                  return true;
+                } catch (Exception e) {
+                  failures.add(table.toString() + ": " + e.getMessage());
+                  LOGGER.warn("Failed to prime {}: {}", table, e.getMessage());
+                  return false;
+                }
+              }));
           totalBytes += table.fileSize;
         }
-        
+
         // Wait for current bucket to complete before moving to next
         for (Future<Boolean> future : futures) {
           if (future.get()) {
@@ -252,96 +258,93 @@ public class CachePrimer {
       executor.shutdown();
       executor.awaitTermination(1, TimeUnit.MINUTES);
     }
-    
+
     long totalTime = System.currentTimeMillis() - startTime;
-    
+
     return new PrimingResult(
-        tables.size(), 
+        tables.size(),
         successCount,
         tables.size() - successCount,
         totalTime,
         totalBytes,
         tableTimings,
-        failures
-    );
+        failures);
   }
-  
+
   /**
    * Prime tables in order with detailed progress reporting.
    */
-  private static PrimingResult primeTablesInOrder(Connection connection, 
+  private static PrimingResult primeTablesInOrder(Connection connection,
                                                   List<TableInfo> tables) {
     Map<String, Long> tableTimings = new HashMap<>();
     List<String> failures = new ArrayList<>();
     long totalBytes = 0;
     int successCount = 0;
-    
+
     long startTime = System.currentTimeMillis();
-    
+
     for (int i = 0; i < tables.size(); i++) {
       TableInfo table = tables.get(i);
       long tableStart = System.currentTimeMillis();
-      
+
       try {
         // Show progress
         if (i % 10 == 0 || table.fileSize > 100 * 1024 * 1024) { // Every 10 tables or large files
-          LOGGER.info("Priming table {}/{}: {} ({})", 
+          LOGGER.info("Priming table {}/{}: {} ({})",
               i + 1, tables.size(), table,
               i > 0 ? String.format("%.1f%% complete", 100.0 * i / tables.size()) : "starting");
         }
-        
+
         primeTable(connection, table);
-        
+
         long duration = System.currentTimeMillis() - tableStart;
         tableTimings.put(table.toString(), duration);
         totalBytes += table.fileSize;
         successCount++;
-        
+
         LOGGER.debug("Primed {} in {} ms", table, duration);
-        
+
       } catch (Exception e) {
         failures.add(table.toString() + ": " + e.getMessage());
         LOGGER.warn("Failed to prime {}: {}", table, e.getMessage());
       }
     }
-    
+
     long totalTime = System.currentTimeMillis() - startTime;
-    
+
     return new PrimingResult(
-        tables.size(), 
+        tables.size(),
         successCount,
         tables.size() - successCount,
         totalTime,
         totalBytes,
         tableTimings,
-        failures
-    );
+        failures);
   }
-  
+
   /**
    * Prime a single table's statistics cache.
    */
-  private static void primeTable(Connection connection, TableInfo tableInfo) 
+  private static void primeTable(Connection connection, TableInfo tableInfo)
       throws Exception {
     // For Parquet tables with StatisticsProvider, trigger statistics loading
     if (tableInfo.table instanceof StatisticsProvider) {
       StatisticsProvider statsProvider = (StatisticsProvider) tableInfo.table;
-      
+
       // This will load statistics into memory cache
       TableStatistics stats = statsProvider.getTableStatistics(null);
-      
+
       if (stats != null) {
         LOGGER.trace("Loaded statistics for {}: {} rows, {} columns",
-            tableInfo, stats.getRowCount(), 
+            tableInfo, stats.getRowCount(),
             stats.getColumnStatistics().size());
       }
     } else {
       // For other tables, execute a simple metadata query to trigger any caching
-      String query = String.format(
-          "SELECT * FROM %s.%s WHERE 1=0",
-          tableInfo.schemaName, tableInfo.tableName
-      );
-      
+      String query =
+          String.format("SELECT * FROM %s.%s WHERE 1=0",
+          tableInfo.schemaName, tableInfo.tableName);
+
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(query)) {
         // Just getting metadata triggers cache loading
@@ -349,23 +352,23 @@ public class CachePrimer {
       }
     }
   }
-  
+
   /**
    * Collect all tables from a schema with their file information.
    */
   @SuppressWarnings("deprecation")
   private static List<TableInfo> collectTables(String schemaName, SchemaPlus schema) {
     List<TableInfo> tables = new ArrayList<>();
-    
+
     for (String tableName : schema.getTableNames()) {
       Table table = schema.getTable(tableName);
       File file = null;
-      
+
       // Extract file information for size-based sorting
       if (table instanceof ParquetTranslatableTable) {
         try {
           // Use reflection to get the parquetFile field
-          java.lang.reflect.Field fileField = 
+          java.lang.reflect.Field fileField =
               ParquetTranslatableTable.class.getDeclaredField("parquetFile");
           fileField.setAccessible(true);
           file = (File) fileField.get(table);
@@ -373,16 +376,16 @@ public class CachePrimer {
           LOGGER.debug("Could not extract file info for {}.{}", schemaName, tableName);
         }
       }
-      
+
       tables.add(new TableInfo(schemaName, tableName, table, file));
     }
-    
+
     return tables;
   }
-  
+
   /**
    * Utility method for tests to prime cache before performance measurements.
-   * 
+   *
    * @param jdbcUrl JDBC URL for Calcite connection
    * @param schemaName Schema to prime
    * @return Priming result
@@ -392,11 +395,11 @@ public class CachePrimer {
       return primeSchema(conn, schemaName);
     } catch (Exception e) {
       LOGGER.error("Failed to prime cache for testing", e);
-      return new PrimingResult(0, 0, 0, 0, 0, 
+      return new PrimingResult(0, 0, 0, 0, 0,
           Collections.emptyMap(), Collections.singletonList(e.getMessage()));
     }
   }
-  
+
   /**
    * Clear all statistics caches (useful for testing cold-start performance).
    */
@@ -404,17 +407,17 @@ public class CachePrimer {
   public static void clearAllCaches(Connection connection) throws Exception {
     CalciteConnection calciteConn = connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConn.getRootSchema();
-    
+
     // Iterate through all schemas and tables
     for (String schemaName : rootSchema.getSubSchemaNames()) {
       SchemaPlus schema = rootSchema.getSubSchema(schemaName);
       for (String tableName : schema.getTableNames()) {
         Table table = schema.getTable(tableName);
-        
+
         // Clear in-memory cache for tables with statistics
         if (table instanceof ParquetTranslatableTable) {
           try {
-            java.lang.reflect.Field cacheField = 
+            java.lang.reflect.Field cacheField =
                 ParquetTranslatableTable.class.getDeclaredField("cachedStatistics");
             cacheField.setAccessible(true);
             cacheField.set(table, null);
@@ -424,7 +427,7 @@ public class CachePrimer {
         }
       }
     }
-    
+
     LOGGER.info("Cleared all statistics caches");
   }
 }

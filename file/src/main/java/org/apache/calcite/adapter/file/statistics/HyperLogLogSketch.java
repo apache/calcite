@@ -25,18 +25,18 @@ import java.util.Arrays;
 
 /**
  * HyperLogLog implementation for cardinality estimation.
- * 
+ *
  * <p>This implementation provides approximate distinct count estimation
  * with configurable precision. Used by Aperio-db for intelligent
  * query optimization and join ordering.
- * 
+ *
  * <p>Based on the HyperLogLog algorithm described in:
  * "HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm"
  * by Philippe Flajolet, et al.
  */
 public class HyperLogLogSketch implements Serializable {
   private static final long serialVersionUID = 1L;
-  
+
   private final int precision;
   private final int numBuckets;
   private final byte[] buckets;
@@ -53,7 +53,7 @@ public class HyperLogLogSketch implements Serializable {
 
   /**
    * Create a new HyperLogLog sketch with specified precision.
-   * 
+   *
    * @param precision Number of bits for bucketing (4-16 recommended)
    *                 Higher precision = better accuracy but more memory
    */
@@ -61,7 +61,7 @@ public class HyperLogLogSketch implements Serializable {
     if (precision < 4 || precision > 16) {
       throw new IllegalArgumentException("Precision must be between 4 and 16");
     }
-    
+
     this.precision = precision;
     this.numBuckets = 1 << precision; // 2^precision
     this.buckets = new byte[numBuckets];
@@ -90,24 +90,24 @@ public class HyperLogLogSketch implements Serializable {
 
   /**
    * Add a value to the HyperLogLog sketch.
-   * 
+   *
    * @param value The value to add (will be hashed)
    */
   public void add(Object value) {
     if (value == null) {
       return; // Skip null values
     }
-    
+
     byte[] hash = hashValue(value);
     long hashLong = ByteBuffer.wrap(hash).getLong();
-    
+
     // Use first 'precision' bits for bucket selection
     int bucket = (int) (hashLong >>> (64 - precision)) & ((1 << precision) - 1);
-    
+
     // Count leading zeros in remaining bits + 1
     long remainingBits = hashLong << precision;
     int leadingZeros = Long.numberOfLeadingZeros(remainingBits) + 1;
-    
+
     // Update bucket with maximum leading zeros seen
     buckets[bucket] = (byte) Math.max(buckets[bucket], Math.min(leadingZeros, 255));
   }
@@ -131,7 +131,7 @@ public class HyperLogLogSketch implements Serializable {
    */
   public long getEstimate() {
     double rawEstimate = alpha * numBuckets * numBuckets / sumOfPowersOfTwo();
-    
+
     // Apply bias correction and range adjustments
     if (rawEstimate <= 2.5 * numBuckets) {
       // Small range correction
@@ -146,7 +146,7 @@ public class HyperLogLogSketch implements Serializable {
       // Large range correction
       return Math.round(-1L * (1L << 32) * Math.log(1.0 - rawEstimate / (1L << 32)));
     }
-    
+
     return Math.round(rawEstimate);
   }
 
@@ -158,7 +158,7 @@ public class HyperLogLogSketch implements Serializable {
     if (other.precision != this.precision) {
       throw new IllegalArgumentException("Cannot merge sketches with different precision");
     }
-    
+
     for (int i = 0; i < numBuckets; i++) {
       buckets[i] = (byte) Math.max(buckets[i], other.buckets[i]);
     }
@@ -194,7 +194,7 @@ public class HyperLogLogSketch implements Serializable {
 
   private byte[] hashValue(Object value) {
     hasher.reset();
-    
+
     if (value instanceof String) {
       hasher.update(((String) value).getBytes(StandardCharsets.UTF_8));
     } else if (value instanceof Number) {
@@ -202,7 +202,7 @@ public class HyperLogLogSketch implements Serializable {
     } else {
       hasher.update(value.toString().getBytes(StandardCharsets.UTF_8));
     }
-    
+
     return hasher.digest();
   }
 
@@ -237,8 +237,7 @@ public class HyperLogLogSketch implements Serializable {
     }
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return String.format("HyperLogLog{precision=%d, buckets=%d, estimate=%d, memory=%dB}",
         precision, numBuckets, getEstimate(), getMemoryUsage());
   }

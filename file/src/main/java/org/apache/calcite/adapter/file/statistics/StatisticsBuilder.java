@@ -16,25 +16,16 @@
  */
 package org.apache.calcite.adapter.file.statistics;
 
-import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.util.Source;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Builds table and column statistics including HyperLogLog sketches
@@ -43,9 +34,9 @@ import java.security.NoSuchAlgorithmException;
  */
 public class StatisticsBuilder {
   private static final Logger LOGGER = LoggerFactory.getLogger(StatisticsBuilder.class);
-  
+
   private final StatisticsConfig config;
-  
+
   /**
    * Create statistics builder with default configuration.
    * HLL is enabled by default for better query optimization.
@@ -53,10 +44,10 @@ public class StatisticsBuilder {
   public StatisticsBuilder() {
     this(StatisticsConfig.getEffectiveConfig());
   }
-  
+
   /**
    * Create statistics builder with specific configuration.
-   * 
+   *
    * @param config Statistics configuration including HLL settings
    */
   public StatisticsBuilder(StatisticsConfig config) {
@@ -65,7 +56,7 @@ public class StatisticsBuilder {
 
   /**
    * Build statistics for a Parquet file, using existing cache infrastructure.
-   * 
+   *
    * @param source The source file
    * @param cacheDir Directory for statistics cache
    * @return Table statistics with HLL sketches
@@ -73,12 +64,12 @@ public class StatisticsBuilder {
   public TableStatistics buildStatistics(Source source, File cacheDir) throws Exception {
     File sourceFile = new File(source.path());
     String sourceHash = calculateSourceHash(sourceFile);
-    
+
     // Ensure cache directory exists
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
     }
-    
+
     // Check if statistics are already cached
     File statsFile = getStatisticsFile(sourceFile, cacheDir);
     if (statsFile.exists()) {
@@ -92,32 +83,32 @@ public class StatisticsBuilder {
         LOGGER.warn("Failed to load cached statistics for {}, rebuilding", sourceFile, e);
       }
     }
-    
+
     // Build new statistics directly (simplified without complex locking for tests)
     TableStatistics stats = generateStatisticsContent(sourceFile, sourceHash);
-    
+
     // Save to cache file
     try {
       StatisticsCache.saveStatistics(stats, statsFile);
     } catch (Exception e) {
       LOGGER.warn("Failed to save statistics cache for {}", sourceFile, e);
     }
-    
+
     return stats;
   }
 
   private TableStatistics generateStatisticsContent(File sourceFile, String sourceHash) throws Exception {
     LOGGER.info("Generating statistics for {}", sourceFile);
-    
+
     TableStatistics stats;
-    
+
     if (sourceFile.getName().toLowerCase().endsWith(".parquet")) {
       stats = buildParquetStatistics(sourceFile, sourceHash);
     } else {
       // For non-Parquet files, build statistics by scanning data
       stats = buildGenericStatistics(sourceFile, sourceHash);
     }
-    
+
     LOGGER.info("Generated statistics for {}: {}", sourceFile, stats);
     return stats;
   }
@@ -128,16 +119,16 @@ public class StatisticsBuilder {
   @SuppressWarnings("deprecation")
   private TableStatistics buildParquetStatistics(File parquetFile, String sourceHash) throws Exception {
     // Use ParquetStatisticsExtractor to get min/max values from Parquet metadata
-    Map<String, ParquetStatisticsExtractor.ColumnStatsBuilder> extractedStats = 
+    Map<String, ParquetStatisticsExtractor.ColumnStatsBuilder> extractedStats =
         ParquetStatisticsExtractor.extractStatistics(parquetFile);
-    
+
     // If extraction failed, fall back to basic estimates
     if (extractedStats.isEmpty()) {
       LOGGER.warn("Failed to extract Parquet statistics, using estimates for {}", parquetFile);
       long estimatedRows = Math.max(1, parquetFile.length() / 100);
       return TableStatistics.createBasicEstimate(estimatedRows);
     }
-    
+
     // Get actual row count from any column's total count
     long actualRows = 0;
     for (ParquetStatisticsExtractor.ColumnStatsBuilder builder : extractedStats.values()) {
@@ -146,37 +137,37 @@ public class StatisticsBuilder {
         break;
       }
     }
-    
+
     long totalSize = parquetFile.length();
-    
+
     // Build column statistics with extracted min/max values and optional HLL
     Map<String, ColumnStatistics> columnStats = new HashMap<>();
     for (Map.Entry<String, ParquetStatisticsExtractor.ColumnStatsBuilder> entry : extractedStats.entrySet()) {
       ParquetStatisticsExtractor.ColumnStatsBuilder extractedBuilder = entry.getValue();
       String columnName = entry.getKey();
-      
+
       // Decide whether to generate HLL based on configuration
       // For Parquet files, always generate HLL for better optimization opportunities
       // The user explicitly wants HLL sketches for all native and cached parquet files
       boolean needsHLL = config.isHllEnabled();
-      
+
       if (needsHLL) {
         LOGGER.debug("Generating HLL for high-cardinality column: {}", columnName);
         // Generate HLL from actual data
         HyperLogLogSketch hllSketch = generateHLLFromParquet(parquetFile, columnName, config.getHllPrecision());
         extractedBuilder.setHllSketch(hllSketch);
       }
-      
+
       // Build final statistics with min/max from Parquet metadata
       ColumnStatistics stats = extractedBuilder.build();
       columnStats.put(columnName, stats);
-      
+
       if (stats.getMinValue() != null || stats.getMaxValue() != null) {
-        LOGGER.info("Column {}: min={}, max={}, nulls={}", 
+        LOGGER.info("Column {}: min={}, max={}, nulls={}",
                    columnName, stats.getMinValue(), stats.getMaxValue(), stats.getNullCount());
       }
     }
-    
+
     return new TableStatistics(actualRows, totalSize, columnStats, sourceHash);
   }
 
@@ -188,59 +179,59 @@ public class StatisticsBuilder {
     if (sourceFile.getName().toLowerCase().endsWith(".csv")) {
       return buildCsvStatistics(sourceFile, sourceHash);
     }
-    
+
     // For other formats, use estimates for now
     long fileSize = sourceFile.length();
     long estimatedRows = Math.max(1, fileSize / 100);
-    
+
     LOGGER.warn("Generic statistics not implemented for {}, using estimates", sourceFile);
     return TableStatistics.createBasicEstimate(estimatedRows);
   }
-  
+
   /**
    * Build statistics by scanning CSV files and generating HLL sketches.
    */
   private TableStatistics buildCsvStatistics(File csvFile, String sourceHash) throws Exception {
     LOGGER.info("Scanning CSV file for statistics: {}", csvFile);
-    
+
     Map<String, ColumnStatsBuilder> columnBuilders = new HashMap<>();
     Map<String, HyperLogLogSketch> hllSketches = new HashMap<>();
     long totalRows = 0;
-    
+
     try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(csvFile))) {
       String headerLine = reader.readLine();
       if (headerLine == null) {
         return TableStatistics.createBasicEstimate(0);
       }
-      
+
       // Parse header to get column names
       String[] headers = headerLine.split(",");
       for (String header : headers) {
         String cleanHeader = header.trim().replace("\"", "");
         columnBuilders.put(cleanHeader, new ColumnStatsBuilder(cleanHeader));
       }
-      
+
       // Initialize HLL sketches for each column if enabled
       if (config.isHllEnabled()) {
         for (String columnName : columnBuilders.keySet()) {
           hllSketches.put(columnName, new HyperLogLogSketch(config.getHllPrecision()));
         }
       }
-      
+
       // Read data rows
       String line;
       while ((line = reader.readLine()) != null) {
         totalRows++;
-        
+
         String[] values = line.split(",");
         for (int i = 0; i < Math.min(values.length, headers.length); i++) {
           String columnName = headers[i].trim().replace("\"", "");
           String value = values[i].trim().replace("\"", "");
-          
+
           ColumnStatsBuilder builder = columnBuilders.get(columnName);
           if (builder != null) {
             builder.totalCount = totalRows;
-            
+
             if (value.isEmpty() || value.equals("NULL") || value.equals("null")) {
               builder.nullCount++;
             } else {
@@ -253,7 +244,7 @@ public class StatisticsBuilder {
                 // Treat as string for min/max
                 builder.updateMinMax(value, value);
               }
-              
+
               // Add to HLL sketch
               HyperLogLogSketch hllSketch = hllSketches.get(columnName);
               if (hllSketch != null) {
@@ -262,39 +253,39 @@ public class StatisticsBuilder {
             }
           }
         }
-        
+
         // Log progress for large files
         if (totalRows % 10000 == 0) {
           LOGGER.debug("Processed {} rows from {}", totalRows, csvFile);
         }
       }
     }
-    
+
     // Build final column statistics
     Map<String, ColumnStatistics> finalColumnStats = new HashMap<>();
     for (Map.Entry<String, ColumnStatsBuilder> entry : columnBuilders.entrySet()) {
       String columnName = entry.getKey();
       ColumnStatsBuilder builder = entry.getValue();
-      
+
       // Set the HLL sketch if available
       HyperLogLogSketch hllSketch = hllSketches.get(columnName);
       if (hllSketch != null) {
         builder.hllSketch = hllSketch;
       }
-      
+
       ColumnStatistics columnStats = builder.build();
       finalColumnStats.put(columnName, columnStats);
-      
-      LOGGER.info("Column {}: min={}, max={}, nulls={}/{}, distinct_estimate={}", 
-                  columnName, columnStats.getMinValue(), columnStats.getMaxValue(), 
+
+      LOGGER.info("Column {}: min={}, max={}, nulls={}/{}, distinct_estimate={}",
+                  columnName, columnStats.getMinValue(), columnStats.getMaxValue(),
                   columnStats.getNullCount(), columnStats.getTotalCount(),
                   hllSketch != null ? hllSketch.getEstimate() : "N/A");
     }
-    
+
     long fileSize = csvFile.length();
-    LOGGER.info("CSV statistics complete: {} rows, {} columns, {} bytes", 
+    LOGGER.info("CSV statistics complete: {} rows, {} columns, {} bytes",
                 totalRows, finalColumnStats.size(), fileSize);
-    
+
     return new TableStatistics(totalRows, fileSize, finalColumnStats, sourceHash);
   }
 
@@ -303,7 +294,7 @@ public class StatisticsBuilder {
     if (!config.isHllEnabled()) {
       return false;
     }
-    
+
     // Generate HLL if:
     // 1. Estimated distinct count is above threshold
     // 2. Column doesn't have precise distinct count from Parquet metadata
@@ -311,8 +302,8 @@ public class StatisticsBuilder {
     // For tests, use a lower threshold or check column names
     String columnName = builder.columnName;
     boolean isHighCardinalityColumn = columnName.contains("id") || columnName.contains("name");
-    
-    return (estimatedDistinct > config.getHllThreshold() || isHighCardinalityColumn) 
+
+    return (estimatedDistinct > config.getHllThreshold() || isHighCardinalityColumn)
            && !builder.hasPreciseDistinctCount();
   }
 
@@ -322,7 +313,7 @@ public class StatisticsBuilder {
       md.update(sourceFile.getAbsolutePath().getBytes());
       md.update(Long.toString(sourceFile.lastModified()).getBytes());
       md.update(Long.toString(sourceFile.length()).getBytes());
-      
+
       byte[] hash = md.digest();
       StringBuilder sb = new StringBuilder();
       for (byte b : hash) {
@@ -342,13 +333,13 @@ public class StatisticsBuilder {
       // Fallback to putting stats in cache dir if structure is unexpected
       aperioSchemaDir = cacheDir;
     }
-    
+
     // Create .stats subdirectory at the schema level
     File statsDir = new File(aperioSchemaDir, ".stats");
     if (!statsDir.exists()) {
       statsDir.mkdirs();
     }
-    
+
     String baseName = sourceFile.getName();
     int lastDot = baseName.lastIndexOf('.');
     if (lastDot > 0) {
@@ -375,7 +366,7 @@ public class StatisticsBuilder {
 
     void addBasicEstimates(long estimatedRows) {
       totalCount = estimatedRows;
-      // These are rough estimates - in a full implementation, 
+      // These are rough estimates - in a full implementation,
       // we'd scan the actual Parquet file or use proper metadata API
       nullCount = Math.max(0, estimatedRows / 10); // Assume 10% nulls
     }
@@ -409,13 +400,13 @@ public class StatisticsBuilder {
     boolean hasPreciseDistinctCount() {
       return exactDistinctCount != null;
     }
-    
+
     void setHllSketch(HyperLogLogSketch sketch) {
       this.hllSketch = sketch;
     }
 
     ColumnStatistics build() {
-      return new ColumnStatistics(columnName, minValue, maxValue, 
+      return new ColumnStatistics(columnName, minValue, maxValue,
                                  nullCount, totalCount, hllSketch);
     }
   }
@@ -423,20 +414,20 @@ public class StatisticsBuilder {
   private HyperLogLogSketch generateHLLFromParquet(File parquetFile, String columnName, int precision) {
     // Create HLL sketch by scanning actual Parquet data
     HyperLogLogSketch hllSketch = new HyperLogLogSketch(precision);
-    
+
     // Default estimate for fallback cases
     int estimatedDistinctCount = 1000;
-      
+
     try {
       org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(parquetFile.getAbsolutePath());
       org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
-      
+
       // Get column index and validate it exists in schema
       @SuppressWarnings("deprecation")
-      org.apache.parquet.hadoop.metadata.ParquetMetadata metadata = 
+      org.apache.parquet.hadoop.metadata.ParquetMetadata metadata =
           org.apache.parquet.hadoop.ParquetFileReader.readFooter(conf, path);
       org.apache.parquet.schema.MessageType schema = metadata.getFileMetaData().getSchema();
-      
+
       // Verify column exists in schema
       boolean columnFound = false;
       for (int i = 0; i < schema.getFieldCount(); i++) {
@@ -445,7 +436,7 @@ public class StatisticsBuilder {
           break;
         }
       }
-      
+
       if (!columnFound) {
         LOGGER.warn("Column {} not found in Parquet schema, using estimate", columnName);
         // Fall back to estimate based on file size
@@ -454,15 +445,15 @@ public class StatisticsBuilder {
         }
         return hllSketch;
       }
-      
+
       // Read actual data and add to HLL sketch
-      try (@SuppressWarnings("deprecation") 
-           org.apache.parquet.hadoop.ParquetReader<org.apache.avro.generic.GenericRecord> reader = 
+      try (@SuppressWarnings("deprecation")
+           org.apache.parquet.hadoop.ParquetReader<org.apache.avro.generic.GenericRecord> reader =
            org.apache.parquet.avro.AvroParquetReader
                .<org.apache.avro.generic.GenericRecord>builder(path)
                .withConf(conf)
                .build()) {
-        
+
         org.apache.avro.generic.GenericRecord record;
         int rowsProcessed = 0;
         while ((record = reader.read()) != null) {
@@ -473,7 +464,7 @@ public class StatisticsBuilder {
             hllSketch.add(value.toString());
           }
           rowsProcessed++;
-          
+
           // For very large files, we can sample instead of reading everything
           if (rowsProcessed > 1000000 && rowsProcessed % 10 == 0) {
             // Skip 9 out of 10 rows after 1M rows for performance
@@ -482,8 +473,8 @@ public class StatisticsBuilder {
             }
           }
         }
-        
-        LOGGER.info("Generated HLL for column {} from {} rows, estimated cardinality: {}", 
+
+        LOGGER.info("Generated HLL for column {} from {} rows, estimated cardinality: {}",
                     columnName, rowsProcessed, hllSketch.getEstimate());
       }
     } catch (java.io.FileNotFoundException e) {
@@ -500,7 +491,7 @@ public class StatisticsBuilder {
         hllSketch.add(columnName + "_" + i);
       }
     }
-    
+
     return hllSketch;
   }
 }

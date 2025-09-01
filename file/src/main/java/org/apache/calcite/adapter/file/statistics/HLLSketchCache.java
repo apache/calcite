@@ -33,35 +33,36 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class HLLSketchCache {
   private static final Logger LOGGER = LoggerFactory.getLogger(HLLSketchCache.class);
-  
+
   // Default cache configuration
   private static final int DEFAULT_MAX_SIZE = 1000;
   private static final long DEFAULT_TTL_MS = 30 * 60 * 1000; // 30 minutes
-  
+
   // Singleton instance with per-schema caches
   private static volatile HLLSketchCache instance;
   private static final Object INSTANCE_LOCK = new Object();
-  
+
   // Per-schema cache storage
   private final Map<String, Map<String, CacheEntry>> schemaCaches = new ConcurrentHashMap<>();
   private final Map<String, Map<String, String>> schemaCaseIndexes = new ConcurrentHashMap<>();
-  
+
   private final int maxSize;
   private final long ttlMs;
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-  
-  // Note: cache and caseInsensitiveIndex are now per-schema (see schemaCaches and schemaCaseIndexes)
-  
+
+  // Note: cache and caseInsensitiveIndex are now per-schema
+  // (see schemaCaches and schemaCaseIndexes)
+
   // Track cache statistics
   private final CacheStats stats = new CacheStats();
-  
+
   private HLLSketchCache(int maxSize, long ttlMs) {
     this.maxSize = maxSize;
     this.ttlMs = ttlMs;
-    
+
     LOGGER.info("HLL sketch cache initialized: maxSize={}, ttlMs={}", maxSize, ttlMs);
   }
-  
+
   /**
    * Get or create the cache for a specific schema.
    */
@@ -70,21 +71,20 @@ public class HLLSketchCache {
       LOGGER.debug("Creating cache for schema: {}", k);
       // Create LRU LinkedHashMap with access-order for this schema
       return new LinkedHashMap<String, CacheEntry>(16, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
+        @Override protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
           return size() > HLLSketchCache.this.maxSize;
         }
       };
     });
   }
-  
+
   /**
    * Get or create the case-insensitive index for a specific schema.
    */
   private Map<String, String> getSchemaCaseIndex(String schemaName) {
     return schemaCaseIndexes.computeIfAbsent(schemaName, k -> new HashMap<>());
   }
-  
+
   /**
    * Get the singleton cache instance.
    */
@@ -92,7 +92,8 @@ public class HLLSketchCache {
     if (instance == null) {
       synchronized (INSTANCE_LOCK) {
         if (instance == null) {
-          int maxSize = Integer.getInteger("calcite.file.statistics.hll.cache.size", DEFAULT_MAX_SIZE);
+          int maxSize =
+              Integer.getInteger("calcite.file.statistics.hll.cache.size", DEFAULT_MAX_SIZE);
           long ttlMs = Long.getLong("calcite.file.statistics.hll.cache.ttl.ms", DEFAULT_TTL_MS);
           instance = new HLLSketchCache(maxSize, ttlMs);
         }
@@ -100,7 +101,7 @@ public class HLLSketchCache {
     }
     return instance;
   }
-  
+
   /**
    * Get HLL sketch from cache.
    * @param schemaName The schema name (for proper isolation)
@@ -112,22 +113,23 @@ public class HLLSketchCache {
     // Use table.column as key within the schema-specific cache
     String key = tableName + "." + columnName;
     String fullKey = schemaName + "." + key; // For logging
-    
+
     LOGGER.debug("Looking up HLL sketch: {}", fullKey);
-    
+
     Map<String, CacheEntry> cache = getSchemaCache(schemaName);
     Map<String, String> caseInsensitiveIndex = getSchemaCaseIndex(schemaName);
-    
+
     lock.readLock().lock();
     try {
       // Try exact match first
       CacheEntry entry = cache.get(key);
       if (entry != null && !entry.isExpired()) {
         stats.recordHit();
-        LOGGER.debug("Found HLL sketch (exact match): {} with estimate {}", fullKey, entry.sketch.getEstimate());
+        LOGGER.debug("Found HLL sketch (exact match): {} with estimate {}",
+            fullKey, entry.sketch.getEstimate());
         return entry.sketch;
       }
-      
+
       // Try case-insensitive match
       String lowercaseKey = key.toLowerCase();
       String actualKey = caseInsensitiveIndex.get(lowercaseKey);
@@ -135,26 +137,27 @@ public class HLLSketchCache {
         entry = cache.get(actualKey);
         if (entry != null && !entry.isExpired()) {
           stats.recordHit();
-          LOGGER.debug("Found HLL sketch via case-insensitive lookup: {} -> {} with estimate {}", 
+          LOGGER.debug("Found HLL sketch via case-insensitive lookup: {} -> {} with estimate {}",
                       fullKey, actualKey, entry.sketch.getEstimate());
           return entry.sketch;
         }
       }
-      
+
       // Log what keys are in the cache for debugging
       if (LOGGER.isDebugEnabled() && cache.size() < 20) {
-        LOGGER.debug("Cache miss for {} in schema {}. Current cache keys: {}", key, schemaName, cache.keySet());
+        LOGGER.debug("Cache miss for {} in schema {}. Current cache keys: {}",
+            key, schemaName, cache.keySet());
       }
     } finally {
       lock.readLock().unlock();
     }
-    
+
     // Cache miss or expired - load from disk
     stats.recordMiss();
     LOGGER.debug("Cache miss for HLL sketch: {}", fullKey);
     return loadFromDisk(fullKey, tableName, columnName);
   }
-  
+
   /**
    * Put HLL sketch into cache.
    * @param schemaName The schema name (for proper isolation)
@@ -162,35 +165,37 @@ public class HLLSketchCache {
    * @param columnName The column name
    * @param sketch The HLL sketch to cache
    */
-  public void putSketch(String schemaName, String tableName, String columnName, HyperLogLogSketch sketch) {
+  public void putSketch(String schemaName, String tableName, String columnName,
+      HyperLogLogSketch sketch) {
     // Use table.column as key within the schema-specific cache
     String key = tableName + "." + columnName;
     String fullKey = schemaName + "." + key; // For logging
-    
+
     Map<String, CacheEntry> cache = getSchemaCache(schemaName);
     Map<String, String> caseInsensitiveIndex = getSchemaCaseIndex(schemaName);
-    
+
     lock.writeLock().lock();
     try {
       cache.put(key, new CacheEntry(sketch, System.currentTimeMillis()));
-      
+
       // Add to case-insensitive index, but warn if there's a conflict
       String lowercaseKey = key.toLowerCase();
       String existingKey = caseInsensitiveIndex.get(lowercaseKey);
       if (existingKey != null && !existingKey.equals(key)) {
-        LOGGER.warn("Case-sensitive naming conflict detected in schema {}! Both '{}' and '{}' map to lowercase '{}'. " +
-                   "Case-insensitive lookups may return incorrect results.", 
+        LOGGER.warn("Case-sensitive naming conflict detected in schema {}! "
+                   + "Both '{}' and '{}' map to lowercase '{}'. "
+                   + "Case-insensitive lookups may return incorrect results.",
                    schemaName, existingKey, key, lowercaseKey);
       }
       caseInsensitiveIndex.put(lowercaseKey, key);
-      
+
       // Debug logging to track what's being stored
       LOGGER.debug("Stored HLL sketch: {} (estimate: {})", fullKey, sketch.getEstimate());
     } finally {
       lock.writeLock().unlock();
     }
   }
-  
+
   /**
    * Remove entry from cache.
    * @param schemaName The schema name
@@ -199,10 +204,10 @@ public class HLLSketchCache {
    */
   public void invalidate(String schemaName, String tableName, String columnName) {
     String key = tableName + "." + columnName;
-    
+
     Map<String, CacheEntry> cache = getSchemaCache(schemaName);
     Map<String, String> caseInsensitiveIndex = getSchemaCaseIndex(schemaName);
-    
+
     lock.writeLock().lock();
     try {
       cache.remove(key);
@@ -211,7 +216,7 @@ public class HLLSketchCache {
       lock.writeLock().unlock();
     }
   }
-  
+
   /**
    * Clear all cached entries.
    */
@@ -225,7 +230,7 @@ public class HLLSketchCache {
       lock.writeLock().unlock();
     }
   }
-  
+
   /**
    * Clear cache for a specific schema.
    */
@@ -239,14 +244,14 @@ public class HLLSketchCache {
       lock.writeLock().unlock();
     }
   }
-  
+
   /**
    * Get cache statistics.
    */
   public CacheStats getStats() {
     return stats.snapshot();
   }
-  
+
   /**
    * Get current cache size.
    */
@@ -262,7 +267,7 @@ public class HLLSketchCache {
       lock.readLock().unlock();
     }
   }
-  
+
   /**
    * Remove expired entries from cache.
    */
@@ -271,14 +276,14 @@ public class HLLSketchCache {
     try {
       long now = System.currentTimeMillis();
       int totalRemoved = 0;
-      
+
       for (Map<String, CacheEntry> cache : schemaCaches.values()) {
         int sizeBefore = cache.size();
         cache.entrySet().removeIf(entry -> entry.getValue().isExpired(now));
         int removed = sizeBefore - cache.size();
         totalRemoved += removed;
       }
-      
+
       if (totalRemoved > 0) {
         LOGGER.debug("Removed {} expired HLL sketches from cache", totalRemoved);
       }
@@ -286,97 +291,96 @@ public class HLLSketchCache {
       lock.writeLock().unlock();
     }
   }
-  
+
   private HyperLogLogSketch loadFromDisk(String key, String tableName, String columnName) {
     // Get cache directory from system property
     String cacheDirPath = System.getProperty("calcite.file.statistics.cache.directory");
     if (cacheDirPath == null) {
       return null;
     }
-    
+
     File cacheDir = new File(cacheDirPath);
     File sketchFile = new File(cacheDir, tableName + "_" + columnName + ".hll");
-    
+
     if (!sketchFile.exists()) {
       return null;
     }
-    
+
     try {
       HyperLogLogSketch sketch = StatisticsCache.loadHLLSketch(sketchFile);
-      
+
       // Note: We can't put it back into cache here without knowing the schema
       // The caller should use putSketch() if they want to cache it
-      
+
       return sketch;
     } catch (IOException e) {
       LOGGER.warn("Failed to load HLL sketch from {}: {}", sketchFile, e.getMessage());
       return null;
     }
   }
-  
+
   /**
    * Cache entry with timestamp for TTL.
    */
   private class CacheEntry {
     final HyperLogLogSketch sketch;
     final long timestamp;
-    
+
     CacheEntry(HyperLogLogSketch sketch, long timestamp) {
       this.sketch = sketch;
       this.timestamp = timestamp;
     }
-    
+
     boolean isExpired() {
       return isExpired(System.currentTimeMillis());
     }
-    
+
     boolean isExpired(long now) {
       return (now - timestamp) > ttlMs;
     }
   }
-  
+
   /**
    * Cache statistics tracking.
    */
   public static class CacheStats {
     private volatile long hits = 0;
     private volatile long misses = 0;
-    
+
     void recordHit() {
       hits++;
     }
-    
+
     void recordMiss() {
       misses++;
     }
-    
+
     public long getHits() {
       return hits;
     }
-    
+
     public long getMisses() {
       return misses;
     }
-    
+
     public long getRequests() {
       return hits + misses;
     }
-    
+
     public double getHitRate() {
       long total = getRequests();
       return total == 0 ? 0.0 : (double) hits / total;
     }
-    
+
     CacheStats snapshot() {
       CacheStats copy = new CacheStats();
       copy.hits = this.hits;
       copy.misses = this.misses;
       return copy;
     }
-    
-    @Override
-    public String toString() {
-      return String.format("CacheStats{hits=%d, misses=%d, hitRate=%.2f%%}", 
+
+    @Override public String toString() {
+      return String.format("CacheStats{hits=%d, misses=%d, hitRate=%.2f%%}",
                           hits, misses, getHitRate() * 100);
     }
   }

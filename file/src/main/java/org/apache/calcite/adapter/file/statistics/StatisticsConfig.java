@@ -21,27 +21,27 @@ package org.apache.calcite.adapter.file.statistics;
  * HLL is disabled by default as it provides useless approximations for SQL queries.
  */
 public class StatisticsConfig {
-  
+
   private final boolean hllEnabled;
   private final int hllPrecision;
   private final long hllThreshold;
   private final long maxCacheAge;
   private final boolean backgroundGeneration;
   private final boolean autoGenerateStatistics;
-  
+
   /**
    * Default configuration with HLL enabled for COUNT(DISTINCT) optimization.
    * HLL provides approximate counts with controllable precision.
    */
   public static final StatisticsConfig DEFAULT = new Builder().hllEnabled(true).build();
-  
+
   /**
    * Configuration with HLL disabled (for testing or resource-constrained environments).
    */
   public static final StatisticsConfig NO_HLL = new Builder().hllEnabled(false).build();
 
-  private StatisticsConfig(boolean hllEnabled, int hllPrecision, long hllThreshold, 
-                          long maxCacheAge, boolean backgroundGeneration, boolean autoGenerateStatistics) {
+  private StatisticsConfig(boolean hllEnabled, int hllPrecision, long hllThreshold,
+      long maxCacheAge, boolean backgroundGeneration, boolean autoGenerateStatistics) {
     this.hllEnabled = hllEnabled;
     this.hllPrecision = hllPrecision;
     this.hllThreshold = hllThreshold;
@@ -84,7 +84,7 @@ public class StatisticsConfig {
   public boolean isBackgroundGeneration() {
     return backgroundGeneration;
   }
-  
+
   /**
    * Whether to automatically generate statistics when tables are accessed.
    * When true, statistics (including HLL sketches) are generated on first access.
@@ -101,26 +101,28 @@ public class StatisticsConfig {
    */
   public static StatisticsConfig fromSystemProperties() {
     Builder builder = new Builder();
-    
+
     // Check system properties for configuration
     String hllEnabled = System.getProperty("calcite.file.statistics.hll.enabled", "false");
     builder.hllEnabled(Boolean.parseBoolean(hllEnabled));
-    
+
     String hllPrecision = System.getProperty("calcite.file.statistics.hll.precision", "14");
     builder.hllPrecision(Integer.parseInt(hllPrecision));
-    
+
     String hllThreshold = System.getProperty("calcite.file.statistics.hll.threshold", "1000");
     builder.hllThreshold(Long.parseLong(hllThreshold));
-    
-    String maxCacheAge = System.getProperty("calcite.file.statistics.cache.maxAge", "604800000"); // 7 days
+
+    String maxCacheAge =
+        System.getProperty("calcite.file.statistics.cache.maxAge", "604800000"); // 7 days
     builder.maxCacheAge(Long.parseLong(maxCacheAge));
-    
-    String backgroundGeneration = System.getProperty("calcite.file.statistics.backgroundGeneration", "true");
+
+    String backgroundGeneration =
+        System.getProperty("calcite.file.statistics.backgroundGeneration", "true");
     builder.backgroundGeneration(Boolean.parseBoolean(backgroundGeneration));
-    
+
     String autoGenerate = System.getProperty("calcite.file.statistics.auto.generate", "true");
     builder.autoGenerateStatistics(Boolean.parseBoolean(autoGenerate));
-    
+
     return builder.build();
   }
 
@@ -129,48 +131,48 @@ public class StatisticsConfig {
    */
   public static StatisticsConfig fromEnvironmentVariables() {
     Builder builder = new Builder();
-    
+
     String hllEnabled = System.getenv("CALCITE_STATISTICS_HLL_ENABLED");
     if (hllEnabled != null) {
       builder.hllEnabled(Boolean.parseBoolean(hllEnabled));
     }
-    
+
     String hllPrecision = System.getenv("CALCITE_STATISTICS_HLL_PRECISION");
     if (hllPrecision != null) {
       builder.hllPrecision(Integer.parseInt(hllPrecision));
     }
-    
+
     String hllThreshold = System.getenv("CALCITE_STATISTICS_HLL_THRESHOLD");
     if (hllThreshold != null) {
       builder.hllThreshold(Long.parseLong(hllThreshold));
     }
-    
+
     String maxCacheAge = System.getenv("CALCITE_STATISTICS_CACHE_MAX_AGE");
     if (maxCacheAge != null) {
       builder.maxCacheAge(Long.parseLong(maxCacheAge));
     }
-    
+
     String backgroundGeneration = System.getenv("CALCITE_STATISTICS_BACKGROUND_GENERATION");
     if (backgroundGeneration != null) {
       builder.backgroundGeneration(Boolean.parseBoolean(backgroundGeneration));
     }
-    
+
     String autoGenerate = System.getenv("CALCITE_STATISTICS_AUTO_GENERATE");
     if (autoGenerate != null) {
       builder.autoGenerateStatistics(Boolean.parseBoolean(autoGenerate));
     }
-    
+
     return builder.build();
   }
 
   /**
-   * Get the effective configuration, checking system properties first, 
+   * Get the effective configuration, checking system properties first,
    * then environment variables, falling back to defaults.
    */
   public static StatisticsConfig getEffectiveConfig() {
     // Start with defaults
     Builder builder = new Builder();
-    
+
     // Override with environment variables if present
     StatisticsConfig envConfig = fromEnvironmentVariables();
     if (System.getenv("CALCITE_STATISTICS_HLL_ENABLED") != null) {
@@ -191,7 +193,7 @@ public class StatisticsConfig {
     if (System.getenv("CALCITE_STATISTICS_AUTO_GENERATE") != null) {
       builder.autoGenerateStatistics(envConfig.isAutoGenerateStatistics());
     }
-    
+
     // System properties override environment variables
     StatisticsConfig sysConfig = fromSystemProperties();
     if (System.getProperty("calcite.file.statistics.hll.enabled") != null) {
@@ -212,7 +214,7 @@ public class StatisticsConfig {
     if (System.getProperty("calcite.file.statistics.auto.generate") != null) {
       builder.autoGenerateStatistics(sysConfig.isAutoGenerateStatistics());
     }
-    
+
     return builder.build();
   }
 
@@ -221,11 +223,11 @@ public class StatisticsConfig {
    */
   public static class Builder {
     private boolean hllEnabled = true; // HLL enabled by default for optimization
-    private int hllPrecision = 14; // 14-bit precision: ~0.8% error vs 12-bit ~1.6% error (4x memory for 6x better accuracy)
-    private long hllThreshold = 1000; // Generate HLL for columns with >1K estimated distinct values
+    private int hllPrecision = 14; // 14-bit precision: ~0.8% error vs 12-bit ~1.6% error
+    private long hllThreshold = 1000; // Generate HLL for columns with >1K distinct values
     private long maxCacheAge = 7 * 24 * 60 * 60 * 1000L; // 7 days in milliseconds
     private boolean backgroundGeneration = true; // Generate statistics in background by default
-    private boolean autoGenerateStatistics = true; // Auto-generate statistics on first access by default
+    private boolean autoGenerateStatistics = true; // Auto-generate on first access
 
     public Builder hllEnabled(boolean hllEnabled) {
       this.hllEnabled = hllEnabled;
@@ -260,22 +262,22 @@ public class StatisticsConfig {
       this.backgroundGeneration = backgroundGeneration;
       return this;
     }
-    
+
     public Builder autoGenerateStatistics(boolean autoGenerateStatistics) {
       this.autoGenerateStatistics = autoGenerateStatistics;
       return this;
     }
 
     public StatisticsConfig build() {
-      return new StatisticsConfig(hllEnabled, hllPrecision, hllThreshold, maxCacheAge, 
+      return new StatisticsConfig(hllEnabled, hllPrecision, hllThreshold, maxCacheAge,
                                    backgroundGeneration, autoGenerateStatistics);
     }
   }
 
-  @Override
-  public String toString() {
-    return String.format("StatisticsConfig{hllEnabled=%s, hllPrecision=%d, hllThreshold=%d, " +
-        "maxCacheAge=%d, backgroundGeneration=%s, autoGenerateStatistics=%s}",
-        hllEnabled, hllPrecision, hllThreshold, maxCacheAge, backgroundGeneration, autoGenerateStatistics);
+  @Override public String toString() {
+    return String.format("StatisticsConfig{hllEnabled=%s, hllPrecision=%d, hllThreshold=%d, "
+        + "maxCacheAge=%d, backgroundGeneration=%s, autoGenerateStatistics=%s}",
+        hllEnabled, hllPrecision, hllThreshold, maxCacheAge, backgroundGeneration,
+        autoGenerateStatistics);
   }
 }
