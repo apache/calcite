@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.adapter.file.statistics.HLLSketchCache;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -32,7 +31,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
-import java.io.File;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -53,7 +51,6 @@ import java.util.stream.Stream;
 
 import static org.apache.calcite.adapter.file.FileAdapterTests.sql;
 
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
@@ -660,7 +657,7 @@ public class FileAdapterTest {
     String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     org.junit.jupiter.api.Assumptions.assumeFalse(engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr)),
         "Skipping PARQUET-specific test for " + engineStr + " engine");
-        
+
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-parquet"));
     info.put("executionEngine", "parquet");
@@ -707,13 +704,13 @@ public class FileAdapterTest {
       info.put("model", FileAdapterTests.jsonPath("smart"));
       info.put("lex", "ORACLE");
       info.put("unquotedCasing", "TO_LOWER");
-      
+
       Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
       DatabaseMetaData metaData = connection.getMetaData();
-      
+
       System.out.println("=== DEBUG: Table Discovery for testBoolean ===");
       System.out.println("Engine: " + System.getProperty("CALCITE_FILE_ENGINE_TYPE"));
-      
+
       // List all schemas
       System.out.println("Schemas:");
       try (ResultSet schemas = metaData.getSchemas()) {
@@ -722,7 +719,7 @@ public class FileAdapterTest {
           System.out.println("  - " + schemaName);
         }
       }
-      
+
       // List all tables
       System.out.println("All tables:");
       try (ResultSet tables = metaData.getTables(null, null, null, null)) {
@@ -733,15 +730,15 @@ public class FileAdapterTest {
           System.out.println("  - " + schema + "." + table + " (" + type + ")");
         }
       }
-      
+
       connection.close();
       System.out.println("=== End Debug Info ===");
-      
+
     } catch (Exception e) {
       System.out.println("Debug failed: " + e.getMessage());
       e.printStackTrace();
     }
-    
+
     sql("smart", "select \"empno\", \"slacker\" from \"SALES\".emps where \"slacker\"")
         .returns("empno=100; slacker=true").ok();
   }
@@ -888,7 +885,7 @@ public class FileAdapterTest {
       res.next();
       // DuckDB returns JAVA_OBJECT (2000) for timestamps
       int timestampType = res.getInt("DATA_TYPE");
-      assertThat("JOINTIMES column should be TIMESTAMP type", 
+      assertThat("JOINTIMES column should be TIMESTAMP type",
           timestampType == Types.TIMESTAMP || timestampType == 2000, is(true));
 
       Statement statement = connection.createStatement();
@@ -937,15 +934,15 @@ public class FileAdapterTest {
       // timestamp - TIMESTAMP WITHOUT TIME ZONE (wall clock time)
       assertThat("Result for JOINTIMES should be java.sql.Timestamp", resultSet.getTimestamp(3).getClass(), is(Timestamp.class));
       Timestamp actual = resultSet.getTimestamp(3);
-      
+
       // The CSV has "1996-08-02 00:01:02" which is wall clock time (no timezone)
       // For TIMESTAMP WITHOUT TIME ZONE, we expect the wall clock time to be preserved
       // Extract date/time components directly from the Timestamp
-      
+
       // Using Calendar to extract components in the default timezone
       java.util.Calendar cal = java.util.Calendar.getInstance();
       cal.setTimeInMillis(actual.getTime());
-      
+
       assertThat("Timestamp year should be 1996", cal.get(java.util.Calendar.YEAR), is(1996));
       assertThat("Timestamp month should be 8", cal.get(java.util.Calendar.MONTH) + 1, is(8)); // Calendar months are 0-based
       assertThat("Timestamp day should be 2", cal.get(java.util.Calendar.DAY_OF_MONTH), is(2));
@@ -973,7 +970,7 @@ public class FileAdapterTest {
         ++n;
         final int empId = resultSet.getInt(1);
         final Date dateVal = resultSet.getDate(2);
-        
+
         // Handle TIME column - DuckDB may return different object types
         Time timeVal;
         Object timeObj = resultSet.getObject(3);
@@ -985,7 +982,7 @@ public class FileAdapterTest {
         } else {
           timeVal = null;
         }
-        
+
         // Handle TIMESTAMP column - DuckDB may return different object types
         Timestamp timestampVal;
         Object tsObj = resultSet.getObject(4);
@@ -1040,7 +1037,7 @@ public class FileAdapterTest {
           if (timestampVal != null) {
             java.util.Calendar cal140 = java.util.Calendar.getInstance();
             cal140.setTimeInMillis(timestampVal.getTime());
-            
+
             assertThat("Timestamp year for empno=140", cal140.get(java.util.Calendar.YEAR), is(2015));
             assertThat("Timestamp month for empno=140", cal140.get(java.util.Calendar.MONTH) + 1, is(12));
             assertThat("Timestamp day for empno=140", cal140.get(java.util.Calendar.DAY_OF_MONTH), is(30));
@@ -1069,7 +1066,7 @@ public class FileAdapterTest {
           if (timestampVal != null) {
             java.util.Calendar cal150 = java.util.Calendar.getInstance();
             cal150.setTimeInMillis(timestampVal.getTime());
-            
+
             assertThat("Timestamp year for empno=150", cal150.get(java.util.Calendar.YEAR), is(2015));
             assertThat("Timestamp month for empno=150", cal150.get(java.util.Calendar.MONTH) + 1, is(12));
             assertThat("Timestamp day for empno=150", cal150.get(java.util.Calendar.DAY_OF_MONTH), is(30));
@@ -1111,7 +1108,7 @@ public class FileAdapterTest {
       // Extract date/time components directly from the Timestamp
       java.util.Calendar cal = java.util.Calendar.getInstance();
       cal.setTimeInMillis(timestamp.getTime());
-      
+
       assertThat("Timestamp year in GROUP BY", cal.get(java.util.Calendar.YEAR), is(1996));
       assertThat("Timestamp month in GROUP BY", cal.get(java.util.Calendar.MONTH) + 1, is(8));
       assertThat("Timestamp day in GROUP BY", cal.get(java.util.Calendar.DAY_OF_MONTH), is(2));
@@ -1336,16 +1333,15 @@ public class FileAdapterTest {
    * Simple test to query a CSV file using LINQ4J engine with FileSchemaFactory.
    * The executionEngine can be specified per-schema in the operand, or via environment/system property.
    */
-  @Test
-  @Tag("unit")
+  @Test @Tag("unit")
   void testSimpleCsvQueryWithLinq4j() throws SQLException {
     // Get the absolute path to the test resources sales directory
     // Use the same pattern as other tests - get from classpath/resource path
     String salesDir = FileAdapterTests.resourcePath("sales");
-    
+
     // Create a temporary directory for baseDirectory
     String tempDir = System.getProperty("java.io.tmpdir") + "/calcite-test-" + System.currentTimeMillis();
-    
+
     // Create a model with LINQ4J engine specified in the schema operand
     // With inline models, sourceDirectory must be explicitly specified
     String model = "{\n"
@@ -1376,7 +1372,7 @@ public class FileAdapterTest {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
-      // Query the DEPTS CSV file  
+      // Query the DEPTS CSV file
       String sql = "select deptno, name from \"sales\".\"depts\" order by deptno";
 
       try (ResultSet rs = statement.executeQuery(sql)) {

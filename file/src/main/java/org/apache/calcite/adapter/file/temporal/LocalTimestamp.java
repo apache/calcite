@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter;
  *
  * For TIMESTAMP WITHOUT TIME ZONE, values are stored and interpreted as UTC to ensure
  * consistent behavior across different execution engines (linq4j, parquet, duckdb).
- * 
+ *
  * When accessed via JDBC's getTimestamp(), the driver applies timezone conversion.
  * To compensate, we adjust the stored value so that after JDBC's conversion,
  * the original UTC value is preserved.
@@ -61,7 +61,7 @@ public class LocalTimestamp extends Timestamp {
     LocalDateTime utcDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
     return FORMATTER.format(utcDateTime);
   }
-  
+
   /**
    * Get the original UTC time value.
    */

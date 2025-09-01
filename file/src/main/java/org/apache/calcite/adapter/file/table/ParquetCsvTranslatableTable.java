@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
-import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.file.execution.linq4j.ParquetEnumerator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -29,10 +30,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
-
-import org.apache.calcite.adapter.file.execution.linq4j.ParquetEnumerator;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

@@ -51,7 +51,7 @@ public class JsonScannableTable extends JsonTable
   public JsonScannableTable(Source source, Map<String, Object> options) {
     super(source, options);
   }
-  
+
   /**
    * Creates a JsonScannableTable with options and column casing.
    */

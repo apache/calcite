@@ -41,35 +41,35 @@ public class IcebergRestCatalog {
 
     Map<String, String> catalogProperties = new HashMap<>();
     catalogProperties.put("uri", uri);
-    
+
     // Optional authentication
     String credential = (String) config.get("credential");
     if (credential != null) {
       catalogProperties.put("credential", credential);
     }
-    
+
     String token = (String) config.get("token");
     if (token != null) {
       catalogProperties.put("token", token);
     }
-    
+
     // Optional warehouse configuration
     String warehouse = (String) config.get("warehouse");
     if (warehouse != null) {
       catalogProperties.put("warehouse", warehouse);
     }
-    
+
     // Optional OAuth2 configuration
     String oauth2ServerUri = (String) config.get("oauth2-server-uri");
     if (oauth2ServerUri != null) {
       catalogProperties.put("oauth2-server-uri", oauth2ServerUri);
     }
-    
+
     String clientId = (String) config.get("client-id");
     if (clientId != null) {
       catalogProperties.put("client-id", clientId);
     }
-    
+
     String clientSecret = (String) config.get("client-secret");
     if (clientSecret != null) {
       catalogProperties.put("client-secret", clientSecret);
@@ -78,7 +78,7 @@ public class IcebergRestCatalog {
     // Create and initialize the REST catalog
     RESTCatalog catalog = new RESTCatalog();
     catalog.initialize("rest-catalog", catalogProperties);
-    
+
     return catalog;
   }
 
@@ -92,12 +92,12 @@ public class IcebergRestCatalog {
     if (config == null) {
       throw new IllegalArgumentException("REST catalog configuration cannot be null");
     }
-    
+
     String uri = (String) config.get("uri");
     if (uri == null || uri.trim().isEmpty()) {
       throw new IllegalArgumentException("REST catalog requires 'uri' parameter");
     }
-    
+
     // Validate URI format
     try {
       java.net.URI.create(uri);

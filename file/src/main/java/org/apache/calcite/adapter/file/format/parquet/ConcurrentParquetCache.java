@@ -70,7 +70,7 @@ public class ConcurrentParquetCache {
       String schemaName, String casing, ConversionCallback callback) throws Exception {
 
     // Include schema name in lock key for proper isolation
-    String lockKey = (schemaName != null ? schemaName + ":" : "") 
+    String lockKey = (schemaName != null ? schemaName + ":" : "")
         + sourceFile.getAbsolutePath();
 
     // Try Redis distributed lock first
@@ -133,7 +133,7 @@ public class ConcurrentParquetCache {
       Files.move(tempFile.toPath(), parquetFile.toPath(),
           java.nio.file.StandardCopyOption.REPLACE_EXISTING,
           java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-      
+
       // Don't set cache file timestamp to match source file
       // This allows cache invalidation to work correctly by comparing timestamps
 

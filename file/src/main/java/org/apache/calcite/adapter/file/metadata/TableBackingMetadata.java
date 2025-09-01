@@ -30,39 +30,39 @@ public class TableBackingMetadata {
   private File originalSource;
   private File generatedSource;
   private File cached;
-  
+
   public TableBackingMetadata(String tableName) {
     this.tableName = tableName;
   }
-  
+
   public String getTableName() {
     return tableName;
   }
-  
+
   public File getOriginalSource() {
     return originalSource;
   }
-  
+
   public void setOriginalSource(File originalSource) {
     this.originalSource = originalSource;
   }
-  
+
   public File getGeneratedSource() {
     return generatedSource;
   }
-  
+
   public void setGeneratedSource(File generatedSource) {
     this.generatedSource = generatedSource;
   }
-  
+
   public File getCached() {
     return cached;
   }
-  
+
   public void setCached(File cached) {
     this.cached = cached;
   }
-  
+
   /**
    * Get the appropriate backing file based on engine requirements.
    * For DuckDB/PARQUET engines, returns cached file if available.
@@ -77,9 +77,8 @@ public class TableBackingMetadata {
     }
     return originalSource;
   }
-  
-  @Override
-  public String toString() {
+
+  @Override public String toString() {
     return "TableBackingMetadata{" +
         "tableName='" + tableName + '\'' +
         ", originalSource=" + originalSource +

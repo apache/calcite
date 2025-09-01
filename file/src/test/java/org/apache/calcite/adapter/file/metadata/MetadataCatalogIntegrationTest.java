@@ -16,14 +16,16 @@
  */
 package org.apache.calcite.adapter.file.metadata;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -32,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 
@@ -44,13 +47,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("unit")
 public class MetadataCatalogIntegrationTest {
 
-  @TempDir
-  Path tempDir;
-
+  private File tempDir;
   private String modelPath;
 
   @BeforeEach
   void setUp() throws Exception {
+    // Create temp directory manually
+    tempDir = Files.createTempDirectory("metadata-test-").toFile();
+    
     // Create test data files
     createTestFile("sales.csv",
         "order_id:int,customer:string,amount:double\n"
@@ -70,8 +74,8 @@ public class MetadataCatalogIntegrationTest {
   +
         "102,Gadget,29.99,false\n");
 
-    // Create model with dynamic discovery
-    File modelFile = new File(tempDir.toFile(), "model.json");
+    // Create model with ephemeralCache enabled to avoid lock issues
+    File modelFile = new File(tempDir, "model.json");
     modelPath = modelFile.getAbsolutePath();
 
     try (FileWriter writer = new FileWriter(modelFile, StandardCharsets.UTF_8)) {
@@ -83,10 +87,38 @@ public class MetadataCatalogIntegrationTest {
       writer.write("    \"type\": \"custom\",\n");
       writer.write("    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
       writer.write("    \"operand\": {\n");
-      writer.write("      \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\"\n");
+      writer.write("      \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\",\n");
+      writer.write("      \"ephemeralCache\": true\n");
       writer.write("    }\n");
       writer.write("  }]\n");
       writer.write("}\n");
+    }
+  }
+  
+  @AfterEach
+  void tearDown() {
+    // Best effort cleanup - don't fail the test if cleanup fails
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteRecursively(tempDir.toPath());
+      } catch (Exception e) {
+        // Ignore cleanup failures - DuckDB may still have locks
+        System.err.println("Warning: Could not clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+  
+  private void deleteRecursively(Path path) throws IOException {
+    if (Files.exists(path)) {
+      Files.walk(path)
+          .sorted(Comparator.reverseOrder())
+          .forEach(p -> {
+            try {
+              Files.deleteIfExists(p);
+            } catch (IOException e) {
+              // Ignore individual file deletion failures
+            }
+          });
     }
   }
 
@@ -287,7 +319,7 @@ public class MetadataCatalogIntegrationTest {
   }
 
   private void createTestFile(String fileName, String content) throws Exception {
-    File file = new File(tempDir.toFile(), fileName);
+    File file = new File(tempDir, fileName);
     try (FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8)) {
       writer.write(content);
     }

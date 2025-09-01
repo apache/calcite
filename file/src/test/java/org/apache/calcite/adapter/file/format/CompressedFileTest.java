@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -157,7 +158,7 @@ public class CompressedFileTest {
     String engineStr = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     org.junit.jupiter.api.Assumptions.assumeFalse(engineStr != null && ("LINQ4J".equalsIgnoreCase(engineStr) || "ARROW".equalsIgnoreCase(engineStr)),
         "Skipping PARQUET-specific test for " + engineStr + " engine");
-    
+
     File gzFile = new File(tempDir, "data.csv.gz");
     createGzippedCsv(gzFile);
 

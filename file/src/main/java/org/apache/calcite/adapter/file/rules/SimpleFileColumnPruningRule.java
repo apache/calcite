@@ -25,7 +25,6 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -38,43 +37,42 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Simple working column pruning rule that identifies unused columns and 
+ * Simple working column pruning rule that identifies unused columns and
  * estimates I/O savings from not reading them.
  */
 @Value.Enclosing
 public class SimpleFileColumnPruningRule extends RelRule<SimpleFileColumnPruningRule.Config> {
 
-  public static final SimpleFileColumnPruningRule INSTANCE = 
+  public static final SimpleFileColumnPruningRule INSTANCE =
       Config.DEFAULT.toRule();
 
   private SimpleFileColumnPruningRule(Config config) {
     super(config);
   }
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final LogicalProject project = call.rel(0);
     final TableScan scan = call.rel(1);
-    
+
     // Check if statistics-based column pruning is enabled
     if (!Boolean.getBoolean("calcite.file.statistics.column.pruning.enabled")) {
       return;
     }
-    
+
     // Only optimize Parquet table scans
     if (!(scan.getTable().unwrap(ParquetTranslatableTable.class) instanceof ParquetTranslatableTable)) {
       return;
     }
-    
+
     // Get table statistics
     TableStatistics stats = getTableStatistics(scan);
     if (stats == null) {
       return;
     }
-    
+
     // Analyze column usage
     ColumnPruningAnalysis analysis = analyzeColumnUsage(project, scan, stats);
-    
+
     if (analysis.canOptimize) {
       // Create optimized projection
       RelNode optimizedNode = createOptimizedProjection(project, scan, analysis, call.builder());
@@ -83,7 +81,7 @@ public class SimpleFileColumnPruningRule extends RelRule<SimpleFileColumnPruning
       }
     }
   }
-  
+
   private TableStatistics getTableStatistics(TableScan scan) {
     ParquetTranslatableTable parquetTable = scan.getTable().unwrap(ParquetTranslatableTable.class);
     if (parquetTable instanceof StatisticsProvider) {
@@ -92,33 +90,33 @@ public class SimpleFileColumnPruningRule extends RelRule<SimpleFileColumnPruning
     }
     return null;
   }
-  
+
   private ColumnPruningAnalysis analyzeColumnUsage(LogicalProject project, TableScan scan, TableStatistics stats) {
     ColumnPruningAnalysis analysis = new ColumnPruningAnalysis();
-    
+
     // Find which columns are referenced in the projection
     Set<Integer> usedColumnIndices = new HashSet<>();
     List<RexNode> projects = project.getProjects();
-    
+
     for (RexNode expr : projects) {
       collectColumnReferences(expr, usedColumnIndices);
     }
-    
+
     // Analyze column statistics for I/O savings
     Map<String, ColumnStatistics> allColumns = stats.getColumnStatistics();
     List<String> columnNames = scan.getRowType().getFieldNames();
-    
+
     long totalDataSize = 0;
     long usedDataSize = 0;
-    
+
     for (int i = 0; i < columnNames.size(); i++) {
       String columnName = columnNames.get(i);
       ColumnStatistics colStats = allColumns.get(columnName);
-      
+
       if (colStats != null) {
         long columnSize = estimateColumnSize(colStats);
         totalDataSize += columnSize;
-        
+
         if (usedColumnIndices.contains(i)) {
           analysis.usedColumns.add(columnName);
           usedDataSize += columnSize;
@@ -127,17 +125,17 @@ public class SimpleFileColumnPruningRule extends RelRule<SimpleFileColumnPruning
         }
       }
     }
-    
+
     // Calculate potential I/O savings
     if (totalDataSize > 0 && !analysis.unusedColumns.isEmpty()) {
       analysis.ioSavingsPercent = 100.0 * (totalDataSize - usedDataSize) / totalDataSize;
       analysis.canOptimize = analysis.ioSavingsPercent > 15.0; // Only optimize if >15% savings
       analysis.estimatedSavingsBytes = totalDataSize - usedDataSize;
     }
-    
+
     return analysis;
   }
-  
+
   private void collectColumnReferences(RexNode expr, Set<Integer> columnIndices) {
     if (expr instanceof RexInputRef) {
       columnIndices.add(((RexInputRef) expr).getIndex());
@@ -148,35 +146,35 @@ public class SimpleFileColumnPruningRule extends RelRule<SimpleFileColumnPruning
       }
     }
   }
-  
+
   private long estimateColumnSize(ColumnStatistics colStats) {
     long distinctCount = colStats.getDistinctCount();
     long totalCount = colStats.getTotalCount();
-    
+
     // Base estimate: 8 bytes per value on average
     long baseSize = totalCount * 8;
-    
+
     // Adjust for compression potential based on cardinality
     double compressionRatio = Math.min(1.0, (double) distinctCount / totalCount * 3);
-    
+
     return (long) (baseSize * compressionRatio);
   }
-  
-  private RelNode createOptimizedProjection(LogicalProject project, TableScan scan, 
+
+  private RelNode createOptimizedProjection(LogicalProject project, TableScan scan,
                                            ColumnPruningAnalysis analysis, RelBuilder builder) {
-    
+
     // In a real implementation, this would create a new scan that only reads the used columns
     // For demonstration, we'll create a modified scan with better cardinality estimates
-    
+
     // Create a new project that explicitly shows the column pruning optimization
     builder.push(scan);
-    
+
     // Add a comment to show the optimization was applied
     builder.project(project.getProjects(), project.getRowType().getFieldNames());
-    
+
     return builder.build();
   }
-  
+
   /** Column pruning analysis result */
   private static class ColumnPruningAnalysis {
     boolean canOptimize = false;

@@ -18,9 +18,10 @@ package org.apache.calcite.adapter.file.duckdb;
 
 import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.test.CalciteAssert;
+
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.BeforeAll;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -85,8 +86,7 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
     assertTrue(file.length() > 0, "Test Excel file should not be empty");
   }
 
-  @Test
-  public void testDuckDBWithExcelFile() throws Exception {
+  @Test public void testDuckDBWithExcelFile() throws Exception {
     // Skip test if not using DuckDB engine
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (!"DUCKDB".equals(engineType)) {
@@ -159,8 +159,7 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testDuckDBWithMultipleSheets() throws Exception {
+  @Test public void testDuckDBWithMultipleSheets() throws Exception {
     // Skip test if not using DuckDB engine
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (!"DUCKDB".equals(engineType)) {

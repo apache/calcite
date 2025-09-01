@@ -95,11 +95,11 @@ public class ExcelFileTest {
     if (engineType != null && !engineType.isEmpty()) {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
-    
+
     // modelBaseDirectory is the parent directory where .aperio will be created
     // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        engineConfig, false, null, null, null, null,
+    FileSchema schema =
+        new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null, engineConfig, false, null, null, null, null,
         "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     // Get table map which should trigger Excel conversion
@@ -140,11 +140,11 @@ public class ExcelFileTest {
     if (engineType != null && !engineType.isEmpty()) {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
-    
+
     // modelBaseDirectory is the parent directory where .aperio will be created
     // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        engineConfig, true, null, null, null, null,
+    FileSchema schema =
+        new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null, engineConfig, true, null, null, null, null,
         "SMART_CASING", "SMART_CASING", null, null, null, null, true);
 
     Map<String, Table> tables = schema.getTableMap();
@@ -166,11 +166,11 @@ public class ExcelFileTest {
     if (engineType != null && !engineType.isEmpty()) {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
-    
+
     // modelBaseDirectory is the parent directory where .aperio will be created
     // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        engineConfig, false, null, null, null, null,
+    FileSchema schema =
+        new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null, engineConfig, false, null, null, null, null,
         "SMART_CASING", "SMART_CASING", null, null, null, null, true);
     Map<String, Table> tableMap = schema.getTableMap();
 

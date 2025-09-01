@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.file.format.json;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -39,7 +38,7 @@ public class SharedJsonData {
   private final JsonNode rootNode;
   private final Map<String, JsonNode> pathCache = new ConcurrentHashMap<>();
   private final ObjectMapper mapper = new ObjectMapper();
-  
+
   /**
    * Creates a SharedJsonData container with the parsed JSON root node.
    *
@@ -48,7 +47,7 @@ public class SharedJsonData {
   public SharedJsonData(JsonNode rootNode) {
     this.rootNode = rootNode;
   }
-  
+
   /**
    * Get data at a specific JSONPath, with caching.
    * Supports path expressions like:
@@ -63,25 +62,25 @@ public class SharedJsonData {
     if (jsonPath == null || jsonPath.equals("$")) {
       return rootNode;
     }
-    
+
     return pathCache.computeIfAbsent(jsonPath, path -> {
       try {
         // Check for wildcard patterns first
         if (path.contains("[*]")) {
           return handleWildcardPath(path);
         }
-        
+
         // Convert JSONPath to JsonPointer format
         String pointerPath = convertJsonPathToPointer(path);
-        
+
         if (pointerPath.isEmpty() || pointerPath.equals("/")) {
           return rootNode;
         }
-        
+
         // Use Jackson's JsonPointer for efficient navigation
         JsonPointer pointer = JsonPointer.compile(pointerPath);
         JsonNode result = rootNode.at(pointer);
-        
+
         // at() returns MissingNode if path doesn't exist
         return result.isMissingNode() ? null : result;
       } catch (Exception e) {
@@ -90,7 +89,7 @@ public class SharedJsonData {
       }
     });
   }
-  
+
   /**
    * Convert JSONPath notation to JsonPointer notation.
    * $.data.users[0] -> /data/users/0
@@ -102,30 +101,30 @@ public class SharedJsonData {
   private String convertJsonPathToPointer(String jsonPath) {
     // Remove $ prefix
     String path = jsonPath.startsWith("$") ? jsonPath.substring(1) : jsonPath;
-    
+
     // Remove leading dot
     if (path.startsWith(".")) {
       path = path.substring(1);
     }
-    
+
     if (path.isEmpty()) {
       return "";
     }
-    
+
     // Convert dots to slashes
     path = path.replace(".", "/");
-    
+
     // Convert array notation [n] to /n
     path = path.replaceAll("\\[(\\d+)\\]", "/$1");
-    
+
     // Ensure path starts with /
     if (!path.startsWith("/")) {
       path = "/" + path;
     }
-    
+
     return path;
   }
-  
+
   /**
    * Handle wildcard paths like $.users[*].name
    * Returns an array containing all matching values.
@@ -139,25 +138,25 @@ public class SharedJsonData {
     if (wildcardIndex == -1) {
       return null;
     }
-    
+
     String basePath = jsonPath.substring(0, wildcardIndex);
     String remainingPath = jsonPath.substring(wildcardIndex + 3); // Skip [*]
-    
+
     // Get the array node
     JsonNode arrayNode = getDataAtPath(basePath);
     if (arrayNode == null || !arrayNode.isArray()) {
       return null;
     }
-    
+
     // If there's no remaining path, return all array elements
     if (remainingPath.isEmpty()) {
       return arrayNode;
     }
-    
+
     // Extract values from each array element
     ObjectMapper mapper = new ObjectMapper();
     List<JsonNode> results = new ArrayList<>();
-    
+
     for (JsonNode element : arrayNode) {
       if (remainingPath.startsWith(".")) {
         // Navigate within each element
@@ -170,11 +169,11 @@ public class SharedJsonData {
         }
       }
     }
-    
+
     // Return results as array node
     return results.isEmpty() ? null : mapper.valueToTree(results);
   }
-  
+
   /**
    * Get row iterator for data at a specific path.
    *
@@ -187,11 +186,11 @@ public class SharedJsonData {
     if (pathData == null) {
       return new ArrayList<Object[]>().iterator();
     }
-    
+
     return new JsonPathIterator(pathData, rowType);
   }
-  
-  
+
+
   /**
    * Get the root JSON node.
    *
@@ -200,7 +199,7 @@ public class SharedJsonData {
   public JsonNode getRootNode() {
     return rootNode;
   }
-  
+
   /**
    * Check if a path exists in the JSON structure.
    *
@@ -210,7 +209,7 @@ public class SharedJsonData {
   public boolean pathExists(String jsonPath) {
     return getDataAtPath(jsonPath) != null;
   }
-  
+
   /**
    * Get the size of array/object at a specific path.
    *
@@ -222,16 +221,16 @@ public class SharedJsonData {
     if (pathData == null) {
       return 0;
     }
-    
+
     if (pathData.isArray()) {
       return pathData.size();
     } else if (pathData.isObject()) {
       return pathData.size();
     }
-    
+
     return 0;
   }
-  
+
   /**
    * Iterator for converting JsonNode data to Object[] rows.
    */
@@ -239,11 +238,11 @@ public class SharedJsonData {
     private final Iterator<JsonNode> nodeIterator;
     private final RelDataType rowType;
     private final int fieldCount;
-    
+
     JsonPathIterator(JsonNode data, RelDataType rowType) {
       this.rowType = rowType;
       this.fieldCount = rowType.getFieldCount();
-      
+
       if (data.isArray()) {
         this.nodeIterator = data.iterator();
       } else {
@@ -253,29 +252,27 @@ public class SharedJsonData {
         this.nodeIterator = singleNode.iterator();
       }
     }
-    
-    @Override
-    public boolean hasNext() {
+
+    @Override public boolean hasNext() {
       return nodeIterator.hasNext();
     }
-    
-    @Override
-    public Object[] next() {
+
+    @Override public Object[] next() {
       JsonNode node = nodeIterator.next();
       Object[] row = new Object[fieldCount];
-      
+
       for (int i = 0; i < fieldCount; i++) {
         String fieldName = rowType.getFieldList().get(i).getName();
         JsonNode fieldNode = node.get(fieldName);
-        
+
         if (fieldNode != null) {
           row[i] = convertJsonNode(fieldNode);
         }
       }
-      
+
       return row;
     }
-    
+
     private Object convertJsonNode(JsonNode node) {
       if (node.isNull()) {
         return null;

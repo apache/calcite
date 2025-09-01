@@ -65,11 +65,11 @@ public class SharePointRestTokenManager extends SharePointTokenManager {
     // Extract the SharePoint domain from the site URL
     URI uri = URI.create(getSiteUrl());
     String sharePointDomain = uri.getHost();
-    
+
     // Use SharePoint-specific scope for REST API
     // Format: https://{sharepoint-domain}/.default
     String scope = String.format(Locale.ROOT, "https://%s/.default", sharePointDomain);
-    
+
     LOGGER.debug("SharePoint REST API Token Request:");
     LOGGER.debug("  Token URL: {}", tokenUrl);
     LOGGER.debug("  Scope: {}", scope);

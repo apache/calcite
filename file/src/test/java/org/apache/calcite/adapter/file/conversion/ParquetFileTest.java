@@ -140,7 +140,7 @@ public class ParquetFileTest extends BaseFileTest {
     applyEngineDefaults(connectionProps);
 
     System.out.println("\n1. Creating connection with model containing Parquet file");
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps)) {
 
       try (Statement stmt = connection.createStatement()) {
@@ -242,7 +242,7 @@ public class ParquetFileTest extends BaseFileTest {
     applyEngineDefaults(connectionProps);
 
     System.out.println("\n1. Creating connection with explicit Parquet table mapping");
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", connectionProps)) {
 
       try (Statement stmt = connection.createStatement()) {

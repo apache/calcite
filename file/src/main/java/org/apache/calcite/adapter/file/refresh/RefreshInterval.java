@@ -52,7 +52,7 @@ public class RefreshInterval {
     }
 
     String trimmed = intervalStr.trim();
-    
+
     // First try ISO 8601 format (PT1S, PT5M, PT1H, etc.)
     if (trimmed.startsWith("PT") || trimmed.startsWith("P")) {
       try {

@@ -16,32 +16,22 @@
  */
 package org.apache.calcite.adapter.file.format.parquet;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.table.CsvTable;
+import org.apache.calcite.adapter.file.util.NullEquivalents;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.Source;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.impl.AbstractSchema;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import org.apache.calcite.adapter.file.util.NullEquivalents;
 
 /**
  * Utility class for converting various file formats to Parquet.
@@ -116,7 +106,7 @@ public class ParquetConversionUtil {
    */
   public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled, String casing) {
     String baseName = sourceFile.getName();
-    
+
     // Remove compression extension if present
     if (baseName.endsWith(".gz") || baseName.endsWith(".bz2") || baseName.endsWith(".xz")) {
       int lastDot = baseName.lastIndexOf('.');
@@ -124,18 +114,18 @@ public class ParquetConversionUtil {
         baseName = baseName.substring(0, lastDot);
       }
     }
-    
+
     // Remove file type extension to get the table name
     // This matches how FileSchema determines table names
-    if (baseName.endsWith(".csv") || baseName.endsWith(".tsv") || 
-        baseName.endsWith(".json") || baseName.endsWith(".xml") || 
+    if (baseName.endsWith(".csv") || baseName.endsWith(".tsv") ||
+        baseName.endsWith(".json") || baseName.endsWith(".xml") ||
         baseName.endsWith(".html") || baseName.endsWith(".htm")) {
       int lastDot = baseName.lastIndexOf('.');
       if (lastDot > 0) {
         baseName = baseName.substring(0, lastDot);
       }
     }
-    
+
     // Don't change the name - preserve it exactly as is
     // Only sanitize for SQL identifier safety
     baseName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(baseName);
@@ -203,7 +193,7 @@ public class ParquetConversionUtil {
       CsvTypeInferrer.TypeInferenceConfig config = ((CsvTable) table).getTypeInferenceConfig();
       if (config != null) {
         blankStringsAsNull = config.isBlankStringsAsNull();
-        LOGGER.info("ParquetConversionUtil: CsvTable with config, blankStringsAsNull={}, enabled={}", 
+        LOGGER.info("ParquetConversionUtil: CsvTable with config, blankStringsAsNull={}, enabled={}",
             blankStringsAsNull, config.isEnabled());
       } else {
         // Default to true when type inference is not configured (disabled)
@@ -289,8 +279,8 @@ public class ParquetConversionUtil {
       LOGGER.debug("Successfully created MessageType schema with {} fields", parquetFields.size());
       LOGGER.debug("=== Parquet Schema Details ===");
       for (org.apache.parquet.schema.Type field : schema.getFields()) {
-        LOGGER.debug("  Field: {} | Type: {} | Repetition: {} | LogicalType: {}", 
-                    field.getName(), 
+        LOGGER.debug("  Field: {} | Type: {} | Repetition: {} | LogicalType: {}",
+                    field.getName(),
                     field.asPrimitiveType().getPrimitiveTypeName(),
                     field.getRepetition(),
                     field.getLogicalTypeAnnotation());
@@ -443,7 +433,8 @@ public class ParquetConversionUtil {
         // TIME is just time of day, no timezone adjustment needed
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timeType(false,
+            .as(
+                org.apache.parquet.schema.LogicalTypeAnnotation.timeType(false,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
@@ -454,7 +445,8 @@ public class ParquetConversionUtil {
         LOGGER.debug("Creating TIMESTAMP field '{}' with isAdjustedToUTC=false (timezone-naive)", fieldName);
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false,
+            .as(
+                org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
@@ -465,7 +457,8 @@ public class ParquetConversionUtil {
         LOGGER.debug("Creating TIMESTAMP_WITH_LOCAL_TIME_ZONE field '{}' with isAdjustedToUTC=true (timezone-aware)", fieldName);
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
+            .as(
+                org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
@@ -560,9 +553,9 @@ public class ParquetConversionUtil {
   private static void addValueToParquetGroup(org.apache.parquet.example.data.Group group,
       String fieldName, Object value, org.apache.calcite.sql.type.SqlTypeName sqlType, boolean blankStringsAsNull) {
 
-    LOGGER.info("[addValueToParquetGroup] Called with field={}, value={}, sqlType={}, blankStringsAsNull={}", 
+    LOGGER.info("[addValueToParquetGroup] Called with field={}, value={}, sqlType={}, blankStringsAsNull={}",
                 fieldName, (value == null ? "null" : "'" + value + "'"), sqlType, blankStringsAsNull);
-    
+
     if (value == null) {
       // For null values, skip (Parquet handles null via absence)
       LOGGER.debug("[addValueToParquetGroup] Value is null, skipping field: {}", fieldName);
@@ -571,7 +564,7 @@ public class ParquetConversionUtil {
 
     // For VARCHAR/CHAR fields, empty strings are valid values, not nulls
     // Only check for null representations for non-string SQL types
-    if (value instanceof String && 
+    if (value instanceof String &&
         sqlType != org.apache.calcite.sql.type.SqlTypeName.VARCHAR &&
         sqlType != org.apache.calcite.sql.type.SqlTypeName.CHAR) {
       // For non-string types (numbers, dates), check if the string represents null
@@ -583,13 +576,13 @@ public class ParquetConversionUtil {
 
     // For VARCHAR/CHAR fields, always preserve empty strings regardless of blankStringsAsNull
     // The blankStringsAsNull setting only applies to non-string types
-    LOGGER.info("[addValueToParquetGroup] Checking if value is String: {}, sqlType: {}", 
+    LOGGER.info("[addValueToParquetGroup] Checking if value is String: {}, sqlType: {}",
                 value instanceof String, sqlType);
-    if (value instanceof String && 
+    if (value instanceof String &&
         (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
          sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR)) {
       String strValue = (String) value;
-      LOGGER.info("[addValueToParquetGroup] VARCHAR field '{}': value='{}', length={}, isEmpty={}", 
+      LOGGER.info("[addValueToParquetGroup] VARCHAR field '{}': value='{}', length={}, isEmpty={}",
                   fieldName, strValue, strValue.length(), strValue.isEmpty());
       if (strValue.isEmpty()) {
         // Always preserve empty strings for VARCHAR/CHAR fields
@@ -718,7 +711,8 @@ public class ParquetConversionUtil {
       case DECIMAL:
         if (value instanceof BigDecimal) {
           BigDecimal decimal = (BigDecimal) value;
-          group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
+          group.append(
+              fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
               decimal.unscaledValue().toByteArray()));
         } else {
           String strValue = value.toString();
@@ -728,7 +722,8 @@ public class ParquetConversionUtil {
           }
           try {
             BigDecimal decimal = new BigDecimal(strValue);
-            group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
+            group.append(
+                fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
                 decimal.unscaledValue().toByteArray()));
           } catch (NumberFormatException e) {
             LOGGER.error("Failed to parse decimal value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
@@ -807,17 +802,17 @@ public class ParquetConversionUtil {
           // The timestamp from CsvEnumerator has timezone adjustment applied
           java.sql.Timestamp ts = (java.sql.Timestamp) value;
           long adjustedMillis = ts.getTime();
-          
+
           // Get the timezone offset for this timestamp
           java.util.TimeZone tz = java.util.TimeZone.getDefault();
           long offset = tz.getOffset(adjustedMillis);
-          
+
           // Add the offset to get back to UTC (offset is negative for US timezones)
-          // For example, if the value is 838972862000 (04:01:02 EDT), 
+          // For example, if the value is 838972862000 (04:01:02 EDT),
           // we add the -4 hour offset (which subtracts 4 hours) to get 838958462000 (00:01:02 UTC)
           long utcMillis = adjustedMillis + offset;
-          
-          LOGGER.debug("TIMESTAMP storage: field={}, input value={}, adjusted millis={}, offset={}, storing UTC millis={}", 
+
+          LOGGER.debug("TIMESTAMP storage: field={}, input value={}, adjusted millis={}, offset={}, storing UTC millis={}",
                       fieldName, value, adjustedMillis, offset, utcMillis);
           group.add(fieldIndexTs, utcMillis);
         } else if (value instanceof java.time.LocalDateTime) {
@@ -866,7 +861,7 @@ public class ParquetConversionUtil {
           }
           // Use the same type converter as LINQ4J engine
           try {
-            org.apache.calcite.adapter.file.format.csv.CsvTypeConverter converter = 
+            org.apache.calcite.adapter.file.format.csv.CsvTypeConverter converter =
                 new org.apache.calcite.adapter.file.format.csv.CsvTypeConverter(null, null, true);
             Object converted = converter.convert(strValue, org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP);
             if (converted != null) {
@@ -903,13 +898,11 @@ public class ParquetConversionUtil {
       this.schemaName = schemaName;
     }
 
-    @Override
-    public org.apache.calcite.rel.type.RelDataType getRowType(org.apache.calcite.rel.type.RelDataTypeFactory typeFactory) {
+    @Override public org.apache.calcite.rel.type.RelDataType getRowType(org.apache.calcite.rel.type.RelDataTypeFactory typeFactory) {
       return translatableTable.getRowType(typeFactory);
     }
 
-    @Override
-    public org.apache.calcite.linq4j.Enumerable<Object[]> scan(org.apache.calcite.DataContext root) {
+    @Override public org.apache.calcite.linq4j.Enumerable<Object[]> scan(org.apache.calcite.DataContext root) {
       try {
         // Create a temporary Calcite connection to execute the translation
         java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:");
@@ -920,8 +913,7 @@ public class ParquetConversionUtil {
         // Create a temporary schema with just this table
         String tempTableName = "temp_table_" + System.currentTimeMillis();
         SchemaPlus tempSchema = rootSchema.add("TEMP_SCAN", new org.apache.calcite.schema.impl.AbstractSchema() {
-          @Override
-          protected java.util.Map<String, org.apache.calcite.schema.Table> getTableMap() {
+          @Override protected java.util.Map<String, org.apache.calcite.schema.Table> getTableMap() {
             return java.util.Collections.singletonMap(tempTableName, translatableTable);
           }
         });
@@ -941,14 +933,14 @@ public class ParquetConversionUtil {
               // Check field type to handle VARCHAR/CHAR specially
               org.apache.calcite.rel.type.RelDataTypeField field = rowType.getFieldList().get(i);
               org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
-              
+
               if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
                   sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) {
                 // For VARCHAR/CHAR, use getString to preserve empty strings
                 String strValue = rs.getString(i + 1);
                 // getString returns null for SQL NULL, but empty string for empty string
                 row[i] = strValue;
-                LOGGER.debug("TranslatableTableAdapter: Column {} ({}): value='{}' (null={})", 
+                LOGGER.debug("TranslatableTableAdapter: Column {} ({}): value='{}' (null={})",
                             i, field.getName(), strValue, (strValue == null));
               } else {
                 // For other types, use getObject

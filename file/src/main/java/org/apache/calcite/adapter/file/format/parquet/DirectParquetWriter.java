@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.format.parquet;
 
 import org.apache.calcite.adapter.file.converters.ConverterUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ParquetProperties;
@@ -29,6 +30,9 @@ import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -36,9 +40,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BOOLEAN;
@@ -56,7 +57,7 @@ import static org.apache.parquet.schema.Type.Repetition.REQUIRED;
  */
 public class DirectParquetWriter {
   private static final Logger LOGGER = LoggerFactory.getLogger(DirectParquetWriter.class);
-  
+
 
   private DirectParquetWriter() {
     // Utility class
@@ -82,10 +83,10 @@ public class DirectParquetWriter {
 
     // Configure Parquet writer
     Configuration conf = new Configuration();
-    
+
     // Enable vectorized reading for better performance
     conf.set("parquet.enable.vectorized.reader", "true");
-    
+
     GroupWriteSupport.setSchema(schema, conf);
 
     // Create writer
@@ -234,10 +235,10 @@ public class DirectParquetWriter {
           java.time.Instant instant = java.time.Instant.ofEpochMilli(date.getTime());
           java.time.LocalDate localDate = instant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
           int daysSinceEpoch = (int) localDate.toEpochDay();
-          
-          LOGGER.debug("DATE storage: column={}, date={}, daysSinceEpoch={}", 
+
+          LOGGER.debug("DATE storage: column={}, date={}, daysSinceEpoch={}",
                       columnName, date, daysSinceEpoch);
-          
+
           group.append(columnName, daysSinceEpoch);
         }
         break;
@@ -271,14 +272,14 @@ public class DirectParquetWriter {
           // The timestamp from CsvEnumerator is already the UTC representation
           // of the wall clock time that we need to store
           long utcMillis = timestamp.getTime();
-          
-          LOGGER.debug("TIMESTAMP storage: column={}, storing UTC value={}, as timestamp={}", 
+
+          LOGGER.debug("TIMESTAMP storage: column={}, storing UTC value={}, as timestamp={}",
                       columnName, utcMillis, new java.sql.Timestamp(utcMillis));
-          
+
           group.append(columnName, utcMillis);
         }
         break;
-        
+
       case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
         // For timezone-aware timestamps, use the standard getTimestamp
         java.sql.Timestamp timestampTz = rs.getTimestamp(index);

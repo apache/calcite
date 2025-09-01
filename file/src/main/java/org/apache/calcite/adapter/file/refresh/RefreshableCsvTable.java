@@ -17,16 +17,14 @@
 package org.apache.calcite.adapter.file.refresh;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.file.metadata.RemoteFileMetadata;
+import org.apache.calcite.adapter.file.table.CsvTable;
+import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.util.Source;
-
-import org.apache.calcite.adapter.file.refresh.RefreshableTable;
-import org.apache.calcite.adapter.file.metadata.RemoteFileMetadata;
-import org.apache.calcite.adapter.file.table.CsvTable;
-import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 

@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.statistics.HyperLogLogSketch;
 import org.apache.calcite.adapter.file.statistics.StatisticsCache;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -27,7 +26,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Source;
 
 import org.apache.parquet.column.page.PageReadStore;
@@ -45,8 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,25 +53,24 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class HLLAcceleratedTable extends AbstractTable implements ScannableTable {
   private static final Logger LOGGER = LoggerFactory.getLogger(HLLAcceleratedTable.class);
-  
+
   private final Source source;
   private final String tableName;
   private final RelDataType rowType;
   private final Map<String, HyperLogLogSketch> columnSketches = new ConcurrentHashMap<>();
   private final Map<String, Long> exactCounts = new ConcurrentHashMap<>();
   private boolean sketchesBuilt = false;
-  
+
   public HLLAcceleratedTable(Source source, String tableName, RelDataType rowType) {
     this.source = source;
     this.tableName = tableName;
     this.rowType = rowType;
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return rowType;
   }
-  
+
   /**
    * Build HLL sketches for all columns by scanning the data once.
    * This is called lazily on first access.
@@ -84,10 +79,10 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
     if (sketchesBuilt) {
       return;
     }
-    
+
     LOGGER.debug("Building HLL sketches for table: {}", tableName);
     long startTime = System.currentTimeMillis();
-    
+
     try {
       // Initialize sketches for each column
       List<String> columnNames = rowType.getFieldNames();
@@ -95,56 +90,56 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
         columnSketches.put(column, new HyperLogLogSketch(14)); // 14-bit precision
         exactCounts.put(column, 0L);
       }
-      
+
       // Scan the Parquet file and build sketches
       if (source.path().endsWith(".parquet")) {
         buildFromParquet();
       }
-      
+
       // Save sketches to cache
       saveSketchesToCache();
-      
+
       sketchesBuilt = true;
       long elapsed = System.currentTimeMillis() - startTime;
       LOGGER.debug("Built HLL sketches in {}ms", elapsed);
-      
+
       // Print sketch estimates
       for (Map.Entry<String, HyperLogLogSketch> entry : columnSketches.entrySet()) {
         LOGGER.debug("  Column {}: ~{} distinct values", entry.getKey(), entry.getValue().getEstimate());
       }
-      
+
     } catch (Exception e) {
       LOGGER.error("Failed to build HLL sketches", e);
     }
   }
-  
+
   private void buildFromParquet() throws IOException {
     File file = new File(source.path());
     org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(file.getAbsolutePath());
-    
+
     @SuppressWarnings("deprecation")
-    ParquetFileReader reader = ParquetFileReader.open(
-        new org.apache.hadoop.conf.Configuration(), path);
+    ParquetFileReader reader =
+        ParquetFileReader.open(new org.apache.hadoop.conf.Configuration(), path);
     try {
-      
+
       ParquetMetadata metadata = reader.getFooter();
       MessageType schema = metadata.getFileMetaData().getSchema();
-      
+
       PageReadStore pages;
       while ((pages = reader.readNextRowGroup()) != null) {
         long rows = pages.getRowCount();
         MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-        RecordReader recordReader = columnIO.getRecordReader(
-            pages, new GroupRecordConverter(schema));
-        
+        RecordReader recordReader =
+            columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
+
         for (int i = 0; i < rows; i++) {
           SimpleGroup group = (SimpleGroup) recordReader.read();
-          
+
           // Add each field value to its corresponding HLL sketch
           for (int j = 0; j < group.getType().getFieldCount(); j++) {
             String fieldName = group.getType().getFieldName(j);
             HyperLogLogSketch sketch = columnSketches.get(fieldName);
-            
+
             if (sketch != null && group.getFieldRepetitionCount(j) > 0) {
               Object value = group.getValueToString(j, 0);
               if (value != null) {
@@ -158,18 +153,18 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
       reader.close();
     }
   }
-  
+
   private void saveSketchesToCache() {
     String cacheDir = System.getProperty("calcite.file.statistics.cache.directory");
     if (cacheDir == null) {
       return;
     }
-    
+
     File dir = new File(cacheDir);
     if (!dir.exists()) {
       dir.mkdirs();
     }
-    
+
     for (Map.Entry<String, HyperLogLogSketch> entry : columnSketches.entrySet()) {
       File sketchFile = new File(dir, tableName + "_" + entry.getKey() + ".hll");
       try {
@@ -179,7 +174,7 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
       }
     }
   }
-  
+
   /**
    * Get the pre-computed distinct count for a column.
    * This returns instantly without scanning data.
@@ -189,7 +184,7 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
     HyperLogLogSketch sketch = columnSketches.get(columnName);
     return sketch != null ? sketch.getEstimate() : -1;
   }
-  
+
   /**
    * Check if we have pre-computed HLL sketch for a column.
    */
@@ -197,55 +192,48 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
     buildSketchesIfNeeded();
     return columnSketches.containsKey(columnName);
   }
-  
-  @Override
-  public Enumerable<Object[]> scan(DataContext root) {
+
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     // For COUNT(DISTINCT) queries, return pre-computed results
     final String queryType = (String) root.get("query.type");
     if ("count_distinct".equals(queryType)) {
       final String columnName = (String) root.get("query.column");
       if (columnName != null && hasHLLSketch(columnName)) {
         final long distinctCount = getDistinctCount(columnName);
-        
+
         return new AbstractEnumerable<Object[]>() {
-          @Override
-          public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
               private boolean hasNext = true;
-              
-              @Override
-              public Object[] current() {
+
+              @Override public Object[] current() {
                 return new Object[] { distinctCount };
               }
-              
-              @Override
-              public boolean moveNext() {
+
+              @Override public boolean moveNext() {
                 if (hasNext) {
                   hasNext = false;
                   return true;
                 }
                 return false;
               }
-              
-              @Override
-              public void reset() {
+
+              @Override public void reset() {
                 hasNext = true;
               }
-              
-              @Override
-              public void close() {
+
+              @Override public void close() {
               }
             };
           }
         };
       }
     }
-    
+
     // Fall back to regular scanning for non-optimized queries
     // This would delegate to the original table implementation
     return new AbstractEnumerable<Object[]>() {
-      @Override
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         throw new UnsupportedOperationException("Regular scanning not implemented");
       }
     };

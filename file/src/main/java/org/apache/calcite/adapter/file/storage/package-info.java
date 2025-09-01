@@ -100,12 +100,12 @@
  * Map<String, Object> config = new HashMap<>();
  * config.put("region", "us-west-1");
  * config.put("bucket", "data-bucket");
- * 
+ *
  * StorageProvider provider = StorageProviderFactory.create("s3", config);
- * 
+ *
  * // List files
  * List<FileEntry> files = provider.listFiles("/data/csv/", "*.csv", true);
- * 
+ *
  * // Open file for reading
  * try (Reader reader = provider.openReader("/data/csv/sales.csv")) {
  *     // Process file content

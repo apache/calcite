@@ -104,7 +104,17 @@ public class DuckDBJdbcSchemaFactory {
       setupConn.createStatement().execute("SET temp_directory = '" + System.getProperty("java.io.tmpdir") + "'");  // Spill location
       setupConn.createStatement().execute("SET preserve_insertion_order = false");  // Better performance
       setupConn.createStatement().execute("SET enable_progress_bar = false");  // Cleaner output
-      setupConn.createStatement().execute("SET enable_object_cache = true");  // Cache parsed files
+
+      // Disable object cache if schema has refreshable tables to ensure fresh reads after refresh
+      // When files are updated, DuckDB's object cache would serve stale metadata
+//      boolean hasRefreshableTables = fileSchema != null && fileSchema.hasRefreshableTables();
+//      if (hasRefreshableTables) {
+//        setupConn.createStatement().execute("SET enable_object_cache = false");  // Disable cache for refreshable tables
+//        LOGGER.info("Disabled DuckDB object cache for schema '{}' with refreshable tables", schemaName);
+//      } else {
+//        setupConn.createStatement().execute("SET enable_object_cache = true");  // Cache parsed files for better performance
+//      }
+
       setupConn.createStatement().execute("SET scalar_subquery_error_on_multiple_rows = false");  // Allow Calcite's scalar subquery rewriting
 
       // Create a schema matching the FileSchema name
@@ -487,12 +497,14 @@ public class DuckDBJdbcSchemaFactory {
           }
         } else if (parquetPath != null) {
           // Check if it's a glob pattern or single file
-          boolean isGlobPattern = parquetPath.startsWith("{") && parquetPath.endsWith("}");
+          boolean isMultiFileList = (parquetPath.startsWith("[") && parquetPath.endsWith("]")) ||
+                                   (parquetPath.startsWith("{") && parquetPath.endsWith("}"));
+          boolean isGlobPattern = parquetPath.contains("**") || (parquetPath.contains("*") && !isMultiFileList);
           String sql = null;
 
-          if (isGlobPattern) {
-            // For glob patterns, we need to extract and use the individual files
-            // Remove the curly braces and split by comma
+          if (isMultiFileList) {
+            // For multiple files specified as [file1,file2,file3] or {file1,file2,file3}
+            // Remove the brackets and split by comma
             String fileList = parquetPath.substring(1, parquetPath.length() - 1);
             String[] files = fileList.split(",");
 
@@ -508,14 +520,28 @@ public class DuckDBJdbcSchemaFactory {
             fileArray.append("]");
 
             sql =
-                              String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet(%s)", duckdbSchema, tableName, fileArray.toString());
+                              String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM parquet_scan(%s)", duckdbSchema, tableName, fileArray.toString());
             LOGGER.info("Creating DuckDB view for multiple files: \"{}.{}\" -> {} files", duckdbSchema, tableName, files.length);
+          } else if (isGlobPattern) {
+            // Glob pattern - DuckDB's parquet_scan supports glob patterns directly
+            // For glob patterns with **, always enable hive_partitioning to let DuckDB auto-detect
+            // DuckDB will automatically detect if the data is actually Hive-partitioned
+            if (parquetPath.contains("**")) {
+              // Enable hive_partitioning for recursive glob patterns - DuckDB will auto-detect if needed
+              sql =
+                                 String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM parquet_scan('%s', hive_partitioning = true)", duckdbSchema, tableName, parquetPath);
+              LOGGER.info("Creating DuckDB view with glob pattern and Hive partitioning auto-detection: \"{}.{}\" -> {}", duckdbSchema, tableName, parquetPath);
+            } else {
+              sql =
+                                 String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM parquet_scan('%s')", duckdbSchema, tableName, parquetPath);
+              LOGGER.info("Creating DuckDB view with glob pattern: \"{}.{}\" -> {}", duckdbSchema, tableName, parquetPath);
+            }
           } else {
             // Single file
             File parquetFile = new File(parquetPath);
             if (parquetFile.exists()) {
               sql =
-                                String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM read_parquet('%s')", duckdbSchema, tableName, parquetFile.getAbsolutePath());
+                                String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM parquet_scan('%s')", duckdbSchema, tableName, parquetFile.getAbsolutePath());
               LOGGER.info("Creating DuckDB view: \"{}.{}\" -> {}", duckdbSchema, tableName, parquetFile.getName());
             } else {
               LOGGER.warn("Parquet file does not exist for table '{}': {}", tableName, parquetPath);

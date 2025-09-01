@@ -28,7 +28,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -347,7 +346,7 @@ public final class CsvTypeConverter {
     DateTimeFormatter[] TIMEZONE_AWARE_FORMATTERS = {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME,  // 2024-03-15T10:30:45Z, 2024-03-15T10:30:45+05:30
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssX"),     // 2024-03-15 10:30:45Z, +05:30
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX"),   // 2024-03-15T10:30:45Z, +05:30  
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX"),   // 2024-03-15T10:30:45Z, +05:30
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssXXX"),   // 2024-03-15 10:30:45+05:30
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"), // 2024-03-15T10:30:45+05:30
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss'Z'"),   // 2024-03-15 10:30:45Z (literal Z = UTC)
@@ -366,13 +365,13 @@ public final class CsvTypeConverter {
           // Parse the timestamp part without the 'Z'
           String timestampPart = value.substring(0, value.length() - 1);
           String basePattern = i == 5 ? "yyyy-MM-dd HH:mm:ss" : "yyyy-MM-dd'T'HH:mm:ss";
-          
+
           // Try with milliseconds first, then without
           String[] patterns = {
             basePattern + ".SSS",  // With milliseconds
             basePattern           // Without milliseconds
           };
-          
+
           for (String pattern : patterns) {
             try {
               LocalDateTime ldt = LocalDateTime.parse(timestampPart, DateTimeFormatter.ofPattern(pattern));
@@ -385,7 +384,7 @@ public final class CsvTypeConverter {
             }
           }
         }
-        
+
         // Try parsing as OffsetDateTime first
         OffsetDateTime odt = OffsetDateTime.parse(value, formatter);
         long utcMillis = odt.toInstant().toEpochMilli();

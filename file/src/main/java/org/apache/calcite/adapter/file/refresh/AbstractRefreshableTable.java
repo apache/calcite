@@ -144,7 +144,7 @@ public abstract class AbstractRefreshableTable extends AbstractTable implements 
     // - If file hasn't changed: never update cache (regardless of interval)
     // - If file has changed AND interval has elapsed: synchronously update cache
     // - If file has changed BUT interval hasn't elapsed: don't update (prevent thrashing)
-    
+
     if (!needsRefresh()) {
       LOGGER.log(Level.FINE, "Refresh interval not elapsed, skipping refresh");
       return;

@@ -22,7 +22,6 @@ import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.hadoop.HadoopTables;
-// import org.apache.iceberg.hive.HiveCatalog; // TODO: Add Hive dependency
 import org.apache.iceberg.rest.RESTCatalog;
 
 import java.util.HashMap;
@@ -52,17 +51,17 @@ public class IcebergCatalogManager {
         throw new RuntimeException("Failed to load table from path: " + tablePath, e);
       }
     }
-    
+
     String catalogType = (String) config.get("catalog");
     if (catalogType == null) {
       catalogType = "hadoop";
     }
-    
+
     Catalog catalog = getCatalog(catalogType, config);
-    
+
     // Parse table identifier
     TableIdentifier tableId = parseTableIdentifier(tablePath, config);
-    
+
     return catalog.loadTable(tableId);
   }
 
@@ -86,11 +85,11 @@ public class IcebergCatalogManager {
    */
   private static synchronized Catalog getCatalog(String catalogType, Map<String, Object> config) {
     String cacheKey = catalogType + ":" + config.hashCode();
-    
+
     if (CATALOG_CACHE.containsKey(cacheKey)) {
       return CATALOG_CACHE.get(cacheKey);
     }
-    
+
     Catalog catalog;
     switch (catalogType.toLowerCase()) {
       case "hadoop":
@@ -106,7 +105,7 @@ public class IcebergCatalogManager {
       default:
         throw new IllegalArgumentException("Unknown catalog type: " + catalogType);
     }
-    
+
     CATALOG_CACHE.put(cacheKey, catalog);
     return catalog;
   }
@@ -125,9 +124,9 @@ public class IcebergCatalogManager {
     if (warehouse == null) {
       throw new IllegalArgumentException("Hadoop catalog requires 'warehouse' or 'warehousePath' configuration");
     }
-    
+
     Configuration hadoopConf = new Configuration();
-    
+
     // Apply Hadoop configuration if provided
     @SuppressWarnings("unchecked")
     Map<String, String> hadoopConfig = (Map<String, String>) config.get("hadoopConfig");
@@ -136,7 +135,7 @@ public class IcebergCatalogManager {
         hadoopConf.set(entry.getKey(), entry.getValue());
       }
     }
-    
+
     return new HadoopCatalog(hadoopConf, warehouse);
   }
 
@@ -149,31 +148,31 @@ public class IcebergCatalogManager {
   /*
   private static HiveCatalog createHiveCatalog(Map<String, Object> config) {
     HiveCatalog catalog = new HiveCatalog();
-    
+
     // Set catalog name
     String catalogName = (String) config.getOrDefault("catalogName", "hive");
     Map<String, String> properties = new HashMap<>();
     properties.put("catalog-name", catalogName);
-    
+
     // Set URI if provided
     String uri = (String) config.get("uri");
     if (uri != null) {
       properties.put("uri", uri);
     }
-    
+
     // Set warehouse if provided
     String warehouse = (String) config.get("warehouse");
     if (warehouse != null) {
       properties.put("warehouse", warehouse);
     }
-    
+
     // Apply additional Hive configuration
     @SuppressWarnings("unchecked")
     Map<String, String> hiveConfig = (Map<String, String>) config.get("hiveConfig");
     if (hiveConfig != null) {
       properties.putAll(hiveConfig);
     }
-    
+
     Configuration hadoopConf = new Configuration();
     @SuppressWarnings("unchecked")
     Map<String, String> hadoopConfig = (Map<String, String>) config.get("hadoopConfig");
@@ -182,10 +181,10 @@ public class IcebergCatalogManager {
         hadoopConf.set(entry.getKey(), entry.getValue());
       }
     }
-    
+
     catalog.setConf(hadoopConf);
     catalog.initialize(catalogName, properties);
-    
+
     return catalog;
   }
 
@@ -197,40 +196,40 @@ public class IcebergCatalogManager {
    */
   private static RESTCatalog createRestCatalog(Map<String, Object> config) {
     RESTCatalog catalog = new RESTCatalog();
-    
+
     Map<String, String> properties = new HashMap<>();
-    
+
     // Set URI (required)
     String uri = (String) config.get("uri");
     if (uri == null) {
       throw new IllegalArgumentException("REST catalog requires 'uri' configuration");
     }
     properties.put("uri", uri);
-    
+
     // Set warehouse if provided
     String warehouse = (String) config.get("warehouse");
     if (warehouse != null) {
       properties.put("warehouse", warehouse);
     }
-    
+
     // Set authentication if provided
     String token = (String) config.get("token");
     if (token != null) {
       properties.put("token", token);
     }
-    
+
     String credential = (String) config.get("credential");
     if (credential != null) {
       properties.put("credential", credential);
     }
-    
+
     // Apply additional REST configuration
     @SuppressWarnings("unchecked")
     Map<String, String> restConfig = (Map<String, String>) config.get("restConfig");
     if (restConfig != null) {
       properties.putAll(restConfig);
     }
-    
+
     Configuration hadoopConf = new Configuration();
     @SuppressWarnings("unchecked")
     Map<String, String> hadoopConfig = (Map<String, String>) config.get("hadoopConfig");
@@ -239,10 +238,10 @@ public class IcebergCatalogManager {
         hadoopConf.set(entry.getKey(), entry.getValue());
       }
     }
-    
+
     catalog.setConf(hadoopConf);
     catalog.initialize("rest", properties);
-    
+
     return catalog;
   }
 
@@ -256,7 +255,7 @@ public class IcebergCatalogManager {
   private static TableIdentifier parseTableIdentifier(String tablePath, Map<String, Object> config) {
     // Check if namespace is provided in config
     String namespace = (String) config.get("namespace");
-    
+
     if (tablePath.contains(".")) {
       // Path includes namespace (e.g., "namespace.table")
       String[] parts = tablePath.split("\\.", 2);

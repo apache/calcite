@@ -49,17 +49,17 @@ import java.util.Map;
  */
 public class InformationSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(InformationSchema.class);
-  
+
   private final SchemaPlus rootSchema;
   private final String catalogName;
 
   public InformationSchema(SchemaPlus rootSchema, String catalogName) {
     this.rootSchema = rootSchema;
     this.catalogName = catalogName;
-    
-    LOGGER.info("InformationSchema constructor: Created with rootSchema tables: {}", 
+
+    LOGGER.info("InformationSchema constructor: Created with rootSchema tables: {}",
                 rootSchema.tables().getNames(LikePattern.any()));
-    LOGGER.info("InformationSchema constructor: Available sub-schemas: {}", 
+    LOGGER.info("InformationSchema constructor: Available sub-schemas: {}",
                 rootSchema.subSchemas().getNames(LikePattern.any()));
   }
 
@@ -72,7 +72,7 @@ public class InformationSchema extends AbstractSchema {
 
   private Map<String, Table> createCaseInsensitiveTableMap() {
     Map<String, Table> tables = new HashMap<>();
-    
+
     // Add tables with both upper and lower case keys for case-insensitive lookup
     Map<String, Table> originalTables = ImmutableMap.<String, Table>builder()
         .put("SCHEMATA", new SchemataTable())
@@ -86,12 +86,12 @@ public class InformationSchema extends AbstractSchema {
         .put("ROUTINES", new RoutinesTable())
         .put("PARAMETERS", new ParametersTable())
         .build();
-    
+
     // Add each table with multiple case variations for case-insensitive access
     for (Map.Entry<String, Table> entry : originalTables.entrySet()) {
       String tableName = entry.getKey();
       Table table = entry.getValue();
-      
+
       // Add upper, lower, and mixed case variations
       tables.put(tableName.toUpperCase(Locale.ROOT), table);  // SCHEMATA
       tables.put(tableName.toLowerCase(Locale.ROOT), table); // schemata
@@ -101,7 +101,7 @@ public class InformationSchema extends AbstractSchema {
         tables.put(titleCase, table); // Schemata
       }
     }
-    
+
     return tables;
   }
 
@@ -257,20 +257,20 @@ public class InformationSchema extends AbstractSchema {
 
     @Override public Enumerable<Object[]> scan(DataContext root) {
       List<Object[]> rows = new ArrayList<>();
-      
-      LOGGER.info("ColumnsTable.scan: Available sub-schemas: {}", 
+
+      LOGGER.info("ColumnsTable.scan: Available sub-schemas: {}",
                   rootSchema.subSchemas().getNames(LikePattern.any()));
 
       for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
         SchemaPlus schema = rootSchema.subSchemas().get(schemaName);
-        LOGGER.info("ColumnsTable.scan: Processing schema '{}', schema != null: {}", 
+        LOGGER.info("ColumnsTable.scan: Processing schema '{}', schema != null: {}",
                     schemaName, schema != null);
         if (schema != null) {
-          LOGGER.info("ColumnsTable.scan: Schema '{}' contains tables: {}", 
+          LOGGER.info("ColumnsTable.scan: Schema '{}' contains tables: {}",
                       schemaName, schema.tables().getNames(LikePattern.any()));
           for (String tableName : schema.tables().getNames(LikePattern.any())) {
             Table table = schema.tables().get(tableName);
-            LOGGER.info("ColumnsTable.scan: Processing table '{}' in schema '{}'", 
+            LOGGER.info("ColumnsTable.scan: Processing table '{}' in schema '{}'",
                         tableName, schemaName);
             if (table != null) {
               RelDataType rowType = table.getRowType(root.getTypeFactory());

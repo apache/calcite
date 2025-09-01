@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.Statement;
 import java.util.Set;
 import javax.sql.DataSource;
 
@@ -41,6 +42,7 @@ public class DuckDBJdbcSchema extends JdbcSchema {
   private final boolean recursive;
   private final Connection persistentConnection;
   private final org.apache.calcite.adapter.file.FileSchema fileSchema; // Keep reference for refreshes
+  private final String schemaName; // Keep local copy since parent field is package-private
 
   public DuckDBJdbcSchema(DataSource dataSource, SqlDialect dialect,
                          JdbcConvention convention, String catalog, String schema,
@@ -53,9 +55,42 @@ public class DuckDBJdbcSchema extends JdbcSchema {
     this.recursive = recursive;
     this.persistentConnection = persistentConnection;
     this.fileSchema = fileSchema; // Keep FileSchema alive for refresh handling
+    this.schemaName = schema; // Keep local copy
 
     LOGGER.info("Created DuckDB JDBC schema for directory: {} (recursive={}) with persistent connection",
                 directory, recursive);
+
+    // Register refresh listener to recreate views when parquet files are updated
+    if (fileSchema != null) {
+      fileSchema.addRefreshListener(new org.apache.calcite.adapter.file.refresh.TableRefreshListener() {
+        @Override public void onTableRefreshed(String tableName, File parquetFile) {
+          recreateView(tableName, parquetFile);
+        }
+      });
+      LOGGER.info("Registered refresh listener with FileSchema");
+    }
+  }
+
+  /**
+   * Recreates a DuckDB view when the underlying parquet file has been refreshed.
+   * This forces DuckDB to re-read the updated file.
+   */
+  private void recreateView(String tableName, File parquetFile) {
+    try {
+      String viewSql =
+                                    String.format("CREATE OR REPLACE VIEW \"%s\".\"%s\" AS SELECT * FROM parquet_scan('%s')", schemaName, tableName, parquetFile.getAbsolutePath());
+
+      LOGGER.info("Recreating DuckDB view after refresh: \"{}.{}\" -> {}",
+                  schemaName, tableName, parquetFile.getName());
+
+      try (Statement stmt = persistentConnection.createStatement()) {
+        stmt.execute(viewSql);
+      }
+
+      LOGGER.info("Successfully recreated view for refreshed table '{}'", tableName);
+    } catch (Exception e) {
+      LOGGER.error("Failed to recreate view for table '{}': {}", tableName, e.getMessage(), e);
+    }
   }
 
 

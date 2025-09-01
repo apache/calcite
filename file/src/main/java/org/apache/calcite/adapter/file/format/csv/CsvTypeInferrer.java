@@ -500,9 +500,9 @@ public class CsvTypeInferrer {
     }
 
     ColumnTypeInfo determineType(TypeInferenceConfig config) {
-      LOGGER.debug("determineType for column '{}': totalValues={}, nullValues={}, typeCounts={}", 
+      LOGGER.debug("determineType for column '{}': totalValues={}, nullValues={}, typeCounts={}",
                    columnName, totalValues, nullValues, typeCounts);
-      
+
       // Case 1: All values are NULL/blank/whitespace
       if (totalValues == 0 || totalValues == nullValues) {
         // All nulls or no data - default to nullable VARCHAR
@@ -581,7 +581,7 @@ public class CsvTypeInferrer {
       // For confidence, use ratio of values that could be parsed as the chosen type
       double confidence = (double) bestCount / nonNullValues;
 
-      LOGGER.debug("Column '{}': Final determination - type: {}, confidence: {}, formatter: {}", 
+      LOGGER.debug("Column '{}': Final determination - type: {}, confidence: {}, formatter: {}",
                    columnName, bestType, confidence, formatter);
 
       return new ColumnTypeInfo(columnName, bestType, nullable, formatter,

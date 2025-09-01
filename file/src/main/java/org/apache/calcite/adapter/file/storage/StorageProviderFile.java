@@ -56,18 +56,15 @@ public class StorageProviderFile extends File {
     return path;
   }
 
-  @Override
-  public String getName() {
+  @Override public String getName() {
     return fileEntry.getName();
   }
 
-  @Override
-  public String getPath() {
+  @Override public String getPath() {
     return fileEntry.getPath();
   }
 
-  @Override
-  public String getAbsolutePath() {
+  @Override public String getAbsolutePath() {
     String path = fileEntry.getPath();
     if (!path.startsWith("/")) {
       path = "/" + path;
@@ -75,18 +72,15 @@ public class StorageProviderFile extends File {
     return path;
   }
 
-  @Override
-  public String getCanonicalPath() throws IOException {
+  @Override public String getCanonicalPath() throws IOException {
     return getAbsolutePath();
   }
 
-  @Override
-  public File getCanonicalFile() throws IOException {
+  @Override public File getCanonicalFile() throws IOException {
     return this;
   }
 
-  @Override
-  public boolean exists() {
+  @Override public boolean exists() {
     try {
       return storageProvider.exists(fileEntry.getPath());
     } catch (IOException e) {
@@ -94,43 +88,35 @@ public class StorageProviderFile extends File {
     }
   }
 
-  @Override
-  public boolean isFile() {
+  @Override public boolean isFile() {
     return !fileEntry.isDirectory();
   }
 
-  @Override
-  public boolean isDirectory() {
+  @Override public boolean isDirectory() {
     return fileEntry.isDirectory();
   }
 
-  @Override
-  public long length() {
+  @Override public long length() {
     return fileEntry.getSize();
   }
 
-  @Override
-  public long lastModified() {
+  @Override public long lastModified() {
     return fileEntry.getLastModified();
   }
 
-  @Override
-  public boolean canRead() {
+  @Override public boolean canRead() {
     return true; // Assume readable if listed by storage provider
   }
 
-  @Override
-  public boolean canWrite() {
+  @Override public boolean canWrite() {
     return false; // Storage providers are read-only
   }
 
-  @Override
-  public boolean canExecute() {
+  @Override public boolean canExecute() {
     return false;
   }
 
-  @Override
-  public URI toURI() {
+  @Override public URI toURI() {
     try {
       // Create a custom URI for the storage provider file
       String scheme = storageProvider.getStorageType();

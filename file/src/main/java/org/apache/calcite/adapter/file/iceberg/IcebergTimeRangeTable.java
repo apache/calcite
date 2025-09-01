@@ -25,27 +25,21 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
 
-import org.apache.iceberg.Table;
 import org.apache.iceberg.Schema;
-import org.apache.iceberg.types.Types;
+import org.apache.iceberg.Table;
 import org.apache.iceberg.hadoop.HadoopTables;
+import org.apache.iceberg.types.Types;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Unified Iceberg table that spans multiple snapshots within a time range.
@@ -70,7 +64,7 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
    * @param tablePath Path to the Iceberg table (for schema)
    * @param schemaName The schema name (required for cache directory resolution)
    */
-  public IcebergTimeRangeTable(List<IcebergTimeRangeResolver.IcebergDataFile> dataFiles, 
+  public IcebergTimeRangeTable(List<IcebergTimeRangeResolver.IcebergDataFile> dataFiles,
                               String snapshotColumnName,
                               ExecutionEngineConfig engineConfig,
                               String tablePath,
@@ -81,13 +75,12 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
     this.engineConfig = engineConfig;
     this.tablePath = tablePath;
     this.schemaName = schemaName;
-    
-    LOGGER.info("Created IcebergTimeRangeTable with {} data files, snapshot column: {}", 
+
+    LOGGER.info("Created IcebergTimeRangeTable with {} data files, snapshot column: {}",
                 dataFiles.size(), snapshotColumnName);
   }
 
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (rowType != null) {
       return rowType;
     }
@@ -99,32 +92,30 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
       Schema schema = icebergTable.schema();
 
       RelDataTypeFactory.Builder builder = typeFactory.builder();
-      
+
       // Add all original columns
       for (Types.NestedField field : schema.columns()) {
         RelDataType columnType = convertIcebergTypeToCalcite(field.type(), typeFactory);
         builder.add(field.name(), columnType);
       }
-      
+
       // Add snapshot timestamp column
       builder.add(snapshotColumnName, typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
-      
+
       rowType = builder.build();
       return rowType;
-      
+
     } catch (Exception e) {
       LOGGER.error("Failed to get row type for Iceberg time range table", e);
       throw new RuntimeException("Failed to get row type", e);
     }
   }
 
-  @Override
-  public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     LOGGER.debug("Scanning IcebergTimeRangeTable with {} files", dataFiles.size());
-    
+
     return new AbstractEnumerable<Object[]>() {
-      @Override
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         return new TimeRangeEnumerator();
       }
     };
@@ -144,32 +135,30 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
       moveToNextFile();
     }
 
-    @Override
-    public Object[] current() {
+    @Override public Object[] current() {
       if (currentFileEnumerator == null) {
         return null;
       }
-      
+
       Object[] originalRow = currentFileEnumerator.current();
       if (originalRow == null) {
         return null;
       }
-      
+
       // Add snapshot timestamp to the row
       Object[] extendedRow = new Object[originalRow.length + 1];
       System.arraycopy(originalRow, 0, extendedRow, 0, originalRow.length);
       extendedRow[originalRow.length] = java.sql.Timestamp.from(currentFile.getSnapshotTime());
-      
+
       return extendedRow;
     }
 
-    @Override
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       while (true) {
         if (currentFileEnumerator != null && currentFileEnumerator.moveNext()) {
           return true;
         }
-        
+
         // Current file is exhausted, move to next
         if (!moveToNextFile()) {
           return false;
@@ -177,13 +166,11 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
       }
     }
 
-    @Override
-    public void reset() {
+    @Override public void reset() {
       throw new UnsupportedOperationException("Reset not supported");
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
       if (currentFileEnumerator != null) {
         currentFileEnumerator.close();
       }
@@ -195,25 +182,25 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
         currentFileEnumerator.close();
         currentFileEnumerator = null;
       }
-      
+
       // Move to next file
       if (!fileIterator.hasNext()) {
         return false;
       }
-      
+
       currentFile = fileIterator.next();
       LOGGER.debug("Processing file: {} from snapshot: {}", currentFile.getFilePath(), currentFile.getSnapshotId());
-      
+
       try {
         // Create a ParquetTranslatableTable for this file
         File parquetFile = new File(currentFile.getFilePath());
         ParquetTranslatableTable parquetTable = new ParquetTranslatableTable(parquetFile, schemaName);
-        
+
         // For now, we'll use a simple approach that reads the file directly
         // In practice, this should integrate with the execution engine configuration
         Enumerable<Object[]> fileEnumerable = createParquetEnumerable(parquetFile);
         currentFileEnumerator = fileEnumerable.enumerator();
-        
+
         return true;
       } catch (Exception e) {
         LOGGER.error("Failed to process Parquet file: {}", currentFile.getFilePath(), e);
@@ -259,7 +246,7 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
   /**
    * Converts Iceberg types to Calcite types.
    */
-  private RelDataType convertIcebergTypeToCalcite(org.apache.iceberg.types.Type icebergType, 
+  private RelDataType convertIcebergTypeToCalcite(org.apache.iceberg.types.Type icebergType,
                                                  RelDataTypeFactory typeFactory) {
     switch (icebergType.typeId()) {
       case BOOLEAN:

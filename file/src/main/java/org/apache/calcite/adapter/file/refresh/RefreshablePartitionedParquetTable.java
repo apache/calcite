@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.file.refresh;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.partition.PartitionDetector;
 import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
 import org.apache.calcite.adapter.file.table.PartitionedParquetTable;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -28,6 +28,8 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.FileSystems;
@@ -37,9 +39,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Refreshable partitioned Parquet table that can discover new partitions.
@@ -59,6 +58,10 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
   private volatile PartitionedParquetTable currentTable;
   private volatile List<String> lastDiscoveredFiles;
 
+  // For refresh notifications to DuckDB
+  private org.apache.calcite.adapter.file.@Nullable FileSchema fileSchema;
+  private @Nullable String tableNameForNotification;
+
   public RefreshablePartitionedParquetTable(String tableName, File directory,
       String pattern, PartitionedTableConfig config,
       ExecutionEngineConfig engineConfig, @Nullable Duration refreshInterval) {
@@ -71,6 +74,14 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
 
     // Initial discovery
     refreshTableDefinition();
+  }
+
+  /**
+   * Sets the FileSchema and table name for refresh notifications.
+   */
+  public void setRefreshContext(org.apache.calcite.adapter.file.FileSchema fileSchema, String tableName) {
+    this.fileSchema = fileSchema;
+    this.tableNameForNotification = tableName;
   }
 
   /**
@@ -186,6 +197,13 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
         lastDiscoveredFiles = matchingFiles;
 
         LOGGER.debug("[RefreshablePartitionedParquetTable] Discovered {} files for table: {}", matchingFiles.size(), tableName);
+
+        // Notify listeners (e.g., DUCKDB) that the table has been refreshed
+        // For partitioned tables, we notify with the first file as a representative
+        if (fileSchema != null && tableNameForNotification != null && !matchingFiles.isEmpty()) {
+          fileSchema.notifyTableRefreshed(tableNameForNotification, new File(matchingFiles.get(0)));
+          LOGGER.debug("Notified listeners of refresh for partitioned table '{}'", tableNameForNotification);
+        }
       }
     } catch (Exception e) {
       LOGGER.error("Failed to refresh partitioned table: {}", e.getMessage());

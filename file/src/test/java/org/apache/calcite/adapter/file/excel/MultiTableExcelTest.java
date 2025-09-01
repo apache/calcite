@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.adapter.file.BaseFileTest;
-import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.test.CalciteAssert;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -27,24 +27,17 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -52,17 +45,48 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class MultiTableExcelTest extends BaseFileTest {
-  @TempDir
-  Path tempDir;
+  private File tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Create temporary directory manually
+    tempDir = Files.createTempDirectory("excel-test").toFile();
+
     // Create a test Excel file with multiple tables
     createMultiTableExcelFile();
   }
 
+  @AfterEach
+  public void tearDown() {
+    // Clean up temporary directory - non-fatal
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteDirectory(tempDir);
+      } catch (Exception e) {
+        // Cleanup failure should not fail the test
+        System.err.println("Warning: Failed to clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectory(File directory) {
+    if (directory.exists()) {
+      File[] files = directory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          if (file.isDirectory()) {
+            deleteDirectory(file);
+          } else {
+            file.delete();
+          }
+        }
+      }
+      directory.delete();
+    }
+  }
+
   private void createMultiTableExcelFile() throws Exception {
-    File excelFile = new File(tempDir.toFile(), "multi_table_test.xlsx");
+    File excelFile = new File(tempDir, "multi_table_test.xlsx");
 
     try (Workbook workbook = new XSSFWorkbook()) {
       Sheet sheet = workbook.createSheet("Data");
@@ -119,88 +143,55 @@ public class MultiTableExcelTest extends BaseFileTest {
   }
 
   @Test public void testMultiTableExcelDetection() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("multiTableExcel", "true");
+    String model = buildTestModel("excel", tempDir.getAbsolutePath(), "multiTableExcel", "true");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM \"excel\".\"multi_table_test__data_sales_report\" ORDER BY product")
+        .returnsUnordered("product=Gadget; q1=200; q2=250",
+                         "product=Widget; q1=100; q2=150");
 
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
-      // FileSchema will create tempDir/.aperio/excel as the actual base directory
-      rootSchema.add("excel",
-          new FileSchema(rootSchema, "excel", tempDir.toFile(), tempDir.toFile(), null, null,
-              getEngineConfig(), false, null, null, null, null,
-              "SMART_CASING", "SMART_CASING", null, null, null, null, true));
-
-      try (Statement statement = connection.createStatement()) {
-        // Query the first table - table names use SMART_CASING (lowercase)
-        ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM \"excel\".\"multi_table_test__data_sales_report\" "
-            + "ORDER BY \"product\"");
-
-        assertTrue(rs1.next());
-        assertThat(rs1.getString("product"), is("Gadget"));
-        assertThat((int) Double.parseDouble(rs1.getString("q1")), is(200));
-
-        assertTrue(rs1.next());
-        assertThat(rs1.getString("product"), is("Widget"));
-        assertThat((int) Double.parseDouble(rs1.getString("q1")), is(100));
-
-        // Query the second table
-        ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM \"excel\".\"multi_table_test__data_employee_data\" "
-            + "ORDER BY \"name\"");
-
-        assertTrue(rs2.next());
-        assertThat(rs2.getString("name"), is("Jane"));
-        assertThat(rs2.getString("department"), is("Engineering"));
-
-        assertTrue(rs2.next());
-        assertThat(rs2.getString("name"), is("John"));
-        assertThat(rs2.getString("department"), is("Sales"));
-      }
-    }
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM \"excel\".\"multi_table_test__data_employee_data\" ORDER BY name")
+        .returnsUnordered("name=Jane; department=Engineering; salary=75000",
+                         "name=John; department=Sales; salary=50000");
   }
 
 
   @Test public void testComplexExcelFile() throws Exception {
     // Copy the lots_of_tables.xlsx file to temp directory
-    File targetFile = new File(tempDir.toFile(), "lots_of_tables.xlsx");
+    File targetFile = new File(tempDir, "lots_of_tables.xlsx");
     try (InputStream in = getClass().getResourceAsStream("/lots_of_tables.xlsx")) {
       if (in != null) {
         Files.copy(in, targetFile.toPath());
       }
     }
 
-    // Test with multi-table detection enabled
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+    String model = buildTestModel("excel", tempDir.getAbsolutePath(), "multiTableExcel", "true");
 
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      
-      // FileSchema will create tempDir/.aperio/excel as the actual base directory
-      rootSchema.add("excel",
-          new FileSchema(rootSchema, "excel", tempDir.toFile(), tempDir.toFile(), null, null,
-              getEngineConfig(), false, null, null, null, null,
-              "SMART_CASING", "SMART_CASING", null, null, null, null, true));
-
-      try (Statement statement = connection.createStatement()) {
-        // Count tables found
-        ResultSet tables = connection.getMetaData().getTables(null, "excel", "%", null);
-        int tableCount = 0;
-        System.out.println("Tables from lots_of_tables.xlsx:");
-        while (tables.next()) {
-          String tableName = tables.getString("TABLE_NAME");
-          if (tableName.startsWith("lots_of_tables")) {
-            tableCount++;
-            System.out.println("  - " + tableName);
+    // Test that multiple tables are detected
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .doWithConnection(connection -> {
+          try {
+            // Count tables found
+            ResultSet tables = connection.getMetaData().getTables(null, "excel", "%", null);
+            int tableCount = 0;
+            while (tables.next()) {
+              String tableName = tables.getString("TABLE_NAME");
+              if (tableName.startsWith("lots_of_tables")) {
+                tableCount++;
+              }
+            }
+            // Should find multiple tables
+            assertTrue(tableCount > 1, "Should find multiple tables in lots_of_tables.xlsx, found: " + tableCount);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
           }
-        }
-        // Should find multiple tables
-        assertTrue(tableCount > 1, "Should find multiple tables in lots_of_tables.xlsx");
-        System.out.println("Total tables found: " + tableCount);
-      }
-    }
+        });
   }
 }

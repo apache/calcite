@@ -86,6 +86,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -114,7 +117,8 @@ public class FileSchema extends AbstractSchema {
    */
   private static final Set<String> CONVERTIBLE_EXTENSIONS =
       Collections.unmodifiableSet(
-          new HashSet<>(Arrays.asList(
+          new HashSet<>(
+              Arrays.asList(
           ".xlsx", ".xls",        // Excel spreadsheets
           ".md", ".markdown",     // Markdown files
           ".docx",                 // Word documents
@@ -128,7 +132,8 @@ public class FileSchema extends AbstractSchema {
    */
   private static final Set<String> TABLE_SOURCE_EXTENSIONS =
       Collections.unmodifiableSet(
-          new HashSet<>(Arrays.asList(
+          new HashSet<>(
+              Arrays.asList(
           ".csv",                  // Comma-separated values
           ".tsv",                  // Tab-separated values
           ".json",                 // JSON data
@@ -142,7 +147,8 @@ public class FileSchema extends AbstractSchema {
    */
   private static final Set<String> COMPRESSED_EXTENSIONS =
       Collections.unmodifiableSet(
-          new HashSet<>(Arrays.asList(
+          new HashSet<>(
+              Arrays.asList(
           ".gz",                   // Gzip compression
           ".gzip",                 // Alternative gzip extension
           ".bz2",                  // Bzip2 compression
@@ -189,6 +195,14 @@ public class FileSchema extends AbstractSchema {
   private final CsvTypeInferrer.TypeInferenceConfig csvTypeInferenceConfig;
   private final boolean primeCache;
   // Cache directories use schema name for stable, predictable paths
+
+  // Track refreshable tables for periodic refresh (needed for DUCKDB)
+  private final List<RefreshableParquetCacheTable> refreshableTables = new ArrayList<>();
+  private ScheduledExecutorService refreshScheduler;
+
+  // Listeners for table refresh events (used by DUCKDB to recreate views)
+  private final List<org.apache.calcite.adapter.file.refresh.TableRefreshListener> refreshListeners =
+      new ArrayList<>();
 
   /**
    * Creates a file schema with all features including storage provider support.
@@ -362,6 +376,68 @@ public class FileSchema extends AbstractSchema {
       // Schedule cache priming to run after the schema is fully registered
       // This is done asynchronously to avoid blocking schema initialization
       primeCacheAsync();
+    }
+
+    // Start periodic refresh if we have a refresh interval
+    // This is needed for DUCKDB which uses an internal PARQUET FileSchema
+    // but bypasses the table scan() method
+    LOGGER.info("Checking periodic refresh: refreshInterval='{}', engineType={}",
+                refreshInterval, engineConfig.getEngineType());
+    if (refreshInterval != null) {
+      // Start periodic refresh for any engine with refresh interval
+      // This is especially important for DUCKDB's internal PARQUET FileSchema
+      startPeriodicRefresh();
+    }
+  }
+
+  /**
+   * Starts a periodic refresh thread for DUCKDB engine.
+   * This is needed because DUCKDB bypasses the FileSchema table layer and reads
+   * files directly, so the normal refresh-on-scan mechanism doesn't work.
+   */
+  private void startPeriodicRefresh() {
+    Duration interval = RefreshInterval.parse(refreshInterval);
+    if (interval == null) {
+      LOGGER.warn("Invalid refresh interval '{}', periodic refresh not started", refreshInterval);
+      return;
+    }
+
+    long seconds = interval.getSeconds();
+    LOGGER.info("Starting periodic refresh for DUCKDB schema '{}' every {} seconds", name, seconds);
+
+    refreshScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+      Thread t = new Thread(r, "FileSchema-Refresh-" + name);
+      t.setDaemon(true);
+      return t;
+    });
+
+    refreshScheduler.scheduleWithFixedDelay(() -> {
+      try {
+        refreshAllTables();
+      } catch (Exception e) {
+        LOGGER.error("Error during periodic refresh for schema '{}'", name, e);
+      }
+    }, seconds, seconds, TimeUnit.SECONDS);
+  }
+
+  /**
+   * Refreshes all refreshable tables in this schema.
+   * Called periodically for DUCKDB to ensure parquet cache files are updated.
+   */
+  private void refreshAllTables() {
+    if (refreshableTables.isEmpty()) {
+      return;
+    }
+
+    LOGGER.debug("Periodic refresh checking {} tables in schema '{}'", refreshableTables.size(), name);
+    for (RefreshableParquetCacheTable table : refreshableTables) {
+      try {
+        // Call refresh() which checks if the source file has changed
+        // and updates the parquet cache if needed
+        table.refresh();
+      } catch (Exception e) {
+        LOGGER.error("Error refreshing table in schema '{}'", name, e);
+      }
     }
   }
 
@@ -1557,6 +1633,9 @@ public class FileSchema extends AbstractSchema {
                     if (needsParquetCreation) {
                       LOGGER.info("Parquet cache file recorded but missing for table '{}': {}",
                           tableName, parquetFile.getAbsolutePath());
+                    } else {
+                      LOGGER.info("Parquet cache file already exists for table '{}': {}, skipping regeneration",
+                          tableName, parquetFile.getAbsolutePath());
                     }
                   } else {
                     // No Parquet file recorded yet - need to create it for PARQUET/DUCKDB engines
@@ -1865,6 +1944,8 @@ public class FileSchema extends AbstractSchema {
       LOGGER.error("To use materialized views, set executionEngine to 'parquet' in your schema configuration");
     }
 
+    // Note: partitioned tables are already processed above, before views/materialized views
+
     tableCache = builder.build();
     LOGGER.info("[FileSchema.getTableMap] COMPLETED - Computed {} tables for schema '{}': {}",
                 tableCache.size(), name, tableCache.keySet());
@@ -2087,7 +2168,8 @@ public class FileSchema extends AbstractSchema {
         hasRefresh, isCSVorJSON, engineConfig.getEngineType(), baseDirectory != null);
 
     if (hasRefresh && isCSVorJSON &&
-        engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET &&
+        (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET ||
+         engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) &&
         baseDirectory != null) {
       LOGGER.info("CREATING RefreshableParquetCacheTable for: {}", tableName);
 
@@ -2127,7 +2209,25 @@ public class FileSchema extends AbstractSchema {
             columnNameCasing, tableNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
 
         String finalName = applyCasing(tableName, tableNameCasing);
+
+        // Set the refresh context so the table can notify listeners when it refreshes
+        refreshableTable.setRefreshContext(this, finalName);
+
         builder.put(finalName, refreshableTable);
+
+        // Add to list for periodic refresh (needed for DUCKDB)
+        refreshableTables.add(refreshableTable);
+        LOGGER.debug("Added RefreshableParquetCacheTable '{}' to refresh list", finalName);
+
+        // Record the conversion in metadata for DuckDB compatibility
+        if (conversionMetadata != null) {
+          LOGGER.info("Recording RefreshableParquetCacheTable conversion for table: {}", finalName);
+          File srcFile = new File(source.path());
+          conversionMetadata.recordConversionWithTableName(finalName, srcFile, parquetFile, "PARQUET");
+          LOGGER.info("Successfully recorded conversion: table='{}', source='{}', parquet='{}'",
+              finalName, srcFile.getName(), parquetFile.getName());
+        }
+
         return true;
 
       } catch (Exception e) {
@@ -3158,13 +3258,36 @@ public class FileSchema extends AbstractSchema {
           throw new RuntimeException("Failed to create refreshable Parquet table for " + source.path(), e);
         }
       }
-      // For PARQUET engine without refresh, just use regular JSON table
-      // The ParquetJsonScannableTable expects actual parquet files, not JSON
+      // For PARQUET engine without refresh, always convert JSON to parquet cache
+      if (baseDirectory != null) {
+        try {
+          File cacheDir =
+              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
+          File parquetFile =
+              ParquetConversionUtil.convertToParquet(source, tableName, new JsonScannableTable(source, options, columnNameCasing), cacheDir, parentSchema, name, tableNameCasing);
+
+          // Update conversion metadata with the parquet file
+          if (conversionMetadata != null && tableName != null) {
+            conversionMetadata.updateRecordWithParquetFile(tableName, parquetFile);
+            LOGGER.info("Updated conversion record for table '{}' with parquet file: {}",
+                tableName, parquetFile.getAbsolutePath());
+          }
+
+          // Return ParquetTranslatableTable for non-refreshable tables
+          return new ParquetTranslatableTable(parquetFile, source, name);
+
+        } catch (Exception e) {
+          LOGGER.error("Failed to create parquet cache for PARQUET engine: {}", e.getMessage(), e);
+          // Fall back to JSON table if parquet conversion fails
+          return new JsonScannableTable(source, options, columnNameCasing);
+        }
+      }
+      // If no baseDirectory, fall back to JSON
       return new JsonScannableTable(source, options, columnNameCasing);
     case DUCKDB:
-      // DuckDB engine will be handled same as PARQUET for initial setup
-      // FileSchemaFactory will create the actual DuckDB JDBC adapter later
-      // Fall through to PARQUET handling
+      // DUCKDB case should never be reached - FileSchemaFactory handles DUCKDB by creating
+      // a PARQUET FileSchema first, then wrapping it with DuckDBJdbcSchema
+      // Fall through to default
     case ARROW:
     case LINQ4J:
     default:
@@ -3189,8 +3312,18 @@ public class FileSchema extends AbstractSchema {
       return;
     }
 
+    // Track which tables have already been added to avoid duplicates
+    Set<String> alreadyProcessed = new HashSet<>();
+
+    // Check if builder already has entries (in case called from getTableMap)
+    // We can't check builder's contents directly, so track using table cache
+    if (tableCache != null) {
+      alreadyProcessed.addAll(tableCache.keySet());
+    }
+
     for (Map<String, Object> partTableConfig : partitionedTables) {
       try {
+        LOGGER.info("Processing partitioned table config: {}", partTableConfig);
         PartitionedTableConfig config = PartitionedTableConfig.fromMap(partTableConfig);
 
         // Find all files matching the pattern
@@ -3254,18 +3387,29 @@ public class FileSchema extends AbstractSchema {
         Table table;
         if (this.refreshInterval != null) {
           // Use refreshable version that can discover new partitions
-          table =
+          RefreshablePartitionedParquetTable refreshableTable =
               new RefreshablePartitionedParquetTable(config.getName(),
                   sourceDirectory, config.getPattern(), config,
                   engineConfig, RefreshInterval.parse(this.refreshInterval));
+          // Set refresh context for DuckDB notifications
+          refreshableTable.setRefreshContext(this, config.getName());
+          table = refreshableTable;
         } else {
           // Use standard version
           table =
               new PartitionedParquetTable(matchingFiles, partitionInfo,
                   engineConfig, columnTypes);
         }
+
+        // Check if table was already processed to avoid duplicates
+        if (alreadyProcessed.contains(config.getName())) {
+          LOGGER.info("Skipping partitioned table '{}' - already processed", config.getName());
+          continue;
+        }
+
         // Storage provider config explicitly defines table name - use as-is
         builder.put(config.getName(), table);
+        alreadyProcessed.add(config.getName());
         LOGGER.info("Added partitioned table '{}' to builder, matchingFiles.size: {}", config.getName(), matchingFiles.size());
 
         // Record table metadata for comprehensive tracking (same as other table types)
@@ -3307,6 +3451,8 @@ public class FileSchema extends AbstractSchema {
     List<String> result = new ArrayList<>();
 
     if (sourceDirectory == null || pattern == null) {
+      LOGGER.warn("findMatchingFiles: sourceDirectory={}, pattern={} - returning empty",
+                  sourceDirectory, pattern);
       return result;
     }
 
@@ -4047,6 +4193,36 @@ public class FileSchema extends AbstractSchema {
    */
   public File getBaseDirectory() {
     return baseDirectory;
+  }
+
+  /**
+   * Returns true if this schema has any refreshable tables.
+   * A schema has refreshable tables if a refresh interval is configured.
+   */
+  public boolean hasRefreshableTables() {
+    return refreshInterval != null;
+  }
+
+  /**
+   * Registers a listener for table refresh events.
+   * Used by DUCKDB to recreate views when parquet files are updated.
+   */
+  public void addRefreshListener(org.apache.calcite.adapter.file.refresh.TableRefreshListener listener) {
+    refreshListeners.add(listener);
+    LOGGER.debug("Added refresh listener: {}", listener.getClass().getSimpleName());
+  }
+
+  /**
+   * Notifies all registered listeners that a table has been refreshed.
+   */
+  public void notifyTableRefreshed(String tableName, File parquetFile) {
+    for (org.apache.calcite.adapter.file.refresh.TableRefreshListener listener : refreshListeners) {
+      try {
+        listener.onTableRefreshed(tableName, parquetFile);
+      } catch (Exception e) {
+        LOGGER.error("Error notifying refresh listener for table '{}': {}", tableName, e.getMessage(), e);
+      }
+    }
   }
 
   /**

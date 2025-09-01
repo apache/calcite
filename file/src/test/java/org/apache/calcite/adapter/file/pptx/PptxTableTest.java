@@ -18,11 +18,9 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.adapter.file.converters.PptxTableScanner;
-import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
@@ -36,10 +34,10 @@ import org.apache.poi.xslf.usermodel.XSLFTextRun;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.awt.geom.Rectangle2D;
 import java.io.File;
@@ -47,8 +45,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.ResultSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,21 +55,52 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class PptxTableTest extends BaseFileTest {
-  @TempDir
-  Path tempDir;
+  private File tempDir;
 
   private File simplePptxFile;
   private File complexPptxFile;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Create temporary directory manually
+    tempDir = Files.createTempDirectory("pptx-test").toFile();
+    
     // Create test PPTX files
     createSimplePptxFile();
     createComplexPptxFile();
   }
 
+  @AfterEach
+  public void tearDown() {
+    // Clean up temporary directory - non-fatal
+    if (tempDir != null && tempDir.exists()) {
+      try {
+        deleteDirectory(tempDir);
+      } catch (Exception e) {
+        // Cleanup failure should not fail the test
+        System.err.println("Warning: Failed to clean up temp directory: " + e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectory(File directory) {
+    if (directory.exists()) {
+      File[] files = directory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          if (file.isDirectory()) {
+            deleteDirectory(file);
+          } else {
+            file.delete();
+          }
+        }
+      }
+      directory.delete();
+    }
+  }
+
   private void createSimplePptxFile() throws IOException {
-    simplePptxFile = new File(tempDir.toFile(), "sales_presentation.pptx");
+    simplePptxFile = new File(tempDir, "sales_presentation.pptx");
 
     try (XMLSlideShow ppt = new XMLSlideShow()) {
       // Create first slide with title
@@ -132,7 +160,7 @@ public class PptxTableTest extends BaseFileTest {
   }
 
   private void createComplexPptxFile() throws IOException {
-    complexPptxFile = new File(tempDir.toFile(), "company_overview.pptx");
+    complexPptxFile = new File(tempDir, "company_overview.pptx");
 
     try (XMLSlideShow ppt = new XMLSlideShow()) {
       // Slide 1 - Multiple tables
@@ -221,10 +249,10 @@ public class PptxTableTest extends BaseFileTest {
 
   @Test public void testPptxTableExtraction() throws Exception {
     // Run the PPTX scanner
-    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir);
 
     // Check that JSON file was created with slide context (now lowercase)
-    File jsonFile = new File(tempDir.toFile(),
+    File jsonFile = new File(tempDir,
         "sales_presentation__q4_sales_results__regional_performance.json");
     assertTrue(jsonFile.exists(), "JSON file should be created from PPTX table");
 
@@ -241,10 +269,10 @@ public class PptxTableTest extends BaseFileTest {
 
   @Test public void testMultipleTablesInPptx() throws Exception {
     // Run the PPTX scanner
-    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir);
 
     // Debug: List all JSON files created
-    File[] jsonFiles = tempDir.toFile().listFiles((dir, name) -> name.endsWith(".json"));
+    File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json"));
     System.out.println("JSON files created:");
     if (jsonFiles != null) {
       for (File f : jsonFiles) {
@@ -254,11 +282,11 @@ public class PptxTableTest extends BaseFileTest {
 
     // Check that all JSON files were created (now lowercase)
     // Note: Indices are only added when there are duplicate names
-    File revenueFile = new File(tempDir.toFile(),
+    File revenueFile = new File(tempDir,
         "company_overview__financial_overview__revenue_by_quarter.json");
-    File expenseFile = new File(tempDir.toFile(),
+    File expenseFile = new File(tempDir,
         "company_overview__financial_overview__operating_expenses.json");
-    File deptFile = new File(tempDir.toFile(),
+    File deptFile = new File(tempDir,
         "company_overview__team_structure__department_headcount.json");
 
     assertTrue(revenueFile.exists(), "Revenue table JSON should be created");
@@ -282,7 +310,7 @@ public class PptxTableTest extends BaseFileTest {
   }
 
   @Test public void testPptxWithoutTableTitle() throws Exception {
-    File noTitleFile = new File(tempDir.toFile(), "no_title.pptx");
+    File noTitleFile = new File(tempDir, "no_title.pptx");
 
     try (XMLSlideShow ppt = new XMLSlideShow()) {
       XSLFSlide slide = ppt.createSlide();
@@ -309,15 +337,15 @@ public class PptxTableTest extends BaseFileTest {
       }
     }
 
-    PptxTableScanner.scanAndConvertTables(noTitleFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(noTitleFile, tempDir);
 
     // Should create file with slide info but no table title - adds __table when no title
-    File jsonFile = new File(tempDir.toFile(), "no_title__data_slide__table.json");
+    File jsonFile = new File(tempDir, "no_title__data_slide__table.json");
     assertTrue(jsonFile.exists(), "Should create table with slide context when no table title");
   }
 
   @Test public void testEmptyPptxFile() throws Exception {
-    File emptyFile = new File(tempDir.toFile(), "empty.pptx");
+    File emptyFile = new File(tempDir, "empty.pptx");
 
     try (XMLSlideShow ppt = new XMLSlideShow()) {
       XSLFSlide slide = ppt.createSlide();
@@ -332,64 +360,74 @@ public class PptxTableTest extends BaseFileTest {
     }
 
     // Should not throw exception
-    PptxTableScanner.scanAndConvertTables(emptyFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(emptyFile, tempDir);
 
     // No JSON files should be created
-    File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
+    File[] jsonFiles = tempDir.listFiles((dir, name) ->
         name.startsWith("Empty") && name.endsWith(".json"));
     assertEquals(0, jsonFiles.length, "No JSON files should be created for PPTX without tables");
   }
 
   @Test public void testPptxInFileSchema() throws Exception {
-    // Create a simple schema with PPTX files
-    Map<String, Object> operand = new HashMap<>();
-    operand.put("directory", tempDir.toFile());
-
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        getEngineConfig(), false, null, null, null, null,
-        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
-
     // Convert PPTX files first
-    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
-    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir);
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir);
 
-    // Check that tables are accessible
-    Map<String, Table> tables = schema.getTableMap();
+    String model = buildTestModel("pptx", tempDir.getAbsolutePath());
 
-    // Tables should be created from the generated JSON files (snake_case table names with SMART_CASING)
-    // Note: Indices are only added when there are duplicate names
-    assertTrue(tables.containsKey("sales_presentation__q4_sales_results__regional_performance"),
-        "Should have sales presentation table");
-    assertTrue(tables.containsKey("company_overview__financial_overview__revenue_by_quarter"),
-        "Should have revenue table");
-    assertTrue(tables.containsKey("company_overview__financial_overview__operating_expenses"),
-        "Should have expense table");
-    assertTrue(tables.containsKey("company_overview__team_structure__department_headcount"),
-        "Should have department table");
+    // Test that all expected tables are accessible
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .doWithConnection(connection -> {
+          try {
+            // Count tables found
+            ResultSet tables = connection.getMetaData().getTables(null, "pptx", "%", null);
+            int tableCount = 0;
+            while (tables.next()) {
+              String tableName = tables.getString("TABLE_NAME");
+              if (tableName.contains("sales_presentation") || tableName.contains("company_overview")) {
+                tableCount++;
+              }
+            }
+            // Should find 4 tables (1 from simple + 3 from complex)
+            assertTrue(tableCount >= 4, "Should find at least 4 tables, found: " + tableCount);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
+
+    // Test querying specific tables
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM \"pptx\".\"sales_presentation__q4_sales_results__regional_performance\" WHERE region = 'North'")
+        .returnsCount(1);
+
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM \"pptx\".\"company_overview__financial_overview__revenue_by_quarter\" WHERE quarter = 'Q1'")
+        .returnsCount(1);
   }
 
   @Test public void testPptxTableQuery() throws Exception {
     // Run the scanner first
-    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir);
 
-    // Create schema and run query
-    final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
+    String model = buildTestModel("pptx", tempDir.getAbsolutePath());
 
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .withSchema("pptx", new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-            getEngineConfig(), false, null, null, null, null,
-            "SMART_CASING", "SMART_CASING", null, null, null, null, true))
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
         .query("SELECT * FROM \"pptx\".\"sales_presentation__q4_sales_results__regional_performance\" " +
-               "WHERE CAST(\"sales\" AS INTEGER) > 100000")
+               "WHERE CAST(sales AS INTEGER) > 100000")
         .returnsCount(2); // North (120000) and East (145000) have sales > 100000
   }
 
   @Test public void testPptxWithViewSimplification() throws Exception {
     // Run the scanner first to generate the complex named tables
-    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir);
 
     // Create a model file with views that simplify the complex PPTX table names
     String modelContent = "{\n" +
@@ -401,7 +439,7 @@ public class PptxTableTest extends BaseFileTest {
         "      \"type\": \"custom\",\n" +
         "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n" +
         "      \"operand\": {\n" +
-        "        \"directory\": \"" + tempDir.toFile().getAbsolutePath().replace("\\", "\\\\") + "\"\n" +
+        "        \"directory\": \"" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "\"\n" +
         "      }\n" +
         "    },\n" +
         "    {\n" +
@@ -465,36 +503,32 @@ public class PptxTableTest extends BaseFileTest {
     // and shows how queries can work with these names
 
     // Run the scanner first to generate the complex named tables
-    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir);
 
-    // Create schema with the PPTX files
-    // FileSchema will create tempDir/.aperio/TEST as the actual base directory
-    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), tempDir.toFile(), null, null,
-        getEngineConfig(), false, null, null, null, null,
-        "SMART_CASING", "SMART_CASING", null, null, null, null, true);
+    String model = buildTestModel("pptx", tempDir.getAbsolutePath());
 
     // Test querying with the complex names (now lowercase columns, snake_case table names with SMART_CASING)
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .withSchema("pptx", schema)
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
         .query("SELECT * FROM \"pptx\".\"company_overview__financial_overview__revenue_by_quarter\" " +
-               "WHERE \"quarter\" = 'Q1'")
+               "WHERE quarter = 'Q1'")
         .returnsCount(1)
         .returns("quarter=Q1; revenue=500000\n");
 
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .withSchema("pptx", schema)
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
         .query("SELECT * FROM \"pptx\".\"company_overview__financial_overview__operating_expenses\" " +
-               "WHERE \"category\" = 'Salaries'")
+               "WHERE category = 'Salaries'")
         .returnsCount(1)
         .returns("category=Salaries; amount=200000\n");
 
-    CalciteAssert.that()
-        .with(CalciteAssert.Config.REGULAR)
-        .withSchema("pptx", schema)
+    CalciteAssert.model(model)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
         .query("SELECT * FROM \"pptx\".\"company_overview__team_structure__department_headcount\" " +
-               "WHERE \"department\" = 'Engineering'")
+               "WHERE department = 'Engineering'")
         .returnsCount(1)
         .returns("department=Engineering; employees=25; manager=Alice\n");
 

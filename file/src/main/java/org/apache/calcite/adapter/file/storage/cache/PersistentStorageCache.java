@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Persistent cache for storage provider data and metadata.
  * Provides thread-safe, restart-survivable caching for remote storage providers.
- * 
+ *
  * <p>Features:
  * <ul>
  *   <li>Persistent storage of cached data and metadata</li>
@@ -49,7 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>ETag and last-modified validation</li>
  *   <li>Configurable cache directory per storage type</li>
  * </ul>
- * 
+ *
  * <p>Cache structure:
  * <pre>
  * cacheDirectory/
@@ -68,14 +68,14 @@ public class PersistentStorageCache {
   private static final String DATA_DIR = "data";
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(SerializationFeature.INDENT_OUTPUT);
-  
+
   private final File cacheDirectory;
   private final String storageType;
   private final long defaultTtlMs;
   private final File metadataFile;
   private final File dataDirectory;
   private final Map<String, CacheEntry> inMemoryCache = new ConcurrentHashMap<>();
-  
+
   /**
    * Cache entry containing metadata and data location.
    */
@@ -85,10 +85,10 @@ public class PersistentStorageCache {
     public String dataHash;
     public long cachedAt;
     public long ttlMs;
-    
+
     public CacheEntry() {} // For Jackson
-    
-    public CacheEntry(String path, StorageProvider.FileMetadata metadata, 
+
+    public CacheEntry(String path, StorageProvider.FileMetadata metadata,
                      String dataHash, long ttlMs) {
       this.path = path;
       this.metadata = metadata;
@@ -96,7 +96,7 @@ public class PersistentStorageCache {
       this.cachedAt = System.currentTimeMillis();
       this.ttlMs = ttlMs;
     }
-    
+
     public boolean isExpired() {
       if (ttlMs <= 0) {
         return false; // No expiration
@@ -104,10 +104,10 @@ public class PersistentStorageCache {
       return System.currentTimeMillis() - cachedAt > ttlMs;
     }
   }
-  
+
   /**
    * Creates a persistent cache for the given storage type.
-   * 
+   *
    * @param cacheDirectory Base cache directory
    * @param storageType Storage type identifier (e.g., "http", "s3")
    * @param defaultTtlMs Default TTL in milliseconds (0 = no expiration)
@@ -116,29 +116,29 @@ public class PersistentStorageCache {
     this.cacheDirectory = cacheDirectory;
     this.storageType = storageType;
     this.defaultTtlMs = defaultTtlMs;
-    
+
     // Create storage-specific cache directory
     File storageCacheDir = new File(cacheDirectory, storageType);
     if (!storageCacheDir.exists()) {
       storageCacheDir.mkdirs();
     }
-    
+
     this.metadataFile = new File(storageCacheDir, METADATA_FILE);
     this.dataDirectory = new File(storageCacheDir, DATA_DIR);
     if (!dataDirectory.exists()) {
       dataDirectory.mkdirs();
     }
-    
+
     // Load existing metadata
     loadMetadata();
-    
-    LOGGER.debug("Initialized persistent cache for storage type '{}' at: {}", 
+
+    LOGGER.debug("Initialized persistent cache for storage type '{}' at: {}",
         storageType, storageCacheDir);
   }
-  
+
   /**
    * Gets cached data for a path if available and not expired.
-   * 
+   *
    * @param path The file path
    * @return Cached data or null if not cached/expired
    */
@@ -147,7 +147,7 @@ public class PersistentStorageCache {
     if (entry == null || entry.isExpired()) {
       return null;
     }
-    
+
     // Load data from disk
     File dataFile = new File(dataDirectory, entry.dataHash + ".dat");
     if (!dataFile.exists()) {
@@ -155,7 +155,7 @@ public class PersistentStorageCache {
       inMemoryCache.remove(path);
       return null;
     }
-    
+
     try {
       return Files.readAllBytes(dataFile.toPath());
     } catch (IOException e) {
@@ -163,10 +163,10 @@ public class PersistentStorageCache {
       return null;
     }
   }
-  
+
   /**
    * Gets cached metadata for a path if available and not expired.
-   * 
+   *
    * @param path The file path
    * @return Cached metadata or null if not cached/expired
    */
@@ -177,10 +177,10 @@ public class PersistentStorageCache {
     }
     return entry.metadata;
   }
-  
+
   /**
    * Caches data and metadata for a path.
-   * 
+   *
    * @param path The file path
    * @param data The file data
    * @param metadata The file metadata
@@ -190,18 +190,18 @@ public class PersistentStorageCache {
     try {
       // Generate hash for data filename
       String dataHash = generateHash(path + "_" + System.currentTimeMillis());
-      
+
       // Write data to disk
       File dataFile = new File(dataDirectory, dataHash + ".dat");
       Files.write(dataFile.toPath(), data);
-      
+
       // Create cache entry
       long effectiveTtl = ttlMs > 0 ? ttlMs : defaultTtlMs;
       CacheEntry entry = new CacheEntry(path, metadata, dataHash, effectiveTtl);
-      
+
       // Update in-memory cache
       CacheEntry oldEntry = inMemoryCache.put(path, entry);
-      
+
       // Clean up old data file if exists
       if (oldEntry != null && !oldEntry.dataHash.equals(dataHash)) {
         File oldDataFile = new File(dataDirectory, oldEntry.dataHash + ".dat");
@@ -209,20 +209,20 @@ public class PersistentStorageCache {
           oldDataFile.delete();
         }
       }
-      
+
       // Save metadata
       saveMetadata();
-      
+
       LOGGER.debug("Cached data for path '{}' with TTL {}ms", path, effectiveTtl);
-      
+
     } catch (Exception e) {
       LOGGER.error("Failed to cache data for path '{}': {}", path, e.getMessage());
     }
   }
-  
+
   /**
    * Removes a path from the cache.
-   * 
+   *
    * @param path The file path to remove
    */
   public void evict(String path) {
@@ -233,14 +233,14 @@ public class PersistentStorageCache {
       if (dataFile.exists()) {
         dataFile.delete();
       }
-      
+
       // Save metadata
       saveMetadata();
-      
+
       LOGGER.debug("Evicted cache entry for path '{}'", path);
     }
   }
-  
+
   /**
    * Clears all cached data (mainly for testing).
    */
@@ -254,18 +254,18 @@ public class PersistentStorageCache {
         }
       }
     }
-    
+
     // Clear in-memory cache
     inMemoryCache.clear();
-    
+
     // Remove metadata file
     if (metadataFile.exists()) {
       metadataFile.delete();
     }
-    
+
     LOGGER.debug("Cleared all cache data for storage type '{}'", storageType);
   }
-  
+
   /**
    * Cleans up expired entries.
    */
@@ -282,13 +282,13 @@ public class PersistentStorageCache {
       }
       return false;
     });
-    
+
     // Save updated metadata
     if (!inMemoryCache.isEmpty()) {
       saveMetadata();
     }
   }
-  
+
   /**
    * Loads metadata from disk with file locking.
    */
@@ -296,19 +296,20 @@ public class PersistentStorageCache {
     if (!metadataFile.exists()) {
       return;
     }
-    
+
     File lockFile = new File(metadataFile.getParentFile(), metadataFile.getName() + ".lock");
-    
+
     try (RandomAccessFile raf = new RandomAccessFile(lockFile, "rw");
          FileChannel channel = raf.getChannel()) {
-      
+
       // Acquire shared lock for reading
       try (FileLock lock = channel.lock(0, Long.MAX_VALUE, true)) {
         @SuppressWarnings("unchecked")
-        Map<String, CacheEntry> loaded = MAPPER.readValue(metadataFile, 
-            MAPPER.getTypeFactory().constructMapType(HashMap.class, 
+        Map<String, CacheEntry> loaded =
+            MAPPER.readValue(
+                metadataFile, MAPPER.getTypeFactory().constructMapType(HashMap.class,
                 String.class, CacheEntry.class));
-        
+
         // Validate entries - remove if data file missing
         for (Map.Entry<String, CacheEntry> entry : loaded.entrySet()) {
           CacheEntry cacheEntry = entry.getValue();
@@ -319,41 +320,41 @@ public class PersistentStorageCache {
             LOGGER.debug("Removing cache entry for missing data file: {}", entry.getKey());
           }
         }
-        
-        LOGGER.debug("Loaded {} cache entries for storage type '{}'", 
+
+        LOGGER.debug("Loaded {} cache entries for storage type '{}'",
             inMemoryCache.size(), storageType);
       }
     } catch (Exception e) {
-      LOGGER.error("Failed to load cache metadata for storage type '{}': {}", 
+      LOGGER.error("Failed to load cache metadata for storage type '{}': {}",
           storageType, e.getMessage());
     }
   }
-  
+
   /**
    * Saves metadata to disk with file locking.
    */
   private void saveMetadata() {
     File tempFile = new File(metadataFile.getParentFile(), metadataFile.getName() + ".tmp");
     File lockFile = new File(metadataFile.getParentFile(), metadataFile.getName() + ".lock");
-    
+
     try (RandomAccessFile raf = new RandomAccessFile(lockFile, "rw");
          FileChannel channel = raf.getChannel()) {
-      
+
       // Acquire exclusive lock
       try (FileLock lock = channel.lock()) {
         // Write to temp file first
         MAPPER.writeValue(tempFile, inMemoryCache);
-        
+
         // Atomically move temp file to actual file
-        Files.move(tempFile.toPath(), metadataFile.toPath(), 
-                   StandardCopyOption.REPLACE_EXISTING, 
+        Files.move(tempFile.toPath(), metadataFile.toPath(),
+                   StandardCopyOption.REPLACE_EXISTING,
                    StandardCopyOption.ATOMIC_MOVE);
-        
-        LOGGER.debug("Saved {} cache entries for storage type '{}'", 
+
+        LOGGER.debug("Saved {} cache entries for storage type '{}'",
             inMemoryCache.size(), storageType);
       }
     } catch (IOException e) {
-      LOGGER.error("Failed to save cache metadata for storage type '{}': {}", 
+      LOGGER.error("Failed to save cache metadata for storage type '{}': {}",
           storageType, e.getMessage());
       // Clean up temp file if it exists
       if (tempFile.exists()) {
@@ -361,7 +362,7 @@ public class PersistentStorageCache {
       }
     }
   }
-  
+
   /**
    * Generates a hash for data file naming.
    */

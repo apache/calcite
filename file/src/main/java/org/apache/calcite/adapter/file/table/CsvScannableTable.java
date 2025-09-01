@@ -17,8 +17,8 @@
 package org.apache.calcite.adapter.file.table;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -52,7 +52,7 @@ public class CsvScannableTable extends CsvTable implements ScannableTable {
   public CsvScannableTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing) {
     super(source, protoRowType, columnCasing);
   }
-  
+
   /** Creates a CsvScannableTable with column casing and type inference. */
   public CsvScannableTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing,
       CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig) {
@@ -68,7 +68,7 @@ public class CsvScannableTable extends CsvTable implements ScannableTable {
     final List<RelDataType> fieldTypes = getFieldTypes(typeFactory);
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    
+
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, null,

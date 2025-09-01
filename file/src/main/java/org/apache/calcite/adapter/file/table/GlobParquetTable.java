@@ -16,14 +16,12 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.refresh.RefreshableTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableTable.RefreshBehavior;
-import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
-import org.apache.calcite.adapter.file.table.JsonScannableTable;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;

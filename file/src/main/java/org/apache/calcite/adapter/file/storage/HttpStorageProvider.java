@@ -58,7 +58,7 @@ public class HttpStorageProvider implements StorageProvider {
 
   // Cache for HTTP responses (Phase 2 enhancement)
   private final Map<String, CachedResponse> cache = new ConcurrentHashMap<>();
-  
+
   // Persistent cache for restart-survivable caching
   private PersistentStorageCache persistentCache;
 
@@ -142,7 +142,7 @@ public class HttpStorageProvider implements StorageProvider {
     this.headers = headers != null ? headers : new HashMap<>();
     this.mimeTypeOverride = mimeTypeOverride;
     this.config = config;
-    
+
     // Initialize persistent cache if cache manager is available
     try {
       this.persistentCache = StorageCacheManager.getInstance().getCache("http");
@@ -217,7 +217,7 @@ public class HttpStorageProvider implements StorageProvider {
     if (persistentCache != null) {
       byte[] cachedData = persistentCache.getCachedData(path);
       FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
-      
+
       if (cachedData != null && cachedMetadata != null) {
         // Try conditional request to check if data is still fresh
         try {
@@ -256,15 +256,15 @@ public class HttpStorageProvider implements StorageProvider {
         String etag = conn.getHeaderField("ETag");
         long lastModified = conn.getLastModified();
         cache.put(path, new CachedResponse(data, etag, lastModified));
-        
+
         // Also cache in persistent cache if available
         if (persistentCache != null) {
-          FileMetadata metadata = new FileMetadata(path, data.length, lastModified, 
-              getEffectiveContentType(conn), etag);
+          FileMetadata metadata =
+              new FileMetadata(path, data.length, lastModified, getEffectiveContentType(conn), etag);
           long ttl = config.getCacheTtl();
           persistentCache.cacheData(path, data, metadata, ttl);
         }
-        
+
         conn.disconnect();
         return new ByteArrayInputStream(data);
       }
@@ -278,19 +278,19 @@ public class HttpStorageProvider implements StorageProvider {
     String etag = conn.getHeaderField("ETag");
     long lastModified = conn.getLastModified();
     String contentType = getEffectiveContentType(conn);
-    
+
     // Cache in memory if enabled
     if (config != null && config.isCacheEnabled()) {
       cache.put(path, new CachedResponse(data, etag, lastModified));
     }
-    
+
     // Cache in persistent cache if available
     if (persistentCache != null) {
       FileMetadata metadata = new FileMetadata(path, data.length, lastModified, contentType, etag);
       long ttl = (config != null && config.isCacheEnabled()) ? config.getCacheTtl() : 0;
       persistentCache.cacheData(path, data, metadata, ttl);
     }
-    
+
     conn.disconnect();
     return new ByteArrayInputStream(data);
   }

@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.file.html;
 
 import org.apache.calcite.adapter.file.BaseFileTest;
-import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -188,8 +187,8 @@ public class MultiTableHtmlTest extends BaseFileTest {
     createComplexHtmlFile(); // This test expects both files for the count
 
     // Build model with recursive=false and ephemeralCache
-    String model = buildTestModel("html", tempDir.toFile().getAbsolutePath(),
-        "recursive", "false");
+    String model =
+        buildTestModel("html", tempDir.toFile().getAbsolutePath(), "recursive", "false");
 
     Properties info = new Properties();
     info.put("model", "inline:" + model);
@@ -255,9 +254,9 @@ public class MultiTableHtmlTest extends BaseFileTest {
     createMultiTableHtmlFile(); // Create the multi-table file for selector testing
 
     // Build model with explicit table definition and selector
-    String model = buildTestModel("html", tempDir.toFile().getAbsolutePath(),
-        "ephemeralCache", "true",
-        "tables", "[{\"name\": \"sales_only\", \"url\": \"file://" + 
+    String model =
+        buildTestModel("html", tempDir.toFile().getAbsolutePath(), "ephemeralCache", "true",
+        "tables", "[{\"name\": \"sales_only\", \"url\": \"file://" +
             new File(tempDir.toFile(), "multi_table_test.html").getAbsolutePath().replace("\\", "\\\\") +
             "\", \"selector\": \"#sales_data\"}]");
 
@@ -267,7 +266,7 @@ public class MultiTableHtmlTest extends BaseFileTest {
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
-      
+
       // Should only find the explicitly defined table
       ResultSet rs = statement.executeQuery("SELECT COUNT(*) as cnt FROM html.sales_only");
       assertTrue(rs.next());

@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.partition.PartitionDetector;
 import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -148,7 +148,8 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
             }
           }
           // All Parquet fields should be nullable
-          builder.add(partCol, typeFactory.createTypeWithNullability(
+          builder.add(
+              partCol, typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(sqlType), true));
         }
       }
@@ -185,7 +186,8 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     messageType.getFields().forEach(field -> {
       SqlTypeName sqlType = mapParquetTypeToSqlType(field);
       // All Parquet fields should be nullable
-      builder.add(field.getName(), typeFactory.createTypeWithNullability(
+      builder.add(
+          field.getName(), typeFactory.createTypeWithNullability(
           typeFactory.createSqlType(sqlType), true));
     });
 

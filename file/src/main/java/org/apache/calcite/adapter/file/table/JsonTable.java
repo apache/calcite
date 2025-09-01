@@ -18,8 +18,8 @@ package org.apache.calcite.adapter.file.table;
 
 import org.apache.calcite.adapter.file.execution.linq4j.JsonEnumerator;
 import org.apache.calcite.adapter.file.execution.linq4j.JsonEnumerator.JsonDataConverter;
-import org.apache.calcite.adapter.file.format.json.SharedJsonData;
 import org.apache.calcite.adapter.file.format.json.JsonSearchConfig;
+import org.apache.calcite.adapter.file.format.json.SharedJsonData;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.Statistic;
@@ -55,7 +55,7 @@ public class JsonTable extends AbstractTable {
   public JsonTable(Source source, Map<String, Object> options) {
     this(source, options, "UNCHANGED");
   }
-  
+
   public JsonTable(Source source, Map<String, Object> options, String columnNameCasing) {
     this.source = source;
     this.sharedData = null;
@@ -64,7 +64,7 @@ public class JsonTable extends AbstractTable {
     this.options = options;
     this.columnNameCasing = columnNameCasing;
   }
-  
+
   /**
    * Constructor for path-specific table using shared JSON data.
    *
@@ -75,7 +75,7 @@ public class JsonTable extends AbstractTable {
   public JsonTable(SharedJsonData sharedData, String jsonPath, JsonSearchConfig config) {
     this(sharedData, jsonPath, config, "UNCHANGED");
   }
-  
+
   /**
    * Constructor for path-specific table using shared JSON data with column casing.
    *
@@ -119,7 +119,7 @@ public class JsonTable extends AbstractTable {
         }
       }
     }
-    
+
     if (dataList == null || needsRefresh) {
       if (needsRefresh) {
         // Clear cached data
@@ -127,7 +127,7 @@ public class JsonTable extends AbstractTable {
         cachedConverter = null;
         rowType = null;
       }
-      
+
       if (cachedConverter == null) {
         cachedConverter = JsonEnumerator.deduceRowType(typeFactory, source, options, columnNameCasing);
       }

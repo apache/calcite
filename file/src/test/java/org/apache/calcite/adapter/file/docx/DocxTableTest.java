@@ -17,17 +17,12 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.converters.DocxTableScanner;
-import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.schema.Table;
-import org.apache.calcite.test.CalciteAssert;
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
-
-import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,14 +35,11 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,7 +59,7 @@ public class DocxTableTest {
   public void setUp() throws Exception {
     // Create temporary directory manually
     tempDir = Files.createTempDirectory("docx-test").toFile();
-    
+
     // Create test DOCX files
     createSimpleDocxFile();
     createComplexDocxFile();
@@ -356,7 +348,7 @@ public class DocxTableTest {
         while (tables.next()) {
           tableNames.add(tables.getString("TABLE_NAME"));
         }
-        
+
         assertTrue(tableNames.contains("products__current_products"),
             "Should have products__current_products table");
         assertTrue(tableNames.contains("quarterly_report__regional_sales_summary"),
@@ -394,8 +386,8 @@ public class DocxTableTest {
     // Create connection and run query
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
       try (Statement stmt = connection.createStatement()) {
-        ResultSet rs = stmt.executeQuery(
-            "SELECT * FROM \"FILES\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75");
+        ResultSet rs =
+            stmt.executeQuery("SELECT * FROM \"FILES\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75");
         int count = 0;
         while (rs.next()) {
           count++;

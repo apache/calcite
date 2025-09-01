@@ -98,7 +98,7 @@ public class StorageProviderFactory {
 
       case "http":
       case "https":
-        if (config != null && (config.containsKey("method") || config.containsKey("body") 
+        if (config != null && (config.containsKey("method") || config.containsKey("body")
             || config.containsKey("headers") || config.containsKey("mimeType"))) {
           // Create configured HTTP provider
           HttpConfig httpConfig = HttpConfig.fromMap(config);
@@ -177,7 +177,7 @@ public class StorageProviderFactory {
           // Certificate authentication - still needs tenant and client IDs
           String tenantId = (String) config.get("tenantId");
           String clientId = (String) config.get("clientId");
-          
+
           if (tenantId == null || clientId == null) {
             throw new IllegalArgumentException(
                 "Certificate authentication requires 'tenantId' and 'clientId'");
@@ -191,11 +191,11 @@ public class StorageProviderFactory {
         }
 
         // Determine which API to use
-        boolean useGraphApi = config.containsKey("useGraphApi") 
+        boolean useGraphApi = config.containsKey("useGraphApi")
             && Boolean.TRUE.equals(config.get("useGraphApi"));
         boolean useLegacyAuth = config.containsKey("useLegacyAuth")
             && Boolean.TRUE.equals(config.get("useLegacyAuth"));
-        
+
         if (useGraphApi) {
           // Use Microsoft Graph API
           MicrosoftGraphTokenManager graphTokenManager;
@@ -217,9 +217,9 @@ public class StorageProviderFactory {
           // Use legacy SharePoint authentication (works with client secret)
           // Note: Legacy auth uses realm instead of tenantId
           String realm = config.containsKey("realm") ? (String) config.get("realm") : null;
-          SharePointLegacyTokenManager legacyTokenManager = 
-              realm != null 
-              ? new SharePointLegacyTokenManager(tokenManager.clientId, 
+          SharePointLegacyTokenManager legacyTokenManager =
+              realm != null
+              ? new SharePointLegacyTokenManager(tokenManager.clientId,
                   tokenManager.clientSecret, tokenManager.getSiteUrl(), realm)
               : new SharePointLegacyTokenManager(tokenManager.clientId,
                   tokenManager.clientSecret, tokenManager.getSiteUrl());
@@ -239,7 +239,7 @@ public class StorageProviderFactory {
               throw new RuntimeException("Failed to initialize certificate authentication", e);
             }
           }
-          
+
           // Fall back to client secret (will fail with REST API but might work with Graph)
           SharePointRestTokenManager restTokenManager;
           if (tokenManager.clientSecret != null) {

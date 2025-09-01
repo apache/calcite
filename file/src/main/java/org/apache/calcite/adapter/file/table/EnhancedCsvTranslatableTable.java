@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
 import org.apache.calcite.adapter.file.execution.vectorized.VectorizedCsvEnumerator;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;

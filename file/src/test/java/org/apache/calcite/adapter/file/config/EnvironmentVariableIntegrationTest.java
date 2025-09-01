@@ -18,36 +18,36 @@ package org.apache.calcite.adapter.file.config;
 
 import org.apache.calcite.adapter.file.BaseFileTest;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.sql.DatabaseMetaData;
-import java.util.Properties;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Integration tests for environment variable substitution with real file adapter operations.
- * 
+ *
  * These tests use system properties to simulate environment variables to avoid conflicts
  * with the test suite's actual environment variables (e.g., CALCITE_FILE_ENGINE_TYPE).
  */
 @Tag("integration")
 public class EnvironmentVariableIntegrationTest extends BaseFileTest {
-  
+
   // Store original system properties to restore after each test
   private final Map<String, String> originalProperties = new HashMap<>();
   private static final String[] PROPERTY_NAMES = {
     "CALCITE_SCHEMA_NAME",
-    "CALCITE_DATA_DIR", 
+    "CALCITE_DATA_DIR",
     "CALCITE_FILE_ENGINE_TYPE",
     "CALCITE_BATCH_SIZE",
     "CALCITE_EPHEMERAL_CACHE",
@@ -86,8 +86,7 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     originalProperties.clear();
   }
 
-  @Test
-  public void testModelWithEnvironmentVariables() throws Exception {
+  @Test public void testModelWithEnvironmentVariables() throws Exception {
     // Set up test environment variables as system properties
     System.setProperty("CALCITE_SCHEMA_NAME", "TEST_SALES");
     System.setProperty("CALCITE_DATA_DIR", "sales");
@@ -95,19 +94,19 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     System.setProperty("CALCITE_BATCH_SIZE", "500");
     System.setProperty("CALCITE_EPHEMERAL_CACHE", "true");
     System.setProperty("CALCITE_PRIME_CACHE", "false");
-    
+
     String modelPath = getClass().getResource("/model-with-env-vars.json").getPath();
     Properties info = new Properties();
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Verify schema was created with the environment variable name
       DatabaseMetaData metaData = connection.getMetaData();
-      
+
       // Verify the connection works and schema was created with environment variable
       assertNotNull(connection, "Connection should not be null");
       assertFalse(connection.isClosed(), "Connection should not be closed");
-      
+
       // Test a simple query to verify the schema is accessible
       try (Statement statement = connection.createStatement()) {
         ResultSet rs = statement.executeQuery("SELECT 1 as test_col");
@@ -117,19 +116,18 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testDefaultValuesUsedWhenVariablesNotSet() throws Exception {
+  @Test public void testDefaultValuesUsedWhenVariablesNotSet() throws Exception {
     // Don't set any system properties - test will use defaults from the model
-    
+
     String modelPath = getClass().getResource("/model-with-env-vars.json").getPath();
     Properties info = new Properties();
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // With defaults, schema should be SALES - verify connection works
       assertNotNull(connection, "Connection should not be null");
       assertFalse(connection.isClosed(), "Connection should not be closed");
-      
+
       try (Statement statement = connection.createStatement()) {
         ResultSet rs = statement.executeQuery("SELECT 1 as default_test");
         assertTrue(rs.next(), "Should return a row with defaults");
@@ -138,18 +136,17 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testDifferentExecutionEngines() throws Exception {
+  @Test public void testDifferentExecutionEngines() throws Exception {
     // Set other required properties with PARQUET engine
     System.setProperty("CALCITE_SCHEMA_NAME", "TEST_SALES");
     System.setProperty("CALCITE_DATA_DIR", "sales");
     System.setProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
     System.setProperty("CALCITE_EPHEMERAL_CACHE", "true");
-    
+
     String modelPath = getClass().getResource("/model-with-env-vars.json").getPath();
     Properties info = new Properties();
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Verify we can still query with PARQUET engine
       try (Statement statement = connection.createStatement()) {
@@ -159,11 +156,11 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
         assertEquals(1, rs.getInt(1));
       }
     }
-    
+
     // Clear and set up for LINQ4J engine test
     System.clearProperty("CALCITE_FILE_ENGINE_TYPE");
     System.setProperty("CALCITE_FILE_ENGINE_TYPE", "LINQ4J");
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       try (Statement statement = connection.createStatement()) {
         ResultSet rs = statement.executeQuery("SELECT 1");
@@ -173,8 +170,7 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testNumericEnvironmentVariables() throws Exception {
+  @Test public void testNumericEnvironmentVariables() throws Exception {
     // Set up required properties with numeric values
     System.setProperty("CALCITE_SCHEMA_NAME", "TEST_SALES");
     System.setProperty("CALCITE_DATA_DIR", "sales");
@@ -182,16 +178,16 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     System.setProperty("CALCITE_BATCH_SIZE", "2000");
     System.setProperty("CALCITE_MEMORY_THRESHOLD", "209715200"); // 200MB
     System.setProperty("CALCITE_EPHEMERAL_CACHE", "true");
-    
+
     String modelPath = getClass().getResource("/model-with-env-vars.json").getPath();
     Properties info = new Properties();
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // The connection should be created successfully with numeric values
       assertNotNull(connection);
       assertFalse(connection.isClosed());
-      
+
       // Verify we can execute queries
       try (Statement statement = connection.createStatement()) {
         ResultSet rs = statement.executeQuery("SELECT 1");
@@ -200,8 +196,7 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testBooleanEnvironmentVariables() throws Exception {
+  @Test public void testBooleanEnvironmentVariables() throws Exception {
     // Set up required properties with boolean values
     System.setProperty("CALCITE_SCHEMA_NAME", "TEST_SALES");
     System.setProperty("CALCITE_DATA_DIR", "sales");
@@ -209,11 +204,11 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     System.setProperty("CALCITE_EPHEMERAL_CACHE", "true");
     System.setProperty("CALCITE_PRIME_CACHE", "false");
     System.setProperty("CALCITE_RECURSIVE", "true");
-    
+
     String modelPath = getClass().getResource("/model-with-env-vars.json").getPath();
     Properties info = new Properties();
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // The connection should be created successfully with boolean values
       assertNotNull(connection);
@@ -221,8 +216,7 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testCasingEnvironmentVariables() throws Exception {
+  @Test public void testCasingEnvironmentVariables() throws Exception {
     // Set up required properties with casing configuration
     System.setProperty("CALCITE_SCHEMA_NAME", "TEST_SALES");
     System.setProperty("CALCITE_DATA_DIR", "sales");
@@ -230,27 +224,26 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
     System.setProperty("CALCITE_EPHEMERAL_CACHE", "true");
     System.setProperty("CALCITE_TABLE_CASING", "UPPER");
     System.setProperty("CALCITE_COLUMN_CASING", "LOWER");
-    
+
     String modelPath = getClass().getResource("/model-with-env-vars.json").getPath();
     Properties info = new Properties();
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // The connection should be created with the specified casing rules
       assertNotNull(connection);
-      
+
       // Note: The actual casing behavior would be tested by checking
       // table and column names in the metadata
     }
   }
 
-  @Test
-  public void testInlineModelWithEnvironmentVariables() throws Exception {
+  @Test public void testInlineModelWithEnvironmentVariables() throws Exception {
     // Set up environment for inline model - use different variable names to avoid conflicts
     System.setProperty("INLINE_SCHEMA", "INLINE_TEST");
     System.setProperty("INLINE_DIR", "sales");
     System.setProperty("INLINE_ENGINE", "LINQ4J");
-    
+
     String inlineModel = "{"
         + "\"version\": \"1.0\","
         + "\"defaultSchema\": \"${INLINE_SCHEMA}\","
@@ -267,22 +260,22 @@ public class EnvironmentVariableIntegrationTest extends BaseFileTest {
         + "  }"
         + "]"
         + "}";
-    
+
     Properties info = new Properties();
     info.setProperty("model", "inline:" + inlineModel);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Verify the inline model with environment variables works
       assertNotNull(connection, "Inline model connection should not be null");
       assertFalse(connection.isClosed(), "Inline model connection should not be closed");
-      
+
       try (Statement statement = connection.createStatement()) {
         ResultSet rs = statement.executeQuery("SELECT 1 as inline_test");
         assertTrue(rs.next(), "Should return a row for inline model");
         assertEquals(1, rs.getInt("inline_test"), "Should return value 1");
       }
     }
-    
+
     // Clean up inline-specific properties
     System.clearProperty("INLINE_SCHEMA");
     System.clearProperty("INLINE_DIR");

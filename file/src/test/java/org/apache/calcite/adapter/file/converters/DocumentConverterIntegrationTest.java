@@ -33,12 +33,11 @@ public class DocumentConverterIntegrationTest {
   @TempDir
   File tempDir;
 
-  @Test
-  public void testFileConversionManagerRoutesToDocxScanner() {
+  @Test public void testFileConversionManagerRoutesToDocxScanner() {
     // Test that DOCX files are recognized as requiring conversion
     assertTrue(FileConversionManager.requiresConversion("document.docx"));
     assertTrue(FileConversionManager.requiresConversion("REPORT.DOCX"));
-    
+
     // Test that DOCX would be handled by convertIfNeeded
     File docxFile = new File(tempDir, "test.docx");
     // We don't actually create the file or test conversion here
@@ -47,32 +46,29 @@ public class DocumentConverterIntegrationTest {
     assertTrue(path.endsWith(".docx"));
   }
 
-  @Test
-  public void testFileConversionManagerRoutesToPptxScanner() {
+  @Test public void testFileConversionManagerRoutesToPptxScanner() {
     // Test that PPTX files are recognized as requiring conversion
     assertTrue(FileConversionManager.requiresConversion("presentation.pptx"));
     assertTrue(FileConversionManager.requiresConversion("SLIDES.PPTX"));
-    
+
     // Test that PPTX would be handled by convertIfNeeded
     File pptxFile = new File(tempDir, "test.pptx");
     String path = pptxFile.getPath().toLowerCase();
     assertTrue(path.endsWith(".pptx"));
   }
 
-  @Test
-  public void testFileConversionManagerRoutesToMarkdownScanner() {
+  @Test public void testFileConversionManagerRoutesToMarkdownScanner() {
     // Test that Markdown files are recognized as requiring conversion
     assertTrue(FileConversionManager.requiresConversion("readme.md"));
     assertTrue(FileConversionManager.requiresConversion("NOTES.MD"));
-    
+
     // Test that Markdown would be handled by convertIfNeeded
     File mdFile = new File(tempDir, "test.md");
     String path = mdFile.getPath().toLowerCase();
     assertTrue(path.endsWith(".md"));
   }
 
-  @Test
-  public void testDirectlyUsableFiles() {
+  @Test public void testDirectlyUsableFiles() {
     // Files that don't need conversion
     assertTrue(FileConversionManager.isDirectlyUsable("data.csv"));
     assertTrue(FileConversionManager.isDirectlyUsable("data.json"));
@@ -80,7 +76,7 @@ public class DocumentConverterIntegrationTest {
     assertTrue(FileConversionManager.isDirectlyUsable("data.yaml"));
     assertTrue(FileConversionManager.isDirectlyUsable("data.yml"));
     assertTrue(FileConversionManager.isDirectlyUsable("data.tsv"));
-    
+
     // Files that DO need conversion
     assertFalse(FileConversionManager.isDirectlyUsable("data.xlsx"));
     assertFalse(FileConversionManager.isDirectlyUsable("data.html"));
@@ -90,8 +86,7 @@ public class DocumentConverterIntegrationTest {
     assertFalse(FileConversionManager.isDirectlyUsable("data.md"));
   }
 
-  @Test
-  public void testConversionRequiredFiles() {
+  @Test public void testConversionRequiredFiles() {
     // Files that need conversion
     assertTrue(FileConversionManager.requiresConversion("data.xlsx"));
     assertTrue(FileConversionManager.requiresConversion("data.xls"));
@@ -101,7 +96,7 @@ public class DocumentConverterIntegrationTest {
     assertTrue(FileConversionManager.requiresConversion("data.docx"));
     assertTrue(FileConversionManager.requiresConversion("data.pptx"));
     assertTrue(FileConversionManager.requiresConversion("data.md"));
-    
+
     // Files that don't need conversion
     assertFalse(FileConversionManager.requiresConversion("data.csv"));
     assertFalse(FileConversionManager.requiresConversion("data.json"));

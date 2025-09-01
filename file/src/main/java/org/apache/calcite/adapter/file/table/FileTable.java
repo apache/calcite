@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.file.FileReaderV2;
 import org.apache.calcite.adapter.file.FileRowConverter;
 import org.apache.calcite.adapter.file.execution.FileEnumerator;
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -72,7 +72,7 @@ public class FileTable extends AbstractQueryableTable
   public static FileTable create(Source source, Map<String, Object> tableDef) {
     return create(source, tableDef, "SMART_CASING");
   }
-  
+
   /** Creates a FileTable with specified column name casing. */
   public static FileTable create(Source source, Map<String, Object> tableDef, String columnNameCasing) {
     if (tableDef == null) {

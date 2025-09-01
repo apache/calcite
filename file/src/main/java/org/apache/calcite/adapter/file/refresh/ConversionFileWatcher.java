@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.adapter.file.refresh;
 
-import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
+import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.adapter.file.converters.XmlToJsonConverter;
 
 import org.slf4j.Logger;
@@ -32,27 +32,27 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Watches source files that need conversion (Excel, HTML, XML) and 
+ * Watches source files that need conversion (Excel, HTML, XML) and
  * re-runs conversion when they change. This ensures that the generated
  * JSON files stay up-to-date, which then triggers the normal refresh
  * mechanism for tables based on those JSON files.
  */
 public class ConversionFileWatcher {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConversionFileWatcher.class);
-  
+
   private static ConversionFileWatcher instance;
   private final ScheduledExecutorService executor;
   // Schema-aware watched files: schema -> file -> info
   private final Map<String, Map<File, FileInfo>> schemaWatchedFiles = new ConcurrentHashMap<>();
   // Schema base directories for conversion output
   private final Map<String, File> schemaBaseDirectories = new ConcurrentHashMap<>();
-  
+
   private static class FileInfo {
     final FileType type;
     final String schemaName;
     long lastModified;
     long lastChecked;
-    
+
     FileInfo(FileType type, String schemaName, long lastModified) {
       this.type = type;
       this.schemaName = schemaName;
@@ -60,11 +60,11 @@ public class ConversionFileWatcher {
       this.lastChecked = System.currentTimeMillis();
     }
   }
-  
+
   private enum FileType {
     EXCEL, HTML, XML
   }
-  
+
   private ConversionFileWatcher() {
     this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
       Thread t = new Thread(r, "ConversionFileWatcher");
@@ -72,7 +72,7 @@ public class ConversionFileWatcher {
       return t;
     });
   }
-  
+
   /**
    * Gets the singleton instance of the watcher.
    */
@@ -82,34 +82,34 @@ public class ConversionFileWatcher {
     }
     return instance;
   }
-  
+
   /**
    * Registers the base directory for a schema.
-   * 
+   *
    * @param schemaName The schema name
    * @param baseDirectory The base directory for conversion output
    */
   public void registerSchemaBaseDirectory(String schemaName, File baseDirectory) {
     if (schemaName != null && baseDirectory != null) {
       schemaBaseDirectories.put(schemaName, baseDirectory);
-      LOGGER.debug("Registered base directory for schema '{}': {}", 
+      LOGGER.debug("Registered base directory for schema '{}': {}",
                   schemaName, baseDirectory.getAbsolutePath());
     }
   }
-  
+
   /**
    * Registers a file to be watched for changes.
-   * 
+   *
    * @param file The file to watch
    * @param refreshInterval How often to check for changes
    */
   public void watchFile(File file, Duration refreshInterval) {
     watchFile(null, file, refreshInterval);
   }
-  
+
   /**
    * Registers a file to be watched for changes with schema awareness.
-   * 
+   *
    * @param schemaName The schema name (optional)
    * @param file The file to watch
    * @param refreshInterval How often to check for changes
@@ -118,10 +118,10 @@ public class ConversionFileWatcher {
     if (file == null || !file.exists()) {
       return;
     }
-    
+
     String name = file.getName().toLowerCase();
     FileType type = null;
-    
+
     if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
       type = FileType.EXCEL;
     } else if (name.endsWith(".html") || name.endsWith(".htm")) {
@@ -129,30 +129,30 @@ public class ConversionFileWatcher {
     } else if (name.endsWith(".xml")) {
       type = FileType.XML;
     }
-    
+
     if (type != null) {
       // Use "default" if no schema name provided
       String effectiveSchema = schemaName != null ? schemaName : "default";
-      Map<File, FileInfo> watchedFiles = schemaWatchedFiles.computeIfAbsent(
-          effectiveSchema, k -> new ConcurrentHashMap<>());
-      
+      Map<File, FileInfo> watchedFiles =
+          schemaWatchedFiles.computeIfAbsent(effectiveSchema, k -> new ConcurrentHashMap<>());
+
       FileInfo info = new FileInfo(type, effectiveSchema, file.lastModified());
       FileInfo existing = watchedFiles.putIfAbsent(file, info);
-      
+
       if (existing == null) {
-        LOGGER.debug("Started watching {} file for schema '{}': {}", 
+        LOGGER.debug("Started watching {} file for schema '{}': {}",
                     type, effectiveSchema, file.getAbsolutePath());
-        
+
         // Schedule periodic checks
-        long intervalMillis = refreshInterval != null ? 
+        long intervalMillis = refreshInterval != null ?
             refreshInterval.toMillis() : 60000; // Default 1 minute
-            
-        executor.scheduleWithFixedDelay(() -> checkFile(effectiveSchema, file), 
+
+        executor.scheduleWithFixedDelay(() -> checkFile(effectiveSchema, file),
             intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
       }
     }
   }
-  
+
   /**
    * Stops watching a file.
    */
@@ -162,7 +162,7 @@ public class ConversionFileWatcher {
       watchedFiles.remove(file);
     }
   }
-  
+
   /**
    * Stops watching a file for a specific schema.
    */
@@ -173,7 +173,7 @@ public class ConversionFileWatcher {
       watchedFiles.remove(file);
     }
   }
-  
+
   /**
    * Checks if a file has been modified and re-runs conversion if needed.
    */
@@ -182,22 +182,22 @@ public class ConversionFileWatcher {
     if (watchedFiles == null) {
       return;
     }
-    
+
     FileInfo info = watchedFiles.get(file);
     if (info == null) {
       return; // File no longer being watched
     }
-    
+
     if (!file.exists()) {
       LOGGER.warn("Watched file no longer exists: {}", file.getAbsolutePath());
       watchedFiles.remove(file);
       return;
     }
-    
+
     long currentModified = file.lastModified();
     if (currentModified > info.lastModified) {
       LOGGER.info("Detected change in {} file: {}", info.type, file.getName());
-      
+
       try {
         // Re-run the appropriate conversion
         switch (info.type) {
@@ -219,7 +219,7 @@ public class ConversionFileWatcher {
               file, outputDirExcel, true, "SMART_CASING", "SMART_CASING", baseDirExcel != null ? baseDirExcel : outputDirExcel.getParentFile());
           LOGGER.info("Re-converted Excel file to JSON: {}", file.getName());
           break;
-          
+
         case HTML:
           // HTML conversion
           try {
@@ -242,9 +242,9 @@ public class ConversionFileWatcher {
             LOGGER.error("Failed to re-convert HTML file: {}", file.getName(), e);
           }
           break;
-          
+
         case XML:
-          // XML conversion  
+          // XML conversion
           try {
             // Use conversions directory under base directory for this schema
             File baseDirXml = schemaBaseDirectories.get(schemaName);
@@ -266,19 +266,19 @@ public class ConversionFileWatcher {
           }
           break;
         }
-        
+
         // Update the last modified time
         info.lastModified = currentModified;
-        
+
       } catch (Exception e) {
-        LOGGER.error("Failed to re-convert {} file {}: {}", 
+        LOGGER.error("Failed to re-convert {} file {}: {}",
             info.type, file.getName(), e.getMessage(), e);
       }
     }
-    
+
     info.lastChecked = System.currentTimeMillis();
   }
-  
+
   /**
    * Shuts down the watcher.
    */

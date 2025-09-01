@@ -16,18 +16,18 @@
  */
 package org.apache.calcite.adapter.file.refresh;
 
-import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
+import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.adapter.file.converters.XmlToJsonConverter;
 import org.apache.calcite.adapter.file.table.JsonScannableTable;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
@@ -45,59 +45,59 @@ import java.util.function.Function;
  * A refreshable table that monitors a source file and regenerates converted files
  * when the source changes. This handles conversion pipelines like:
  * - Excel → JSON → Table
- * - HTML → JSON → Table  
+ * - HTML → JSON → Table
  * - XML → JSON → Table
  * - Any custom conversion pipeline
- * 
+ *
  * When the source file changes, it re-runs the conversion and updates the table.
  */
-public class RefreshableConvertedTable extends AbstractRefreshableTable 
+public class RefreshableConvertedTable extends AbstractRefreshableTable
     implements TranslatableTable, ScannableTable {
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RefreshableConvertedTable.class);
-  
+
   /** Function that converts source file to intermediate format (e.g., Excel to JSON) */
   private final Function<File, File> conversionFunction;
-  
+
   /** The original source file to monitor */
   private final File sourceFile;
-  
+
   /** The converted file (e.g., JSON file generated from Excel) */
   private volatile File convertedFile;
-  
+
   /** The table name */
   private final String tableName;
-  
+
   /** Whether to convert to Parquet */
   private final boolean needsParquet;
-  
+
   /** Cache directory for Parquet files */
   private final File cacheDir;
-  
+
   /** Schema name for Parquet conversion */
   private final String schemaName;
-  
+
   /** Parent schema for Parquet conversion */
   private final SchemaPlus parentSchema;
-  
+
   /** The current delegate table */
   private volatile Table delegateTable;
-  
+
   /** Parquet file if using Parquet engine */
   private volatile File parquetFile;
-  
+
   /** Column name casing configuration */
   private final String columnNameCasing;
-  
+
   /** Table name casing configuration */
   private final String tableNameCasing;
-  
+
   /** Output directory for conversions */
   private final File outputDir;
-  
+
   /**
    * Creates a refreshable converted table.
-   * 
+   *
    * @param sourceFile The source file to monitor (e.g., Excel file)
    * @param conversionFunction Function to convert source to intermediate format
    * @param tableName The table name
@@ -110,7 +110,7 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
    * @param tableNameCasing Table name casing configuration
    * @param outputDir Output directory for conversions
    */
-  public RefreshableConvertedTable(File sourceFile, 
+  public RefreshableConvertedTable(File sourceFile,
       Function<File, File> conversionFunction,
       String tableName,
       Duration refreshInterval,
@@ -132,48 +132,48 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
     this.columnNameCasing = columnNameCasing;
     this.tableNameCasing = tableNameCasing;
     this.outputDir = outputDir;
-    
+
     // Initial conversion
     updateConvertedTable();
   }
-  
+
   /**
    * Factory method for Excel files.
    */
   public static RefreshableConvertedTable forExcel(File excelFile, String sheetName,
-      Duration refreshInterval, boolean needsParquet, File cacheDir, 
+      Duration refreshInterval, boolean needsParquet, File cacheDir,
       String schemaName, SchemaPlus parentSchema, String columnNameCasing,
       String tableNameCasing, File outputDir) {
-    
+
     Function<File, File> excelConverter = sourceFile -> {
       try {
         // Convert Excel to JSON using configured output directory
         SafeExcelToJsonConverter.convertIfNeeded(
             sourceFile, outputDir, true, tableNameCasing, columnNameCasing, outputDir.getParentFile());
-        
+
         // Find the generated JSON file for this sheet
         String baseName = sourceFile.getName();
         if (baseName.contains(".")) {
           baseName = baseName.substring(0, baseName.lastIndexOf('.'));
         }
-        
+
         File jsonFile = new File(outputDir, baseName + "__" + sheetName + ".json");
         if (!jsonFile.exists()) {
           // Try without double underscore (some converters might use single)
           jsonFile = new File(outputDir, baseName + "_" + sheetName + ".json");
         }
-        
+
         return jsonFile;
       } catch (Exception e) {
         throw new RuntimeException("Failed to convert Excel file: " + sourceFile, e);
       }
     };
-    
+
     return new RefreshableConvertedTable(excelFile, excelConverter, sheetName,
         refreshInterval, needsParquet, cacheDir, schemaName, parentSchema,
         columnNameCasing, tableNameCasing, outputDir);
   }
-  
+
   /**
    * Factory method for HTML files.
    */
@@ -181,7 +181,7 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
       Duration refreshInterval, boolean needsParquet, File cacheDir,
       String schemaName, SchemaPlus parentSchema, String columnNameCasing,
       String tableNameCasing, File outputDir) {
-    
+
     Function<File, File> htmlConverter = sourceFile -> {
       try {
         // Convert HTML to JSON using configured output directory
@@ -196,12 +196,12 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
         throw new RuntimeException("Failed to convert HTML file: " + sourceFile, e);
       }
     };
-    
+
     return new RefreshableConvertedTable(htmlFile, htmlConverter, tableName,
         refreshInterval, needsParquet, cacheDir, schemaName, parentSchema,
         columnNameCasing, tableNameCasing, outputDir);
   }
-  
+
   /**
    * Factory method for XML files.
    */
@@ -209,7 +209,7 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
       Duration refreshInterval, boolean needsParquet, File cacheDir,
       String schemaName, SchemaPlus parentSchema, String columnNameCasing,
       String tableNameCasing, File outputDir) {
-    
+
     Function<File, File> xmlConverter = sourceFile -> {
       try {
         // Convert XML to JSON using configured output directory
@@ -224,54 +224,53 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
         throw new RuntimeException("Failed to convert XML file: " + sourceFile, e);
       }
     };
-    
+
     return new RefreshableConvertedTable(xmlFile, xmlConverter, tableName,
         refreshInterval, needsParquet, cacheDir, schemaName, parentSchema,
         columnNameCasing, tableNameCasing, outputDir);
   }
-  
-  @Override
-  protected void doRefresh() {
+
+  @Override protected void doRefresh() {
     // Check if source file has been modified
     if (isFileModified(sourceFile)) {
-      LOGGER.debug("Source file {} has been modified, regenerating converted table", 
+      LOGGER.debug("Source file {} has been modified, regenerating converted table",
           sourceFile.getAbsolutePath());
-      
+
       try {
         // Re-run conversion
         updateConvertedTable();
-        
+
         // Update our tracking of when the source file was last seen
         updateLastModified(sourceFile);
-        
+
         LOGGER.info("Updated converted table {} from {}", tableName, sourceFile.getName());
       } catch (Exception e) {
-        LOGGER.error("Failed to update converted table {}: {}", 
+        LOGGER.error("Failed to update converted table {}: {}",
             tableName, e.getMessage(), e);
       }
     }
   }
-  
+
   private void updateConvertedTable() {
     try {
       // Run the conversion function to get the intermediate file
       this.convertedFile = conversionFunction.apply(sourceFile);
-      
+
       if (convertedFile == null || !convertedFile.exists()) {
         throw new IllegalStateException("Conversion failed - no output file generated");
       }
-      
+
       // Create source from converted file
       Source convertedSource = Sources.of(convertedFile);
-      
+
       // Create table from converted file
       Table jsonTable = new JsonScannableTable(convertedSource);
-      
+
       // For now, always use JSON table directly
       // TODO: Add Parquet support when ParquetConversionUtil is available
       this.delegateTable = jsonTable;
     } catch (Exception e) {
-      LOGGER.error("Failed to convert source file {}: {}", 
+      LOGGER.error("Failed to convert source file {}: {}",
           sourceFile.getAbsolutePath(), e.getMessage(), e);
       // Keep existing delegate table if refresh fails
       if (this.delegateTable == null) {
@@ -280,24 +279,21 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
       }
     }
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     checkRefresh();
     return delegateTable.getRowType(typeFactory);
   }
-  
-  @Override
-  public Enumerable<Object[]> scan(DataContext root) {
+
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     checkRefresh();
     if (delegateTable instanceof ScannableTable) {
       return ((ScannableTable) delegateTable).scan(root);
     }
     throw new UnsupportedOperationException("Delegate table is not scannable");
   }
-  
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+
+  @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     checkRefresh();
     if (delegateTable instanceof TranslatableTable) {
       return ((TranslatableTable) delegateTable).toRel(context, relOptTable);
@@ -305,8 +301,7 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
     throw new UnsupportedOperationException("Delegate table is not translatable");
   }
 
-  @Override
-  public RefreshBehavior getRefreshBehavior() {
+  @Override public RefreshBehavior getRefreshBehavior() {
     return RefreshBehavior.SINGLE_FILE;
   }
 

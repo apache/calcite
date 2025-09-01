@@ -40,6 +40,9 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -51,15 +54,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Table that materializes query results to Parquet on first access.
  */
 public class MaterializedViewTable extends AbstractTable implements TranslatableTable {
   private static final Logger LOGGER = LoggerFactory.getLogger(MaterializedViewTable.class);
-  
+
   private final SchemaPlus parentSchema;
   private final String schemaName;
   private final String viewName;
@@ -106,17 +106,17 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
           // Add current schema with existing tables
           SchemaPlus rootSchema = calciteConn.getRootSchema();
           final Map<String, Table> tables = tableSupplier != null ? tableSupplier.get() : existingTables;
-          LOGGER.debug("Registering schema '{}' with {} tables: {}", 
-              schemaName, tables != null ? tables.size() : 0, 
+          LOGGER.debug("Registering schema '{}' with {} tables: {}",
+              schemaName, tables != null ? tables.size() : 0,
               tables != null ? tables.keySet() : "null");
-          
+
           // Register schema with exact name as provided - no casing transformations
           SchemaPlus schema = rootSchema.add(schemaName, new AbstractSchema() {
             @Override protected Map<String, Table> getTableMap() {
               return tables;
             }
           });
-          
+
           // Set the default schema so unqualified table names work
           calciteConn.setSchema(schemaName);
 
@@ -160,7 +160,7 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
             // Write to Parquet
             Path hadoopPath = new Path(parquetFile.getAbsolutePath());
             Configuration conf = new Configuration();
-            
+
             // Enable vectorized reading for better performance
             conf.set("parquet.enable.vectorized.reader", "true");
 

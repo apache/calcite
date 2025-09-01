@@ -17,26 +17,21 @@
 package org.apache.calcite.adapter.file.refresh;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.file.format.parquet.ConcurrentParquetCache;
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
-import org.apache.calcite.adapter.file.table.JsonTable;
 import org.apache.calcite.adapter.file.table.JsonScannableTable;
-import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
-import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
-import org.apache.calcite.util.Sources;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -44,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.Duration;
-import java.time.Instant;
 
 /**
  * Refreshable table that maintains a Parquet cache for CSV/JSON source files.
@@ -68,9 +62,10 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   private final @Nullable SchemaPlus parentSchema;
   private final String fileSchemaName;
 
-  // For DuckDB integration
+  // For DuckDB integration and refresh notifications
   private @Nullable String schemaName;
   private @Nullable String tableName;
+  private org.apache.calcite.adapter.file.@Nullable FileSchema fileSchema;
 
   public RefreshableParquetCacheTable(Source source, File initialParquetFile,
       File cacheDir, @Nullable Duration refreshInterval, boolean typeInferenceEnabled,
@@ -145,8 +140,15 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     // The DuckDB JDBC schema handles all table registration
   }
 
-  @Override
-  protected void doRefresh() {
+  /**
+   * Sets the FileSchema and table name for refresh notifications.
+   */
+  public void setRefreshContext(org.apache.calcite.adapter.file.FileSchema fileSchema, String tableName) {
+    this.fileSchema = fileSchema;
+    this.tableName = tableName;
+  }
+
+  @Override protected void doRefresh() {
     LOGGER.debug("doRefresh() called for RefreshableParquetCacheTable: {}", source.path());
 
     // Check the original source if we have one (for converted files), otherwise check direct source
@@ -176,8 +178,11 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
 
         // Force delete the old parquet file to ensure a fresh conversion
         if (parquetFile != null && parquetFile.exists()) {
-          parquetFile.delete();
-          LOGGER.debug("Deleted old parquet cache file: {}", parquetFile.getName());
+          long oldSize = parquetFile.length();
+          long oldModified = parquetFile.lastModified();
+          boolean deleted = parquetFile.delete();
+          LOGGER.info("Deleted old parquet cache file: {} (size={}, modified={}, deleted={})",
+                      parquetFile.getAbsolutePath(), oldSize, oldModified, deleted);
         }
 
         // Also delete any temporary parquet files that might be lingering
@@ -192,8 +197,8 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
 
         // Atomically update the cache using the standard conversion method
         // Note: createSourceTable() reads from 'source' which may be the converted JSON
-        this.parquetFile = ParquetConversionUtil.convertToParquet(source,
-            new File(source.path()).getName(),
+        this.parquetFile =
+            ParquetConversionUtil.convertToParquet(source, new File(source.path()).getName(),
             createSourceTable(), cacheDir, parentSchema, fileSchemaName, this.tableNameCasing);
 
         // Update delegate table to use new parquet file
@@ -202,8 +207,15 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
         // Update our tracking of when the monitored file was last seen
         updateLastModified(fileToMonitor);
 
-        LOGGER.info("Updated parquet cache for {} (monitoring {})",
-            source.path(), fileToMonitor.getPath());
+        LOGGER.info("Updated parquet cache for {} (monitoring {}). New file: {} (size={}, modified={})",
+            source.path(), fileToMonitor.getPath(),
+            parquetFile.getAbsolutePath(), parquetFile.length(), parquetFile.lastModified());
+
+        // Notify listeners (e.g., DUCKDB) that the table has been refreshed
+        if (fileSchema != null && tableName != null) {
+          fileSchema.notifyTableRefreshed(tableName, parquetFile);
+          LOGGER.debug("Notified listeners of refresh for table '{}'", tableName);
+        }
       } catch (Exception e) {
         LOGGER.error("Failed to update parquet cache for {}: {}", source.path(), e.getMessage(), e);
         // Continue with existing cache file
@@ -225,8 +237,8 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       File outputDir = sourceFile.getParentFile();
 
       // First, try standard conversion (for format conversions like HTML->JSON)
-      boolean converted = org.apache.calcite.adapter.file.converters.FileConversionManager.convertIfNeeded(
-          sourceFile, outputDir, columnNameCasing, tableNameCasing);
+      boolean converted =
+          org.apache.calcite.adapter.file.converters.FileConversionManager.convertIfNeeded(sourceFile, outputDir, columnNameCasing, tableNameCasing);
 
       if (converted) {
         LOGGER.debug("Re-converted source file: {}", sourceFile.getName());
@@ -360,8 +372,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     this.delegateTable = new org.apache.calcite.adapter.file.table.ParquetScannableTable(parquetFile);
   }
 
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+  @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     LOGGER.debug("toRel() called for RefreshableParquetCacheTable: {}", source.path());
     refresh(); // Check if refresh needed before query
     LOGGER.debug("toRel() refresh complete for: {}", source.path());
@@ -374,8 +385,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     }
   }
 
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     // Ensure we have the latest delegate table
     if (delegateTable == null) {
       updateDelegateTable();
@@ -383,8 +393,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     return delegateTable.getRowType(typeFactory);
   }
 
-  @Override
-  public Enumerable<@Nullable Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     LOGGER.debug("scan() called for RefreshableParquetCacheTable: {}", source.path());
     refresh(); // Check if refresh needed before scanning
     LOGGER.debug("scan() refresh complete for: {}", source.path());
@@ -397,8 +406,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
 
 
 
-  @Override
-  public RefreshBehavior getRefreshBehavior() {
+  @Override public RefreshBehavior getRefreshBehavior() {
     return RefreshBehavior.SINGLE_FILE;
   }
 
@@ -417,8 +425,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   }
 
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "RefreshableParquetCacheTable(" + source.path() + " -> " + parquetFile.getName() + ")";
   }
 }

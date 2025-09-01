@@ -395,10 +395,10 @@ public class SpuriousTableComprehensiveTest {
   private String createModel(File directory) {
     // Get execution engine from system property
     String executionEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE");
-    String engineLine = executionEngine != null 
-        ? "        executionEngine: '" + executionEngine + "',\n" 
+    String engineLine = executionEngine != null
+        ? "        executionEngine: '" + executionEngine + "',\n"
         : "";
-    
+
     return "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'FILES',\n"

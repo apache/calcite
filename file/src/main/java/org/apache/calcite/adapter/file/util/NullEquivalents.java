@@ -30,14 +30,14 @@ public final class NullEquivalents {
    * Default set of strings that are considered equivalent to NULL.
    * These are checked case-insensitively.
    */
-  public static final Set<String> DEFAULT_NULL_EQUIVALENTS = new HashSet<>(Arrays.asList(
-      "NULL",
+  public static final Set<String> DEFAULT_NULL_EQUIVALENTS =
+      new HashSet<>(
+          Arrays.asList("NULL",
       "NA",
       "N/A",
       "NONE",
       "NIL",
-      ""
-  ));
+      ""));
 
   private NullEquivalents() {
     // Utility class

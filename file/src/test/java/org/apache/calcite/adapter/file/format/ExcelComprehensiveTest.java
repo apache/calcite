@@ -367,7 +367,7 @@ public class ExcelComprehensiveTest {
     String engineLine = engineType != null && !engineType.isEmpty()
         ? "        executionEngine: '" + engineType.toLowerCase() + "',\n"
         : "";
-    
+
     return "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'EXCEL',\n"
@@ -393,7 +393,7 @@ public class ExcelComprehensiveTest {
     // Use environment variable if set, otherwise use PARQUET
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     String engine = (engineType != null && !engineType.isEmpty()) ? engineType.toLowerCase() : "parquet";
-    
+
     return "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'EXCEL',\n"
@@ -419,7 +419,7 @@ public class ExcelComprehensiveTest {
     // Use environment variable if set, otherwise use LINQ4J
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     String engine = (engineType != null && !engineType.isEmpty()) ? engineType.toLowerCase() : "linq4j";
-    
+
     return "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'EXCEL',\n"

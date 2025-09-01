@@ -59,7 +59,7 @@ public class CsvTranslatableTable extends CsvTable
       String columnCasing) {
     super(source, protoRowType, columnCasing);
   }
-  
+
   /** Creates a CsvTable with column casing and type inference. */
   public CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType,
       String columnCasing, CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig) {

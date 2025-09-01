@@ -47,7 +47,7 @@ public class SftpStorageProvider implements StorageProvider {
   private final String defaultPassword;
   private final String defaultPrivateKeyPath;
   private final boolean strictHostKeyChecking;
-  
+
   // Persistent cache for restart-survivable caching
   private final PersistentStorageCache persistentCache;
 
@@ -59,7 +59,7 @@ public class SftpStorageProvider implements StorageProvider {
     this.defaultPassword = null;
     this.defaultPrivateKeyPath = findDefaultPrivateKey();
     this.strictHostKeyChecking = false;
-    
+
     // Initialize persistent cache if cache manager is available
     PersistentStorageCache cache = null;
     try {
@@ -79,7 +79,7 @@ public class SftpStorageProvider implements StorageProvider {
     this.defaultPassword = password;
     this.defaultPrivateKeyPath = privateKeyPath != null ? privateKeyPath : findDefaultPrivateKey();
     this.strictHostKeyChecking = strictHostKeyChecking;
-    
+
     // Initialize persistent cache if cache manager is available
     PersistentStorageCache cache = null;
     try {
@@ -202,7 +202,7 @@ public class SftpStorageProvider implements StorageProvider {
     if (persistentCache != null) {
       byte[] cachedData = persistentCache.getCachedData(path);
       FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
-      
+
       if (cachedData != null && cachedMetadata != null) {
         // Check if cached data is still fresh
         try {
@@ -215,7 +215,7 @@ public class SftpStorageProvider implements StorageProvider {
         }
       }
     }
-    
+
     SftpUri sftpUri = parseSftpUri(path);
 
     Session session = null;
@@ -233,11 +233,11 @@ public class SftpStorageProvider implements StorageProvider {
         stream.close();
         closeSftpChannel(channelSftp);
         closeSession(session);
-        
+
         // Get file metadata for caching
         FileMetadata metadata = getMetadata(path);
         persistentCache.cacheData(path, data, metadata, 0); // No TTL for SFTP
-        
+
         return new java.io.ByteArrayInputStream(data);
       }
 
@@ -391,7 +391,7 @@ public class SftpStorageProvider implements StorageProvider {
       session.disconnect();
     }
   }
-  
+
   private byte[] readAllBytes(InputStream inputStream) throws IOException {
     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
     byte[] data = new byte[8192];

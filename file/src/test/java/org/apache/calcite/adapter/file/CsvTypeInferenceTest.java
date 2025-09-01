@@ -48,8 +48,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test type inference on mixed data types.
    */
-  @Test
-  void testMixedTypesInference() throws Exception {
+  @Test void testMixedTypesInference() throws Exception {
     // Test with type inference enabled
     Properties info = new Properties();
     // Use dynamic model if engine is configured
@@ -99,8 +98,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test that type inference is disabled by default.
    */
-  @Test
-  void testNoInferenceByDefault() throws Exception {
+  @Test void testNoInferenceByDefault() throws Exception {
     Properties info = new Properties();
 
     String modelJson = buildModelJson();
@@ -132,8 +130,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test timestamp type detection.
    */
-  @Test
-  void testTimestampInference() throws Exception {
+  @Test void testTimestampInference() throws Exception {
 
     Properties info = new Properties();
 
@@ -178,8 +175,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test null handling and null representations.
    */
-  @Test
-  void testNullHandling() throws Exception {
+  @Test void testNullHandling() throws Exception {
 
     Properties info = new Properties();
     // Use dynamic model if engine is configured
@@ -237,8 +233,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test direct type inferrer functionality.
    */
-  @Test
-  void testTypeInferrerDirectly() throws Exception {
+  @Test void testTypeInferrerDirectly() throws Exception {
     // Use ClassLoader resource loading to find the CSV file
     URL resourceUrl = getClass().getResource("/csv-type-inference/mixed-types.csv");
     assertNotNull(resourceUrl, "Test CSV file should be accessible as a resource");
@@ -276,8 +271,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test aggregations with inferred types.
    */
-  @Test
-  void testAggregationsWithInferredTypes() throws Exception {
+  @Test void testAggregationsWithInferredTypes() throws Exception {
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
 
     Properties info = new Properties();
@@ -317,8 +311,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test date comparisons with inferred types.
    */
-  @Test
-  void testDateComparisons() throws Exception {
+  @Test void testDateComparisons() throws Exception {
 
     Properties info = new Properties();
     // Use dynamic model if engine is configured
@@ -351,8 +344,7 @@ public class CsvTypeInferenceTest {
    * When type inference is disabled, all columns are VARCHAR, and blankStringsAsNull
    * does not apply to VARCHAR/CHAR fields - blank strings are preserved as empty strings.
    */
-  @Test
-  void testBlankStringsAsNullWithNoInference() throws Exception {
+  @Test void testBlankStringsAsNullWithNoInference() throws Exception {
 
     Properties info = new Properties();
 
@@ -417,8 +409,7 @@ public class CsvTypeInferenceTest {
    * Test that blank strings are preserved when explicitly configured.
    * This feature is only relevant for PARQUET and DUCKDB engines.
    */
-  @Test
-  void testBlankStringsPreserved() throws Exception {
+  @Test void testBlankStringsPreserved() throws Exception {
 
     Properties info = new Properties();
 
@@ -564,8 +555,7 @@ public class CsvTypeInferenceTest {
   /**
    * Test to verify what types are inferred for the mixed-types.csv file with LINQ4J engine.
    */
-  @Test
-  @Tag("temp")
+  @Test @Tag("temp")
   void testListAllTables() throws Exception {
     // List all tables to see what's actually available
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
@@ -597,8 +587,7 @@ public class CsvTypeInferenceTest {
     }
   }
 
-  @Test
-  @Tag("temp")
+  @Test @Tag("temp")
   void testMixedTypesColumnTypes() throws Exception {
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     Properties info = new Properties();
@@ -616,7 +605,8 @@ public class CsvTypeInferenceTest {
           String columnName = metaData.getColumnName(i);
           int sqlType = metaData.getColumnType(i);
           String typeName = metaData.getColumnTypeName(i);
-          System.out.println(String.format("Column %d: %s - SQL Type: %d (%s)",
+          System.out.println(
+              String.format("Column %d: %s - SQL Type: %d (%s)",
               i, columnName, sqlType, typeName));
         }
         // Focus on hire_date column (should be column 5)
@@ -624,7 +614,8 @@ public class CsvTypeInferenceTest {
           String hireDateColumnName = metaData.getColumnName(5);
           int hireDateSqlType = metaData.getColumnType(5);
           String hireDateTypeName = metaData.getColumnTypeName(5);
-          System.out.println(String.format("hire_date column details: name=%s, sqlType=%d, " +
+          System.out.println(
+              String.format("hire_date column details: name=%s, sqlType=%d, " +
                   "typeName=%s",
               hireDateColumnName, hireDateSqlType, hireDateTypeName));
         }

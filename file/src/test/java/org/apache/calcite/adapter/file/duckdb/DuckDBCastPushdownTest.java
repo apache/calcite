@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.file.BaseFileTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -32,23 +31,28 @@ import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Test to verify CAST operations are properly pushed down to DuckDB.
  * This test only runs when the DUCKDB engine is configured.
  */
 @Tag("unit")
-@EnabledIfSystemProperty(named = "CALCITE_FILE_ENGINE_TYPE", matches = "DUCKDB")
 public class DuckDBCastPushdownTest extends BaseFileTest {
   private File tempDir;
   private File modelFile;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Skip test if not running with DuckDB engine
+    String engine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    assumeTrue("DUCKDB".equalsIgnoreCase(engine),
+        "Skipping DuckDB-specific test for engine: " + engine);
+
     tempDir = new File(System.getProperty("java.io.tmpdir"), "duckdb-cast-test-" + System.currentTimeMillis());
     tempDir.mkdirs();
     tempDir.deleteOnExit();
-    
+
     // Create a JSON file with proper numeric types
     File jsonFile = new File(tempDir, "test_data.json");
     try (FileWriter writer = new FileWriter(jsonFile)) {
@@ -58,7 +62,7 @@ public class DuckDBCastPushdownTest extends BaseFileTest {
       writer.write("  {\"id\": 3, \"price\": 15.99, \"name\": \"Tool\"}\n");
       writer.write("]\n");
     }
-    
+
     // Create model file
     modelFile = new File(tempDir, "model.json");
     try (FileWriter writer = new FileWriter(modelFile)) {
@@ -80,19 +84,18 @@ public class DuckDBCastPushdownTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testCastInWhereClause() throws Exception {
+  @Test public void testCastInWhereClause() throws Exception {
     // Set to use DuckDB engine
     System.setProperty("CALCITE_FILE_ENGINE_TYPE", "DUCKDB");
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
       try (Statement stmt = connection.createStatement()) {
         // This query uses CAST in WHERE clause
         String sql = "SELECT * FROM \"TEST\".\"test_data\" WHERE CAST(\"price\" AS DECIMAL) > 15.0";
-        
+
         // Enable debug output to see the actual SQL sent to DuckDB
         System.setProperty("calcite.debug", "true");
-        
+
         // Also check what SQL is generated
         try (ResultSet planRs = stmt.executeQuery("EXPLAIN PLAN FOR " + sql)) {
           System.out.println("Query plan:");
@@ -100,7 +103,7 @@ public class DuckDBCastPushdownTest extends BaseFileTest {
             System.out.println(planRs.getString(1));
           }
         }
-        
+
         try {
           ResultSet rs = stmt.executeQuery(sql);
           int count = 0;
@@ -126,19 +129,18 @@ public class DuckDBCastPushdownTest extends BaseFileTest {
     }
   }
 
-  @Test
-  public void testCastWithArithmetic() throws Exception {
+  @Test public void testCastWithArithmetic() throws Exception {
     System.setProperty("CALCITE_FILE_ENGINE_TYPE", "DUCKDB");
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + modelFile.getAbsolutePath())) {
       try (Statement stmt = connection.createStatement()) {
-        // Test CAST with arithmetic operation - note that we need to explicitly SELECT the price column 
+        // Test CAST with arithmetic operation - note that we need to explicitly SELECT the price column
         // to verify the cast was preserved in the filter
         String sql = "SELECT \"name\", \"price\", CAST(\"price\" AS DECIMAL) * 2 AS double_price " +
                      "FROM \"TEST\".\"test_data\" WHERE CAST(\"price\" AS DECIMAL) * 2 > 30";
-        
+
         System.setProperty("calcite.debug", "true");
-        
+
         // Also check what SQL is generated
         try (ResultSet planRs = stmt.executeQuery("EXPLAIN PLAN FOR " + sql)) {
           System.out.println("Arithmetic query plan:");
@@ -146,7 +148,7 @@ public class DuckDBCastPushdownTest extends BaseFileTest {
             System.out.println(planRs.getString(1));
           }
         }
-        
+
         try {
           ResultSet rs = stmt.executeQuery(sql);
           int count = 0;

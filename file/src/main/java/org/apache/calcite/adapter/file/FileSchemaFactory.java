@@ -33,14 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Factory that creates a {@link FileSchema}.
@@ -76,7 +71,7 @@ public class FileSchemaFactory implements SchemaFactory {
     LOGGER.info("[FileSchemaFactory] ==> Thread: {}", Thread.currentThread().getName());
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
-    
+
     // Model file location (automatically set by Calcite's ModelHandler)
     // This can be null for inline models (model provided as a string)
     Object baseDirectoryObj = operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
@@ -86,20 +81,20 @@ public class FileSchemaFactory implements SchemaFactory {
     } else if (baseDirectoryObj instanceof String) {
       modelFileDirectory = new File((String) baseDirectoryObj);
     }
-    
+
     // Get ephemeralCache option (default to false for backward compatibility)
     final Boolean ephemeralCache = parseBooleanValue(operand.get("ephemeralCache"))
         != null ? parseBooleanValue(operand.get("ephemeralCache"))
         : parseBooleanValue(operand.get("ephemeral_cache")) != null  // Support snake_case too
             ? parseBooleanValue(operand.get("ephemeral_cache"))
             : Boolean.FALSE;  // Default to persistent cache
-    
+
     // Handle ephemeralCache and baseDirectory configuration
     // baseConfigDirectory is the root directory (without .aperio/<schema>)
     // baseDirectory is the full path including .aperio/<schema>
     File baseConfigDirectory = null;
     File baseDirectory = null;
-    
+
     if (ephemeralCache) {
       // Create a temp directory for this test instance
       try {
@@ -107,7 +102,7 @@ public class FileSchemaFactory implements SchemaFactory {
         String uniqueId = UUID.randomUUID().toString();
         baseConfigDirectory = new File(tempDir, uniqueId);
         baseConfigDirectory.mkdirs();
-        LOGGER.info("Using ephemeral cache directory for schema '{}': {}", 
+        LOGGER.info("Using ephemeral cache directory for schema '{}': {}",
             name, baseConfigDirectory.getAbsolutePath());
         // baseDirectory will be computed from baseConfigDirectory later
       } catch (Exception e) {
@@ -125,7 +120,7 @@ public class FileSchemaFactory implements SchemaFactory {
       } else {
         baseDirConfig = null;
       }
-      
+
       if (baseDirConfig != null && !baseDirConfig.isEmpty()) {
         // User explicitly configured baseDirectory - respect their choice
         baseConfigDirectory = new File(baseDirConfig);
@@ -139,18 +134,18 @@ public class FileSchemaFactory implements SchemaFactory {
       // If no explicit config and not ephemeral, baseConfigDirectory remains null
       // and FileSchema will use its default (working directory)
     }
-    
+
     // Compute the full baseDirectory path (with .aperio/<schema>) if baseConfigDirectory is set
     if (baseConfigDirectory != null) {
       baseDirectory = baseConfigDirectory;  // For now, keep it as the root for backward compatibility
-      LOGGER.debug("baseConfigDirectory={}, baseDirectory={}", 
+      LOGGER.debug("baseConfigDirectory={}, baseDirectory={}",
           baseConfigDirectory.getAbsolutePath(), baseDirectory.getAbsolutePath());
     }
-    
+
     // Schema-specific sourceDirectory operand (for reading source files)
     // Support both "directory" and "sourceDirectory" for backward compatibility
-    final String directory = (String) operand.get("directory") != null 
-        ? (String) operand.get("directory") 
+    final String directory = (String) operand.get("directory") != null
+        ? (String) operand.get("directory")
         : (String) operand.get("sourceDirectory");
     File sourceDirectory = null;
     LOGGER.debug("[FileSchemaFactory] directory from operand: '{}' (checked both 'directory' and 'sourceDirectory')", directory);
@@ -161,7 +156,7 @@ public class FileSchemaFactory implements SchemaFactory {
     // Priority: 1. Schema-specific operand, 2. Environment variable, 3. System property, 4. Default
     String executionEngine = (String) operand.get("executionEngine");
     String source = "schema operand";
-    
+
     if (executionEngine == null || executionEngine.isEmpty()) {
       executionEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
       source = "environment variable";
@@ -174,8 +169,8 @@ public class FileSchemaFactory implements SchemaFactory {
       executionEngine = ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE;
       source = "default";
     }
-    
-    LOGGER.info("[FileSchemaFactory] ==> executionEngine: '{}' for schema: '{}' (source: {})", 
+
+    LOGGER.info("[FileSchemaFactory] ==> executionEngine: '{}' for schema: '{}' (source: {})",
         executionEngine, name, source);
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
@@ -204,7 +199,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
     // Get directory pattern for glob-based file discovery
     // Support both "directoryPattern" and "glob" for backward compatibility
-    final String directoryPattern = (String) operand.get("directoryPattern") != null 
+    final String directoryPattern = (String) operand.get("directoryPattern") != null
         ? (String) operand.get("directoryPattern")
         : (String) operand.get("glob");
 
@@ -291,12 +286,12 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     // If DuckDB engine is selected, first create FileSchema with PARQUET engine for conversions
-    LOGGER.debug("FileSchemaFactory: Checking DuckDB conditions for schema '{}': engineConfig.getEngineType()={}, directoryFile={}, exists={}, isDirectory={}, storageType={}", 
-                name, engineConfig.getEngineType(), directoryFile, 
+    LOGGER.debug("FileSchemaFactory: Checking DuckDB conditions for schema '{}': engineConfig.getEngineType()={}, directoryFile={}, exists={}, isDirectory={}, storageType={}",
+                name, engineConfig.getEngineType(), directoryFile,
                 directoryFile != null ? directoryFile.exists() : false,
                 directoryFile != null ? directoryFile.isDirectory() : false,
                 storageType);
-    
+
     // Check if we're using DuckDB engine
     boolean isDuckDB = engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB;
     LOGGER.info("[FileSchemaFactory] ==> DuckDB analysis for schema '{}': ", name);
@@ -306,7 +301,7 @@ public class FileSchemaFactory implements SchemaFactory {
     LOGGER.info("[FileSchemaFactory] ==> - directoryFile != null: {}", directoryFile != null);
     LOGGER.info("[FileSchemaFactory] ==> - storageType: '{}'", storageType);
     LOGGER.info("[FileSchemaFactory] ==> - Full condition: {}", isDuckDB && directoryFile != null && storageType == null);
-    
+
     if (isDuckDB && directoryFile != null && storageType == null) {
       LOGGER.info("[FileSchemaFactory] ==> *** ENTERING DUCKDB PATH FOR SCHEMA: {} ***", name);
       // Create directory if it doesn't exist yet (common in tests)
@@ -314,41 +309,41 @@ public class FileSchemaFactory implements SchemaFactory {
         LOGGER.info("Creating directory as it doesn't exist: {}", directoryFile);
         directoryFile.mkdirs();
       }
-      
+
       LOGGER.info("Using DuckDB: Running conversions first, then creating JDBC adapter for schema: {}", name);
-      
+
       // Step 1: Create FileSchema with PARQUET engine
       // Use the same baseDirectory that was computed for DuckDB (ephemeral or not)
-      ExecutionEngineConfig conversionConfig = new ExecutionEngineConfig("PARQUET", 
-          engineConfig.getBatchSize(), engineConfig.getMemoryThreshold(), 
+      ExecutionEngineConfig conversionConfig =
+          new ExecutionEngineConfig("PARQUET", engineConfig.getBatchSize(), engineConfig.getMemoryThreshold(),
           engineConfig.getMaterializedViewStoragePath(), engineConfig.getDuckDBConfig(),
           engineConfig.getParquetCacheDirectory());
-      
+
       LOGGER.info("DuckDB: Creating internal Parquet FileSchema with baseConfigDirectory: {}", baseConfigDirectory);
-      
+
       // Create internal FileSchema for DuckDB processing
-      FileSchema fileSchema = new FileSchema(parentSchema, name, directoryFile, baseConfigDirectory,
-          directoryPattern, tables, conversionConfig, recursive, materializations, views, 
-          partitionedTables, refreshInterval, tableNameCasing, columnNameCasing, 
+      FileSchema fileSchema =
+          new FileSchema(parentSchema, name, directoryFile, baseConfigDirectory, directoryPattern, tables, conversionConfig, recursive, materializations, views,
+          partitionedTables, refreshInterval, tableNameCasing, columnNameCasing,
           storageType, storageConfig, flatten, csvTypeInference, primeCache);
-      
+
       // Force initialization to run conversions and populate the FileSchema for DuckDB
       LOGGER.info("DuckDB: About to call fileSchema.getTableMap() for table discovery");
       LOGGER.info("DuckDB: Internal FileSchema created successfully: {}", fileSchema.getClass().getSimpleName());
       LOGGER.info("DuckDB: Internal FileSchema directory: {}", directoryFile);
-      
+
       Map<String, Table> tableMap = fileSchema.getTableMap();
       LOGGER.info("DuckDB: Internal FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
-      
+
       if (tableMap.containsKey("sales_custom")) {
         LOGGER.info("DuckDB: Found sales_custom table in internal FileSchema!");
       } else {
         LOGGER.warn("DuckDB: sales_custom table NOT found in internal FileSchema");
       }
-      
+
       // Check the conversion metadata immediately after table discovery
       if (fileSchema.getConversionMetadata() != null) {
-        java.util.Map<String, org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord> records = 
+        java.util.Map<String, org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord> records =
             fileSchema.getAllTableRecords();
         LOGGER.info("FileSchemaFactory: After getTableMap(), conversion metadata has {} records", records.size());
         for (String key : records.keySet()) {
@@ -357,13 +352,13 @@ public class FileSchemaFactory implements SchemaFactory {
       } else {
         LOGGER.warn("FileSchemaFactory: FileSchema has no conversion metadata!");
       }
-      
+
       // Check if any JSON files were processed by the internal FileSchema
       LOGGER.debug("FileSchemaFactory: Checking if internal FileSchema processed JSON files from HTML conversion...");
-      
+
       // Parquet conversion should happen automatically when tables are accessed
       LOGGER.debug("FileSchemaFactory: Parquet conversion will happen on-demand via FileSchema");
-      
+
       // Step 2: Now create DuckDB JDBC schema that reads the files
       // Pass the FileSchema so it stays alive for refresh handling
       LOGGER.debug("FileSchemaFactory: Now creating DuckDB JDBC schema");
@@ -384,7 +379,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
     // Otherwise use regular FileSchema
     LOGGER.info("[FileSchemaFactory] ==> *** USING REGULAR FILESCHEMA FOR SCHEMA: {} ***", name);
-    LOGGER.info("[FileSchemaFactory] ==> - Reason: isDuckDB={}, directoryFile != null={}, storageType='{}'", 
+    LOGGER.info("[FileSchemaFactory] ==> - Reason: isDuckDB={}, directoryFile != null={}, storageType='{}'",
                isDuckDB, directoryFile != null, storageType);
     // Pass user-configured baseDirectory or null to let FileSchema use its default
     // FileSchema will default to {working_directory}/.aperio/<schema_name> if null
@@ -414,7 +409,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
     // Only add metadata schemas if they don't already exist
     if (parentSchema.subSchemas().get("information_schema") == null) {
-      LOGGER.info("FileSchemaFactory: Creating InformationSchema with parentSchema containing tables: {}", 
+      LOGGER.info("FileSchemaFactory: Creating InformationSchema with parentSchema containing tables: {}",
                   parentSchema.tables().getNames(LikePattern.any()));
       InformationSchema infoSchema = new InformationSchema(parentSchema, "CALCITE");
       parentSchema.add("information_schema", infoSchema);
@@ -454,8 +449,8 @@ public class FileSchemaFactory implements SchemaFactory {
 
     // Check if schema with this name already exists
     if (parentSchema.subSchemas().get(name) != null) {
-      String errorMessage = String.format(
-          "Schema with name '%s' already exists in parent schema. " +
+      String errorMessage =
+          String.format("Schema with name '%s' already exists in parent schema. " +
           "Each schema must have a unique name within the same connection. " +
           "Existing schemas: %s",
           name,

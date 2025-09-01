@@ -21,9 +21,8 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -127,7 +126,7 @@ public class RecursiveDirectoryComprehensiveTest {
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("FILES");
 
       Set<String> tableNames = schema.getTableNames();
-      
+
       // All engines support Excel file conversion through conversion to JSON
       // LINQ4J converts Excel to JSON and then processes the JSON
       assertEquals(3, tableNames.size());

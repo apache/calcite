@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -43,7 +42,7 @@ import java.util.Map;
 public class JsonMultiTableFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(JsonMultiTableFactory.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  
+
   /**
    * Creates multiple tables from a JSON source based on configuration.
    *
@@ -55,13 +54,13 @@ public class JsonMultiTableFactory {
     try {
       // Parse JSON once into memory
       JsonNode rootNode = parseJsonOnce(source);
-      
+
       // Create shared data container
       SharedJsonData sharedData = new SharedJsonData(rootNode);
-      
+
       // Create tables based on configuration
       Map<String, Table> tables = new LinkedHashMap<>();
-      
+
       if (config.getJsonSearchPaths() != null && !config.getJsonSearchPaths().isEmpty()) {
         // Use explicit paths
         createTablesFromPaths(tables, sharedData, source, config);
@@ -71,21 +70,21 @@ public class JsonMultiTableFactory {
       } else {
         // Default: entire JSON as single table
         // For default behavior with no path, use file name as the table name
-        String pattern = config.getTableNamePattern().equals(JsonSearchConfig.DEFAULT_TABLE_NAME_PATTERN) 
-            ? "{fileName}" 
+        String pattern = config.getTableNamePattern().equals(JsonSearchConfig.DEFAULT_TABLE_NAME_PATTERN)
+            ? "{fileName}"
             : config.getTableNamePattern();
         String tableName = deriveTableName(source.path(), null, pattern);
         tables.put(tableName, new JsonTable(source, config.getOptions()));
       }
-      
+
       return tables;
-      
+
     } catch (IOException e) {
       LOGGER.error("Failed to parse JSON source: {}", source.path(), e);
       throw new RuntimeException("Failed to create tables from JSON", e);
     }
   }
-  
+
   /**
    * Parse JSON source into a JsonNode tree.
    *
@@ -98,7 +97,7 @@ public class JsonMultiTableFactory {
       return MAPPER.readTree(reader);
     }
   }
-  
+
   /**
    * Create tables from explicit JSONPath expressions.
    *
@@ -111,20 +110,20 @@ public class JsonMultiTableFactory {
       SharedJsonData sharedData,
       Source source,
       JsonSearchConfig config) {
-    
+
     List<String> paths = config.getJsonSearchPaths();
     if (paths == null) {
       return;
     }
-    
+
     Map<String, Integer> nameConflicts = new HashMap<>();
-    
+
     for (String path : paths) {
       if (!sharedData.pathExists(path)) {
         LOGGER.warn("JSONPath '{}' not found in JSON structure, skipping", path);
         continue;
       }
-      
+
       // Check minimum size requirement
       int pathSize = sharedData.getPathSize(path);
       if (pathSize < config.getMinArraySize()) {
@@ -132,19 +131,19 @@ public class JsonMultiTableFactory {
             path, pathSize, config.getMinArraySize());
         continue;
       }
-      
+
       // Generate table name
       String baseName = deriveTableName(source.path(), path, config.getTableNamePattern());
       String tableName = resolveNameConflict(baseName, nameConflicts);
-      
+
       // Create table with path-specific view
       JsonTable table = new JsonTable(sharedData, path, config);
       tables.put(tableName, table);
-      
+
       LOGGER.info("Created table '{}' from JSONPath '{}'", tableName, path);
     }
   }
-  
+
   /**
    * Auto-discover tables in JSON structure.
    *
@@ -159,31 +158,31 @@ public class JsonMultiTableFactory {
       JsonNode rootNode,
       Source source,
       JsonSearchConfig config) {
-    
-    Map<String, String> discoveredPaths = discoverArrayPaths(
-        rootNode, "$", 0, config.getMaxDiscoveryDepth(), config.getMinArraySize());
-    
+
+    Map<String, String> discoveredPaths =
+        discoverArrayPaths(rootNode, "$", 0, config.getMaxDiscoveryDepth(), config.getMinArraySize());
+
     Map<String, Integer> nameConflicts = new HashMap<>();
-    
+
     for (Map.Entry<String, String> entry : discoveredPaths.entrySet()) {
       String path = entry.getKey();
       String suggestedName = entry.getValue();
-      
+
       // Generate table name
       String baseName = config.getTableNamePattern().equals(JsonSearchConfig.DEFAULT_TABLE_NAME_PATTERN)
           ? suggestedName
           : deriveTableName(source.path(), path, config.getTableNamePattern());
-      
+
       String tableName = resolveNameConflict(baseName, nameConflicts);
-      
+
       // Create table with path-specific view
       JsonTable table = new JsonTable(sharedData, path, config);
       tables.put(tableName, table);
-      
+
       LOGGER.info("Auto-discovered table '{}' from JSONPath '{}'", tableName, path);
     }
   }
-  
+
   /**
    * Recursively discover array paths in JSON structure.
    *
@@ -196,9 +195,9 @@ public class JsonMultiTableFactory {
    */
   private static Map<String, String> discoverArrayPaths(
       JsonNode node, String currentPath, int depth, int maxDepth, int minArraySize) {
-    
+
     Map<String, String> paths = new LinkedHashMap<>();
-    
+
     if (node.isArray() && node.size() >= minArraySize) {
       // Check if array contains objects (potential table)
       boolean hasObjects = false;
@@ -208,14 +207,14 @@ public class JsonMultiTableFactory {
           break;
         }
       }
-      
+
       if (hasObjects) {
         // Extract table name from path
         String tableName = extractTableNameFromPath(currentPath);
         paths.put(currentPath, tableName);
       }
     }
-    
+
     // Only explore children if we haven't exceeded max depth
     if (depth < maxDepth && node.isObject()) {
       // Explore object fields
@@ -223,14 +222,15 @@ public class JsonMultiTableFactory {
       while (fields.hasNext()) {
         Map.Entry<String, JsonNode> field = fields.next();
         String fieldPath = currentPath + "." + field.getKey();
-        paths.putAll(discoverArrayPaths(
+        paths.putAll(
+            discoverArrayPaths(
             field.getValue(), fieldPath, depth + 1, maxDepth, minArraySize));
       }
     }
-    
+
     return paths;
   }
-  
+
   /**
    * Extract a table name from a JSONPath.
    *
@@ -243,15 +243,15 @@ public class JsonMultiTableFactory {
     if (cleanPath.startsWith(".")) {
       cleanPath = cleanPath.substring(1);
     }
-    
+
     String[] segments = cleanPath.split("\\.");
     if (segments.length > 0) {
       return segments[segments.length - 1];
     }
-    
+
     return "table";
   }
-  
+
   /**
    * Derive a table name based on pattern and path.
    *
@@ -264,20 +264,20 @@ public class JsonMultiTableFactory {
       @Nullable String filePath,
       @Nullable String jsonPath,
       String pattern) {
-    
+
     String result = pattern;
-    
+
     // Extract path segments
     String pathSegment = "table";
     String parentSegment = "";
     String fileName = "";
-    
+
     if (jsonPath != null && !jsonPath.equals("$")) {
       String cleanPath = jsonPath.startsWith("$") ? jsonPath.substring(1) : jsonPath;
       if (cleanPath.startsWith(".")) {
         cleanPath = cleanPath.substring(1);
       }
-      
+
       String[] segments = cleanPath.split("\\.");
       if (segments.length > 0) {
         pathSegment = segments[segments.length - 1];
@@ -286,25 +286,25 @@ public class JsonMultiTableFactory {
         }
       }
     }
-    
+
     if (filePath != null) {
       int lastSlash = filePath.lastIndexOf('/');
       String name = lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
       int lastDot = name.lastIndexOf('.');
       fileName = lastDot >= 0 ? name.substring(0, lastDot) : name;
     }
-    
+
     // Replace pattern variables
     result = result.replace("{pathSegment}", pathSegment);
     result = result.replace("{parentSegment}", parentSegment);
     result = result.replace("{fileName}", fileName);
-    
+
     // Clean up empty placeholders
     result = result.replace("_{}", "").replace("{}_", "");
-    
+
     return result.isEmpty() ? "table" : result;
   }
-  
+
   /**
    * Resolve naming conflicts by adding index suffix.
    *
@@ -317,7 +317,7 @@ public class JsonMultiTableFactory {
       nameConflicts.put(baseName, 0);
       return baseName;
     }
-    
+
     int count = nameConflicts.get(baseName) + 1;
     nameConflicts.put(baseName, count);
     return baseName + "_" + count;

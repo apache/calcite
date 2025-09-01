@@ -22,7 +22,6 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.junit.jupiter.api.Tag;
 
@@ -34,32 +33,32 @@ import java.util.Properties;
  */
 @Tag("unit")
 public abstract class BaseFileTest {
-  
-  protected static final JavaTypeFactory typeFactory = 
+
+  protected static final JavaTypeFactory typeFactory =
       new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-  
+
   /**
    * Gets the type factory for tests.
    */
   protected JavaTypeFactory getTypeFactory() {
     return typeFactory;
   }
-  
+
   /**
    * Gets the configured execution engine from environment.
    * This provides the test suite default which overrides FileSchema's default.
    * Individual tests can override this to use a specific engine.
-   * 
+   *
    * @return the execution engine type, or null if not configured
    */
   protected String getExecutionEngine() {
     return System.getenv("CALCITE_FILE_ENGINE_TYPE");
   }
-  
+
   /**
    * Gets an ExecutionEngineConfig based on the environment variable.
    * This ensures tests respect the CALCITE_FILE_ENGINE_TYPE environment variable.
-   * 
+   *
    * @return ExecutionEngineConfig configured based on environment, or default if not set
    */
   protected static ExecutionEngineConfig getEngineConfig() {
@@ -69,27 +68,27 @@ public abstract class BaseFileTest {
     }
     return new ExecutionEngineConfig();
   }
-  
+
   /**
    * Applies standard engine defaults for SQL identifier casing to JDBC connection properties.
    * These settings ensure consistent identifier behavior across all tests:
    * - lex: ORACLE (SQL lexical rules)
    * - unquotedCasing: TO_LOWER (unquoted identifiers converted to lowercase)
-   * 
+   *
    * This method should be called by all tests after setting the model property.
-   * 
+   *
    * @param info the Properties object to update with engine defaults
    */
   public static void applyEngineDefaults(Properties info) {
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
   }
-  
+
   /**
    * Adds ephemeralCache to a model JSON string for test isolation.
    * This method parses the model, adds ephemeralCache: true to each schema operand,
    * and returns the modified JSON string.
-   * 
+   *
    * @param modelJson the original model JSON string
    * @return the modified model JSON with ephemeralCache added
    */
@@ -97,7 +96,7 @@ public abstract class BaseFileTest {
     try {
       ObjectMapper mapper = new ObjectMapper();
       Map<String, Object> model = mapper.readValue(modelJson, Map.class);
-      
+
       // Add ephemeralCache to each schema's operand (not at model level to avoid Calcite validation errors)
       if (model.containsKey("schemas")) {
         Object schemasObj = model.get("schemas");
@@ -117,18 +116,18 @@ public abstract class BaseFileTest {
           }
         }
       }
-      
+
       return mapper.writeValueAsString(model);
     } catch (Exception e) {
       // If parsing fails, return original (shouldn't happen with valid JSON)
       return modelJson;
     }
   }
-  
+
   /**
    * Builds a model JSON string with the test suite's default engine.
    * This ensures all tests use the configured engine unless they explicitly override.
-   * 
+   *
    * @param schemaName the schema name
    * @param directory the directory path
    * @param additionalOperands additional operand entries as key-value pairs
@@ -146,13 +145,13 @@ public abstract class BaseFileTest {
     model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
     model.append("      \"operand\": {\n");
     model.append("        \"directory\": \"").append(directory.replace("\\", "\\\\")).append("\"");
-    
+
     // Add test suite default engine if configured
     String engine = getExecutionEngine();
     if (engine != null && !engine.isEmpty()) {
       model.append(",\n        \"executionEngine\": \"").append(engine).append("\"");
     }
-    
+
     // Add additional operands
     for (int i = 0; i < additionalOperands.length; i += 2) {
       if (i + 1 < additionalOperands.length) {
@@ -166,19 +165,19 @@ public abstract class BaseFileTest {
         }
       }
     }
-    
+
     model.append("\n      }\n");
     model.append("    }\n");
     model.append("  ]\n");
     model.append("}\n");
-    
+
     return model.toString();
   }
-  
+
   /**
    * Builds a model JSON string with ephemeralCache enabled for test isolation.
    * This is the preferred method for tests to ensure proper test isolation.
-   * 
+   *
    * @param schemaName the schema name
    * @param directory the directory path
    * @param additionalOperands additional operand entries as key-value pairs
@@ -188,10 +187,10 @@ public abstract class BaseFileTest {
     String model = buildModelWithEngine(schemaName, directory, additionalOperands);
     return addEphemeralCacheToModel(model);
   }
-  
+
   /**
    * Adds execution engine to operand map if configured.
-   * 
+   *
    * @param operand the operand map to update
    */
   protected void addExecutionEngine(java.util.Map<String, Object> operand) {

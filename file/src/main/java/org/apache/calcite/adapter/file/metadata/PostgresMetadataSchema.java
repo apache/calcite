@@ -63,7 +63,7 @@ public class PostgresMetadataSchema extends AbstractSchema {
 
   private Map<String, Table> createCaseInsensitiveTableMap() {
     Map<String, Table> tables = new HashMap<>();
-    
+
     // Add tables with case variations for case-insensitive lookup
     Map<String, Table> originalTables = ImmutableMap.<String, Table>builder()
         .put("pg_namespace", new PgNamespaceTable())
@@ -74,12 +74,12 @@ public class PostgresMetadataSchema extends AbstractSchema {
         .put("pg_tables", new PgTablesView())
         .put("pg_views", new PgViewsView())
         .build();
-    
+
     // Add each table with multiple case variations for case-insensitive access
     for (Map.Entry<String, Table> entry : originalTables.entrySet()) {
       String tableName = entry.getKey();
       Table table = entry.getValue();
-      
+
       // Add lower, upper, and mixed case variations
       tables.put(tableName.toLowerCase(Locale.ROOT), table); // pg_namespace
       tables.put(tableName.toUpperCase(Locale.ROOT), table); // PG_NAMESPACE
@@ -95,7 +95,7 @@ public class PostgresMetadataSchema extends AbstractSchema {
         tables.put(titleCase.toString(), table); // Pg_Namespace
       }
     }
-    
+
     return tables;
   }
 

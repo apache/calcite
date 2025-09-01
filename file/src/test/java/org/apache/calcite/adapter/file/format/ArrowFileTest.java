@@ -19,9 +19,6 @@ package org.apache.calcite.adapter.file.format;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
@@ -39,6 +36,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -100,8 +99,7 @@ public class ArrowFileTest {
   private void deleteDirectoryRecursively(Path path) throws IOException {
     if (Files.exists(path)) {
       Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+        @Override public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
           try {
             Files.delete(file);
           } catch (IOException e) {
@@ -110,8 +108,7 @@ public class ArrowFileTest {
           return FileVisitResult.CONTINUE;
         }
 
-        @Override
-        public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+        @Override public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
           try {
             Files.delete(dir);
           } catch (IOException e) {
@@ -233,7 +230,7 @@ public class ArrowFileTest {
       // Check that Parquet cache was created - check in schema-specific subdirectory
       File cacheDir = new File(tempDir, "test_cache_arrow");
       assertTrue(cacheDir.exists());
-      
+
       // With schema-aware caching, files are in schema_<schemaName> subdirectory
       File schemaCacheDir = new File(cacheDir, "schema_arrow");
       File[] parquetFiles = null;

@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.file.FileRules;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -37,8 +38,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
-
-import org.apache.calcite.adapter.file.FileRules;
 
 import com.google.common.collect.ImmutableList;
 
@@ -90,17 +89,17 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     planner.addRule(org.apache.calcite.adapter.file.rules.SimpleHLLCountDistinctRule.INSTANCE);
     // Also register VALUES converter rule so LogicalValues can become EnumerableValues
     planner.addRule(org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_VALUES_RULE);
-    
+
     // Register parquet statistics-based optimization rules
     // These are now handled by the Simple rule variants that actually work
     if (!"false".equals(System.getProperty("calcite.file.statistics.filter.enabled"))) {
       planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileFilterPushdownRule.INSTANCE);
     }
-    
+
     if (!"false".equals(System.getProperty("calcite.file.statistics.join.reorder.enabled"))) {
       planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileJoinReorderRule.INSTANCE);
     }
-    
+
     if (!"false".equals(System.getProperty("calcite.file.statistics.column.pruning.enabled"))) {
       planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileColumnPruningRule.INSTANCE);
     }
@@ -132,7 +131,7 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     // this will return a reference to the table itself, not an Enumerable
     final Expression expression =
         requireNonNull(table.getExpression(CsvTranslatableTable.class));
-    
+
     // Call the project method on the table
     return implementor.result(
         physType,

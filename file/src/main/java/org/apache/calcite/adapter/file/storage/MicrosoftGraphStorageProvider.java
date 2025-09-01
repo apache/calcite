@@ -68,7 +68,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
   private final ObjectMapper mapper = new ObjectMapper();
   private String siteId;
   private String driveId;
-  
+
   // Persistent cache for restart-survivable caching
   private final PersistentStorageCache persistentCache;
 
@@ -94,7 +94,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     } else {
       this.tokenManager = tokenManager;
     }
-    
+
     // Initialize persistent cache if cache manager is available
     PersistentStorageCache cache = null;
     try {
@@ -284,7 +284,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     if (persistentCache != null) {
       byte[] cachedData = persistentCache.getCachedData(path);
       FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
-      
+
       if (cachedData != null && cachedMetadata != null) {
         // Check if cached data is still fresh
         try {
@@ -297,7 +297,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
         }
       }
     }
-    
+
     ensureInitialized();
 
     // Normalize path
@@ -332,11 +332,11 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     if (persistentCache != null) {
       byte[] data = readAllBytes(conn.getInputStream());
       conn.disconnect();
-      
+
       // Get file metadata for caching
       FileMetadata metadata = getMetadata(path);
       persistentCache.cacheData(path, data, metadata, 0); // No TTL for SharePoint
-      
+
       return new java.io.ByteArrayInputStream(data);
     }
 
@@ -514,7 +514,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     }
     return buffer.toByteArray();
   }
-  
+
   private String removeDocumentLibraryPrefix(String path) {
     // Special handling for the nested "Shared Documents/Shared Documents" pattern
     // This occurs when the URL structure duplicates the library name

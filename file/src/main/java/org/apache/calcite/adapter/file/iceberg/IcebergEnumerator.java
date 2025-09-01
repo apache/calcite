@@ -18,13 +18,12 @@ package org.apache.calcite.adapter.file.iceberg;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
-import org.apache.iceberg.TableScan;
 import org.apache.iceberg.data.IcebergGenerics;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.io.CloseableIterable;
-import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Types;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,23 +48,23 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
   private final @Nullable int[] projectedColumns;
   private @Nullable Object[] current;
 
-  public IcebergEnumerator(Table icebergTable, 
-                          @Nullable Long snapshotId, 
+  public IcebergEnumerator(Table icebergTable,
+                          @Nullable Long snapshotId,
                           @Nullable String asOfTimestamp,
                           AtomicBoolean cancelFlag) {
     this(icebergTable, snapshotId, asOfTimestamp, cancelFlag, null);
   }
-  
-  public IcebergEnumerator(Table icebergTable, 
-                          @Nullable Long snapshotId, 
+
+  public IcebergEnumerator(Table icebergTable,
+                          @Nullable Long snapshotId,
                           @Nullable String asOfTimestamp,
                           AtomicBoolean cancelFlag,
                           @Nullable int[] projectedColumns) {
     this(icebergTable, snapshotId, asOfTimestamp, cancelFlag, projectedColumns, null);
   }
-  
-  public IcebergEnumerator(Table icebergTable, 
-                          @Nullable Long snapshotId, 
+
+  public IcebergEnumerator(Table icebergTable,
+                          @Nullable Long snapshotId,
                           @Nullable String asOfTimestamp,
                           AtomicBoolean cancelFlag,
                           @Nullable int[] projectedColumns,
@@ -73,12 +72,12 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
     this.schema = icebergTable.schema();
     this.projectedColumns = projectedColumns;
     this.cancelFlag = cancelFlag;
-    
+
     // Build projected schema if column projection is specified
     if (projectedColumns != null && projectedColumns.length > 0) {
       List<Types.NestedField> projectedFields = new ArrayList<>();
       List<Types.NestedField> allFields = schema.columns();
-      
+
       for (int columnIndex : projectedColumns) {
         if (columnIndex >= 0 && columnIndex < allFields.size()) {
           projectedFields.add(allFields.get(columnIndex));
@@ -88,20 +87,20 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
     } else {
       this.projectedSchema = schema;
     }
-    
+
     // Build the reader with snapshot filtering, column projection, and filters
     IcebergGenerics.ScanBuilder scanBuilder = IcebergGenerics.read(icebergTable);
-    
+
     // Apply column projection if specified
     if (projectedColumns != null && projectedColumns.length > 0) {
       scanBuilder = scanBuilder.select(getProjectedColumnNames());
     }
-    
+
     // Apply filter for partition pruning and row filtering
     if (filter != null) {
       scanBuilder = scanBuilder.where(filter);
     }
-    
+
     if (snapshotId != null) {
       // Use specific snapshot
       scanBuilder = scanBuilder.useSnapshot(snapshotId);
@@ -111,36 +110,34 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
         long timestampMillis = Instant.parse(asOfTimestamp).toEpochMilli();
         scanBuilder = scanBuilder.asOfTime(timestampMillis);
       } catch (Exception e) {
-        throw new IllegalArgumentException("Invalid timestamp format: " + asOfTimestamp 
+        throw new IllegalArgumentException("Invalid timestamp format: " + asOfTimestamp
             + ". Expected ISO-8601 format like '2024-01-01T00:00:00Z'", e);
       }
     }
     // If neither specified, uses current snapshot (default)
-    
+
     this.records = scanBuilder.build();
     this.iterator = records.iterator();
   }
 
-  @Override
-  public Object[] current() {
+  @Override public Object[] current() {
     if (current == null) {
       throw new IllegalStateException("No current record");
     }
     return current;
   }
 
-  @Override
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     if (cancelFlag.get()) {
       return false;
     }
-    
+
     if (iterator.hasNext()) {
       Record record = iterator.next();
       current = convertRecord(record);
       return true;
     }
-    
+
     current = null;
     return false;
   }
@@ -149,17 +146,17 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
     if (projectedColumns == null || projectedColumns.length == 0) {
       return null;
     }
-    
+
     List<Types.NestedField> allFields = schema.columns();
     String[] columnNames = new String[projectedColumns.length];
-    
+
     for (int i = 0; i < projectedColumns.length; i++) {
       int columnIndex = projectedColumns[i];
       if (columnIndex >= 0 && columnIndex < allFields.size()) {
         columnNames[i] = allFields.get(columnIndex).name();
       }
     }
-    
+
     return columnNames;
   }
 
@@ -167,13 +164,13 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
     // Use projected schema for field iteration
     List<Types.NestedField> fields = projectedSchema.columns();
     Object[] row = new Object[fields.size()];
-    
+
     for (int i = 0; i < fields.size(); i++) {
       Types.NestedField field = fields.get(i);
       Object value = record.getField(field.name());
       row[i] = convertValue(value);
     }
-    
+
     return row;
   }
 
@@ -181,19 +178,17 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
     if (value == null) {
       return null;
     }
-    
+
     // For MVP, do basic conversions
     // TODO: Add more sophisticated type conversions as needed
     return value;
   }
 
-  @Override
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException("Reset not supported on IcebergEnumerator");
   }
 
-  @Override
-  public void close() {
+  @Override public void close() {
     try {
       records.close();
     } catch (IOException e) {

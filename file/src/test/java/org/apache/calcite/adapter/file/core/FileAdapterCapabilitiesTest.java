@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.file.core;
 
 import org.apache.calcite.adapter.file.FileSchemaFactory;
-
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -69,13 +68,13 @@ public class FileAdapterCapabilitiesTest {
       // Add file schema with engine configuration if set
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", tempDir.toString());
-      
+
       // Use global engine configuration if set
       String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
       if (engineType != null && !engineType.isEmpty()) {
         operand.put("executionEngine", engineType.toLowerCase(Locale.ROOT));
       }
-      
+
       SchemaPlus fileSchema =
           rootSchema.add("FILES", FileSchemaFactory.INSTANCE.create(rootSchema, "FILES", operand));
 

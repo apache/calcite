@@ -42,10 +42,10 @@ public class FtpStorageProvider implements StorageProvider {
   private static final int DEFAULT_PORT = 21;
   private static final int CONNECT_TIMEOUT = 30000;
   private static final int DATA_TIMEOUT = 60000;
-  
+
   // Persistent cache for restart-survivable caching
   private final PersistentStorageCache persistentCache;
-  
+
   public FtpStorageProvider() {
     // Initialize persistent cache if cache manager is available
     PersistentStorageCache cache = null;
@@ -122,7 +122,7 @@ public class FtpStorageProvider implements StorageProvider {
     if (persistentCache != null) {
       byte[] cachedData = persistentCache.getCachedData(path);
       FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
-      
+
       if (cachedData != null && cachedMetadata != null) {
         // Check if cached data is still fresh
         try {
@@ -135,7 +135,7 @@ public class FtpStorageProvider implements StorageProvider {
         }
       }
     }
-    
+
     FtpUri ftpUri = parseFtpUri(path);
 
     FTPClient ftpClient = createAndConnect(ftpUri);
@@ -152,11 +152,11 @@ public class FtpStorageProvider implements StorageProvider {
       byte[] data = readAllBytes(stream);
       ftpClient.completePendingCommand();
       disconnect(ftpClient);
-      
+
       // Get file metadata for caching
       FileMetadata metadata = getMetadata(path);
       persistentCache.cacheData(path, data, metadata, 0); // No TTL for FTP
-      
+
       return new java.io.ByteArrayInputStream(data);
     }
 
@@ -283,7 +283,7 @@ public class FtpStorageProvider implements StorageProvider {
       // Ignore disconnect errors
     }
   }
-  
+
   private byte[] readAllBytes(InputStream inputStream) throws IOException {
     java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
     byte[] data = new byte[8192];

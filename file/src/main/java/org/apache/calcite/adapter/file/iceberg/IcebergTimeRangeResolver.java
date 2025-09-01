@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.adapter.file.iceberg;
 
-import org.apache.iceberg.Table;
-import org.apache.iceberg.Snapshot;
 import org.apache.iceberg.DataFile;
+import org.apache.iceberg.Snapshot;
+import org.apache.iceberg.Table;
 import org.apache.iceberg.hadoop.HadoopTables;
 import org.apache.iceberg.io.CloseableIterable;
 
@@ -66,29 +66,29 @@ public class IcebergTimeRangeResolver {
    */
   public List<IcebergDataFile> resolveTimeRange(String tablePath, Instant startTime, Instant endTime) {
     LOGGER.debug("Resolving Iceberg time range: {} to {} for table: {}", startTime, endTime, tablePath);
-    
+
     List<IcebergDataFile> dataFiles = new ArrayList<>();
-    
+
     try {
       HadoopTables tables = new HadoopTables();
       Table icebergTable = tables.load(tablePath);
-      
+
       // Get all snapshots
       Iterable<Snapshot> snapshots = icebergTable.snapshots();
-      
+
       for (Snapshot snapshot : snapshots) {
         long timestampMillis = snapshot.timestampMillis();
         Instant snapshotTime = Instant.ofEpochMilli(timestampMillis);
-        
+
         // Check if snapshot is within time range
         if (!snapshotTime.isBefore(startTime) && !snapshotTime.isAfter(endTime)) {
           LOGGER.debug("Including snapshot {} from {}", snapshot.snapshotId(), snapshotTime);
-          
+
           // Get data files from this snapshot
           try (CloseableIterable<org.apache.iceberg.FileScanTask> files = icebergTable.newScan()
                   .useSnapshot(snapshot.snapshotId())
                   .planFiles()) {
-            
+
             for (org.apache.iceberg.FileScanTask task : files) {
               DataFile dataFile = task.file();
               String filePath = dataFile.path().toString();
@@ -99,40 +99,40 @@ public class IcebergTimeRangeResolver {
           LOGGER.debug("Excluding snapshot {} from {} (outside time range)", snapshot.snapshotId(), snapshotTime);
         }
       }
-      
-      LOGGER.info("Resolved {} data files from {} snapshots in time range", dataFiles.size(), 
+
+      LOGGER.info("Resolved {} data files from {} snapshots in time range", dataFiles.size(),
                  dataFiles.stream().mapToLong(IcebergDataFile::getSnapshotId).distinct().count());
-      
+
     } catch (Exception e) {
       LOGGER.error("Failed to resolve Iceberg time range for table: {}", tablePath, e);
       throw new RuntimeException("Failed to resolve Iceberg time range", e);
     }
-    
+
     return dataFiles;
   }
 
   /**
    * Parses time range configuration from model definition.
-   * 
+   *
    * @param timeRangeConfig Time range configuration map
    * @return Array containing [startTime, endTime]
    */
   public static Instant[] parseTimeRange(Map<String, Object> timeRangeConfig) {
     String startStr = (String) timeRangeConfig.get("start");
     String endStr = (String) timeRangeConfig.get("end");
-    
+
     if (startStr == null || endStr == null) {
       throw new IllegalArgumentException("Time range must specify both 'start' and 'end' times");
     }
-    
+
     try {
       Instant startTime = Instant.parse(startStr);
       Instant endTime = Instant.parse(endStr);
-      
+
       if (startTime.isAfter(endTime)) {
         throw new IllegalArgumentException("Start time must be before end time");
       }
-      
+
       return new Instant[]{startTime, endTime};
     } catch (Exception e) {
       throw new IllegalArgumentException("Invalid time range format. Use ISO-8601 format like '2024-01-01T00:00:00Z'", e);

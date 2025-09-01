@@ -55,8 +55,8 @@ public class ParquetAutoConversionTest {
   @BeforeEach
   public void setUp() throws Exception {
     // Create unique temp directory for this test
-    tempDir = new File(System.getProperty("java.io.tmpdir"),
-                       "parquet_conv_test_" + System.nanoTime());
+    tempDir =
+                       new File(System.getProperty("java.io.tmpdir"), "parquet_conv_test_" + System.nanoTime());
     tempDir.mkdirs();
 
     // Check if we should skip tests based on the current execution engine
@@ -101,8 +101,7 @@ public class ParquetAutoConversionTest {
     file.delete();
   }
 
-  @Test
-  public void testAutoConversionToParquet() throws Exception {
+  @Test public void testAutoConversionToParquet() throws Exception {
     String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (currentEngine == null) {
       currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
@@ -238,8 +237,7 @@ public class ParquetAutoConversionTest {
   }
 
 
-  @Test
-  public void testCacheInvalidation() throws Exception {
+  @Test public void testCacheInvalidation() throws Exception {
     String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (currentEngine == null) {
       currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
@@ -358,8 +356,7 @@ public class ParquetAutoConversionTest {
     System.out.println("   ✓ Cache invalidation is working correctly!");
   }
 
-  @Test
-  public void testJsonFileCacheInvalidation() throws Exception {
+  @Test public void testJsonFileCacheInvalidation() throws Exception {
     String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
     if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
       throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);

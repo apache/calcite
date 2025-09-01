@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.file.iceberg;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -25,20 +25,19 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.apache.iceberg.Snapshot;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.ManifestFile;
+import org.apache.iceberg.Snapshot;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.io.CloseableIterable;
 
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Provides access to Iceberg metadata tables (history, snapshots, files, etc.).
@@ -50,13 +49,13 @@ public class IcebergMetadataTables {
    */
   public static Map<String, Table> createMetadataTables(IcebergTable icebergTable) {
     Map<String, Table> tables = new HashMap<>();
-    
+
     tables.put("history", new HistoryTable(icebergTable));
     tables.put("snapshots", new SnapshotsTable(icebergTable));
     tables.put("files", new FilesTable(icebergTable));
     tables.put("manifests", new ManifestsTable(icebergTable));
     tables.put("partitions", new PartitionsTable(icebergTable));
-    
+
     return tables;
   }
 
@@ -79,8 +78,7 @@ public class IcebergMetadataTables {
       super(icebergTable);
     }
 
-    @Override
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
           .add("made_current_at", SqlTypeName.TIMESTAMP)
           .add("snapshot_id", SqlTypeName.BIGINT)
@@ -89,13 +87,11 @@ public class IcebergMetadataTables {
           .build();
     }
 
-    @Override
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
-        @Override
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
-          
+
           try {
             org.apache.iceberg.Table table = icebergTable.getIcebergTable();
             for (Snapshot snapshot : table.snapshots()) {
@@ -109,7 +105,7 @@ public class IcebergMetadataTables {
           } catch (Exception e) {
             throw new RuntimeException("Failed to read history", e);
           }
-          
+
           return new ListEnumerator<>(rows);
         }
       };
@@ -124,8 +120,7 @@ public class IcebergMetadataTables {
       super(icebergTable);
     }
 
-    @Override
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
           .add("committed_at", SqlTypeName.TIMESTAMP)
           .add("snapshot_id", SqlTypeName.BIGINT)
@@ -136,13 +131,11 @@ public class IcebergMetadataTables {
           .build();
     }
 
-    @Override
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
-        @Override
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
-          
+
           try {
             org.apache.iceberg.Table table = icebergTable.getIcebergTable();
             for (Snapshot snapshot : table.snapshots()) {
@@ -158,7 +151,7 @@ public class IcebergMetadataTables {
           } catch (Exception e) {
             throw new RuntimeException("Failed to read snapshots", e);
           }
-          
+
           return new ListEnumerator<>(rows);
         }
       };
@@ -173,8 +166,7 @@ public class IcebergMetadataTables {
       super(icebergTable);
     }
 
-    @Override
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
           .add("content", SqlTypeName.INTEGER)
           .add("file_path", SqlTypeName.VARCHAR)
@@ -185,22 +177,20 @@ public class IcebergMetadataTables {
           .build();
     }
 
-    @Override
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
-        @Override
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
-          
+
           try {
             org.apache.iceberg.Table table = icebergTable.getIcebergTable();
             Snapshot currentSnapshot = table.currentSnapshot();
-            
+
             if (currentSnapshot != null) {
               // Scan all data files in the current snapshot
-              try (CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks = 
+              try (CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks =
                    table.newScan().planFiles()) {
-                
+
                 for (org.apache.iceberg.FileScanTask fileScanTask : fileScanTasks) {
                   DataFile dataFile = fileScanTask.file();
                   rows.add(new Object[]{
@@ -217,7 +207,7 @@ public class IcebergMetadataTables {
           } catch (Exception e) {
             throw new RuntimeException("Failed to read data files", e);
           }
-          
+
           return new ListEnumerator<>(rows);
         }
       };
@@ -232,8 +222,7 @@ public class IcebergMetadataTables {
       super(icebergTable);
     }
 
-    @Override
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
           .add("path", SqlTypeName.VARCHAR)
           .add("length", SqlTypeName.BIGINT)
@@ -245,17 +234,15 @@ public class IcebergMetadataTables {
           .build();
     }
 
-    @Override
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
-        @Override
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
-          
+
           try {
             org.apache.iceberg.Table table = icebergTable.getIcebergTable();
             Snapshot currentSnapshot = table.currentSnapshot();
-            
+
             if (currentSnapshot != null && currentSnapshot.allManifests(table.io()) != null) {
               // Scan all manifest files in the current snapshot
               for (ManifestFile manifestFile : currentSnapshot.allManifests(table.io())) {
@@ -273,7 +260,7 @@ public class IcebergMetadataTables {
           } catch (Exception e) {
             throw new RuntimeException("Failed to read manifest files", e);
           }
-          
+
           return new ListEnumerator<>(rows);
         }
       };
@@ -288,8 +275,7 @@ public class IcebergMetadataTables {
       super(icebergTable);
     }
 
-    @Override
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
           .add("partition", SqlTypeName.VARCHAR)
           .add("record_count", SqlTypeName.BIGINT)
@@ -297,36 +283,34 @@ public class IcebergMetadataTables {
           .build();
     }
 
-    @Override
-    public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
-        @Override
-        public Enumerator<Object[]> enumerator() {
+        @Override public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
-          
+
           try {
             org.apache.iceberg.Table table = icebergTable.getIcebergTable();
             Snapshot currentSnapshot = table.currentSnapshot();
-            
+
             if (currentSnapshot != null) {
               // Group files by partition to calculate statistics
               Map<String, PartitionStats> partitionStats = new HashMap<>();
-              
-              try (CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks = 
+
+              try (CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks =
                    table.newScan().planFiles()) {
-                
+
                 for (org.apache.iceberg.FileScanTask fileScanTask : fileScanTasks) {
                   DataFile dataFile = fileScanTask.file();
                   // Convert partition data to string representation
                   String partitionKey = partitionToString(dataFile.partition());
-                  
-                  PartitionStats stats = partitionStats.computeIfAbsent(partitionKey, 
-                      k -> new PartitionStats());
+
+                  PartitionStats stats =
+                      partitionStats.computeIfAbsent(partitionKey, k -> new PartitionStats());
                   stats.recordCount += dataFile.recordCount();
                   stats.fileCount++;
                 }
               }
-              
+
               // Convert to rows
               for (Map.Entry<String, PartitionStats> entry : partitionStats.entrySet()) {
                 rows.add(new Object[]{
@@ -339,15 +323,15 @@ public class IcebergMetadataTables {
           } catch (Exception e) {
             throw new RuntimeException("Failed to read partition information", e);
           }
-          
+
           return new ListEnumerator<>(rows);
         }
-        
+
         private String partitionToString(StructLike partition) {
           if (partition == null) {
             return "{}";
           }
-          
+
           StringBuilder sb = new StringBuilder();
           sb.append("{");
           for (int i = 0; i < partition.size(); i++) {
@@ -360,7 +344,7 @@ public class IcebergMetadataTables {
         }
       };
     }
-    
+
     private static class PartitionStats {
       long recordCount = 0;
       int fileCount = 0;
@@ -378,23 +362,19 @@ public class IcebergMetadataTables {
       this.list = list;
     }
 
-    @Override
-    public T current() {
+    @Override public T current() {
       return list.get(index);
     }
 
-    @Override
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return ++index < list.size();
     }
 
-    @Override
-    public void reset() {
+    @Override public void reset() {
       index = -1;
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
       // Nothing to close
     }
   }

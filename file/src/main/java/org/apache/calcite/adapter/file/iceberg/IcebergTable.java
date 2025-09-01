@@ -27,14 +27,13 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Source;
 
-import org.apache.iceberg.Table;
 import org.apache.iceberg.Schema;
-import org.apache.iceberg.types.Types;
+import org.apache.iceberg.Table;
 import org.apache.iceberg.hadoop.HadoopTables;
+import org.apache.iceberg.types.Types;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Table implementation for Apache Iceberg tables.
- * 
+ *
  * <p>Supports reading Iceberg tables with features like:
  * <ul>
  *   <li>Schema evolution</li>
@@ -68,13 +67,13 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
   public IcebergTable(Source source, Map<String, Object> config) {
     this.source = source;
     this.config = config;
-    
+
     // Extract time travel parameters
-    this.snapshotId = config.containsKey("snapshotId") 
-        ? ((Number) config.get("snapshotId")).longValue() 
+    this.snapshotId = config.containsKey("snapshotId")
+        ? ((Number) config.get("snapshotId")).longValue()
         : null;
     this.asOfTimestamp = (String) config.get("asOfTimestamp");
-    
+
     // Initialize the Iceberg table
     String tablePath = source.path();
     // Direct path access using HadoopTables
@@ -96,8 +95,7 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
     this.asOfTimestamp = null;
   }
 
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (rowType == null) {
       rowType = deduceRowType(typeFactory);
     }
@@ -107,17 +105,17 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
   private RelDataType deduceRowType(RelDataTypeFactory typeFactory) {
     final List<String> fieldNames = new ArrayList<>();
     final List<RelDataType> fieldTypes = new ArrayList<>();
-    
+
     Schema icebergSchema = icebergTable.schema();
     for (Types.NestedField field : icebergSchema.columns()) {
       fieldNames.add(field.name());
       fieldTypes.add(icebergTypeToSqlType(field.type(), typeFactory));
     }
-    
+
     return typeFactory.createStructType(fieldTypes, fieldNames);
   }
 
-  private RelDataType icebergTypeToSqlType(org.apache.iceberg.types.Type type, 
+  private RelDataType icebergTypeToSqlType(org.apache.iceberg.types.Type type,
                                            RelDataTypeFactory typeFactory) {
     switch (type.typeId()) {
       case BOOLEAN:
@@ -143,7 +141,7 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
         }
       case DECIMAL:
         Types.DecimalType decimalType = (Types.DecimalType) type;
-        return typeFactory.createSqlType(SqlTypeName.DECIMAL, 
+        return typeFactory.createSqlType(SqlTypeName.DECIMAL,
             decimalType.precision(), decimalType.scale());
       case BINARY:
       case FIXED:
@@ -174,19 +172,17 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
     }
   }
 
-  @Override
-  public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    
+
     return new AbstractEnumerable<Object[]>() {
-      @Override
-      public Enumerator<Object[]> enumerator() {
+      @Override public Enumerator<Object[]> enumerator() {
         try {
           // Use simplified IcebergEnumerator for MVP
           return new IcebergEnumerator(
-              icebergTable, 
-              snapshotId, 
-              asOfTimestamp, 
+              icebergTable,
+              snapshotId,
+              asOfTimestamp,
               cancelFlag);
         } catch (Exception e) {
           throw new RuntimeException("Failed to create Iceberg enumerator", e);

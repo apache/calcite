@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.calcite.adapter.file.refresh;
+
+import java.io.File;
 
 /**
- * Metadata and schema information for the file adapter.
- *
- * <p>This package provides components for managing metadata about files,
- * schemas, and field types, including compatibility with various database
- * metadata standards.</p>
- *
- * <p>Key components:</p>
- * <ul>
- *   <li>{@link org.apache.calcite.adapter.file.metadata.InformationSchema} - Standard SQL information schema tables</li>
- *   <li>{@link org.apache.calcite.adapter.file.metadata.PostgresMetadataSchema} - PostgreSQL-compatible metadata views</li>
- *   <li>{@link org.apache.calcite.adapter.file.metadata.RemoteFileMetadata} - Metadata for remote file sources</li>
- *   <li>{@link org.apache.calcite.adapter.file.metadata.FileFieldType} - Type system for file fields</li>
- * </ul>
+ * Listener interface for table refresh events.
+ * Implementations can react to table refreshes, such as updating external systems.
  */
-package org.apache.calcite.adapter.file.metadata;
+public interface TableRefreshListener {
+  /**
+   * Called when a table has been refreshed.
+   *
+   * @param tableName the name of the table that was refreshed
+   * @param parquetFile the updated parquet file
+   */
+  void onTableRefreshed(String tableName, File parquetFile);
+}
