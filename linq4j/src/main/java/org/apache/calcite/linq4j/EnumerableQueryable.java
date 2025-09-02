@@ -135,7 +135,15 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.take(getThis(), count).asQueryable();
   }
 
+  @Override public Queryable<T> take(long count) {
+    return EnumerableDefaults.take(getThis(), count).asQueryable();
+  }
+
   @Override public Queryable<T> skip(int count) {
+    return EnumerableDefaults.skip(getThis(), count).asQueryable();
+  }
+
+  @Override public Queryable<T> skip(long count) {
     return EnumerableDefaults.skip(getThis(), count).asQueryable();
   }
 

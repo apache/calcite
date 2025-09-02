@@ -127,7 +127,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
               Expressions.constant("?" + param.getIndex())),
           Integer.class);
     } else {
-      return Expressions.constant(RexLiteral.intValue(rexNode));
+      return Expressions.constant(RexLiteral.longValue(rexNode));
     }
   }
 }

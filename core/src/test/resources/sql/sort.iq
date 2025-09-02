@@ -417,4 +417,16 @@ order by arr desc;
 
 !ok
 
+select * from "hr"."emps" limit 3000000000 offset 2500000000;
++-------+--------+------+--------+------------+
+| empid | deptno | name | salary | commission |
++-------+--------+------+--------+------------+
++-------+--------+------+--------+------------+
+(0 rows)
+
+!ok
+EnumerableLimit(offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+  EnumerableTableScan(table=[[hr, emps]])
+!plan
+
 # End sort.iq

@@ -1004,6 +1004,12 @@ public interface ExtendedEnumerable<TSource> {
   Enumerable<TSource> skip(int count);
 
   /**
+   * Bypasses a specified number of elements in a
+   * sequence and then returns the remaining elements.
+   */
+  Enumerable<TSource> skip(long count);
+
+  /**
    * Bypasses elements in a sequence as long as a
    * specified condition is true and then returns the remaining
    * elements.
@@ -1093,6 +1099,12 @@ public interface ExtendedEnumerable<TSource> {
    * from the start of a sequence.
    */
   Enumerable<TSource> take(int count);
+
+  /**
+   * Returns a specified number of contiguous elements
+   * from the start of a sequence.
+   */
+  Enumerable<TSource> take(long count);
 
   /**
    * Returns elements from a sequence as long as a

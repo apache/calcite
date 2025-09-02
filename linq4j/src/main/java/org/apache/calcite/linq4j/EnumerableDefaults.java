@@ -3438,6 +3438,18 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * Bypasses a specified number of elements in a
+   * sequence and then returns the remaining elements.
+   */
+  public static <TSource> Enumerable<TSource> skip(Enumerable<TSource> source,
+      final long count) {
+    return skipWhile(source, (v1, v2) -> {
+      // Count is 1-based
+      return v2 < count;
+    });
+  }
+
+  /**
    * Bypasses elements in a sequence as long as a
    * specified condition is true and then returns the remaining
    * elements.

@@ -651,6 +651,10 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.skip(getThis(), count);
   }
 
+  @Override public Enumerable<T> skip(long count) {
+    return EnumerableDefaults.skip(getThis(), count);
+  }
+
   @Override public Enumerable<T> skipWhile(Predicate1<T> predicate) {
     return EnumerableDefaults.skipWhile(getThis(), predicate);
   }
@@ -700,6 +704,10 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   @Override public Enumerable<T> take(int count) {
+    return EnumerableDefaults.take(getThis(), count);
+  }
+
+  @Override public Enumerable<T> take(long count) {
     return EnumerableDefaults.take(getThis(), count);
   }
 
