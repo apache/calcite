@@ -351,4 +351,203 @@ FROM "scott"."EMP";
 
 !ok
 
+# [CALCITE-4617] Wrong offset when SortJoinTransposeRule pushes a Sort with an offset
+select d.deptno, empno from "scott"."DEPT" d
+right join "scott"."EMP" e using (deptno) limit 10 offset 2;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     10 |  7934 |
+|     20 |  7369 |
+|     20 |  7566 |
+|     20 |  7788 |
+|     20 |  7876 |
+|     20 |  7902 |
+|     30 |  7499 |
+|     30 |  7521 |
+|     30 |  7654 |
+|     30 |  7698 |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[2], fetch=[10])
+    EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Removing this rule CoreRules.SORT_JOIN_TRANSPOSE does not affect the calculation results
+# The EnumerableLimit in this plan was not pushed down because of Volcano's cost selection problem.
+!set planner-rules "
+-CoreRules.SORT_JOIN_TRANSPOSE"
+select d.deptno, empno from "scott"."DEPT" d
+right join "scott"."EMP" e using (deptno) limit 10 offset 2;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     10 |  7934 |
+|     20 |  7369 |
+|     20 |  7566 |
+|     20 |  7788 |
+|     20 |  7876 |
+|     20 |  7902 |
+|     30 |  7499 |
+|     30 |  7521 |
+|     30 |  7654 |
+|     30 |  7698 |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[2], fetch=[10])
+    EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!set planner-rules original
+
+# Reducing the number of rows in limit will allow Volcano to select EnumerableLimit
+select d.deptno, empno from "scott"."DEPT" d
+right join "scott"."EMP" e using (deptno) limit 3 offset 1;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     20 |  7566 |
+|     30 |  7499 |
+|     30 |  7521 |
++--------+-------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[1], fetch=[3])
+    EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+        EnumerableLimit(fetch=[4])
+          EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-4617] Wrong offset when SortJoinTransposeRule pushes a sort node with an offset
+select * from (select * from "scott".emp) e left join (
+  select * from "scott".dept d) using (deptno)
+order by empno limit 3 offset 1;
++--------+-------+-------+----------+------+------------+---------+--------+----------+---------+
+| DEPTNO | EMPNO | ENAME | JOB      | MGR  | HIREDATE   | SAL     | COMM   | DNAME    | LOC     |
++--------+-------+-------+----------+------+------------+---------+--------+----------+---------+
+|     30 |  7499 | ALLEN | SALESMAN | 7698 | 1981-02-20 | 1600.00 | 300.00 | SALES    | CHICAGO |
+|     30 |  7521 | WARD  | SALESMAN | 7698 | 1981-02-22 | 1250.00 | 500.00 | SALES    | CHICAGO |
+|     20 |  7566 | JONES | MANAGER  | 7839 | 1981-02-04 | 2975.00 |        | RESEARCH | DALLAS  |
++--------+-------+-------+----------+------+------------+---------+--------+----------+---------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..10=[{inputs}], expr#11=[COALESCE($t7, $t8)], DEPTNO=[$t11], EMPNO=[$t0], ENAME=[$t1], JOB=[$t2], MGR=[$t3], HIREDATE=[$t4], SAL=[$t5], COMM=[$t6], DNAME=[$t9], LOC=[$t10])
+  EnumerableLimit(offset=[1], fetch=[3])
+    EnumerableHashJoin(condition=[=($7, $8)], joinType=[left])
+      EnumerableLimit(fetch=[4])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Removing this rule CoreRules.SORT_JOIN_TRANSPOSE does not affect the calculation results
+!set planner-rules "
+-CoreRules.SORT_JOIN_TRANSPOSE"
+select * from (select * from "scott".emp) e left join (
+  select * from "scott".dept d) using (deptno)
+order by empno limit 3 offset 1;
++--------+-------+-------+----------+------+------------+---------+--------+----------+---------+
+| DEPTNO | EMPNO | ENAME | JOB      | MGR  | HIREDATE   | SAL     | COMM   | DNAME    | LOC     |
++--------+-------+-------+----------+------+------------+---------+--------+----------+---------+
+|     30 |  7499 | ALLEN | SALESMAN | 7698 | 1981-02-20 | 1600.00 | 300.00 | SALES    | CHICAGO |
+|     30 |  7521 | WARD  | SALESMAN | 7698 | 1981-02-22 | 1250.00 | 500.00 | SALES    | CHICAGO |
+|     20 |  7566 | JONES | MANAGER  | 7839 | 1981-02-04 | 2975.00 |        | RESEARCH | DALLAS  |
++--------+-------+-------+----------+------+------------+---------+--------+----------+---------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..10=[{inputs}], expr#11=[COALESCE($t7, $t8)], DEPTNO=[$t11], EMPNO=[$t0], ENAME=[$t1], JOB=[$t2], MGR=[$t3], HIREDATE=[$t4], SAL=[$t5], COMM=[$t6], DNAME=[$t9], LOC=[$t10])
+  EnumerableLimit(offset=[1], fetch=[3])
+    EnumerableHashJoin(condition=[=($7, $8)], joinType=[left])
+      EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+!set planner-rules original
+
+# [CALCITE-4617] Wrong offset when SortJoinTransposeRule pushes a sort node with an offset
+select d.deptno, empno
+  from "scott".dept d
+  right join "scott".emp e using (deptno)
+  order by empno limit 10 offset 1;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     30 |  7499 |
+|     30 |  7521 |
+|     20 |  7566 |
+|     30 |  7654 |
+|     30 |  7698 |
+|     10 |  7782 |
+|     20 |  7788 |
+|     10 |  7839 |
+|     30 |  7844 |
+|     20 |  7876 |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[1], fetch=[10])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+        EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+          EnumerableLimit(fetch=[11])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Removing this rule CoreRules.SORT_JOIN_TRANSPOSE does not affect the calculation results
+!set planner-rules "
+-CoreRules.SORT_JOIN_TRANSPOSE"
+select d.deptno, empno
+  from "scott".dept d
+  right join "scott".emp e using (deptno)
+  order by empno limit 10 offset 1;
++--------+-------+
+| DEPTNO | EMPNO |
++--------+-------+
+|     30 |  7499 |
+|     30 |  7521 |
+|     20 |  7566 |
+|     30 |  7654 |
+|     30 |  7698 |
+|     10 |  7782 |
+|     20 |  7788 |
+|     10 |  7839 |
+|     30 |  7844 |
+|     20 |  7876 |
++--------+-------+
+(10 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableLimit(offset=[1], fetch=[10])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableHashJoin(condition=[=($0, $2)], joinType=[right])
+        EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+          EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!set planner-rules original
+
 # End planner.iq
