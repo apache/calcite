@@ -3940,7 +3940,9 @@ class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4094">[CALCITE-4094]
    * RexSimplify should simplify more always true OR expressions</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7088">[CALCITE-7088]
-   * Multiple consecutive '%' in the string matched by LIKE should simplify to a single '%'</a>.
+   * Multiple consecutive '%' in the string matched by LIKE should simplify to a single '%'</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7153">[CALCITE-7153]
+   * Mixed wildcards of _ and % need to be simplified in LIKE operator</a>.
    * */
   @Test void testSimplifyLike() {
     final RexNode ref = input(tVarchar(true, 10), 0);
@@ -3963,12 +3965,32 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
     checkSimplifyUnchanged(like(ref, literal("%A")));
     checkSimplify(like(ref, literal("%%A")), "LIKE($0, '%A')");
-    checkSimplify(like(ref, literal("%%%_A%%B%%")), "LIKE($0, '%_A%B%')");
+    checkSimplify(like(ref, literal("%%%_A%%B%%")), "LIKE($0, '_%A%B%')");
     checkSimplify(like(ref, literal("%%A%%%")), "LIKE($0, '%A%')");
     checkSimplify(like(ref, literal("%%\\%%A\\%%%%%")), "LIKE($0, '%\\%%A\\%%')");
     checkSimplify(like(ref, literal("%%A"), literal("#")), "LIKE($0, '%A', '#')");
     checkSimplify(like(ref, literal("%%#%%A%%"), literal("#")),
         "LIKE($0, '%#%%A%', '#')");
+    checkSimplify(like(ref, literal("AA%__%BB%_CC")),
+        "LIKE($0, 'AA__%BB_%CC')");
+    checkSimplify(like(ref, literal("%%__%AA%_BB")),
+        "LIKE($0, '__%AA_%BB')");
+    checkSimplify(like(ref, literal("AA\\%%___%BB%%%___%CC")),
+        "LIKE($0, 'AA\\%___%BB___%CC')");
+    checkSimplify(like(ref, literal("AA#%%___%BB%%%___%CC")),
+        "LIKE($0, 'AA#___%BB___%CC')");
+    checkSimplify(like(ref, literal("AA#%%___%BB%%%___%CC"), literal("#")),
+        "LIKE($0, 'AA#%___%BB___%CC', '#')");
+    // odd number of '#', the next % would not be simplified
+    checkSimplify(like(ref, literal("AA###%%___%BB%%%___%CC"), literal("#")),
+        "LIKE($0, 'AA###%___%BB___%CC', '#')");
+    checkSimplify(like(ref, literal("AA\\\\\\%%___%BB%%%___%CC")),
+        "LIKE($0, 'AA\\\\\\%___%BB___%CC')");
+    // even number of '#', the next % would be simplified
+    checkSimplify(like(ref, literal("AA##%%___%BB%%%___%CC"), literal("#")),
+        "LIKE($0, 'AA##___%BB___%CC', '#')");
+    checkSimplify(like(ref, literal("AA\\\\\\\\%%___%BB%%%___%CC")),
+        "LIKE($0, 'AA\\\\\\\\___%BB___%CC')");
     checkSimplify(like(ref, literal("%%#%#%A%%"), literal("#")),
         "LIKE($0, '%#%#%A%', '#')");
     checkSimplify(like(ref, literal("###%%#%#%A%%##%%%"), literal("#")),

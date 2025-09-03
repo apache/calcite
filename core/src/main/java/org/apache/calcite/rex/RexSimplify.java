@@ -65,6 +65,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -529,6 +530,66 @@ public class RexSimplify {
     return simplifyGenericNode(e);
   }
 
+  // string 'AA%%__%%AA' simplify to 'AA__%AA'
+  // string with even escapes 'AA\\\\%%__%%AA' simplify to 'AA\\__%AA'
+  // string with odd escapes 'AA\\\\\\%%__%%AA' simplify to 'AA\\\\\\%__%AA'
+  private String simplifyMixedWildcards(String str, char escape) {
+    Pattern pattern = Pattern.compile("[_%]+");
+    Matcher matcher = pattern.matcher(str);
+    StringBuilder builder = new StringBuilder();
+    int from = 0;
+    while (matcher.find()) {
+      int start = matcher.start();
+      String group = requireNonNull(matcher.group(0));
+      if (start > 0
+          && str.charAt(start - 1) == escape
+          && consecutiveSameCharCountBefore(str, start - 1, escape) % 2 == 1) {
+        builder.append(str.substring(from, start + 1));
+        builder.append(simplifyPercentAndUnderline(group.substring(1)));
+      } else {
+        builder.append(str.substring(from, start));
+        builder.append(simplifyPercentAndUnderline(group));
+      }
+      from = matcher.end();
+    }
+    if (from < str.length()) {
+      builder.append(str.substring(from));
+    }
+    return builder.toString();
+  }
+
+  // Tool method: count the number of consecutive identical characters before index
+  private int consecutiveSameCharCountBefore(String str, int index, char escape) {
+    int count = 0;
+    while (index >= 0) {
+      if (str.charAt(index) != escape) {
+        break;
+      }
+      count++;
+      index--;
+    }
+    return count;
+  }
+
+  // Tool method: simplified string mixed with '%' and '_'
+  private String simplifyPercentAndUnderline(String str) {
+    StringBuilder builder = new StringBuilder();
+    boolean containsPercent = false;
+    for (int index = 0; index < str.length(); index++) {
+      if (str.charAt(index) == '%') {
+        containsPercent = true;
+        continue;
+      }
+      if (str.charAt(index) == '_') {
+        builder.append('_');
+      }
+    }
+    if (containsPercent) {
+      builder.append('%');
+    }
+    return builder.toString();
+  }
+
   /**
    * Simplifies like string with escape.
    * A like '%%#%%A%%' escape '#' should simplify to A like '%#%%A%' escape '#'.
@@ -559,7 +620,7 @@ public class RexSimplify {
       escapeCount = 0;
       wildcardCount = 0;
     }
-    return builder.toString();
+    return simplifyMixedWildcards(builder.toString(), escape);
   }
 
   // e must be a comparison (=, >, >=, <, <=, !=)
