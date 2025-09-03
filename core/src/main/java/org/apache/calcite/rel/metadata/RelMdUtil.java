@@ -1016,8 +1016,8 @@ public class RelMdUtil {
       // Cannot be determined
       return false;
     }
-    final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
-    final int limit = RexLiteral.intValue(fetch);
+    final long offsetVal = offset == null ? 0 : RexLiteral.longValue(offset);
+    final long limit = RexLiteral.longValue(fetch);
     return (double) offsetVal + (double) limit >= rowCount;
   }
 

@@ -17615,6 +17615,34 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortJoinTranspose10">
+    <Resource name="sql">
+      <![CDATA[select * from sales.emp e left join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+limit 3000000000 offset 2500000000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalSort(fetch=[5500000000:BIGINT])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortJoinTranspose2">
     <Resource name="sql">
       <![CDATA[select * from sales.emp e right join (
@@ -17726,7 +17754,7 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
   LogicalSort(offset=[2], fetch=[10])
     LogicalJoin(condition=[=($0, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalSort(offset=[2], fetch=[10])
+      LogicalSort(fetch=[12])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -17742,6 +17770,16 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
   LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalSort(sort0=[$0], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
