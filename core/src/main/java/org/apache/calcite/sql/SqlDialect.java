@@ -755,6 +755,10 @@ public class SqlDialect {
     return true;
   }
 
+  public boolean supportsOrderByLiteral() {
+    return true;
+  }
+
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case LITERAL_AGG:

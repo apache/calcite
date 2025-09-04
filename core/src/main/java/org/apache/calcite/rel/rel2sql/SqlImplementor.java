@@ -20,9 +20,10 @@ import org.apache.calcite.adapter.jdbc.JdbcCorrelationDataContext;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -34,6 +35,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FullToLeftAndRightJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -183,20 +185,23 @@ public abstract class SqlImplementor {
 
   /** Visits a relational expression that has no parent. */
   public final Result visitRoot(RelNode r) {
-    RelNode best;
-    if (!this.dialect.supportsGroupByLiteral()
-        || !this.dialect.supportsJoinType(JoinRelType.FULL)) {
-      HepProgramBuilder hepProgramBuilder = new HepProgramBuilder();
-      if (!this.dialect.supportsGroupByLiteral()) {
-        hepProgramBuilder.addRuleInstance(
-            AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
-      }
-      if (!this.dialect.supportsJoinType(JoinRelType.FULL)) {
-        hepProgramBuilder.addRuleInstance(
-            FullToLeftAndRightJoinRule.Config.DEFAULT.toRule());
-      }
-      HepPlanner hepPlanner = new HepPlanner(hepProgramBuilder.build());
+    List<RelOptRule> rules = new ArrayList<>();
+    if (!this.dialect.supportsGroupByLiteral()) {
+      rules.add(AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+    }
 
+    if (!this.dialect.supportsJoinType(JoinRelType.FULL)) {
+      rules.add(FullToLeftAndRightJoinRule.Config.DEFAULT.toRule());
+    }
+
+    if (!this.dialect.supportsOrderByLiteral()) {
+      rules.add(CoreRules.SORT_REMOVE_CONSTANT_KEYS);
+    }
+
+    RelNode best;
+    if (!rules.isEmpty()) {
+      HepPlanner hepPlanner =
+          new HepPlanner(HepProgram.builder().addRuleCollection(rules).build());
       hepPlanner.setRoot(r);
       best = hepPlanner.findBestExp();
     } else {

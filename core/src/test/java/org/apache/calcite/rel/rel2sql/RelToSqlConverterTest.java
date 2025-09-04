@@ -10685,6 +10685,22 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7157">[CALCITE-7157]
+   * PostgreSQL does not support string literal in ORDER BY clause</a>. */
+  @Test void testSqlDialectOrdreByLiteralSimple() {
+    final String query = "SELECT deptno, job\n"
+        + "FROM emp\n"
+        + "ORDER BY empno, 'abc'";
+    final String expected = "SELECT \"DEPTNO\", \"JOB\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "ORDER BY \"EMPNO\"";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withPostgresql()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
