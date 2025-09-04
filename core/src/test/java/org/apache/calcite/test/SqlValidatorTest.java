@@ -851,6 +851,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("CAST(CAST('123e4567-e89b-12d3-a456-426655440000' AS VARCHAR) AS UUID)").ok();
     expr("CAST(x'123e4567e89b12d3a456426655440000' AS UUID)").ok();
     expr("CAST(CAST(x'123e4567e89b12d3a456426655440000' AS VARBINARY) AS UUID)").ok();
+    expr("CAST(NULL AS UUID)").ok();
+    // Test case for [CALCITE-7158] NULL cannot be cast to UUID
+    sql("SELECT UUID '123e4567-e89b-12d3-a456-426655440000' UNION SELECT NULL").ok();
   }
 
   @Test void testConcatWithCharset() {
