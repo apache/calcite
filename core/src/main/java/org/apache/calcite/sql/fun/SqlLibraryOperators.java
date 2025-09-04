@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandHandlers;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -790,6 +791,33 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION)
           .withAllowsNullTreatment(true);
+
+  /**
+   * Creates a new instance of {@link SqlFunction} representing the "ARRAY_UNIQUE_AGG"
+   * Snowflake function.
+   * This function overrides the default unparse method to print "ARRAY_AGG" with "DISTINCT".
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_UNIQUE_AGG =
+      new SqlAggFunction("ARRAY_UNIQUE_AGG",
+          null,
+          SqlKind.ARRAY_UNIQUE_AGG,
+          ReturnTypes.TO_ARRAY,
+          null,
+          OperandTypes.ANY,
+          SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.print("ARRAY_AGG");
+          SqlPrettyWriter sqlPrettyWriter =
+              new SqlPrettyWriter(writer.getDialect(), SqlPrettyWriter.config(),
+                  new StringBuilder());
+          final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
+          SqlNode operand = call.getOperandList().get(0);
+          operand.unparse(sqlPrettyWriter, leftPrec, rightPrec);
+          writer.print("DISTINCT " + sqlPrettyWriter.toString().trim());
+          writer.endList(parenthesisFrame);
+        }
+      };
 
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlAggFunction JSON_AGG =
