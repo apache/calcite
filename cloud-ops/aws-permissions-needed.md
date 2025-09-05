@@ -1,6 +1,6 @@
 # AWS Permissions Required for CloudOps Adapter
 
-The CloudOps adapter needs read-only permissions to query AWS resources. 
+The CloudOps adapter needs read-only permissions to query AWS resources.
 
 ## Option 1: Attach AWS Managed Policies (Easiest)
 

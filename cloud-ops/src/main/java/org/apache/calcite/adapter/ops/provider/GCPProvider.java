@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 /**
  * GCP provider implementation using Google Cloud SDK for Java.
  * Simplified implementation that only handles Cloud Storage for now.
@@ -191,25 +190,26 @@ public class GCPProvider implements CloudProvider {
         ClusterManagerSettings settings = ClusterManagerSettings.newBuilder()
             .setCredentialsProvider(() -> credentials)
             .build();
-        
+
         try (ClusterManagerClient clusterClient = ClusterManagerClient.create(settings)) {
           // List clusters in all zones (use "-" for all zones)
           String parent = String.format("projects/%s/locations/-", projectId);
           ListClustersResponse response = clusterClient.listClusters(parent);
-          
+
           for (Cluster cluster : response.getClustersList()) {
             Map<String, Object> clusterData = new HashMap<>();
-            
+
             // Identity fields
             clusterData.put("CloudProvider", "gcp");
             clusterData.put("AccountId", projectId);
             clusterData.put("ClusterName", cluster.getName());
-            clusterData.put("Application", cluster.getResourceLabelsOrDefault("app", 
+            clusterData.put(
+                "Application", cluster.getResourceLabelsOrDefault("app",
                 cluster.getResourceLabelsOrDefault("application", "Untagged/Orphaned")));
             clusterData.put("Location", cluster.getLocation());
             clusterData.put("ResourceGroup", null); // GCP doesn't have resource groups
             clusterData.put("ResourceId", cluster.getSelfLink());
-            
+
             // Configuration facts
             clusterData.put("KubernetesVersion", cluster.getCurrentMasterVersion());
             // Calculate total node count from node pools
@@ -221,40 +221,40 @@ public class GCPProvider implements CloudProvider {
             clusterData.put("NodePools", cluster.getNodePoolsCount());
             clusterData.put("MinNodes", null); // Would need to aggregate from node pools
             clusterData.put("MaxNodes", null); // Would need to aggregate from node pools
-            
+
             // Security facts
             clusterData.put("RBACEnabled", !cluster.hasLegacyAbac() || !cluster.getLegacyAbac().getEnabled());
-            clusterData.put("PrivateCluster", cluster.hasPrivateClusterConfig() && 
+            clusterData.put("PrivateCluster", cluster.hasPrivateClusterConfig() &&
                 cluster.getPrivateClusterConfig().getEnablePrivateNodes());
-            clusterData.put("PublicEndpoint", !cluster.hasPrivateClusterConfig() || 
+            clusterData.put("PublicEndpoint", !cluster.hasPrivateClusterConfig() ||
                 !cluster.getPrivateClusterConfig().getEnablePrivateEndpoint());
-            clusterData.put("AuthorizedIPRanges", cluster.hasMasterAuthorizedNetworksConfig() ? 
+            clusterData.put("AuthorizedIPRanges", cluster.hasMasterAuthorizedNetworksConfig() ?
                 cluster.getMasterAuthorizedNetworksConfig().getCidrBlocksCount() : 0);
-            
+
             // Network configuration
-            clusterData.put("NetworkPolicyProvider", cluster.hasNetworkPolicy() ? 
+            clusterData.put("NetworkPolicyProvider", cluster.hasNetworkPolicy() ?
                 cluster.getNetworkPolicy().getProvider().name() : null);
             clusterData.put("PodSecurityPolicyEnabled", false); // PSP is deprecated in newer GKE versions
-            
+
             // Encryption and logging
-            clusterData.put("EncryptionAtRestEnabled", cluster.hasDatabaseEncryption() && 
+            clusterData.put("EncryptionAtRestEnabled", cluster.hasDatabaseEncryption() &&
                 cluster.getDatabaseEncryption().getState().name().equals("ENCRYPTED"));
-            clusterData.put("EncryptionKeyType", cluster.hasDatabaseEncryption() && 
-                !cluster.getDatabaseEncryption().getKeyName().isEmpty() ? 
+            clusterData.put("EncryptionKeyType", cluster.hasDatabaseEncryption() &&
+                !cluster.getDatabaseEncryption().getKeyName().isEmpty() ?
                 "customer-managed" : "service-managed");
-            clusterData.put("LoggingEnabled", cluster.getLoggingService() != null && 
+            clusterData.put("LoggingEnabled", cluster.getLoggingService() != null &&
                 !cluster.getLoggingService().equals("none"));
-            clusterData.put("MonitoringEnabled", cluster.getMonitoringService() != null && 
+            clusterData.put("MonitoringEnabled", cluster.getMonitoringService() != null &&
                 !cluster.getMonitoringService().equals("none"));
-            
+
             // Timestamps
             clusterData.put("CreatedDate", cluster.getCreateTime());
             clusterData.put("ModifiedDate", null); // Not directly available
-            
+
             // Tags
-            clusterData.put("Tags", cluster.getResourceLabelsMap() != null ? 
+            clusterData.put("Tags", cluster.getResourceLabelsMap() != null ?
                 cluster.getResourceLabelsMap().toString() : null);
-            
+
             results.add(clusterData);
           }
         }

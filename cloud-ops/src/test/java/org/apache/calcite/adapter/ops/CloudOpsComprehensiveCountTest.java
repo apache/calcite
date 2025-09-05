@@ -43,8 +43,7 @@ public class CloudOpsComprehensiveCountTest {
       "container_registries"
   };
 
-  @Test
-  public void testComprehensiveCounts() throws Exception {
+  @Test public void testComprehensiveCounts() throws Exception {
     // Load test configuration
     CloudOpsConfig config = CloudOpsTestUtils.loadTestConfig();
     if (config == null) {
@@ -63,38 +62,39 @@ public class CloudOpsComprehensiveCountTest {
       LOGGER.info("=" .repeat(80));
       LOGGER.info("CLOUDOPS COMPREHENSIVE TABLE COUNTS");
       LOGGER.info("=" .repeat(80));
-      
+
       for (String table : TABLES) {
-        LOGGER.info("\n" + "=".repeat(60));
+        LOGGER.info("\n"
+  + "=".repeat(60));
         LOGGER.info("TABLE: {}", table.toUpperCase());
         LOGGER.info("=".repeat(60));
-        
+
         try (Statement stmt = conn.createStatement()) {
           // Total count
           try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total FROM " + table)) {
             if (rs.next()) {
               int total = rs.getInt("total");
               LOGGER.info("TOTAL RECORDS: {}", total);
-              
+
               if (total > 0) {
                 // Count by provider
-                try (ResultSet providerRs = stmt.executeQuery(
-                    "SELECT cloud_provider, COUNT(*) as cnt " +
+                try (ResultSet providerRs =
+                    stmt.executeQuery("SELECT cloud_provider, COUNT(*) as cnt " +
                     "FROM " + table + " " +
                     "GROUP BY cloud_provider " +
                     "ORDER BY cloud_provider")) {
                   LOGGER.info("By Provider:");
                   while (providerRs.next()) {
-                    LOGGER.info("  {:10s}: {:5d}", 
-                        providerRs.getString("cloud_provider"), 
+                    LOGGER.info("  {:10s}: {:5d}",
+                        providerRs.getString("cloud_provider"),
                         providerRs.getInt("cnt"));
                   }
                 }
-                
+
                 // For specific tables, get additional breakdowns
                 if (table.equals("storage_resources")) {
-                  try (ResultSet typeRs = stmt.executeQuery(
-                      "SELECT storage_type, COUNT(*) as cnt " +
+                  try (ResultSet typeRs =
+                      stmt.executeQuery("SELECT storage_type, COUNT(*) as cnt " +
                       "FROM " + table + " " +
                       "GROUP BY storage_type " +
                       "ORDER BY cnt DESC")) {
@@ -107,8 +107,8 @@ public class CloudOpsComprehensiveCountTest {
                     }
                   }
                 } else if (table.equals("compute_instances")) {
-                  try (ResultSet typeRs = stmt.executeQuery(
-                      "SELECT instance_type, COUNT(*) as cnt " +
+                  try (ResultSet typeRs =
+                      stmt.executeQuery("SELECT instance_type, COUNT(*) as cnt " +
                       "FROM " + table + " " +
                       "GROUP BY instance_type " +
                       "ORDER BY cnt DESC " +
@@ -122,8 +122,8 @@ public class CloudOpsComprehensiveCountTest {
                     }
                   }
                 } else if (table.equals("network_resources")) {
-                  try (ResultSet typeRs = stmt.executeQuery(
-                      "SELECT resource_type, COUNT(*) as cnt " +
+                  try (ResultSet typeRs =
+                      stmt.executeQuery("SELECT resource_type, COUNT(*) as cnt " +
                       "FROM " + table + " " +
                       "GROUP BY resource_type " +
                       "ORDER BY cnt DESC")) {
@@ -136,8 +136,8 @@ public class CloudOpsComprehensiveCountTest {
                     }
                   }
                 } else if (table.equals("database_resources")) {
-                  try (ResultSet typeRs = stmt.executeQuery(
-                      "SELECT database_engine, COUNT(*) as cnt " +
+                  try (ResultSet typeRs =
+                      stmt.executeQuery("SELECT database_engine, COUNT(*) as cnt " +
                       "FROM " + table + " " +
                       "GROUP BY database_engine " +
                       "ORDER BY cnt DESC")) {
@@ -150,7 +150,7 @@ public class CloudOpsComprehensiveCountTest {
                     }
                   }
                 }
-                
+
                 // Sample records
                 String sampleQuery = "SELECT * FROM " + table + " LIMIT 2";
                 try (ResultSet sampleRs = stmt.executeQuery(sampleQuery)) {
@@ -159,42 +159,42 @@ public class CloudOpsComprehensiveCountTest {
                   while (sampleRs.next()) {
                     sampleCount++;
                     if (table.equals("kubernetes_clusters")) {
-                      LOGGER.info("  - {}/{} in {} ({} nodes)", 
+                      LOGGER.info("  - {}/{} in {} ({} nodes)",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("cluster_name"),
                           sampleRs.getString("region"),
                           sampleRs.getObject("node_count"));
                     } else if (table.equals("storage_resources")) {
-                      LOGGER.info("  - {}/{} ({}) in {}", 
+                      LOGGER.info("  - {}/{} ({}) in {}",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("resource_name"),
                           sampleRs.getString("storage_type"),
                           sampleRs.getString("region"));
                     } else if (table.equals("compute_instances")) {
-                      LOGGER.info("  - {}/{} ({}) in {}", 
+                      LOGGER.info("  - {}/{} ({}) in {}",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("instance_name"),
                           sampleRs.getString("instance_type"),
                           sampleRs.getString("region"));
                     } else if (table.equals("network_resources")) {
-                      LOGGER.info("  - {}/{} ({}) in {}", 
+                      LOGGER.info("  - {}/{} ({}) in {}",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("resource_name"),
                           sampleRs.getString("resource_type"),
                           sampleRs.getString("region"));
                     } else if (table.equals("iam_resources")) {
-                      LOGGER.info("  - {}/{} ({})", 
+                      LOGGER.info("  - {}/{} ({})",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("resource_name"),
                           sampleRs.getString("resource_type"));
                     } else if (table.equals("database_resources")) {
-                      LOGGER.info("  - {}/{} ({}) in {}", 
+                      LOGGER.info("  - {}/{} ({}) in {}",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("database_name"),
                           sampleRs.getString("database_engine"),
                           sampleRs.getString("region"));
                     } else if (table.equals("container_registries")) {
-                      LOGGER.info("  - {}/{} in {}", 
+                      LOGGER.info("  - {}/{} in {}",
                           sampleRs.getString("cloud_provider"),
                           sampleRs.getString("registry_name"),
                           sampleRs.getString("region"));
@@ -208,11 +208,12 @@ public class CloudOpsComprehensiveCountTest {
           LOGGER.error("Failed to query {}: {}", table, e.getMessage());
         }
       }
-      
-      LOGGER.info("\n" + "=".repeat(80));
+
+      LOGGER.info("\n"
+  + "=".repeat(80));
       LOGGER.info("SUMMARY");
       LOGGER.info("=".repeat(80));
-      
+
       // Overall summary
       int grandTotal = 0;
       for (String table : TABLES) {

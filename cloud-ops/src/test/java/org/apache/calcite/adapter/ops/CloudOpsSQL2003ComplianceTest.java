@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.ops;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -97,18 +96,18 @@ public class CloudOpsSQL2003ComplianceTest {
 
     connection = DriverManager.getConnection("jdbc:calcite:", info);
     LOGGER.info("Connected for SQL:2003 compliance testing");
-    
+
     // Discover available data
     discoverAvailableData();
   }
-  
+
   /**
    * Discovers what data is actually available in the cloud providers.
    * This allows tests to adapt to available resources.
    */
   private void discoverAvailableData() throws SQLException {
     LOGGER.info("Starting data discovery for CloudOps tables...");
-    
+
     // Check kubernetes_clusters
     try {
       LOGGER.info("Querying kubernetes_clusters table...");
@@ -120,12 +119,12 @@ public class CloudOpsSQL2003ComplianceTest {
           LOGGER.info("Found {} kubernetes clusters", kubernetesRowCount);
         }
       }
-      
+
       // Get breakdown by provider
       if (hasKubernetesClusters) {
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(
-                 "SELECT cloud_provider, COUNT(*) as cnt FROM kubernetes_clusters "
+             ResultSet rs =
+                 stmt.executeQuery("SELECT cloud_provider, COUNT(*) as cnt FROM kubernetes_clusters "
                  + "GROUP BY cloud_provider")) {
           LOGGER.info("Kubernetes clusters by provider:");
           while (rs.next()) {
@@ -136,7 +135,7 @@ public class CloudOpsSQL2003ComplianceTest {
     } catch (SQLException e) {
       LOGGER.warn("Failed to query kubernetes_clusters: {}", e.getMessage());
     }
-    
+
     // Check storage_resources
     try {
       LOGGER.info("Querying storage_resources table...");
@@ -148,12 +147,12 @@ public class CloudOpsSQL2003ComplianceTest {
           LOGGER.info("Found {} storage resources", storageRowCount);
         }
       }
-      
+
       // Get breakdown by provider
       if (hasStorageResources) {
         try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(
-                 "SELECT cloud_provider, COUNT(*) as cnt FROM storage_resources "
+             ResultSet rs =
+                 stmt.executeQuery("SELECT cloud_provider, COUNT(*) as cnt FROM storage_resources "
                  + "GROUP BY cloud_provider")) {
           LOGGER.info("Storage resources by provider:");
           while (rs.next()) {
@@ -164,11 +163,11 @@ public class CloudOpsSQL2003ComplianceTest {
     } catch (SQLException e) {
       LOGGER.warn("Failed to query storage_resources: {}", e.getMessage());
     }
-    
+
     // Summary
     LOGGER.info("Data discovery complete: {} Kubernetes clusters, {} storage resources",
                 kubernetesRowCount, storageRowCount);
-    
+
     if (!hasKubernetesClusters && !hasStorageResources) {
       LOGGER.warn("No cloud resource data found. Tests will need to use VALUES clauses.");
     }
@@ -179,8 +178,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test basic SELECT with column aliases (SQL:2003 mandatory).
    */
-  @Test
-  public void testSelectWithAliases() throws Exception {
+  @Test public void testSelectWithAliases() throws Exception {
     String sql = "SELECT cluster_name AS name, region AS location, "
         + "node_count AS nodes "
         + "FROM kubernetes_clusters "
@@ -210,10 +208,9 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test CASE expressions (SQL:2003 mandatory).
    */
-  @Test
-  public void testCaseExpression() throws Exception {
+  @Test public void testCaseExpression() throws Exception {
     String sql;
-    
+
     // Use VALUES clause to test CASE expression if no data available
     if (!hasKubernetesClusters && !hasStorageResources) {
       sql = "SELECT name, "
@@ -269,8 +266,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test COALESCE and NULLIF functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testNullHandlingFunctions() throws Exception {
+  @Test public void testNullHandlingFunctions() throws Exception {
     // Always use VALUES clause for NULL handling tests to ensure predictable results
     String sql = "SELECT "
         + "COALESCE(col1, 'Default') AS coalesce_result, "
@@ -306,8 +302,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test various aggregate functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testAggregateFunctions() throws Exception {
+  @Test public void testAggregateFunctions() throws Exception {
     String sql = "SELECT "
         + "COUNT(*) AS total_clusters, "
         + "COUNT(DISTINCT cloud_provider) AS unique_providers, "
@@ -345,8 +340,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test GROUP BY with HAVING clause (SQL:2003 mandatory).
    */
-  @Test
-  public void testGroupByHaving() throws Exception {
+  @Test public void testGroupByHaving() throws Exception {
     String sql = "SELECT cloud_provider, region, "
         + "COUNT(*) as cluster_count, "
         + "SUM(node_count) as total_nodes "
@@ -383,8 +377,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test GROUPING SETS (SQL:2003 optional feature T431).
    */
-  @Test
-  public void testGroupingSets() throws Exception {
+  @Test public void testGroupingSets() throws Exception {
     // Use VALUES clause to test GROUPING SETS reliably
     String sql = "SELECT category, subcategory, "
         + "COUNT(*) as cnt, "
@@ -441,8 +434,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test INNER JOIN (SQL:2003 mandatory).
    */
-  @Test
-  public void testInnerJoin() throws Exception {
+  @Test public void testInnerJoin() throws Exception {
     String sql = "SELECT k.cluster_name, s.resource_name, s.storage_type "
         + "FROM kubernetes_clusters k "
         + "INNER JOIN storage_resources s "
@@ -473,8 +465,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test LEFT OUTER JOIN (SQL:2003 mandatory).
    */
-  @Test
-  public void testLeftJoin() throws Exception {
+  @Test public void testLeftJoin() throws Exception {
     // Use storage_resources as the left table since it has data
     String sql = "SELECT s1.resource_name, s1.size_bytes, "
         + "s2.resource_name as other_resource, s2.size_bytes as other_size "
@@ -508,8 +499,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test CROSS JOIN (SQL:2003 mandatory).
    */
-  @Test
-  public void testCrossJoin() throws Exception {
+  @Test public void testCrossJoin() throws Exception {
     // Use small subsets to avoid huge result sets
     String sql = "SELECT k.cluster_name, s.storage_type "
         + "FROM (SELECT cluster_name FROM kubernetes_clusters "
@@ -539,8 +529,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test UNION (SQL:2003 mandatory).
    */
-  @Test
-  public void testUnion() throws Exception {
+  @Test public void testUnion() throws Exception {
     String sql = "SELECT cloud_provider, region FROM kubernetes_clusters "
         + "WHERE cloud_provider = 'aws' "
         + "UNION "
@@ -572,8 +561,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test UNION ALL (SQL:2003 mandatory).
    */
-  @Test
-  public void testUnionAll() throws Exception {
+  @Test public void testUnionAll() throws Exception {
     String sql = "(SELECT cluster_name AS name FROM kubernetes_clusters "
         + " WHERE cloud_provider = 'azure' LIMIT 3) "
         + "UNION ALL "
@@ -599,8 +587,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test INTERSECT (SQL:2003 mandatory).
    */
-  @Test
-  public void testIntersect() throws Exception {
+  @Test public void testIntersect() throws Exception {
     String sql = "SELECT DISTINCT region FROM kubernetes_clusters "
         + "INTERSECT "
         + "SELECT DISTINCT region FROM storage_resources";
@@ -622,8 +609,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test EXCEPT (SQL:2003 mandatory).
    */
-  @Test
-  public void testExcept() throws Exception {
+  @Test public void testExcept() throws Exception {
     String sql = "SELECT DISTINCT region FROM kubernetes_clusters "
         + "EXCEPT "
         + "SELECT DISTINCT region FROM storage_resources";
@@ -648,8 +634,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test ROW_NUMBER() window function (SQL:2003 feature T611).
    */
-  @Test
-  public void testRowNumber() throws Exception {
+  @Test public void testRowNumber() throws Exception {
     String sql = "SELECT cluster_name, region, node_count, "
         + "ROW_NUMBER() OVER (PARTITION BY region ORDER BY node_count DESC) as rn "
         + "FROM kubernetes_clusters "
@@ -684,8 +669,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test RANK() and DENSE_RANK() window functions (SQL:2003 feature T612).
    */
-  @Test
-  public void testRankFunctions() throws Exception {
+  @Test public void testRankFunctions() throws Exception {
     String sql = "SELECT cluster_name, node_count, "
         + "RANK() OVER (ORDER BY node_count DESC) as rnk, "
         + "DENSE_RANK() OVER (ORDER BY node_count DESC) as dense_rnk "
@@ -727,8 +711,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test LAG() and LEAD() window functions (SQL:2003 feature T614).
    */
-  @Test
-  public void testLagLead() throws Exception {
+  @Test public void testLagLead() throws Exception {
     String sql = "SELECT cluster_name, node_count, "
         + "LAG(node_count, 1) OVER (ORDER BY cluster_name) as prev_count, "
         + "LEAD(node_count, 1) OVER (ORDER BY cluster_name) as next_count "
@@ -770,8 +753,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test scalar subquery (SQL:2003 mandatory).
    */
-  @Test
-  public void testScalarSubquery() throws Exception {
+  @Test public void testScalarSubquery() throws Exception {
     String sql = "SELECT cluster_name, node_count, "
         + "(SELECT COUNT(*) FROM storage_resources s "
         + " WHERE s.cloud_provider = k.cloud_provider "
@@ -803,8 +785,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test EXISTS subquery (SQL:2003 mandatory).
    */
-  @Test
-  public void testExistsSubquery() throws Exception {
+  @Test public void testExistsSubquery() throws Exception {
     String sql = "SELECT DISTINCT k.cloud_provider, k.region "
         + "FROM kubernetes_clusters k "
         + "WHERE EXISTS ("
@@ -833,8 +814,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test IN subquery (SQL:2003 mandatory).
    */
-  @Test
-  public void testInSubquery() throws Exception {
+  @Test public void testInSubquery() throws Exception {
     String sql = "SELECT cluster_name, region "
         + "FROM kubernetes_clusters "
         + "WHERE region IN ("
@@ -865,8 +845,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test WITH clause / CTE (SQL:2003 optional feature T121).
    */
-  @Test
-  public void testCommonTableExpression() throws Exception {
+  @Test public void testCommonTableExpression() throws Exception {
     String sql = "WITH regional_summary AS ("
         + "  SELECT cloud_provider, region, "
         + "    COUNT(*) as cluster_count, "
@@ -919,8 +898,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test string functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testStringFunctions() throws Exception {
+  @Test public void testStringFunctions() throws Exception {
     // Use VALUES clause to test string functions reliably
     String sql = "SELECT "
         + "UPPER(col1) as upper_val, "
@@ -973,8 +951,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test mathematical functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testMathFunctions() throws Exception {
+  @Test public void testMathFunctions() throws Exception {
     // Use VALUES clause with a single row to test math functions
     String sql = "SELECT "
         + "ABS(-5) as abs_val, "
@@ -1004,8 +981,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test CAST and type conversion (SQL:2003 mandatory).
    */
-  @Test
-  public void testCastAndConversion() throws Exception {
+  @Test public void testCastAndConversion() throws Exception {
     // Use VALUES clause to test CAST operations reliably
     String sql = "SELECT "
         + "CAST(int_val AS VARCHAR(10)) as int_to_string, "
@@ -1047,8 +1023,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test prepared statements with parameters (SQL:2003 mandatory).
    */
-  @Test
-  public void testPreparedStatements() throws Exception {
+  @Test public void testPreparedStatements() throws Exception {
     String sql = "SELECT cluster_name, region, node_count "
         + "FROM kubernetes_clusters "
         + "WHERE cloud_provider = ? "
@@ -1084,8 +1059,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test OFFSET and FETCH for pagination.
    */
-  @Test
-  public void testOffsetFetch() throws Exception {
+  @Test public void testOffsetFetch() throws Exception {
     // First, get total count
     int totalCount = 0;
     String countSql = "SELECT COUNT(*) as cnt FROM kubernetes_clusters";
@@ -1132,8 +1106,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test DISTINCT with multiple columns (SQL:2003 mandatory).
    */
-  @Test
-  public void testDistinctMultipleColumns() throws Exception {
+  @Test public void testDistinctMultipleColumns() throws Exception {
     String sql = "SELECT DISTINCT cloud_provider, region "
         + "FROM kubernetes_clusters "
         + "ORDER BY cloud_provider, region";
@@ -1167,8 +1140,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test ORDER BY with NULL handling (SQL:2003 mandatory).
    */
-  @Test
-  public void testOrderByNullHandling() throws Exception {
+  @Test public void testOrderByNullHandling() throws Exception {
     // Use VALUES clause to test NULL ordering reliably
     // Quote 'value' as it's a reserved word in Oracle lexicon
     String sql = "SELECT name, \"value\" "
@@ -1209,8 +1181,7 @@ public class CloudOpsSQL2003ComplianceTest {
   /**
    * Test complex WHERE conditions (SQL:2003 mandatory).
    */
-  @Test
-  public void testComplexWhereConditions() throws Exception {
+  @Test public void testComplexWhereConditions() throws Exception {
     String sql = "SELECT cluster_name, cloud_provider, region, node_count "
         + "FROM kubernetes_clusters "
         + "WHERE (cloud_provider = 'aws' OR cloud_provider = 'azure') "
@@ -1254,8 +1225,7 @@ public class CloudOpsSQL2003ComplianceTest {
    * Test SQL:2003 compliance summary.
    * This test verifies that all major SQL:2003 features are supported.
    */
-  @Test
-  public void testSQL2003ComplianceSummary() {
+  @Test public void testSQL2003ComplianceSummary() {
     LOGGER.info("========================================");
     LOGGER.info("SQL:2003 Compliance Test Summary");
     LOGGER.info("========================================");
