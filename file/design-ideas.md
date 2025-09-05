@@ -1,5 +1,242 @@
 # Design Ideas for File Adapter (Prioritized by ROI)
 
+## JSON Schema Companion Files for Type Fidelity
+
+### Problem Statement
+JSON files lack type information, leading to:
+- Type inference errors (e.g., "1000000" becoming STRING instead of INTEGER)
+- Loss of precision/scale for decimal values
+- No distinction between INTEGER vs BIGINT
+- No way to specify VARCHAR lengths
+- Semantic information loss (units, constraints, etc.)
+
+### Proposed Solution: JSON Schema Companion Files
+Use the JSON Schema standard with a companion file naming convention: `{filename-root}.schema.json`
+
+#### File Structure
+```
+data/
+├── financial_data.json           # The data file
+├── financial_data.schema.json    # The companion schema
+├── company_info.json
+├── company_info.schema.json
+└── transactions.json             # No schema = use type inference
+```
+
+#### Example Schema (financial_data.schema.json)
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "ticker": {
+        "type": "string",
+        "maxLength": 10,
+        "description": "Stock ticker symbol"
+      },
+      "revenue": {
+        "type": "number",
+        "multipleOf": 0.0001,
+        "x-sql-type": "DECIMAL(19,4)",
+        "x-sql-unit": "USD",
+        "description": "Annual revenue in USD"
+      },
+      "shares_outstanding": {
+        "type": "integer",
+        "minimum": 0,
+        "x-sql-type": "BIGINT",
+        "x-sql-unit": "shares"
+      },
+      "market_cap": {
+        "type": "number",
+        "multipleOf": 0.01,
+        "x-sql-type": "DECIMAL(22,2)",
+        "x-sql-unit": "USD"
+      },
+      "gross_margin": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "multipleOf": 0.0001,
+        "x-sql-type": "DECIMAL(5,4)",
+        "description": "Gross margin as decimal (0.4531 = 45.31%)"
+      },
+      "filing_date": {
+        "type": "string",
+        "format": "date",
+        "description": "SEC filing date"
+      },
+      "fiscal_period_end": {
+        "type": "string",
+        "format": "date",
+        "description": "End of fiscal period"
+      }
+    },
+    "required": ["ticker", "filing_date"]
+  }
+}
+```
+
+### Type Mapping Strategy
+
+#### Standard JSON Schema → SQL Type Mappings
+| JSON Schema | SQL Type | Notes |
+|-------------|----------|-------|
+| `type: "string", format: "date"` | DATE | ISO 8601 date |
+| `type: "string", format: "date-time"` | TIMESTAMP | ISO 8601 datetime |
+| `type: "string", format: "time"` | TIME | ISO 8601 time |
+| `type: "string", maxLength: n` | VARCHAR(n) | Length-constrained string |
+| `type: "string"` | VARCHAR or TEXT | Unlimited string |
+| `type: "integer"` | INTEGER | 32-bit by default |
+| `type: "number"` | DOUBLE | Floating point by default |
+| `type: "boolean"` | BOOLEAN | True/false |
+| `type: "null"` | NULL | Null value |
+
+#### Using multipleOf for Decimal Scale Inference
+- `multipleOf: 1` → INTEGER
+- `multipleOf: 0.01` → DECIMAL with scale 2
+- `multipleOf: 0.0001` → DECIMAL with scale 4
+- `multipleOf: 0.00001` → DECIMAL with scale 5
+
+#### SQL Extension Keywords (x-sql-* prefix)
+- `x-sql-type`: Explicit SQL type (e.g., "DECIMAL(19,4)", "BIGINT", "VARCHAR(255)")
+- `x-sql-precision`: Total digits for DECIMAL
+- `x-sql-scale`: Decimal places for DECIMAL
+- `x-sql-length`: Character length for VARCHAR/CHAR
+- `x-sql-unit`: Semantic unit information (e.g., "USD", "shares", "percent")
+- `x-sql-nullable`: Override nullable constraint
+
+### Implementation Approach
+
+#### Phase 1: Basic JSON Schema Support
+1. **Schema Detection**
+   - Check for `{filename-root}.schema.json` companion file
+   - Load and parse JSON Schema if found
+   - Cache parsed schema for performance
+
+2. **Type Resolution**
+   - Map standard JSON Schema types to SQL types
+   - Support format specifiers (date, date-time, time)
+   - Use maxLength for VARCHAR sizing
+   - Apply multipleOf for decimal scale detection
+
+3. **Backward Compatibility**
+   - If no schema file exists, use current type inference
+   - Allow schema override via configuration
+
+#### Phase 2: Advanced Features
+1. **SQL Extensions**
+   - Support `x-sql-type` for precise type specification
+   - Handle `x-sql-precision` and `x-sql-scale` for DECIMAL
+   - Support `x-sql-length` for string types
+
+2. **Validation**
+   - Validate data against JSON Schema
+   - Report schema violations as warnings
+   - Optional strict mode to reject invalid data
+
+3. **Performance Optimization**
+   - Cache compiled schemas
+   - Skip row scanning when schema provides types
+   - Reuse schema across related files
+
+#### Phase 3: Extended Capabilities
+1. **Nested Structure Support**
+   - Handle nested objects as JSON columns
+   - Support arrays with JSON array types
+   - Flatten nested structures based on schema hints
+
+2. **Schema References**
+   - Support `$ref` for shared definitions
+   - Handle external schema files
+   - Support schema composition with `allOf`/`anyOf`
+
+3. **Auto-Generation Tools**
+   - Tool to generate schema from existing Parquet files
+   - Tool to infer schema from JSON samples
+   - Schema migration utilities
+
+### Benefits
+
+1. **Type Fidelity**: Preserves exact SQL types including precision/scale
+2. **Standards-Based**: Uses JSON Schema draft-07, not proprietary format
+3. **Tool Support**: IDEs and validators understand JSON Schema
+4. **Self-Documenting**: Schema serves as data documentation
+5. **Validation**: Can validate data against schema
+6. **Performance**: No need to scan rows for type inference
+7. **Extensible**: Can add domain-specific extensions with x- prefix
+8. **Backward Compatible**: Existing code continues to work
+
+### Use Cases
+
+1. **Financial Data**: Preserve decimal precision for monetary values
+2. **Scientific Data**: Maintain numeric precision for measurements
+3. **API Responses**: Define types for REST API JSON responses
+4. **Data Exports**: Specify types for exported JSON data
+5. **Configuration Files**: Type-safe configuration with validation
+6. **XBRL Data**: Preserve rich type information from XBRL sources (see XBRL adapter integration)
+
+### XBRL Adapter Integration
+When the file adapter supports JSON Schema companion files, the XBRL adapter can leverage this for lossless type preservation:
+
+1. **XBRL → JSON + Schema**: Generate both data and schema files
+2. **Schema preserves XBRL types**: Map XBRL data types to SQL types via schema
+3. **Enables JSON intermediate**: Solves the type fidelity problem for XBRL→JSON→Parquet pipeline
+4. **XBRL-specific extensions**: Use `x-xbrl-*` properties for XBRL metadata
+
+Example XBRL-generated schema:
+```json
+{
+  "properties": {
+    "us-gaap:Revenue": {
+      "type": "number",
+      "x-sql-type": "DECIMAL(19,4)",
+      "x-xbrl-type": "monetaryItemType",
+      "x-xbrl-unit": "USD",
+      "x-xbrl-context": "instant"
+    },
+    "us-gaap:CommonStockSharesOutstanding": {
+      "type": "integer",
+      "x-sql-type": "BIGINT",
+      "x-xbrl-type": "sharesItemType",
+      "x-xbrl-unit": "shares"
+    }
+  }
+}
+```
+
+### Configuration Options
+
+```json
+{
+  "name": "financial",
+  "type": "custom",
+  "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+  "operand": {
+    "files": ["financial_data.json"],
+    "schemaFile": "custom_schema.json",  // Optional: override companion file
+    "schemaMode": "strict",              // Optional: strict validation
+    "inferIfNoSchema": true               // Optional: fallback behavior
+  }
+}
+```
+
+### Related Standards
+- JSON Schema Draft-07: https://json-schema.org/draft-07/json-schema-validation
+- JSON Schema Draft 2020-12: Latest version with additional features
+- OpenAPI Schema Object: Similar approach for API specifications
+
+### Future Considerations
+- Support for JSON Schema Draft 2020-12 features
+- Integration with Apache Avro schemas
+- Support for Protocol Buffers schema
+- Automatic schema evolution tracking
+- Schema registry integration for centralized management
+
+# Design Ideas for File Adapter (Prioritized by ROI)
+
 ## 🔥🔥🔥 HIGH ROI - Quick Wins (Days to Implement, Immediate Value)
 
 ### ✅ 1. Environment Variable Substitution in Model Files - **COMPLETED**
