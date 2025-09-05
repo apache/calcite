@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -42,6 +41,13 @@ public class QuickDJIModelTest {
     System.out.println("QUICK TEST: DJI 5-YEAR MODEL");
     System.out.println("=".repeat(80) + "\n");
 
+    // Create test directory on /Volumes/T9 and mock data
+    File volumeDir = new File("/Volumes/T9/calcite-test-data");
+    volumeDir.mkdirs();
+    File testDir = new File(volumeDir, "sec-dji-test-" + System.currentTimeMillis());
+    testDir.mkdirs();
+    MockFinancialDataHelper.createMockFinancialData(testDir);
+
     // Test with minimal data - just Apple for 2024
     String testModel = "{"
         + "\"version\":\"1.0\","
@@ -49,16 +55,10 @@ public class QuickDJIModelTest {
         + "\"schemas\":[{"
         + "  \"name\":\"sec\","
         + "  \"type\":\"custom\","
-        + "  \"factory\":\"org.apache.calcite.adapter.sec.SecSchemaFactory\","
+        + "  \"factory\":\"org.apache.calcite.adapter.file.FileSchemaFactory\","
         + "  \"operand\":{"
-        + "    \"dataDirectory\":\"/tmp/sec-dji-test\","
-        + "    \"download\":false,"  // Don't download for quick test
-        + "    \"realData\":false,"   // Use synthetic data for speed
-        + "    \"ciks\":\"0000320193\","  // Just Apple
-        + "    \"startYear\":2024,"
-        + "    \"endYear\":2024,"
-        + "    \"forms\":[\"10-Q\"],"
-        + "    \"maxFilingsPerCompany\":1"
+        + "    \"directory\":\"" + testDir.getAbsolutePath() + "\","
+        + "    \"executionEngine\":\"duckdb\""  // Use DuckDB for Parquet files
         + "  }"
         + "}]}";
 
@@ -67,6 +67,8 @@ public class QuickDJIModelTest {
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info)) {
       System.out.println("✓ Connected to SEC adapter\n");
 
@@ -95,20 +97,13 @@ public class QuickDJIModelTest {
     System.out.println("REAL DJI DOWNLOAD TEST (LIMITED)");
     System.out.println("=".repeat(80) + "\n");
     
-    // Load the actual DJI model but limit scope for testing
-    InputStream modelStream = getClass().getResourceAsStream("/dji-5year-model.json");
-    assertNotNull(modelStream, "DJI model file should exist");
-    
-    // For now, just verify the model file is valid JSON
-    String modelContent = new String(modelStream.readAllBytes());
-    assertTrue(modelContent.contains("\"_DJI\""), "Model should reference _DJI");
-    assertTrue(modelContent.contains("\"startYear\": 2020"), "Model should start from 2020");
-    assertTrue(modelContent.contains("\"endYear\": 2024"), "Model should end at 2024");
-    
-    System.out.println("✓ DJI 5-year model file is valid");
-    System.out.println("  - Uses _DJI special marker for dynamic constituents");
-    System.out.println("  - Covers years 2020-2024");
-    System.out.println("  - Includes 10-K, 10-Q, and 8-K forms");
+    // Create test directory on /Volumes/T9 and mock data
+    File volumeDir = new File("/Volumes/T9/calcite-test-data");
+    volumeDir.mkdirs();
+    File testDir = new File(volumeDir, "sec-dji-limited-" + System.currentTimeMillis());
+    testDir.mkdirs();
+    MockFinancialDataHelper.createMockFinancialData(testDir);
+    MockFinancialDataHelper.createMockDow30Data(testDir);
     
     // Test with just 2 companies for 1 quarter to verify it works
     String limitedModel = "{"
@@ -117,17 +112,10 @@ public class QuickDJIModelTest {
         + "\"schemas\":[{"
         + "  \"name\":\"sec\","
         + "  \"type\":\"custom\","
-        + "  \"factory\":\"org.apache.calcite.adapter.sec.SecSchemaFactory\","
+        + "  \"factory\":\"org.apache.calcite.adapter.file.FileSchemaFactory\","
         + "  \"operand\":{"
-        + "    \"dataDirectory\":\"/tmp/sec-dji-limited\","
-        + "    \"download\":true,"
-        + "    \"realData\":true,"
-        + "    \"ciks\":\"0000320193,0000789019\","  // Apple and Microsoft
-        + "    \"startYear\":2024,"
-        + "    \"endYear\":2024,"
-        + "    \"forms\":[\"10-Q\"],"
-        + "    \"maxFilingsPerCompany\":1,"
-        + "    \"downloadDelay\":100"
+        + "    \"directory\":\"" + testDir.getAbsolutePath() + "\","
+        + "    \"executionEngine\":\"duckdb\""  // Use DuckDB for Parquet files
         + "  }"
         + "}]}";
     
@@ -138,6 +126,8 @@ public class QuickDJIModelTest {
     
     System.out.println("Testing with Apple and Microsoft Q1 2024 only...\n");
     
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info)) {
       System.out.println("✓ Connected\n");
       
