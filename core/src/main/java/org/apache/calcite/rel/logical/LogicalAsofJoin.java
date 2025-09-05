@@ -124,10 +124,9 @@ public final class LogicalAsofJoin extends AsofJoin {
     if (this == obj) {
       return true;
     }
-    LogicalAsofJoin asofObj = requireNonNull((LogicalAsofJoin) obj);
     return deepEquals0(obj)
-        && matchCondition.equals(asofObj.matchCondition)
-        && systemFieldList.equals(asofObj.systemFieldList);
+        && matchCondition.equals(((LogicalAsofJoin) obj).matchCondition)
+        && systemFieldList.equals(((LogicalAsofJoin) obj).systemFieldList);
   }
 
   @Override public int deepHashCode() {

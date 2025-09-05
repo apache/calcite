@@ -324,6 +324,25 @@ class ToLogicalConverterTest {
     assertThat(rels[0].deepHashCode() == rels[1].deepHashCode(), is(true));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7159">[CALCITE-7159]
+   * LogicalAsofJoin deepEquals can throw for legal expressions</a>. */
+  @Test void testAsofDeepEquals() {
+    final RelBuilder builder = builder();
+    RelNode[] rels = new RelNode[2];
+    rels[0] = builder.scan("EMP")
+        .scan("DEPT")
+        .asofJoin(JoinRelType.ASOF,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")),
+            builder.lessThan(
+                builder.field(2, 1, "DEPTNO"),
+                builder.field(2, 0, "DEPTNO")))
+        .build();
+    rels[1] = builder.scan("EMP").build();
+    assertThat(rels[0].deepEquals(rels[1]), is(false));
+  }
+
   @Test void testCorrelation() {
     final RelBuilder builder = builder();
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
