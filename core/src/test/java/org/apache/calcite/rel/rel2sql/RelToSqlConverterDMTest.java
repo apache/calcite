@@ -13112,7 +13112,6 @@ class RelToSqlConverterDMTest {
     final RexNode parseTSNode1 =
         builder.call(SqlLibraryOperators.ARRAY_UNIQUE_AGG, builder.field(1));
     final RelNode root = builder
-        .scan("EMP")
         .project(parseTSNode1)
         .build();
     final String expectedSql =

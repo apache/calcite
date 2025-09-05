@@ -34,7 +34,6 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandHandlers;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -807,14 +806,11 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ANY,
           SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL) {
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-          writer.print("ARRAY_AGG");
-          SqlPrettyWriter sqlPrettyWriter =
-              new SqlPrettyWriter(writer.getDialect(), SqlPrettyWriter.config(),
-                  new StringBuilder());
+          writer.print(ARRAY_AGG.getName());
           final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
+          writer.keyword("DISTINCT");
           SqlNode operand = call.getOperandList().get(0);
-          operand.unparse(sqlPrettyWriter, leftPrec, rightPrec);
-          writer.print("DISTINCT " + sqlPrettyWriter.toString().trim());
+          operand.unparse(writer, leftPrec, rightPrec);
           writer.endList(parenthesisFrame);
         }
       };
