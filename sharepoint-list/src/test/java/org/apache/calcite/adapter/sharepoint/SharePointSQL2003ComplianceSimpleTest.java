@@ -42,10 +42,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @EnabledIfEnvironmentVariable(named = "SHAREPOINT_INTEGRATION_TESTS", matches = "true")
 public class SharePointSQL2003ComplianceSimpleTest {
 
-  @Test
-  public void testBasicSQL2003Features() throws Exception {
+  @Test public void testBasicSQL2003Features() throws Exception {
     Properties testConfig = loadTestConfig();
-    
+
     // Create connection
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
@@ -68,7 +67,7 @@ public class SharePointSQL2003ComplianceSimpleTest {
     rootSchema.add("sharepoint", sharePointSchema);
 
     System.out.println("Testing SQL:2003 features on SharePoint Lists adapter...");
-    
+
     // Test 1: Basic SELECT with LIMIT
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT * FROM sharepoint.documents LIMIT 5")) {
@@ -79,7 +78,7 @@ public class SharePointSQL2003ComplianceSimpleTest {
       System.out.println("✓ Basic SELECT: " + count + " rows");
       assertTrue(count <= 5, "LIMIT should restrict results");
     }
-    
+
     // Test 2: COUNT aggregate
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM sharepoint.documents")) {
@@ -89,11 +88,11 @@ public class SharePointSQL2003ComplianceSimpleTest {
         assertTrue(count >= 0, "Count should be non-negative");
       }
     }
-    
+
     // Test 3: VALUES clause
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c')) AS t(id, name)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT * FROM (VALUES (1, 'a'), (2, 'b'), (3, 'c')) AS t(id, name)")) {
       int count = 0;
       while (rs.next()) {
         count++;
@@ -101,22 +100,22 @@ public class SharePointSQL2003ComplianceSimpleTest {
       System.out.println("✓ VALUES clause: " + count + " rows");
       assertTrue(count == 3, "Should return 3 rows");
     }
-    
+
     // Test 4: CASE expression
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT CASE WHEN 1=1 THEN 'yes' ELSE 'no' END as result FROM (VALUES (1)) AS t(x)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT CASE WHEN 1=1 THEN 'yes' ELSE 'no' END as result FROM (VALUES (1)) AS t(x)")) {
       if (rs.next()) {
         String result = rs.getString("result");
         System.out.println("✓ CASE expression: " + result);
         assertTrue("yes".equals(result), "CASE should return 'yes'");
       }
     }
-    
+
     // Test 5: String functions
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT UPPER('hello') as up, LOWER('WORLD') as low FROM (VALUES (1)) AS t(x)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT UPPER('hello') as up, LOWER('WORLD') as low FROM (VALUES (1)) AS t(x)")) {
       if (rs.next()) {
         String upper = rs.getString("up");
         String lower = rs.getString("low");
@@ -124,11 +123,11 @@ public class SharePointSQL2003ComplianceSimpleTest {
         assertTrue("HELLO".equals(upper) && "world".equals(lower));
       }
     }
-    
+
     // Test 6: Math functions
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT ABS(-5) as abs_val, MOD(10, 3) as mod_val FROM (VALUES (1)) AS t(x)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT ABS(-5) as abs_val, MOD(10, 3) as mod_val FROM (VALUES (1)) AS t(x)")) {
       if (rs.next()) {
         int absVal = rs.getInt("abs_val");
         int modVal = rs.getInt("mod_val");
@@ -136,11 +135,11 @@ public class SharePointSQL2003ComplianceSimpleTest {
         assertTrue(absVal == 5 && modVal == 1);
       }
     }
-    
+
     // Test 7: UNION
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT 1 as id FROM (VALUES (1)) AS t(x) " +
+         ResultSet rs =
+             stmt.executeQuery("SELECT 1 as id FROM (VALUES (1)) AS t(x) " +
              "UNION " +
              "SELECT 2 as id FROM (VALUES (1)) AS t(x)")) {
       int count = 0;
@@ -150,11 +149,11 @@ public class SharePointSQL2003ComplianceSimpleTest {
       System.out.println("✓ UNION: " + count + " rows");
       assertTrue(count == 2, "UNION should return 2 rows");
     }
-    
+
     // Test 8: Common Table Expression (WITH)
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "WITH nums AS (SELECT 1 as n UNION SELECT 2 as n) " +
+         ResultSet rs =
+             stmt.executeQuery("WITH nums AS (SELECT 1 as n UNION SELECT 2 as n) " +
              "SELECT COUNT(*) as cnt FROM nums")) {
       if (rs.next()) {
         int count = rs.getInt("cnt");
@@ -162,7 +161,7 @@ public class SharePointSQL2003ComplianceSimpleTest {
         assertTrue(count == 2, "CTE should return 2 rows");
       }
     }
-    
+
     System.out.println("\n========================================");
     System.out.println("SharePoint Lists adapter SQL:2003 compliance verified!");
     System.out.println("✓ Basic SQL features work");
@@ -174,10 +173,10 @@ public class SharePointSQL2003ComplianceSimpleTest {
     System.out.println("✓ Set operations (UNION) work");
     System.out.println("✓ Common Table Expressions work");
     System.out.println("========================================");
-    
+
     connection.close();
   }
-  
+
   private Properties loadTestConfig() throws Exception {
     Properties props = new Properties();
     Path configPath = Paths.get("/Users/kennethstott/calcite/sharepoint-list/local-test.properties");
@@ -187,7 +186,7 @@ public class SharePointSQL2003ComplianceSimpleTest {
     if (!Files.exists(configPath)) {
       configPath = Paths.get("local-test.properties");
     }
-    
+
     if (Files.exists(configPath)) {
       try (FileInputStream fis = new FileInputStream(configPath.toFile())) {
         props.load(fis);

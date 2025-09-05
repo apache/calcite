@@ -40,8 +40,7 @@ import java.util.Properties;
 @EnabledIfEnvironmentVariable(named = "SHAREPOINT_INTEGRATION_TESTS", matches = "true")
 public class SharePointDirectTest {
 
-  @Test
-  public void testDirectConnection() throws Exception {
+  @Test public void testDirectConnection() throws Exception {
     // Load test configuration
     Properties testConfig = new Properties();
     Path configPath = Paths.get("/Users/kennethstott/calcite/sharepoint-list/local-test.properties");
@@ -51,13 +50,13 @@ public class SharePointDirectTest {
     if (!Files.exists(configPath)) {
       configPath = Paths.get("local-test.properties");
     }
-    
+
     if (Files.exists(configPath)) {
       try (FileInputStream fis = new FileInputStream(configPath.toFile())) {
         testConfig.load(fis);
       }
     }
-    
+
     // Create connection directly with proper casing configuration
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
@@ -79,7 +78,7 @@ public class SharePointDirectTest {
     rootSchema.add("sharepoint", sharePointSchema);
 
     System.out.println("\n=== SharePoint Direct Connection Test ===");
-    
+
     // Test 1: List available tables
     System.out.println("\n1. Available SharePoint Lists:");
     int listCount = 0;
@@ -92,7 +91,7 @@ public class SharePointDirectTest {
       }
     }
     System.out.println("   Total lists: " + sharePointSchema.getTableMap().size());
-    
+
     // Test 2: Simple SELECT
     System.out.println("\n2. Testing SELECT with LIMIT:");
     try (Statement stmt = connection.createStatement();
@@ -103,7 +102,7 @@ public class SharePointDirectTest {
       }
       System.out.println("   ✓ Retrieved " + count + " rows");
     }
-    
+
     // Test 3: COUNT aggregate
     System.out.println("\n3. Testing COUNT aggregate:");
     try (Statement stmt = connection.createStatement();
@@ -113,24 +112,24 @@ public class SharePointDirectTest {
         System.out.println("   ✓ COUNT(*) = " + count);
       }
     }
-    
+
     // Test 4: VALUES clause
     System.out.println("\n4. Testing VALUES clause:");
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT * FROM (VALUES (1, 'test'), (2, 'data')) AS t(id, name)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT * FROM (VALUES (1, 'test'), (2, 'data')) AS t(id, name)")) {
       int count = 0;
       while (rs.next()) {
         count++;
       }
       System.out.println("   ✓ VALUES returned " + count + " rows");
     }
-    
+
     // Test 5: String functions
     System.out.println("\n5. Testing string functions:");
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT UPPER('hello') as up, LOWER('WORLD') as low FROM (VALUES (1)) AS t(x)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT UPPER('hello') as up, LOWER('WORLD') as low FROM (VALUES (1)) AS t(x)")) {
       if (rs.next()) {
         String upper = rs.getString("up");
         String lower = rs.getString("low");
@@ -138,18 +137,18 @@ public class SharePointDirectTest {
         System.out.println("   ✓ LOWER('WORLD') = " + lower);
       }
     }
-    
+
     // Test 6: CASE expression (quote 'result' as it may be a reserved word)
     System.out.println("\n6. Testing CASE expression:");
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT CASE WHEN 1=1 THEN 'yes' ELSE 'no' END as \"result\" FROM (VALUES (1)) AS t(x)")) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT CASE WHEN 1=1 THEN 'yes' ELSE 'no' END as \"result\" FROM (VALUES (1)) AS t(x)")) {
       if (rs.next()) {
         String result = rs.getString("result");
         System.out.println("   ✓ CASE result = " + result);
       }
     }
-    
+
     System.out.println("\n=== SharePoint SQL:2003 Compliance Verified ===");
     System.out.println("✓ Connection successful");
     System.out.println("✓ Schema discovery works");
@@ -158,7 +157,7 @@ public class SharePointDirectTest {
     System.out.println("✓ VALUES clause works");
     System.out.println("✓ String functions work");
     System.out.println("✓ CASE expressions work");
-    
+
     connection.close();
   }
 }

@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-// Removed SLF4J to avoid dependency conflicts
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -96,7 +95,7 @@ public class SharePointSQL2003ComplianceTest {
     // Create connection
     connection = createConnection();
     System.out.println("SharePointSQL2003: Connected for SQL:2003 compliance testing");
-    
+
     // Discover available lists
     discoverAvailableLists();
   }
@@ -174,7 +173,7 @@ public class SharePointSQL2003ComplianceTest {
    */
   private void discoverAvailableLists() throws SQLException {
     System.out.println("SharePointSQL2003: Starting list discovery for SharePoint site...");
-    
+
     // Get metadata about available tables
     java.sql.DatabaseMetaData metaData = connection.getMetaData();
     try (ResultSet rs = metaData.getTables(null, "sharepoint", "%", new String[]{"TABLE"})) {
@@ -184,12 +183,12 @@ public class SharePointSQL2003ComplianceTest {
         System.out.println("SharePointSQL2003:   Found list: " + tableName);
       }
     }
-    
+
     if (availableLists.isEmpty()) {
       System.out.println("SharePointSQL2003: No SharePoint lists found! Tests may fail.");
       return;
     }
-    
+
     // Try common list names first
     String[] preferredLists = {"documents", "site_pages", "site_assets", "pages", "tasks", "events"};
     for (String listName : preferredLists) {
@@ -198,31 +197,30 @@ public class SharePointSQL2003ComplianceTest {
         break;
       }
     }
-    
+
     // If no preferred list found, use the first available one
     if (primaryListName == null) {
       primaryListName = availableLists.get(0);
     }
-    
+
     // Get row count for primary list
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT COUNT(*) as cnt FROM sharepoint." + primaryListName)) {
+         ResultSet rs =
+             stmt.executeQuery("SELECT COUNT(*) as cnt FROM sharepoint." + primaryListName)) {
       if (rs.next()) {
         primaryListRowCount = rs.getInt("cnt");
         System.out.println("SharePointSQL2003: Primary list '" + primaryListName + "' has " + primaryListRowCount + " rows");
       }
     }
-    
-    System.out.println("SharePointSQL2003: Data discovery complete: " + availableLists.size() + 
+
+    System.out.println("SharePointSQL2003: Data discovery complete: " + availableLists.size() +
         " lists found, using '" + primaryListName + "' as primary");
   }
 
   /**
    * Test basic SELECT statement (SQL:2003 mandatory).
    */
-  @Test
-  public void testBasicSelect() throws Exception {
+  @Test public void testBasicSelect() throws Exception {
     String sql = "SELECT * FROM sharepoint." + primaryListName + " LIMIT 5";
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
@@ -238,8 +236,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test column aliasing (SQL:2003 mandatory).
    */
-  @Test
-  public void testColumnAliases() throws Exception {
+  @Test public void testColumnAliases() throws Exception {
     String sql = "SELECT id AS item_id, title AS item_title "
         + "FROM sharepoint." + primaryListName + " LIMIT 1";
     try (Statement stmt = connection.createStatement();
@@ -256,9 +253,8 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test WHERE clause (SQL:2003 mandatory).
    */
-  @Test
-  public void testWhereClause() throws Exception {
-    String sql = "SELECT id, title FROM sharepoint." + primaryListName 
+  @Test public void testWhereClause() throws Exception {
+    String sql = "SELECT id, title FROM sharepoint." + primaryListName
         + " WHERE id IS NOT NULL LIMIT 10";
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
@@ -274,8 +270,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test COUNT aggregate function (SQL:2003 mandatory).
    */
-  @Test
-  public void testCountAggregate() throws Exception {
+  @Test public void testCountAggregate() throws Exception {
     String sql = "SELECT COUNT(*) as total_count FROM sharepoint." + primaryListName;
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
@@ -290,13 +285,12 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test GROUP BY clause (SQL:2003 mandatory).
    */
-  @Test
-  public void testGroupBy() throws Exception {
+  @Test public void testGroupBy() throws Exception {
     if (primaryListRowCount == 0) {
       System.out.println("SharePointSQL2003: Skipping GROUP BY test - no data available");
       return;
     }
-    
+
     // Use VALUES clause for reliable testing
     String sql = "SELECT category, COUNT(*) as cnt "
         + "FROM (VALUES "
@@ -305,7 +299,7 @@ public class SharePointSQL2003ComplianceTest {
         + "  ('C', 5)) AS t(category, val) "
         + "GROUP BY category "
         + "ORDER BY category";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int groupCount = 0;
@@ -324,8 +318,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test HAVING clause (SQL:2003 mandatory).
    */
-  @Test
-  public void testHaving() throws Exception {
+  @Test public void testHaving() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT category, COUNT(*) as cnt "
         + "FROM (VALUES "
@@ -335,7 +328,7 @@ public class SharePointSQL2003ComplianceTest {
         + "GROUP BY category "
         + "HAVING COUNT(*) > 1 "
         + "ORDER BY category";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int groupCount = 0;
@@ -352,17 +345,16 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test ORDER BY clause (SQL:2003 mandatory).
    */
-  @Test
-  public void testOrderBy() throws Exception {
-    String sql = "SELECT id, title FROM sharepoint." + primaryListName 
+  @Test public void testOrderBy() throws Exception {
+    String sql = "SELECT id, title FROM sharepoint." + primaryListName
         + " WHERE id IS NOT NULL "
         + "ORDER BY id DESC LIMIT 10";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       String previousId = null;
       int count = 0;
-      
+
       while (rs.next()) {
         String currentId = rs.getString("id");
         if (previousId != null) {
@@ -379,20 +371,19 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test DISTINCT (SQL:2003 mandatory).
    */
-  @Test
-  public void testDistinct() throws Exception {
+  @Test public void testDistinct() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT DISTINCT category "
         + "FROM (VALUES "
         + "  ('A'), ('A'), ('B'), ('B'), ('C'), ('A')) AS t(category) "
         + "ORDER BY category";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       Set<String> distinctValues = new HashSet<>();
       while (rs.next()) {
         String value = rs.getString("category");
-        assertFalse(distinctValues.contains(value), 
+        assertFalse(distinctValues.contains(value),
             "DISTINCT should not return duplicates");
         distinctValues.add(value);
       }
@@ -404,8 +395,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test INNER JOIN (SQL:2003 mandatory).
    */
-  @Test
-  public void testInnerJoin() throws Exception {
+  @Test public void testInnerJoin() throws Exception {
     if (availableLists.size() < 2) {
       // Use self-join if only one list available
       String sql = "SELECT l1.id, l2.id as other_id "
@@ -413,7 +403,7 @@ public class SharePointSQL2003ComplianceTest {
           + "INNER JOIN sharepoint." + primaryListName + " l2 "
           + "ON l1.id = l2.id "
           + "LIMIT 5";
-      
+
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(sql)) {
         int count = 0;
@@ -433,7 +423,7 @@ public class SharePointSQL2003ComplianceTest {
           + "INNER JOIN sharepoint." + list2 + " l2 "
           + "ON l1.id IS NOT NULL AND l2.id IS NOT NULL "
           + "LIMIT 5";
-      
+
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(sql)) {
         int count = 0;
@@ -450,15 +440,14 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test LEFT OUTER JOIN (SQL:2003 mandatory).
    */
-  @Test
-  public void testLeftJoin() throws Exception {
+  @Test public void testLeftJoin() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT l.id, l.name, r.value "
         + "FROM (VALUES (1, 'A'), (2, 'B'), (3, 'C')) AS l(id, name) "
         + "LEFT JOIN (VALUES (1, 100), (3, 300)) AS r(id, value) "
         + "ON l.id = r.id "
         + "ORDER BY l.id";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -475,12 +464,11 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test UNION (SQL:2003 mandatory).
    */
-  @Test
-  public void testUnion() throws Exception {
+  @Test public void testUnion() throws Exception {
     String sql = "SELECT id FROM sharepoint." + primaryListName + " WHERE id IS NOT NULL LIMIT 2 "
         + "UNION "
         + "SELECT id FROM sharepoint." + primaryListName + " WHERE id IS NOT NULL LIMIT 2";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       Set<String> uniqueIds = new HashSet<>();
@@ -496,13 +484,12 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test UNION ALL (SQL:2003 mandatory).
    */
-  @Test
-  public void testUnionAll() throws Exception {
+  @Test public void testUnionAll() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT val FROM (VALUES (1), (2)) AS t(val) "
         + "UNION ALL "
         + "SELECT val FROM (VALUES (2), (3)) AS t(val)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -517,8 +504,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test CASE expression (SQL:2003 mandatory).
    */
-  @Test
-  public void testCaseExpression() throws Exception {
+  @Test public void testCaseExpression() throws Exception {
     String sql = "SELECT id, "
         + "CASE "
         + "  WHEN id IS NULL THEN 'No ID' "
@@ -526,7 +512,7 @@ public class SharePointSQL2003ComplianceTest {
         + "END as id_status "
         + "FROM sharepoint." + primaryListName + " "
         + "LIMIT 5";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -544,8 +530,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test COALESCE function (SQL:2003 mandatory).
    */
-  @Test
-  public void testCoalesce() throws Exception {
+  @Test public void testCoalesce() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT "
         + "COALESCE(val1, val2, 'default') as result "
@@ -553,7 +538,7 @@ public class SharePointSQL2003ComplianceTest {
         + "  ('A', 'B'), "
         + "  (NULL, 'C'), "
         + "  (NULL, NULL)) AS t(val1, val2)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       List<String> results = new ArrayList<>();
@@ -571,13 +556,12 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test NULLIF function (SQL:2003 mandatory).
    */
-  @Test
-  public void testNullif() throws Exception {
+  @Test public void testNullif() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT "
         + "NULLIF(val, 'B') as result "
         + "FROM (VALUES ('A'), ('B'), ('C')) AS t(val)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       List<String> results = new ArrayList<>();
@@ -595,15 +579,14 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test EXISTS subquery (SQL:2003 mandatory).
    */
-  @Test
-  public void testExistsSubquery() throws Exception {
+  @Test public void testExistsSubquery() throws Exception {
     String sql = "SELECT id FROM sharepoint." + primaryListName + " l1 "
         + "WHERE EXISTS ("
         + "  SELECT 1 FROM sharepoint." + primaryListName + " l2 "
         + "  WHERE l2.id = l1.id"
         + ") "
         + "LIMIT 5";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -618,8 +601,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test IN subquery (SQL:2003 mandatory).
    */
-  @Test
-  public void testInSubquery() throws Exception {
+  @Test public void testInSubquery() throws Exception {
     String sql = "SELECT id FROM sharepoint." + primaryListName + " "
         + "WHERE id IN ("
         + "  SELECT id FROM sharepoint." + primaryListName + " "
@@ -627,7 +609,7 @@ public class SharePointSQL2003ComplianceTest {
         + "  LIMIT 3"
         + ") "
         + "LIMIT 10";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -642,20 +624,19 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test scalar subquery (SQL:2003 mandatory).
    */
-  @Test
-  public void testScalarSubquery() throws Exception {
+  @Test public void testScalarSubquery() throws Exception {
     String sql = "SELECT "
         + "  id, "
         + "  (SELECT COUNT(*) FROM sharepoint." + primaryListName + ") as total_count "
         + "FROM sharepoint." + primaryListName + " "
         + "LIMIT 5";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
       while (rs.next()) {
         int totalCount = rs.getInt("total_count");
-        assertEquals(primaryListRowCount, totalCount, 
+        assertEquals(primaryListRowCount, totalCount,
             "Scalar subquery should return consistent count");
         count++;
       }
@@ -666,13 +647,12 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test Common Table Expression (WITH clause) - SQL:2003 optional feature T121.
    */
-  @Test
-  public void testCommonTableExpression() throws Exception {
+  @Test public void testCommonTableExpression() throws Exception {
     String sql = "WITH list_summary AS ("
         + "  SELECT COUNT(*) as total FROM sharepoint." + primaryListName
         + ") "
         + "SELECT total FROM list_summary";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       assertTrue(rs.next(), "CTE should return a result");
@@ -685,20 +665,19 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test window functions - ROW_NUMBER (SQL:2003 optional feature T611).
    */
-  @Test
-  public void testWindowFunctionRowNumber() throws Exception {
+  @Test public void testWindowFunctionRowNumber() throws Exception {
     String sql = "SELECT id, title, "
         + "ROW_NUMBER() OVER (ORDER BY id) as row_num "
         + "FROM sharepoint." + primaryListName + " "
         + "WHERE id IS NOT NULL "
         + "LIMIT 5";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int expectedRowNum = 1;
       while (rs.next()) {
         int rowNum = rs.getInt("row_num");
-        assertEquals(expectedRowNum++, rowNum, 
+        assertEquals(expectedRowNum++, rowNum,
             "ROW_NUMBER should increment sequentially");
       }
       System.out.println("SharePointSQL2003: ROW_NUMBER window function works correctly");
@@ -708,8 +687,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test window functions - RANK (SQL:2003 optional feature T612).
    */
-  @Test
-  public void testWindowFunctionRank() throws Exception {
+  @Test public void testWindowFunctionRank() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT name, score, "
         + "RANK() OVER (ORDER BY score DESC) as rank "
@@ -717,7 +695,7 @@ public class SharePointSQL2003ComplianceTest {
         + "  ('A', 100), ('B', 90), ('C', 90), ('D', 80)) "
         + "AS t(name, score) "
         + "ORDER BY score DESC";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       List<Integer> ranks = new ArrayList<>();
@@ -736,8 +714,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test string functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testStringFunctions() throws Exception {
+  @Test public void testStringFunctions() throws Exception {
     // Use VALUES clause for reliable testing
     String sql = "SELECT "
         + "UPPER(col1) as upper_val, "
@@ -748,7 +725,7 @@ public class SharePointSQL2003ComplianceTest {
         + "FROM (VALUES "
         + "  ('hello', 'WORLD'), "
         + "  ('test', 'DATA')) AS t(col1, col2)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
@@ -758,21 +735,21 @@ public class SharePointSQL2003ComplianceTest {
         int lenVal = rs.getInt("len_val");
         String substrVal = rs.getString("substr_val");
         String concatVal = rs.getString("concat_val");
-        
+
         assertNotNull(upperVal);
         assertEquals(upperVal, upperVal.toUpperCase(Locale.ROOT));
-        
+
         assertNotNull(lowerVal);
         assertEquals(lowerVal, lowerVal.toLowerCase(Locale.ROOT));
-        
+
         assertTrue(lenVal > 0);
-        
+
         assertNotNull(substrVal);
         assertTrue(substrVal.length() <= 3);
-        
+
         assertNotNull(concatVal);
         assertTrue(concatVal.contains("-"));
-        
+
         count++;
       }
       assertEquals(2, count, "Should process both rows");
@@ -783,8 +760,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test mathematical functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testMathFunctions() throws Exception {
+  @Test public void testMathFunctions() throws Exception {
     String sql = "SELECT "
         + "ABS(-5) as abs_val, "
         + "CEIL(4.3) as ceil_val, "
@@ -793,18 +769,18 @@ public class SharePointSQL2003ComplianceTest {
         + "MOD(10, 3) as mod_val, "
         + "POWER(2, 3) as power_val "
         + "FROM (VALUES (1)) AS t(dummy)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       assertTrue(rs.next(), "Should return one row");
-      
+
       assertEquals(5, rs.getInt("abs_val"));
       assertEquals(5, rs.getInt("ceil_val"));
       assertEquals(4, rs.getInt("floor_val"));
       assertEquals(5, rs.getInt("round_val"));
       assertEquals(1, rs.getInt("mod_val"));
       assertEquals(8, rs.getInt("power_val"));
-      
+
       System.out.println("SharePointSQL2003: Mathematical functions test passed");
     }
   }
@@ -812,26 +788,25 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test CAST and type conversion (SQL:2003 mandatory).
    */
-  @Test
-  public void testCastAndConversion() throws Exception {
+  @Test public void testCastAndConversion() throws Exception {
     String sql = "SELECT "
         + "CAST(int_val AS VARCHAR(10)) as int_to_string, "
         + "CAST(int_val AS DECIMAL(10,2)) as int_to_decimal, "
         + "CAST('123' AS INTEGER) as str_to_int "
         + "FROM (VALUES (42), (100)) AS t(int_val)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       int count = 0;
       while (rs.next()) {
         String intToString = rs.getString("int_to_string");
         assertNotNull(intToString);
-        
+
         rs.getBigDecimal("int_to_decimal");
-        
+
         int strToInt = rs.getInt("str_to_int");
         assertEquals(123, strToInt);
-        
+
         count++;
       }
       assertEquals(2, count, "Should process both rows");
@@ -842,32 +817,31 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test prepared statements (SQL:2003 mandatory).
    */
-  @Test
-  public void testPreparedStatement() throws Exception {
-    String sql = "SELECT id, title FROM sharepoint." + primaryListName 
+  @Test public void testPreparedStatement() throws Exception {
+    String sql = "SELECT id, title FROM sharepoint." + primaryListName
         + " WHERE id = ? OR id = ?";
-    
+
     // Get two IDs to test with
     List<String> testIds = new ArrayList<>();
     try (Statement stmt = connection.createStatement();
-         ResultSet rs = stmt.executeQuery(
-             "SELECT id FROM sharepoint." + primaryListName 
+         ResultSet rs =
+             stmt.executeQuery("SELECT id FROM sharepoint." + primaryListName
              + " WHERE id IS NOT NULL LIMIT 2")) {
       while (rs.next()) {
         testIds.add(rs.getString("id"));
       }
     }
-    
+
     if (testIds.size() >= 2) {
       try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
         pstmt.setString(1, testIds.get(0));
         pstmt.setString(2, testIds.get(1));
-        
+
         try (ResultSet rs = pstmt.executeQuery()) {
           int count = 0;
           while (rs.next()) {
             String id = rs.getString("id");
-            assertTrue(testIds.contains(id), 
+            assertTrue(testIds.contains(id),
                 "Result should match parameter values");
             count++;
           }
@@ -883,8 +857,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test ORDER BY with NULL handling (SQL:2003 mandatory).
    */
-  @Test
-  public void testOrderByNullHandling() throws Exception {
+  @Test public void testOrderByNullHandling() throws Exception {
     // Quote 'value' as it's a reserved word in Oracle lexicon
     String sql = "SELECT name, \"value\" "
         + "FROM (VALUES "
@@ -893,18 +866,18 @@ public class SharePointSQL2003ComplianceTest {
         + "  ('item3', NULL), "
         + "  ('item4', 'value4')) AS t(name, \"value\") "
         + "ORDER BY \"value\" NULLS FIRST, name";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       boolean seenNonNull = false;
       int nullCount = 0;
       int count = 0;
-      
+
       while (rs.next()) {
         String value = rs.getString("value");
-        
+
         if (value == null) {
-          assertFalse(seenNonNull, 
+          assertFalse(seenNonNull,
               "NULLs should come first when NULLS FIRST is specified");
           nullCount++;
         } else {
@@ -912,7 +885,7 @@ public class SharePointSQL2003ComplianceTest {
         }
         count++;
       }
-      
+
       assertEquals(4, count, "Should return exactly 4 rows");
       assertEquals(2, nullCount, "Should have exactly 2 NULL values");
       System.out.println("SharePointSQL2003: ORDER BY NULL handling test passed");
@@ -922,8 +895,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test aggregate functions (SQL:2003 mandatory).
    */
-  @Test
-  public void testAggregateFunctions() throws Exception {
+  @Test public void testAggregateFunctions() throws Exception {
     String sql = "SELECT "
         + "COUNT(*) as count_all, "
         + "COUNT(val) as count_val, "
@@ -932,18 +904,18 @@ public class SharePointSQL2003ComplianceTest {
         + "MIN(val) as min_val, "
         + "MAX(val) as max_val "
         + "FROM (VALUES (10), (20), (30), (NULL), (40)) AS t(val)";
-    
+
     try (Statement stmt = connection.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
       assertTrue(rs.next(), "Should return aggregate results");
-      
+
       assertEquals(5, rs.getInt("count_all"));
       assertEquals(4, rs.getInt("count_val")); // NULL not counted
       assertEquals(100, rs.getInt("sum_val"));
       assertEquals(25.0, rs.getDouble("avg_val"), 0.01);
       assertEquals(10, rs.getInt("min_val"));
       assertEquals(40, rs.getInt("max_val"));
-      
+
       System.out.println("SharePointSQL2003: Aggregate functions test passed");
     }
   }
@@ -951,8 +923,7 @@ public class SharePointSQL2003ComplianceTest {
   /**
    * Test SQL:2003 compliance summary.
    */
-  @Test
-  public void testSQL2003ComplianceSummary() {
+  @Test public void testSQL2003ComplianceSummary() {
     System.out.println("SharePointSQL2003: ========================================");
     System.out.println("SharePointSQL2003: SQL:2003 Compliance Test Summary");
     System.out.println("SharePointSQL2003: ========================================");
@@ -973,7 +944,7 @@ public class SharePointSQL2003ComplianceTest {
     System.out.println("SharePointSQL2003: SharePoint Lists adapter is SQL:2003 compliant!");
     System.out.println("SharePointSQL2003: ========================================");
   }
-  
+
   private void assertNull(String value, String message) {
     if (value != null) {
       throw new AssertionError(message + " - expected null but was: " + value);
