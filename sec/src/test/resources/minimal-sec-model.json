@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [
+    {
+      "name": "SEC",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "operand": {
+        "testMode": true,
+        "useMockData": true,
+        "ephemeralCache": true,
+        "sec.fallback.enabled": false
+      }
+    }
+  ]
+}

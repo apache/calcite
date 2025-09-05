@@ -91,14 +91,20 @@ public class ModelFileConnectionTest {
     System.out.println("  info.setProperty(\"lex\", \"ORACLE\");");
     System.out.println("  info.setProperty(\"unquotedCasing\", \"TO_LOWER\");");
     System.out.println("  String url = \"jdbc:calcite:model=/path/to/sec-embedding-model.json\";");
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     System.out.println("  Connection conn = DriverManager.getConnection(url, info);");
 
     System.out.println("\nExample 2: Test connection with local data");
     System.out.println("  String url = \"jdbc:calcite:model=/path/to/test-embedding-model.json\";");
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     System.out.println("  Connection conn = DriverManager.getConnection(url);");
 
     System.out.println("\nExample 3: EDGAR data with auto-download");
     System.out.println("  String url = \"jdbc:calcite:model=/path/to/edgar-apple-model.json\";");
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     System.out.println("  Connection conn = DriverManager.getConnection(url);");
 
     // Show SQL query examples
@@ -234,6 +240,8 @@ public class ModelFileConnectionTest {
 
     System.out.println("\nTo use this model:");
     System.out.println("  String url = \"jdbc:calcite:model=" + tempModel.getAbsolutePath() + "\";");
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     System.out.println("  Connection conn = DriverManager.getConnection(url);");
 
     // Clean up

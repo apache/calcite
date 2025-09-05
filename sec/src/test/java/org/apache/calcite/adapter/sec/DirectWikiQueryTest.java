@@ -43,6 +43,8 @@ public void test() throws Exception {
     Properties info = new Properties();
     info.put("model", modelJson);
     
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info)) {
       System.out.println("✓ Connected to Calcite with Wikipedia model\n");
       

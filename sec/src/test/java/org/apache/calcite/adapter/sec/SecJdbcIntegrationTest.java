@@ -93,6 +93,8 @@ public class SecJdbcIntegrationTest {
         props.setProperty("lex", "ORACLE");
         props.setProperty("unquotedCasing", "TO_LOWER");
         
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:calcite:model=" + modelPath, props)) {
             
@@ -122,6 +124,8 @@ public class SecJdbcIntegrationTest {
         props.setProperty("lex", "ORACLE");
         props.setProperty("unquotedCasing", "TO_LOWER");
         
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:calcite:model=" + modelPath, props)) {
             
@@ -159,6 +163,8 @@ public class SecJdbcIntegrationTest {
         props.setProperty("lex", "ORACLE");
         props.setProperty("unquotedCasing", "TO_LOWER");
         
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:calcite:model=" + modelPath, props)) {
             

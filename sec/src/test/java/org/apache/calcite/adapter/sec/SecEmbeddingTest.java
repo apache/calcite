@@ -147,6 +147,8 @@ public class SecEmbeddingTest {
 
     String url = "jdbc:calcite:model=" + modelFile.getAbsolutePath();
 
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     try (Connection conn = DriverManager.getConnection(url, info)) {
       System.out.println("Connected via DuckDB to XBRL Parquet data\n");
 

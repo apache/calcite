@@ -105,6 +105,8 @@ public class Dow30PerformanceTest {
     LOGGER.info("Connecting to SEC adapter...");
     LOGGER.info("Date Range: " + startDate + " to " + endDate);
 
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
     try (Connection conn = DriverManager.getConnection(jdbcUrl, props)) {
       // Query to trigger downloads and track per-company metrics
       processCompanyFilings(conn, startDate, endDate);

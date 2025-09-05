@@ -3,12 +3,12 @@
   "defaultSchema": "sec",
   "schemas": [{
     "name": "sec",
-    "type": "custom",
+    "type": "custom", 
     "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
     "operand": {
-      "cacheDirectory": "/Volumes/T9/calcite-sec-cache",
+      "directory": "/Volumes/T9/sec-data/apple-test",
       "ciks": ["AAPL"],
-      "autoDownload": false,
+      "autoDownload": true,
       "startYear": 2023,
       "endYear": 2023,
       "executionEngine": "duckdb"

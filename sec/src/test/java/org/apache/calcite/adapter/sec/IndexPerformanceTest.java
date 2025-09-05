@@ -208,6 +208,8 @@ public class IndexPerformanceTest {
 
         // Create connection for this company
         String jdbcUrl = createJdbcUrl(cik, startDate, endDate);
+    // Register driver
+    Class.forName("org.apache.calcite.jdbc.Driver");
         try (Connection conn = DriverManager.getConnection(jdbcUrl, new Properties())) {
 
           // Process each year
