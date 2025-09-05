@@ -24,7 +24,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Centralized manager for file conversions.
@@ -33,6 +37,69 @@ import java.util.List;
  */
 public class FileConversionManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileConversionManager.class);
+  private static final FileConversionManager INSTANCE = new FileConversionManager();
+  
+  private final List<FileConverter> converters = new ArrayList<>();
+  private final Map<String, FileConverter> converterCache = new ConcurrentHashMap<>();
+  
+  private FileConversionManager() {
+    // Private constructor for singleton
+  }
+  
+  /**
+   * Gets the singleton instance.
+   */
+  public static FileConversionManager getInstance() {
+    return INSTANCE;
+  }
+  
+  /**
+   * Registers a file converter.
+   *
+   * @param converter The converter to register
+   */
+  public void registerConverter(FileConverter converter) {
+    converters.add(converter);
+    String key = converter.getSourceFormat() + "->" + converter.getTargetFormat();
+    converterCache.put(key, converter);
+    LOGGER.info("Registered converter: {} -> {}", 
+        converter.getSourceFormat(), converter.getTargetFormat());
+  }
+  
+  /**
+   * Converts a file from one format to another.
+   *
+   * @param sourceFile The source file
+   * @param targetDirectory The target directory
+   * @param sourceFormat The source format
+   * @param targetFormat The target format
+   * @return List of converted files
+   * @throws IOException if conversion fails
+   */
+  public List<File> convert(File sourceFile, File targetDirectory, 
+      String sourceFormat, String targetFormat) throws IOException {
+    
+    String key = sourceFormat + "->" + targetFormat;
+    FileConverter converter = converterCache.get(key);
+    
+    if (converter == null) {
+      // Try to find a converter
+      for (FileConverter c : converters) {
+        if (c.canConvert(sourceFormat, targetFormat)) {
+          converter = c;
+          converterCache.put(key, c);
+          break;
+        }
+      }
+    }
+    
+    if (converter == null) {
+      throw new IOException("No converter found for " + sourceFormat + " to " + targetFormat);
+    }
+    
+    ConversionMetadata metadata = new ConversionMetadata(targetDirectory);
+    return converter.convert(sourceFile, targetDirectory, metadata);
+  }
 
   /**
    * Identifies the source file type and runs the appropriate conversion if needed.
