@@ -2113,6 +2113,35 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(rexNode, "false");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7160">[CALCITE-7160]
+   * Simplify AND/OR with DISTINCT predicates to SEARCH</a>. */
+  @Test void testSimplifyAndIsDistinctFrom() {
+    RexNode aRef = input(tInt(true), 0);
+    RexLiteral l10 = literal(10);
+    RexLiteral l20 = literal(20);
+    RexLiteral l30 = literal(30);
+
+    checkSimplify(and(isDistinctFrom(aRef, l10), isDistinctFrom(aRef, l20)),
+        "SEARCH($0, Sarg[(-\u221e..10), (10..20), (20..+\u221e); NULL AS TRUE])");
+    checkSimplify(and(isDistinctFrom(aRef, l10), isDistinctFrom(aRef, l20), ne(aRef, l30)),
+        "SEARCH($0, Sarg[(-\u221e..10), (10..20), (20..30), (30..+\u221e)])");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7160">[CALCITE-7160]
+   * Simplify AND/OR with DISTINCT predicates to SEARCH</a>. */
+  @Test void testSimplifyAndIsNotDistinctFrom() {
+    RexNode aRef = input(tInt(true), 0);
+    RexLiteral l10 = literal(10);
+    RexLiteral l20 = literal(20);
+    RexLiteral l30 = literal(30);
+
+    checkSimplify(and(isNotDistinctFrom(aRef, l10), isNotDistinctFrom(aRef, l20)), "false");
+    checkSimplify(and(isNotDistinctFrom(aRef, l10), isNotDistinctFrom(aRef, l20), eq(aRef, l30)),
+        "false");
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4352">[CALCITE-4352]
    * OR simplification incorrectly loses term</a>. */
@@ -3557,6 +3586,34 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(or(eq(vInt(0), literal(10)), isNull(vInt(0))), expected);
     // 10 = x OR x IS NULL
     checkSimplify(or(eq(literal(10), vInt(0)), isNull(vInt(0))), expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7160">[CALCITE-7160]
+   * Simplify AND/OR with DISTINCT predicates to SEARCH</a>. */
+  @Test void testSimplifyOrIsNotDistinctFrom() {
+    RexNode aRef = input(tInt(true), 0);
+    RexLiteral l10 = literal(10);
+    RexLiteral l20 = literal(20);
+    RexLiteral l30 = literal(30);
+
+    checkSimplify(or(isNotDistinctFrom(aRef, l10), isNotDistinctFrom(aRef, l20)),
+        "SEARCH($0, Sarg[10, 20; NULL AS FALSE])");
+    checkSimplify(or(isNotDistinctFrom(aRef, l10), isNotDistinctFrom(aRef, l20), eq(aRef, l30)),
+        "SEARCH($0, Sarg[10, 20, 30])");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7160">[CALCITE-7160]
+   * Simplify AND/OR with DISTINCT predicates to SEARCH</a>. */
+  @Test void testSimplifyOrIsDistinctFrom() {
+    RexNode aRef = input(tInt(true), 0);
+    RexLiteral l10 = literal(10);
+    RexLiteral l20 = literal(20);
+    RexLiteral l30 = literal(30);
+
+    checkSimplify(or(isDistinctFrom(aRef, l10), isDistinctFrom(aRef, l20)), "true");
+    checkSimplify(or(isDistinctFrom(aRef, l10), isDistinctFrom(aRef, l20), ne(aRef, l30)), "true");
   }
 
   @Test void testSimplifyOrNot() {
