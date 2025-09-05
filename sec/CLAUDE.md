@@ -27,6 +27,128 @@
   logger.debug("Downloaded filing: " + filing.getAccessionNumber());
   ```
 
+## File Adapter Integration Standards
+
+### Core Architectural Principle
+**The SEC adapter MUST maximize reuse of the file adapter as its foundation.** The file adapter provides robust infrastructure for data fetching, caching, storage, HTML processing, and partitioned table support. SEC-specific code should ONLY handle XBRL parsing, SEC metadata, and EDGAR-specific requirements.
+
+### Mandatory File Adapter Usage
+
+#### Data Fetching and Storage
+- **MUST** use file adapter's `HttpStorageProvider` for all HTTP operations
+- **NEVER** implement custom HTTP clients or downloaders
+- Create `SecHttpStorageProvider extends HttpStorageProvider` for SEC-specific needs:
+  ```java
+  public class SecHttpStorageProvider extends HttpStorageProvider {
+    // Add SEC User-Agent header
+    // Implement 100ms rate limiting between requests
+    // Add EDGAR-specific retry logic
+  }
+  ```
+- Use file adapter's `PersistentStorageCache` for all caching needs
+- **NEVER** implement custom caching mechanisms
+
+#### HTML Scraping and Processing
+- **ALWAYS** use file adapter's `HtmlToJsonConverter` for HTML table extraction
+- **ALWAYS** use `HtmlCrawler` for multi-page navigation (e.g., filing exhibits)
+- **ALWAYS** use `HtmlTableScanner` for detecting and parsing HTML tables
+- **NEVER** write custom HTML parsing code - enhance file adapter if needed
+- Example for Wikipedia/web scraping:
+  ```java
+  // GOOD: Use file adapter's HTML processing
+  List<File> jsonFiles = HtmlToJsonConverter.convert(
+      htmlFile, outputDir, "TO_LOWER", baseDirectory);
+  
+  // BAD: Custom HTML parsing
+  Document doc = Jsoup.parse(html); // NO!
+  ```
+
+#### Schema and Table Implementation
+- **MUST** extend `FileSchema` for SEC schema implementation
+- **NEVER** implement schema from scratch
+- Use file adapter's table implementations:
+  - `PartitionedParquetTable` for partitioned SEC filings
+  - `RefreshableParquetCacheTable` for auto-refreshing data
+  - `MaterializedViewTable` for pre-computed aggregations
+  - `GlobParquetTable` for pattern-based file discovery
+
+#### Data Conversion Pipeline
+- **MUST** use `FileConversionManager` for all format conversions
+- Register XBRL converter with FileConversionManager:
+  ```java
+  conversionManager.registerConverter("xbrl", new XbrlToParquetConverter());
+  ```
+- **NEVER** implement standalone conversion logic
+- Use file adapter's `ParquetConversionUtil` for Parquet operations
+
+#### Partitioning Strategy
+- **MUST** use file adapter's `PartitionDetector` for partition discovery
+- Configure `PartitionedTableConfig` for SEC patterns:
+  ```java
+  config.setPartitionPattern("cik={cik}/filing_type={type}/year={year}");
+  ```
+- **NEVER** implement custom partition detection
+
+#### Caching and Refresh
+- **MUST** use `StorageCacheManager` for cache lifecycle
+- Implement `RefreshInterval` for periodic updates:
+  ```java
+  RefreshInterval.of(Duration.ofHours(24)) // Daily refresh
+  ```
+- Use `AbstractRefreshableTable` as base for custom refresh logic
+
+### Required Enhancements to File Adapter
+
+When the SEC adapter needs functionality not in the file adapter:
+
+1. **First Choice**: Enhance the file adapter
+   - Add the capability to file adapter if it's generally useful
+   - Example: Additional HTTP header support, custom selectors
+
+2. **Second Choice**: Extend file adapter classes
+   - Create SEC-specific subclasses only for truly SEC-specific needs
+   - Example: `SecHttpStorageProvider` for EDGAR rate limiting
+
+3. **Last Resort**: SEC-only implementation
+   - Only for XBRL parsing and SEC regulatory requirements
+   - Must document why file adapter cannot handle it
+
+### Migration Requirements for Existing Code
+
+#### Phase 1: Storage Provider Migration
+- Replace `EdgarDownloader` with `SecHttpStorageProvider`
+- Remove custom HTTP connection code
+- Use file adapter's retry and cache mechanisms
+
+#### Phase 2: HTML Processing Migration
+- Replace custom Jsoup usage with `HtmlToJsonConverter`
+- Convert Wikipedia scraper to use `HtmlCrawler`
+- Remove redundant HTML parsing utilities
+
+#### Phase 3: Schema Integration
+- Refactor `SecSchemaFactory` to create `FileSchema` instances
+- Remove `SecToParquetConverter`, use `FileConversionManager`
+- Integrate with file adapter's metadata system
+
+#### Phase 4: Table Implementation
+- Replace custom table classes with file adapter tables
+- Use `PartitionedParquetTable` for filing organization
+- Implement refresh using file adapter's mechanisms
+
+### Testing with File Adapter
+
+- Test SEC adapter through file adapter's testing framework
+- Use `FileSchema` test utilities for integration tests
+- Leverage file adapter's mock storage providers for unit tests
+
+### Benefits of This Approach
+
+1. **Code Reduction**: Eliminates ~60% of custom SEC adapter code
+2. **Consistency**: Uniform behavior across all file-based adapters
+3. **Performance**: Benefits from file adapter optimizations
+4. **Maintenance**: Single codebase for common functionality
+5. **Features**: Automatically gains new file adapter capabilities
+
 ## SEC-Specific Standards
 
 ### EDGAR API Compliance
