@@ -1,0 +1,4 @@
+requests>=2.28.0
+anthropic>=0.7.0
+pandas>=1.5.0  # Optional: for data processing
+yfinance>=0.2.0  # Optional: for fetching financial data

@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [
+    {
+      "name": "SEC",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "operand": {
+        "directory": "sec-data",
+        "targetDirectory": "parquet-data",
+        "executionEngine": "duckdb",
+        "enableEmbeddings": true,
+        "embeddingConfig": {
+          "modelLoader": "org.apache.calcite.adapter.sec.EmbeddingModelLoader",
+          "vocabularyPath": "/models/financial-vocabulary.txt",
+          "contextMappingsPath": "/models/context-mappings.json",
+          "embeddingDimension": 128,
+          "generateOnConversion": true
+        },
+        "edgarConfig": {
+          "autoDownload": true,
+          "cacheDirectory": "edgar-cache",
+          "baseUrl": "https://data.sec.gov/api/sec/companyfacts/CIK{cik}.json"
+        },
+        "partitionStrategy": {
+          "periodicReports": {
+            "filingTypes": ["10-K", "10-Q", "20-F", "11-K", "40-F"],
+            "partitionBy": ["fiscal_year", "fiscal_period"]
+          },
+          "eventReports": {
+            "filingTypes": ["8-K", "DEF 14A", "S-1", "S-3", "S-4"],
+            "partitionBy": ["filing_year", "filing_month"]
+          }
+        },
+        "tables": [
+          {
+            "name": "financial_line_items",
+            "schema": "financial-line-items-schema.avro",
+            "partitioned": true
+          },
+          {
+            "name": "company_info",
+            "schema": "company-info-schema.avro",
+            "partitioned": false
+          },
+          {
+            "name": "footnotes",
+            "schema": "footnotes-schema.avro",
+            "partitioned": true
+          },
+          {
+            "name": "document_embeddings",
+            "schema": "embeddings-schema.avro",
+            "partitioned": true,
+            "vectorColumn": "embedding_vector",
+            "contextColumn": "chunk_context"
+          }
+        ],
+        "vectorFunctions": [
+          "COSINE_SIMILARITY",
+          "COSINE_DISTANCE",
+          "EUCLIDEAN_DISTANCE",
+          "DOT_PRODUCT",
+          "VECTORS_SIMILAR",
+          "VECTOR_NORM",
+          "NORMALIZE_VECTOR"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "schemas": [{
+    "name": "SEC",
+    "operand": {
+      "ciks": ["AAPL", "MSFT", "GOOGL"]
+    }
+  }]
+}

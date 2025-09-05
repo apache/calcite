@@ -1,0 +1,10 @@
+{
+  "schemas": [{
+    "name": "SEC",
+    "operand": {
+      "ciks": ["AAPL", "MSFT"],
+      "startYear": 2020,
+      "endYear": 2023
+    }
+  }]
+}

@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "defaultSchema": "EDGAR",
+  "schemas": [
+    {
+      "name": "EDGAR",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "operand": {
+        "directory": "target/test-sec-data",
+        "executionEngine": "duckdb",
+        "enableSecProcessing": true,
+        "secSourceDirectory": "src/test/resources/sec-samples",
+        "processSecOnInit": true,
+        "ephemeralCache": true,
+        "partitionedTables": [
+          {
+            "name": "financial_line_items",
+            "partitionColumns": ["cik", "filing_type", "filing_date"]
+          },
+          {
+            "name": "footnotes",
+            "partitionColumns": ["cik", "filing_type", "filing_date"]
+          },
+          {
+            "name": "company_info",
+            "partitionColumns": ["cik", "filing_type", "filing_date"]
+          }
+        ]
+      }
+    }
+  ]
+}

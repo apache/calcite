@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "defaultSchema": "FINANCIAL",
+  "schemas": [
+    {
+      "name": "FINANCIAL",
+      "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+      "operand": {
+        "directory": "financial-data",
+        "embeddingConfig": {
+          "embeddingDimension": 256
+        }
+      }
+    }
+  ]
+}

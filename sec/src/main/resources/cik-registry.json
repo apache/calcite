@@ -1,0 +1,585 @@
+{
+  "_metadata": {
+    "description": "Comprehensive CIK Registry for Apache Calcite SEC Adapter",
+    "version": "2.0",
+    "last_updated": "2025-01-02",
+    "total_tickers": 150,
+    "total_groups": 50,
+    "special_markers": {
+      "count": 15,
+      "note": "Special markers (starting with _) require dynamic loading by the adapter"
+    },
+    "sec_data": {
+      "total_edgar_companies": 7869,
+      "total_edgar_tickers": 10090,
+      "source": "https://www.sec.gov/files/company_tickers.json"
+    }
+  },
+  
+  "tickers": {
+    "AAPL": "0000320193",
+    "MSFT": "0000789019",
+    "GOOGL": "0001652044",
+    "GOOG": "0001652044",
+    "AMZN": "0001018724",
+    "META": "0001326801",
+    "FB": "0001326801",
+    "TSLA": "0001318605",
+    "NVDA": "0001045810",
+    "NFLX": "0001065280",
+    "JPM": "0000019617",
+    "BAC": "0000070858",
+    "WFC": "0000072971",
+    "C": "0000831001",
+    "GS": "0000886982",
+    "MS": "0000895421",
+    "BRK.A": "0001067983",
+    "BRK.B": "0001067983",
+    "V": "0001403161",
+    "MA": "0001141391",
+    "JNJ": "0000200406",
+    "PG": "0000080424",
+    "UNH": "0000731766",
+    "HD": "0000354950",
+    "DIS": "0001744489",
+    "PYPL": "0001633917",
+    "ADBE": "0000796343",
+    "CRM": "0001108524",
+    "ORCL": "0001341439",
+    "INTC": "0000050863",
+    "AMD": "0000002488",
+    "CSCO": "0000858877",
+    "PEP": "0000077476",
+    "KO": "0000021344",
+    "WMT": "0000104169",
+    "CVX": "0000093410",
+    "XOM": "0000034088",
+    "IBM": "0000051143",
+    "GE": "0000040545",
+    "BA": "0000012927",
+    "MMM": "0000066740",
+    "CAT": "0000018230",
+    "T": "0000732717",
+    "VZ": "0000732712",
+    "ABBV": "0001551152",
+    "ABT": "0000001800",
+    "ACN": "0001467373",
+    "AIG": "0000005272",
+    "ALL": "0000899051",
+    "AMGN": "0000318154",
+    "AXP": "0000004962",
+    "BKNG": "0001075531",
+    "BLK": "0001364742",
+    "BMY": "0000014272",
+    "BSX": "0000885725",
+    "CHTR": "0001091667",
+    "CI": "0001739940",
+    "CMCSA": "0001166691",
+    "COF": "0000927628",
+    "COP": "0001163165",
+    "COST": "0000909832",
+    "CVS": "0000064803",
+    "DAL": "0000027904",
+    "DE": "0000315189",
+    "DHR": "0000313616",
+    "DOW": "0001751788",
+    "DUK": "0001326160",
+    "EMR": "0000032604",
+    "ETN": "0001551182",
+    "F": "0000037996",
+    "FDX": "0000230217",
+    "GILD": "0000882095",
+    "GM": "0001467858",
+    "GRMN": "0001121788",
+    "HAL": "0000045012",
+    "HCA": "0000860730",
+    "HON": "0000773840",
+    "HPE": "0001645590",
+    "HPQ": "0000047217",
+    "HUM": "0000049071",
+    "ISRG": "0001035267",
+    "ITW": "0000049826",
+    "JCI": "0000053669",
+    "KHC": "0001637459",
+    "KMB": "0000055785",
+    "LHX": "0001939109",
+    "LIN": "0001707925",
+    "LLY": "0000059478",
+    "LMT": "0000936468",
+    "LOW": "0000060667",
+    "LRCX": "0000707549",
+    "MDLZ": "0001103982",
+    "MDT": "0000764065",
+    "MET": "0001099219",
+    "MRVL": "0001058057",
+    "MU": "0000723125",
+    "NEE": "0000753308",
+    "NKE": "0000320187",
+    "NOC": "0001133421",
+    "NOW": "0001373715",
+    "OXY": "0000797468",
+    "PANW": "0001327567",
+    "PFE": "0000078003",
+    "PLD": "0001045609",
+    "PM": "0001413329",
+    "PNC": "0000713676",
+    "PRU": "0001137774",
+    "PSA": "0001393311",
+    "PSX": "0001534701",
+    "QCOM": "0000804328",
+    "RTX": "0000101829",
+    "REGN": "0000872589",
+    "SBUX": "0000829224",
+    "SCHW": "0000316709",
+    "SHOP": "0001594805",
+    "SLB": "0000087347",
+    "SO": "0000092122",
+    "SPG": "0001063761",
+    "SQ": "0001512673",
+    "SRE": "0001032208",
+    "STZ": "0000016918",
+    "SYK": "0000310764",
+    "SYY": "0000096021",
+    "TMUS": "0001283699",
+    "TGT": "0000027419",
+    "TMO": "0000097745",
+    "TRV": "0000086312",
+    "TXN": "0000097476",
+    "UAL": "0000100517",
+    "UBER": "0001543151",
+    "UNP": "0000100885",
+    "UPS": "0001090727",
+    "USB": "0000036104",
+    "VLO": "0001035002",
+    "VRTX": "0000875320",
+    "WBA": "0001618921",
+    "WDAY": "0001327811",
+    "WDC": "0000106040",
+    "WELL": "0001571949",
+    "WST": "0001633880",
+    "XEL": "0000072903",
+    "ZTS": "0001555280",
+    "HSBC": "0001089113",
+    "TD": "0000947263",
+    "RY": "0001000275",
+    "BCS": "0000312070",
+    "DB": "0001159508",
+    "UBS": "0001114446",
+    "CS": "0001053092",
+    "SAN": "0001132980",
+    "MUFG": "0001193125",
+    "NWG": "0000844150",
+    "BBVA": "0000842180",
+    "BNP": "0001133435"
+  },
+
+  "groups": {
+    "FAANG": {
+      "description": "Facebook/Meta, Apple, Amazon, Netflix, Google",
+      "members": ["0001326801", "0000320193", "0001018724", "0001065280", "0001652044"]
+    },
+
+    "MAGNIFICENT7": {
+      "description": "Top 7 tech mega-cap stocks",
+      "members": ["0000320193", "0000789019", "0001652044", "0001018724", "0001326801", "0001318605", "0001045810"]
+    },
+
+    "MAGNIFICENT_7": {
+      "description": "Alias for MAGNIFICENT7",
+      "alias": "MAGNIFICENT7"
+    },
+
+    "MAG7": {
+      "description": "Short alias for MAGNIFICENT7",
+      "alias": "MAGNIFICENT7"
+    },
+
+    "BIG_TECH": {
+      "description": "Major technology companies",
+      "members": [
+        "0000320193", "0000789019", "0001652044", "0001018724", "0001326801",
+        "0001318605", "0001045810", "0001065280", "0000796343", "0001108524",
+        "0001341439", "0000050863", "0000002488", "0000858877"
+      ]
+    },
+
+    "BIG_BANKS": {
+      "description": "Major US banks",
+      "members": ["0000019617", "0000070858", "0000072971", "0000831001", "0000886982", "0000895421"]
+    },
+
+    "BIG_GLOBAL_BANKS": {
+      "description": "Major global banks including US and international",
+      "members": [
+        "0000019617", "0000070858", "0000072971", "0000831001", "0000886982", "0000895421",
+        "0001089113", "0000947263", "0001000275", "0000312070", "0001159508", "0001114446",
+        "0001053092", "0001132980", "0001193125", "0000844150", "0000842180", "0001133435"
+      ]
+    },
+
+    "BANKS": {
+      "description": "Alias for BIG_BANKS",
+      "alias": "BIG_BANKS"
+    },
+
+    "DOW10": {
+      "description": "Top 10 Dow Jones Industrial Average companies by weight",
+      "members": [
+        "0000731766", "0000886982", "0000354950", "0001141391", "0000789019",
+        "0001403161", "0000200406", "0000104169", "0000019617", "0000080424"
+      ]
+    },
+
+    "FORTUNE10": {
+      "description": "Fortune 10 companies (2024)",
+      "members": [
+        "0000104169", "0001018724", "0000320193", "0000731766", "0000093410",
+        "0000034088", "0001067983", "0001652044", "0000064803", "0001090727"
+      ]
+    },
+
+    "FORTUNE50": {
+      "description": "Fortune 50 companies (2024)",
+      "members": [
+        "0000104169", "0001018724", "0000320193", "0000731766", "0000093410",
+        "0000034088", "0001067983", "0001652044", "0000064803", "0001090727",
+        "0000789019", "0000200406", "0000019617", "0000732717", "0000354950",
+        "0001166691", "0000021344", "0000080424", "0000077476", "0001551152",
+        "0001403161", "0001467858", "0000037996", "0000027904", "0001141391",
+        "0001099219", "0000070858", "0001744489", "0000886982", "0000049071",
+        "0000097745", "0000060667", "0000059478", "0001739940", "0000732712",
+        "0000050863", "0001137774", "0000027419", "0001318605", "0000230217",
+        "0000001800", "0000753308", "0000909832", "0001045810", "0000315189",
+        "0000936468", "0001534701", "0000858877", "0001341439", "0000012927"
+      ]
+    },
+
+    "FORTUNE100": {
+      "description": "Fortune 100 companies (2024)",
+      "members": [
+        "0000104169", "0001018724", "0000320193", "0000731766", "0000093410",
+        "0000034088", "0001067983", "0001652044", "0000064803", "0001090727",
+        "0000789019", "0000200406", "0000019617", "0000732717", "0000354950",
+        "0001166691", "0000021344", "0000080424", "0000077476", "0001551152",
+        "0001403161", "0001467858", "0000037996", "0000027904", "0001141391",
+        "0001099219", "0000070858", "0001744489", "0000886982", "0000049071",
+        "0000097745", "0000060667", "0000059478", "0001739940", "0000732712",
+        "0000050863", "0001137774", "0000027419", "0001318605", "0000230217",
+        "0000001800", "0000753308", "0000909832", "0001045810", "0000315189",
+        "0000936468", "0001534701", "0000858877", "0001341439", "0000012927",
+        "0000072971", "0000004962", "0000096021", "0000036104", "0000713676",
+        "0000320187", "0001326801", "0000078003", "0000014272", "0000316709",
+        "0000899051", "0001108524", "0000766421", "0000831001", "0000927628",
+        "0000804328", "0000101829", "0000066740", "0000318154", "0000773840",
+        "0001075531", "0000764065", "0000051143", "0000040545", "0000313616",
+        "0000018230", "0001163165", "0000796343", "0001364742", "0001467373",
+        "0000092122", "0001133421", "0000829224", "0000310764", "0000097476",
+        "0000063908", "0001032208", "0000016918", "0000895421", "0001413329",
+        "0001326160", "0000072903", "0000086312", "0000100885", "0001035002",
+        "0000055785", "0000049826", "0001618921", "0000032604", "0001551182"
+      ]
+    },
+
+    "SP500": {
+      "description": "S&P 500 representative sample (top 50 by weight)",
+      "members": [
+        "0000320193", "0000789019", "0001045810", "0001018724", "0001652044",
+        "0001326801", "0001318605", "0001067983", "0001067983", "0000059478",
+        "0000200406", "0000019617", "0001403161", "0000731766", "0001141391",
+        "0000034088", "0000354950", "0000080424", "0000104169", "0001551152",
+        "0000093410", "0000077476", "0001108524", "0000070858", "0000021344",
+        "0000310158", "0001075531", "0000064803", "0000796343", "0001364742",
+        "0000097745", "0000078003", "0000909832", "0001166691", "0000732717",
+        "0001341439", "0000050863", "0000002488", "0001065280", "0000886982",
+        "0001373715", "0000804328", "0000858877", "0000060667", "0000936468",
+        "0000728535", "0000315293", "0001637459", "0000732712", "0000316709"
+      ]
+    },
+
+    "RUSSELL2000_SAMPLE": {
+      "description": "Russell 2000 small-cap representative sample (30 companies)",
+      "members": [
+        "0001121788", "0001058057", "0000723125", "0001035267", "0000707549",
+        "0001327567", "0001512673", "0001543151", "0001327811", "0000106040",
+        "0001571949", "0001633880", "0001555280", "0000872589", "0000875320",
+        "0001594805", "0001283699", "0001645590", "0001751788", "0001939109",
+        "0001707925", "0001103982", "0001063761", "0001393311", "0001045609",
+        "0001000275", "0001114446", "0000087347", "0000100517", "0000860730"
+      ]
+    },
+
+    "RUSSELL2000": {
+      "description": "Russell 2000 - load from russell2000-registry.json for full list",
+      "members": [
+        "SMCI", "MARA", "APP", "CELH", "CHRD", "TMDX", "RMBS", "AFRM", "PLTR", "IONQ",
+        "RKT", "CVNA", "TPG", "ARES", "BHF", "JXN", "EXAS", "RYAN", "DUOL", "ALIT",
+        "BBIO", "COTY", "PCVX", "JOBY", "CNX", "OWL", "PR", "AUR", "DTM", "MTDR",
+        "FNF", "CAVA", "RNG", "PRMW", "IBKR", "CRNX", "ALSN", "XPO", "HWM", "CHX",
+        "AMR", "RBLX", "WK", "RBC", "ENPH", "LPLA", "SKX", "NBIX", "ARWR", "SHAK"
+      ]
+    },
+
+    "ENERGY": {
+      "description": "Major energy companies",
+      "members": ["0000093410", "0000034088", "0001534701", "0000858470", "0001090872"]
+    },
+
+    "HEALTHCARE": {
+      "description": "Major healthcare companies",
+      "members": ["0000200406", "0000731766", "0000310158", "0000078003", "0001551152"]
+    },
+
+    "RETAIL": {
+      "description": "Major retail companies",
+      "members": ["0000104169", "0001018724", "0000354950", "0000354190", "0001166691"]
+    },
+
+    "AUTO": {
+      "description": "Major automotive companies",
+      "members": ["0001318605", "0000037996", "0000040730", "0001467858"]
+    },
+
+    "SEMICONDUCTORS": {
+      "description": "Major semiconductor companies",
+      "members": ["0001045810", "0000050863", "0000002488", "0001413329", "0000804328", "0000723125", "0000707549", "0001058057"]
+    },
+
+    "CHIPS": {
+      "description": "Alias for SEMICONDUCTORS",
+      "alias": "SEMICONDUCTORS"
+    },
+
+    "CLOUD": {
+      "description": "Major cloud computing providers",
+      "members": ["0000789019", "0001018724", "0001652044", "0001341439", "0001108524"]
+    },
+
+    "PAYMENT": {
+      "description": "Major payment processing companies",
+      "members": ["0001403161", "0001141391", "0001633917", "0000927628", "0000883890"]
+    },
+
+    "SOCIAL": {
+      "description": "Major social media companies",
+      "members": ["0001326801", "0001652044", "0001418091", "0001011006", "0001559720"]
+    },
+
+    "STREAMING": {
+      "description": "Major streaming services",
+      "members": ["0001065280", "0001744489", "0001166691", "0000320193", "0001018724"]
+    },
+
+    "DEFENSE": {
+      "description": "Defense contractors",
+      "members": ["0000936468", "0001133421", "0000101829", "0000012927", "0001939109"]
+    },
+
+    "AIRLINES": {
+      "description": "Major airlines",
+      "members": ["0000027904", "0000100517", "0000004127", "0000006201"]
+    },
+
+    "TELECOM": {
+      "description": "Telecommunications companies",
+      "members": ["0000732717", "0000732712", "0001283699", "0001166691"]
+    },
+
+    "INSURANCE": {
+      "description": "Major insurance companies",
+      "members": ["0000899051", "0001137774", "0001099219", "0000086312", "0000005272"]
+    },
+
+    "REITS": {
+      "description": "Major REITs",
+      "members": ["0001063761", "0001393311", "0001045609", "0001571949"]
+    },
+
+    "BIOTECH": {
+      "description": "Major biotech companies",
+      "members": ["0000318154", "0000882095", "0000872589", "0000875320", "0001551152"]
+    },
+
+    "FINTECH": {
+      "description": "Financial technology companies",
+      "members": ["0001512673", "0001633917", "0001403161", "0001141391", "0000927628"]
+    },
+
+    "EV": {
+      "description": "Electric vehicle companies",
+      "members": ["0001318605", "0001467858", "0000037996", "0001759509", "0001720990"]
+    },
+
+    "AI": {
+      "description": "AI-focused companies",
+      "members": ["0001045810", "0000789019", "0001652044", "0001326801", "0001018724", "0001327567", "0001108524"]
+    },
+
+    "CYBER": {
+      "description": "Cybersecurity companies",
+      "members": ["0001327567", "0001536806", "0001783317", "0001364742"]
+    },
+
+    "DOW30": {
+      "description": "Dow Jones Industrial Average 30 companies",
+      "members": [
+        "0000320193", "0000004962", "0000012927", "0000018230", "0000093410",
+        "0000021344", "0001744489", "0000886982", "0000354950", "0000773840",
+        "0000051143", "0000050863", "0000200406", "0000019617", "0000063908",
+        "0000310158", "0000789019", "0000066740", "0000320187", "0000080424",
+        "0001108524", "0000086312", "0000731766", "0000732712", "0001403161",
+        "0001618921", "0000104169"
+      ]
+    },
+
+    "_DJI": {
+      "description": "Dow Jones Industrial Average - current constituents",
+      "members": ["_DJI_CONSTITUENTS"],
+      "_special": true,
+      "_note": "The adapter should fetch current DJI constituents dynamically"
+    },
+
+    "DJI": {
+      "description": "Dow Jones Industrial Average - alias for DOW30",
+      "alias": "DOW30"
+    },
+
+    "ALL": {
+      "description": "ALL companies with SEC EDGAR filings (7869+ companies)",
+      "members": ["_ALL_EDGAR_FILERS"],
+      "_special": true,
+      "_note": "The adapter should dynamically fetch all CIKs from SEC EDGAR",
+      "_data_source": "https://www.sec.gov/files/company_tickers.json"
+    },
+
+    "SP500_COMPLETE": {
+      "description": "Complete S&P 500 Index - All 500 companies",
+      "members": ["_SP500_CONSTITUENTS"],
+      "_special": true,
+      "_note": "The adapter should fetch current S&P 500 constituents"
+    },
+
+    "RUSSELL2000_COMPLETE": {
+      "description": "Complete Russell 2000 Index - All 2000 small-cap companies",
+      "members": ["_RUSSELL2000_CONSTITUENTS"],
+      "_special": true,
+      "_note": "The adapter should fetch current Russell 2000 constituents"
+    },
+
+    "RUSSELL1000_COMPLETE": {
+      "description": "Complete Russell 1000 Index - Top 1000 US companies",
+      "members": ["_RUSSELL1000_CONSTITUENTS"],
+      "_special": true,
+      "_note": "The adapter should fetch current Russell 1000 constituents"
+    },
+
+    "RUSSELL3000_COMPLETE": {
+      "description": "Complete Russell 3000 Index - Broad US market",
+      "members": ["_RUSSELL3000_CONSTITUENTS"],
+      "_special": true,
+      "_note": "Russell 1000 + Russell 2000 combined"
+    },
+
+    "NASDAQ100_COMPLETE": {
+      "description": "Complete NASDAQ-100 Index",
+      "members": ["_NASDAQ100_CONSTITUENTS"],
+      "_special": true,
+      "_note": "The adapter should fetch current NASDAQ-100 constituents"
+    },
+
+    "NYSE_ALL": {
+      "description": "All NYSE listed companies",
+      "members": ["_NYSE_LISTED"],
+      "_special": true,
+      "_note": "All companies listed on New York Stock Exchange"
+    },
+
+    "NASDAQ_ALL": {
+      "description": "All NASDAQ listed companies",
+      "members": ["_NASDAQ_LISTED"],
+      "_special": true,
+      "_note": "All companies listed on NASDAQ"
+    },
+
+    "WILSHIRE5000_COMPLETE": {
+      "description": "Wilshire 5000 - Total US stock market",
+      "members": ["_WILSHIRE5000_CONSTITUENTS"],
+      "_special": true,
+      "_note": "Nearly all publicly traded US companies"
+    },
+
+    "FTSE100_COMPLETE": {
+      "description": "FTSE 100 - Top 100 UK companies (with US listings)",
+      "members": ["_FTSE100_US_LISTED"],
+      "_special": true,
+      "_note": "UK companies with ADRs or US listings"
+    },
+
+    "GLOBAL_MEGA_CAP": {
+      "description": "Global mega-cap companies ($200B+ market cap)",
+      "members": ["_GLOBAL_MEGA_CAP"],
+      "_special": true,
+      "_note": "Companies with market cap > $200 billion"
+    },
+
+    "US_LARGE_CAP": {
+      "description": "US Large-cap companies ($10B+ market cap)",
+      "members": ["_US_LARGE_CAP"],
+      "_special": true,
+      "_note": "US companies with market cap > $10 billion"
+    },
+
+    "US_MID_CAP": {
+      "description": "US Mid-cap companies ($2B-$10B market cap)",
+      "members": ["_US_MID_CAP"],
+      "_special": true,
+      "_note": "US companies with market cap $2-10 billion"
+    },
+
+    "US_SMALL_CAP": {
+      "description": "US Small-cap companies ($300M-$2B market cap)",
+      "members": ["_US_SMALL_CAP"],
+      "_special": true,
+      "_note": "US companies with market cap $300M-2B"
+    },
+
+    "US_MICRO_CAP": {
+      "description": "US Micro-cap companies (<$300M market cap)",
+      "members": ["_US_MICRO_CAP"],
+      "_special": true,
+      "_note": "US companies with market cap < $300 million"
+    }
+  },
+  
+  "customGroups": {
+    "_comment": "User-defined groups can be added here or in a separate file",
+    "_example": {
+      "_description": "Example showing ticker and group references in members",
+      "members": ["AAPL", "MSFT", "BIG_BANKS", "0001018724"]
+    }
+  },
+  
+  "_implementation_notes": {
+    "special_markers": {
+      "_ALL_EDGAR_FILERS": "Fetch all CIKs from SEC EDGAR API (7869+ companies)",
+      "_SP500_CONSTITUENTS": "Fetch from S&P or financial data provider",
+      "_DJI_CONSTITUENTS": "Fetch current Dow Jones Industrial Average 30 constituents",
+      "_RUSSELL2000_CONSTITUENTS": "Fetch from FTSE Russell or data provider", 
+      "_RUSSELL1000_CONSTITUENTS": "Fetch from FTSE Russell or data provider",
+      "_RUSSELL3000_CONSTITUENTS": "Russell 1000 + Russell 2000 combined",
+      "_NASDAQ100_CONSTITUENTS": "Fetch from NASDAQ or data provider",
+      "_NYSE_LISTED": "Fetch from NYSE listing data",
+      "_NASDAQ_LISTED": "Fetch from NASDAQ listing data",
+      "_WILSHIRE5000_CONSTITUENTS": "Fetch from Wilshire or data provider",
+      "_FTSE100_US_LISTED": "UK companies with US ADRs",
+      "_GLOBAL_MEGA_CAP": "Dynamic based on market cap > $200B",
+      "_US_LARGE_CAP": "Dynamic based on market cap > $10B",
+      "_US_MID_CAP": "Dynamic based on market cap $2B-$10B",
+      "_US_SMALL_CAP": "Dynamic based on market cap $300M-$2B",
+      "_US_MICRO_CAP": "Dynamic based on market cap < $300M"
+    },
+    "dynamic_loading": "The SEC adapter should recognize these special markers and dynamically load the data",
+    "caching": "Results should be cached with appropriate TTL (e.g., daily for indices, weekly for ALL)",
+    "custom_registry": "Users can override or extend this registry by setting SEC_CIK_REGISTRY environment variable",
+    "member_resolution": "Members can be CIKs, tickers, or group names - they are resolved recursively"
+  }
+}

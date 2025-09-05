@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "defaultSchema": "EDGAR",
+  "schemas": [
+    {
+      "name": "EDGAR",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "operand": {
+        "directory": "edgar-data",
+        "executionEngine": "duckdb",
+        "enableSecProcessing": true,
+        "edgarSource": {
+          "cik": "0000320193",
+          "filingTypes": ["10-K"],
+          "startYear": 2019,
+          "endYear": 2024,
+          "autoDownload": true,
+          "baseUrl": "https://data.sec.gov/api/sec/companyfacts/CIK{cik}.json",
+          "filingUrl": "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{filing}.xml"
+        },
+        "partitionedTables": [
+          {
+            "name": "financial_line_items",
+            "partitionColumns": ["cik", "filing_type", "filing_date"]
+          },
+          {
+            "name": "footnotes",
+            "partitionColumns": ["cik", "filing_type", "filing_date"]
+          },
+          {
+            "name": "company_info",
+            "partitionColumns": ["cik", "filing_type", "filing_date"]
+          }
+        ],
+        "materializations": [
+          {
+            "table": "revenue_summary",
+            "sql": "SELECT filing_date, value as revenue FROM financial_line_items WHERE concept = 'RevenueFromContractWithCustomerExcludingAssessedTax' AND filing_type = '10-K' ORDER BY filing_date"
+          },
+          {
+            "table": "income_summary",
+            "sql": "SELECT filing_date, value as net_income FROM financial_line_items WHERE concept = 'NetIncomeLoss' AND filing_type = '10-K' ORDER BY filing_date"
+          }
+        ]
+      }
+    }
+  ]
+}

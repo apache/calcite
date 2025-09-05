@@ -1,0 +1,60 @@
+// Example 1: Single company by ticker
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+    "operand": {
+      "ciks": "AAPL"
+    }
+  }]
+}
+
+// Example 2: Multiple companies by ticker
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+    "operand": {
+      "ciks": ["AAPL", "MSFT", "GOOGL"]
+    }
+  }]
+}
+
+// Example 3: Company group
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+    "operand": {
+      "ciks": "MAGNIFICENT7"
+    }
+  }]
+}
+
+// Example 4: Mixed identifiers
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+    "operand": {
+      "ciks": ["AAPL", "0000789019", "FAANG", "JPM"]
+    }
+  }]
+}
+
+// That's it! Everything else is automatic:
+// ✅ Downloads ALL filing types (15 types)
+// ✅ Date range: 2009 to current year
+// ✅ DuckDB execution engine
+// ✅ Financial embeddings with 164-term vocabulary
+// ✅ Vector similarity functions
+// ✅ Partitioned Parquet tables
+// ✅ Automatic data directory resolution

@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "defaultSchema": "EDGAR",
+  "schemas": [{
+    "name": "EDGAR",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "operand": {
+      "directory": "/Users/kennethstott/calcite/sec/apple-data",
+      "executionEngine": "linq4j",
+      "enableSecProcessing": true,
+      "edgarSource": {
+        "cik": "0000320193",
+        "filingTypes": ["10-K"],
+        "startYear": 2019,
+        "endYear": 2024,
+        "autoDownload": true
+      }
+    }
+  }]
+}

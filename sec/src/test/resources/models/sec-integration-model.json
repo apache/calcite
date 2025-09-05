@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [
+    {
+      "name": "SEC",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "operand": {
+        "directory": "${test.data.dir}",
+        "ephemeralCache": true,
+        "testMode": true,
+        "sec.fallback.enabled": false,
+        "enableSecProcessing": true,
+        "processSecOnInit": true,
+        "secSourceDirectory": "${test.data.dir}/sec",
+        "edgarSource": {
+          "autoDownload": true,
+          "ciks": ["0000320193", "0000789019"],
+          "filingTypes": ["10-K"],
+          "startDate": "2023-01-01",
+          "endDate": "2023-12-31"
+        }
+      }
+    }
+  ]
+}

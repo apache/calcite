@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+    "operand": {
+      "ciks": "MAGNIFICENT7",
+      "embeddingConfig": {
+        "embeddingDimension": 256
+      }
+    }
+  }]
+}

@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecEmbeddingSchemaFactory",
+    "operand": {
+      "ciks": ["AAPL", "TSLA"],
+      "filingTypes": ["8-K"],
+      "startYear": 2022,
+      "endYear": 2023
+    }
+  }]
+}

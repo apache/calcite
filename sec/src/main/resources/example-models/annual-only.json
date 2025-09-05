@@ -1,0 +1,11 @@
+{
+  "schemas": [{
+    "name": "SEC",
+    "operand": {
+      "ciks": "MAGNIFICENT7",
+      "filingTypes": ["10-K"],
+      "startYear": 2019,
+      "endYear": 2023
+    }
+  }]
+}

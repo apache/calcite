@@ -1,0 +1,57 @@
+# Compiled class files
+*.class
+
+# JAR files
+*.jar
+
+# Build directories
+build/
+target/
+out/
+bin/
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test output
+test-output/
+test-results/
+build/test-data/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# SEC adapter specific
+sec-cache/
+*.parquet.crc
+_SUCCESS

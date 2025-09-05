@@ -1,0 +1,23 @@
+{
+  "groups": {
+    "MY_TECH_PORTFOLIO": {
+      "description": "My technology holdings using ticker symbols",
+      "members": ["AAPL", "MSFT", "NVDA", "GOOGL"]
+    },
+    
+    "MY_DIVERSIFIED": {
+      "description": "Diversified portfolio combining groups and tickers",
+      "members": ["MY_TECH_PORTFOLIO", "JPM", "WMT", "XOM"]
+    },
+    
+    "TECH_AND_BANKS": {
+      "description": "Tech giants plus major banks",
+      "members": ["MAGNIFICENT7", "BIG_BANKS"]
+    },
+    
+    "CUSTOM_FAANG": {
+      "description": "My version of FAANG with extra companies",
+      "members": ["FAANG", "MSFT", "TSLA"]
+    }
+  }
+}

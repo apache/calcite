@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [
+    {
+      "name": "SEC",
+      "type": "sec-embedded",
+      "operand": {
+        "directory": "parquet"
+      }
+    }
+  ]
+}

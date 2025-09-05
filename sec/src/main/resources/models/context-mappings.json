@@ -1,0 +1,61 @@
+{
+  "contexts": {
+    "Revenue": {
+      "index": 0,
+      "keywords": ["revenue", "sales", "income", "product", "service", "growth", "gross", "margin"],
+      "weight": 1.0
+    },
+    "Profitability": {
+      "index": 1,
+      "keywords": ["profit", "income", "earnings", "margin", "eps", "return", "roe", "roi"],
+      "weight": 1.0
+    },
+    "Assets": {
+      "index": 2,
+      "keywords": ["asset", "property", "equipment", "inventory", "goodwill", "intangible", "receivable"],
+      "weight": 1.0
+    },
+    "Liquidity": {
+      "index": 3,
+      "keywords": ["cash", "liquidity", "working", "capital", "flow", "collection", "payment"],
+      "weight": 1.0
+    },
+    "Debt": {
+      "index": 4,
+      "keywords": ["debt", "liability", "loan", "borrowing", "interest", "leverage", "payable"],
+      "weight": 1.0
+    },
+    "Risk": {
+      "index": 5,
+      "keywords": ["risk", "uncertainty", "volatility", "exposure", "contingency", "litigation"],
+      "weight": 1.0
+    },
+    "Operations": {
+      "index": 6,
+      "keywords": ["operating", "operational", "efficiency", "cost", "expense", "administrative"],
+      "weight": 1.0
+    },
+    "Market": {
+      "index": 7,
+      "keywords": ["market", "competition", "industry", "customer", "demand", "pricing", "segment"],
+      "weight": 1.0
+    }
+  },
+  "sentimentWords": {
+    "positive": [
+      "increase", "growth", "improve", "strong", "robust", "gain", "rise", "expand",
+      "outperform", "exceed", "record", "accelerate", "strengthen", "favorable"
+    ],
+    "negative": [
+      "decrease", "decline", "loss", "weak", "reduce", "fall", "deteriorate", 
+      "underperform", "impairment", "adverse", "challenging", "difficult", "unfavorable"
+    ]
+  },
+  "modelConfig": {
+    "embeddingDim": 128,
+    "vocabFeatures": 96,
+    "contextFeatures": 16,
+    "statisticalFeatures": 16,
+    "version": "1.0"
+  }
+}
