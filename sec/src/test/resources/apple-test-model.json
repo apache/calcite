@@ -6,12 +6,15 @@
     "type": "custom", 
     "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
     "operand": {
-      "directory": "/Volumes/T9/sec-data/apple-test",
+      "directory": "${SEC_TEST_DATA_DIR:-build/test-data/sec}/apple-test",
       "ciks": ["AAPL"],
       "autoDownload": true,
       "startYear": 2023,
       "endYear": 2023,
-      "executionEngine": "duckdb"
+      "executionEngine": "duckdb",
+      "testMode": true,
+      "ephemeralCache": true,
+      "sec.fallback.enabled": false
     }
   }]
 }
