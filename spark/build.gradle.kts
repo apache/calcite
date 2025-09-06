@@ -17,7 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("org.apache.spark:spark-core_2.10") {
+    api("org.apache.spark:spark-core_2.13") {
         exclude("org.slf4j", "slf4j-log4j12")
                 .because("conflicts with log4j-slf4j-impl")
         exclude("org.slf4j", "slf4j-reload4j")
