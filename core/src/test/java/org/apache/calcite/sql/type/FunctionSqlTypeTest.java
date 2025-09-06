@@ -34,14 +34,14 @@ public class FunctionSqlTypeTest {
   final RelDataTypeFactory sqlTypeFactory =
       new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
 
-  final RelDataType parameterTypes =
+  final RelDataType parameterType =
       sqlTypeFactory.createStructType(
           ImmutableList.of(sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN)),
           ImmutableList.of("field1"));
-  final RelDataType nonStructParameterTypes = sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN);
+  final RelDataType nonStructParameterType = sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN);
   final RelDataType returnType = sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN);
   final FunctionSqlType functionSqlType =
-      new FunctionSqlType(parameterTypes, returnType);
+      new FunctionSqlType(parameterType, returnType);
 
   @Test void testFailsOnNullParameterType() {
     assertThrows(NullPointerException.class, () -> {
@@ -49,20 +49,20 @@ public class FunctionSqlTypeTest {
     }, "parameterType");
   }
 
-  @Test void testFailsOnNonStructParameterTypes() {
+  @Test void testFailsOnNonStructParameterType() {
     assertThrows(IllegalArgumentException.class, () -> {
-      new FunctionSqlType(nonStructParameterTypes, returnType);
+      new FunctionSqlType(nonStructParameterType, returnType);
     }, "ParameterType must be a struct");
   }
 
   @Test void testFailsOnNullReturnType() {
     assertThrows(NullPointerException.class, () -> {
-      new FunctionSqlType(parameterTypes, null);
+      new FunctionSqlType(parameterType, null);
     });
   }
 
-  @Test void testGetParameterTypes() {
-    assertEquals(parameterTypes, functionSqlType.getParameterTypes());
+  @Test void testGetParameterType() {
+    assertEquals(parameterType, functionSqlType.getParameterType());
   }
 
   @Test void testGetReturnType() {
