@@ -35,9 +35,6 @@ public class FunctionSqlType extends AbstractSqlType {
       RelDataType parameterType, RelDataType returnType) {
     super(SqlTypeName.FUNCTION, true, null);
     this.parameterType = requireNonNull(parameterType, "parameterType");
-    if (!parameterType.isStruct()) {
-      throw new IllegalArgumentException("paramType must be a struct");
-    }
     this.returnType = requireNonNull(returnType, "returnType");
     computeDigest();
   }
