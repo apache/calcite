@@ -25,8 +25,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Function type.
- *
- * <p>The type of lambda expression can be represented by a function type.
+ * The type of lambda expression can be represented by a function type.
  */
 public class FunctionSqlType extends AbstractSqlType {
   private final RelDataType parameterType;
@@ -37,7 +36,7 @@ public class FunctionSqlType extends AbstractSqlType {
     super(SqlTypeName.FUNCTION, true, null);
     this.parameterType = requireNonNull(parameterType, "parameterType");
     if (!parameterType.isStruct()) {
-      throw new IllegalArgumentException("parameterType must be a struct");
+      throw new IllegalArgumentException("paramType must be a struct");
     }
     this.returnType = requireNonNull(returnType, "returnType");
     computeDigest();
