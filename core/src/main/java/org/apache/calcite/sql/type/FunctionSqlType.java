@@ -25,16 +25,26 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Function type.
- * The type of lambda expression can be represented by a function type.
+ *
+ * <p>The type of lambda expression can be represented by a function type.
  */
 public class FunctionSqlType extends AbstractSqlType {
-  private final RelDataType parameterType;
+  private final RelDataType parameterTypes;
   private final RelDataType returnType;
 
+  /**
+   * Constructs a new function SQL type. This should only be called from a factory method.
+   *
+   * @param parameterTypes a struct type wrapping function's input parameter types.
+   * @param returnType function's return type.
+   */
   public FunctionSqlType(
-      RelDataType parameterType, RelDataType returnType) {
+      RelDataType parameterTypes, RelDataType returnType) {
     super(SqlTypeName.FUNCTION, true, null);
-    this.parameterType = requireNonNull(parameterType, "parameterType");
+    this.parameterTypes = requireNonNull(parameterTypes, "parameterTypes");
+    if (!parameterTypes.isStruct()) {
+      throw new IllegalArgumentException("ParameterType must be a struct");
+    }
     this.returnType = requireNonNull(returnType, "returnType");
     computeDigest();
   }
@@ -42,7 +52,7 @@ public class FunctionSqlType extends AbstractSqlType {
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("Function");
     sb.append("(");
-    for (Ord<RelDataTypeField> ord : Ord.zip(parameterType.getFieldList())) {
+    for (Ord<RelDataTypeField> ord : Ord.zip(parameterTypes.getFieldList())) {
       if (ord.i > 0) {
         sb.append(", ");
       }
@@ -58,6 +68,20 @@ public class FunctionSqlType extends AbstractSqlType {
     return this;
   }
 
+  /**
+   * Returns the parameter types of the function.
+   *
+   * @return a struct wrapping function's parameter types.
+   */
+  public RelDataType getParameterTypes() {
+    return parameterTypes;
+  }
+
+  /**
+   * Returns the return type of the function.
+   *
+   * @return the function's return type.
+   */
   public RelDataType getReturnType() {
     return returnType;
   }
