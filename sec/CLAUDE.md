@@ -205,6 +205,50 @@ When the SEC adapter needs functionality not in the file adapter:
 - Use `@Tag("integration")` for tests requiring EDGAR access
 - Use `@Tag("unit")` for pure unit tests with mocked data
 - Extended timeouts needed for large company downloads
+- **Remember**: By default only unit tests run. Use `-PincludeTags=integration` for integration tests
+
+### Test Debugging Standards
+
+#### Fix-First Policy
+- **REQUIRED**: When a test fails, debug and fix it
+- **PROHIBITED**: Creating alternative tests to bypass failures
+- **PROHIBITED**: Creating `TestSecDownload2.java` when `TestSecDownload.java` fails
+
+#### Debugging SEC Adapter Tests
+1. **Check test configuration first**:
+   - Verify model.json settings
+   - Confirm testMode and ephemeralCache flags
+   - Validate mock data generation
+
+2. **Trace execution path**:
+   - Add logging to SecSchemaFactory
+   - Trace JDBC query execution
+   - Monitor file I/O operations
+
+3. **Temporary debugging aids**:
+   - Can create debug tests in `build/temp-tests/`
+   - Must use `@Tag("debug")` and `@Disabled`
+   - Delete immediately after resolution
+
+#### Example: Proper Test Debugging
+```java
+// BAD: Creating new test to avoid fixing
+@Test
+void testDJIDataNew() { // NO! Fix testDJIData instead
+    // ...
+}
+
+// GOOD: Debug the original test
+@Test
+void testDJIData() {
+    // Add temporary logging
+    logger.debug("Query: {}", sql);
+    logger.debug("Result count: {}", resultSet.getRow());
+    
+    // Fix the actual issue
+    // Remove debug code after fixing
+}
+```
 
 ## Connection Configuration
 
