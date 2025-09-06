@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.sec;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for REAL SEC EDGAR downloads.
  */
+@Tag("integration")
 public class RealDownloadTest {
 
   @Test public void testRealSecDownloads() throws Exception {

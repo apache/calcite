@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.sec;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for market cap-based CIK markers.
  */
+@Tag("unit")
 public class MarketCapMarkersTest {
 
   @Test @Disabled("Requires API access")

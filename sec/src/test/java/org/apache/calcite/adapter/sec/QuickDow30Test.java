@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.sec;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -26,6 +27,7 @@ import java.util.logging.Logger;
 /**
  * Quick test to download Dow 30 companies and measure performance.
  */
+@Tag("integration")
 public class QuickDow30Test {
   private static final Logger LOGGER = Logger.getLogger(QuickDow30Test.class.getName());
 
