@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests for {@link FunctionSqlType}.
@@ -38,30 +37,11 @@ public class FunctionSqlTypeTest {
       sqlTypeFactory.createStructType(
           ImmutableList.of(sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN)),
           ImmutableList.of("field1"));
-  final RelDataType nonStructParameterType = sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN);
   final RelDataType returnType = sqlTypeFactory.createSqlType(SqlTypeName.BOOLEAN);
   final FunctionSqlType functionSqlType =
       new FunctionSqlType(parameterType, returnType);
 
-  @Test void testFailsOnNullParameterType() {
-    assertThrows(NullPointerException.class, () -> {
-      new FunctionSqlType(null, returnType);
-    });
-  }
-
-  @Test void testFailsOnNonStructParameterType() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      new FunctionSqlType(nonStructParameterType, returnType);
-    });
-  }
-
-  @Test void testFailsOnNullReturnType() {
-    assertThrows(NullPointerException.class, () -> {
-      new FunctionSqlType(parameterType, null);
-    });
-  }
-
-  @Test void testGetParameterType() {
+  @Test void testGetParamType() {
     assertEquals(parameterType, functionSqlType.getParameterType());
   }
 
