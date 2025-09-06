@@ -83,3 +83,15 @@ a
 # Aperio cache directory
 .aperio/
 local-test.properties
+
+# Prevent test files and compiled classes in module roots
+*.class
+/sec/*.java
+/sec/*.class
+/sec/Test*.java
+/*/Test*.java
+/*/Test*.class
+
+# Temporary test directories
+build/temp-tests/
+**/temp-tests/
