@@ -58,10 +58,6 @@ public class FunctionSqlType extends AbstractSqlType {
     return this;
   }
 
-  public RelDataType getParameterType() {
-    return parameterTypeType;
-  }
-
   public RelDataType getReturnType() {
     return returnType;
   }
