@@ -7570,6 +7570,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7162">[CALCITE-7162]
+   * AggregateMergeRule throws 'type mismatch' AssertionError</a>. The scenario
+   * has the same aggregate functions (MIN and MAX) at multiple levels; the
+   * lower level is NOT NULL (because of GROUP BY) and the upper level is
+   * nullable. */
+  @Test void testAggregateMerge10() {
+    final String sql = "SELECT min(mn), max(mx)\n"
+        + "FROM (\n"
+        + "    SELECT min(deptno) mn, max(deptno) mx\n"
+        + "    FROM dept\n"
+        + "    GROUP BY name)";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_MERGE)
+        .check();
+  }
+
   /**
    * Test case for AggregateRemoveRule, should remove aggregates since
    * empno is unique and all aggregate functions are splittable.

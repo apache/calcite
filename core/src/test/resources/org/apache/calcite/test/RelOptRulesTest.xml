@@ -846,6 +846,28 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateMerge10">
+    <Resource name="sql">
+      <![CDATA[SELECT min(mn), max(mx)
+FROM (
+    SELECT min(deptno) mn, max(deptno) mx
+    FROM dept
+    GROUP BY name)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($1)], EXPR$1=[MAX($2)])
+  LogicalAggregate(group=[{1}], MN=[MIN($0)], MX=[MAX($0)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateMergeSum0">
     <Resource name="sql">
       <![CDATA[select coalesce(sum(count_comm), 0)
