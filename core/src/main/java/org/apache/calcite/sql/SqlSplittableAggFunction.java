@@ -189,7 +189,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
             bottom.isDistinct(), bottom.isApproximate(), false,
             bottom.rexList, bottom.getArgList(), bottom.filterArg,
             bottom.distinctKeys, bottom.getCollation(),
-            bottom.getType(), top.getName());
+            top.getType(), top.getName());
       } else {
         return null;
       }
@@ -234,7 +234,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
             bottom.isDistinct(), bottom.isApproximate(), false,
             bottom.rexList, bottom.getArgList(), bottom.filterArg,
             bottom.distinctKeys, bottom.getCollation(),
-            bottom.getType(), top.getName());
+            top.getType(), top.getName());
       } else {
         return null;
       }
