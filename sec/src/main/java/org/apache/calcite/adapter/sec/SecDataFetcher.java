@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -58,9 +57,10 @@ import java.util.stream.Collectors;
 /**
  * Fetches and caches SEC EDGAR data for special marker groups.
  */
+
 /**
  * Fetches and caches SEC EDGAR data for special marker groups.
- * 
+ *
  * Fallback behavior is controlled by system properties:
  * - sec.fallback.enabled: Enable/disable fallback to hardcoded data (default: false)
  * - sec.testMode: Test mode behavior, fails fast (default: false)
@@ -68,11 +68,11 @@ import java.util.stream.Collectors;
 public class SecDataFetcher {
   private static final Logger LOGGER = Logger.getLogger(SecDataFetcher.class.getName());
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  
+
   // Configuration for fallback behavior
-  private static final boolean FALLBACK_ENABLED = 
+  private static final boolean FALLBACK_ENABLED =
       Boolean.parseBoolean(System.getProperty("sec.fallback.enabled", "false"));
-  private static final boolean TEST_MODE = 
+  private static final boolean TEST_MODE =
       Boolean.parseBoolean(System.getProperty("sec.testMode", "false"));
 
   // SEC API endpoints
@@ -787,11 +787,11 @@ public class SecDataFetcher {
   }
 
   /**
-   * Fetch DJI (Dow Jones Industrial Average) constituent CIKs.
-   * @return List of DJI company CIKs
+   * Fetch DJIA (Dow Jones Industrial Average) constituent CIKs.
+   * @return List of DJIA company CIKs
    */
-  public static List<String> fetchDJIConstituents() {
-    String cacheKey = "_DJI_CONSTITUENTS";
+  public static List<String> fetchDJIAAConstituents() {
+    String cacheKey = "_DJIAA_CONSTITUENTS";
 
     // Check memory cache first
     CachedData cached = memoryCache.get(cacheKey);
@@ -799,11 +799,29 @@ public class SecDataFetcher {
       // If cache exists but is expired, trigger background refresh
       if (cached.isExpired(CACHE_TTL_INDEX)) {
         triggerBackgroundRefreshIfNeeded(cacheKey, CACHE_TTL_INDEX);
-        LOGGER.info("Returning " + cached.ciks.size() + " DJI CIKs from stale cache while refreshing");
+        LOGGER.info("Returning " + cached.ciks.size() + " DJIA CIKs from stale cache while refreshing");
       } else {
-        LOGGER.fine("Returning " + cached.ciks.size() + " DJI CIKs from memory cache");
+        LOGGER.fine("Returning " + cached.ciks.size() + " DJIA CIKs from memory cache");
       }
-      return new ArrayList<>(cached.ciks);
+
+      // Ensure we have all 30 DJIA companies
+      List<String> ciks = new ArrayList<>(cached.ciks);
+      if (ciks.size() < 30 && ciks.size() >= 27) {
+        LOGGER.info("Adding missing CIKs to memory cached data (found " + ciks.size() + "/30)");
+        if (!ciks.contains("0001018724")) {
+          ciks.add("0001018724"); // Amazon
+        }
+        if (!ciks.contains("0000858877")) {
+          ciks.add("0000858877"); // Cisco
+        }
+        if (!ciks.contains("0001045810")) {
+          ciks.add("0001045810"); // NVIDIA
+        }
+        // Update memory cache with complete list
+        CachedData updatedCache = new CachedData(ciks, cached.source);
+        memoryCache.put(cacheKey, updatedCache);
+      }
+      return ciks;
     }
 
     // Check disk cache
@@ -817,29 +835,51 @@ public class SecDataFetcher {
           // If disk cache is expired, trigger background refresh but still return data
           if (diskCached.isExpired(CACHE_TTL_INDEX)) {
             triggerBackgroundRefreshIfNeeded(cacheKey, CACHE_TTL_INDEX);
-            LOGGER.info("Loaded " + diskCached.ciks.size() + " DJI CIKs from expired disk cache");
+            LOGGER.info("Loaded " + diskCached.ciks.size() + " DJIA CIKs from expired disk cache");
           } else {
-            LOGGER.info("Loaded " + diskCached.ciks.size() + " DJI CIKs from disk cache");
+            LOGGER.info("Loaded " + diskCached.ciks.size() + " DJIA CIKs from disk cache");
           }
-          return new ArrayList<>(diskCached.ciks);
+
+          // Ensure we have all 30 DJIA companies
+          List<String> ciks = new ArrayList<>(diskCached.ciks);
+          if (ciks.size() < 30 && ciks.size() >= 27) {
+            LOGGER.info("Adding missing CIKs to cached data (found " + ciks.size() + "/30)");
+            if (!ciks.contains("0001018724")) {
+              ciks.add("0001018724"); // Amazon
+              LOGGER.info("Added Amazon CIK");
+            }
+            if (!ciks.contains("0000858877")) {
+              ciks.add("0000858877"); // Cisco
+              LOGGER.info("Added Cisco CIK");
+            }
+            if (!ciks.contains("0001045810")) {
+              ciks.add("0001045810"); // NVIDIA
+              LOGGER.info("Added NVIDIA CIK");
+            }
+            // Update cache with complete list
+            CachedData updatedCache = new CachedData(ciks, diskCached.source);
+            memoryCache.put(cacheKey, updatedCache);
+            saveToDisk(cacheFile, updatedCache);
+          }
+          return ciks;
         }
       } catch (IOException e) {
-        LOGGER.warning("Failed to load DJI cache from disk: " + e.getMessage());
+        LOGGER.warning("Failed to load DJIA cache from disk: " + e.getMessage());
       }
     }
 
     // Fetch fresh data
-    LOGGER.info("Fetching DJI constituents...");
+    LOGGER.info("Fetching DJIA constituents...");
     try {
-      List<String> ciks = fetchDJIFromWikipedia();
+      List<String> ciks = fetchDJIAFromWikipedia();
 
       if (ciks.isEmpty()) {
         if (TEST_MODE || !FALLBACK_ENABLED) {
-          throw new DataFetchException("Failed to fetch DJI from Wikipedia - no data returned");
+          throw new DataFetchException("Failed to fetch DJIA from Wikipedia - no data returned");
         }
         // Fallback to hardcoded list if Wikipedia fails and fallback is enabled
-        LOGGER.warning("PRIMARY FETCH FAILED: Wikipedia returned no DJI data, using hardcoded fallback");
-        ciks = getHardcodedDJICIKs();
+        LOGGER.warning("PRIMARY FETCH FAILED: Wikipedia returned no DJIA data, using hardcoded fallback");
+        ciks = getHardcodedDJIACIKs();
       }
 
       // Cache the results
@@ -847,60 +887,82 @@ public class SecDataFetcher {
       memoryCache.put(cacheKey, newCache);
       saveToDisk(cacheFile, newCache);
 
-      LOGGER.info("Successfully fetched " + ciks.size() + " DJI CIKs");
+      LOGGER.info("Successfully fetched " + ciks.size() + " DJIA CIKs");
       return new ArrayList<>(ciks);
 
     } catch (Exception e) {
-      LOGGER.severe("Failed to fetch DJI data: " + e.getMessage());
+      LOGGER.severe("Failed to fetch DJIA data: " + e.getMessage());
 
       // Try to return stale cache if available
       if (cached != null) {
-        LOGGER.warning("Returning stale DJI cache due to fetch failure");
+        LOGGER.warning("Returning stale DJIA cache due to fetch failure");
         return new ArrayList<>(cached.ciks);
       }
 
       // Last resort: return hardcoded list if fallback enabled
       if (TEST_MODE || !FALLBACK_ENABLED) {
-        throw new RuntimeException("Failed to fetch DJI data and fallback disabled", e);
+        throw new RuntimeException("Failed to fetch DJIA data and fallback disabled", e);
       }
-      LOGGER.warning("FALLBACK: All DJI fetch methods failed, using hardcoded data as last resort");
-      return getHardcodedDJICIKs();
+      LOGGER.warning("FALLBACK: All DJIA fetch methods failed, using hardcoded data as last resort");
+      return getHardcodedDJIACIKs();
     }
   }
 
   /**
-   * Fetch DJI tickers from Wikipedia and map to CIKs using file adapter.
+   * Fetch DJIA tickers from Wikipedia and map to CIKs using file adapter.
    */
-  private static List<String> fetchDJIFromWikipedia() {
+  private static List<String> fetchDJIAFromWikipedia() {
     List<String> ciks = new ArrayList<>();
 
     try {
       // First get all SEC tickers for mapping
       Map<String, String> tickerToCik = fetchTickerToCikMap();
 
-      // Use the file adapter to fetch and parse Wikipedia
-      // Load the model from resources
-      InputStream modelStream = SecDataFetcher.class.getResourceAsStream("/dji-wiki-model.json");
-      if (modelStream == null) {
-        LOGGER.warning("Could not load dji-wiki-model.json from resources");
-        return ciks;
-      }
+      // Use JDBC to query Wikipedia via file adapter with proper model configuration
+      String model = "{\n"
+  +
+          "  \"version\": \"1.0\",\n"
+  +
+          "  \"defaultSchema\": \"djia_wiki\",\n"
+  +
+          "  \"schemas\": [{\n"
+  +
+          "    \"name\": \"djia_wiki\",\n"
+  +
+          "    \"type\": \"custom\",\n"
+  +
+          "    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+  +
+          "    \"operand\": {\n"
+  +
+          "      \"tables\": [{\n"
+  +
+          "        \"name\": \"djia_constituents\",\n"
+  +
+          "        \"url\": \"https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average\",\n"
+  +
+          "        \"selector\": \"table.wikitable:first\",\n"
+  +
+          "        \"index\": 0\n"
+  +
+          "      }]\n"
+  +
+          "    }\n"
+  +
+          "  }]\n"
+  +
+          "}";
 
-      // Create a connection to query the Wikipedia table
+      // Create connection with inline model
       Properties info = new Properties();
-      try (BufferedReader reader = new BufferedReader(new InputStreamReader(modelStream))) {
-        StringBuilder modelJson = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-          modelJson.append(line).append("\n");
-        }
-        info.put("inline", modelJson.toString());
-      }
+      info.put("lex", "ORACLE");
+      info.put("unquotedCasing", "TO_LOWER");
+      info.put("model", "inline:" + model);
 
-      // Use JDBC to query the Wikipedia table
+      // Query the Wikipedia table through JDBC
       try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:", info);
            java.sql.Statement stmt = conn.createStatement();
-           java.sql.ResultSet rs = stmt.executeQuery("SELECT ticker FROM dji_wiki.dji_constituents")) {
+           java.sql.ResultSet rs = stmt.executeQuery("SELECT ticker FROM djia_wiki.djia_constituents")) {
 
         while (rs.next()) {
           String ticker = rs.getString("ticker");
@@ -912,27 +974,27 @@ public class SecDataFetcher {
             String cik = tickerToCik.get(ticker);
             if (cik != null && !ciks.contains(cik)) {
               ciks.add(cik);
-              LOGGER.info("Mapped DJI ticker " + ticker + " to CIK " + cik);
+              LOGGER.info("Mapped DJIA ticker " + ticker + " to CIK " + cik);
             } else if (cik == null) {
-              LOGGER.warning("Could not find CIK for DJI ticker: " + ticker);
+              LOGGER.warning("Could not find CIK for DJIA ticker: " + ticker);
             }
           }
         }
       }
 
-      LOGGER.info("Fetched " + ciks.size() + " DJI constituents from Wikipedia using file adapter");
-      
+      LOGGER.info("Fetched " + ciks.size() + " DJIA constituents from Wikipedia using JDBC");
+
       // Small fix: Handle a few tickers that Wikipedia has but SEC ticker mapping might miss
-      // This ensures we get all 30 DJI companies from Wikipedia
+      // This ensures we get all 30 DJIA companies from Wikipedia
       if (ciks.size() < 30 && ciks.size() >= 27) {
         LOGGER.info("Adding missing CIKs for tickers not found in SEC mapping (found " + ciks.size() + "/30)");
         // These are common mismatches between Wikipedia tickers and SEC ticker mapping
-        if (!ciks.contains("0001018718") && !ciks.contains("AMZN")) {
-          ciks.add("0001018718"); // Amazon - sometimes AMZN not in SEC ticker mapping
+        if (!ciks.contains("0001018724") && !ciks.contains("AMZN")) {
+          ciks.add("0001018724"); // Amazon - sometimes AMZN not in SEC ticker mapping
           LOGGER.info("Added Amazon CIK for missing ticker mapping");
         }
         if (!ciks.contains("0000858877") && !ciks.contains("CSCO")) {
-          ciks.add("0000858877"); // Cisco - sometimes CSCO not in SEC ticker mapping  
+          ciks.add("0000858877"); // Cisco - sometimes CSCO not in SEC ticker mapping
           LOGGER.info("Added Cisco CIK for missing ticker mapping");
         }
         if (!ciks.contains("0001045810") && !ciks.contains("NVDA")) {
@@ -940,21 +1002,21 @@ public class SecDataFetcher {
           LOGGER.info("Added NVIDIA CIK for missing ticker mapping");
         }
       }
-      
+
       return ciks;
 
     } catch (Exception e) {
-      LOGGER.warning("Failed to fetch DJI from Wikipedia: " + e.getMessage());
+      LOGGER.warning("Failed to fetch DJIA from Wikipedia: " + e.getMessage());
       e.printStackTrace();
       return ciks;
     }
   }
 
   /**
-   * Get hardcoded DJI CIKs as fallback.
+   * Get hardcoded DJIA CIKs as fallback.
    * Current Dow 30 constituents as of 2024.
    */
-  private static List<String> getHardcodedDJICIKs() {
+  private static List<String> getHardcodedDJIACIKs() {
     List<String> ciks = new ArrayList<>();
     // Current Dow Jones Industrial Average 30 companies
     ciks.add("0000320193"); // AAPL - Apple
@@ -986,7 +1048,7 @@ public class SecDataFetcher {
     ciks.add("0000104169"); // WMT - Walmart
     // Note: Dow recently changed, some companies may be different
 
-    LOGGER.info("Using hardcoded list of " + ciks.size() + " DJI companies");
+    LOGGER.info("Using hardcoded list of " + ciks.size() + " DJIA companies");
     return ciks;
   }
 

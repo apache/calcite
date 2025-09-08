@@ -478,16 +478,16 @@ public class CikRegistry {
         LOGGER.warning("Returning empty list for " + marker);
         return Collections.emptyList();
 
-      case "_DJI_CONSTITUENTS":
-        LOGGER.info("Loading DJI constituents dynamically...");
+      case "_DJIA_CONSTITUENTS":
+        LOGGER.info("Loading DJIAA constituents dynamically...");
         try {
-          List<String> djiCiks = SecDataFetcher.fetchDJIConstituents();
-          if (!djiCiks.isEmpty()) {
-            LOGGER.info("Successfully loaded " + djiCiks.size() + " DJI CIKs");
-            return djiCiks;
+          List<String> djiaCiks = SecDataFetcher.fetchDJIAAConstituents();
+          if (!djiaCiks.isEmpty()) {
+            LOGGER.info("Successfully loaded " + djiaCiks.size() + " DJIAA CIKs");
+            return djiaCiks;
           }
         } catch (Exception e) {
-          LOGGER.severe("Failed to fetch DJI constituents: " + e.getMessage());
+          LOGGER.severe("Failed to fetch DJIAA constituents: " + e.getMessage());
         }
         LOGGER.warning("Returning empty list for " + marker);
         return Collections.emptyList();

@@ -17,14 +17,11 @@
 package org.apache.calcite.adapter.sec;
 
 import org.apache.calcite.adapter.file.storage.HttpStorageProvider;
-import org.apache.calcite.adapter.file.storage.StorageProviderFile;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
