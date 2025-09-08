@@ -16,14 +16,12 @@
  */
 package org.apache.calcite.adapter.sec;
 
-import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.AbstractSchema;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,46 +35,44 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("unit")
 public class SecSchemaFactoryTest {
 
-  @Test
-  public void testFactoryIsFound() throws Exception {
+  @Test public void testFactoryIsFound() throws Exception {
     // Try to load the factory using the same mechanism Calcite uses
     String factoryClassName = "org.apache.calcite.adapter.sec.SecSchemaFactory";
-    
+
     // First verify class can be loaded
     Class<?> factoryClass = Class.forName(factoryClassName);
     assertNotNull(factoryClass);
     System.err.println("Factory class loaded: " + factoryClass);
-    
+
     // Verify it implements SchemaFactory
     assertTrue(SchemaFactory.class.isAssignableFrom(factoryClass));
     System.err.println("Factory implements SchemaFactory: true");
-    
+
     // Try to instantiate it
     SchemaFactory factory = (SchemaFactory) factoryClass.getDeclaredConstructor().newInstance();
     assertNotNull(factory);
     System.err.println("Factory instance created: " + factory);
-    
+
     // Try to create a schema with it
     SchemaPlus rootSchema = org.apache.calcite.jdbc.CalciteSchema.createRootSchema(false).plus();
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", "/tmp/test-sec");
-    operand.put("ciks", new String[]{"_DJI_CONSTITUENTS"});
+    operand.put("ciks", new String[]{"_DJIA_CONSTITUENTS"});
     operand.put("autoDownload", false); // Don't actually download for this test
-    
+
     Schema schema = factory.create(rootSchema, "test", operand);
     assertNotNull(schema);
     System.err.println("Schema created: " + schema);
   }
-  
-  @Test
-  public void testFactoryViaModelHandler() throws Exception {
+
+  @Test public void testFactoryViaModelHandler() throws Exception {
     // This tests if ModelHandler can find the factory
     String factoryClassName = "org.apache.calcite.adapter.sec.SecSchemaFactory";
-    
+
     // ModelHandler uses this pattern to load factories
     Class<?> clazz = Class.forName(factoryClassName);
     SchemaFactory factory = (SchemaFactory) clazz.getDeclaredConstructor().newInstance();
-    
+
     assertNotNull(factory);
     System.err.println("Factory loaded via ModelHandler pattern: " + factory);
   }

@@ -28,8 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("integration")
 public class AllEdgarFilersTest {
-  @Test
-  public void testAllEdgarFilersDynamicLoading() {
+  @Test public void testAllEdgarFilersDynamicLoading() {
     System.out.println("Testing _ALL_EDGAR_FILERS dynamic loading...\n");
 
     // Test resolving the ALL group which uses _ALL_EDGAR_FILERS marker

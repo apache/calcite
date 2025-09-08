@@ -31,8 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("integration")
 public class ActualSecAdapterTest {
-    @Test
-    public void testActualSecAdapterWithDownloads() throws Exception {
+    @Test public void testActualSecAdapterWithDownloads() throws Exception {
         System.out.println("\n"
   + "=".repeat(80));
         System.out.println("TESTING ACTUAL SEC ADAPTER - REAL DOWNLOADS VIA JDBC");

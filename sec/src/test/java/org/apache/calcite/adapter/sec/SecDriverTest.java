@@ -45,7 +45,7 @@ public class SecDriverTest {
         + "}"
         + "}]"
         + "}";
-    
+
     System.out.println("✅ Model-based connection pattern verified");
   }
 
@@ -86,7 +86,7 @@ public class SecDriverTest {
 
     assertNotNull(basicModel);
     assertNotNull(advancedModel);
-    
+
     System.out.println("✅ Model configurations validated");
   }
 
@@ -108,7 +108,7 @@ public class SecDriverTest {
 
     System.out.println("Model-based connections using jdbc:calcite:");
     System.out.println("");
-    
+
     System.out.println("1. External model file:");
     System.out.println("   jdbc:calcite:model=/path/to/sec-model.json");
     System.out.println("");

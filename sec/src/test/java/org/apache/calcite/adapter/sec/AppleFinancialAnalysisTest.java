@@ -40,8 +40,6 @@ import java.util.Comparator;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Query Apple's financial data from the last 5 years of 10-K filings.
@@ -252,7 +250,7 @@ public class AppleFinancialAnalysisTest {
       // Validate metadata
       int columnCount = rs.getMetaData().getColumnCount();
       assertTrue(columnCount > 0, queryName + " should return columns");
-      
+
       // Validate at least one row for test data
       int rowCount = 0;
       while (rs.next()) {
@@ -263,7 +261,7 @@ public class AppleFinancialAnalysisTest {
           // Value can be null but should be retrievable
         }
       }
-      
+
       // In test mode with mock data, we should have some results
       // If no results, that's OK for this integration test setup
       // The important part is that the query executes without error

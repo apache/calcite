@@ -16,9 +16,8 @@
  */
 package org.apache.calcite.adapter.sec;
 
-import org.apache.calcite.adapter.sec.CikRegistry;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -30,8 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("unit")
 public class SP500ConstituentsTest {
 
-  @Test
-  void testSP500ConstituentsLoading() {
+  @Test void testSP500ConstituentsLoading() {
     // Test resolving the SP500_COMPLETE group which uses _SP500_CONSTITUENTS marker
     List<String> sp500Ciks = CikRegistry.resolveCiks("SP500_COMPLETE");
 
@@ -41,23 +39,23 @@ public class SP500ConstituentsTest {
     }
 
     assertNotNull(sp500Ciks, "Should return a list, even if empty");
-    
+
     if (!sp500Ciks.isEmpty()) {
       // Check if we got a reasonable number (should be around 500)
       // Allow for some variance as companies change
-      assertTrue(sp500Ciks.size() >= 50, 
+      assertTrue(sp500Ciks.size() >= 50,
           "Should have at least 50 companies (may be using fallback)");
-      assertTrue(sp500Ciks.size() <= 550, 
+      assertTrue(sp500Ciks.size() <= 550,
           "Should not exceed 550 companies");
 
       // Test caching by calling again
       long start = System.currentTimeMillis();
       List<String> cachedCiks = CikRegistry.resolveCiks("_SP500_CONSTITUENTS");
       long elapsed = System.currentTimeMillis() - start;
-      
-      assertEquals(sp500Ciks.size(), cachedCiks.size(), 
+
+      assertEquals(sp500Ciks.size(), cachedCiks.size(),
           "Cached result should match original");
-      assertTrue(elapsed < 1000, 
+      assertTrue(elapsed < 1000,
           "Second call should be fast (cache hit)");
 
       // Check for known S&P 500 companies
@@ -75,23 +73,22 @@ public class SP500ConstituentsTest {
           foundCount++;
         }
       }
-      
+
       // Should find most of the known companies
-      assertTrue(foundCount >= 3, 
+      assertTrue(foundCount >= 3,
           "Should find at least 3 of the 5 known S&P 500 companies");
     }
   }
 
-  @Test
-  void testSP500CikFormat() {
+  @Test void testSP500CikFormat() {
     List<String> sp500Ciks = CikRegistry.resolveCiks("_SP500_CONSTITUENTS");
-    
+
     if (!sp500Ciks.isEmpty()) {
       // All CIKs should be 10 digits with leading zeros
       for (String cik : sp500Ciks) {
-        assertEquals(10, cik.length(), 
+        assertEquals(10, cik.length(),
             "CIK should be 10 digits: " + cik);
-        assertTrue(cik.matches("\\d{10}"), 
+        assertTrue(cik.matches("\\d{10}"),
             "CIK should be all digits: " + cik);
       }
     }

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.sec;
 
-import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.avro.AvroParquetWriter;
+import org.apache.parquet.hadoop.ParquetWriter;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +33,7 @@ import java.util.List;
  * Helper to generate mock financial_line_items data for testing.
  */
 public class MockFinancialDataHelper {
-  
+
   private static final String FINANCIAL_SCHEMA = "{"
       + "\"type\": \"record\","
       + "\"name\": \"FinancialLineItem\","
@@ -55,18 +55,18 @@ public class MockFinancialDataHelper {
    */
   public static void createMockFinancialData(File directory) throws IOException {
     directory.mkdirs();
-    
+
     Schema schema = new Schema.Parser().parse(FINANCIAL_SCHEMA);
     File parquetFile = new File(directory, "financial_line_items.parquet");
-    
+
     List<GenericRecord> records = new ArrayList<>();
-    
+
     // Add sample data
     String[] companies = {"Apple Inc.", "Microsoft Corporation"};
     String[] ciks = {"0000320193", "0000789019"};
     String[] lineItems = {"Revenue", "NetIncome", "TotalAssets", "TotalLiabilities"};
     double[] values = {100000000.0, 25000000.0, 500000000.0, 200000000.0};
-    
+
     for (int i = 0; i < companies.length; i++) {
       for (int j = 0; j < lineItems.length; j++) {
         GenericRecord record = new GenericData.Record(schema);
@@ -82,7 +82,7 @@ public class MockFinancialDataHelper {
         records.add(record);
       }
     }
-    
+
     // Write Parquet file
     @SuppressWarnings("deprecation")
     ParquetWriter<GenericRecord> writer = AvroParquetWriter
@@ -90,7 +90,7 @@ public class MockFinancialDataHelper {
         .withSchema(schema)
         .withCompressionCodec(CompressionCodecName.SNAPPY)
         .build();
-    
+
     try {
       for (GenericRecord record : records) {
         writer.write(record);
@@ -99,13 +99,13 @@ public class MockFinancialDataHelper {
       writer.close();
     }
   }
-  
+
   /**
    * Create a mock dow30_constituents.parquet file for testing.
    */
   public static void createMockDow30Data(File directory) throws IOException {
     directory.mkdirs();
-    
+
     String dow30Schema = "{"
         + "\"type\": \"record\","
         + "\"name\": \"Dow30Constituent\","
@@ -115,12 +115,12 @@ public class MockFinancialDataHelper {
         + "{\"name\": \"cik\", \"type\": \"string\"}"
         + "]"
         + "}";
-    
+
     Schema schema = new Schema.Parser().parse(dow30Schema);
     File parquetFile = new File(directory, "dow30_constituents.parquet");
-    
+
     List<GenericRecord> records = new ArrayList<>();
-    
+
     // Add DOW 30 companies (abbreviated list for testing)
     String[][] dow30 = {
       {"AAPL", "Apple Inc.", "0000320193"},
@@ -129,7 +129,7 @@ public class MockFinancialDataHelper {
       {"GOOGL", "Alphabet Inc.", "0001652044"},
       {"JPM", "JPMorgan Chase & Co.", "0000019617"}
     };
-    
+
     for (String[] company : dow30) {
       GenericRecord record = new GenericData.Record(schema);
       record.put("ticker", company[0]);
@@ -137,7 +137,7 @@ public class MockFinancialDataHelper {
       record.put("cik", company[2]);
       records.add(record);
     }
-    
+
     // Write Parquet file
     @SuppressWarnings("deprecation")
     ParquetWriter<GenericRecord> writer = AvroParquetWriter
@@ -145,7 +145,7 @@ public class MockFinancialDataHelper {
         .withSchema(schema)
         .withCompressionCodec(CompressionCodecName.SNAPPY)
         .build();
-    
+
     try {
       for (GenericRecord record : records) {
         writer.write(record);

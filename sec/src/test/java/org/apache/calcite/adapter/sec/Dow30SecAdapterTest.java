@@ -32,8 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("integration")
 public class Dow30SecAdapterTest {
 
-    @Test
-    public void testDow30ViaJDBC() throws Exception {
+    @Test public void testDow30ViaJDBC() throws Exception {
         System.out.println("\n"
   + "=".repeat(80));
         System.out.println("TESTING DOW 30 SEC ADAPTER - REAL DOWNLOADS VIA JDBC");

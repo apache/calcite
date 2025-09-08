@@ -33,12 +33,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("unit")
 public class JdbcDriverLoadingTest {
 
-  @Test
-  public void testServiceProviderConfiguration() {
+  @Test public void testServiceProviderConfiguration() {
     // Test if the service provider configuration is available
     ServiceLoader<Driver> loader = ServiceLoader.load(Driver.class);
     boolean foundCalciteDriver = false;
-    
+
     System.out.println("Drivers found via ServiceLoader:");
     for (Driver driver : loader) {
       String driverClass = driver.getClass().getName();
@@ -47,13 +46,12 @@ public class JdbcDriverLoadingTest {
         foundCalciteDriver = true;
       }
     }
-    
-    assertTrue(foundCalciteDriver, 
+
+    assertTrue(foundCalciteDriver,
         "Calcite driver should be discoverable via ServiceLoader");
   }
 
-  @Test
-  public void testDriverManagerWithoutClassForName() {
+  @Test public void testDriverManagerWithoutClassForName() {
     // Clear any previously loaded drivers
     Enumeration<Driver> driversBeforeTest = DriverManager.getDrivers();
     int driverCountBefore = 0;
@@ -62,7 +60,7 @@ public class JdbcDriverLoadingTest {
       driverCountBefore++;
     }
     System.out.println("Drivers registered before test: " + driverCountBefore);
-    
+
     // Try to get a connection without Class.forName
     Exception connectionException = null;
     try {
@@ -73,26 +71,25 @@ public class JdbcDriverLoadingTest {
       connectionException = e;
       System.out.println("Connection failed without Class.forName: " + e.getMessage());
     }
-    
+
     // The connection might succeed if the driver was already loaded by another test
     // or it might fail if this is the first test to run
     // This demonstrates the unreliability of automatic loading
-    
+
     if (connectionException != null) {
       assertTrue(connectionException.getMessage().contains("No suitable driver"),
           "Expected 'No suitable driver' error but got: " + connectionException.getMessage());
     }
   }
 
-  @Test
-  public void testDriverManagerWithClassForName() throws Exception {
+  @Test public void testDriverManagerWithClassForName() throws Exception {
     // Explicitly load the driver
     Class.forName("org.apache.calcite.jdbc.Driver");
-    
+
     // Check if driver is now registered
     Enumeration<Driver> drivers = DriverManager.getDrivers();
     boolean foundCalciteDriver = false;
-    
+
     System.out.println("Drivers registered after Class.forName:");
     while (drivers.hasMoreElements()) {
       Driver driver = drivers.nextElement();
@@ -102,10 +99,10 @@ public class JdbcDriverLoadingTest {
         foundCalciteDriver = true;
       }
     }
-    
-    assertTrue(foundCalciteDriver, 
+
+    assertTrue(foundCalciteDriver,
         "Calcite driver should be registered after Class.forName");
-    
+
     // Now connection should work
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:")) {
       assertNotNull(conn);
@@ -113,8 +110,7 @@ public class JdbcDriverLoadingTest {
     }
   }
 
-  @Test 
-  public void testDriverStaticInitialization() throws Exception {
+  @Test public void testDriverStaticInitialization() throws Exception {
     // Get the initial count of registered drivers
     Enumeration<Driver> initialDrivers = DriverManager.getDrivers();
     int initialCount = 0;
@@ -126,11 +122,11 @@ public class JdbcDriverLoadingTest {
       }
       initialCount++;
     }
-    
+
     if (!calciteAlreadyLoaded) {
       // Force class loading
       Class<?> driverClass = Class.forName("org.apache.calcite.jdbc.Driver");
-      
+
       // Check that the driver registered itself
       Enumeration<Driver> afterLoadDrivers = DriverManager.getDrivers();
       int afterLoadCount = 0;
@@ -142,22 +138,21 @@ public class JdbcDriverLoadingTest {
         }
         afterLoadCount++;
       }
-      
+
       assertTrue(foundCalcite, "Driver should self-register on class loading");
-      assertTrue(afterLoadCount > initialCount, 
+      assertTrue(afterLoadCount > initialCount,
           "Driver count should increase after loading");
     } else {
       System.out.println("Calcite driver was already loaded by another test");
     }
   }
 
-  @Test
-  public void testJdbcDriverDiscoveryMechanism() {
+  @Test public void testJdbcDriverDiscoveryMechanism() {
     // This test demonstrates why explicit Class.forName is needed
-    
+
     System.out.println("\n=== JDBC Driver Loading Analysis ===");
     System.out.println("\n1. Service Provider Configuration:");
-    
+
     // Check if service provider file exists
     ServiceLoader<Driver> serviceLoader = ServiceLoader.load(Driver.class);
     int serviceProviderCount = 0;
@@ -165,7 +160,7 @@ public class JdbcDriverLoadingTest {
       serviceProviderCount++;
     }
     System.out.println("   Found " + serviceProviderCount + " drivers via ServiceLoader");
-    
+
     System.out.println("\n2. DriverManager Registration (before Class.forName):");
     Enumeration<Driver> beforeDrivers = DriverManager.getDrivers();
     int beforeCount = 0;
@@ -174,7 +169,7 @@ public class JdbcDriverLoadingTest {
       beforeCount++;
     }
     System.out.println("   " + beforeCount + " drivers registered with DriverManager");
-    
+
     System.out.println("\n3. After Class.forName:");
     try {
       Class.forName("org.apache.calcite.jdbc.Driver");
@@ -185,13 +180,13 @@ public class JdbcDriverLoadingTest {
         afterCount++;
       }
       System.out.println("   " + afterCount + " drivers registered with DriverManager");
-      
+
       System.out.println("\nConclusion:");
       System.out.println("- Service provider configuration exists (" + serviceProviderCount + " found)");
       System.out.println("- But DriverManager doesn't automatically load them");
       System.out.println("- Class.forName triggers static initialization which registers the driver");
       System.out.println("- This is why tests need explicit Class.forName calls\n");
-      
+
     } catch (ClassNotFoundException e) {
       fail("Calcite JDBC driver class not found: " + e.getMessage());
     }

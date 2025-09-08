@@ -31,8 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("integration")
 public class Dow30DownloadTest {
-  @Test
-  public void testDow30Downloads() throws Exception {
+  @Test public void testDow30Downloads() throws Exception {
     System.out.println("\n"
   + "=".repeat(80));
     System.out.println("DOW 30 SEC FILING DOWNLOAD PERFORMANCE TEST");

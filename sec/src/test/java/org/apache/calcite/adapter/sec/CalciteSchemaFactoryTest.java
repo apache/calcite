@@ -16,10 +16,8 @@
  */
 package org.apache.calcite.adapter.sec;
 
-import org.apache.calcite.model.ModelHandler;
-
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,41 +26,51 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test that Calcite can find and use SecSchemaFactory.
  */
-@Tag("unit") 
+@Tag("unit")
 public class CalciteSchemaFactoryTest {
 
-  @Test
-  public void testFactoryIsFoundByCalcite() throws Exception {
+  @Test public void testFactoryIsFoundByCalcite() throws Exception {
     // Create a simple model JSON that uses SecSchemaFactory
-    String modelJson = "{\n" +
-        "  \"version\": \"1.0\",\n" +
-        "  \"defaultSchema\": \"TEST\",\n" +
-        "  \"schemas\": [{\n" +
-        "    \"name\": \"TEST\",\n" +
-        "    \"type\": \"custom\",\n" +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n" +
-        "    \"operand\": {\n" +
-        "      \"directory\": \"/tmp/test-sec-" + System.currentTimeMillis() + "\",\n" +
-        "      \"autoDownload\": false\n" +
-        "    }\n" +
-        "  }]\n" +
+    String modelJson = "{\n"
+  +
+        "  \"version\": \"1.0\",\n"
+  +
+        "  \"defaultSchema\": \"TEST\",\n"
+  +
+        "  \"schemas\": [{\n"
+  +
+        "    \"name\": \"TEST\",\n"
+  +
+        "    \"type\": \"custom\",\n"
+  +
+        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n"
+  +
+        "    \"operand\": {\n"
+  +
+        "      \"directory\": \"/tmp/test-sec-" + System.currentTimeMillis() + "\",\n"
+  +
+        "      \"autoDownload\": false\n"
+  +
+        "    }\n"
+  +
+        "  }]\n"
+  +
         "}";
-    
+
     Properties props = new Properties();
     props.setProperty("lex", "ORACLE");
     props.setProperty("unquotedCasing", "TO_LOWER");
     props.setProperty("inline", modelJson);
-    
+
     // This should cause Calcite to load SecSchemaFactory
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", props)) {
       assertNotNull(conn);
       System.err.println("Connection created successfully");
-      
+
       // Try to get metadata to force schema loading
       try (Statement stmt = conn.createStatement();
            ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.tables")) {

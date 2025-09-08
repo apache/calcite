@@ -28,14 +28,14 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Test Wikipedia DJI table directly via file adapter.
+ * Test Wikipedia DJIA table directly via file adapter.
  */
 @Tag("unit")
 public class DirectWikiTest {
 
-  @Test
-  public void testWikipediaDirectQuery() throws Exception {
-    System.out.println("\n" + "=".repeat(80));
+  @Test public void testWikipediaDirectQuery() throws Exception {
+    System.out.println("\n"
+  + "=".repeat(80));
     System.out.println("TESTING DIRECT WIKIPEDIA QUERY");
     System.out.println("=".repeat(80) + "\n");
 
@@ -75,7 +75,7 @@ public class DirectWikiTest {
 
       System.out.println("Ticker | Company");
       System.out.println("-".repeat(50));
-      
+
       int count = 0;
       while (rs.next() && count < 35) {
         String ticker = rs.getString("ticker");
@@ -86,14 +86,14 @@ public class DirectWikiTest {
 
       System.out.println("-".repeat(50));
       System.out.println("Found " + count + " companies");
-      
+
       assertTrue(count > 0, "Should find at least one company");
-      assertTrue(count >= 25 && count <= 35, 
+      assertTrue(count >= 25 && count <= 35,
           "Should find approximately 30 companies, found " + count);
 
-      System.out.println("\n✓ SUCCESS: Wikipedia query returned " + count + " DJI constituents");
+      System.out.println("\n✓ SUCCESS: Wikipedia query returned " + count + " DJIA constituents");
     }
-    
+
     System.out.println("=".repeat(80));
   }
 }

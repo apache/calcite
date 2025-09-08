@@ -17,11 +17,12 @@
 import org.apache.calcite.adapter.sec.CikRegistry;
 import org.apache.calcite.adapter.sec.SecDataFetcher;
 
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
 import java.util.List;
 import java.util.Map;
 
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("integration")
