@@ -23,30 +23,34 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
+import org.jsoup.Jsoup;
+import org.jsoup.select.Elements;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.apache.commons.text.StringEscapeUtils;
-import org.jsoup.Jsoup;
 
 /**
  * Converter for XBRL files to Parquet format.
@@ -55,13 +59,13 @@ import org.jsoup.Jsoup;
  */
 public class XbrlToParquetConverter implements FileConverter {
   private static final Logger LOGGER = Logger.getLogger(XbrlToParquetConverter.class.getName());
-  
+
   // HTML tag removal pattern
   private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
-  
+
   @Override public boolean canConvert(String sourceFormat, String targetFormat) {
-    return ("xbrl".equalsIgnoreCase(sourceFormat) || "xml".equalsIgnoreCase(sourceFormat) 
+    return ("xbrl".equalsIgnoreCase(sourceFormat) || "xml".equalsIgnoreCase(sourceFormat)
         || "html".equalsIgnoreCase(sourceFormat) || "htm".equalsIgnoreCase(sourceFormat))
         && "parquet".equalsIgnoreCase(targetFormat);
   }
@@ -69,11 +73,11 @@ public class XbrlToParquetConverter implements FileConverter {
   @Override public List<File> convert(File sourceFile, File targetDirectory,
       ConversionMetadata metadata) throws IOException {
     List<File> outputFiles = new ArrayList<>();
-    
+
     try {
       Document doc = null;
       boolean isInlineXbrl = false;
-      
+
       // Check if it's an HTML file (potential inline XBRL)
       String fileName = sourceFile.getName().toLowerCase();
       if (fileName.endsWith(".htm") || fileName.endsWith(".html")) {
@@ -84,7 +88,7 @@ public class XbrlToParquetConverter implements FileConverter {
           LOGGER.info("Processing inline XBRL from HTML: " + sourceFile.getName());
         }
       }
-      
+
       // If not inline XBRL or parsing failed, try traditional XBRL
       if (doc == null) {
         // Parse traditional XBRL/XML file
@@ -93,40 +97,68 @@ public class XbrlToParquetConverter implements FileConverter {
         DocumentBuilder builder = factory.newDocumentBuilder();
         doc = builder.parse(sourceFile);
       }
-      
+
       // Extract filing metadata
       String cik = extractCik(doc, sourceFile);
       String filingType = extractFilingType(doc, sourceFile);
       String filingDate = extractFilingDate(doc, sourceFile);
       
+      // Check if this is a Form 3, 4, or 5 (insider trading forms)
+      if (isInsiderForm(doc, filingType)) {
+        return convertInsiderForm(doc, sourceFile, targetDirectory, cik, filingType, filingDate);
+      }
+      
+      // Check if this is an 8-K filing with potential earnings exhibits
+      if (is8KFiling(filingType)) {
+        List<File> extraFiles = extract8KExhibits(sourceFile, targetDirectory, cik, filingType, filingDate);
+        outputFiles.addAll(extraFiles);
+      }
+
       // Create partitioned output path
-      File partitionDir = new File(targetDirectory, 
-          String.format("cik=%s/filing_type=%s/year=%s", 
-              cik, filingType.replace("-", ""), 
+      File partitionDir =
+          new File(
+              targetDirectory, String.format("cik=%s/filing_type=%s/year=%s",
+              cik, filingType.replace("-", ""),
               filingDate.substring(0, 4)));
       partitionDir.mkdirs();
-      
+
       // Convert financial facts to Parquet
-      File factsFile = new File(partitionDir, 
-          String.format("%s_%s_facts.parquet", cik, filingDate));
+      File factsFile =
+          new File(partitionDir, String.format("%s_%s_facts.parquet", cik, filingDate));
       writeFactsToParquet(doc, factsFile, cik, filingType, filingDate);
       outputFiles.add(factsFile);
-      
+
       // Convert contexts to Parquet
-      File contextsFile = new File(partitionDir, 
-          String.format("%s_%s_contexts.parquet", cik, filingDate));
+      File contextsFile =
+          new File(partitionDir, String.format("%s_%s_contexts.parquet", cik, filingDate));
       writeContextsToParquet(doc, contextsFile, cik, filingType, filingDate);
       outputFiles.add(contextsFile);
-      
+
+      // Extract and write MD&A (Management Discussion & Analysis)
+      File mdaFile =
+          new File(partitionDir, String.format("%s_%s_mda.parquet", cik, filingDate));
+      writeMDAToParquet(doc, mdaFile, cik, filingType, filingDate, sourceFile);
+      if (mdaFile.exists()) {
+        outputFiles.add(mdaFile);
+      }
+
+      // Extract and write XBRL relationships
+      File relationshipsFile =
+          new File(partitionDir, String.format("%s_%s_relationships.parquet", cik, filingDate));
+      writeRelationshipsToParquet(doc, relationshipsFile, cik, filingType, filingDate);
+      if (relationshipsFile.exists()) {
+        outputFiles.add(relationshipsFile);
+      }
+
       // Metadata is updated by FileConversionManager after successful conversion
-      
-      LOGGER.info("Converted XBRL to Parquet: " + sourceFile.getName() + 
+
+      LOGGER.info("Converted XBRL to Parquet: " + sourceFile.getName() +
           " -> " + outputFiles.size() + " files");
-      
+
     } catch (Exception e) {
       throw new IOException("Failed to convert XBRL to Parquet", e);
     }
-    
+
     return outputFiles;
   }
 
@@ -143,29 +175,48 @@ public class XbrlToParquetConverter implements FileConverter {
         }
       }
     }
-    
+
     // Fall back to filename parsing
     String filename = sourceFile.getName();
     if (filename.matches("\\d{10}_.*")) {
       return filename.substring(0, 10);
     }
-    
+
     return "0000000000"; // Unknown CIK
   }
 
   private String extractFilingType(Document doc, File sourceFile) {
-    // Try to extract from document type
+    // Try to extract from document type - check both with and without namespace
     NodeList documentTypes = doc.getElementsByTagNameNS("*", "DocumentType");
     if (documentTypes.getLength() > 0) {
-      return documentTypes.item(0).getTextContent();
+      String docType = documentTypes.item(0).getTextContent().trim();
+      // Normalize the filing type (remove hyphens for consistency)
+      return docType.replace("-", "");
     }
-    
+
+    // Also check for dei:DocumentType (common in inline XBRL)
+    NodeList deiDocTypes = doc.getElementsByTagName("dei:DocumentType");
+    if (deiDocTypes.getLength() > 0) {
+      String docType = deiDocTypes.item(0).getTextContent().trim();
+      return docType.replace("-", "");
+    }
+
+    // Also check with ix: prefix for inline XBRL (note the capital N in nonNumeric)
+    NodeList ixDocTypes = doc.getElementsByTagName("ix:nonNumeric");
+    for (int i = 0; i < ixDocTypes.getLength(); i++) {
+      Element elem = (Element) ixDocTypes.item(i);
+      if ("dei:DocumentType".equals(elem.getAttribute("name"))) {
+        String docType = elem.getTextContent().trim();
+        return docType.replace("-", "");
+      }
+    }
+
     // Fall back to filename parsing
     String filename = sourceFile.getName();
-    if (filename.contains("10K") || filename.contains("10-K")) return "10-K";
-    if (filename.contains("10Q") || filename.contains("10-Q")) return "10-Q";
-    if (filename.contains("8K") || filename.contains("8-K")) return "8-K";
-    
+    if (filename.contains("10K") || filename.contains("10-K")) return "10K";
+    if (filename.contains("10Q") || filename.contains("10-Q")) return "10Q";
+    if (filename.contains("8K") || filename.contains("8-K")) return "8K";
+
     return "UNKNOWN";
   }
 
@@ -175,71 +226,114 @@ public class XbrlToParquetConverter implements FileConverter {
     if (periodEnds.getLength() > 0) {
       return periodEnds.item(0).getTextContent();
     }
-    
+
     // Fall back to filename parsing or current date
     String filename = sourceFile.getName();
     if (filename.matches(".*\\d{8}.*")) {
       // Extract YYYYMMDD pattern
       return filename.replaceAll(".*?(\\d{8}).*", "$1");
     }
-    
+
     return LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
   }
 
-  private void writeFactsToParquet(Document doc, File outputFile, 
+  private void writeFactsToParquet(Document doc, File outputFile,
       String cik, String filingType, String filingDate) throws IOException {
-    
+
     // Create Avro schema for facts
+    // NOTE: Partition columns (cik, filing_type, year) are NOT included in the file
+    // They are encoded in the directory structure for Hive-style partitioning
     Schema schema = SchemaBuilder.record("XbrlFact")
         .fields()
-        .requiredString("cik")
-        .requiredString("filing_type")
         .requiredString("filing_date")
         .requiredString("concept")
         .optionalString("context_ref")
         .optionalString("unit_ref")
         .optionalString("value")
+        .optionalString("full_text")  // Full text content for TextBlocks
         .optionalDouble("numeric_value")
         .optionalString("period_start")
         .optionalString("period_end")
         .optionalBoolean("is_instant")
+        .optionalString("footnote_refs")  // Footnote references if any
+        .optionalString("element_id")  // Element ID for linking
         .endRecord();
-    
+
     // Extract all fact elements
     List<GenericRecord> records = new ArrayList<>();
     NodeList allElements = doc.getElementsByTagName("*");
-    
+
     for (int i = 0; i < allElements.getLength(); i++) {
       Element element = (Element) allElements.item(i);
-      
+
       // Skip non-fact elements
       if (element.hasAttribute("contextRef")) {
         GenericRecord record = new GenericData.Record(schema);
-        record.put("cik", cik);
-        record.put("filing_type", filingType);
+        // Partition columns (cik, filing_type) are NOT added - they're in the directory path
         record.put("filing_date", filingDate);
-        record.put("concept", element.getLocalName());
+
+        // For inline XBRL, concept is in 'name' attribute; for regular XBRL, it's the element name
+        String concept;
+        if (element.hasAttribute("name")) {
+          // Inline XBRL: concept is in the 'name' attribute
+          concept = element.getAttribute("name");
+          // Remove namespace prefix if present (e.g., "us-gaap:NetIncomeLoss" -> "NetIncomeLoss")
+          if (concept.contains(":")) {
+            concept = concept.substring(concept.indexOf(":") + 1);
+          }
+        } else {
+          // Regular XBRL: concept is the element's local name
+          concept = element.getLocalName();
+        }
+        record.put("concept", concept);
         record.put("context_ref", element.getAttribute("contextRef"));
         record.put("unit_ref", element.getAttribute("unitRef"));
-        
-        // Clean HTML from text content (for footnotes, MD&A, etc.)
+
+        // Get raw text content
         String rawValue = element.getTextContent().trim();
-        String cleanValue = cleanHtmlText(rawValue);
+
+        // For TextBlocks and narrative content, preserve more formatting
+        boolean isTextBlock = concept.contains("TextBlock") ||
+                             concept.contains("Disclosure") ||
+                             concept.contains("Policy");
+
+        String cleanValue;
+        String fullText = null;
+
+        if (isTextBlock) {
+          // For text blocks, preserve paragraph structure
+          fullText = preserveTextBlockFormatting(rawValue);
+          // Still provide a shorter cleaned version for the value field
+          cleanValue = extractFirstParagraph(fullText);
+        } else {
+          // For regular facts, clean normally
+          cleanValue = cleanHtmlText(rawValue);
+        }
+
         record.put("value", cleanValue);
-        
+        record.put("full_text", fullText);
+
+        // Extract footnote references (e.g., "See Note 14")
+        String footnoteRefs = extractFootnoteReferences(rawValue);
+        record.put("footnote_refs", footnoteRefs);
+
+        // Store element ID for relationship tracking
+        String elementId = element.getAttribute("id");
+        record.put("element_id", elementId.isEmpty() ? null : elementId);
+
         // Try to parse as numeric (using cleaned value)
         try {
-          double numValue = Double.parseDouble(
-              cleanValue.replaceAll(",", ""));
+          double numValue =
+              Double.parseDouble(cleanValue.replaceAll(",", ""));
           record.put("numeric_value", numValue);
         } catch (NumberFormatException e) {
           record.put("numeric_value", null);
         }
-        
+
         records.add(record);
       }
     }
-    
+
     // Write to Parquet
     @SuppressWarnings("deprecation")
     ParquetWriter<GenericRecord> writer = AvroParquetWriter
@@ -247,7 +341,7 @@ public class XbrlToParquetConverter implements FileConverter {
         .withSchema(schema)
         .withCompressionCodec(CompressionCodecName.SNAPPY)
         .build();
-    
+
     try {
       for (GenericRecord record : records) {
         writer.write(record);
@@ -255,18 +349,20 @@ public class XbrlToParquetConverter implements FileConverter {
     } finally {
       writer.close();
     }
-    
+
     LOGGER.info("Wrote " + records.size() + " facts to " + outputFile);
+
+    // Clean up macOS metadata files
+    cleanupMacOSMetadataFiles(outputFile.getParentFile());
   }
 
   private void writeContextsToParquet(Document doc, File outputFile,
       String cik, String filingType, String filingDate) throws IOException {
-    
+
     // Create Avro schema for contexts
+    // NOTE: Partition columns (cik, filing_type, year) are NOT included in the file
     Schema schema = SchemaBuilder.record("XbrlContext")
         .fields()
-        .requiredString("cik")
-        .requiredString("filing_type")
         .requiredString("filing_date")
         .requiredString("context_id")
         .optionalString("entity_identifier")
@@ -277,20 +373,19 @@ public class XbrlToParquetConverter implements FileConverter {
         .optionalString("segment")
         .optionalString("scenario")
         .endRecord();
-    
+
     // Extract context elements
     List<GenericRecord> records = new ArrayList<>();
     NodeList contexts = doc.getElementsByTagNameNS("*", "context");
-    
+
     for (int i = 0; i < contexts.getLength(); i++) {
       Element context = (Element) contexts.item(i);
       GenericRecord record = new GenericData.Record(schema);
-      
-      record.put("cik", cik);
-      record.put("filing_type", filingType);
+
+      // Partition columns (cik, filing_type) are NOT added - they're in the directory path
       record.put("filing_date", filingDate);
       record.put("context_id", context.getAttribute("id"));
-      
+
       // Extract entity information
       NodeList identifiers = context.getElementsByTagNameNS("*", "identifier");
       if (identifiers.getLength() > 0) {
@@ -298,12 +393,12 @@ public class XbrlToParquetConverter implements FileConverter {
         record.put("entity_identifier", identifier.getTextContent());
         record.put("entity_scheme", identifier.getAttribute("scheme"));
       }
-      
+
       // Extract period information
       NodeList startDates = context.getElementsByTagNameNS("*", "startDate");
       NodeList endDates = context.getElementsByTagNameNS("*", "endDate");
       NodeList instants = context.getElementsByTagNameNS("*", "instant");
-      
+
       if (startDates.getLength() > 0) {
         record.put("period_start", startDates.item(0).getTextContent());
       }
@@ -313,10 +408,10 @@ public class XbrlToParquetConverter implements FileConverter {
       if (instants.getLength() > 0) {
         record.put("period_instant", instants.item(0).getTextContent());
       }
-      
+
       records.add(record);
     }
-    
+
     // Write to Parquet
     @SuppressWarnings("deprecation")
     ParquetWriter<GenericRecord> writer = AvroParquetWriter
@@ -324,7 +419,7 @@ public class XbrlToParquetConverter implements FileConverter {
         .withSchema(schema)
         .withCompressionCodec(CompressionCodecName.SNAPPY)
         .build();
-    
+
     try {
       for (GenericRecord record : records) {
         writer.write(record);
@@ -332,8 +427,11 @@ public class XbrlToParquetConverter implements FileConverter {
     } finally {
       writer.close();
     }
-    
+
     LOGGER.info("Wrote " + records.size() + " contexts to " + outputFile);
+
+    // Clean up macOS metadata files
+    cleanupMacOSMetadataFiles(outputFile.getParentFile());
   }
 
   @Override public String getSourceFormat() {
@@ -343,7 +441,7 @@ public class XbrlToParquetConverter implements FileConverter {
   @Override public String getTargetFormat() {
     return "parquet";
   }
-  
+
   /**
    * Clean HTML tags and entities from text content.
    * This is essential for footnotes, MD&A, risk factors, and other narrative text in XBRL.
@@ -352,20 +450,103 @@ public class XbrlToParquetConverter implements FileConverter {
     if (text == null || text.isEmpty()) {
       return text;
     }
-    
+
     // First, unescape HTML entities (&amp; &lt; &gt; &nbsp; etc.)
     String unescaped = StringEscapeUtils.unescapeHtml4(text);
-    
+
     // Remove HTML tags
     String withoutTags = HTML_TAG_PATTERN.matcher(unescaped).replaceAll(" ");
-    
+
     // Normalize whitespace (multiple spaces/tabs/newlines to single space)
     String normalized = WHITESPACE_PATTERN.matcher(withoutTags).replaceAll(" ");
-    
+
     // Final trim
     return normalized.trim();
   }
-  
+
+  /**
+   * Preserve formatting for TextBlock content while removing HTML.
+   * Maintains paragraph breaks and list structure.
+   */
+  private String preserveTextBlockFormatting(String text) {
+    if (text == null || text.isEmpty()) {
+      return text;
+    }
+
+    // Parse HTML content if present
+    if (text.contains("<") && text.contains(">")) {
+      org.jsoup.nodes.Document doc = Jsoup.parseBodyFragment(text);
+
+      // Convert <p> tags to double newlines
+      doc.select("p").append("\n\n");
+
+      // Convert <br> to single newline
+      doc.select("br").append("\n");
+
+      // Convert list items to bullet points
+      doc.select("li").prepend("• ");
+
+      // Get text with preserved structure
+      String formatted = doc.text();
+
+      // Clean up excessive newlines
+      formatted = formatted.replaceAll("\n{3,}", "\n\n");
+
+      return formatted.trim();
+    }
+
+    // If no HTML, just unescape entities
+    return StringEscapeUtils.unescapeHtml4(text).trim();
+  }
+
+  /**
+   * Extract first paragraph or first 500 chars for summary.
+   */
+  private String extractFirstParagraph(String text) {
+    if (text == null || text.isEmpty()) {
+      return text;
+    }
+
+    // Find first paragraph break
+    int paragraphEnd = text.indexOf("\n\n");
+    if (paragraphEnd > 0 && paragraphEnd < 500) {
+      return text.substring(0, paragraphEnd).trim();
+    }
+
+    // Otherwise, return first 500 chars
+    return text.length() > 500 ?
+        text.substring(0, 497) + "..." :
+        text;
+  }
+
+  /**
+   * Extract footnote references from text.
+   * Looks for patterns like "See Note 14", "(Note 3)", "Refer to Note 2", etc.
+   */
+  private String extractFootnoteReferences(String text) {
+    if (text == null || text.isEmpty()) {
+      return null;
+    }
+
+    Pattern footnotePattern =
+        Pattern.compile("(?:See|Refer to|Reference|\\()?\\s*Note[s]?\\s+(\\d+[A-Za-z]?(?:\\s*[,&]\\s*\\d+[A-Za-z]?)*)",
+        Pattern.CASE_INSENSITIVE);
+
+    Matcher matcher = footnotePattern.matcher(text);
+    Set<String> references = new HashSet<>();
+
+    while (matcher.find()) {
+      String noteRefs = matcher.group(1);
+      // Split on comma or ampersand for multiple references
+      String[] notes = noteRefs.split("[,&]");
+      for (String note : notes) {
+        references.add("Note " + note.trim());
+      }
+    }
+
+    return references.isEmpty() ? null : String.join("; ", references);
+  }
+
   /**
    * Parse inline XBRL from HTML file.
    * Inline XBRL uses ix: namespace tags embedded in HTML.
@@ -374,35 +555,35 @@ public class XbrlToParquetConverter implements FileConverter {
     try {
       // Read HTML file
       String html = new String(Files.readAllBytes(htmlFile.toPath()));
-      
+
       // Parse with Jsoup
       org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
-      
+
       // Look for inline XBRL elements (ix: namespace)
       // Common tags: ix:nonnumeric, ix:nonfraction, ix:continuation
       org.jsoup.select.Elements ixElements = jsoupDoc.select("[*|nonnumeric], [*|nonfraction], [*|continuation]");
-      
+
       if (ixElements.isEmpty()) {
         // No inline XBRL found
         return null;
       }
-      
+
       // Create a new XML document from inline XBRL elements
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setNamespaceAware(true);
       DocumentBuilder builder = factory.newDocumentBuilder();
       Document doc = builder.newDocument();
-      
+
       // Create root element
       Element root = doc.createElement("xbrl");
       doc.appendChild(root);
-      
+
       // Extract contexts from HTML
       org.jsoup.select.Elements contexts = jsoupDoc.select("[*|context]");
       for (org.jsoup.nodes.Element context : contexts) {
         Element xmlContext = doc.createElement("context");
         xmlContext.setAttribute("id", context.attr("id"));
-        
+
         // Extract entity, period, etc from context
         org.jsoup.nodes.Element entity = context.selectFirst("[*|entity]");
         if (entity != null) {
@@ -416,7 +597,7 @@ public class XbrlToParquetConverter implements FileConverter {
           }
           xmlContext.appendChild(xmlEntity);
         }
-        
+
         // Extract period
         org.jsoup.nodes.Element period = context.selectFirst("[*|period]");
         if (period != null) {
@@ -441,10 +622,10 @@ public class XbrlToParquetConverter implements FileConverter {
           }
           xmlContext.appendChild(xmlPeriod);
         }
-        
+
         root.appendChild(xmlContext);
       }
-      
+
       // Extract facts from inline XBRL elements
       for (org.jsoup.nodes.Element ixElement : ixElements) {
         String tagName = ixElement.tagName();
@@ -452,7 +633,7 @@ public class XbrlToParquetConverter implements FileConverter {
         if (concept.isEmpty()) {
           continue;
         }
-        
+
         // Create fact element
         Element fact = doc.createElement(concept.replace(":", "_"));
         fact.setAttribute("contextRef", ixElement.attr("contextRef"));
@@ -460,16 +641,1105 @@ public class XbrlToParquetConverter implements FileConverter {
         fact.setAttribute("decimals", ixElement.attr("decimals"));
         fact.setAttribute("scale", ixElement.attr("scale"));
         fact.setTextContent(ixElement.text());
-        
+
         root.appendChild(fact);
       }
-      
+
       LOGGER.info("Extracted " + ixElements.size() + " inline XBRL facts from HTML");
       return doc;
-      
+
     } catch (Exception e) {
       LOGGER.info("Could not parse inline XBRL from HTML: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Clean up macOS metadata files (._* files) from a directory.
+   * These files are created by macOS and can cause issues with DuckDB and other tools.
+   *
+   * @param directory The directory to clean
+   */
+  private void cleanupMacOSMetadataFiles(File directory) {
+    if (directory == null || !directory.exists() || !directory.isDirectory()) {
+      return;
+    }
+
+    File[] metadataFiles = directory.listFiles((dir, name) -> name.startsWith("._"));
+    if (metadataFiles != null) {
+      for (File metadataFile : metadataFiles) {
+        if (metadataFile.delete()) {
+          LOGGER.fine("Removed macOS metadata file: " + metadataFile.getName());
+        } else {
+          LOGGER.warning("Failed to remove macOS metadata file: " + metadataFile.getAbsolutePath());
+        }
+      }
+    }
+
+    // Also clean parent directory (partition directories may have metadata files)
+    File parent = directory.getParentFile();
+    if (parent != null && parent.exists()) {
+      File[] parentMetadataFiles = parent.listFiles((dir, name) -> name.startsWith("._"));
+      if (parentMetadataFiles != null) {
+        for (File metadataFile : parentMetadataFiles) {
+          if (metadataFile.delete()) {
+            LOGGER.fine("Removed macOS metadata file from parent: " + metadataFile.getName());
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Extract and write MD&A (Management Discussion & Analysis) to Parquet.
+   * Each paragraph becomes a separate record for better querying.
+   */
+  private void writeMDAToParquet(Document doc, File outputFile,
+      String cik, String filingType, String filingDate, File sourceFile) throws IOException {
+
+    // Create schema for MD&A paragraphs
+    Schema schema = SchemaBuilder.record("MDASection")
+        .fields()
+        .requiredString("filing_date")
+        .requiredString("section")  // e.g., "Item 7", "Item 7A"
+        .requiredString("subsection")  // e.g., "Overview", "Results of Operations"
+        .requiredInt("paragraph_number")
+        .requiredString("paragraph_text")
+        .optionalString("footnote_refs")
+        .endRecord();
+
+    List<GenericRecord> records = new ArrayList<>();
+
+    // Look for MD&A content in different ways
+    // 1. Look for Item 7 and Item 7A in inline XBRL
+    if (sourceFile.getName().endsWith(".htm") || sourceFile.getName().endsWith(".html")) {
+      extractMDAFromHTML(sourceFile, schema, records, filingDate);
+    }
+
+    // 2. Look for MD&A-related TextBlocks in XBRL
+    NodeList allElements = doc.getElementsByTagName("*");
+    for (int i = 0; i < allElements.getLength(); i++) {
+      Element element = (Element) allElements.item(i);
+
+      if (element.hasAttribute("contextRef")) {
+        String concept = extractConceptName(element);
+
+        // Check if this is an MD&A-related concept
+        if (isMDAConcept(concept)) {
+          String text = element.getTextContent().trim();
+          if (text.length() > 50) {  // Skip if just a title
+            extractParagraphs(text, concept, schema, records, filingDate);
+          }
+        }
+      }
+    }
+
+    // Only write file if we found MD&A content
+    if (!records.isEmpty()) {
+      writeRecordsToParquet(records, schema, outputFile);
+      LOGGER.info("Wrote " + records.size() + " MD&A paragraphs to " + outputFile);
+
+      // Clean up macOS metadata files in the entire partition directory
+      cleanupMacOSMetadataFiles(outputFile.getParentFile());
+      // Also clean parent directories
+      if (outputFile.getParentFile() != null && outputFile.getParentFile().getParentFile() != null) {
+        cleanupMacOSMetadataFiles(outputFile.getParentFile().getParentFile());
+        if (outputFile.getParentFile().getParentFile().getParentFile() != null) {
+          cleanupMacOSMetadataFiles(outputFile.getParentFile().getParentFile().getParentFile());
+        }
+      }
+    }
+  }
+
+  /**
+   * Extract MD&A from HTML file by looking for Item 7 and Item 7A sections.
+   * Enhanced to handle inline XBRL documents where Item 7 may be embedded in tags.
+   */
+  private void extractMDAFromHTML(File htmlFile, Schema schema,
+      List<GenericRecord> records, String filingDate) {
+    try {
+      org.jsoup.nodes.Document doc = Jsoup.parse(htmlFile, "UTF-8");
+
+      // Strategy 1: Look for Item 7 text in various formats
+      // Match Item 7, Item 7., ITEM 7, Item 7A, etc.
+      org.jsoup.select.Elements sections = doc.select("*:matchesOwn((?i)item\\s*7[A]?\\b)");
+
+      // Strategy 2: Also look for Management's Discussion and Analysis directly
+      if (sections.isEmpty()) {
+        sections = doc.select("*:matchesOwn((?i)management.{0,5}discussion.{0,5}analysis)");
+      }
+
+      // Strategy 3: Look for specific HTML patterns common in SEC filings
+      if (sections.isEmpty()) {
+        // Look for table cells or divs that might contain Item 7
+        sections = doc.select("td:matchesOwn((?i)item\\s*7), div:matchesOwn((?i)item\\s*7)");
+      }
+
+      for (org.jsoup.nodes.Element section : sections) {
+        String sectionText = section.text();
+
+        // Check if this is actually Item 7 or 7A (not Item 17, 27, etc.)
+        if (!sectionText.matches("(?i).*item\\s*7[A]?\\b.*") ||
+            sectionText.matches("(?i).*item\\s*[1-6]?7[0-9].*")) {
+          continue;
+        }
+
+        // Check if this is just a table of contents reference
+        if (sectionText.length() < 100 &&
+            (sectionText.matches("(?i).*page.*") || sectionText.matches(".*\\d+$"))) {
+          continue;
+        }
+
+        String sectionName = sectionText.contains("7A") || sectionText.contains("7a") ? "Item 7A" : "Item 7";
+
+        // Try to find the actual content
+        org.jsoup.nodes.Element contentStart = section;
+
+        // If this element is small, it might just be a header - look for larger content
+        if (section.text().length() < 200) {
+          // Look at parent and siblings for actual content
+          org.jsoup.nodes.Element parent = section.parent();
+          if (parent != null) {
+            // Check next siblings of parent
+            org.jsoup.nodes.Element nextSibling = parent.nextElementSibling();
+            if (nextSibling != null && nextSibling.text().length() > 200) {
+              contentStart = nextSibling;
+            }
+          }
+
+          // Also try direct next sibling
+          org.jsoup.nodes.Element nextSibling = section.nextElementSibling();
+          if (nextSibling != null && nextSibling.text().length() > 200) {
+            contentStart = nextSibling;
+          }
+        }
+
+        // Extract content
+        extractMDAContent(contentStart, sectionName, schema, records, filingDate);
+      }
+
+      // If we still didn't find any MD&A, try a more aggressive approach
+      if (records.isEmpty()) {
+        // Look for large text blocks that mention key MD&A terms
+        org.jsoup.select.Elements textBlocks = doc.select("div, p, td");
+        boolean inMDA = false;
+        String currentSection = "";
+
+        for (org.jsoup.nodes.Element block : textBlocks) {
+          String text = block.text();
+
+          // Check if we're entering MD&A section
+          if (text.matches("(?i).*item\\s*7[^0-9].*management.*discussion.*") ||
+              text.matches("(?i).*management.*discussion.*analysis.*")) {
+            inMDA = true;
+            currentSection = "Item 7";
+            continue;
+          }
+
+          // Check if we're entering Item 7A
+          if (text.matches("(?i).*item\\s*7A.*")) {
+            inMDA = true;
+            currentSection = "Item 7A";
+            continue;
+          }
+
+          // Check if we're leaving MD&A section
+          if (inMDA && text.matches("(?i).*item\\s*[89]\\b.*")) {
+            break;
+          }
+
+          // Extract content if we're in MD&A
+          if (inMDA && text.length() > 100) {
+            extractTextAsParagraphs(text, currentSection, schema, records, filingDate);
+          }
+        }
+      }
+
+    } catch (Exception e) {
+      LOGGER.warning("Failed to extract MD&A from HTML: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Extract MD&A content starting from a given element.
+   */
+  private void extractMDAContent(org.jsoup.nodes.Element startElement, String sectionName,
+      Schema schema, List<GenericRecord> records, String filingDate) {
+
+    String subsection = "Overview";
+    int paragraphNum = 1;
+    org.jsoup.nodes.Element current = startElement;
+    int emptyCount = 0;
+
+    while (current != null && !isNextItem(current.text()) && emptyCount < 5) {
+      String text = current.text().trim();
+
+      // Skip empty elements but don't give up immediately
+      if (text.isEmpty()) {
+        emptyCount++;
+        current = current.nextElementSibling();
+        continue;
+      }
+      emptyCount = 0;
+
+      // Check for subsection headers
+      if (isSubsectionHeader(current)) {
+        subsection = cleanSubsectionName(text);
+        current = current.nextElementSibling();
+        continue;
+      }
+
+      // Extract meaningful paragraphs
+      if (text.length() > 100 && !text.matches("(?i).*page\\s*\\d+.*")) {
+        // Split very long blocks into paragraphs
+        String[] paragraphs = text.split("(?<=[.!?])\\s+(?=[A-Z])");
+
+        for (String paragraph : paragraphs) {
+          if (paragraph.trim().length() > 50) {
+            GenericRecord record = new GenericData.Record(schema);
+            record.put("filing_date", filingDate);
+            record.put("section", sectionName);
+            record.put("subsection", subsection);
+            record.put("paragraph_number", paragraphNum++);
+            record.put("paragraph_text", paragraph.trim());
+            record.put("footnote_refs", extractFootnoteReferences(paragraph));
+            records.add(record);
+          }
+        }
+      }
+
+      current = current.nextElementSibling();
+    }
+  }
+
+  /**
+   * Extract text as paragraphs for aggressive MD&A extraction.
+   */
+  private void extractTextAsParagraphs(String text, String sectionName,
+      Schema schema, List<GenericRecord> records, String filingDate) {
+
+    // Split into sentences or natural paragraphs
+    String[] paragraphs = text.split("(?<=[.!?])\\s+(?=[A-Z])");
+
+    // Group sentences into reasonable paragraph sizes
+    StringBuilder currentParagraph = new StringBuilder();
+    int paragraphNum = records.size() + 1;
+
+    for (String sentence : paragraphs) {
+      currentParagraph.append(sentence).append(" ");
+
+      // Create a paragraph every few sentences or at natural breaks
+      if (currentParagraph.length() > 300 || sentence.endsWith(".")) {
+        String paragraphText = currentParagraph.toString().trim();
+        if (paragraphText.length() > 100) {
+          GenericRecord record = new GenericData.Record(schema);
+          record.put("filing_date", filingDate);
+          record.put("section", sectionName);
+          record.put("subsection", "General");
+          record.put("paragraph_number", paragraphNum++);
+          record.put("paragraph_text", paragraphText);
+          record.put("footnote_refs", extractFootnoteReferences(paragraphText));
+          records.add(record);
+
+          currentParagraph = new StringBuilder();
+        }
+      }
+    }
+
+    // Add any remaining text
+    String remaining = currentParagraph.toString().trim();
+    if (remaining.length() > 100) {
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("filing_date", filingDate);
+      record.put("section", sectionName);
+      record.put("subsection", "General");
+      record.put("paragraph_number", paragraphNum);
+      record.put("paragraph_text", remaining);
+      record.put("footnote_refs", extractFootnoteReferences(remaining));
+      records.add(record);
+    }
+  }
+
+  /**
+   * Check if text indicates the start of the next Item section.
+   */
+  private boolean isNextItem(String text) {
+    return text != null && text.matches(".*Item\\s+[89]\\b.*");
+  }
+
+  /**
+   * Check if element is a subsection header.
+   */
+  private boolean isSubsectionHeader(org.jsoup.nodes.Element element) {
+    return element.tagName().matches("h[2-4]") ||
+           (element.tagName().equals("p") &&
+            element.text().matches("^[A-Z][A-Z\\s]{2,50}$"));
+  }
+
+  /**
+   * Clean subsection name for storage.
+   */
+  private String cleanSubsectionName(String text) {
+    return text.replaceAll("\\s+", " ").trim();
+  }
+
+  /**
+   * Check if concept name is MD&A related.
+   */
+  private boolean isMDAConcept(String concept) {
+    return concept != null && (
+        concept.contains("ManagementDiscussionAnalysis") ||
+        concept.contains("MDA") ||
+        concept.contains("OperatingResults") ||
+        concept.contains("LiquidityCapitalResources") ||
+        concept.contains("CriticalAccountingPolicies"));
+  }
+
+  /**
+   * Extract paragraphs from text block.
+   */
+  private void extractParagraphs(String text, String concept, Schema schema,
+      List<GenericRecord> records, String filingDate) {
+
+    // Split into paragraphs
+    String[] paragraphs = text.split("\\n\\n+");
+
+    for (int i = 0; i < paragraphs.length; i++) {
+      String paragraph = paragraphs[i].trim();
+      if (paragraph.length() > 50) {  // Skip very short paragraphs
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("filing_date", filingDate);
+        record.put("section", "XBRL MD&A");
+        record.put("subsection", concept);
+        record.put("paragraph_number", i + 1);
+        record.put("paragraph_text", paragraph);
+        record.put("footnote_refs", extractFootnoteReferences(paragraph));
+        records.add(record);
+      }
+    }
+  }
+
+  /**
+   * Extract concept name from element.
+   */
+  private String extractConceptName(Element element) {
+    if (element.hasAttribute("name")) {
+      String concept = element.getAttribute("name");
+      if (concept.contains(":")) {
+        concept = concept.substring(concept.indexOf(":") + 1);
+      }
+      return concept;
+    }
+    return element.getLocalName();
+  }
+
+  /**
+   * Write XBRL relationships to Parquet.
+   * Captures presentation, calculation, and definition linkbases.
+   */
+  private void writeRelationshipsToParquet(Document doc, File outputFile,
+      String cik, String filingType, String filingDate) throws IOException {
+
+    // Create schema for relationships
+    Schema schema = SchemaBuilder.record("XbrlRelationship")
+        .fields()
+        .requiredString("filing_date")
+        .requiredString("linkbase_type")  // presentation, calculation, definition
+        .requiredString("arc_role")  // e.g., parent-child, summation-item
+        .requiredString("from_concept")
+        .requiredString("to_concept")
+        .optionalDouble("weight")  // For calculation linkbase
+        .optionalInt("order")  // For presentation linkbase
+        .optionalString("preferred_label")
+        .endRecord();
+
+    List<GenericRecord> records = new ArrayList<>();
+
+    // Look for linkbase arcs in the document
+    // These define relationships between concepts
+    NodeList arcs = doc.getElementsByTagNameNS("*", "arc");
+    for (int i = 0; i < arcs.getLength(); i++) {
+      Element arc = (Element) arcs.item(i);
+
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("filing_date", filingDate);
+
+      // Determine linkbase type from namespace or arc role
+      String arcRole = arc.getAttribute("arcrole");
+      String linkbaseType = determineLinkbaseType(arcRole);
+      record.put("linkbase_type", linkbaseType);
+      record.put("arc_role", arcRole);
+
+      // Get from and to concepts
+      String from = arc.getAttribute("from");
+      String to = arc.getAttribute("to");
+      record.put("from_concept", cleanConceptName(from));
+      record.put("to_concept", cleanConceptName(to));
+
+      // Get weight for calculation linkbase
+      String weight = arc.getAttribute("weight");
+      if (weight != null && !weight.isEmpty()) {
+        try {
+          record.put("weight", Double.parseDouble(weight));
+        } catch (NumberFormatException e) {
+          record.put("weight", null);
+        }
+      }
+
+      // Get order for presentation linkbase
+      String order = arc.getAttribute("order");
+      if (order != null && !order.isEmpty()) {
+        try {
+          record.put("order", Integer.parseInt(order));
+        } catch (NumberFormatException e) {
+          record.put("order", null);
+        }
+      }
+
+      // Get preferred label
+      record.put("preferred_label", arc.getAttribute("preferredLabel"));
+
+      records.add(record);
+    }
+
+    // Also extract relationships from inline XBRL if present
+    extractInlineXBRLRelationships(doc, schema, records, filingDate);
+
+    // Only write file if we found relationships
+    if (!records.isEmpty()) {
+      writeRecordsToParquet(records, schema, outputFile);
+      LOGGER.info("Wrote " + records.size() + " relationships to " + outputFile);
+
+      // Clean up macOS metadata files in the entire partition directory
+      cleanupMacOSMetadataFiles(outputFile.getParentFile());
+      // Also clean parent directories
+      if (outputFile.getParentFile() != null && outputFile.getParentFile().getParentFile() != null) {
+        cleanupMacOSMetadataFiles(outputFile.getParentFile().getParentFile());
+        if (outputFile.getParentFile().getParentFile().getParentFile() != null) {
+          cleanupMacOSMetadataFiles(outputFile.getParentFile().getParentFile().getParentFile());
+        }
+      }
+    }
+  }
+
+  /**
+   * Determine linkbase type from arc role.
+   */
+  private String determineLinkbaseType(String arcRole) {
+    if (arcRole == null) return "unknown";
+
+    if (arcRole.contains("parent-child") || arcRole.contains("presentation")) {
+      return "presentation";
+    } else if (arcRole.contains("summation") || arcRole.contains("calculation")) {
+      return "calculation";
+    } else if (arcRole.contains("dimension") || arcRole.contains("definition")) {
+      return "definition";
+    }
+
+    return "other";
+  }
+
+  /**
+   * Clean concept name by removing namespace prefix.
+   */
+  private String cleanConceptName(String concept) {
+    if (concept == null) return null;
+    if (concept.contains(":")) {
+      return concept.substring(concept.indexOf(":") + 1);
+    }
+    return concept;
+  }
+
+  /**
+   * Extract relationships from inline XBRL structure.
+   */
+  private void extractInlineXBRLRelationships(Document doc, Schema schema,
+      List<GenericRecord> records, String filingDate) {
+
+    // In inline XBRL, relationships are often implicit in the document structure
+    // We can infer parent-child relationships from nesting
+
+    NodeList allElements = doc.getElementsByTagName("*");
+    Map<String, String> parentMap = new HashMap<>();
+
+    for (int i = 0; i < allElements.getLength(); i++) {
+      Element element = (Element) allElements.item(i);
+
+      if (element.hasAttribute("contextRef")) {
+        String concept = extractConceptName(element);
+
+        // Check if this element has a parent with contextRef
+        Element parent = (Element) element.getParentNode();
+        while (parent != null && !parent.hasAttribute("contextRef")) {
+          if (parent.getParentNode() instanceof Element) {
+            parent = (Element) parent.getParentNode();
+          } else {
+            parent = null;
+          }
+        }
+
+        if (parent != null) {
+          String parentConcept = extractConceptName(parent);
+          if (!concept.equals(parentConcept)) {
+            // Create implicit parent-child relationship
+            GenericRecord record = new GenericData.Record(schema);
+            record.put("filing_date", filingDate);
+            record.put("linkbase_type", "presentation");
+            record.put("arc_role", "parent-child-implicit");
+            record.put("from_concept", parentConcept);
+            record.put("to_concept", concept);
+            record.put("weight", null);
+            record.put("order", i);  // Use document order
+            record.put("preferred_label", null);
+            records.add(record);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Generic method to write records to Parquet.
+   */
+  private void writeRecordsToParquet(List<GenericRecord> records, Schema schema,
+      File outputFile) throws IOException {
+
+    @SuppressWarnings("deprecation")
+    ParquetWriter<GenericRecord> writer = AvroParquetWriter
+        .<GenericRecord>builder(new org.apache.hadoop.fs.Path(outputFile.toURI()))
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build();
+
+    try {
+      for (GenericRecord record : records) {
+        writer.write(record);
+      }
+    } finally {
+      writer.close();
+    }
+  }
+  
+  /**
+   * Check if this is an insider trading form (Form 3, 4, or 5).
+   */
+  private boolean isInsiderForm(Document doc, String filingType) {
+    // Check filing type first
+    if (filingType != null && (filingType.equals("3") || filingType.equals("4") 
+        || filingType.equals("5") || filingType.startsWith("3/") 
+        || filingType.startsWith("4/") || filingType.startsWith("5/"))) {
+      return true;
+    }
+    
+    // Also check for ownershipDocument root element
+    NodeList ownershipDocs = doc.getElementsByTagName("ownershipDocument");
+    return ownershipDocs.getLength() > 0;
+  }
+  
+  /**
+   * Convert Form 3/4/5 insider trading forms to Parquet.
+   */
+  private List<File> convertInsiderForm(Document doc, File sourceFile, File targetDirectory,
+      String cik, String filingType, String filingDate) throws IOException {
+    List<File> outputFiles = new ArrayList<>();
+    
+    try {
+      // Create partition directory
+      int year = Integer.parseInt(filingDate.substring(0, 4));
+      String normalizedFilingType = filingType.replace("/", "").replace("-", "");
+      File partitionDir = new File(targetDirectory,
+          String.format("cik=%s/filing_type=%s/year=%d", cik, normalizedFilingType, year));
+      partitionDir.mkdirs();
+      
+      // Extract insider transactions
+      List<GenericRecord> transactions = extractInsiderTransactions(doc, cik, filingType, filingDate);
+      
+      if (!transactions.isEmpty()) {
+        // Write to Parquet
+        File outputFile = new File(partitionDir,
+            String.format("%s_%s_insider.parquet", cik, filingDate));
+        
+        Schema schema = createInsiderTransactionSchema();
+        writeParquetFile(transactions, schema, outputFile);
+        outputFiles.add(outputFile);
+        
+        LOGGER.info("Converted Form " + filingType + " to insider transactions: " 
+            + transactions.size() + " records");
+      }
+      
+    } catch (Exception e) {
+      LOGGER.warning("Failed to convert insider form: " + e.getMessage());
+    }
+    
+    return outputFiles;
+  }
+  
+  /**
+   * Extract insider transactions from Form 3/4/5.
+   */
+  private List<GenericRecord> extractInsiderTransactions(Document doc, String cik, 
+      String filingType, String filingDate) {
+    List<GenericRecord> records = new ArrayList<>();
+    Schema schema = createInsiderTransactionSchema();
+    
+    // Extract reporting owner information
+    String reportingPersonCik = getElementText(doc, "rptOwnerCik");
+    String reportingPersonName = getElementText(doc, "rptOwnerName");
+    
+    // Extract relationship
+    boolean isDirector = "1".equals(getElementText(doc, "isDirector"));
+    boolean isOfficer = "1".equals(getElementText(doc, "isOfficer"));
+    boolean isTenPercentOwner = "1".equals(getElementText(doc, "isTenPercentOwner"));
+    String officerTitle = getElementText(doc, "officerTitle");
+    
+    // Extract non-derivative transactions (common stock)
+    NodeList nonDerivTrans = doc.getElementsByTagName("nonDerivativeTransaction");
+    for (int i = 0; i < nonDerivTrans.getLength(); i++) {
+      Element trans = (Element) nonDerivTrans.item(i);
+      
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("cik", cik);
+      record.put("filing_date", filingDate);
+      record.put("filing_type", filingType);
+      record.put("reporting_person_cik", reportingPersonCik);
+      record.put("reporting_person_name", reportingPersonName);
+      record.put("is_director", isDirector);
+      record.put("is_officer", isOfficer);
+      record.put("is_ten_percent_owner", isTenPercentOwner);
+      record.put("officer_title", officerTitle);
+      
+      // Transaction details
+      record.put("transaction_date", getElementText(trans, "transactionDate", "value"));
+      record.put("transaction_code", getElementText(trans, "transactionCode"));
+      record.put("security_title", getElementText(trans, "securityTitle", "value"));
+      
+      String shares = getElementText(trans, "transactionShares", "value");
+      record.put("shares_transacted", shares != null ? Double.parseDouble(shares) : null);
+      
+      String price = getElementText(trans, "transactionPricePerShare", "value");
+      record.put("price_per_share", price != null ? Double.parseDouble(price) : null);
+      
+      String sharesAfter = getElementText(trans, "sharesOwnedFollowingTransaction", "value");
+      record.put("shares_owned_after", sharesAfter != null ? Double.parseDouble(sharesAfter) : null);
+      
+      String acquiredDisposed = getElementText(trans, "transactionAcquiredDisposedCode", "value");
+      record.put("acquired_disposed_code", acquiredDisposed);
+      
+      String ownership = getElementText(trans, "directOrIndirectOwnership", "value");
+      record.put("ownership_type", ownership);
+      
+      // Extract footnotes if any
+      NodeList footnoteIds = trans.getElementsByTagName("footnoteId");
+      StringBuilder footnotes = new StringBuilder();
+      for (int j = 0; j < footnoteIds.getLength(); j++) {
+        String id = ((Element) footnoteIds.item(j)).getAttribute("id");
+        String footnoteText = getFootnoteText(doc, id);
+        if (footnoteText != null) {
+          if (footnotes.length() > 0) footnotes.append(" | ");
+          footnotes.append(footnoteText);
+        }
+      }
+      record.put("footnotes", footnotes.length() > 0 ? footnotes.toString() : null);
+      
+      records.add(record);
+    }
+    
+    // Also extract holdings (non-transactional positions)
+    NodeList holdings = doc.getElementsByTagName("nonDerivativeHolding");
+    for (int i = 0; i < holdings.getLength(); i++) {
+      Element holding = (Element) holdings.item(i);
+      
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("cik", cik);
+      record.put("filing_date", filingDate);
+      record.put("filing_type", filingType);
+      record.put("reporting_person_cik", reportingPersonCik);
+      record.put("reporting_person_name", reportingPersonName);
+      record.put("is_director", isDirector);
+      record.put("is_officer", isOfficer);
+      record.put("is_ten_percent_owner", isTenPercentOwner);
+      record.put("officer_title", officerTitle);
+      
+      // Holding details (no transaction)
+      record.put("transaction_date", null);
+      record.put("transaction_code", "H"); // H for holding
+      record.put("security_title", getElementText(holding, "securityTitle", "value"));
+      record.put("shares_transacted", null);
+      record.put("price_per_share", null);
+      
+      String shares = getElementText(holding, "sharesOwnedFollowingTransaction", "value");
+      record.put("shares_owned_after", shares != null ? Double.parseDouble(shares) : null);
+      
+      record.put("acquired_disposed_code", null);
+      
+      String ownership = getElementText(holding, "directOrIndirectOwnership", "value");
+      record.put("ownership_type", ownership);
+      
+      String natureOfOwnership = getElementText(holding, "natureOfOwnership", "value");
+      record.put("footnotes", natureOfOwnership);
+      
+      records.add(record);
+    }
+    
+    return records;
+  }
+  
+  /**
+   * Create schema for insider transactions.
+   */
+  private Schema createInsiderTransactionSchema() {
+    return SchemaBuilder.record("InsiderTransaction")
+        .namespace("org.apache.calcite.adapter.sec")
+        .fields()
+        .requiredString("cik")
+        .requiredString("filing_date")
+        .requiredString("filing_type")
+        .optionalString("reporting_person_cik")
+        .optionalString("reporting_person_name")
+        .requiredBoolean("is_director")
+        .requiredBoolean("is_officer")
+        .requiredBoolean("is_ten_percent_owner")
+        .optionalString("officer_title")
+        .optionalString("transaction_date")
+        .optionalString("transaction_code")
+        .optionalString("security_title")
+        .optionalDouble("shares_transacted")
+        .optionalDouble("price_per_share")
+        .optionalDouble("shares_owned_after")
+        .optionalString("acquired_disposed_code")
+        .optionalString("ownership_type")
+        .optionalString("footnotes")
+        .endRecord();
+  }
+  
+  /**
+   * Helper to get element text with optional nested element.
+   */
+  private String getElementText(Element parent, String tagName, String nestedTag) {
+    NodeList elements = parent.getElementsByTagName(tagName);
+    if (elements.getLength() > 0) {
+      Element elem = (Element) elements.item(0);
+      if (nestedTag != null) {
+        NodeList nested = elem.getElementsByTagName(nestedTag);
+        if (nested.getLength() > 0) {
+          return nested.item(0).getTextContent().trim();
+        }
+      } else {
+        return elem.getTextContent().trim();
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Helper to get element text.
+   */
+  private String getElementText(Document doc, String tagName) {
+    NodeList elements = doc.getElementsByTagName(tagName);
+    if (elements.getLength() > 0) {
+      return elements.item(0).getTextContent().trim();
+    }
+    return null;
+  }
+  
+  /**
+   * Helper to get element text from parent.
+   */
+  private String getElementText(Element parent, String tagName) {
+    return getElementText(parent, tagName, null);
+  }
+  
+  /**
+   * Get footnote text by ID.
+   */
+  private String getFootnoteText(Document doc, String footnoteId) {
+    NodeList footnotes = doc.getElementsByTagName("footnote");
+    for (int i = 0; i < footnotes.getLength(); i++) {
+      Element footnote = (Element) footnotes.item(i);
+      if (footnoteId.equals(footnote.getAttribute("id"))) {
+        return footnote.getTextContent().trim();
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Write Parquet file using Avro Generic Records.
+   */
+  @SuppressWarnings("deprecation")
+  private void writeParquetFile(List<GenericRecord> records, Schema schema, File outputFile) 
+      throws IOException {
+    if (outputFile.getParentFile() != null) {
+      outputFile.getParentFile().mkdirs();
+    }
+    
+    Path outputPath = new Path(outputFile.toURI());
+    try (ParquetWriter<GenericRecord> writer = AvroParquetWriter
+        .<GenericRecord>builder(outputPath)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+      
+      for (GenericRecord record : records) {
+        writer.write(record);
+      }
+    }
+  }
+  
+  /**
+   * Check if this is an 8-K filing.
+   */
+  private boolean is8KFiling(String filingType) {
+    return filingType != null && (filingType.equals("8-K") || filingType.equals("8K") 
+        || filingType.startsWith("8-K/"));
+  }
+  
+  /**
+   * Extract 8-K exhibits (particularly 99.1 and 99.2 for earnings).
+   */
+  private List<File> extract8KExhibits(File sourceFile, File targetDirectory,
+      String cik, String filingType, String filingDate) {
+    List<File> outputFiles = new ArrayList<>();
+    
+    try {
+      // Parse the 8-K filing to find exhibits
+      String fileContent = new String(Files.readAllBytes(sourceFile.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+      
+      // Look for Exhibit 99.1 and 99.2 references
+      List<GenericRecord> earningsRecords = new ArrayList<>();
+      Schema earningsSchema = createEarningsTranscriptSchema();
+      
+      // Check if this file contains exhibit content directly
+      if (fileContent.contains("EX-99.1") || fileContent.contains("EX-99.2")) {
+        earningsRecords.addAll(extractEarningsFromExhibit(fileContent, cik, filingType, filingDate));
+      }
+      
+      // Also check for earnings-related content patterns
+      if (fileContent.toLowerCase().contains("financial results") 
+          || fileContent.toLowerCase().contains("earnings release")
+          || fileContent.toLowerCase().contains("conference call")) {
+        
+        // Extract paragraphs from earnings content
+        List<String> paragraphs = extractEarningsParagraphs(fileContent);
+        
+        for (int i = 0; i < paragraphs.size(); i++) {
+          GenericRecord record = new GenericData.Record(earningsSchema);
+          record.put("cik", cik);
+          record.put("filing_date", filingDate);
+          record.put("filing_type", filingType);
+          record.put("exhibit_number", detectExhibitNumber(fileContent));
+          record.put("section_type", detectSectionType(paragraphs.get(i)));
+          record.put("paragraph_number", i + 1);
+          record.put("paragraph_text", paragraphs.get(i));
+          record.put("speaker_name", extractSpeaker(paragraphs.get(i)));
+          record.put("speaker_role", extractSpeakerRole(paragraphs.get(i)));
+          
+          earningsRecords.add(record);
+        }
+      }
+      
+      // Write earnings transcripts to Parquet if we found any
+      if (!earningsRecords.isEmpty()) {
+        // Create partition directory
+        int year = Integer.parseInt(filingDate.substring(0, 4));
+        String normalizedFilingType = filingType.replace("/", "").replace("-", "");
+        File partitionDir = new File(targetDirectory,
+            String.format("cik=%s/filing_type=%s/year=%d", cik, normalizedFilingType, year));
+        partitionDir.mkdirs();
+        
+        File outputFile = new File(partitionDir,
+            String.format("%s_%s_earnings.parquet", cik, filingDate));
+        
+        writeParquetFile(earningsRecords, earningsSchema, outputFile);
+        outputFiles.add(outputFile);
+        
+        LOGGER.info("Extracted " + earningsRecords.size() + " earnings paragraphs from 8-K");
+      }
+      
+    } catch (Exception e) {
+      LOGGER.warning("Failed to extract 8-K exhibits: " + e.getMessage());
+    }
+    
+    return outputFiles;
+  }
+  
+  /**
+   * Extract earnings content from exhibit text.
+   */
+  private List<GenericRecord> extractEarningsFromExhibit(String exhibitContent,
+      String cik, String filingType, String filingDate) {
+    List<GenericRecord> records = new ArrayList<>();
+    Schema schema = createEarningsTranscriptSchema();
+    
+    // Parse as HTML to extract text content
+    org.jsoup.nodes.Document doc = Jsoup.parse(exhibitContent);
+    
+    // Remove script and style elements
+    doc.select("script, style").remove();
+    
+    // Extract paragraphs
+    Elements paragraphs = doc.select("p, div");
+    
+    int paragraphNum = 0;
+    for (org.jsoup.nodes.Element para : paragraphs) {
+      String text = para.text().trim();
+      
+      // Skip empty or very short paragraphs
+      if (text.length() < 50) continue;
+      
+      // Skip boilerplate
+      if (text.contains("FORWARD-LOOKING STATEMENTS") 
+          || text.contains("Safe Harbor")
+          || text.contains("Copyright")) continue;
+      
+      paragraphNum++;
+      
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("cik", cik);
+      record.put("filing_date", filingDate);
+      record.put("filing_type", filingType);
+      record.put("exhibit_number", detectExhibitNumber(exhibitContent));
+      record.put("section_type", detectSectionType(text));
+      record.put("paragraph_number", paragraphNum);
+      record.put("paragraph_text", text);
+      record.put("speaker_name", extractSpeaker(text));
+      record.put("speaker_role", extractSpeakerRole(text));
+      
+      records.add(record);
+    }
+    
+    return records;
+  }
+  
+  /**
+   * Extract earnings-related paragraphs from text.
+   */
+  private List<String> extractEarningsParagraphs(String content) {
+    List<String> paragraphs = new ArrayList<>();
+    
+    // Parse as HTML
+    org.jsoup.nodes.Document doc = Jsoup.parse(content);
+    
+    // Look for earnings-related sections
+    Elements relevantElements = doc.select("p, div");
+    
+    boolean inEarningsSection = false;
+    for (org.jsoup.nodes.Element elem : relevantElements) {
+      String text = elem.text().trim();
+      
+      // Start capturing when we find earnings indicators
+      if (text.contains("financial results") || text.contains("earnings") 
+          || text.contains("revenue") || text.contains("quarter")) {
+        inEarningsSection = true;
+      }
+      
+      // Capture relevant paragraphs
+      if (inEarningsSection && text.length() > 50) {
+        // Skip legal boilerplate
+        if (!text.contains("forward-looking") && !text.contains("Safe Harbor")) {
+          paragraphs.add(text);
+        }
+      }
+      
+      // Stop at certain sections
+      if (text.contains("SIGNATURES") || text.contains("EXHIBIT INDEX")) {
+        break;
+      }
+    }
+    
+    return paragraphs;
+  }
+  
+  /**
+   * Detect exhibit number from content.
+   */
+  private String detectExhibitNumber(String content) {
+    if (content.contains("EX-99.1") || content.contains("Exhibit 99.1")) {
+      return "99.1";
+    } else if (content.contains("EX-99.2") || content.contains("Exhibit 99.2")) {
+      return "99.2";
+    }
+    return null;
+  }
+  
+  /**
+   * Detect section type from paragraph content.
+   */
+  private String detectSectionType(String text) {
+    String lowerText = text.toLowerCase();
+    
+    if (lowerText.contains("prepared remarks") || lowerText.contains("opening remarks")) {
+      return "prepared_remarks";
+    } else if (lowerText.contains("question") || lowerText.contains("answer")) {
+      return "q_and_a";
+    } else if (lowerText.contains("financial results") || lowerText.contains("earnings")) {
+      return "earnings_release";
+    } else if (lowerText.contains("conference call") || lowerText.contains("transcript")) {
+      return "transcript";
+    }
+    
+    return "other";
+  }
+  
+  /**
+   * Extract speaker name from paragraph (for transcripts).
+   */
+  private String extractSpeaker(String text) {
+    // Look for patterns like "Name - Title:" or "Name:"
+    Pattern speakerPattern = Pattern.compile("^([A-Z][a-z]+ [A-Z][a-z]+)\\s*[-:]");
+    Matcher matcher = speakerPattern.matcher(text);
+    
+    if (matcher.find()) {
+      return matcher.group(1);
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Extract speaker role from paragraph.
+   */
+  private String extractSpeakerRole(String text) {
+    // Look for patterns like "Name - CEO:" or "Name, Chief Executive Officer:"
+    Pattern rolePattern = Pattern.compile("[-,]\\s*([^:]+):");
+    Matcher matcher = rolePattern.matcher(text);
+    
+    if (matcher.find()) {
+      String role = matcher.group(1).trim();
+      
+      // Normalize common roles
+      if (role.contains("Chief Executive") || role.contains("CEO")) {
+        return "CEO";
+      } else if (role.contains("Chief Financial") || role.contains("CFO")) {
+        return "CFO";
+      } else if (role.contains("Analyst")) {
+        return "Analyst";
+      } else if (role.contains("Operator")) {
+        return "Operator";
+      }
+      
+      return role;
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Create schema for earnings transcripts.
+   */
+  private Schema createEarningsTranscriptSchema() {
+    return SchemaBuilder.record("EarningsTranscript")
+        .namespace("org.apache.calcite.adapter.sec")
+        .fields()
+        .requiredString("cik")
+        .requiredString("filing_date")
+        .requiredString("filing_type")
+        .optionalString("exhibit_number")
+        .optionalString("section_type")
+        .requiredInt("paragraph_number")
+        .requiredString("paragraph_text")
+        .optionalString("speaker_name")
+        .optionalString("speaker_role")
+        .endRecord();
   }
 }
