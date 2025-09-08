@@ -791,6 +791,30 @@ public abstract class SqlLibraryOperators {
           .withSyntax(SqlSyntax.ORDERED_FUNCTION)
           .withAllowsNullTreatment(true);
 
+  /**
+   * Creates a new instance of {@link SqlFunction} representing the "ARRAY_UNIQUE_AGG"
+   * Snowflake function.
+   * This function overrides the default unparse method to print "ARRAY_AGG" with "DISTINCT".
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_UNIQUE_AGG =
+      new SqlAggFunction("ARRAY_UNIQUE_AGG",
+          null,
+          SqlKind.ARRAY_UNIQUE_AGG,
+          ReturnTypes.TO_ARRAY,
+          null,
+          OperandTypes.ANY,
+          SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.print(ARRAY_AGG.getName());
+          final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
+          writer.keyword("DISTINCT");
+          SqlNode operand = call.getOperandList().get(0);
+          operand.unparse(writer, leftPrec, rightPrec);
+          writer.endList(parenthesisFrame);
+        }
+      };
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlAggFunction JSON_AGG =
       SqlBasicAggFunction
