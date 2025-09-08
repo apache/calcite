@@ -223,15 +223,18 @@ public class EdgarDownloader {
       List<String> filingTypes, LocalDate startDate, LocalDate endDate) {
 
     // Check filing type
-    boolean typeMatch = false;
-    for (String allowedType : filingTypes) {
-      if (formType.equals(allowedType) || formType.startsWith(allowedType)) {
-        typeMatch = true;
-        break;
+    // Empty list means download all filing types
+    if (!filingTypes.isEmpty()) {
+      boolean typeMatch = false;
+      for (String allowedType : filingTypes) {
+        if (formType.equals(allowedType) || formType.startsWith(allowedType)) {
+          typeMatch = true;
+          break;
+        }
       }
-    }
-    if (!typeMatch) {
-      return false;
+      if (!typeMatch) {
+        return false;
+      }
     }
 
     // Check date range
