@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.sec;
 
 import org.apache.calcite.adapter.file.FileSchemaFactory;
+import org.apache.calcite.adapter.file.similarity.SimilarityFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -321,23 +322,9 @@ public class SecEmbeddingSchemaFactory implements SchemaFactory {
     if (schema == null) return;
 
     try {
-      // Register all vector functions
-      schema.add("COSINE_SIMILARITY",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "cosineSimilarity"));
-      schema.add("COSINE_DISTANCE",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "cosineDistance"));
-      schema.add("EUCLIDEAN_DISTANCE",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "euclideanDistance"));
-      schema.add("DOT_PRODUCT",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "dotProduct"));
-      schema.add("VECTORS_SIMILAR",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "vectorsSimilar"));
-      schema.add("VECTOR_NORM",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "vectorNorm"));
-      schema.add("NORMALIZE_VECTOR",
-          ScalarFunctionImpl.create(SecVectorFunctions.class, "normalizeVector"));
-
-      LOGGER.fine("Registered 7 vector functions");
+      // Register all vector functions using file adapter's SimilarityFunctions
+      SimilarityFunctions.registerFunctions(schema);
+      LOGGER.fine("Registered vector functions using file adapter's SimilarityFunctions");
     } catch (Exception e) {
       LOGGER.warning("Failed to register vector functions: " + e.getMessage());
     }
