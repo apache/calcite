@@ -168,6 +168,29 @@ public class AppleMicrosoftTest {
         assertTrue(count > 0, "xbrl_relationships should have data");
       }
       
+      // Test vectorized_blobs table - should exist when enableVectorization=true
+      System.out.println("\n== Vectorization Tables (enableVectorization=true) ==");
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.vectorized_blobs")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - vectorized_blobs: " + count + " rows");
+        assertTrue(count > 0, "vectorized_blobs should have data when enableVectorization=true");
+        
+        // Check that we have footnotes and MD&A
+        try (Statement stmt2 = conn.createStatement();
+             ResultSet rs2 = stmt2.executeQuery(
+               "SELECT blob_type, COUNT(*) as cnt FROM sec.vectorized_blobs " +
+               "GROUP BY blob_type ORDER BY blob_type")) {
+          System.out.println("  Blob types:");
+          while (rs2.next()) {
+            System.out.println("    - " + rs2.getString("blob_type") + ": " + rs2.getInt("cnt"));
+          }
+        }
+      } catch (SQLException e) {
+        fail("vectorized_blobs table should exist when enableVectorization=true: " + e.getMessage());
+      }
+      
       // Check if insider_transactions table exists (might not have data for 10-K filings)
       try (Statement stmt = conn.createStatement();
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.insider_transactions")) {
@@ -188,8 +211,9 @@ public class AppleMicrosoftTest {
         System.out.println("  - earnings_transcripts: TABLE NOT FOUND");
       }
       
-      System.out.println("\nSummary: 4 core tables found. Note: insider_transactions and earnings_transcripts " + 
-                         "tables are only populated when Forms 3/4/5 and 8-K filings are downloaded.");
+      System.out.println("\nSummary: 4 core tables + vectorization tables found. " + 
+                         "Note: insider_transactions and earnings_transcripts tables are only " +
+                         "populated when Forms 3/4/5 and 8-K filings are downloaded.");
     }
   }
 

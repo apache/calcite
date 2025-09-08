@@ -21,6 +21,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -324,18 +327,26 @@ public class SecTextVectorizer {
     public final String blobType;  // concept_group, footnote, mda_paragraph
     public final String originalBlobId;  // For traceability
     public final Map<String, Object> metadata;  // Relationships, token info, etc.
+    public final double[] embedding;  // The actual vector embedding
 
     public ContextualChunk(String context, String text) {
-      this(context, text, "concept_group", null, new HashMap<>());
+      this(context, text, "concept_group", null, new HashMap<>(), null);
     }
 
     public ContextualChunk(String context, String text, String blobType, 
                           String originalBlobId, Map<String, Object> metadata) {
+      this(context, text, blobType, originalBlobId, metadata, null);
+    }
+
+    public ContextualChunk(String context, String text, String blobType, 
+                          String originalBlobId, Map<String, Object> metadata,
+                          double[] embedding) {
       this.context = context;
       this.text = text;
       this.blobType = blobType;
       this.originalBlobId = originalBlobId;
       this.metadata = metadata != null ? metadata : new HashMap<>();
+      this.embedding = embedding;
     }
   }
 
@@ -399,14 +410,28 @@ public class SecTextVectorizer {
     for (TextBlob footnote : footnotes) {
       ContextualChunk chunk = vectorizeFootnote(footnote, references, mdaParagraphs, 
                                                 facts, tokenManager);
-      chunks.add(chunk);
+      if (chunk != null) {
+        // TODO: Real embedding generation would require calling an actual embedding API
+        // For now, using placeholder embeddings - THIS IS NOT REAL VECTORIZATION
+        double[] embedding = generateEmbedding(chunk.text, this.embeddingDimension);
+        chunk = new ContextualChunk(chunk.context, chunk.text, chunk.blobType,
+                                   chunk.originalBlobId, chunk.metadata, embedding);
+        chunks.add(chunk);
+      }
     }
 
     // Vectorize each MD&A paragraph with referenced footnotes
     for (TextBlob mdaPara : mdaParagraphs) {
       ContextualChunk chunk = vectorizeMDAParagraph(mdaPara, references, footnotes, 
                                                     facts, tokenManager);
-      chunks.add(chunk);
+      if (chunk != null) {
+        // TODO: Real embedding generation would require calling an actual embedding API
+        // For now, using placeholder embeddings - THIS IS NOT REAL VECTORIZATION
+        double[] embedding = generateEmbedding(chunk.text, this.embeddingDimension);
+        chunk = new ContextualChunk(chunk.context, chunk.text, chunk.blobType,
+                                   chunk.originalBlobId, chunk.metadata, embedding);
+        chunks.add(chunk);
+      }
     }
 
     return chunks;
@@ -652,4 +677,115 @@ public class SecTextVectorizer {
     }
     return null;
   }
+  
+  /**
+   * PLACEHOLDER: Generate a fake embedding vector for the given text.
+   * WARNING: This is NOT a real embedding - just deterministic noise based on text hash.
+   * Real implementation would require:
+   * - Integration with OpenAI/Anthropic/Cohere embedding API
+   * - Or local model like Sentence-BERT
+   * - Or financial-specific embeddings like FinBERT
+   * 
+   * Current implementation is just for testing table structure.
+   */
+  public double[] generateEmbedding(String text, int dimension) {
+    if (text == null || text.isEmpty()) {
+      return new double[dimension];
+    }
+    
+    double[] embedding = new double[dimension];
+    
+    try {
+      // Use SHA-256 to create a deterministic hash of the text
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] hashBytes = md.digest(text.getBytes(StandardCharsets.UTF_8));
+      
+      // Create a deterministic random generator from the hash
+      long seed = 0;
+      for (int i = 0; i < Math.min(8, hashBytes.length); i++) {
+        seed = (seed << 8) | (hashBytes[i] & 0xFF);
+      }
+      Random random = new Random(seed);
+      
+      // Generate embedding based on text features
+      String[] tokens = text.toLowerCase().split("\\s+");
+      
+      // Initialize with random values based on text hash
+      for (int i = 0; i < dimension; i++) {
+        embedding[i] = random.nextGaussian() * 0.1;
+      }
+      
+      // Add semantic features based on financial terms
+      for (String token : tokens) {
+        int tokenHash = token.hashCode();
+        int index = Math.abs(tokenHash) % dimension;
+        
+        // Boost dimensions for important financial terms
+        if (isFinancialTerm(token)) {
+          embedding[index] += 0.5;
+          if (index > 0) embedding[index - 1] += 0.2;
+          if (index < dimension - 1) embedding[index + 1] += 0.2;
+        } else if (isNumeric(token)) {
+          embedding[index] += 0.3;
+        } else {
+          embedding[index] += 0.1;
+        }
+      }
+      
+      // Normalize the vector to unit length
+      double magnitude = 0;
+      for (double val : embedding) {
+        magnitude += val * val;
+      }
+      magnitude = Math.sqrt(magnitude);
+      
+      if (magnitude > 0) {
+        for (int i = 0; i < dimension; i++) {
+          embedding[i] /= magnitude;
+        }
+      }
+      
+    } catch (NoSuchAlgorithmException e) {
+      // Fallback to simple hash-based embedding
+      Random random = new Random(text.hashCode());
+      for (int i = 0; i < dimension; i++) {
+        embedding[i] = random.nextGaussian();
+      }
+    }
+    
+    return embedding;
+  }
+  
+  /**
+   * Check if a token is a financial term.
+   */
+  private boolean isFinancialTerm(String token) {
+    return FINANCIAL_TERMS.contains(token.toLowerCase());
+  }
+  
+  /**
+   * Check if a token is numeric.
+   */
+  private boolean isNumeric(String token) {
+    if (token == null || token.isEmpty()) return false;
+    token = token.replaceAll("[,$%]", "");
+    try {
+      Double.parseDouble(token);
+      return true;
+    } catch (NumberFormatException e) {
+      return false;
+    }
+  }
+  
+  // Common financial terms for semantic enhancement
+  private static final Set<String> FINANCIAL_TERMS = new HashSet<>(Arrays.asList(
+    "revenue", "income", "profit", "loss", "earnings", "ebitda", "margin",
+    "cash", "debt", "equity", "asset", "liability", "expense", "cost",
+    "investment", "dividend", "share", "stock", "bond", "derivative",
+    "goodwill", "amortization", "depreciation", "capex", "opex",
+    "receivable", "payable", "inventory", "tax", "interest", "principal",
+    "acquisition", "merger", "restructuring", "impairment", "provision",
+    "segment", "subsidiary", "consolidated", "gaap", "non-gaap",
+    "quarter", "fiscal", "year", "annual", "quarterly", "ytd", "qoq", "yoy"
+  ));
 }

@@ -1865,78 +1865,233 @@ public class XbrlToParquetConverter implements FileConverter {
   private List<SecTextVectorizer.TextBlob> extractFootnoteBlobs(Document doc) {
     List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
     
-    // Look for all elements with footnote-like characteristics
+    // Extract footnotes from XBRL TextBlock elements
+    // These contain actual narrative text in XBRL filings
     NodeList allElements = doc.getElementsByTagName("*");
     int footnoteCounter = 0;
     
     for (int i = 0; i < allElements.getLength(); i++) {
       Element element = (Element) allElements.item(i);
+      String localName = element.getLocalName();
       
-      // Check if this looks like a footnote (has contextRef and is a TextBlock or Policy)
-      if (element.hasAttribute("contextRef")) {
-        String concept = extractConceptName(element);
+      // Look for TextBlock elements which contain narrative footnotes
+      if (localName != null && localName.endsWith("TextBlock")) {
+        String text = element.getTextContent().trim();
         
-        if (concept != null && (concept.contains("Policy") || 
-            concept.contains("TextBlock") || 
-            concept.contains("Disclosure"))) {
+        // Extract meaningful footnote text (skip short or HTML content)
+        if (text.length() > 200 && !text.startsWith("<")) {
+          String concept = extractConceptName(element);
+          String contextRef = element.getAttribute("contextRef");
           
-          String text = element.getTextContent().trim();
-          if (text.length() > 100) {  // Skip very short text
+          // Determine footnote section from concept name
+          String parentSection = determineFootnoteSection(concept);
+          
+          if (parentSection != null) {
             String id = "footnote_" + (++footnoteCounter);
-            String parentSection = concept.contains("Policy") ? "AccountingPolicies" : "Notes";
+            
+            // Create footnote blob with metadata
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("concept", concept != null ? concept : "");
+            attributes.put("contextRef", contextRef);
             
             SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
-                id, "footnote", text, parentSection);
+                id, "footnote", text, parentSection, null, attributes);
             blobs.add(blob);
+            
+            LOGGER.fine("Extracted footnote: " + id + " from concept: " + concept);
           }
         }
       }
     }
     
+    LOGGER.info("Extracted " + blobs.size() + " footnote blobs from XBRL");
     return blobs;
+  }
+  
+  /**
+   * Determine the section for a footnote based on its concept name.
+   */
+  private String determineFootnoteSection(String concept) {
+    if (concept == null) return "Notes to Financial Statements";
+    
+    String lowerConcept = concept.toLowerCase();
+    
+    // Map common footnote concepts to sections
+    if (lowerConcept.contains("accountingpolicy") || lowerConcept.contains("significantaccounting")) {
+      return "Significant Accounting Policies";
+    } else if (lowerConcept.contains("revenue")) {
+      return "Revenue Recognition";
+    } else if (lowerConcept.contains("debt") || lowerConcept.contains("borrowing")) {
+      return "Debt and Credit Facilities";
+    } else if (lowerConcept.contains("equity") || lowerConcept.contains("stock")) {
+      return "Stockholders Equity";
+    } else if (lowerConcept.contains("segment")) {
+      return "Segment Information";  
+    } else if (lowerConcept.contains("commitment") || lowerConcept.contains("contingenc")) {
+      return "Commitments and Contingencies";
+    } else if (lowerConcept.contains("acquisition") || lowerConcept.contains("businesscombination")) {
+      return "Business Combinations";
+    } else if (lowerConcept.contains("incometax") || lowerConcept.contains("tax")) {
+      return "Income Taxes";
+    } else if (lowerConcept.contains("pension") || lowerConcept.contains("retirement")) {
+      return "Employee Benefits";
+    } else if (lowerConcept.contains("derivative") || lowerConcept.contains("hedge")) {
+      return "Derivatives and Hedging";
+    } else if (lowerConcept.contains("fairvalue")) {
+      return "Fair Value Measurements";
+    } else if (lowerConcept.contains("lease")) {
+      return "Leases";
+    } else if (lowerConcept.contains("textblock") || lowerConcept.contains("disclosure")) {
+      return "Notes to Financial Statements";
+    }
+    
+    return "Notes to Financial Statements";  // Default section
   }
 
   /**
    * Extract MD&A paragraphs as TextBlob objects.
    */
-  private List<SecTextVectorizer.TextBlob> extractMDABlobs(Document doc, File sourceFile) {
+  private List<SecTextVectorizer.TextBlob> extractMDABlobs(Document xbrlDoc, File sourceFile) {
     List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
     
-    // For HTML files, extract MD&A from Item 7
-    if (sourceFile.getName().endsWith(".htm") || sourceFile.getName().endsWith(".html")) {
-      try {
-        org.jsoup.nodes.Document htmlDoc = Jsoup.parse(sourceFile, "UTF-8");
+    // First try to extract MD&A from XBRL if present
+    NodeList mdaElements = xbrlDoc.getElementsByTagName("*");
+    int mdaCounter = 0;
+    
+    for (int i = 0; i < mdaElements.getLength(); i++) {
+      Element element = (Element) mdaElements.item(i);
+      String localName = element.getLocalName();
+      
+      if (localName != null && 
+          (localName.contains("ManagementDiscussionAndAnalysis") ||
+           localName.contains("MDAndA") ||
+           localName.contains("Item7"))) {
         
-        // Look for Item 7 sections
-        Elements item7Sections = htmlDoc.select("*:matchesOwn((?i)item\\s*7[A]?\\b)");
-        
-        for (org.jsoup.nodes.Element section : item7Sections) {
-          // Get following paragraphs
-          org.jsoup.nodes.Element current = section.nextElementSibling();
-          int paraCounter = 0;
+        String text = element.getTextContent().trim();
+        if (text.length() > 200) {
+          // Split into paragraphs for better vectorization
+          String[] paragraphs = text.split("\\n\\n+|(?<=\\.)\\s+(?=[A-Z])");
           
-          while (current != null && !isNextItem(current.text()) && paraCounter < 50) {
-            String text = current.text().trim();
-            
-            if (text.length() > 100) {  // Meaningful paragraph
-              String id = "mda_para_" + (++paraCounter);
-              String parentSection = "Item7";
-              String subsection = detectMDASubsection(text);
+          for (String paragraph : paragraphs) {
+            paragraph = paragraph.trim();
+            if (paragraph.length() > 100 && !paragraph.startsWith("<")) {
+              String id = "mda_para_" + (++mdaCounter);
+              String parentSection = "Management Discussion and Analysis";
+              String subsection = detectMDASubsection(paragraph);
               
               Map<String, String> attributes = new HashMap<>();
-              attributes.put("source", "html");
+              attributes.put("source", "xbrl");
+              attributes.put("element", localName);
               
               SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
-                  id, "mda_paragraph", text, parentSection, subsection, attributes);
+                  id, "mda_paragraph", paragraph, parentSection, subsection, attributes);
               blobs.add(blob);
             }
-            
-            current = current.nextElementSibling();
           }
         }
-      } catch (Exception e) {
-        LOGGER.warning("Failed to extract MD&A from HTML: " + e.getMessage());
       }
+    }
+    
+    // If no MD&A in XBRL and source is HTML, extract from HTML
+    if (blobs.isEmpty() && (sourceFile.getName().endsWith(".htm") || 
+                            sourceFile.getName().endsWith(".html"))) {
+      blobs.addAll(extractMDAFromHtml(sourceFile));
+    }
+    
+    // If still no MD&A and this is XBRL, look for associated HTML filing
+    if (blobs.isEmpty() && sourceFile.getName().endsWith(".xml")) {
+      File htmlFile = findAssociatedHtmlFiling(sourceFile);
+      if (htmlFile != null && htmlFile.exists()) {
+        blobs.addAll(extractMDAFromHtml(htmlFile));
+      }
+    }
+    
+    LOGGER.info("Extracted " + blobs.size() + " MD&A paragraphs");
+    return blobs;
+  }
+  
+  /**
+   * Find the associated HTML filing for an XBRL file.
+   */
+  private File findAssociatedHtmlFiling(File xbrlFile) {
+    // Look for 10-K or 10-Q HTML in same directory
+    File parentDir = xbrlFile.getParentFile();
+    if (parentDir != null) {
+      File[] htmlFiles = parentDir.listFiles((dir, name) -> 
+        (name.endsWith(".htm") || name.endsWith(".html")) &&
+        !name.contains("_cal") && !name.contains("_def") && !name.contains("_lab") &&
+        !name.contains("_pre") && !name.contains("_ref"));
+      
+      if (htmlFiles != null && htmlFiles.length > 0) {
+        // Prefer files with 10-K or 10-Q in name
+        for (File file : htmlFiles) {
+          String name = file.getName().toLowerCase();
+          if (name.contains("10-k") || name.contains("10k") ||
+              name.contains("10-q") || name.contains("10q")) {
+            return file;
+          }
+        }
+        return htmlFiles[0];  // Return first HTML file if no specific match
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Extract MD&A from HTML filing.
+   */
+  private List<SecTextVectorizer.TextBlob> extractMDAFromHtml(File htmlFile) {
+    List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
+    
+    try {
+      org.jsoup.nodes.Document htmlDoc = Jsoup.parse(htmlFile, "UTF-8");
+      
+      // Find Item 7 or MD&A sections
+      Elements mdaSections = htmlDoc.select(
+        "*:matchesOwn((?i)(item\\s*7[^0-9]|management.*discussion.*analysis))");
+      
+      int paraCounter = 0;
+      for (org.jsoup.nodes.Element section : mdaSections) {
+        // Skip if this is table of contents
+        if (section.parents().select("table").size() > 0) continue;
+        
+        // Extract following content until next major item
+        org.jsoup.nodes.Element current = section;
+        int localCounter = 0;
+        boolean inMDA = true;
+        
+        while (current != null && localCounter < 200 && inMDA) {
+          current = current.nextElementSibling();
+          if (current == null) break;
+          
+          String text = current.text().trim();
+          
+          // Stop at next item
+          if (isNextItem(text)) {
+            inMDA = false;
+            break;
+          }
+          
+          // Extract meaningful paragraphs
+          if (text.length() > 100 && !isBoilerplate(text)) {
+            String id = "mda_para_" + (++paraCounter);
+            String parentSection = "Management Discussion and Analysis";
+            String subsection = detectMDASubsection(text);
+            
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("source", "html");
+            attributes.put("file", htmlFile.getName());
+            
+            SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
+                id, "mda_paragraph", text, parentSection, subsection, attributes);
+            blobs.add(blob);
+          }
+          
+          localCounter++;
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.warning("Failed to parse HTML for MD&A: " + e.getMessage());
     }
     
     return blobs;
@@ -1946,13 +2101,48 @@ public class XbrlToParquetConverter implements FileConverter {
    * Detect MD&A subsection from paragraph content.
    */
   private String detectMDASubsection(String text) {
+    if (text == null || text.length() < 20) return null;
+    
     String lower = text.toLowerCase();
-    if (lower.contains("overview")) return "Overview";
-    if (lower.contains("results") && lower.contains("operation")) return "Results of Operations";
-    if (lower.contains("liquidity")) return "Liquidity";
-    if (lower.contains("capital") && lower.contains("resource")) return "Capital Resources";
-    if (lower.contains("critical") && lower.contains("accounting")) return "Critical Accounting";
-    return "General";
+    
+    // Check for common MD&A subsections
+    if (lower.contains("overview") || lower.contains("executive summary")) {
+      return "Overview";
+    } else if (lower.contains("results") && lower.contains("operation")) {
+      return "Results of Operations";
+    } else if (lower.contains("liquidity") && lower.contains("capital")) {
+      return "Liquidity and Capital Resources";
+    } else if (lower.contains("liquidity")) {
+      return "Liquidity";
+    } else if (lower.contains("capital") && (lower.contains("resource") || lower.contains("cash flow"))) {
+      return "Capital Resources";
+    } else if (lower.contains("critical") && lower.contains("accounting")) {
+      return "Critical Accounting Policies";
+    } else if (lower.contains("risk factor") || lower.contains("uncertainties")) {
+      return "Risk Factors";
+    } else if (lower.contains("outlook") || lower.contains("guidance")) {
+      return "Outlook";
+    } else if (lower.contains("segment") || lower.contains("geographic")) {
+      return "Segment Analysis";
+    }
+    
+    return null;  // No specific subsection detected
+  }
+  
+  // Method already exists above - removing duplicate
+  
+  /**
+   * Check if text is boilerplate that should be skipped.
+   */
+  private boolean isBoilerplate(String text) {
+    if (text == null || text.isEmpty()) return true;
+    String lower = text.toLowerCase();
+    return lower.contains("forward-looking statements") ||
+           lower.contains("safe harbor") ||
+           lower.contains("table of contents") ||
+           lower.contains("exhibit index") ||
+           lower.startsWith("page ") ||
+           (lower.length() < 20 && lower.matches("\\d+"));
   }
 
   /**
