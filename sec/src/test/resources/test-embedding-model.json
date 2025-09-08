@@ -9,50 +9,12 @@
       "operand": {
         "directory": "build/apple-edgar-test-data/parquet",
         "executionEngine": "duckdb",
-        "embeddingConfig": {
+        "textSimilarity": {
           "enabled": true,
-          "modelPath": "/models/",
-          "vocabularyFile": "financial-vocabulary.txt",
-          "contextMappingsFile": "context-mappings.json",
-          "dimension": 128
-        },
-        "functions": [
-          {
-            "name": "COSINE_SIMILARITY",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "cosineSimilarity"
-          },
-          {
-            "name": "COSINE_DISTANCE",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "cosineDistance"
-          },
-          {
-            "name": "EUCLIDEAN_DISTANCE",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "euclideanDistance"
-          },
-          {
-            "name": "DOT_PRODUCT",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "dotProduct"
-          },
-          {
-            "name": "VECTORS_SIMILAR",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "vectorsSimilar"
-          },
-          {
-            "name": "VECTOR_NORM",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "vectorNorm"
-          },
-          {
-            "name": "NORMALIZE_VECTOR",
-            "className": "org.apache.calcite.adapter.sec.SecVectorFunctions",
-            "methodName": "normalizeVector"
-          }
-        ]
+          "embeddingDimension": 128,
+          "provider": "local",
+          "maxTextLength": 8192
+        }
       }
     }
   ]

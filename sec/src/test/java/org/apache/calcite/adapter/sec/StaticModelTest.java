@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.sec;
 
+import org.apache.calcite.adapter.file.similarity.SimilarityFunctions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -93,8 +94,8 @@ public class StaticModelTest {
     String debt =
         loader.generateEmbedding("Debt increased to $109 billion", "Debt");
 
-    double revRevSim = SecVectorFunctions.cosineSimilarity(revenue1, revenue2);
-    double revDebtSim = SecVectorFunctions.cosineSimilarity(revenue1, debt);
+    double revRevSim = SimilarityFunctions.cosineSimilarity(revenue1, revenue2);
+    double revDebtSim = SimilarityFunctions.cosineSimilarity(revenue1, debt);
 
     System.out.printf("Revenue-Revenue similarity: %.4f\n", revRevSim);
     System.out.printf("Revenue-Debt similarity:    %.4f\n", revDebtSim);

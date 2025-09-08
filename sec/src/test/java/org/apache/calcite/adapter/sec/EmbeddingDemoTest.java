@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.sec;
 
+import org.apache.calcite.adapter.file.similarity.SimilarityFunctions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -71,7 +72,7 @@ public class EmbeddingDemoTest {
     for (int i = 0; i < embeddings.length; i++) {
       System.out.printf("%-7s ", contexts[i] + (i < 2 ? (i+1) : ""));
       for (int j = 0; j < embeddings.length; j++) {
-        double sim = SecVectorFunctions.cosineSimilarity(embeddings[i], embeddings[j]);
+        double sim = SimilarityFunctions.cosineSimilarity(embeddings[i], embeddings[j]);
         System.out.printf("%.3f   ", sim);
       }
       System.out.println();
@@ -87,7 +88,7 @@ public class EmbeddingDemoTest {
     System.out.println("\nResults:");
 
     for (int i = 0; i < texts.length; i++) {
-      double sim = SecVectorFunctions.cosineSimilarity(embeddings[0], embeddings[i]);
+      double sim = SimilarityFunctions.cosineSimilarity(embeddings[0], embeddings[i]);
       if (sim > 0.8) {
         System.out.printf("  ✓ [%.3f] %s\n", sim, texts[i]);
       }
@@ -108,7 +109,7 @@ public class EmbeddingDemoTest {
     DocDistance[] distances = new DocDistance[texts.length];
     for (int i = 0; i < texts.length; i++) {
       distances[i] =
-          new DocDistance(i, SecVectorFunctions.cosineDistance(embeddings[0], embeddings[i]));
+          new DocDistance(i, SimilarityFunctions.cosineDistance(embeddings[0], embeddings[i]));
     }
 
     // Sort by distance
@@ -124,10 +125,10 @@ public class EmbeddingDemoTest {
     System.out.println("\nQuery: Check if vectors are similar (threshold = 0.9)");
     System.out.println("SQL: SELECT VECTORS_SIMILAR(embedding1, embedding2, 0.9)");
 
-    boolean similar = SecVectorFunctions.vectorsSimilar(embeddings[0], embeddings[1], 0.9);
+    boolean similar = SimilarityFunctions.vectorsSimilar(embeddings[0], embeddings[1], 0.9);
     System.out.printf("\nRevenue1 vs Revenue2: %s (similarity: %.3f)\n",
         similar ? "SIMILAR" : "NOT SIMILAR",
-        SecVectorFunctions.cosineSimilarity(embeddings[0], embeddings[1]));
+        SimilarityFunctions.cosineSimilarity(embeddings[0], embeddings[1]));
 
     // Show how context affects embeddings
     System.out.println("\n4. CONTEXT IMPACT DEMONSTRATION");
@@ -140,11 +141,11 @@ public class EmbeddingDemoTest {
 
     System.out.println("Same text with different contexts:");
     System.out.printf("  Revenue context vs Assets context:  %.3f\n",
-        SecVectorFunctions.cosineSimilarity(embed1, embed2));
+        SimilarityFunctions.cosineSimilarity(embed1, embed2));
     System.out.printf("  Revenue context vs Debt context:    %.3f\n",
-        SecVectorFunctions.cosineSimilarity(embed1, embed3));
+        SimilarityFunctions.cosineSimilarity(embed1, embed3));
     System.out.printf("  Assets context vs Debt context:     %.3f\n",
-        SecVectorFunctions.cosineSimilarity(embed2, embed3));
+        SimilarityFunctions.cosineSimilarity(embed2, embed3));
 
     // Financial metrics extraction
     System.out.println("\n5. FINANCIAL METRICS DETECTION");
@@ -167,7 +168,7 @@ public class EmbeddingDemoTest {
 
       for (String ctx : new String[]{"Revenue", "Profitability", "Liquidity", "Debt", "Assets"}) {
         String ctxEmbed = SecEmbeddingModel.generateEmbedding(text, ctx);
-        double sim = SecVectorFunctions.cosineSimilarity(embed, ctxEmbed);
+        double sim = SimilarityFunctions.cosineSimilarity(embed, ctxEmbed);
         if (sim > bestSim) {
           bestSim = sim;
           bestContext = ctx;

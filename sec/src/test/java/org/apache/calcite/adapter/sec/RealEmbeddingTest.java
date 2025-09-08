@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.sec;
 
+import org.apache.calcite.adapter.file.similarity.SimilarityFunctions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -63,12 +64,12 @@ public class RealEmbeddingTest {
     System.out.println("Generated embeddings with 128 dimensions");
 
     // Test similarity calculations
-    double revenueSelfSim = SecVectorFunctions.cosineSimilarity(revenueEmbed, revenueEmbed);
+    double revenueSelfSim = SimilarityFunctions.cosineSimilarity(revenueEmbed, revenueEmbed);
     assertEquals(1.0, revenueSelfSim, 0.001, "Self-similarity should be 1.0");
 
-    double revenueProfitSim = SecVectorFunctions.cosineSimilarity(revenueEmbed, profitEmbed);
-    double revenueDebtSim = SecVectorFunctions.cosineSimilarity(revenueEmbed, debtEmbed);
-    double profitDebtSim = SecVectorFunctions.cosineSimilarity(profitEmbed, debtEmbed);
+    double revenueProfitSim = SimilarityFunctions.cosineSimilarity(revenueEmbed, profitEmbed);
+    double revenueDebtSim = SimilarityFunctions.cosineSimilarity(revenueEmbed, debtEmbed);
+    double profitDebtSim = SimilarityFunctions.cosineSimilarity(profitEmbed, debtEmbed);
 
     System.out.println("\nCosine Similarities:");
     System.out.println("Revenue-Revenue: " + String.format("%.4f", revenueSelfSim));
@@ -81,7 +82,7 @@ public class RealEmbeddingTest {
         + "and service revenue of $82B. Revenue growth expected to continue.";
 
     String revenueEmbed2 = SecEmbeddingModel.generateEmbedding(revenueText2, "Revenue");
-    double revenueRevenueSim = SecVectorFunctions.cosineSimilarity(revenueEmbed, revenueEmbed2);
+    double revenueRevenueSim = SimilarityFunctions.cosineSimilarity(revenueEmbed, revenueEmbed2);
 
     System.out.println("\nSimilar Revenue Texts:");
     System.out.println("Revenue1-Revenue2: " + String.format("%.4f", revenueRevenueSim));
@@ -91,18 +92,18 @@ public class RealEmbeddingTest {
         "Similar revenue texts should have higher similarity than revenue-debt");
 
     // Test distance functions
-    double distance = SecVectorFunctions.cosineDistance(revenueEmbed, profitEmbed);
+    double distance = SimilarityFunctions.cosineDistance(revenueEmbed, profitEmbed);
     assertEquals(1.0 - revenueProfitSim, distance, 0.001, "Distance should be 1 - similarity");
 
     System.out.println("\nCosine Distance (Revenue-Profit): " + String.format("%.4f", distance));
 
     // Test threshold-based similarity
-    boolean similar = SecVectorFunctions.vectorsSimilar(revenueEmbed, revenueEmbed2, 0.5);
+    boolean similar = SimilarityFunctions.vectorsSimilar(revenueEmbed, revenueEmbed2, 0.5);
     assertTrue(similar, "Similar revenue texts should pass similarity threshold");
 
     // Test different contexts produce different embeddings
     String sameTextDiffContext = SecEmbeddingModel.generateEmbedding(revenueText, "Assets");
-    double contextDiff = SecVectorFunctions.cosineSimilarity(revenueEmbed, sameTextDiffContext);
+    double contextDiff = SimilarityFunctions.cosineSimilarity(revenueEmbed, sameTextDiffContext);
 
     System.out.println("\nContext Impact:");
     System.out.println("Same text, different context: " + String.format("%.4f", contextDiff));

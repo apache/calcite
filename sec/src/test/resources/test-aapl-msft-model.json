@@ -16,8 +16,12 @@
       "testMode": false,
       "ephemeralCache": false,
       "sec.fallback.enabled": false,
-      "enableVectorization": true,
-      "vectorizationDimension": 256,
+      "textSimilarity": {
+        "enabled": true,
+        "embeddingDimension": 256,
+        "provider": "local",
+        "maxTextLength": 8192
+      },
       "extractFootnotes": true,
       "extractMDA": true,
       "extractRiskFactors": true
