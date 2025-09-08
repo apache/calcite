@@ -1171,6 +1171,10 @@ public class SqlDialect {
       return null;
     }
 
+    if (node instanceof SqlBasicCall
+        && ((SqlBasicCall) node).getOperator() instanceof SqlBinaryOperator) {
+      node = SqlLibraryOperators.PARENTHESIS.createCall(SqlParserPos.ZERO, node);
+    }
     node = SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO, node);
     if (nullsFirst) {
       node = SqlStdOperatorTable.DESC.createCall(SqlParserPos.ZERO, node);
