@@ -396,8 +396,24 @@ public class FileSchemaFactory implements SchemaFactory {
     // Register the FileSchema with the parent so metadata queries can find the tables
     // This is critical for DatabaseMetaData.getColumns() to work
     // Note: Schema uniqueness already validated at method start
-    parentSchema.add(name, fileSchema);
+    SchemaPlus schemaPlus = parentSchema.add(name, fileSchema);
     LOGGER.info("FileSchemaFactory: Registered FileSchema '{}' with parent schema for metadata visibility", name);
+
+    // Register text similarity functions if enabled
+    @SuppressWarnings("unchecked") 
+    Map<String, Object> textSimilarity = (Map<String, Object>) operand.get("textSimilarity");
+    if (textSimilarity != null) {
+      Boolean enabled = (Boolean) textSimilarity.get("enabled");
+      if (Boolean.TRUE.equals(enabled)) {
+        LOGGER.info("FileSchemaFactory: Registering text similarity functions for schema '{}'", name);
+        try {
+          org.apache.calcite.adapter.file.similarity.SimilarityFunctions.registerFunctions(schemaPlus);
+          LOGGER.info("FileSchemaFactory: Successfully registered text similarity functions");
+        } catch (Exception e) {
+          LOGGER.warn("FileSchemaFactory: Failed to register similarity functions: " + e.getMessage(), e);
+        }
+      }
+    }
 
     // Add metadata schemas as sibling schemas (not sub-schemas)
     // This makes them available at the same level as the file schema

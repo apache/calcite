@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.storage.sharepoint;
 
+import org.apache.calcite.adapter.file.FileSchema;
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -36,7 +38,7 @@ import org.junit.jupiter.api.Tag;
   void testFileSchemaTableDiscovery() throws Exception {
     System.out.println("=== Simple FileSchema Test ===");
 
-    // Create a connection to get root schema
+    // Create a connection to get the root schema
     java.util.Properties info = new java.util.Properties();
     info.setProperty("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
@@ -45,7 +47,7 @@ import org.junit.jupiter.api.Tag;
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus parentSchema = calciteConn.getRootSchema();
 
-      // Create FileSchema with simple configuration
+      // Create FileSchema with the simple configuration
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", "/tmp");  // Use a simple directory that exists
 
