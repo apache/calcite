@@ -125,6 +125,8 @@ public class PartitionDetector {
     Map<String, String> partitionValues = new LinkedHashMap<>();
     List<String> partitionColumns = new ArrayList<>();
 
+    LOGGER.debug("Extracting Hive partitions from: {}", filePath);
+
     Path path = Paths.get(filePath);
     Path parent = path.getParent();
 
@@ -135,6 +137,7 @@ public class PartitionDetector {
       if (matcher.matches()) {
         String key = matcher.group(1);
         String value = matcher.group(2);
+        LOGGER.debug("Found partition: {}={}", key, value);
         // Insert at beginning to maintain correct order
         partitionValues.put(key, value);
         partitionColumns.add(0, key);
@@ -144,9 +147,17 @@ public class PartitionDetector {
     }
 
     if (partitionColumns.isEmpty()) {
+      LOGGER.debug("No Hive-style partitions found");
       return null;
     }
 
+    LOGGER.debug("Extracted partitions: columns={}, values={}", partitionColumns, partitionValues);
+    // Log the mapping for debugging
+    if (LOGGER.isDebugEnabled()) {
+      for (String col : partitionColumns) {
+        LOGGER.debug("  Column '{}' -> Value '{}'", col, partitionValues.get(col));
+      }
+    }
     return new PartitionInfo(partitionValues, partitionColumns, true);
   }
 

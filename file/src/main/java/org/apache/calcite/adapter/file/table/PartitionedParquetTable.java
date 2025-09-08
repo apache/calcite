@@ -66,6 +66,7 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
   private final ExecutionEngineConfig engineConfig;
   private RelProtoDataType protoRowType;
   private List<String> partitionColumns;
+  private List<String> addedPartitionColumns;  // Partition columns actually added to schema
   private Map<String, String> partitionColumnTypes;
   private String customRegex;
   private List<PartitionedTableConfig.ColumnMapping> columnMappings;
@@ -99,8 +100,10 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     // Initialize partition columns
     if (partitionInfo != null && partitionInfo.getPartitionColumns() != null) {
       this.partitionColumns = partitionInfo.getPartitionColumns();
+      LOGGER.debug("PartitionedParquetTable initialized with partition columns: {}", this.partitionColumns);
     } else {
       this.partitionColumns = new ArrayList<>();
+      LOGGER.debug("PartitionedParquetTable initialized with no partition columns");
     }
   }
 
@@ -133,9 +136,15 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
       fileSchema.getFieldList().forEach(field ->
           builder.add(field.getName(), field.getType()));
 
+      // Track which partition columns are actually added
+      addedPartitionColumns = new ArrayList<>();
+
       // Add partition columns
       for (String partCol : partitionColumns) {
         if (!containsField(fileSchema, partCol)) {
+          // This partition column is not in the file, so add it
+          addedPartitionColumns.add(partCol);
+
           // Use specified type or default to VARCHAR
           SqlTypeName sqlType = SqlTypeName.VARCHAR;
           if (partitionColumnTypes != null && partitionColumnTypes.containsKey(partCol)) {
@@ -151,6 +160,12 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
           builder.add(
               partCol, typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(sqlType), true));
+        } else {
+          // Partition column found in file - this violates Hive partitioning standards
+          throw new IllegalStateException(
+              String.format("Partition column '%s' found in Parquet file. " +
+                  "Hive-style partitioned files should NOT contain partition columns in the file content. " +
+                  "Partition values should only be encoded in the directory structure.", partCol));
         }
       }
 
@@ -259,7 +274,7 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         return new PartitionedParquetEnumerator(
-            filePaths, partitionInfo, partitionColumns, partitionColumnTypes,
+            filePaths, partitionInfo, partitionColumns, addedPartitionColumns, partitionColumnTypes,
             cancelFlag, engineConfig.getMemoryThreshold(), customRegex, columnMappings);
       }
     };
@@ -272,6 +287,7 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     private final List<String> filePaths;
     private final PartitionDetector.PartitionInfo globalPartitionInfo;
     private final List<String> partitionColumns;
+    private final List<String> effectivePartitionColumns;  // Pre-computed columns to add
     private final Map<String, String> partitionColumnTypes;
     private final AtomicBoolean cancelFlag;
     private final long memoryThreshold;
@@ -290,6 +306,7 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     PartitionedParquetEnumerator(List<String> filePaths,
                                  PartitionDetector.PartitionInfo partitionInfo,
                                  List<String> partitionColumns,
+                                 List<String> addedPartitionColumns,
                                  Map<String, String> partitionColumnTypes,
                                  AtomicBoolean cancelFlag,
                                  long memoryThreshold,
@@ -298,6 +315,8 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
       this.filePaths = filePaths;
       this.globalPartitionInfo = partitionInfo;
       this.partitionColumns = partitionColumns;
+      // Use addedPartitionColumns if provided, otherwise use all partition columns
+      this.effectivePartitionColumns = addedPartitionColumns != null ? addedPartitionColumns : partitionColumns;
       this.partitionColumnTypes = partitionColumnTypes;
       this.cancelFlag = cancelFlag;
       this.memoryThreshold = memoryThreshold;
@@ -406,14 +425,22 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
                 partitionColumns);
       }
 
-      return filePartitionInfo != null
+      Map<String, String> values = filePartitionInfo != null
           ? filePartitionInfo.getPartitionValues()
           : new LinkedHashMap<>();
+
+      if (LOGGER.isDebugEnabled() && !values.isEmpty()) {
+        LOGGER.debug("Extracted partition values from path: {}", filePath);
+        LOGGER.debug("  Partition values: {}", values);
+        LOGGER.debug("  Expected columns: {}", partitionColumns);
+      }
+
+      return values;
     }
 
     private Object[] convertToRow(GenericRecord record) {
-      // Create array with space for file fields + partition fields
-      Object[] row = new Object[fileFieldCount + partitionColumns.size()];
+      // Create array with space for file fields + effective partition fields
+      Object[] row = new Object[fileFieldCount + effectivePartitionColumns.size()];
 
       // Copy file data
       for (int i = 0; i < fileFieldCount; i++) {
@@ -425,10 +452,27 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
         row[i] = value;
       }
 
-      // Add partition values with type conversion
-      for (int i = 0; i < partitionColumns.size(); i++) {
-        String partCol = partitionColumns.get(i);
+      // Debug: Log partition mapping
+      if (LOGGER.isDebugEnabled() && currentPartitionValues != null) {
+        LOGGER.debug("Current file: {}", currentFile);
+        LOGGER.debug("Partition columns: {}", partitionColumns);
+        LOGGER.debug("Current partition values: {}", currentPartitionValues);
+      }
+
+      // Add partition values with type conversion (only for columns added to schema)
+      for (int i = 0; i < effectivePartitionColumns.size(); i++) {
+        String partCol = effectivePartitionColumns.get(i);
         String strValue = currentPartitionValues.get(partCol);
+
+
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Adding partition column[{}] '{}' with value '{}' at row index {}",
+                      i, partCol, strValue, fileFieldCount + i);
+          if (i == 0) {
+            LOGGER.debug("Full partition mapping - columns: {}, values: {}",
+                        partitionColumns, currentPartitionValues);
+          }
+        }
 
         // Convert based on specified type
         Object value = strValue;

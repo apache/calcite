@@ -81,6 +81,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -3353,9 +3354,30 @@ public class FileSchema extends AbstractSchema {
           String style = partConfig.getStyle();
 
           if ("hive".equals(style)) {
-            // Force Hive-style interpretation
-            partitionInfo =
-                PartitionDetector.extractHivePartitions(matchingFiles.get(0));
+            // For Hive-style partitions, use the configured column order if provided
+            List<String> partitionCols = null;
+            if (partConfig.getColumnDefinitions() != null && !partConfig.getColumnDefinitions().isEmpty()) {
+              // Use the configured column order
+              partitionCols = new ArrayList<>();
+              for (PartitionedTableConfig.ColumnDefinition colDef : partConfig.getColumnDefinitions()) {
+                partitionCols.add(colDef.getName());
+              }
+            } else {
+              // Fall back to extracting from first file
+              PartitionDetector.PartitionInfo tempInfo =
+                  PartitionDetector.extractHivePartitions(matchingFiles.get(0));
+              if (tempInfo != null) {
+                partitionCols = tempInfo.getPartitionColumns();
+              }
+            }
+
+            if (partitionCols != null) {
+              // Create partition info with configured columns and no values
+              partitionInfo =
+                  new PartitionDetector.PartitionInfo(new LinkedHashMap<>(),  // Empty values map
+                  partitionCols,
+                  true);  // isHiveStyle
+            }
           } else if ("directory".equals(style)
               && partConfig.getColumns() != null) {
             // Directory-based partitioning

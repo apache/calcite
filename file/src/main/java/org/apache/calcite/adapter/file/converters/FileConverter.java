@@ -27,7 +27,7 @@ import java.util.List;
  * Implementations convert files from one format to another.
  */
 public interface FileConverter {
-  
+
   /**
    * Checks if this converter can handle the conversion.
    *
@@ -36,7 +36,7 @@ public interface FileConverter {
    * @return true if this converter can handle the conversion
    */
   boolean canConvert(String sourceFormat, String targetFormat);
-  
+
   /**
    * Converts a source file to the target format.
    *
@@ -46,16 +46,16 @@ public interface FileConverter {
    * @return List of generated files
    * @throws IOException if conversion fails
    */
-  List<File> convert(File sourceFile, File targetDirectory, 
+  List<File> convert(File sourceFile, File targetDirectory,
       ConversionMetadata metadata) throws IOException;
-  
+
   /**
    * Gets the source format this converter reads.
    *
    * @return The source format name
    */
   String getSourceFormat();
-  
+
   /**
    * Gets the target format this converter produces.
    *

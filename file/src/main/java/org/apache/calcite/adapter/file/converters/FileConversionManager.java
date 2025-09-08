@@ -38,21 +38,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FileConversionManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileConversionManager.class);
   private static final FileConversionManager INSTANCE = new FileConversionManager();
-  
+
   private final List<FileConverter> converters = new ArrayList<>();
   private final Map<String, FileConverter> converterCache = new ConcurrentHashMap<>();
-  
+
   private FileConversionManager() {
     // Private constructor for singleton
   }
-  
+
   /**
    * Gets the singleton instance.
    */
   public static FileConversionManager getInstance() {
     return INSTANCE;
   }
-  
+
   /**
    * Registers a file converter.
    *
@@ -62,10 +62,10 @@ public class FileConversionManager {
     converters.add(converter);
     String key = converter.getSourceFormat() + "->" + converter.getTargetFormat();
     converterCache.put(key, converter);
-    LOGGER.info("Registered converter: {} -> {}", 
+    LOGGER.info("Registered converter: {} -> {}",
         converter.getSourceFormat(), converter.getTargetFormat());
   }
-  
+
   /**
    * Converts a file from one format to another.
    *
@@ -76,12 +76,12 @@ public class FileConversionManager {
    * @return List of converted files
    * @throws IOException if conversion fails
    */
-  public List<File> convert(File sourceFile, File targetDirectory, 
+  public List<File> convert(File sourceFile, File targetDirectory,
       String sourceFormat, String targetFormat) throws IOException {
-    
+
     String key = sourceFormat + "->" + targetFormat;
     FileConverter converter = converterCache.get(key);
-    
+
     if (converter == null) {
       // Try to find a converter
       for (FileConverter c : converters) {
@@ -92,11 +92,11 @@ public class FileConversionManager {
         }
       }
     }
-    
+
     if (converter == null) {
       throw new IOException("No converter found for " + sourceFormat + " to " + targetFormat);
     }
-    
+
     ConversionMetadata metadata = new ConversionMetadata(targetDirectory);
     return converter.convert(sourceFile, targetDirectory, metadata);
   }
