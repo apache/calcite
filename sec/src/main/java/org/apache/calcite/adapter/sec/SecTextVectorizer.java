@@ -321,25 +321,335 @@ public class SecTextVectorizer {
   public static class ContextualChunk {
     public final String context;
     public final String text;
+    public final String blobType;  // concept_group, footnote, mda_paragraph
+    public final String originalBlobId;  // For traceability
+    public final Map<String, Object> metadata;  // Relationships, token info, etc.
 
     public ContextualChunk(String context, String text) {
+      this(context, text, "concept_group", null, new HashMap<>());
+    }
+
+    public ContextualChunk(String context, String text, String blobType, 
+                          String originalBlobId, Map<String, Object> metadata) {
       this.context = context;
       this.text = text;
+      this.blobType = blobType;
+      this.originalBlobId = originalBlobId;
+      this.metadata = metadata != null ? metadata : new HashMap<>();
     }
   }
 
   /**
    * Simple container for financial facts.
    */
-  private static class FinancialFact {
-    final String concept;
-    final double value;
-    final String period;
+  public static class FinancialFact {
+    public final String concept;
+    public final double value;
+    public final String period;
 
-    FinancialFact(String concept, double value, String period) {
+    public FinancialFact(String concept, double value, String period) {
       this.concept = concept;
       this.value = value;
       this.period = period;
     }
+  }
+
+  // ========== New Relationship-Based Vectorization Methods ==========
+
+  /**
+   * Container for text blob with metadata.
+   */
+  public static class TextBlob {
+    public final String id;
+    public final String type;  // footnote, mda_paragraph
+    public final String text;
+    public final String parentSection;
+    public final String subsection;
+    public final Map<String, String> attributes;
+
+    public TextBlob(String id, String type, String text, String parentSection) {
+      this(id, type, text, parentSection, null, new HashMap<>());
+    }
+
+    public TextBlob(String id, String type, String text, String parentSection,
+                   String subsection, Map<String, String> attributes) {
+      this.id = id;
+      this.type = type;
+      this.text = text;
+      this.parentSection = parentSection;
+      this.subsection = subsection;
+      this.attributes = attributes;
+    }
+  }
+
+  /**
+   * Create individual enriched chunks for footnotes and MD&A paragraphs.
+   * Each blob is enriched with its relationships before vectorization.
+   */
+  public List<ContextualChunk> createIndividualChunks(
+      List<TextBlob> footnotes,
+      List<TextBlob> mdaParagraphs,
+      Map<String, List<String>> references,
+      Map<String, FinancialFact> facts) {
+    
+    List<ContextualChunk> chunks = new ArrayList<>();
+    SecTokenManager tokenManager = new SecTokenManager();
+
+    // Vectorize each footnote with its relationships
+    for (TextBlob footnote : footnotes) {
+      ContextualChunk chunk = vectorizeFootnote(footnote, references, mdaParagraphs, 
+                                                facts, tokenManager);
+      chunks.add(chunk);
+    }
+
+    // Vectorize each MD&A paragraph with referenced footnotes
+    for (TextBlob mdaPara : mdaParagraphs) {
+      ContextualChunk chunk = vectorizeMDAParagraph(mdaPara, references, footnotes, 
+                                                    facts, tokenManager);
+      chunks.add(chunk);
+    }
+
+    return chunks;
+  }
+
+  /**
+   * Vectorize a footnote with contextual enrichment.
+   */
+  private ContextualChunk vectorizeFootnote(
+      TextBlob footnote,
+      Map<String, List<String>> references,
+      List<TextBlob> mdaParagraphs,
+      Map<String, FinancialFact> facts,
+      SecTokenManager tokenManager) {
+
+    StringBuilder enriched = new StringBuilder();
+    Map<String, Object> metadata = new HashMap<>();
+    
+    // Start with main footnote text
+    enriched.append("[MAIN:FOOTNOTE:").append(footnote.id).append("] ");
+    enriched.append(footnote.text);
+    
+    int tokensUsed = tokenManager.estimateTokens(enriched.toString());
+    int remainingBudget = SecTokenManager.MAX_TOKENS - tokensUsed;
+
+    // Add parent section if exists
+    if (footnote.parentSection != null && remainingBudget > 100) {
+      String parentText = String.format("\n[PARENT:%s]", footnote.parentSection);
+      if (tokenManager.estimateTokens(parentText) < remainingBudget * 0.1) {
+        enriched.append(parentText);
+        remainingBudget -= tokenManager.estimateTokens(parentText);
+      }
+    }
+
+    // Add references from MD&A
+    List<String> referencedBy = references.get(footnote.id);
+    if (referencedBy != null && !referencedBy.isEmpty() && remainingBudget > 200) {
+      metadata.put("referenced_by", referencedBy);
+      enriched.append("\n[REFERENCED_BY:");
+      
+      // Add first few referencing paragraphs
+      int added = 0;
+      for (String refId : referencedBy) {
+        if (added >= 3 || remainingBudget < 200) break;
+        
+        // Find the MD&A paragraph
+        TextBlob refPara = findBlobById(mdaParagraphs, refId);
+        if (refPara != null) {
+          String excerpt = extractRelevantSentence(refPara.text, footnote.id);
+          String refText = String.format("\n  %s:%s: %s", 
+              refPara.parentSection, refId, excerpt);
+          
+          int refTokens = tokenManager.estimateTokens(refText);
+          if (refTokens < remainingBudget) {
+            enriched.append(refText);
+            remainingBudget -= refTokens;
+            added++;
+          }
+        }
+      }
+      enriched.append("]");
+    }
+
+    // Add related financial metrics
+    List<String> concepts = extractFinancialConcepts(footnote.text);
+    if (!concepts.isEmpty() && remainingBudget > 100) {
+      metadata.put("financial_concepts", concepts);
+      enriched.append("\n[METRICS] ");
+      for (String concept : concepts.subList(0, Math.min(3, concepts.size()))) {
+        FinancialFact fact = facts.get(concept);
+        if (fact != null) {
+          enriched.append(concept).append("=").append(formatValue(fact.value)).append(" ");
+        }
+      }
+    }
+
+    // Add metadata about enrichment
+    metadata.put("tokens_used", SecTokenManager.MAX_TOKENS - remainingBudget);
+    metadata.put("token_budget", SecTokenManager.MAX_TOKENS);
+    enriched.append(String.format("\n[ENRICHMENT_META tokens=%d/%d]", 
+        SecTokenManager.MAX_TOKENS - remainingBudget, SecTokenManager.MAX_TOKENS));
+
+    return new ContextualChunk(
+        "footnote_" + footnote.id,
+        enriched.toString(),
+        "footnote",
+        footnote.id,
+        metadata
+    );
+  }
+
+  /**
+   * Vectorize an MD&A paragraph with referenced footnotes.
+   */
+  private ContextualChunk vectorizeMDAParagraph(
+      TextBlob mdaPara,
+      Map<String, List<String>> references,
+      List<TextBlob> footnotes,
+      Map<String, FinancialFact> facts,
+      SecTokenManager tokenManager) {
+
+    StringBuilder enriched = new StringBuilder();
+    Map<String, Object> metadata = new HashMap<>();
+    
+    // Start with main paragraph text
+    enriched.append("[MAIN:MDA:").append(mdaPara.id).append("] ");
+    enriched.append(mdaPara.text);
+    
+    int tokensUsed = tokenManager.estimateTokens(enriched.toString());
+    int remainingBudget = SecTokenManager.MAX_TOKENS - tokensUsed;
+
+    // Add section hierarchy
+    if (mdaPara.parentSection != null) {
+      String hierarchy = String.format("\n[HIERARCHY: %s", mdaPara.parentSection);
+      if (mdaPara.subsection != null) {
+        hierarchy += " > " + mdaPara.subsection;
+      }
+      hierarchy += "]";
+      
+      if (tokenManager.estimateTokens(hierarchy) < remainingBudget * 0.1) {
+        enriched.append(hierarchy);
+        remainingBudget -= tokenManager.estimateTokens(hierarchy);
+      }
+    }
+
+    // Find and add referenced footnotes
+    List<String> footnotesReferenced = extractFootnoteReferences(mdaPara.text);
+    if (!footnotesReferenced.isEmpty() && remainingBudget > 300) {
+      metadata.put("references_footnotes", footnotesReferenced);
+      enriched.append("\n[REFERENCED_FOOTNOTES:");
+      
+      for (String fnId : footnotesReferenced) {
+        if (remainingBudget < 200) break;
+        
+        TextBlob footnote = findBlobById(footnotes, fnId);
+        if (footnote != null) {
+          // Add first paragraph or up to 500 tokens of footnote
+          String excerpt = tokenManager.getSmartExcerpt(footnote.text, 
+              Math.min(500, remainingBudget - 100));
+          String fnText = String.format("\n  %s: %s", fnId, excerpt);
+          
+          int fnTokens = tokenManager.estimateTokens(fnText);
+          if (fnTokens < remainingBudget) {
+            enriched.append(fnText);
+            remainingBudget -= fnTokens;
+          }
+        }
+      }
+      enriched.append("]");
+    }
+
+    // Add related financial metrics
+    List<String> concepts = extractFinancialConcepts(mdaPara.text);
+    if (!concepts.isEmpty() && remainingBudget > 100) {
+      metadata.put("financial_concepts", concepts);
+      enriched.append("\n[METRICS] ");
+      for (String concept : concepts.subList(0, Math.min(3, concepts.size()))) {
+        FinancialFact fact = facts.get(concept);
+        if (fact != null) {
+          enriched.append(concept).append("=").append(formatValue(fact.value)).append(" ");
+        }
+      }
+    }
+
+    // Add metadata
+    metadata.put("tokens_used", SecTokenManager.MAX_TOKENS - remainingBudget);
+    enriched.append(String.format("\n[ENRICHMENT_META tokens=%d/%d]", 
+        SecTokenManager.MAX_TOKENS - remainingBudget, SecTokenManager.MAX_TOKENS));
+
+    return new ContextualChunk(
+        "mda_" + mdaPara.id,
+        enriched.toString(),
+        "mda_paragraph",
+        mdaPara.id,
+        metadata
+    );
+  }
+
+  /**
+   * Extract financial concepts mentioned in text.
+   */
+  private List<String> extractFinancialConcepts(String text) {
+    List<String> concepts = new ArrayList<>();
+    String lowerText = text.toLowerCase();
+    
+    // Check against all known concepts
+    for (List<String> group : CONCEPT_GROUPS.values()) {
+      for (String concept : group) {
+        String keyword = conceptToKeyword(concept).toLowerCase();
+        if (lowerText.contains(keyword)) {
+          concepts.add(concept);
+        }
+      }
+    }
+    
+    return concepts;
+  }
+
+  /**
+   * Extract footnote references from text (e.g., "Note 14", "See Note 2").
+   */
+  private List<String> extractFootnoteReferences(String text) {
+    List<String> references = new ArrayList<>();
+    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+        "(?:Note|Footnote)\\s+(\\d+[A-Za-z]?)", java.util.regex.Pattern.CASE_INSENSITIVE);
+    java.util.regex.Matcher matcher = pattern.matcher(text);
+    
+    while (matcher.find()) {
+      references.add("footnote_" + matcher.group(1));
+    }
+    
+    return references;
+  }
+
+  /**
+   * Extract the most relevant sentence mentioning a specific item.
+   */
+  private String extractRelevantSentence(String text, String itemId) {
+    String[] sentences = text.split("(?<=[.!?])\\s+");
+    String searchTerm = itemId.replace("footnote_", "Note ");
+    
+    for (String sentence : sentences) {
+      if (sentence.toLowerCase().contains(searchTerm.toLowerCase())) {
+        return sentence.length() > 200 ? 
+            sentence.substring(0, 197) + "..." : sentence;
+      }
+    }
+    
+    // Return first sentence if no specific reference found
+    return sentences.length > 0 ? 
+        (sentences[0].length() > 200 ? sentences[0].substring(0, 197) + "..." : sentences[0]) 
+        : text.substring(0, Math.min(200, text.length()));
+  }
+
+  /**
+   * Find a text blob by ID.
+   */
+  private TextBlob findBlobById(List<TextBlob> blobs, String id) {
+    for (TextBlob blob : blobs) {
+      if (blob.id.equals(id)) {
+        return blob;
+      }
+    }
+    return null;
   }
 }

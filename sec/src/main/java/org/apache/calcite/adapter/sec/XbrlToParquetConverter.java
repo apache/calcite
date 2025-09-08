@@ -150,6 +150,14 @@ public class XbrlToParquetConverter implements FileConverter {
         outputFiles.add(relationshipsFile);
       }
 
+      // Create vectorized blobs with contextual enrichment
+      File vectorizedFile =
+          new File(partitionDir, String.format("%s_%s_vectorized.parquet", cik, filingDate));
+      writeVectorizedBlobsToParquet(doc, vectorizedFile, cik, filingType, filingDate, sourceFile);
+      if (vectorizedFile.exists()) {
+        outputFiles.add(vectorizedFile);
+      }
+
       // Metadata is updated by FileConversionManager after successful conversion
 
       LOGGER.info("Converted XBRL to Parquet: " + sourceFile.getName() +
@@ -1741,5 +1749,285 @@ public class XbrlToParquetConverter implements FileConverter {
         .optionalString("speaker_name")
         .optionalString("speaker_role")
         .endRecord();
+  }
+
+  /**
+   * Write vectorized blobs with contextual enrichment to Parquet.
+   * Creates individual vectors for footnotes and MD&A paragraphs with relationships.
+   */
+  private void writeVectorizedBlobsToParquet(Document doc, File outputFile,
+      String cik, String filingType, String filingDate, File sourceFile) throws IOException {
+
+    // Create schema for vectorized blobs
+    Schema schema = SchemaBuilder.record("VectorizedBlob")
+        .fields()
+        .requiredString("vector_id")
+        .requiredString("original_blob_id")
+        .requiredString("blob_type")  // footnote, mda_paragraph, concept_group
+        .requiredString("filing_date")
+        .requiredString("original_text")
+        .requiredString("enriched_text")
+        .optionalString("parent_section")
+        .optionalString("relationships")  // JSON string of relationships
+        .optionalString("financial_concepts")  // Comma-separated concepts
+        .optionalInt("tokens_used")
+        .optionalInt("token_budget")
+        .endRecord();
+
+    List<GenericRecord> records = new ArrayList<>();
+
+    // Extract footnotes as TextBlobs
+    List<SecTextVectorizer.TextBlob> footnoteBlobs = extractFootnoteBlobs(doc);
+    
+    // Extract MD&A paragraphs as TextBlobs
+    List<SecTextVectorizer.TextBlob> mdaBlobs = extractMDABlobs(doc, sourceFile);
+    
+    // Build relationship map (who references whom)
+    Map<String, List<String>> references = buildReferenceMap(footnoteBlobs, mdaBlobs);
+    
+    // Extract financial facts for enrichment
+    Map<String, SecTextVectorizer.FinancialFact> facts = extractFinancialFactsForVectorization(doc);
+
+    // Create vectorizer instance
+    SecTextVectorizer vectorizer = new SecTextVectorizer();
+    
+    // Generate individual enriched chunks
+    List<SecTextVectorizer.ContextualChunk> individualChunks = 
+        vectorizer.createIndividualChunks(footnoteBlobs, mdaBlobs, references, facts);
+
+    // Also generate concept group chunks (existing functionality)
+    List<SecTextVectorizer.ContextualChunk> conceptChunks = 
+        vectorizer.createContextualChunks(doc, sourceFile);
+    
+    // Combine all chunks
+    List<SecTextVectorizer.ContextualChunk> allChunks = new ArrayList<>();
+    allChunks.addAll(individualChunks);
+    allChunks.addAll(conceptChunks);
+
+    // Convert chunks to Parquet records
+    for (SecTextVectorizer.ContextualChunk chunk : allChunks) {
+      GenericRecord record = new GenericData.Record(schema);
+      
+      record.put("vector_id", chunk.context);
+      record.put("original_blob_id", chunk.originalBlobId != null ? chunk.originalBlobId : chunk.context);
+      record.put("blob_type", chunk.blobType);
+      record.put("filing_date", filingDate);
+      
+      // Truncate texts if they're too long for Parquet
+      String originalText = chunk.metadata.containsKey("original_text") ? 
+          (String) chunk.metadata.get("original_text") : "";
+      record.put("original_text", truncateText(originalText, 32000));
+      record.put("enriched_text", truncateText(chunk.text, 32000));
+      
+      // Extract metadata
+      record.put("parent_section", chunk.metadata.get("parent_section"));
+      
+      // Convert relationships to JSON string
+      if (chunk.metadata.containsKey("referenced_by") || chunk.metadata.containsKey("references_footnotes")) {
+        Map<String, Object> relationships = new HashMap<>();
+        if (chunk.metadata.containsKey("referenced_by")) {
+          relationships.put("referenced_by", chunk.metadata.get("referenced_by"));
+        }
+        if (chunk.metadata.containsKey("references_footnotes")) {
+          relationships.put("references", chunk.metadata.get("references_footnotes"));
+        }
+        record.put("relationships", toJsonString(relationships));
+      }
+      
+      // Financial concepts
+      if (chunk.metadata.containsKey("financial_concepts")) {
+        List<String> concepts = (List<String>) chunk.metadata.get("financial_concepts");
+        record.put("financial_concepts", String.join(",", concepts));
+      }
+      
+      // Token usage
+      if (chunk.metadata.containsKey("tokens_used")) {
+        record.put("tokens_used", chunk.metadata.get("tokens_used"));
+      }
+      if (chunk.metadata.containsKey("token_budget")) {
+        record.put("token_budget", chunk.metadata.get("token_budget"));
+      }
+      
+      records.add(record);
+    }
+
+    // Write to Parquet if we have records
+    if (!records.isEmpty()) {
+      writeRecordsToParquet(records, schema, outputFile);
+      LOGGER.info("Wrote " + records.size() + " vectorized blobs to " + outputFile);
+      cleanupMacOSMetadataFiles(outputFile.getParentFile());
+    }
+  }
+
+  /**
+   * Extract footnotes as TextBlob objects for vectorization.
+   */
+  private List<SecTextVectorizer.TextBlob> extractFootnoteBlobs(Document doc) {
+    List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
+    
+    // Look for all elements with footnote-like characteristics
+    NodeList allElements = doc.getElementsByTagName("*");
+    int footnoteCounter = 0;
+    
+    for (int i = 0; i < allElements.getLength(); i++) {
+      Element element = (Element) allElements.item(i);
+      
+      // Check if this looks like a footnote (has contextRef and is a TextBlock or Policy)
+      if (element.hasAttribute("contextRef")) {
+        String concept = extractConceptName(element);
+        
+        if (concept != null && (concept.contains("Policy") || 
+            concept.contains("TextBlock") || 
+            concept.contains("Disclosure"))) {
+          
+          String text = element.getTextContent().trim();
+          if (text.length() > 100) {  // Skip very short text
+            String id = "footnote_" + (++footnoteCounter);
+            String parentSection = concept.contains("Policy") ? "AccountingPolicies" : "Notes";
+            
+            SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
+                id, "footnote", text, parentSection);
+            blobs.add(blob);
+          }
+        }
+      }
+    }
+    
+    return blobs;
+  }
+
+  /**
+   * Extract MD&A paragraphs as TextBlob objects.
+   */
+  private List<SecTextVectorizer.TextBlob> extractMDABlobs(Document doc, File sourceFile) {
+    List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
+    
+    // For HTML files, extract MD&A from Item 7
+    if (sourceFile.getName().endsWith(".htm") || sourceFile.getName().endsWith(".html")) {
+      try {
+        org.jsoup.nodes.Document htmlDoc = Jsoup.parse(sourceFile, "UTF-8");
+        
+        // Look for Item 7 sections
+        Elements item7Sections = htmlDoc.select("*:matchesOwn((?i)item\\s*7[A]?\\b)");
+        
+        for (org.jsoup.nodes.Element section : item7Sections) {
+          // Get following paragraphs
+          org.jsoup.nodes.Element current = section.nextElementSibling();
+          int paraCounter = 0;
+          
+          while (current != null && !isNextItem(current.text()) && paraCounter < 50) {
+            String text = current.text().trim();
+            
+            if (text.length() > 100) {  // Meaningful paragraph
+              String id = "mda_para_" + (++paraCounter);
+              String parentSection = "Item7";
+              String subsection = detectMDASubsection(text);
+              
+              Map<String, String> attributes = new HashMap<>();
+              attributes.put("source", "html");
+              
+              SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
+                  id, "mda_paragraph", text, parentSection, subsection, attributes);
+              blobs.add(blob);
+            }
+            
+            current = current.nextElementSibling();
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.warning("Failed to extract MD&A from HTML: " + e.getMessage());
+      }
+    }
+    
+    return blobs;
+  }
+
+  /**
+   * Detect MD&A subsection from paragraph content.
+   */
+  private String detectMDASubsection(String text) {
+    String lower = text.toLowerCase();
+    if (lower.contains("overview")) return "Overview";
+    if (lower.contains("results") && lower.contains("operation")) return "Results of Operations";
+    if (lower.contains("liquidity")) return "Liquidity";
+    if (lower.contains("capital") && lower.contains("resource")) return "Capital Resources";
+    if (lower.contains("critical") && lower.contains("accounting")) return "Critical Accounting";
+    return "General";
+  }
+
+  /**
+   * Build a map of footnote references from MD&A paragraphs.
+   */
+  private Map<String, List<String>> buildReferenceMap(
+      List<SecTextVectorizer.TextBlob> footnotes,
+      List<SecTextVectorizer.TextBlob> mdaBlobs) {
+    
+    Map<String, List<String>> references = new HashMap<>();
+    
+    // Check each MD&A paragraph for footnote references
+    for (SecTextVectorizer.TextBlob mdaBlob : mdaBlobs) {
+      java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+          "(?:Note|Footnote)\\s+(\\d+[A-Za-z]?)", java.util.regex.Pattern.CASE_INSENSITIVE);
+      java.util.regex.Matcher matcher = pattern.matcher(mdaBlob.text);
+      
+      while (matcher.find()) {
+        String footnoteRef = "footnote_" + matcher.group(1);
+        
+        // Add MD&A paragraph to the footnote's reference list
+        references.computeIfAbsent(footnoteRef, k -> new ArrayList<>()).add(mdaBlob.id);
+      }
+    }
+    
+    return references;
+  }
+
+  /**
+   * Extract financial facts for vectorization enrichment.
+   */
+  private Map<String, SecTextVectorizer.FinancialFact> extractFinancialFactsForVectorization(Document doc) {
+    // This method would need to be made accessible from SecTextVectorizer
+    // For now, return empty map - the vectorizer will handle this internally
+    return new HashMap<>();
+  }
+
+  /**
+   * Convert object to JSON string.
+   */
+  private String toJsonString(Object obj) {
+    // Simple JSON conversion - in production would use Jackson or Gson
+    if (obj instanceof Map) {
+      Map<String, Object> map = (Map<String, Object>) obj;
+      StringBuilder json = new StringBuilder("{");
+      boolean first = true;
+      for (Map.Entry<String, Object> entry : map.entrySet()) {
+        if (!first) json.append(",");
+        json.append("\"").append(entry.getKey()).append("\":");
+        if (entry.getValue() instanceof List) {
+          json.append("[");
+          List<?> list = (List<?>) entry.getValue();
+          for (int i = 0; i < list.size(); i++) {
+            if (i > 0) json.append(",");
+            json.append("\"").append(list.get(i)).append("\"");
+          }
+          json.append("]");
+        } else {
+          json.append("\"").append(entry.getValue()).append("\"");
+        }
+        first = false;
+      }
+      json.append("}");
+      return json.toString();
+    }
+    return obj != null ? obj.toString() : null;
+  }
+
+  /**
+   * Truncate text to fit Parquet string limits.
+   */
+  private String truncateText(String text, int maxLength) {
+    if (text == null || text.length() <= maxLength) {
+      return text;
+    }
+    return text.substring(0, maxLength - 3) + "...";
   }
 }
