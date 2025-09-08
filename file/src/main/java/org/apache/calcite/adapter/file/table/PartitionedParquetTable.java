@@ -105,6 +105,11 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
       this.partitionColumns = new ArrayList<>();
       LOGGER.debug("PartitionedParquetTable initialized with no partition columns");
     }
+    
+    // Log partition column types for debugging
+    if (partitionColumnTypes != null && !partitionColumnTypes.isEmpty()) {
+      LOGGER.debug("Partition column types: {}", partitionColumnTypes);
+    }
   }
 
   /**
@@ -151,10 +156,14 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
             String typeStr = partitionColumnTypes.get(partCol);
             try {
               sqlType = SqlTypeName.valueOf(typeStr.toUpperCase(java.util.Locale.ROOT));
+              LOGGER.debug("Partition column '{}' will have type: {} (from '{}')", 
+                          partCol, sqlType, typeStr);
             } catch (IllegalArgumentException e) {
               LOGGER.warn("Unknown type '{}' for partition column '{}', defaulting to VARCHAR",
                           typeStr, partCol);
             }
+          } else {
+            LOGGER.debug("No type specified for partition column '{}', defaulting to VARCHAR", partCol);
           }
           // All Parquet fields should be nullable
           builder.add(
@@ -481,10 +490,16 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
           try {
             SqlTypeName sqlType = SqlTypeName.valueOf(typeStr.toUpperCase(java.util.Locale.ROOT));
             value = convertPartitionValue(strValue, sqlType);
+            LOGGER.debug("Converted partition column '{}' value '{}' to type {} -> {}", 
+                        partCol, strValue, sqlType, value.getClass().getSimpleName());
           } catch (Exception e) {
             // Keep as string if conversion fails
-            LOGGER.debug("Failed to convert partition value '{}' to type {}", strValue, typeStr);
+            LOGGER.debug("Failed to convert partition value '{}' to type {}: {}", 
+                        strValue, typeStr, e.getMessage());
           }
+        } else {
+          LOGGER.debug("No type conversion for partition column '{}', keeping as string: '{}'", 
+                      partCol, strValue);
         }
 
         row[fileFieldCount + i] = value;
