@@ -27,7 +27,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,13 +65,13 @@ public class AppleMicrosoftTest {
       System.out.println("Testing financial_line_items table access...");
 
       String query =
-        "SELECT cik, filing_type, year, concept, \"value\", numeric_value " +
+        "SELECT cik, filing_type, \"year\", concept, \"value\", numeric_value " +
         "FROM sec.financial_line_items " +
         "WHERE cik IN ('0000320193', '0000789019') " +
         "  AND filing_type = '10K' " +
         "  AND LOWER(concept) LIKE '%netincome%' " +
-        "  AND year >= 2022 " +
-        "ORDER BY cik, year " +
+        "  AND \"year\" >= 2022 " +
+        "ORDER BY cik, \"year\" " +
         "LIMIT 10";
 
       System.out.println("Executing query: " + query);
@@ -77,14 +80,26 @@ public class AppleMicrosoftTest {
         ResultSetMetaData meta = rs.getMetaData();
         System.out.println("Column count: " + meta.getColumnCount());
 
+        // Find and verify year column type
+        int yearColumnIndex = -1;
         for (int i = 1; i <= meta.getColumnCount(); i++) {
-          System.out.println("Column " + i + ": " + meta.getColumnName(i) + " (" + meta.getColumnTypeName(i) + ")");
+          String colName = meta.getColumnName(i);
+          String colType = meta.getColumnTypeName(i);
+          System.out.println("Column " + i + ": " + colName + " (" + colType + ")");
+          if (colName.equalsIgnoreCase("year")) {
+            yearColumnIndex = i;
+            // Verify year is typed as INTEGER
+            assertTrue(colType.contains("INT") || colType.equals("INTEGER"), 
+                      "Year column should be INTEGER type, but was: " + colType);
+          }
         }
+        assertTrue(yearColumnIndex > 0, "Year column should exist");
 
         int rowCount = 0;
         while (rs.next()) {
           String cik = rs.getString("cik");
           String filingType = rs.getString("filing_type");
+          // Now year should be retrievable as an integer directly
           int year = rs.getInt("year");
           String concept = rs.getString("concept");
           String valueStr = rs.getString(5);  // "value" column
@@ -95,12 +110,130 @@ public class AppleMicrosoftTest {
 
           // Validate data
           assertTrue(cik.equals("0000320193") || cik.equals("0000789019"), "Should be Apple or Microsoft");
-          assertTrue(year >= 2022 && year <= 2023, "Should be 2022 or 2023");
+          assertTrue(year >= 2022 && year <= 2024, "Should be 2022-2024");
           assertTrue(numericValue > 0, "Net income should be positive");
         }
 
         assertTrue(rowCount > 0, "Should have found some net income data");
         System.out.println("Successfully queried " + rowCount + " rows");
+      }
+    }
+  }
+
+  @Test void testAllTablesAvailable() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("lex", "ORACLE");
+    props.setProperty("unquotedCasing", "TO_LOWER");
+
+    String jdbcUrl = "jdbc:calcite:model=" + modelPath;
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, props)) {
+      
+      // Test each expected table with a simple count query
+      System.out.println("Testing available SEC tables:");
+      
+      // Test financial_line_items
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.financial_line_items")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - financial_line_items: " + count + " rows");
+        assertTrue(count > 0, "financial_line_items should have data");
+      }
+      
+      // Test filing_contexts
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.filing_contexts")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - filing_contexts: " + count + " rows");
+        assertTrue(count > 0, "filing_contexts should have data");
+      }
+      
+      // Test mda_sections
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.mda_sections")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - mda_sections: " + count + " rows");
+        assertTrue(count > 0, "mda_sections should have data");
+      }
+      
+      // Test xbrl_relationships - this is the one user said is missing
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.xbrl_relationships")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - xbrl_relationships: " + count + " rows");
+        assertTrue(count > 0, "xbrl_relationships should have data");
+      }
+      
+      // Check if insider_transactions table exists (might not have data for 10-K filings)
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.insider_transactions")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - insider_transactions: " + count + " rows (may be 0 for 10-K only)");
+      } catch (SQLException e) {
+        System.out.println("  - insider_transactions: TABLE NOT FOUND");
+      }
+      
+      // Check if earnings_transcripts table exists (might not have data for 10-K filings)  
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.earnings_transcripts")) {
+        assertTrue(rs.next());
+        int count = rs.getInt(1);
+        System.out.println("  - earnings_transcripts: " + count + " rows (may be 0 for 10-K only)");
+      } catch (SQLException e) {
+        System.out.println("  - earnings_transcripts: TABLE NOT FOUND");
+      }
+      
+      System.out.println("\nSummary: 4 core tables found. Note: insider_transactions and earnings_transcripts " + 
+                         "tables are only populated when Forms 3/4/5 and 8-K filings are downloaded.");
+    }
+  }
+
+  @Test void testRelationshipsTable() throws Exception {
+    Properties props = new Properties();
+    props.setProperty("lex", "ORACLE");
+    props.setProperty("unquotedCasing", "TO_LOWER");
+
+    String jdbcUrl = "jdbc:calcite:model=" + modelPath;
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
+         Statement stmt = conn.createStatement()) {
+
+      // Test that xbrl_relationships table exists and has data
+      String query = 
+        "SELECT cik, filing_type, \"year\", from_concept, to_concept, arc_role " +
+        "FROM sec.xbrl_relationships " +
+        "WHERE cik = '0000320193' " +
+        "LIMIT 10";
+
+      System.out.println("Testing xbrl_relationships table...");
+      
+      try (ResultSet rs = stmt.executeQuery(query)) {
+        ResultSetMetaData meta = rs.getMetaData();
+        System.out.println("xbrl_relationships columns:");
+        
+        for (int i = 1; i <= meta.getColumnCount(); i++) {
+          System.out.println("  " + meta.getColumnName(i) + " - " + meta.getColumnTypeName(i));
+        }
+        
+        int rowCount = 0;
+        while (rs.next()) {
+          rowCount++;
+          if (rowCount <= 3) {
+            System.out.printf("  Row %d: from=%s, to=%s, role=%s%n",
+                rowCount,
+                rs.getString("from_concept"),
+                rs.getString("to_concept"),
+                rs.getString("arc_role"));
+          }
+        }
+        
+        assertTrue(rowCount > 0, "Should have relationship data");
+        System.out.println("Found " + rowCount + " relationships");
       }
     }
   }

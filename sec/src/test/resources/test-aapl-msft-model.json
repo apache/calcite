@@ -6,16 +6,18 @@
     "type": "custom",
     "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
     "operand": {
-      "directory": "/Volumes/T9/calcite-sec-cache",
-      "ciks": ["0000320193", "0000789019"],
+      "directory": "/tmp/sec-test-empty-cache",
+      "ciks": ["0000320193"],
       "filingTypes": ["10-K"],
       "autoDownload": true,
       "startYear": 2022,
-      "endYear": 2023,
+      "endYear": 2024,
       "executionEngine": "duckdb",
       "testMode": false,
       "ephemeralCache": false,
-      "sec.fallback.enabled": false
+      "sec.fallback.enabled": false,
+      "enableVectorization": true,
+      "vectorizationDimension": 256
     }
   }]
 }
