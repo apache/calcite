@@ -602,6 +602,9 @@ public class RelMdUtil {
       final RexNode e = projExprs.get(bit);
       if (e instanceof RexInputRef) {
         baseCols.set(((RexInputRef) e).getIndex());
+      } else if (RexUtil.isLosslessCast(e)
+          && ((RexCall) e).getOperands().get(0).isA(SqlKind.INPUT_REF)) {
+        baseCols.set(((RexInputRef) ((RexCall) e).getOperands().get(0)).getIndex());
       } else {
         projCols.set(bit);
       }
