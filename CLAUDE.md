@@ -26,6 +26,49 @@
 - Never quote lower case identifiers.
 - Always analyze and present a plane for code changes, then request approval to make changes.
 
+## Implementation Honesty Rules - CRITICAL
+
+### NEVER Claim Completion of Unimplemented Features
+- **NEVER** claim a feature is "enhanced" or "implemented" when you've only added stubs
+- **NEVER** write commit messages claiming functionality that doesn't exist
+- **NEVER** say "I've added X" when X is just empty methods or placeholder code
+- **ALWAYS** be explicit about what is actually implemented vs what is stubbed
+
+### Stub Code Rules
+- **PROHIBITED**: Committing stub methods without clearly marking them as stubs
+- **REQUIRED**: If creating placeholder code, mark it clearly:
+  ```java
+  // TODO: Not implemented - stub only
+  // STUB: This method returns empty data
+  // PLACEHOLDER: Actual implementation needed
+  ```
+- **REQUIRED**: Commit messages must reflect actual state:
+  - ❌ BAD: "feat: add text vectorization with contextual enrichment"
+  - ✅ GOOD: "feat: add stub structure for text vectorization (not implemented)"
+  - ✅ GOOD: "wip: add placeholder methods for MD&A extraction"
+
+### Completion Claims
+- **ONLY** claim something is complete when:
+  - It actually extracts/processes real data
+  - It has been tested with real inputs
+  - It produces meaningful outputs
+- **NEVER** claim completion when:
+  - Methods return empty lists/null
+  - Core logic is missing
+  - The feature doesn't work end-to-end
+
+### Required Disclosure
+When implementing features:
+1. If adding stubs: Say "I'm adding stub methods for X"
+2. If partially implementing: Say "I've implemented Y part of X, but Z is still needed"
+3. If fully implementing: Verify it works before claiming completion
+
+### Commit Message Integrity
+- Commit messages MUST accurately reflect what was done
+- Use "wip:" prefix for work-in-progress commits with stubs
+- Use "stub:" or "scaffold:" prefix when adding structure without implementation
+- Only use "feat:" when the feature actually works
+
 ## Splunk Adapter Notes
 
 - The Splunk adapter can only push down simple field references in projections. Complex expressions (CAST, arithmetic, functions) must be handled by Calcite
