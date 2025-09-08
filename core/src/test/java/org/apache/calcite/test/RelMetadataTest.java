@@ -4666,7 +4666,7 @@ public class RelMetadataTest {
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7083">[CALCITE-7083]
    * RelMdDistinctRowCount aggregates implementation problems</a>. */
-  @Test void testAggregateDistinctRowcount() {
+  @Test void testAggregateDistinctRowCount() {
     // test case of groupKey contains aggregated column
     sql("select name, sum(sal) from (values ('b', 10), ('b', 20), ('b', 30)) as t(name, sal) "
         + "group by name")
@@ -4692,6 +4692,76 @@ public class RelMetadataTest {
           return filter;
         })
         .assertThatDistinctRowCount(bitSetOf(0), is(1d));
+  }
+
+  @Test void testAggregateDistinctRowCountLosslessCast() {
+    final String sql =
+        "select name, sal, cast(sal as varchar(11)) "
+            + "from (values ('b', 10), ('b', 20), ('b', 30)) t(name, sal) "
+            + "group by name, sal, cast(sal as varchar(11))";
+
+    // we expect NDV($i) = NDV(CAST($i)), if cast is lossless
+    sql(sql).assertThatDistinctRowCount(bitSetOf(1), is(3d));
+    sql(sql).assertThatDistinctRowCount(bitSetOf(2), is(3d));
+  }
+
+  @Test void testAggregateDistinctRowCountLosslessCastFilterOnField() {
+    final String sql =
+        "select name, sal, cast(sal as varchar(11))"
+            + "from (values ('b', 10), ('b', 20), ('b', 30)) t(name, sal) "
+            + "where sal = 10 "
+            + "group by name, sal, cast(sal as varchar(11))";
+
+    // we expect NDV($i) = NDV(CAST($i)), if cast is lossless
+    sql(sql).assertThatDistinctRowCount(bitSetOf(1), is(1d));
+    sql(sql).assertThatDistinctRowCount(bitSetOf(2), is(1d));
+  }
+
+  @Test void testAggregateDistinctRowCountLosslessCastFilterOnCastedField() {
+    final String sql =
+        "select name, sal, cast(sal as varchar(11))"
+            + "from (values ('b', 10), ('b', 20), ('b', 30)) t(name, sal) "
+            + "where cast(sal as varchar(11)) = 10 "
+            + "group by name, sal, cast(sal as varchar(11))";
+
+    // we expect NDV($i) = NDV(CAST($i)), if cast is lossless
+    sql(sql).assertThatDistinctRowCount(bitSetOf(1), is(1d));
+    sql(sql).assertThatDistinctRowCount(bitSetOf(2), is(1d));
+  }
+
+  @Test void testAggregateDistinctRowCountLossyCast() {
+    final String sql =
+        "select name, sal, cast(sal as int) "
+            + "from (values ('b', 10.1), ('b', 20.2), ('b', 30.3)) t(name, sal) "
+            + "group by name, sal, cast(sal as int)";
+
+    // we expect NDV($i) >= NDV(CAST($i)), if cast is lossy
+    sql(sql).assertThatDistinctRowCount(bitSetOf(1), is(3d));
+    sql(sql).assertThatDistinctRowCount(bitSetOf(2), closeTo(1.6439107033725735d, 0.1d));
+  }
+
+  @Test void testAggregateDistinctRowCountLossyCastFilterOnField() {
+    final String sql =
+        "select name, sal, cast(sal as int) "
+            + "from (values ('b', 10.1), ('b', 20.2), ('b', 30.3)) t(name, sal) "
+            + "where sal > 20 "
+            + "group by name, sal, cast(sal as int)";
+
+    // we expect NDV($i) >= NDV(CAST($i)), if cast is lossy
+    sql(sql).assertThatDistinctRowCount(bitSetOf(1), closeTo(1.367006838144548, 0.1d));
+    sql(sql).assertThatDistinctRowCount(bitSetOf(2), closeTo(1.0744407789565844, 0.1d));
+  }
+
+  @Test void testAggregateDistinctRowCountLossyCastFilterOnCastedField() {
+    final String sql =
+        "select name, sal, cast(sal as int) "
+            + "from (values ('b', 10.1), ('b', 20.2), ('b', 30.3)) t(name, sal) "
+            + "where cast(sal as int) > 20 "
+            + "group by name, sal, cast(sal as int)";
+
+    // we expect NDV($i) >= NDV(CAST($i)), if cast is lossy
+    sql(sql).assertThatDistinctRowCount(bitSetOf(1), closeTo(1.367006838144548, 0.1d));
+    sql(sql).assertThatDistinctRowCount(bitSetOf(2), closeTo(1.0744407789565844, 0.1d));
   }
 
   private void checkInputForCollationAndLimit(RelOptCluster cluster, RelOptTable empTable,
