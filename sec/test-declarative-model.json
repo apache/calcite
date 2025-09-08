@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [{
+    "name": "sec",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "operand": {
+      "directory": "/Volumes/T9/calcite-sec-cache",
+      "ciks": ["AAPL"],
+      "filingTypes": ["10-K", "10-Q"],
+      "startYear": 2022,
+      "endYear": 2023,
+      "autoDownload": false
+    }
+  }]
+}

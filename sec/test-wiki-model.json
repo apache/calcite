@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultSchema": "djia_wiki",
+  "schemas": [{
+    "name": "djia_wiki",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "tables": [{
+        "name": "djia_constituents",
+        "url": "https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average",
+        "selector": "table.wikitable:first",
+        "index": 0
+      }]
+    }
+  }]
+}

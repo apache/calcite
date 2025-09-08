@@ -43,7 +43,7 @@ dependencies {
     // HTTP client for SEC EDGAR API
     implementation("org.apache.httpcomponents:httpclient:4.5.14")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17")
-    
+
     // HTML parsing for inline XBRL
     implementation("org.jsoup:jsoup")
 

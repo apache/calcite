@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [{
+    "name": "sec",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "operand": {
+      "directory": "/Volumes/T9/calcite-sec-cache",
+      "testMode": true
+    }
+  }]
+}
