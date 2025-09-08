@@ -288,7 +288,7 @@ public class PartitionedTableTest {
     // Create schema configuration with explicit partition config
     Map<String, Object> partitionConfig = new HashMap<>();
     partitionConfig.put("style", "directory");
-    partitionConfig.put("columns", java.util.Arrays.asList("year", "month"));
+    partitionConfig.put("columnDefinitions", java.util.Arrays.asList("year", "month"));
 
     Map<String, Object> tableConfig =
         createPartitionedTableConfig("events", "events/**/*.parquet", null);

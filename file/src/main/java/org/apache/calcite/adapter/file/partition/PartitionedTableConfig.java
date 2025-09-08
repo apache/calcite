@@ -155,27 +155,30 @@ public class PartitionedTableConfig {
     if (partitionsMap != null) {
       String style = (String) partitionsMap.get("style");
 
-      // Handle both simple string columns and object-based column definitions
+      // Handle column definitions - always use columnDefinitions format
       List<String> simpleColumns = null;
       List<ColumnDefinition> columnDefinitions = null;
 
-      Object columnsObj = partitionsMap.get("columns");
-      if (columnsObj instanceof List) {
-        List<?> columnsList = (List<?>) columnsObj;
-        if (!columnsList.isEmpty()) {
-          Object firstElem = columnsList.get(0);
+      // Only support "columnDefinitions" format - no backward compatibility
+      Object columnDefsObj = partitionsMap.get("columnDefinitions");
+      if (columnDefsObj instanceof List) {
+        List<?> defsList = (List<?>) columnDefsObj;
+        if (!defsList.isEmpty()) {
+          Object firstElem = defsList.get(0);
           if (firstElem instanceof String) {
-            // Simple string array: ["year", "month", "day"]
-            simpleColumns = (List<String>) columnsObj;
+            // Simple string array converted to ColumnDefinitions with default VARCHAR type
+            simpleColumns = (List<String>) columnDefsObj;
+            columnDefinitions = simpleColumns.stream()
+                .map(colName -> new ColumnDefinition(colName, "VARCHAR"))
+                .collect(java.util.stream.Collectors.toList());
           } else if (firstElem instanceof Map) {
-            // Object array: [{"name": "year", "type": "INTEGER"}, ...]
-            columnDefinitions = ((List<Map<String, Object>>) columnsObj).stream()
-                .map(
-                    m -> new ColumnDefinition(
+            // Full definition with types: [{"name": "year", "type": "INTEGER"}, ...]
+            columnDefinitions = ((List<Map<String, Object>>) defsList).stream()
+                .map(m -> new ColumnDefinition(
                     (String) m.get("name"),
                     (String) m.get("type")))
                 .collect(java.util.stream.Collectors.toList());
-            // Also create simple columns list for backward compatibility
+            // Extract column names for APIs that need them
             simpleColumns = columnDefinitions.stream()
                 .map(ColumnDefinition::getName)
                 .collect(java.util.stream.Collectors.toList());
