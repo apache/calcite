@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec_djia",
+  "schemas": [
+    {
+      "name": "sec_djia",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "operand": {
+        "dataDirectory": "/Volumes/T9/sec-data/djia-5year",
+        "download": true,
+        "realData": true,
+        "ciks": "_DJIA_CONSTITUENTS",
+        "startYear": 2020,
+        "endYear": 2024,
+        "forms": ["10-K", "10-Q", "8-K"],
+        "maxFilingsPerCompany": 100,
+        "downloadDelay": 100,
+        "ephemeralCache": false,
+        "enableEmbeddings": false,
+        "parallelDownloads": false,
+        "description": "SEC filings for all Dow Jones Industrial Average companies (2020-2024)"
+      }
+    }
+  ]
+}

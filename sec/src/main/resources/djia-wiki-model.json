@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "defaultSchema": "djia_wiki",
+  "schemas": [
+    {
+      "name": "djia_wiki",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "ephemeralCache": false,
+        "tables": [
+          {
+            "name": "djia_constituents",
+            "url": "https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average",
+            "selector": "table.wikitable",
+            "index": 0,
+            "fields": [
+              {
+                "th": "Company",
+                "name": "company",
+                "selector": "a",
+                "selectedElement": 0
+              },
+              {
+                "th": "Exchange",
+                "name": "exchange"
+              },
+              {
+                "th": "Symbol",
+                "name": "ticker"
+              },
+              {
+                "th": "Industry",
+                "name": "industry"
+              },
+              {
+                "th": "Date added",
+                "name": "date_added"
+              },
+              {
+                "th": "Notes",
+                "name": "notes",
+                "skip": true
+              },
+              {
+                "th": "Index weighting",
+                "name": "weight",
+                "type": "double",
+                "match": "\\d+\\.\\d+",
+                "matchSeq": 0
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
