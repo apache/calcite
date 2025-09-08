@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.adapter.sec;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,27 +32,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("integration")
 public class SimpleNetIncomeTest {
-  
-  @Test
-  public void testSimpleNetIncomeQuery() throws Exception {
+
+  @Test public void testSimpleNetIncomeQuery() throws Exception {
     // Load JDBC driver
     Class.forName("org.apache.calcite.jdbc.Driver");
-    
+
     // Create model for just Apple (using cached data)
     String modelPath = getClass().getClassLoader().getResource("simple-test-model.json").getPath();
-    
+
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
     info.setProperty("unquotedCasing", "TO_LOWER");
     info.setProperty("model", modelPath);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // Simple query to test if we can query the data
       String sql = "SELECT COUNT(*) as cnt FROM financial_line_items";
-      
+
       try (PreparedStatement stmt = connection.prepareStatement(sql);
            ResultSet rs = stmt.executeQuery()) {
-        
+
         if (rs.next()) {
           int count = rs.getInt("cnt");
           System.out.println("Found " + count + " financial line items");
