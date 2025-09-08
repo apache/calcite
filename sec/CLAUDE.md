@@ -58,7 +58,7 @@
   // GOOD: Use file adapter's HTML processing
   List<File> jsonFiles = HtmlToJsonConverter.convert(
       htmlFile, outputDir, "TO_LOWER", baseDirectory);
-  
+
   // BAD: Custom HTML parsing
   Document doc = Jsoup.parse(html); // NO!
   ```
@@ -244,7 +244,7 @@ void testDJIData() {
     // Add temporary logging
     logger.debug("Query: {}", sql);
     logger.debug("Result count: {}", resultSet.getRow());
-    
+
     // Fix the actual issue
     // Remove debug code after fixing
 }
@@ -432,10 +432,10 @@ Track and expose fallback usage:
 public void testPrimaryMethodFailureThrowsException() {
   // Disable fallbacks for this test
   config.setProperty("sec.fallback.enabled", false);
-  
+
   // Mock primary method to fail
   when(secAPI.fetch()).thenThrow(new IOException("Network error"));
-  
+
   // Should throw, not fall back
   assertThrows(DataFetchException.class, () -> dataFetcher.getData());
 }
@@ -445,7 +445,7 @@ public void testPrimaryMethodFailureThrowsException() {
 public void testFallbackWithExplicitConfig() {
   // Explicitly enable fallback
   config.setProperty("sec.fallback.enabled", true);
-  
+
   // Verify fallback is used and logged
   List<String> data = dataFetcher.getData();
   assertNotNull(data);
@@ -470,7 +470,7 @@ sec/
 │   │   ├── resources/      # Production resources
 │   │   └── scripts/        # Production scripts (optional)
 │   └── test/
-│       ├── java/           # Test Java code  
+│       ├── java/           # Test Java code
 │       │   └── org/apache/calcite/adapter/sec/
 │       └── resources/      # Test resources
 ├── examples/               # Example applications (optional)
@@ -511,7 +511,7 @@ sec/
 ```java
 // BAD: Files that should NEVER exist in /sec/ root
 /sec/TestDJIModel.java           ❌ Test file in root
-/sec/TestWikipediaScraper.java   ❌ Test file in root  
+/sec/TestWikipediaScraper.java   ❌ Test file in root
 /sec/RunRealDJIDownload.java     ❌ Runner in root
 /sec/TestDJIScraper.sh           ❌ Test script in root
 /sec/*.class                     ❌ Compiled files
@@ -651,7 +651,7 @@ Every integration test MUST follow this pattern:
 public class SecQueryIntegrationTest {
     private String testDataDir;
     private String modelPath;
-    
+
     @BeforeEach
     void setUp() throws Exception {
         // Create unique test directory - NEVER use @TempDir
@@ -659,31 +659,31 @@ public class SecQueryIntegrationTest {
         String testName = testInfo.getTestMethod().get().getName();
         testDataDir = "build/test-data/" + getClass().getSimpleName() + "/" + testName + "_" + timestamp;
         Files.createDirectories(Paths.get(testDataDir));
-        
+
         // Create test model
         modelPath = createTestModel();
     }
-    
+
     @Test
     void testBasicQuery() throws Exception {
         Properties props = new Properties();
         props.setProperty("lex", "ORACLE");
         props.setProperty("unquotedCasing", "TO_LOWER");
-        
+
         try (Connection conn = DriverManager.getConnection(
                 "jdbc:calcite:model=" + modelPath, props)) {
-            
+
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(
                      "SELECT cik, company_name, fiscal_year " +
                      "FROM sec_filings " +
                      "WHERE fiscal_year >= 2020")) {
-                
+
                 // Validate results
                 assertTrue(rs.next());
                 assertEquals(10, rs.getString("cik").length());
                 assertTrue(rs.getInt("fiscal_year") >= 2020);
-                
+
                 // Validate metadata
                 ResultSetMetaData meta = rs.getMetaData();
                 assertEquals(3, meta.getColumnCount());
@@ -691,7 +691,7 @@ public class SecQueryIntegrationTest {
             }
         }
     }
-    
+
     @AfterEach
     void tearDown() {
         // Manual cleanup - NEVER rely on @TempDir
@@ -707,7 +707,7 @@ public class SecQueryIntegrationTest {
             System.err.println("Warning: Could not clean test directory: " + e.getMessage());
         }
     }
-    
+
     private String createTestModel() throws Exception {
         String model = """
             {
@@ -729,7 +729,7 @@ public class SecQueryIntegrationTest {
               }]
             }
             """.formatted(testDataDir);
-        
+
         Path modelFile = Paths.get(testDataDir, "model.json");
         Files.writeString(modelFile, model);
         return modelFile.toString();
@@ -799,12 +799,12 @@ build/
 3. **Complex Queries**
    ```sql
    -- Joins
-   SELECT f.*, s.* FROM sec_filings f 
+   SELECT f.*, s.* FROM sec_filings f
    JOIN financial_statements s ON f.accession = s.accession
-   
+
    -- Aggregations
-   SELECT cik, AVG(revenue) as avg_revenue 
-   FROM financial_statements 
+   SELECT cik, AVG(revenue) as avg_revenue
+   FROM financial_statements
    GROUP BY cik
    ```
 
@@ -860,7 +860,7 @@ void testPreparedStatement() throws Exception {
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, "0000320193");  // Apple's CIK
             pstmt.setInt(2, 2023);
-            
+
             try (ResultSet rs = pstmt.executeQuery()) {
                 assertTrue(rs.next());
                 assertEquals("0000320193", rs.getString("cik"));
@@ -880,7 +880,7 @@ void testWithResources() throws Exception {
     try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery(sql)) {
-        
+
         // Process results
         while (rs.next()) {
             // Assertions
@@ -900,15 +900,15 @@ class SecParallelTest {
         String uniqueDir = createUniqueTestDir();
         // Test implementation
     }
-    
+
     @Test
     void test2() {
         String uniqueDir = createUniqueTestDir();
         // Test implementation
     }
-    
+
     private String createUniqueTestDir() {
-        return "build/test-data/" + 
+        return "build/test-data/" +
                getClass().getSimpleName() + "/" +
                Thread.currentThread().getName() + "_" +
                System.nanoTime();

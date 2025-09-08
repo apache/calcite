@@ -88,7 +88,7 @@ useJUnitPlatform {
 # Run unit tests only (default)
 ./gradlew :sec:test
 
-# Run integration tests only  
+# Run integration tests only
 ./gradlew :sec:test -PincludeTags=integration
 
 # Run specific integration test
@@ -150,7 +150,7 @@ useJUnitPlatform {
 - **PROHIBITED**: Compiled `.class` files anywhere in repository
 
 ### Proper Locations for Temporary/Experimental Code
-1. **Temporary test explorations**: 
+1. **Temporary test explorations**:
    - Create in `build/temp-tests/` (git-ignored)
    - Tag with `@Tag("temp")` for easy identification
    - Delete after use
