@@ -72,6 +72,12 @@ The SecEmbeddingSchemaFactory provides smart defaults for everything:
    - `footnotes` - Partitioned footnotes
    - `document_embeddings` - Partitioned embeddings with vector column
 
+✅ **Table Constraints** (for query optimization):
+   - Primary keys defined for all tables
+   - Foreign key relationships between related tables
+   - Constraints exposed via JDBC metadata
+   - Used by optimizer for join elimination and reordering
+
 ### Comparison with Verbose Configuration
 
 Without smart defaults, you would need 60+ lines of configuration to achieve the same setup!
@@ -84,6 +90,64 @@ export SEC_DATA_DIRECTORY=/Volumes/T9/sec-test-data
 
 # Run the embedding test
 ./gradlew :sec:test --tests "*.SecEmbeddingTest"
+```
+
+## Table Constraints and Query Optimization
+
+The SEC adapter defines PRIMARY KEY and FOREIGN KEY constraints for all tables. While these constraints are not enforced (since Parquet files are immutable), they provide significant benefits:
+
+### Benefits of Constraints
+
+1. **Query Optimization**: The Calcite optimizer uses constraint metadata to:
+   - Eliminate unnecessary joins when uniqueness is guaranteed
+   - Reorder joins for better performance
+   - Apply constraint-based pruning
+   - Generate more efficient execution plans
+
+2. **Tool Integration**: JDBC metadata APIs expose constraints to:
+   - BI tools (Tableau, PowerBI, etc.) for automatic relationship detection
+   - SQL IDEs (DBeaver, DataGrip, etc.) for visual schema design
+   - Data lineage and documentation tools
+
+### Example Constraint Definitions
+
+The SEC adapter automatically configures these constraints:
+
+```json
+{
+  "tables": [{
+    "name": "financial_line_items",
+    "constraints": {
+      "primaryKey": ["cik", "filing_type", "year", "filing_date", "concept", "context_ref"],
+      "foreignKeys": [{
+        "columns": ["context_ref"],
+        "targetTable": ["SEC", "filing_contexts"],
+        "targetColumns": ["context_id"]
+      }]
+    }
+  }]
+}
+```
+
+### Accessing Constraint Metadata via JDBC
+
+```java
+Connection conn = DriverManager.getConnection("jdbc:calcite:model=model.json");
+DatabaseMetaData metadata = conn.getMetaData();
+
+// Get primary keys
+ResultSet pkRS = metadata.getPrimaryKeys(null, "SEC", "financial_line_items");
+while (pkRS.next()) {
+    System.out.println("PK Column: " + pkRS.getString("COLUMN_NAME"));
+}
+
+// Get foreign keys
+ResultSet fkRS = metadata.getImportedKeys(null, "SEC", "financial_line_items");
+while (fkRS.next()) {
+    System.out.println("FK: " + fkRS.getString("FKCOLUMN_NAME") + 
+                      " -> " + fkRS.getString("PKTABLE_NAME") + "." + 
+                      fkRS.getString("PKCOLUMN_NAME"));
+}
 ```
 
 ## Usage in Code
