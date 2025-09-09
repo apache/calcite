@@ -1759,6 +1759,7 @@ public class XbrlToParquetConverter implements FileConverter {
       String cik, String filingType, String filingDate, File sourceFile) throws IOException {
 
     // Create schema for vectorized blobs
+    Schema embeddingField = SchemaBuilder.array().items().floatType();
     Schema schema = SchemaBuilder.record("VectorizedBlob")
         .fields()
         .requiredString("vector_id")
@@ -1767,6 +1768,7 @@ public class XbrlToParquetConverter implements FileConverter {
         .requiredString("filing_date")
         .requiredString("original_text")
         .requiredString("enriched_text")
+        .name("embedding").type(embeddingField).noDefault()  // 256-dimensional float array
         .optionalString("parent_section")
         .optionalString("relationships")  // JSON string of relationships
         .optionalString("financial_concepts")  // Comma-separated concepts
@@ -1848,6 +1850,18 @@ public class XbrlToParquetConverter implements FileConverter {
         record.put("token_budget", chunk.metadata.get("token_budget"));
       }
       
+      // Add embedding vector (convert double[] to List<Float> for Avro)
+      if (chunk.embedding != null && chunk.embedding.length > 0) {
+        List<Float> embeddingList = new ArrayList<>();
+        for (double value : chunk.embedding) {
+          embeddingList.add((float) value);
+        }
+        record.put("embedding", embeddingList);
+      } else {
+        throw new IllegalStateException("Chunk missing embedding vector: " + chunk.context + 
+            " (type: " + chunk.blobType + ")");
+      }
+      
       records.add(record);
     }
 
@@ -1865,7 +1879,7 @@ public class XbrlToParquetConverter implements FileConverter {
   private List<SecTextVectorizer.TextBlob> extractFootnoteBlobs(Document doc) {
     List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
     
-    // Extract footnotes from XBRL TextBlock elements
+    // Extract footnotes from both traditional XBRL and inline XBRL (iXBRL) TextBlock elements
     // These contain actual narrative text in XBRL filings
     NodeList allElements = doc.getElementsByTagName("*");
     int footnoteCounter = 0;
@@ -1873,33 +1887,48 @@ public class XbrlToParquetConverter implements FileConverter {
     for (int i = 0; i < allElements.getLength(); i++) {
       Element element = (Element) allElements.item(i);
       String localName = element.getLocalName();
+      String namespaceURI = element.getNamespaceURI();
       
-      // Look for TextBlock elements which contain narrative footnotes
+      String concept = null;
+      String text = null;
+      
+      // Check for traditional XBRL TextBlock elements
       if (localName != null && localName.endsWith("TextBlock")) {
-        String text = element.getTextContent().trim();
+        text = element.getTextContent().trim();
+        concept = extractConceptName(element);
+      }
+      // Check for inline XBRL (iXBRL) TextBlock elements
+      else if ("nonNumeric".equals(localName) && namespaceURI != null 
+               && namespaceURI.contains("xbrl")) {
+        String name = element.getAttribute("name");
+        if (name != null && name.contains("TextBlock")) {
+          // For inline XBRL, the text content is in the element
+          text = element.getTextContent().trim();
+          // Extract concept from the name attribute (e.g., "us-gaap:RevenueRecognitionPolicyTextBlock")
+          concept = name.contains(":") ? name.substring(name.indexOf(":") + 1) : name;
+        }
+      }
+      
+      // Process extracted text if found
+      if (text != null && text.length() > 200 && !text.startsWith("<")) {
+        String contextRef = element.getAttribute("contextRef");
         
-        // Extract meaningful footnote text (skip short or HTML content)
-        if (text.length() > 200 && !text.startsWith("<")) {
-          String concept = extractConceptName(element);
-          String contextRef = element.getAttribute("contextRef");
+        // Determine footnote section from concept name
+        String parentSection = determineFootnoteSection(concept);
+        
+        if (parentSection != null) {
+          String id = "footnote_" + (++footnoteCounter);
           
-          // Determine footnote section from concept name
-          String parentSection = determineFootnoteSection(concept);
+          // Create footnote blob with metadata
+          Map<String, String> attributes = new HashMap<>();
+          attributes.put("concept", concept != null ? concept : "");
+          attributes.put("contextRef", contextRef != null ? contextRef : "");
           
-          if (parentSection != null) {
-            String id = "footnote_" + (++footnoteCounter);
-            
-            // Create footnote blob with metadata
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put("concept", concept != null ? concept : "");
-            attributes.put("contextRef", contextRef);
-            
-            SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
-                id, "footnote", text, parentSection, null, attributes);
-            blobs.add(blob);
-            
-            LOGGER.fine("Extracted footnote: " + id + " from concept: " + concept);
-          }
+          SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
+              id, "footnote", text, parentSection, null, attributes);
+          blobs.add(blob);
+          
+          LOGGER.fine("Extracted footnote: " + id + " from concept: " + concept);
         }
       }
     }
@@ -1954,39 +1983,59 @@ public class XbrlToParquetConverter implements FileConverter {
   private List<SecTextVectorizer.TextBlob> extractMDABlobs(Document xbrlDoc, File sourceFile) {
     List<SecTextVectorizer.TextBlob> blobs = new ArrayList<>();
     
-    // First try to extract MD&A from XBRL if present
+    // Extract MD&A from both traditional XBRL and inline XBRL (iXBRL)
     NodeList mdaElements = xbrlDoc.getElementsByTagName("*");
     int mdaCounter = 0;
     
     for (int i = 0; i < mdaElements.getLength(); i++) {
       Element element = (Element) mdaElements.item(i);
       String localName = element.getLocalName();
+      String namespaceURI = element.getNamespaceURI();
       
+      String elementName = null;
+      String text = null;
+      
+      // Check for traditional XBRL MD&A elements
       if (localName != null && 
           (localName.contains("ManagementDiscussionAndAnalysis") ||
            localName.contains("MDAndA") ||
            localName.contains("Item7"))) {
+        text = element.getTextContent().trim();
+        elementName = localName;
+      }
+      // Check for inline XBRL (iXBRL) MD&A elements
+      else if ("nonNumeric".equals(localName) && namespaceURI != null 
+               && namespaceURI.contains("xbrl")) {
+        String name = element.getAttribute("name");
+        if (name != null && 
+            (name.contains("ManagementDiscussionAndAnalysis") ||
+             name.contains("MDAndA") ||
+             name.contains("Item7"))) {
+          text = element.getTextContent().trim();
+          // Extract element name from the name attribute
+          elementName = name.contains(":") ? name.substring(name.indexOf(":") + 1) : name;
+        }
+      }
+      
+      // Process extracted text if found
+      if (text != null && text.length() > 200) {
+        // Split into paragraphs for better vectorization
+        String[] paragraphs = text.split("\\n\\n+|(?<=\\.)\\s+(?=[A-Z])");
         
-        String text = element.getTextContent().trim();
-        if (text.length() > 200) {
-          // Split into paragraphs for better vectorization
-          String[] paragraphs = text.split("\\n\\n+|(?<=\\.)\\s+(?=[A-Z])");
-          
-          for (String paragraph : paragraphs) {
-            paragraph = paragraph.trim();
-            if (paragraph.length() > 100 && !paragraph.startsWith("<")) {
-              String id = "mda_para_" + (++mdaCounter);
-              String parentSection = "Management Discussion and Analysis";
-              String subsection = detectMDASubsection(paragraph);
-              
-              Map<String, String> attributes = new HashMap<>();
-              attributes.put("source", "xbrl");
-              attributes.put("element", localName);
-              
-              SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
-                  id, "mda_paragraph", paragraph, parentSection, subsection, attributes);
-              blobs.add(blob);
-            }
+        for (String paragraph : paragraphs) {
+          paragraph = paragraph.trim();
+          if (paragraph.length() > 100 && !paragraph.startsWith("<")) {
+            String id = "mda_para_" + (++mdaCounter);
+            String parentSection = "Management Discussion and Analysis";
+            String subsection = detectMDASubsection(paragraph);
+            
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("source", "xbrl");
+            attributes.put("element", elementName != null ? elementName : "");
+            
+            SecTextVectorizer.TextBlob blob = new SecTextVectorizer.TextBlob(
+                id, "mda_paragraph", paragraph, parentSection, subsection, attributes);
+            blobs.add(blob);
           }
         }
       }

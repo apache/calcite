@@ -109,6 +109,25 @@ public class SecTextVectorizer {
   }
 
   /**
+   * Normalize PascalCase concept names to readable text.
+   * E.g., "NetIncomeLoss" -> "Net Income Loss"
+   */
+  public static String normalizeConceptName(String conceptName) {
+    if (conceptName == null || conceptName.isEmpty()) {
+      return conceptName;
+    }
+    
+    // Handle acronyms and special cases
+    conceptName = conceptName.replaceAll("([A-Z]+)([A-Z][a-z])", "$1 $2");
+    // Insert space before capital letters (except at start)
+    conceptName = conceptName.replaceAll("([a-z])([A-Z])", "$1 $2");
+    // Clean up multiple spaces
+    conceptName = conceptName.replaceAll("\\s+", " ").trim();
+    
+    return conceptName;
+  }
+
+  /**
    * Create contextual chunks from XBRL document.
    * Each chunk contains a financial concept and ALL its related narrative.
    */
@@ -138,7 +157,9 @@ public class SecTextVectorizer {
       for (String concept : group.getValue()) {
         if (facts.containsKey(concept)) {
           FinancialFact fact = facts.get(concept);
-          chunkText.append("[METRIC] ").append(concept)
+          // Use normalized concept name for better readability
+          String normalizedConcept = normalizeConceptName(concept);
+          chunkText.append("[METRIC] ").append(normalizedConcept)
                    .append(" [VALUE] ").append(formatValue(fact.value))
                    .append(" [PERIOD] ").append(fact.period)
                    .append(" ");
@@ -168,12 +189,18 @@ public class SecTextVectorizer {
         }
       }
 
-      chunks.add(new ContextualChunk(context, chunkText.toString()));
+      // Generate embedding for the chunk
+      String chunkTextStr = chunkText.toString();
+      double[] embedding = generateRealEmbedding(chunkTextStr);
+      chunks.add(new ContextualChunk(context, chunkTextStr, "concept_group", 
+                                     context, new HashMap<>(), embedding));
     }
 
     // Also create a full document embedding
     String fullDoc = createFullDocumentText(facts, narratives, footnotes, secFile);
-    chunks.add(new ContextualChunk("FULL_DOCUMENT", fullDoc));
+    double[] fullDocEmbedding = generateRealEmbedding(fullDoc);
+    chunks.add(new ContextualChunk("FULL_DOCUMENT", fullDoc, "document", 
+                                   "FULL_DOCUMENT", new HashMap<>(), fullDocEmbedding));
 
     return chunks;
   }
