@@ -6,9 +6,9 @@
     "type": "custom",
     "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
     "operand": {
-      "directory": "/tmp/sec-test-aapl-msft-cache",
+      "directory": "/Volumes/T9/sec-test-aapl-msft-cache",
       "ciks": ["0000320193", "0000789019"],
-      "filingTypes": ["10-K", "10-Q", "8-K", "DEF 14A", "20-F", "40-F", "S-1", "S-3", "S-4", "S-8", "10-K/A", "10-Q/A", "8-K/A", "424B2", "424B5"],
+      "filingTypes": ["10-K", "10-Q", "8-K", "DEF 14A", "20-F", "40-F", "S-1", "S-3", "S-4", "S-8", "10-K/A", "10-Q/A", "8-K/A", "424B2", "424B5", "3", "4", "5"],
       "autoDownload": true,
       "startYear": 2022,
       "endYear": 2024,
