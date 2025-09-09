@@ -402,6 +402,60 @@ public class CikRegistry {
   }
 
   /**
+   * Get ticker symbols for a given CIK.
+   * @param cik The CIK to look up (can be with or without leading zeros)
+   * @return List of ticker symbols associated with this CIK, or empty list if none found
+   */
+  public static List<String> getTickersForCik(String cik) {
+    loadRegistry();
+    
+    // Normalize CIK to 10 digits with leading zeros
+    String normalizedCik = normalizeCik(cik);
+    
+    List<String> tickers = new ArrayList<>();
+    
+    // Search through all ticker mappings to find matches
+    for (Map.Entry<String, String> entry : TICKER_TO_CIK.entrySet()) {
+      if (normalizeCik(entry.getValue()).equals(normalizedCik)) {
+        tickers.add(entry.getKey());
+      }
+    }
+    
+    return tickers;
+  }
+  
+  /**
+   * Get all ticker-CIK pairs from the registry.
+   * @return Map of ticker symbols to normalized CIKs
+   */
+  public static Map<String, String> getAllTickerCikPairs() {
+    loadRegistry();
+    
+    Map<String, String> pairs = new HashMap<>();
+    for (Map.Entry<String, String> entry : TICKER_TO_CIK.entrySet()) {
+      pairs.put(entry.getKey(), normalizeCik(entry.getValue()));
+    }
+    return pairs;
+  }
+  
+  /**
+   * Normalize a CIK to 10 digits with leading zeros.
+   * @param cik The CIK to normalize
+   * @return Normalized 10-digit CIK
+   */
+  private static String normalizeCik(String cik) {
+    // Remove any non-digit characters
+    String digits = cik.replaceAll("[^0-9]", "");
+    
+    // Pad with leading zeros to 10 digits
+    while (digits.length() < 10) {
+      digits = "0" + digits;
+    }
+    
+    return digits;
+  }
+  
+  /**
    * Handle special marker identifiers that require dynamic loading.
    * @param marker Special marker like _ALL_EDGAR_FILERS
    * @return List of CIKs or empty list with warning
