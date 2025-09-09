@@ -127,6 +127,9 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
               Expressions.constant("?" + param.getIndex())),
           Integer.class);
     } else {
+      // TODO: Enumerable runtime only supports INT types for FETCH and OFFSET, not BIGINT types.
+      //  Currently, using BIGINT types for execution will result in an error message.
+      //  This issue needs to be fixed. For more information, see CALCITE-7156.
       return Expressions.constant(RexLiteral.intValue(rexNode));
     }
   }
