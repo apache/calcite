@@ -233,6 +233,32 @@ public class SecSchemaFactory implements SchemaFactory {
     earningsTranscripts.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_earnings.parquet");
     earningsTranscripts.put("partitions", partitionConfig);
     partitionedTables.add(earningsTranscripts);
+    
+    // Define stock_prices table for daily EOD prices
+    Map<String, Object> stockPricesPartitionConfig = new HashMap<>();
+    stockPricesPartitionConfig.put("style", "hive");  // Use Hive-style partitioning (key=value)
+    
+    // Define partition columns for stock_prices (ticker and year only)
+    // CIK will be a regular column in the Parquet files for joins
+    List<Map<String, Object>> stockPricesColumnDefs = new ArrayList<>();
+    
+    Map<String, Object> tickerCol = new HashMap<>();
+    tickerCol.put("name", "ticker");
+    tickerCol.put("type", "VARCHAR");
+    stockPricesColumnDefs.add(tickerCol);
+    
+    Map<String, Object> stockYearCol = new HashMap<>();
+    stockYearCol.put("name", "year");
+    stockYearCol.put("type", "INTEGER");
+    stockPricesColumnDefs.add(stockYearCol);
+    
+    stockPricesPartitionConfig.put("columnDefinitions", stockPricesColumnDefs);
+    
+    Map<String, Object> stockPrices = new HashMap<>();
+    stockPrices.put("name", "stock_prices");
+    stockPrices.put("pattern", "stock_prices/ticker=*/year=*/[!.]*_prices.parquet");
+    stockPrices.put("partitions", stockPricesPartitionConfig);
+    partitionedTables.add(stockPrices);
 
     // Add partitioned tables to operand
     mutableOperand.put("partitionedTables", partitionedTables);
@@ -414,6 +440,13 @@ public class SecSchemaFactory implements SchemaFactory {
         LOGGER.info("DEBUG: baseDir=" + baseDir.getAbsolutePath());
         createSecTablesFromXbrl(baseDir, ciks, startYear, endYear);
         LOGGER.info("DEBUG: Finished createSecTablesFromXbrl for mock data");
+        
+        // Also create mock stock prices if enabled
+        boolean fetchStockPrices = (Boolean) operand.getOrDefault("fetchStockPrices", true);
+        if (fetchStockPrices) {
+          LOGGER.info("Creating mock stock prices for testing");
+          createMockStockPrices(baseDir, ciks, startYear, endYear);
+        }
         return;
       }
 
@@ -449,6 +482,20 @@ public class SecSchemaFactory implements SchemaFactory {
       // Create all SEC tables from XBRL data (with parallel conversion)
       LOGGER.info("Creating SEC tables from XBRL data");
       createSecTablesFromXbrl(baseDir, ciks, startYear, endYear);
+      
+      // Download or create stock prices if enabled
+      boolean fetchStockPrices = (Boolean) operand.getOrDefault("fetchStockPrices", true);
+      Boolean testModeObj = (Boolean) operand.get("testMode");
+      boolean isTestMode = testModeObj != null && testModeObj;
+      if (fetchStockPrices) {
+        if (isTestMode) {
+          LOGGER.info("Creating mock stock prices for testing (testMode=true)");
+          createMockStockPrices(baseDir, ciks, startYear, endYear);
+        } else {
+          LOGGER.info("Downloading stock prices for configured CIKs");
+          downloadStockPrices(baseDir, ciks, startYear, endYear);
+        }
+      }
 
     } catch (Exception e) {
       LOGGER.error("Error in downloadSecData", e);
@@ -1093,6 +1140,165 @@ public class SecSchemaFactory implements SchemaFactory {
     return xbrlFiles;
   }
 
+  /**
+   * Creates mock stock prices for testing.
+   */
+  private void createMockStockPrices(File baseDir, List<String> ciks, int startYear, int endYear) {
+    try {
+      // baseDir is the cache directory (sec-cache)
+      // We need to create files in sec-parquet/stock_prices
+      File parquetDir = new File(baseDir.getParentFile(), "sec-parquet");
+      File stockPricesDir = new File(parquetDir, "stock_prices");
+      LOGGER.info("Creating mock stock prices in: {}", stockPricesDir.getAbsolutePath());
+      
+      // For each CIK, create mock price data
+      for (String cik : ciks) {
+        String normalizedCik = cik.replaceAll("[^0-9]", "");
+        while (normalizedCik.length() < 10) {
+          normalizedCik = "0" + normalizedCik;
+        }
+        
+        // Get ticker for this CIK (or use CIK as ticker if not found)
+        List<String> tickers = CikRegistry.getTickersForCik(normalizedCik);
+        String ticker = tickers.isEmpty() ? cik.toUpperCase() : tickers.get(0);
+        
+        // Create mock data for each year
+        for (int year = startYear; year <= endYear; year++) {
+          // Create directory structure: ticker=*/year=*/
+          File tickerDir = new File(stockPricesDir, "ticker=" + ticker);
+          File yearDir = new File(tickerDir, "year=" + year);
+          yearDir.mkdirs();
+          
+          File parquetFile = new File(yearDir, ticker + "_" + year + "_prices.parquet");
+          LOGGER.info("About to create/check file: {}", parquetFile.getAbsolutePath());
+          LOGGER.info("Parent directory exists: {}, isDirectory: {}", yearDir.exists(), yearDir.isDirectory());
+          if (!parquetFile.exists()) {
+            createMockPriceParquetFile(parquetFile, ticker, normalizedCik, year);
+            LOGGER.info("Created mock stock price file: {}, exists now: {}", parquetFile.getAbsolutePath(), parquetFile.exists());
+          } else {
+            LOGGER.info("Mock stock price file already exists: {}", parquetFile.getAbsolutePath());
+          }
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.warn("Failed to create mock stock prices: " + e.getMessage());
+    }
+  }
+  
+  /**
+   * Creates a mock Parquet file with sample stock price data.
+   */
+  @SuppressWarnings("deprecation")
+  private void createMockPriceParquetFile(File parquetFile, String ticker, String cik, int year) 
+      throws IOException {
+    // Note: ticker and year are partition columns from directory structure,
+    // so they are NOT in the Parquet file. CIK is included as a regular column for joins.
+    String schemaString = "{"
+        + "\"type\": \"record\","
+        + "\"name\": \"StockPrice\","
+        + "\"fields\": ["
+        + "{\"name\": \"cik\", \"type\": \"string\"},"
+        + "{\"name\": \"date\", \"type\": \"string\"},"
+        + "{\"name\": \"open\", \"type\": [\"null\", \"double\"], \"default\": null},"
+        + "{\"name\": \"high\", \"type\": [\"null\", \"double\"], \"default\": null},"
+        + "{\"name\": \"low\", \"type\": [\"null\", \"double\"], \"default\": null},"
+        + "{\"name\": \"close\", \"type\": [\"null\", \"double\"], \"default\": null},"
+        + "{\"name\": \"adj_close\", \"type\": [\"null\", \"double\"], \"default\": null},"
+        + "{\"name\": \"volume\", \"type\": [\"null\", \"long\"], \"default\": null}"
+        + "]"
+        + "}";
+    
+    org.apache.avro.Schema schema = new org.apache.avro.Schema.Parser().parse(schemaString);
+    
+    try (org.apache.parquet.hadoop.ParquetWriter<org.apache.avro.generic.GenericRecord> writer = 
+        org.apache.parquet.avro.AvroParquetWriter
+            .<org.apache.avro.generic.GenericRecord>builder(
+                new org.apache.hadoop.fs.Path(parquetFile.getAbsolutePath()))
+            .withSchema(schema)
+            .withCompressionCodec(org.apache.parquet.hadoop.metadata.CompressionCodecName.SNAPPY)
+            .build()) {
+      
+      // Create a few sample records
+      double basePrice = 100.0 + (ticker.hashCode() % 100);
+      for (int month = 1; month <= 3; month++) { // Just 3 months of data for testing
+        String date = String.format("%04d-%02d-%02d", year, month, 15);
+        
+        org.apache.avro.generic.GenericRecord record = 
+            new org.apache.avro.generic.GenericData.Record(schema);
+        // Include CIK as regular column, ticker and year come from directory structure
+        record.put("cik", cik);
+        record.put("date", date);
+        record.put("open", basePrice + month);
+        record.put("high", basePrice + month + 2);
+        record.put("low", basePrice + month - 1);
+        record.put("close", basePrice + month + 1);
+        record.put("adj_close", basePrice + month + 0.5);
+        record.put("volume", 1000000L * month);
+        
+        writer.write(record);
+      }
+    }
+  }
+  
+  /**
+   * Downloads stock prices for all configured CIKs.
+   */
+  private void downloadStockPrices(File baseDir, List<String> ciks, int startYear, int endYear) {
+    try {
+      File parquetDir = new File(baseDir.getParentFile(), "sec-parquet");
+      
+      // Build list of ticker-CIK pairs
+      List<YahooFinanceDownloader.TickerCikPair> tickerCikPairs = new ArrayList<>();
+      Set<String> processedTickers = new HashSet<>();
+      
+      for (String cik : ciks) {
+        // Normalize CIK to 10 digits with leading zeros
+        String normalizedCik = cik.replaceAll("[^0-9]", "");
+        while (normalizedCik.length() < 10) {
+          normalizedCik = "0" + normalizedCik;
+        }
+        
+        // Get tickers for this CIK
+        List<String> tickers = CikRegistry.getTickersForCik(normalizedCik);
+        
+        if (tickers.isEmpty()) {
+          // Try to resolve the CIK as a ticker first
+          List<String> resolvedCiks = CikRegistry.resolveCiks(cik);
+          if (!resolvedCiks.isEmpty() && !cik.equals(resolvedCiks.get(0))) {
+            // This was actually a ticker, use it
+            String ticker = cik.toUpperCase();
+            if (!processedTickers.contains(ticker)) {
+              tickerCikPairs.add(new YahooFinanceDownloader.TickerCikPair(ticker, normalizedCik));
+              processedTickers.add(ticker);
+            }
+          } else {
+            LOGGER.debug("No ticker found for CIK {}, skipping stock prices", normalizedCik);
+          }
+        } else {
+          // Add all tickers for this CIK
+          for (String ticker : tickers) {
+            if (!processedTickers.contains(ticker)) {
+              tickerCikPairs.add(new YahooFinanceDownloader.TickerCikPair(ticker, normalizedCik));
+              processedTickers.add(ticker);
+            }
+          }
+        }
+      }
+      
+      if (!tickerCikPairs.isEmpty()) {
+        LOGGER.info("Downloading stock prices for {} tickers", tickerCikPairs.size());
+        YahooFinanceDownloader downloader = new YahooFinanceDownloader();
+        downloader.downloadStockPrices(parquetDir, tickerCikPairs, startYear, endYear);
+      } else {
+        LOGGER.info("No tickers found for stock price download");
+      }
+      
+    } catch (Exception e) {
+      LOGGER.warn("Failed to download stock prices: " + e.getMessage());
+      // Don't fail the schema creation if stock prices fail
+    }
+  }
+  
   private List<String> getCiksFromConfig(Map<String, Object> operand) {
     Object ciks = operand.get("ciks");
     if (ciks instanceof List) {
