@@ -54,6 +54,8 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
   private final ExecutionEngineConfig engineConfig;
   private final @Nullable Duration refreshInterval;
   private @Nullable Instant lastRefreshTime;
+  private final @Nullable Map<String, Object> constraintConfig;
+  private final @Nullable String schemaName;
 
   private volatile PartitionedParquetTable currentTable;
   private volatile List<String> lastDiscoveredFiles;
@@ -65,12 +67,21 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
   public RefreshablePartitionedParquetTable(String tableName, File directory,
       String pattern, PartitionedTableConfig config,
       ExecutionEngineConfig engineConfig, @Nullable Duration refreshInterval) {
+    this(tableName, directory, pattern, config, engineConfig, refreshInterval, null, null);
+  }
+
+  public RefreshablePartitionedParquetTable(String tableName, File directory,
+      String pattern, PartitionedTableConfig config,
+      ExecutionEngineConfig engineConfig, @Nullable Duration refreshInterval,
+      @Nullable Map<String, Object> constraintConfig, @Nullable String schemaName) {
     this.tableName = tableName;
     this.directory = directory;
     this.pattern = pattern;
     this.config = config;
     this.engineConfig = engineConfig;
     this.refreshInterval = refreshInterval;
+    this.constraintConfig = constraintConfig;
+    this.schemaName = schemaName;
 
     // Initial discovery
     refreshTableDefinition();
@@ -190,10 +201,10 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
           colMappings = config.getPartitions().getColumnMappings();
         }
 
-        // Create new table instance
+        // Create new table instance with constraint config and qualified name
         currentTable =
             new PartitionedParquetTable(matchingFiles, partitionInfo,
-                engineConfig, columnTypes, regex, colMappings);
+                engineConfig, columnTypes, regex, colMappings, constraintConfig, schemaName, tableName);
         lastDiscoveredFiles = matchingFiles;
 
         LOGGER.debug("[RefreshablePartitionedParquetTable] Discovered {} files for table: {}", matchingFiles.size(), tableName);

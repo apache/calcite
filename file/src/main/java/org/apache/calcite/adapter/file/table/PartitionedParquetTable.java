@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.table;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
+import org.apache.calcite.adapter.file.metadata.TableConstraints;
 import org.apache.calcite.adapter.file.partition.PartitionDetector;
 import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -28,6 +29,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -70,18 +73,21 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
   private Map<String, String> partitionColumnTypes;
   private String customRegex;
   private List<PartitionedTableConfig.ColumnMapping> columnMappings;
+  private Map<String, Object> constraintConfig;
+  private String schemaName;
+  private String tableName;
 
   public PartitionedParquetTable(List<String> filePaths,
                                  PartitionDetector.PartitionInfo partitionInfo,
                                  ExecutionEngineConfig engineConfig) {
-    this(filePaths, partitionInfo, engineConfig, null);
+    this(filePaths, partitionInfo, engineConfig, null, null, null, null, null, null);
   }
 
   public PartitionedParquetTable(List<String> filePaths,
                                  PartitionDetector.PartitionInfo partitionInfo,
                                  ExecutionEngineConfig engineConfig,
                                  Map<String, String> partitionColumnTypes) {
-    this(filePaths, partitionInfo, engineConfig, partitionColumnTypes, null, null);
+    this(filePaths, partitionInfo, engineConfig, partitionColumnTypes, null, null, null, null, null);
   }
 
   public PartitionedParquetTable(List<String> filePaths,
@@ -90,12 +96,37 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
                                  Map<String, String> partitionColumnTypes,
                                  String customRegex,
                                  List<PartitionedTableConfig.ColumnMapping> columnMappings) {
+    this(filePaths, partitionInfo, engineConfig, partitionColumnTypes, customRegex, columnMappings, null, null, null);
+  }
+
+  public PartitionedParquetTable(List<String> filePaths,
+                                 PartitionDetector.PartitionInfo partitionInfo,
+                                 ExecutionEngineConfig engineConfig,
+                                 Map<String, String> partitionColumnTypes,
+                                 String customRegex,
+                                 List<PartitionedTableConfig.ColumnMapping> columnMappings,
+                                 Map<String, Object> constraintConfig) {
+    this(filePaths, partitionInfo, engineConfig, partitionColumnTypes, customRegex, columnMappings, constraintConfig, null, null);
+  }
+
+  public PartitionedParquetTable(List<String> filePaths,
+                                 PartitionDetector.PartitionInfo partitionInfo,
+                                 ExecutionEngineConfig engineConfig,
+                                 Map<String, String> partitionColumnTypes,
+                                 String customRegex,
+                                 List<PartitionedTableConfig.ColumnMapping> columnMappings,
+                                 Map<String, Object> constraintConfig,
+                                 String schemaName,
+                                 String tableName) {
     this.filePaths = filePaths;
     this.partitionInfo = partitionInfo;
     this.engineConfig = engineConfig;
     this.partitionColumnTypes = partitionColumnTypes;
     this.customRegex = customRegex;
     this.columnMappings = columnMappings;
+    this.constraintConfig = constraintConfig;
+    this.schemaName = schemaName;
+    this.tableName = tableName;
 
     // Initialize partition columns
     if (partitionInfo != null && partitionInfo.getPartitionColumns() != null) {
@@ -118,6 +149,27 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
    */
   public List<String> getFilePaths() {
     return filePaths;
+  }
+
+  @Override
+  public Statistic getStatistic() {
+    if (constraintConfig == null || constraintConfig.isEmpty()) {
+      // No constraints configured, return default
+      return Statistics.UNKNOWN;
+    }
+
+    // Build the table configuration with name for constraint metadata
+    Map<String, Object> tableConfig = new LinkedHashMap<>();
+    tableConfig.putAll(constraintConfig);
+    
+    // Get column names from row type
+    List<String> columnNames = new ArrayList<>();
+    // We'll need to get column names differently since we can't instantiate JavaTypeFactory
+    // For now, return the statistic without column name resolution
+    // This can be enhanced later when we have access to a proper type factory
+    
+    // Create statistic with constraints, passing schema and table names
+    return TableConstraints.fromConfig(tableConfig, columnNames, null, schemaName, tableName);
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {

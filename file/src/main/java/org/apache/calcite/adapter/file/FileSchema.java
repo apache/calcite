@@ -3408,19 +3408,25 @@ public class FileSchema extends AbstractSchema {
         // Create the partitioned table - use refreshable version if interval configured
         Table table;
         if (this.refreshInterval != null) {
+          // Extract constraint configuration if present
+          @SuppressWarnings("unchecked")
+          Map<String, Object> constraintConfig = (Map<String, Object>) partTableConfig.get("constraints");
           // Use refreshable version that can discover new partitions
           RefreshablePartitionedParquetTable refreshableTable =
               new RefreshablePartitionedParquetTable(config.getName(),
                   sourceDirectory, config.getPattern(), config,
-                  engineConfig, RefreshInterval.parse(this.refreshInterval));
+                  engineConfig, RefreshInterval.parse(this.refreshInterval), constraintConfig, name);
           // Set refresh context for DuckDB notifications
           refreshableTable.setRefreshContext(this, config.getName());
           table = refreshableTable;
         } else {
           // Use standard version
+          // Extract constraint configuration if present
+          @SuppressWarnings("unchecked")
+          Map<String, Object> constraintConfig = (Map<String, Object>) partTableConfig.get("constraints");
           table =
               new PartitionedParquetTable(matchingFiles, partitionInfo,
-                  engineConfig, columnTypes);
+                  engineConfig, columnTypes, null, null, constraintConfig, name, config.getName());
         }
 
         // Check if table was already processed to avoid duplicates
