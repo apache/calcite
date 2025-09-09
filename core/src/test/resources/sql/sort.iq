@@ -417,4 +417,9 @@ order by arr desc;
 
 !ok
 
+# [CALCITE-7156] OFFSET and FETCH in EnumerableLimit need to support BIGINT
+select * from "hr"."emps" limit 3000000000 offset 2500000000;
+Caused by: java.lang.ArithmeticException: Integer overflow: 3000000000 is out of range for INT
+!error
+
 # End sort.iq

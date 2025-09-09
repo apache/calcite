@@ -1275,6 +1275,11 @@ public class RexLiteral extends RexNode {
    * never null. */
   public static int intValue(RexNode node) {
     final Number number = numberValue(node);
+    long longValue = number.longValue();
+    if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
+      throw new ArithmeticException(
+          "Integer overflow: " + longValue + " is out of range for INT");
+    }
     return number.intValue();
   }
 
