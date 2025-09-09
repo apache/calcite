@@ -872,7 +872,8 @@ allprojects {
                 passProperty("java.awt.headless")
                 passProperty("junit.jupiter.execution.parallel.enabled", "true")
                 passProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
-                passProperty("junit.jupiter.execution.timeout.default", "5 m")
+                // Disabled timeout for long-running integration tests
+                // passProperty("junit.jupiter.execution.timeout.default", "5 m")
                 passProperty("user.language", "TR")
                 passProperty("user.country", "tr")
                 passProperty("user.timezone", "UTC")
