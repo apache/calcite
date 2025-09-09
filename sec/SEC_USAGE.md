@@ -71,6 +71,7 @@ The SecEmbeddingSchemaFactory provides smart defaults for everything:
    - `company_info` - Company metadata
    - `footnotes` - Partitioned footnotes
    - `document_embeddings` - Partitioned embeddings with vector column
+   - `stock_prices` - Daily EOD stock prices (when enabled)
 
 ✅ **Table Constraints** (for query optimization):
    - Primary keys defined for all tables
@@ -144,8 +145,8 @@ while (pkRS.next()) {
 // Get foreign keys
 ResultSet fkRS = metadata.getImportedKeys(null, "SEC", "financial_line_items");
 while (fkRS.next()) {
-    System.out.println("FK: " + fkRS.getString("FKCOLUMN_NAME") + 
-                      " -> " + fkRS.getString("PKTABLE_NAME") + "." + 
+    System.out.println("FK: " + fkRS.getString("FKCOLUMN_NAME") +
+                      " -> " + fkRS.getString("PKTABLE_NAME") + "." +
                       fkRS.getString("PKCOLUMN_NAME"));
 }
 ```
