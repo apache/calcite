@@ -1805,6 +1805,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE,
           OperandTypes.ARRAY_ELEMENT);
 
+  /** The "ARRAY_POSITION(array, element)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction SNOWFLAKE_ARRAY_POSITION =
+      SqlBasicFunction.create(SqlKind.ARRAY_POSITION,
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.VARIANT, SqlTypeFamily.ARRAY));
+
   /** The "ARRAY_PREPEND(array, element)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_PREPEND =
