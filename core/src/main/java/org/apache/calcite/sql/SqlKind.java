@@ -1136,6 +1136,9 @@ public enum SqlKind {
   /** The {@code ARRAY_AGG} aggregate function. */
   ARRAY_AGG,
 
+  /** The {@code ARRAY_UNIQUE_AGG} aggregate function. */
+  ARRAY_UNIQUE_AGG,
+
   /** The {@code JSON_AGG} aggregate function. */
   JSON_AGG,
 

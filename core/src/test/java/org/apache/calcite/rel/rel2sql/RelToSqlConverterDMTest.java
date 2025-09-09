@@ -13112,6 +13112,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 
+  @Test public void testArrayUniqueAggFunctionForSnowflake() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.ARRAY_UNIQUE_AGG, builder.field(1));
+    final RelNode root = builder
+        .project(parseTSNode1)
+        .build();
+    final String expectedSql =
+        "SELECT ARRAY_AGG(DISTINCT \"ENAME\") AS "
+            + "\"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testIntervalYearMonthFunction() {
     String query = "select \"birth_date\" - INTERVAL -'3-9' YEAR TO MONTH from \"employee\"";
 
