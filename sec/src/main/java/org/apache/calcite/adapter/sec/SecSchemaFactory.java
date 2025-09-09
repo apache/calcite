@@ -34,9 +34,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -192,18 +194,47 @@ public class SecSchemaFactory implements SchemaFactory {
 
     partitionConfig.put("columnDefinitions", columnDefs);
 
-    // Define financial_line_items as a partitioned table
+    // Define financial_line_items as a partitioned table with constraints
     Map<String, Object> financialLineItems = new HashMap<>();
     financialLineItems.put("name", "financial_line_items");
     financialLineItems.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_facts.parquet");
     financialLineItems.put("partitions", partitionConfig);
+    
+    // Add constraint definitions if enabled
+    Boolean enableConstraints = (Boolean) mutableOperand.get("enableConstraints");
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      // Primary key: (cik, filing_type, year, filing_date, concept, context_ref)
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", 
+          "filing_date", "concept", "context_ref"));
+      
+      // Foreign key to filing_contexts table
+      Map<String, Object> fk = new HashMap<>();
+      fk.put("sourceTable", Arrays.asList("SEC", "financial_line_items"));
+      fk.put("columns", Arrays.asList("cik", "filing_type", "year", "filing_date", "context_ref"));
+      fk.put("targetTable", Arrays.asList("SEC", "filing_contexts"));
+      fk.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "filing_date", "context_id"));
+      constraints.put("foreignKeys", Arrays.asList(fk));
+      
+      financialLineItems.put("constraints", constraints);
+    }
+    
     partitionedTables.add(financialLineItems);
 
-    // Define filing_contexts as a partitioned table
+    // Define filing_contexts as a partitioned table with constraints
     Map<String, Object> filingContexts = new HashMap<>();
     filingContexts.put("name", "filing_contexts");
     filingContexts.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_contexts.parquet");
     filingContexts.put("partitions", partitionConfig);
+    
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      // Primary key: (cik, filing_type, year, filing_date, context_id)
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", 
+          "filing_date", "context_id"));
+      filingContexts.put("constraints", constraints);
+    }
+    
     partitionedTables.add(filingContexts);
 
     // Define mda_sections as a partitioned table for MD&A paragraphs
@@ -211,6 +242,12 @@ public class SecSchemaFactory implements SchemaFactory {
     mdaSections.put("name", "mda_sections");
     mdaSections.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_mda.parquet");
     mdaSections.put("partitions", partitionConfig);
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", 
+          "filing_date", "section_id"));
+      mdaSections.put("constraints", constraints);
+    }
     partitionedTables.add(mdaSections);
 
     // Define xbrl_relationships as a partitioned table
@@ -218,6 +255,12 @@ public class SecSchemaFactory implements SchemaFactory {
     xbrlRelationships.put("name", "xbrl_relationships");
     xbrlRelationships.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_relationships.parquet");
     xbrlRelationships.put("partitions", partitionConfig);
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", 
+          "filing_date", "relationship_id"));
+      xbrlRelationships.put("constraints", constraints);
+    }
     partitionedTables.add(xbrlRelationships);
 
     // Define insider_transactions table for Forms 3, 4, 5
@@ -225,6 +268,12 @@ public class SecSchemaFactory implements SchemaFactory {
     insiderTransactions.put("name", "insider_transactions");
     insiderTransactions.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_insider.parquet");
     insiderTransactions.put("partitions", partitionConfig);
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", 
+          "filing_date", "transaction_id"));
+      insiderTransactions.put("constraints", constraints);
+    }
     partitionedTables.add(insiderTransactions);
 
     // Define earnings_transcripts table for 8-K exhibits
@@ -232,7 +281,24 @@ public class SecSchemaFactory implements SchemaFactory {
     earningsTranscripts.put("name", "earnings_transcripts");
     earningsTranscripts.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_earnings.parquet");
     earningsTranscripts.put("partitions", partitionConfig);
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", 
+          "filing_date", "transcript_id"));
+      earningsTranscripts.put("constraints", constraints);
+    }
     partitionedTables.add(earningsTranscripts);
+
+    // Add vectorized_blobs table when text similarity is enabled
+    Map<String, Object> textSimilarityConfig = (Map<String, Object>) operand.get("textSimilarity");
+    if (textSimilarityConfig != null && Boolean.TRUE.equals(textSimilarityConfig.get("enabled"))) {
+      Map<String, Object> vectorizedBlobsTable = new HashMap<>();
+      vectorizedBlobsTable.put("name", "vectorized_blobs");
+      vectorizedBlobsTable.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_vectorized.parquet");
+      vectorizedBlobsTable.put("partitions", partitionConfig);
+      partitionedTables.add(vectorizedBlobsTable);
+      LOGGER.info("Added vectorized_blobs table configuration for text similarity");
+    }
 
     // Add partitioned tables to operand
     mutableOperand.put("partitionedTables", partitionedTables);
@@ -382,6 +448,114 @@ public class SecSchemaFactory implements SchemaFactory {
     }
   }
 
+  private void createMockParquetFiles(File baseDir) {
+    try {
+      // Create parquet directory structure for mock data
+      File secParquetDir = new File(baseDir.getParentFile(), "sec-parquet");
+      secParquetDir.mkdirs();
+      
+      // Create directories and minimal Parquet files for each table pattern
+      // We need at least one file matching each pattern for the table to be discovered
+      
+      // Create financial_line_items mock file
+      File financialDir = new File(secParquetDir, "cik=0000000001/filing_type=10K/year=2023");
+      financialDir.mkdirs();
+      File financialFile = new File(financialDir, "0000000001_2023-12-31_facts.parquet");
+      createMinimalParquetFile(financialFile);
+      
+      // Create filing_contexts mock file
+      File contextsFile = new File(financialDir, "0000000001_2023-12-31_contexts.parquet");
+      createMinimalParquetFile(contextsFile);
+      
+      // Create footnotes mock file
+      File footnotesFile = new File(financialDir, "0000000001_2023-12-31_footnotes.parquet");
+      createMinimalParquetFile(footnotesFile);
+      
+      // Create labels mock file
+      File labelsFile = new File(financialDir, "0000000001_2023-12-31_labels.parquet");
+      createMinimalParquetFile(labelsFile);
+      
+      // Create presentations mock file
+      File presentationsFile = new File(financialDir, "0000000001_2023-12-31_presentations.parquet");
+      createMinimalParquetFile(presentationsFile);
+      
+      // Create company_info mock file (non-partitioned)
+      File companyFile = new File(secParquetDir, "company_info.parquet");
+      createMinimalParquetFile(companyFile);
+      
+      LOGGER.info("Created mock Parquet files in: {}", secParquetDir);
+    } catch (Exception e) {
+      LOGGER.error("Failed to create mock Parquet files", e);
+    }
+  }
+  
+  private void createMinimalParquetFile(File file) {
+    try {
+      // Create a minimal Parquet file with proper schema
+      // Using Avro schema to create the Parquet file
+      org.apache.avro.Schema schema = org.apache.avro.Schema.createRecord("MockRecord", "", "", false);
+      List<org.apache.avro.Schema.Field> fields = new ArrayList<>();
+      
+      // Add minimal fields based on the table type
+      if (file.getName().contains("facts")) {
+        // financial_line_items table fields
+        // NOTE: Don't include partition columns (cik, filing_type, year) as they come from the path
+        fields.add(new org.apache.avro.Schema.Field("filing_date", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("concept", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("context_ref", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("value", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.DOUBLE), null, null));
+        fields.add(new org.apache.avro.Schema.Field("label", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("units", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("decimals", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT), null, null));
+      } else if (file.getName().contains("contexts")) {
+        // filing_contexts table fields
+        // NOTE: Don't include partition columns (cik, filing_type, year) as they come from the path
+        fields.add(new org.apache.avro.Schema.Field("filing_date", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("context_id", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("entity", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("segment", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("period", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+        fields.add(new org.apache.avro.Schema.Field("instant", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+      } else {
+        // Default minimal schema
+        fields.add(new org.apache.avro.Schema.Field("id", 
+            org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING), null, null));
+      }
+      
+      schema.setFields(fields);
+      
+      // Write empty Parquet file with schema
+      org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+      org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(file.getAbsolutePath());
+      org.apache.parquet.io.OutputFile outputFile = org.apache.parquet.hadoop.util.HadoopOutputFile.fromPath(path, conf);
+      org.apache.parquet.hadoop.ParquetWriter<org.apache.avro.generic.GenericRecord> writer = 
+          org.apache.parquet.avro.AvroParquetWriter.<org.apache.avro.generic.GenericRecord>builder(outputFile)
+              .withSchema(schema)
+              .withConf(conf)
+              .build();
+      
+      // Close immediately - we just need the file with schema
+      writer.close();
+      
+      LOGGER.debug("Created mock Parquet file: {}", file);
+    } catch (Exception e) {
+      LOGGER.error("Failed to create mock Parquet file: " + file, e);
+    }
+  }
+
   private void downloadSecData(Map<String, Object> operand) {
     System.out.println("DEBUG: downloadSecData() called - STARTING SEC DATA DOWNLOAD");
     LOGGER.info("downloadSecData() called - STARTING SEC DATA DOWNLOAD");
@@ -407,13 +581,9 @@ public class SecSchemaFactory implements SchemaFactory {
       Boolean useMockData = (Boolean) operand.get("useMockData");
       if (useMockData != null && useMockData) {
         LOGGER.info("Using mock data for testing");
-        List<String> ciks = getCiksFromConfig(operand);
-        int startYear = (Integer) operand.getOrDefault("startYear", 2020);
-        int endYear = (Integer) operand.getOrDefault("endYear", 2023);
-        LOGGER.info("DEBUG: Calling createSecTablesFromXbrl for mock data");
-        LOGGER.info("DEBUG: baseDir=" + baseDir.getAbsolutePath());
-        createSecTablesFromXbrl(baseDir, ciks, startYear, endYear);
-        LOGGER.info("DEBUG: Finished createSecTablesFromXbrl for mock data");
+        // Create minimal mock Parquet files so tables are discovered
+        createMockParquetFiles(baseDir);
+        LOGGER.info("DEBUG: Mock data mode - created mock Parquet files");
         return;
       }
 
@@ -664,15 +834,37 @@ public class SecSchemaFactory implements SchemaFactory {
       boolean needHtml = false;
       boolean needXbrl = false;
 
+      // For Forms 3/4/5, we need to download the .txt file and extract the raw XML
+      boolean isInsiderForm = form.equals("3") || form.equals("4") || form.equals("5");
+      
       // Check if HTML file exists (for human-readable preview)
       File htmlFile = new File(accessionDir, primaryDoc);
-      if (!htmlFile.exists() || htmlFile.length() == 0) {
+      // Create parent directory if primaryDoc contains path (e.g., xslF345X05/wk-form4_*.xml for Form 4)
+      if (primaryDoc.contains("/")) {
+        htmlFile.getParentFile().mkdirs();
+      }
+      if (!isInsiderForm && (!htmlFile.exists() || htmlFile.length() == 0)) {
         needHtml = true;
       }
 
       // Check if XBRL file exists (for structured data)
-      String xbrlDoc = primaryDoc.replace(".htm", "_htm.xml");
-      File xbrlFile = new File(accessionDir, xbrlDoc);
+      String xbrlDoc;
+      File xbrlFile;
+      if (isInsiderForm) {
+        // For Forms 3/4/5, we'll save the extracted XML as ownership.xml
+        xbrlDoc = "ownership.xml";
+        xbrlFile = new File(accessionDir, xbrlDoc);
+      } else {
+        // For other forms, look for separate XBRL file
+        xbrlDoc = primaryDoc.replace(".htm", "_htm.xml");
+        xbrlFile = new File(accessionDir, xbrlDoc);
+      }
+      
+      // Create parent directory if xbrlDoc contains path
+      if (xbrlDoc.contains("/")) {
+        xbrlFile.getParentFile().mkdirs();
+      }
+      
       File xbrlNotFoundMarker = new File(accessionDir, xbrlDoc + ".notfound");
       // Only need XBRL if: file doesn't exist AND we haven't already marked it as not found
       if ((!xbrlFile.exists() || xbrlFile.length() == 0) && !xbrlNotFoundMarker.exists()) {
@@ -773,27 +965,70 @@ public class SecSchemaFactory implements SchemaFactory {
         if (xbrlNotFoundMarker.exists()) {
           LOGGER.debug("Skipping XBRL download - already marked as not found: " + xbrlDoc);
         } else {
-          String xbrlUrl =
-              String.format("https://www.sec.gov/Archives/edgar/data/%s/%s/%s",
-              cik, accessionClean, xbrlDoc);
-
-          try (InputStream is = provider.openInputStream(xbrlUrl)) {
-            try (FileOutputStream fos = new FileOutputStream(xbrlFile)) {
+          if (isInsiderForm) {
+            // For Forms 3/4/5, download the .txt file and extract the XML
+            String txtUrl = String.format("https://www.sec.gov/Archives/edgar/data/%s/%s.txt",
+                cik, accession); // Use hyphenated accession number for .txt files
+            
+            try (InputStream is = provider.openInputStream(txtUrl)) {
+              // Read the entire .txt file to extract the XML
+              ByteArrayOutputStream baos = new ByteArrayOutputStream();
               byte[] buffer = new byte[8192];
               int bytesRead;
               while ((bytesRead = is.read(buffer)) != -1) {
-                fos.write(buffer, 0, bytesRead);
+                baos.write(buffer, 0, bytesRead);
+              }
+              String txtContent = baos.toString("UTF-8");
+              
+              // Extract the ownershipDocument XML from the .txt file
+              int xmlStart = txtContent.indexOf("<ownershipDocument>");
+              int xmlEnd = txtContent.indexOf("</ownershipDocument>");
+              
+              if (xmlStart != -1 && xmlEnd != -1) {
+                String xmlContent = "<?xml version=\"1.0\"?>\n" + 
+                    txtContent.substring(xmlStart, xmlEnd + "</ownershipDocument>".length());
+                
+                // Save the extracted XML
+                try (FileWriter writer = new FileWriter(xbrlFile)) {
+                  writer.write(xmlContent);
+                }
+                LOGGER.info("Extracted ownership XML for Form " + form + " " + filingDate);
+              } else {
+                LOGGER.warn("Could not find ownershipDocument in Form " + form + " .txt file");
+                xbrlNotFoundMarker.createNewFile();
+              }
+            } catch (Exception e) {
+              LOGGER.warn("Failed to download/extract Form " + form + " ownership XML: " + e.getMessage());
+              try {
+                xbrlNotFoundMarker.createNewFile();
+              } catch (IOException ioe) {
+                LOGGER.debug("Could not create .notfound marker: " + ioe.getMessage());
               }
             }
-            LOGGER.info("Downloaded XBRL filing: " + form + " " + filingDate + " (" + xbrlDoc + ")");
-          } catch (Exception e) {
-            // XBRL doesn't exist for this filing - create marker to avoid retrying
-            LOGGER.info("XBRL not available for " + form + " " + filingDate + ", will use HTML with inline XBRL");
-            try {
-              xbrlNotFoundMarker.createNewFile();
-              LOGGER.debug("Created .notfound marker for: " + xbrlDoc);
-            } catch (IOException ioe) {
-              LOGGER.debug("Could not create .notfound marker: " + ioe.getMessage());
+          } else {
+            // For other forms, download the XBRL file directly
+            String xbrlUrl =
+                String.format("https://www.sec.gov/Archives/edgar/data/%s/%s/%s",
+                cik, accessionClean, xbrlDoc);
+
+            try (InputStream is = provider.openInputStream(xbrlUrl)) {
+              try (FileOutputStream fos = new FileOutputStream(xbrlFile)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                  fos.write(buffer, 0, bytesRead);
+                }
+              }
+              LOGGER.info("Downloaded XBRL filing: " + form + " " + filingDate + " (" + xbrlDoc + ")");
+            } catch (Exception e) {
+              // XBRL doesn't exist for this filing - create marker to avoid retrying
+              LOGGER.info("XBRL not available for " + form + " " + filingDate + ", will use HTML with inline XBRL");
+              try {
+                xbrlNotFoundMarker.createNewFile();
+                LOGGER.debug("Created .notfound marker for: " + xbrlDoc);
+              } catch (IOException ioe) {
+                LOGGER.debug("Could not create .notfound marker: " + ioe.getMessage());
+              }
             }
           }
         }
