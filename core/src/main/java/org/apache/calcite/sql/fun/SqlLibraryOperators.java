@@ -1806,7 +1806,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY_ELEMENT);
 
   /** The "ARRAY_POSITION(array, element)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction SNOWFLAKE_ARRAY_POSITION =
       SqlBasicFunction.create(SqlKind.ARRAY_POSITION,
           ReturnTypes.BIGINT_NULLABLE,
