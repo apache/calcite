@@ -40,6 +40,7 @@ String url = "jdbc:sec:ciks=MAGNIFICENT7" +
              "&startYear=2020" +
              "&endYear=2023" +
              "&dataDirectory=/Volumes/T9/sec-data" +
+             "&fetchStockPrices=true" +
              "&debug=true";
 
 // Connect with automatic defaults
@@ -115,6 +116,7 @@ Both **short names** (recommended) and **fully qualified names** are supported:
 | `dataDirectory` | `calcite.sec.dataDirectory` | Data location | `/Volumes/T9/sec-data` | Working dir |
 | `embeddingDimension` | `calcite.sec.embeddingDimension` | Vector size | `256` | 128 |
 | `executionEngine` | `calcite.sec.executionEngine` | Query engine | `duckdb` | `duckdb` |
+| `fetchStockPrices` | `calcite.sec.fetchStockPrices` | Enable stock prices | `true` | `true` |
 | `debug` | `calcite.sec.debug` | Debug logging | `true` | `false` |
 
 ## CIK Formats
@@ -150,6 +152,7 @@ Connection parameters can also be set via environment variables:
 | `startYear` | `EDGAR_START_YEAR` | Start year for data |
 | `endYear` | `EDGAR_END_YEAR` | End year for data |
 | `dataDirectory` | `SEC_DATA_DIRECTORY` | Base data directory |
+| `fetchStockPrices` | `SEC_FETCH_STOCK_PRICES` | Enable stock prices |
 | `debug` | `SEC_DEBUG` | Enable debug logging |
 
 ## Usage Examples

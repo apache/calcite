@@ -82,11 +82,50 @@ When you use these minimal configurations, the adapter automatically provides:
 
 ✅ **Filing Types**: All 15 SEC filing types (10-K, 10-Q, 8-K, etc.)
 ✅ **Date Range**: 2009 to current year
+✅ **Stock Prices**: Daily EOD prices from Yahoo Finance (enabled by default)
 ✅ **Execution Engine**: DuckDB for fast queries
 ✅ **Embeddings**: 128-dimensional vectors with financial vocabulary
 ✅ **Vector Functions**: 7 similarity functions (cosine, euclidean, etc.)
 ✅ **Data Directory**: Automatic resolution (or use XBRL_DATA_DIRECTORY env var)
 ✅ **Partitioning**: Optimized Parquet partitions by company and year
+
+## Stock Price Configuration
+
+Stock prices are enabled by default. To control:
+
+### Enable Stock Prices (default)
+```json
+{
+  "operand": {
+    "ciks": "AAPL",
+    "fetchStockPrices": true  // Or omit - true by default
+  }
+}
+```
+
+### Disable Stock Prices
+```json
+{
+  "operand": {
+    "ciks": "AAPL",
+    "fetchStockPrices": false  // Explicitly disable
+  }
+}
+```
+
+### Query Stock Prices
+```sql
+-- Simple price query
+SELECT date, close, volume 
+FROM stock_prices 
+WHERE ticker = 'AAPL' AND year = 2023;
+
+-- Join with financials
+SELECT s.ticker, s.close, f.revenue
+FROM stock_prices s
+JOIN financial_line_items f ON s.cik = f.cik
+WHERE s.ticker = 'AAPL';
+```
 
 ## Advanced Examples
 
@@ -99,6 +138,7 @@ See the individual example files for more advanced configurations:
 - `banking-sector.json` - Financial sector analysis
 - `annual-only.json` - Only annual reports (10-K)
 - `event-driven.json` - Focus on 8-K event filings
+- `no-stock-prices.json` - Disable stock price downloads
 
 ## Comparison: JDBC Driver vs Model Files
 
@@ -118,4 +158,5 @@ export XBRL_DATA_DIRECTORY=/Volumes/T9/xbrl-data
 export EDGAR_CIKS=AAPL,MSFT,GOOGL
 export EDGAR_START_YEAR=2020
 export EDGAR_END_YEAR=2023
+export SEC_FETCH_STOCK_PRICES=true  # Enable stock prices (default: true)
 ```

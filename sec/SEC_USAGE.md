@@ -71,6 +71,7 @@ The SecEmbeddingSchemaFactory provides smart defaults for everything:
    - `company_info` - Company metadata
    - `footnotes` - Partitioned footnotes
    - `document_embeddings` - Partitioned embeddings with vector column
+   - `stock_prices` - Daily EOD stock prices (when enabled)
 
 ### Comparison with Verbose Configuration
 
@@ -85,6 +86,127 @@ export SEC_DATA_DIRECTORY=/Volumes/T9/sec-test-data
 # Run the embedding test
 ./gradlew :sec:test --tests "*.SecEmbeddingTest"
 ```
+
+## Stock Price Data
+
+The SEC adapter includes integrated stock price functionality that automatically downloads daily End-of-Day (EOD) prices from Yahoo Finance for all configured companies.
+
+### Enabling Stock Prices
+
+Stock prices are enabled by default. To control this feature:
+
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "SEC",
+  "schemas": [{
+    "name": "SEC",
+    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "operand": {
+      "directory": "parquet",
+      "fetchStockPrices": true,    // Enable stock price downloads (default: true)
+      "ciks": ["AAPL", "MSFT"],
+      "startYear": 2020,
+      "endYear": 2023
+    }
+  }]
+}
+```
+
+### Stock Price Table Schema
+
+The `stock_prices` table includes:
+
+| Column | Type | Description | Source |
+|--------|------|-------------|--------|
+| `ticker` | VARCHAR | Stock ticker symbol | Partition column |
+| `year` | INTEGER | Year of the data | Partition column |
+| `cik` | VARCHAR | Company CIK for joins | Data column |
+| `date` | VARCHAR | Trading date (YYYY-MM-DD) | Data column |
+| `open` | DOUBLE | Opening price | Data column |
+| `high` | DOUBLE | Daily high price | Data column |
+| `low` | DOUBLE | Daily low price | Data column |
+| `close` | DOUBLE | Closing price | Data column |
+| `adj_close` | DOUBLE | Adjusted closing price | Data column |
+| `volume` | BIGINT | Trading volume | Data column |
+
+### Partition Strategy
+
+Stock prices use optimized partitioning for efficient queries:
+- **Directory structure**: `stock_prices/ticker=AAPL/year=2023/*.parquet`
+- **Partition pruning**: Queries filtered by ticker and/or year skip irrelevant files
+- **CIK column**: Included for joins with SEC filings
+
+### Query Examples
+
+```sql
+-- Get Apple's stock prices for 2023
+SELECT date, close, volume
+FROM stock_prices
+WHERE ticker = 'AAPL' AND year = 2023
+ORDER BY date;
+
+-- Join stock prices with financial data
+SELECT 
+  s.ticker,
+  s.date,
+  s.close as stock_price,
+  f.revenue,
+  f.net_income
+FROM stock_prices s
+JOIN financial_line_items f 
+  ON s.cik = f.cik 
+  AND EXTRACT(YEAR FROM s.date) = f.fiscal_year
+WHERE s.ticker = 'AAPL'
+  AND s.date = f.period_end_date;
+
+-- Analyze stock performance around earnings
+SELECT 
+  s.ticker,
+  AVG(s.close) as avg_price,
+  MAX(s.high) as max_price,
+  MIN(s.low) as min_price,
+  f.fiscal_year,
+  f.revenue
+FROM stock_prices s
+JOIN financial_line_items f ON s.cik = f.cik
+WHERE EXTRACT(YEAR FROM s.date) = f.fiscal_year
+GROUP BY s.ticker, f.fiscal_year, f.revenue
+ORDER BY f.fiscal_year;
+
+-- Find correlation between stock price and revenue
+SELECT 
+  s.ticker,
+  CORR(s.adj_close, f.revenue) as price_revenue_correlation
+FROM stock_prices s
+JOIN financial_line_items f 
+  ON s.cik = f.cik 
+  AND DATE_TRUNC('quarter', s.date) = DATE_TRUNC('quarter', f.period_end_date)
+GROUP BY s.ticker;
+```
+
+### Rate Limiting & Caching
+
+- **Rate limiting**: Automatic throttling for Yahoo Finance API (max 3 parallel, 500ms delay)
+- **Caching**: Downloads occur once per ticker/year combination
+- **Incremental updates**: Only missing data is downloaded
+- **Manifest tracking**: `.manifest` file prevents redundant downloads
+
+### Test Mode
+
+For testing without real API calls:
+
+```json
+{
+  "operand": {
+    "testMode": true,
+    "useMockData": true,
+    "fetchStockPrices": true
+  }
+}
+```
+
+This generates sample stock price data for testing queries without hitting the Yahoo Finance API.
 
 ## Usage in Code
 
