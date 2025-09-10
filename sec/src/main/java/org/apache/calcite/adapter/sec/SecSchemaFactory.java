@@ -92,8 +92,8 @@ public class SecSchemaFactory implements SchemaFactory {
   private final AtomicLong currentRateLimitDelayMs = new AtomicLong(INITIAL_RATE_LIMIT_DELAY_MS);
 
   // Thread pools and rate limiting
-  private final ExecutorService downloadExecutor = Executors.newFixedThreadPool(DOWNLOAD_THREADS);
-  private final ExecutorService conversionExecutor = Executors.newFixedThreadPool(CONVERSION_THREADS);
+  private ExecutorService downloadExecutor;
+  private ExecutorService conversionExecutor;
   private final Semaphore rateLimiter = new Semaphore(1); // One permit, released every 125ms
   private final ConcurrentLinkedQueue<CompletableFuture<Void>> downloadFutures = new ConcurrentLinkedQueue<>();
   private final ConcurrentLinkedQueue<CompletableFuture<Void>> conversionFutures = new ConcurrentLinkedQueue<>();
@@ -112,19 +112,36 @@ public class SecSchemaFactory implements SchemaFactory {
     LOGGER.debug("SecSchemaFactory class loaded");
   }
 
+  private synchronized void initializeExecutors() {
+    if (downloadExecutor == null || downloadExecutor.isShutdown()) {
+      downloadExecutor = Executors.newFixedThreadPool(DOWNLOAD_THREADS);
+    }
+    if (conversionExecutor == null || conversionExecutor.isShutdown()) {
+      conversionExecutor = Executors.newFixedThreadPool(CONVERSION_THREADS);
+    }
+  }
+
   private void shutdownExecutors() {
     try {
-      downloadExecutor.shutdown();
-      conversionExecutor.shutdown();
-      if (!downloadExecutor.awaitTermination(60, TimeUnit.SECONDS)) {
-        downloadExecutor.shutdownNow();
+      if (downloadExecutor != null) {
+        downloadExecutor.shutdown();
+        if (!downloadExecutor.awaitTermination(60, TimeUnit.SECONDS)) {
+          downloadExecutor.shutdownNow();
+        }
       }
-      if (!conversionExecutor.awaitTermination(60, TimeUnit.SECONDS)) {
-        conversionExecutor.shutdownNow();
+      if (conversionExecutor != null) {
+        conversionExecutor.shutdown();
+        if (!conversionExecutor.awaitTermination(60, TimeUnit.SECONDS)) {
+          conversionExecutor.shutdownNow();
+        }
       }
     } catch (InterruptedException e) {
-      downloadExecutor.shutdownNow();
-      conversionExecutor.shutdownNow();
+      if (downloadExecutor != null) {
+        downloadExecutor.shutdownNow();
+      }
+      if (conversionExecutor != null) {
+        conversionExecutor.shutdownNow();
+      }
       Thread.currentThread().interrupt();
     }
   }
@@ -676,14 +693,14 @@ public class SecSchemaFactory implements SchemaFactory {
     } catch (Exception e) {
       LOGGER.error("Error in downloadSecData", e);
       LOGGER.warn("Failed to download SEC data: " + e.getMessage());
-    } finally {
-      // Shutdown thread pools
-      shutdownExecutors();
     }
   }
 
   private void downloadCikFilings(SecHttpStorageProvider provider, String cik,
       List<String> filingTypes, int startYear, int endYear, File baseDir) {
+    // Ensure executors are initialized
+    initializeExecutors();
+    
     try {
       // Normalize CIK
       String normalizedCik = String.format("%010d", Long.parseLong(cik.replaceAll("[^0-9]", "")));
@@ -1128,6 +1145,9 @@ public class SecSchemaFactory implements SchemaFactory {
   }
 
   private void createSecTablesFromXbrl(File baseDir, List<String> ciks, int startYear, int endYear) {
+    // Ensure executors are initialized
+    initializeExecutors();
+    
     System.out.println("DEBUG: createSecTablesFromXbrl START");
     LOGGER.info("DEBUG: createSecTablesFromXbrl START");
     LOGGER.info("DEBUG: baseDir=" + baseDir.getAbsolutePath());
@@ -1192,6 +1212,8 @@ public class SecSchemaFactory implements SchemaFactory {
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
           try {
             XbrlToParquetConverter converter = new XbrlToParquetConverter();
+            
+            // The converter now properly extracts metadata from the XML content itself
             List<File> outputFiles = converter.convert(xbrlFile, secParquetDir, null);
             LOGGER.info("Converted " + xbrlFile.getName() + " to " +
                 outputFiles.size() + " Parquet files");
