@@ -225,10 +225,12 @@ public class SecToParquetConverter {
       metadata.filingDate = nameWithoutExt.substring(firstHyphen + 1, secondHyphen);
       metadata.filingType = nameWithoutExt.substring(secondHyphen + 1);
     } else {
-      // Default values if not in expected format
-      metadata.cik = "0000000000";
-      metadata.filingDate = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
-      metadata.filingType = "10-K";
+      // If filename doesn't match expected pattern, skip the file
+      // Don't create invalid partitions with default values
+      LOGGER.warning("Filename doesn't match expected pattern, will skip partition creation: " + filename);
+      metadata.cik = null;  // Will check this later and skip if null
+      metadata.filingDate = null;
+      metadata.filingType = "UNKNOWN";
     }
 
     // Try to extract from XBRL document
@@ -412,6 +414,12 @@ public class SecToParquetConverter {
   private void writePartitionedParquet(List<GenericRecord> records, String tableName,
                                         FilingMetadata metadata, Schema schema) throws IOException {
     if (records.isEmpty()) {
+      return;
+    }
+
+    // Skip if we don't have valid metadata for partitioning
+    if (metadata.cik == null || metadata.filingDate == null) {
+      LOGGER.warning("Skipping partition creation due to invalid metadata: CIK=" + metadata.cik + ", date=" + metadata.filingDate);
       return;
     }
 

@@ -33,6 +33,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.File;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -103,6 +105,35 @@ public class XbrlToParquetConverter implements FileConverter {
       String filingType = extractFilingType(doc, sourceFile);
       String filingDate = extractFilingDate(doc, sourceFile);
       
+      // Skip conversion if we couldn't extract required metadata
+      if (cik == null || cik.equals("0000000000")) {
+        LOGGER.warning("Skipping conversion due to invalid or missing CIK: " + sourceFile.getName());
+        return outputFiles; // Return empty list
+      }
+      
+      // Validate filing date - must be present
+      if (filingDate == null) {
+        LOGGER.warning("Skipping conversion - could not extract filing date from: " + sourceFile.getName());
+        return outputFiles; // Skip conversion
+      }
+      
+      // Validate filing date format and year
+      if (filingDate.length() >= 4) {
+        try {
+          int year = Integer.parseInt(filingDate.substring(0, 4));
+          if (year < 1934 || year > java.time.Year.now().getValue()) {
+            LOGGER.warning("Invalid year " + year + " in filing date " + filingDate + " for " + sourceFile.getName());
+            return outputFiles; // Skip conversion
+          }
+        } catch (NumberFormatException e) {
+          LOGGER.warning("Invalid filing date format: " + filingDate + " for " + sourceFile.getName());
+          return outputFiles; // Skip conversion
+        }
+      } else {
+        LOGGER.warning("Filing date too short: " + filingDate + " for " + sourceFile.getName());
+        return outputFiles; // Skip conversion
+      }
+      
       // Check if this is a Form 3, 4, or 5 (insider trading forms)
       if (isInsiderForm(doc, filingType)) {
         return convertInsiderForm(doc, sourceFile, targetDirectory, cik, filingType, filingDate);
@@ -115,10 +146,12 @@ public class XbrlToParquetConverter implements FileConverter {
       }
 
       // Create partitioned output path
+      // Normalize filing type: remove hyphens and slashes
+      String normalizedFilingType = filingType.replace("-", "").replace("/", "");
       File partitionDir =
           new File(
               targetDirectory, String.format("cik=%s/filing_type=%s/year=%s",
-              cik, filingType.replace("-", ""),
+              cik, normalizedFilingType,
               filingDate.substring(0, 4)));
       partitionDir.mkdirs();
 
@@ -171,6 +204,17 @@ public class XbrlToParquetConverter implements FileConverter {
   }
 
   private String extractCik(Document doc, File sourceFile) {
+    // For ownership documents (Form 3/4/5), extract issuerCik
+    NodeList issuerCiks = doc.getElementsByTagName("issuerCik");
+    if (issuerCiks.getLength() > 0) {
+      String cik = issuerCiks.item(0).getTextContent().trim();
+      // Pad to 10 digits
+      while (cik.length() < 10) {
+        cik = "0" + cik;
+      }
+      return cik;
+    }
+    
     // Try to extract from XBRL context
     NodeList contexts = doc.getElementsByTagNameNS("*", "context");
     for (int i = 0; i < contexts.getLength(); i++) {
@@ -184,16 +228,48 @@ public class XbrlToParquetConverter implements FileConverter {
       }
     }
 
+    // Fall back to directory structure parsing
+    // If file is in structure: /CIK/ACCESSION/file.xml
+    File parent = sourceFile.getParentFile();
+    if (parent != null) {
+      File grandparent = parent.getParentFile();
+      if (grandparent != null) {
+        String dirName = grandparent.getName();
+        if (dirName.matches("\\d+")) {
+          // Pad to 10 digits
+          while (dirName.length() < 10) {
+            dirName = "0" + dirName;
+          }
+          return dirName;
+        }
+      }
+    }
+
     // Fall back to filename parsing
     String filename = sourceFile.getName();
     if (filename.matches("\\d{10}_.*")) {
       return filename.substring(0, 10);
     }
 
-    return "0000000000"; // Unknown CIK
+    // Last resort - but log warning
+    LOGGER.warning("Could not extract CIK from " + sourceFile.getName() + ", skipping conversion");
+    return null; // Return null to indicate failure
   }
 
   private String extractFilingType(Document doc, File sourceFile) {
+    // For ownership documents (Form 3/4/5), extract documentType
+    NodeList docTypes = doc.getElementsByTagName("documentType");
+    if (docTypes.getLength() > 0) {
+      String docType = docTypes.item(0).getTextContent().trim();
+      // Return just the number for forms 3, 4, 5
+      if (docType.equals("3") || docType.equals("4") || docType.equals("5")) {
+        return docType;
+      }
+      if (docType.startsWith("3/") || docType.startsWith("4/") || docType.startsWith("5/")) {
+        return docType.substring(0, 1); // Just return "3", "4", or "5"
+      }
+    }
+    
     // Try to extract from document type - check both with and without namespace
     NodeList documentTypes = doc.getElementsByTagNameNS("*", "DocumentType");
     if (documentTypes.getLength() > 0) {
@@ -228,21 +304,138 @@ public class XbrlToParquetConverter implements FileConverter {
     return "UNKNOWN";
   }
 
+  /**
+   * Extract date from HTML filing metadata.
+   */
+  private String extractDateFromHTML(File htmlFile) {
+    try {
+      org.jsoup.nodes.Document doc = Jsoup.parse(htmlFile, "UTF-8");
+      
+      // Look for SEC header metadata
+      // Pattern: "CONFORMED PERIOD OF REPORT: 20240930"
+      Elements elements = doc.getElementsMatchingOwnText("CONFORMED PERIOD OF REPORT:");
+      for (org.jsoup.nodes.Element elem : elements) {
+        String text = elem.text();
+        Pattern pattern = Pattern.compile("CONFORMED PERIOD OF REPORT:\\s*(\\d{8})");
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+          String dateStr = matcher.group(1);
+          // Convert YYYYMMDD to YYYY-MM-DD
+          if (dateStr.length() == 8) {
+            return dateStr.substring(0, 4) + "-" + dateStr.substring(4, 6) + "-" + dateStr.substring(6, 8);
+          }
+        }
+      }
+      
+      // Look for FILED AS OF DATE pattern
+      elements = doc.getElementsMatchingOwnText("FILED AS OF DATE:");
+      for (org.jsoup.nodes.Element elem : elements) {
+        String text = elem.text();
+        Pattern pattern = Pattern.compile("FILED AS OF DATE:\\s*(\\d{8})");
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+          String dateStr = matcher.group(1);
+          // Convert YYYYMMDD to YYYY-MM-DD
+          if (dateStr.length() == 8) {
+            return dateStr.substring(0, 4) + "-" + dateStr.substring(4, 6) + "-" + dateStr.substring(6, 8);
+          }
+        }
+      }
+      
+      // Look for inline XBRL elements with date
+      elements = doc.select("[name*=DocumentPeriodEndDate], [name*=PeriodEndDate]");
+      for (org.jsoup.nodes.Element elem : elements) {
+        String date = elem.text().trim();
+        if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+          return date;
+        }
+        // Handle format like "Sep. 30, 2024" or "September 30, 2024"
+        if (date.matches("\\w+\\.?\\s+\\d{1,2},\\s+\\d{4}")) {
+          try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("[MMMM][MMM][.][ ]d, yyyy", Locale.ENGLISH);
+            LocalDate parsedDate = LocalDate.parse(date.replaceAll("\\.", ""), formatter);
+            return parsedDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
+          } catch (Exception e) {
+            // Ignore parse errors
+          }
+        }
+      }
+      
+    } catch (IOException e) {
+      LOGGER.warning("Failed to parse HTML file for date extraction: " + e.getMessage());
+    }
+    
+    return null;
+  }
+  
   private String extractFilingDate(Document doc, File sourceFile) {
-    // Try to extract from document period end date
+    // For ownership documents (Form 3/4/5), extract periodOfReport
+    NodeList periodOfReports = doc.getElementsByTagName("periodOfReport");
+    if (periodOfReports.getLength() > 0) {
+      String date = periodOfReports.item(0).getTextContent().trim();
+      // Validate date format (should be YYYY-MM-DD)
+      if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+        return date;
+      }
+    }
+    
+    // Try to extract from document period end date (standard XBRL)
     NodeList periodEnds = doc.getElementsByTagNameNS("*", "DocumentPeriodEndDate");
     if (periodEnds.getLength() > 0) {
-      return periodEnds.item(0).getTextContent();
+      String date = periodEnds.item(0).getTextContent().trim();
+      if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+        return date;
+      }
+    }
+    
+    // Try to extract from dei:DocumentPeriodEndDate (inline XBRL)
+    NodeList deiPeriodEnds = doc.getElementsByTagNameNS("*", "dei:DocumentPeriodEndDate");
+    if (deiPeriodEnds.getLength() == 0) {
+      // Try without namespace prefix
+      deiPeriodEnds = doc.getElementsByTagName("dei:DocumentPeriodEndDate");
+    }
+    if (deiPeriodEnds.getLength() > 0) {
+      String date = deiPeriodEnds.item(0).getTextContent().trim();
+      if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+        return date;
+      }
+    }
+    
+    // Try to extract from context periods (XBRL contexts)
+    NodeList contexts = doc.getElementsByTagNameNS("*", "context");
+    if (contexts.getLength() == 0) {
+      contexts = doc.getElementsByTagName("context");
+    }
+    for (int i = 0; i < contexts.getLength(); i++) {
+      Node context = contexts.item(i);
+      NodeList periods = ((Element) context).getElementsByTagNameNS("*", "instant");
+      if (periods.getLength() > 0) {
+        String date = periods.item(0).getTextContent().trim();
+        if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+          return date;
+        }
+      }
+      // Also check endDate in period elements
+      periods = ((Element) context).getElementsByTagNameNS("*", "endDate");
+      if (periods.getLength() > 0) {
+        String date = periods.item(0).getTextContent().trim();
+        if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
+          return date;
+        }
+      }
+    }
+    
+    // For HTML/inline XBRL files, try to parse from HTML metadata
+    if (sourceFile.getName().endsWith(".htm") || sourceFile.getName().endsWith(".html")) {
+      String htmlDate = extractDateFromHTML(sourceFile);
+      if (htmlDate != null) {
+        return htmlDate;
+      }
     }
 
-    // Fall back to filename parsing or current date
-    String filename = sourceFile.getName();
-    if (filename.matches(".*\\d{8}.*")) {
-      // Extract YYYYMMDD pattern
-      return filename.replaceAll(".*?(\\d{8}).*", "$1");
-    }
-
-    return LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+    // Return null if no date found - let the caller handle this
+    LOGGER.warning("Could not extract filing date from: " + sourceFile.getName());
+    return null;
   }
 
   private void writeFactsToParquet(Document doc, File outputFile,
@@ -1253,7 +1446,21 @@ public class XbrlToParquetConverter implements FileConverter {
     
     try {
       // Create partition directory
-      int year = Integer.parseInt(filingDate.substring(0, 4));
+      // Validate and parse year from filing date
+      int year;
+      try {
+        year = Integer.parseInt(filingDate.substring(0, 4));
+        // Sanity check - SEC filings shouldn't be from before 1934 or in the future
+        if (year < 1934 || year > java.time.Year.now().getValue()) {
+          LOGGER.warning("Invalid year " + year + " for filing date " + filingDate + ", using current year");
+          year = java.time.Year.now().getValue();
+        }
+      } catch (Exception e) {
+        LOGGER.warning("Failed to parse year from filing date: " + filingDate + ", using current year");
+        year = java.time.Year.now().getValue();
+      }
+      
+      // Normalize filing type: remove both slashes and hyphens
       String normalizedFilingType = filingType.replace("/", "").replace("-", "");
       File partitionDir = new File(targetDirectory,
           String.format("cik=%s/filing_type=%s/year=%d", cik, normalizedFilingType, year));
@@ -1549,7 +1756,19 @@ public class XbrlToParquetConverter implements FileConverter {
       // Write earnings transcripts to Parquet if we found any
       if (!earningsRecords.isEmpty()) {
         // Create partition directory
-        int year = Integer.parseInt(filingDate.substring(0, 4));
+        // Validate and parse year
+        int year;
+        try {
+          year = Integer.parseInt(filingDate.substring(0, 4));
+          if (year < 1934 || year > java.time.Year.now().getValue()) {
+            LOGGER.warning("Invalid year " + year + " for filing date " + filingDate);
+            year = java.time.Year.now().getValue();
+          }
+        } catch (Exception e) {
+          LOGGER.warning("Failed to parse year from filing date: " + filingDate);
+          year = java.time.Year.now().getValue();
+        }
+        
         String normalizedFilingType = filingType.replace("/", "").replace("-", "");
         File partitionDir = new File(targetDirectory,
             String.format("cik=%s/filing_type=%s/year=%d", cik, normalizedFilingType, year));
