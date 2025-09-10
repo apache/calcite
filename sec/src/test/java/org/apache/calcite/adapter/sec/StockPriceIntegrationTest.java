@@ -225,7 +225,6 @@ public class StockPriceIntegrationTest {
   }
 
   @Test
-  @Disabled("Requires actual Parquet files with data")
   void testJoinStockPricesWithFilings() throws Exception {
     Properties props = new Properties();
     props.setProperty("lex", "ORACLE");
@@ -235,7 +234,7 @@ public class StockPriceIntegrationTest {
             "jdbc:calcite:model=" + modelPath, props)) {
 
       // Test join query structure (may return empty in test mode)
-      String sql = "SELECT f.cik, f.filing_type, s.ticker, s.close " +
+      String sql = "SELECT f.cik, f.filing_type, s.ticker, s.\"close\" " +
           "FROM financial_line_items f " +
           "LEFT JOIN stock_prices s ON f.cik = s.cik " +
           "WHERE f.filing_type = '10K' " +

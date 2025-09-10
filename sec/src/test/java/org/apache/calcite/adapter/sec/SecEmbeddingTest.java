@@ -156,7 +156,7 @@ public class SecEmbeddingTest {
       System.out.println("Test 1: Available Tables");
       System.out.println("========================");
       DatabaseMetaData md = conn.getMetaData();
-      ResultSet tables = md.getTables(null, "XBRL", "%", null);
+      ResultSet tables = md.getTables(null, "SEC", "%", null);
       int tableCount = 0;
       while (tables.next()) {
         String tableName = tables.getString("TABLE_NAME");

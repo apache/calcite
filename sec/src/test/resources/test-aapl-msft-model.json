@@ -24,7 +24,8 @@
       },
       "extractFootnotes": true,
       "extractMDA": true,
-      "extractRiskFactors": true
+      "extractRiskFactors": true,
+      "fetchStockPrices": true
     }
   }]
 }

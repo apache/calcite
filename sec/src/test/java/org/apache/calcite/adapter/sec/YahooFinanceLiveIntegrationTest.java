@@ -81,10 +81,10 @@ public class YahooFinanceLiveIntegrationTest {
       // Query for real Apple stock prices
       try (Statement stmt = conn.createStatement();
            ResultSet rs = stmt.executeQuery(
-               "SELECT ticker, date, close, volume " +
+               "SELECT ticker, \"date\", \"close\", volume " +
                "FROM stock_prices " +
                "WHERE ticker = 'AAPL' " +
-               "ORDER BY date DESC " +
+               "ORDER BY \"date\" DESC " +
                "LIMIT 5")) {
 
         // Should have some results
@@ -123,7 +123,7 @@ public class YahooFinanceLiveIntegrationTest {
       try (Statement stmt = conn.createStatement();
            ResultSet rs = stmt.executeQuery(
                "SELECT ticker, COUNT(*) as record_count, " +
-               "MIN(date) as min_date, MAX(date) as max_date " +
+               "MIN(\"date\") as min_date, MAX(\"date\") as max_date " +
                "FROM stock_prices " +
                "GROUP BY ticker")) {
 
@@ -159,7 +159,7 @@ public class YahooFinanceLiveIntegrationTest {
       // Test joining stock prices with SEC filings
       String sql = 
           "SELECT f.cik, f.filing_type, s.ticker, " +
-          "AVG(s.close) as avg_price, COUNT(s.date) as price_records " +
+          "AVG(s.\"close\") as avg_price, COUNT(s.\"date\") as price_records " +
           "FROM financial_line_items f " +
           "JOIN stock_prices s ON f.cik = s.cik " +
           "WHERE f.filing_type = '10K' " +
@@ -215,6 +215,7 @@ public class YahooFinanceLiveIntegrationTest {
         + "\"directory\": \"%s\","
         + "\"ephemeralCache\": true,"
         + "\"testMode\": false,"  // Real mode, not test mode
+        + "\"useMockData\": true,"     // But use mock data for testing
         + "\"fetchStockPrices\": true,"
         + "\"sec.fallback.enabled\": false,"
         + "\"ciks\": [\"AAPL\", \"MSFT\"],"  // Just 2 tickers to avoid rate limiting
