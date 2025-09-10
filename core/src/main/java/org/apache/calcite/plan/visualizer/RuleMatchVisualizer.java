@@ -29,6 +29,7 @@ import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.core.util.Separators;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -363,8 +364,11 @@ public class RuleMatchVisualizer implements RelOptListener {
       LinkedHashMap<String, Object> data = new LinkedHashMap<>();
       data.put("steps", steps);
       ObjectMapper objectMapper = new ObjectMapper();
-      DefaultPrettyPrinter printer = new DefaultPrettyPrinter();
-      printer = printer.withoutSpacesInObjectEntries();
+      Separators withoutSpacesSeparators =
+          Separators.createDefaultInstance().
+          withObjectFieldValueSpacing(Separators.Spacing.NONE);
+      DefaultPrettyPrinter printer =
+          new DefaultPrettyPrinter().withSeparators(withoutSpacesSeparators);
       return objectMapper.writer(printer).writeValueAsString(data);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
