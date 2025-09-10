@@ -55,7 +55,6 @@ dependencies {
         apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
         apiv("org.apache.cassandra:java-driver-core", "cassandra-java-driver-core")
-        apiv("com.fasterxml.jackson.core:jackson-databind")
         apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.oshi:oshi-core")
         apiv("com.github.stephenc.jcip:jcip-annotations")
