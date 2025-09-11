@@ -1834,6 +1834,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7176">[CALCITE-7176]
+   * FETCH and OFFSET in SortMergeRule do not support BIGINT</a>. */
+  @Test void testLimitMergeBigint() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 limit 3100000000)\n"
+        + "limit 3000000000";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
   @Test void testSemiJoinRuleExists() {
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"

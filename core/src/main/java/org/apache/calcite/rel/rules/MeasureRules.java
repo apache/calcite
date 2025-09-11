@@ -508,8 +508,8 @@ public abstract class MeasureRules {
 
       relBuilder.push(sort.getInput())
           .projectPlus(map.keySet())
-          .sortLimit(sort.offset == null ? 0 : RexLiteral.intValue(sort.offset),
-              sort.fetch == null ? -1 : RexLiteral.intValue(sort.fetch),
+          .sortLimit(sort.offset == null ? 0 : RexLiteral.longValue(sort.offset),
+              sort.fetch == null ? -1 : RexLiteral.longValue(sort.fetch),
               sort.getSortExps())
           .project(newProjects);
       call.transformTo(relBuilder.build());

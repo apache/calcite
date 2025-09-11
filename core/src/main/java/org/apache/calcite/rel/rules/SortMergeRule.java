@@ -92,18 +92,18 @@ public class SortMergeRule
 
     final RelBuilder builder = call.builder();
 
-    final int topFetch = topSort.fetch instanceof RexLiteral
-        ? RexLiteral.intValue(topSort.fetch) : -1;
+    final long topFetch = topSort.fetch instanceof RexLiteral
+        ? RexLiteral.longValue(topSort.fetch) : -1;
 
-    final int bottomFetch = bottomSort.fetch instanceof RexLiteral
-        ? RexLiteral.intValue(bottomSort.fetch) : -1;
+    final long bottomFetch = bottomSort.fetch instanceof RexLiteral
+        ? RexLiteral.longValue(bottomSort.fetch) : -1;
 
     if (topFetch == -1 || bottomFetch == -1) {
       return;
     }
 
     // Get the minimum limit value from parent and child sort RelNode
-    final int minFetch = Math.min(topFetch, bottomFetch);
+    final long minFetch = Math.min(topFetch, bottomFetch);
 
     builder.push(bottomSort.getInput());
 

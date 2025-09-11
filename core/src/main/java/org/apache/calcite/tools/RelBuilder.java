@@ -3720,7 +3720,7 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Sort} by expressions, with limit and offset. */
-  public RelBuilder sortLimit(int offset, int fetch, RexNode... nodes) {
+  public RelBuilder sortLimit(long offset, long fetch, RexNode... nodes) {
     return sortLimit(offset, fetch, ImmutableList.copyOf(nodes));
   }
 
@@ -3739,7 +3739,7 @@ public class RelBuilder {
    * @param fetch Maximum number of rows to fetch; negative means no limit
    * @param nodes Sort expressions
    */
-  public RelBuilder sortLimit(int offset, int fetch,
+  public RelBuilder sortLimit(long offset, long fetch,
       Iterable<? extends RexNode> nodes) {
     final @Nullable RexNode offsetNode = offset <= 0 ? null : literal(offset);
     final @Nullable RexNode fetchNode = fetch < 0 ? null : literal(fetch);
@@ -3770,8 +3770,8 @@ public class RelBuilder {
     final Registrar registrar = new Registrar(fields(), ImmutableList.of());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);
-    final int fetch = fetchNode instanceof RexLiteral
-        ? RexLiteral.intValue(fetchNode) : -1;
+    final long fetch = fetchNode instanceof RexLiteral
+        ? RexLiteral.longValue(fetchNode) : -1;
     if (offsetNode == null && fetch == 0 && config.simplifyLimit()) {
       return empty();
     }
