@@ -88,7 +88,7 @@ public class SparkDateTimestampInterval {
     if ("DATE_ADD".equals(call.getOperator().getName())
         || "DATE_SUB".equals(call.getOperator().getName())) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(sign);
+      writer.keyword(sign);
       writeIntervalLiteral(writer, call);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);

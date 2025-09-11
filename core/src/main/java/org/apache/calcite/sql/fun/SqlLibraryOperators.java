@@ -1829,6 +1829,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE,
           OperandTypes.ARRAY_ELEMENT);
 
+  /** The "ARRAY_POSITION(array, element)" function. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_ARRAY_POSITION =
+      SqlBasicFunction.create(SqlKind.ARRAY_POSITION,
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.VARIANT, SqlTypeFamily.ARRAY));
+
   /** The "ARRAY_PREPEND(array, element)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_PREPEND =
@@ -3799,7 +3806,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_COUNT =
       new SqlFunction("REGEXP_COUNT", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
-          null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+          null,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlBasicFunction REGEXP_SPLIT_TO_ARRAY =
