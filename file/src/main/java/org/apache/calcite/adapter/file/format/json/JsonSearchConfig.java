@@ -55,6 +55,14 @@ public class JsonSearchConfig {
     parseOptions(options);
   }
 
+  /**
+   * Create a JsonSearchConfig from a table definition map.
+   * This is used when processing table definitions from model.json files.
+   */
+  public static JsonSearchConfig fromTableDefinition(@Nullable Map<String, Object> tableDef) {
+    return new JsonSearchConfig(tableDef);
+  }
+
   private void parseOptions(@Nullable Map<String, Object> options) {
     if (options == null) {
       return;
