@@ -1676,7 +1676,6 @@ public class RexUtil {
     return isLosslessCast(((RexCall) node).getOperands().get(0).getType(), node.getType());
   }
 
-
   /**
    * Returns whether the conversion from {@code source} to {@code target} type
    * is a 'loss-less' cast, that is, a cast from which
@@ -1693,21 +1692,35 @@ public class RexUtil {
    * @return 'true' when the conversion can certainly be determined to be loss-less cast,
    *         but may return 'false' for some lossless casts.
    */
-  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.22", status = API.Status.STABLE)
   public static boolean isLosslessCast(RelDataType source, RelDataType target) {
     final SqlTypeName sourceSqlTypeName = source.getSqlTypeName();
     final SqlTypeName targetSqlTypeName = target.getSqlTypeName();
-    // 1) Both INT numeric types
-    if (SqlTypeFamily.INTEGER.getTypeNames().contains(sourceSqlTypeName)
-        && SqlTypeFamily.INTEGER.getTypeNames().contains(targetSqlTypeName)) {
-      return targetSqlTypeName.compareTo(sourceSqlTypeName) >= 0;
+
+    // 1) Both integer types (signed or unsigned)
+    if (SqlTypeUtil.isIntType(source) && SqlTypeUtil.isIntType(target)) {
+      final boolean sourceIsUnsigned =
+          SqlTypeFamily.UNSIGNED_NUMERIC.getTypeNames().contains(sourceSqlTypeName);
+      final boolean targetIsUnsigned =
+          SqlTypeFamily.UNSIGNED_NUMERIC.getTypeNames().contains(targetSqlTypeName);
+      if (!sourceIsUnsigned && targetIsUnsigned) {
+        return false;
+      }
+      if (sourceIsUnsigned
+          && SqlTypeFamily.INTEGER.getTypeNames().contains(targetSqlTypeName)
+          && !SqlTypeUtil.integerRangeContains(target, source)) {
+        return false;
+      }
+      return SqlTypeUtil.integerRangeContains(target, source);
     }
+
     // 2) Both CHARACTER types: it depends on the precision (length)
     if (SqlTypeFamily.CHARACTER.getTypeNames().contains(sourceSqlTypeName)
         && SqlTypeFamily.CHARACTER.getTypeNames().contains(targetSqlTypeName)) {
       return targetSqlTypeName.compareTo(sourceSqlTypeName) >= 0
           && source.getPrecision() <= target.getPrecision();
     }
+
     // 3) From NUMERIC family to CHARACTER family: it depends on the precision/scale
     if (sourceSqlTypeName.getFamily() == SqlTypeFamily.NUMERIC
         && targetSqlTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
@@ -1718,7 +1731,71 @@ public class RexUtil {
       final int targetPrecision = target.getPrecision();
       return targetPrecision == PRECISION_NOT_SPECIFIED || targetPrecision >= sourceLength;
     }
-    // Return FALSE by default
+
+    // 4) DECIMAL -> DECIMAL
+    if (sourceSqlTypeName == SqlTypeName.DECIMAL
+        && targetSqlTypeName == SqlTypeName.DECIMAL) {
+      int sourcePrecision = source.getPrecision();
+      int sourceScale = Math.max(source.getScale(), 0);
+      int targetPrecision = target.getPrecision();
+      int targetScale = Math.max(target.getScale(), 0);
+      if (sourcePrecision <= 0 || targetPrecision <= 0) {
+        return false;
+      }
+      return targetScale >= sourceScale
+          && (targetPrecision - targetScale) >= (sourcePrecision - sourceScale);
+    }
+
+    // 5) integer family (signed or unsigned) -> DECIMAL
+    if (SqlTypeUtil.isIntType(source)
+        && targetSqlTypeName == SqlTypeName.DECIMAL) {
+      int targetPrecision = target.getPrecision();
+      int targetScale = Math.max(target.getScale(), 0);
+      int sourcePrecision = source.getPrecision();
+      if (sourcePrecision <= 0) {
+        return false;
+      }
+      return (targetPrecision - targetScale) >= sourcePrecision;
+    }
+
+    // 6) DECIMAL -> integer family (signed or unsigned)
+    if (sourceSqlTypeName == SqlTypeName.DECIMAL
+        && SqlTypeUtil.isIntType(target)) {
+      if (source.getScale() != 0) {
+        return false;
+      }
+      return SqlTypeUtil.integerRangeContains(target, source);
+    }
+
+    // 7) APPROXIMATE NUMERIC -> APPROXIMATE NUMERIC
+    if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sourceSqlTypeName)
+        && SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(targetSqlTypeName)) {
+      // Lossless if target has at least as many significant digits as source
+      final int sourcePrecision = source.getPrecision();
+      final int targetPrecision = target.getPrecision();
+      return targetPrecision >= sourcePrecision;
+    }
+
+    // 8) EXACT NUMERIC -> APPROXIMATE NUMERIC
+    if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sourceSqlTypeName)
+        && SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(targetSqlTypeName)) {
+      final int targetPrecision = target.getPrecision();
+
+      // Case A: DECIMAL -> APPROXIMATE NUMERIC
+      if (sourceSqlTypeName == SqlTypeName.DECIMAL) {
+        final int sourcePrecision = source.getPrecision();
+        if (sourcePrecision <= 0 || source.getScale() != 0) {
+          return false;
+        }
+        // scale is 0, just check precision
+        return sourcePrecision <= targetPrecision;
+      }
+
+      // Case B: integer family (signed or unsigned) -> APPROXIMATE NUMERIC
+      int sourcePrecision = source.getPrecision();
+      return sourcePrecision > 0 && sourcePrecision <= targetPrecision;
+    }
+
     return false;
   }
 
