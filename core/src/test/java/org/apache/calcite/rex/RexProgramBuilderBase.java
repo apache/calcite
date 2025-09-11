@@ -62,6 +62,8 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullSmallInt;
   protected RexLiteral nullVarchar;
   protected RexLiteral nullDecimal;
+  protected RexLiteral nullReal;
+  protected RexLiteral nullFloat;
   protected RexLiteral nullVarbinary;
 
   private RelDataType nullableBool;
@@ -78,6 +80,12 @@ public abstract class RexProgramBuilderBase {
 
   private RelDataType nullableDecimal;
   private RelDataType nonNullableDecimal;
+
+  private RelDataType nullableReal;
+  private RelDataType nonNullableReal;
+
+  private RelDataType nullableFloat;
+  private RelDataType nonNullableFloat;
 
   private RelDataType nullableVarbinary;
   private RelDataType nonNullableVarbinary;
@@ -122,6 +130,14 @@ public abstract class RexProgramBuilderBase {
     nonNullableDecimal = typeFactory.createSqlType(SqlTypeName.DECIMAL);
     nullableDecimal = typeFactory.createTypeWithNullability(nonNullableDecimal, true);
     nullDecimal = rexBuilder.makeNullLiteral(nullableDecimal);
+
+    nonNullableReal = typeFactory.createSqlType(SqlTypeName.REAL);
+    nullableReal = typeFactory.createTypeWithNullability(nonNullableReal, true);
+    nullReal = rexBuilder.makeNullLiteral(nullableReal);
+
+    nonNullableFloat = typeFactory.createSqlType(SqlTypeName.FLOAT);
+    nullableFloat = typeFactory.createTypeWithNullability(nonNullableFloat, true);
+    nullFloat = rexBuilder.makeNullLiteral(nullableFloat);
 
     nonNullableVarbinary = typeFactory.createSqlType(SqlTypeName.VARBINARY);
     nullableVarbinary = typeFactory.createTypeWithNullability(nonNullableVarbinary, true);
@@ -425,11 +441,27 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RelDataType tDecimal() {
-    return nonNullableDecimal;
+    return tDecimal(false);
   }
 
   protected RelDataType tDecimal(boolean nullable) {
     return nullable ? nullableDecimal : nonNullableDecimal;
+  }
+
+  protected RelDataType tReal() {
+    return tReal(false);
+  }
+
+  protected RelDataType tReal(boolean nullable) {
+    return nullable ? nullableReal : nonNullableReal;
+  }
+
+  protected RelDataType tFloat() {
+    return tFloat(false);
+  }
+
+  protected RelDataType tFloat(boolean nullable) {
+    return nullable ? nullableFloat : nonNullableFloat;
   }
 
   protected RelDataType tBigInt() {
