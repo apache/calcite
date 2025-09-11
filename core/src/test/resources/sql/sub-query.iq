@@ -3678,7 +3678,7 @@ select * from "scott".emp where comm in (300, 500, null);
 
 !ok
 
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:DECIMAL(12, 2)], expr#12=[=($t8, $t11)], expr#13=[OR($t10, $t12)], proj#0..7=[{exprs}], $condition=[$t13])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3706,7 +3706,7 @@ select *, comm in (300, 500, null) as i from "scott".emp;
 
 !ok
 
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:DECIMAL(12, 2)], expr#12=[=($t8, $t11)], expr#13=[OR($t10, $t12)], proj#0..7=[{exprs}], I=[$t13])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[OR($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3747,7 +3747,7 @@ select *, comm not in (300, 500, null) as i from "scott".emp;
 
 !ok
 
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[(-∞..300.00:DECIMAL(12, 2)), (300.00:DECIMAL(12, 2)..500.00:DECIMAL(12, 2)), (500.00:DECIMAL(12, 2)..+∞)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:DECIMAL(12, 2)], expr#12=[<>($t8, $t11)], expr#13=[AND($t10, $t12)], proj#0..7=[{exprs}], I=[$t13])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[(-∞..300.00:DECIMAL(12, 2)), (300.00:DECIMAL(12, 2)..500.00:DECIMAL(12, 2)), (500.00:DECIMAL(12, 2)..+∞)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -4627,7 +4627,7 @@ select comm, comm in (500, 300, 0) from emp;
 
 !ok
 
-EnumerableCalc(expr#0..6=[{inputs}], expr#7=[0], expr#8=[=($t2, $t7)], expr#9=[false], expr#10=[CAST($t1):DECIMAL(12, 2)], expr#11=[IS NULL($t10)], expr#12=[null:BOOLEAN], expr#13=[IS NOT NULL($t6)], expr#14=[true], expr#15=[<($t3, $t2)], expr#16=[CASE($t8, $t9, $t11, $t12, $t13, $t14, $t15, $t12, $t9)], COMM=[$t1], EXPR$1=[$t16])
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN], expr#9=[0], expr#10=[<>($t2, $t9)], expr#11=[AND($t7, $t8, $t10)], expr#12=[IS NOT NULL($t6)], expr#13=[IS NOT NULL($t1)], expr#14=[AND($t12, $t10, $t13)], expr#15=[<($t3, $t2)], expr#16=[IS NULL($t6)], expr#17=[AND($t15, $t8, $t10, $t13, $t16)], expr#18=[OR($t11, $t14, $t17)], COMM=[$t1], EXPR$1=[$t18])
   EnumerableMergeJoin(condition=[=($4, $5)], joinType=[left])
     EnumerableSort(sort0=[$4], dir0=[ASC])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):DECIMAL(12, 2)], proj#0..4=[{exprs}])
@@ -4667,7 +4667,7 @@ select comm, comm in (500, 300, 0, null) from emp;
 
 !ok
 
-EnumerableCalc(expr#0..6=[{inputs}], expr#7=[0], expr#8=[=($t2, $t7)], expr#9=[false], expr#10=[CAST($t1):DECIMAL(12, 2)], expr#11=[IS NULL($t10)], expr#12=[null:BOOLEAN], expr#13=[IS NOT NULL($t6)], expr#14=[true], expr#15=[<($t3, $t2)], expr#16=[CASE($t8, $t9, $t11, $t12, $t13, $t14, $t15, $t12, $t9)], COMM=[$t1], EXPR$1=[$t16])
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN], expr#9=[0], expr#10=[<>($t2, $t9)], expr#11=[AND($t7, $t8, $t10)], expr#12=[IS NOT NULL($t6)], expr#13=[IS NOT NULL($t1)], expr#14=[AND($t12, $t10, $t13)], expr#15=[<($t3, $t2)], expr#16=[IS NULL($t6)], expr#17=[AND($t15, $t8, $t10, $t13, $t16)], expr#18=[OR($t11, $t14, $t17)], COMM=[$t1], EXPR$1=[$t18])
   EnumerableMergeJoin(condition=[=($4, $5)], joinType=[left])
     EnumerableSort(sort0=[$4], dir0=[ASC])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):DECIMAL(12, 2)], proj#0..4=[{exprs}])
@@ -4740,7 +4740,7 @@ select comm, (comm, comm) in ((500, 500), (300, 300), (0, 0)) from emp;
 
 !ok
 
-EnumerableCalc(expr#0..8=[{inputs}], expr#9=[0], expr#10=[=($t2, $t9)], expr#11=[false], expr#12=[CAST($t1):DECIMAL(12, 2)], expr#13=[IS NULL($t12)], expr#14=[null:BOOLEAN], expr#15=[IS NOT NULL($t8)], expr#16=[true], expr#17=[<($t3, $t2)], expr#18=[CASE($t10, $t11, $t13, $t14, $t15, $t16, $t17, $t14, $t11)], COMM=[$t1], EXPR$1=[$t18])
+EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEAN], expr#11=[0], expr#12=[<>($t2, $t11)], expr#13=[AND($t9, $t10, $t12)], expr#14=[IS NOT NULL($t8)], expr#15=[IS NOT NULL($t1)], expr#16=[AND($t14, $t12, $t15)], expr#17=[<($t3, $t2)], expr#18=[IS NULL($t8)], expr#19=[AND($t17, $t10, $t12, $t15, $t18)], expr#20=[OR($t13, $t16, $t19)], COMM=[$t1], EXPR$1=[$t20])
   EnumerableMergeJoin(condition=[AND(=($4, $6), =($5, $7))], joinType=[left])
     EnumerableSort(sort0=[$4], sort1=[$5], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):DECIMAL(12, 2)], proj#0..4=[{exprs}], COMM1=[$t4])
@@ -4779,7 +4779,7 @@ select comm, (comm, comm) in ((500, 500), (300, 300), (0, 0), (null , null)) fro
 
 !ok
 
-EnumerableCalc(expr#0..8=[{inputs}], expr#9=[0], expr#10=[=($t2, $t9)], expr#11=[false], expr#12=[CAST($t1):DECIMAL(12, 2)], expr#13=[IS NULL($t12)], expr#14=[null:BOOLEAN], expr#15=[IS NOT NULL($t8)], expr#16=[true], expr#17=[<($t3, $t2)], expr#18=[CASE($t10, $t11, $t13, $t14, $t15, $t16, $t17, $t14, $t11)], COMM=[$t1], EXPR$1=[$t18])
+EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEAN], expr#11=[0], expr#12=[<>($t2, $t11)], expr#13=[AND($t9, $t10, $t12)], expr#14=[IS NOT NULL($t8)], expr#15=[IS NOT NULL($t1)], expr#16=[AND($t14, $t12, $t15)], expr#17=[<($t3, $t2)], expr#18=[IS NULL($t8)], expr#19=[AND($t17, $t10, $t12, $t15, $t18)], expr#20=[OR($t13, $t16, $t19)], COMM=[$t1], EXPR$1=[$t20])
   EnumerableMergeJoin(condition=[AND(=($4, $6), =($5, $7))], joinType=[left])
     EnumerableSort(sort0=[$4], sort1=[$5], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):DECIMAL(12, 2)], proj#0..4=[{exprs}], COMM1=[$t4])
