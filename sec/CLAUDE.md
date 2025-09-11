@@ -206,6 +206,12 @@ When the SEC adapter needs functionality not in the file adapter:
 - Use `@Tag("unit")` for pure unit tests with mocked data
 - Extended timeouts needed for large company downloads
 - **Remember**: By default only unit tests run. Use `-PincludeTags=integration` for integration tests
+- **CRITICAL**: SEC adapter tests are LONG-RUNNING by design (can take 30+ minutes)
+  - **NEVER** assume a test has timed out just because it's taking a long time
+  - **ALWAYS** start the test and then monitor progress using BashOutput
+  - **NEVER** interrupt or cancel a test assuming it's stuck without checking progress
+  - Downloads of thousands of filings and XBRL conversion take significant time
+  - This is EXPECTED behavior, not a problem
 
 ### Test Debugging Standards
 

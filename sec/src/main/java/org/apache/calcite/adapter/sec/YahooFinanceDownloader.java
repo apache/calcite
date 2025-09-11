@@ -35,11 +35,14 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -101,19 +104,37 @@ public class YahooFinanceDownloader {
     stockPricesDir.mkdirs();
     
     File manifestFile = new File(stockPricesDir, "downloaded.manifest");
-    Set<String> downloadedKeys = loadManifest(manifestFile);
+    Map<String, Long> manifestData = loadManifestWithTimestamps(manifestFile);
     
     List<CompletableFuture<Void>> futures = new ArrayList<>();
     AtomicInteger completedCount = new AtomicInteger(0);
     int totalDownloads = tickerCikPairs.size() * (endYear - startYear + 1);
+    int currentYear = LocalDate.now().getYear();
+    long todayStartMillis = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
     
     for (TickerCikPair pair : tickerCikPairs) {
       for (int year = startYear; year <= endYear; year++) {
         String manifestKey = pair.ticker + "|" + year;
-        if (downloadedKeys.contains(manifestKey)) {
-          LOGGER.debug("Skipping already downloaded: {} for year {}", pair.ticker, year);
-          completedCount.incrementAndGet();
-          continue;
+        
+        // Check if we should skip this download
+        if (manifestData.containsKey(manifestKey)) {
+          long downloadTimestamp = manifestData.get(manifestKey);
+          
+          if (year < currentYear) {
+            // Past years: never re-download (data is complete)
+            LOGGER.debug("Skipping completed year: {} for {}", year, pair.ticker);
+            completedCount.incrementAndGet();
+            continue;
+          } else if (year == currentYear) {
+            // Current year: only re-download if last download was on a previous day
+            if (downloadTimestamp >= todayStartMillis) {
+              LOGGER.debug("Skipping current year {} for {} - already downloaded today", year, pair.ticker);
+              completedCount.incrementAndGet();
+              continue;
+            } else {
+              LOGGER.info("Re-downloading current year {} for {} - data may be stale", year, pair.ticker);
+            }
+          }
         }
         
         final int downloadYear = year;
@@ -161,7 +182,7 @@ public class YahooFinanceDownloader {
           List<StockPriceRecord> prices = fetchYahooData(pair.ticker, startDate, endDate);
           if (!prices.isEmpty()) {
             writeParquetFile(parquetFile, prices, pair.ticker, pair.cik, year);
-            updateManifest(manifestFile, pair.ticker + "|" + year);
+            updateManifest(manifestFile, pair.ticker, year);
             LOGGER.debug("Downloaded {} price records for {} in {}", 
                 prices.size(), pair.ticker, year);
           } else {
@@ -331,13 +352,21 @@ public class YahooFinanceDownloader {
   
   /**
    * Loads the manifest of already downloaded ticker-year combinations.
+   * Format: ticker|year or ticker|year|timestamp for current year entries
    */
-  private Set<String> loadManifest(File manifestFile) {
-    Set<String> downloaded = new HashSet<>();
+  private Map<String, Long> loadManifestWithTimestamps(File manifestFile) {
+    Map<String, Long> downloaded = new HashMap<>();
     if (manifestFile.exists()) {
       try {
-        downloaded.addAll(Files.readAllLines(manifestFile.toPath()));
-      } catch (IOException e) {
+        for (String line : Files.readAllLines(manifestFile.toPath())) {
+          String[] parts = line.split("\\|");
+          if (parts.length >= 2) {
+            String key = parts[0] + "|" + parts[1];
+            long timestamp = parts.length >= 3 ? Long.parseLong(parts[2]) : 0L;
+            downloaded.put(key, timestamp);
+          }
+        }
+      } catch (IOException | NumberFormatException e) {
         LOGGER.warn("Failed to load manifest: {}", e.getMessage());
       }
     }
@@ -346,11 +375,21 @@ public class YahooFinanceDownloader {
   
   /**
    * Updates the manifest with a newly downloaded ticker-year.
+   * For current year, includes timestamp for staleness checking.
    */
-  private synchronized void updateManifest(File manifestFile, String key) {
+  private synchronized void updateManifest(File manifestFile, String ticker, int year) {
     try {
+      int currentYear = LocalDate.now().getYear();
+      String entry;
+      if (year == currentYear) {
+        // For current year, include timestamp for staleness checking
+        entry = ticker + "|" + year + "|" + System.currentTimeMillis();
+      } else {
+        // For past years, no timestamp needed (data is complete)
+        entry = ticker + "|" + year;
+      }
       Files.write(manifestFile.toPath(), 
-          (key + System.lineSeparator()).getBytes(),
+          (entry + System.lineSeparator()).getBytes(),
           java.nio.file.StandardOpenOption.CREATE,
           java.nio.file.StandardOpenOption.APPEND);
     } catch (IOException e) {

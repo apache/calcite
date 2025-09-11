@@ -1,0 +1,40 @@
+{
+  "operand": {
+    "filingTypes": [
+      "10-K",
+      "10-Q",
+      "8-K",
+      "DEF 14A",
+      "20-F",
+      "40-F",
+      "S-1",
+      "S-3",
+      "S-4",
+      "S-8",
+      "10-K/A",
+      "10-Q/A",
+      "8-K/A",
+      "424B2",
+      "424B5",
+      "3",
+      "4",
+      "5"
+    ],
+    "autoDownload": true,
+    "endYear": "${CURRENT_YEAR}",
+    "executionEngine": "duckdb",
+    "testMode": false,
+    "ephemeralCache": true,
+    "sec.fallback.enabled": false,
+    "textSimilarity": {
+      "enabled": true,
+      "embeddingDimension": 256,
+      "provider": "local",
+      "maxTextLength": 8192
+    },
+    "extractFootnotes": true,
+    "extractMDA": true,
+    "extractRiskFactors": true,
+    "fetchStockPrices": true
+  }
+}

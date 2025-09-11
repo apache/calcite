@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,6 +76,18 @@ public class XbrlToParquetConverter implements FileConverter {
   @Override public List<File> convert(File sourceFile, File targetDirectory,
       ConversionMetadata metadata) throws IOException {
     List<File> outputFiles = new ArrayList<>();
+    
+    // Extract accession from metadata if available
+    String accession = null;
+    if (metadata != null && metadata.getAllConversions() != null) {
+      for (ConversionMetadata.ConversionRecord record : metadata.getAllConversions().values()) {
+        if (sourceFile.getAbsolutePath().equals(record.originalFile)) {
+          // We stored accession in sourceFile field
+          accession = record.sourceFile;
+          break;
+        }
+      }
+    }
 
     try {
       Document doc = null;
@@ -136,7 +149,7 @@ public class XbrlToParquetConverter implements FileConverter {
       
       // Check if this is a Form 3, 4, or 5 (insider trading forms)
       if (isInsiderForm(doc, filingType)) {
-        return convertInsiderForm(doc, sourceFile, targetDirectory, cik, filingType, filingDate);
+        return convertInsiderForm(doc, sourceFile, targetDirectory, cik, filingType, filingDate, accession);
       }
       
       // Check if this is an 8-K filing with potential earnings exhibits
@@ -1419,6 +1432,9 @@ public class XbrlToParquetConverter implements FileConverter {
     } finally {
       writer.close();
     }
+    
+    // Clean up macOS metadata files after writing
+    cleanupMacOSMetadataFiles(outputFile.getParentFile());
   }
   
   /**
@@ -1441,7 +1457,7 @@ public class XbrlToParquetConverter implements FileConverter {
    * Convert Form 3/4/5 insider trading forms to Parquet.
    */
   private List<File> convertInsiderForm(Document doc, File sourceFile, File targetDirectory,
-      String cik, String filingType, String filingDate) throws IOException {
+      String cik, String filingType, String filingDate, String accession) throws IOException {
     List<File> outputFiles = new ArrayList<>();
     
     try {
@@ -1470,16 +1486,35 @@ public class XbrlToParquetConverter implements FileConverter {
       List<GenericRecord> transactions = extractInsiderTransactions(doc, cik, filingType, filingDate);
       
       if (!transactions.isEmpty()) {
-        // Write to Parquet
+        // Write to Parquet - use accession for uniqueness if available
+        String uniqueId = (accession != null && !accession.isEmpty()) ? accession : filingDate;
         File outputFile = new File(partitionDir,
-            String.format("%s_%s_insider.parquet", cik, filingDate));
+            String.format("%s_%s_insider.parquet", cik, uniqueId));
         
         Schema schema = createInsiderTransactionSchema();
         writeParquetFile(transactions, schema, outputFile);
+        cleanupMacOSMetadataFiles(outputFile.getParentFile());  // Clean macOS metadata after writing
         outputFiles.add(outputFile);
         
         LOGGER.info("Converted Form " + filingType + " to insider transactions: " 
             + transactions.size() + " records");
+      }
+      
+      // Create vectorized blobs for insider forms if text similarity is enabled
+      // Note: For now, we're creating a minimal vectorized file for insider forms
+      // This could be enhanced to vectorize transaction narratives or remarks
+      String uniqueId = (accession != null && !accession.isEmpty()) ? accession : filingDate;
+      File vectorizedFile = new File(partitionDir,
+          String.format("%s_%s_vectorized.parquet", cik, uniqueId));
+      
+      try {
+        writeInsiderVectorizedBlobsToParquet(doc, vectorizedFile, cik, filingType, filingDate, sourceFile, accession);
+        if (vectorizedFile.exists()) {
+          outputFiles.add(vectorizedFile);
+          cleanupMacOSMetadataFiles(vectorizedFile.getParentFile());
+        }
+      } catch (Exception ve) {
+        LOGGER.warning("Failed to create vectorized blobs for insider form: " + ve.getMessage());
       }
       
     } catch (Exception e) {
@@ -1699,7 +1734,11 @@ public class XbrlToParquetConverter implements FileConverter {
         writer.write(record);
       }
     }
+    
+    // Always clean up macOS metadata files after writing
+    cleanupMacOSMetadataFiles(outputFile.getParentFile());
   }
+  
   
   /**
    * Check if this is an 8-K filing.
@@ -1712,6 +1751,90 @@ public class XbrlToParquetConverter implements FileConverter {
   /**
    * Extract 8-K exhibits (particularly 99.1 and 99.2 for earnings).
    */
+  /**
+   * Write vectorized blobs for insider forms (Form 3/4/5).
+   * Creates minimal vectors for remarks and transaction descriptions.
+   */
+  private void writeInsiderVectorizedBlobsToParquet(Document doc, File outputFile,
+      String cik, String filingType, String filingDate, File sourceFile, String accession) throws IOException {
+    
+    // Create schema for vectorized blobs
+    Schema embeddingField = SchemaBuilder.array().items().floatType();
+    Schema schema = SchemaBuilder.record("VectorizedBlob")
+        .fields()
+        .requiredString("vector_id")
+        .requiredString("original_blob_id")
+        .requiredString("blob_type")
+        .requiredString("blob_content")
+        .name("embedding").type(embeddingField).noDefault()
+        .requiredString("cik")
+        .requiredString("filing_date")
+        .requiredString("filing_type")
+        .name("accession_number").type().nullable().stringType().noDefault()
+        .endRecord();
+    
+    List<GenericRecord> records = new ArrayList<>();
+    
+    // Extract remarks and footnotes from insider forms
+    NodeList remarks = doc.getElementsByTagName("remarks");
+    NodeList footnotes = doc.getElementsByTagName("footnote");
+    
+    // Process remarks
+    for (int i = 0; i < remarks.getLength(); i++) {
+      String remarkText = remarks.item(i).getTextContent().trim();
+      if (!remarkText.isEmpty() && remarkText.length() > 20) {
+        GenericRecord record = new GenericData.Record(schema);
+        String vectorId = UUID.randomUUID().toString();
+        record.put("vector_id", vectorId);
+        record.put("original_blob_id", "remark_" + i);
+        record.put("blob_type", "insider_remark");
+        record.put("blob_content", remarkText);
+        
+        // Generate simple embedding for insider forms
+        // For now, use a simple hash-based approach as these are short texts
+        List<Float> embedding = generateSimpleEmbedding(remarkText, 384);
+        record.put("embedding", embedding);
+        
+        record.put("cik", cik);
+        record.put("filing_date", filingDate);
+        record.put("filing_type", filingType);
+        record.put("accession_number", accession);
+        
+        records.add(record);
+      }
+    }
+    
+    // Process footnotes
+    for (int i = 0; i < footnotes.getLength(); i++) {
+      String footnoteText = footnotes.item(i).getTextContent().trim();
+      if (!footnoteText.isEmpty() && footnoteText.length() > 20) {
+        GenericRecord record = new GenericData.Record(schema);
+        String vectorId = UUID.randomUUID().toString();
+        record.put("vector_id", vectorId);
+        record.put("original_blob_id", "footnote_" + i);
+        record.put("blob_type", "insider_footnote");
+        record.put("blob_content", footnoteText);
+        
+        // Generate simple embedding for insider forms
+        List<Float> embedding = generateSimpleEmbedding(footnoteText, 384);
+        record.put("embedding", embedding);
+        
+        record.put("cik", cik);
+        record.put("filing_date", filingDate);
+        record.put("filing_type", filingType);
+        record.put("accession_number", accession);
+        
+        records.add(record);
+      }
+    }
+    
+    // Only write if we have some content to vectorize
+    if (!records.isEmpty()) {
+      writeRecordsToParquet(records, schema, outputFile);
+      LOGGER.info("Wrote " + records.size() + " vectorized insider blobs to " + outputFile);
+    }
+  }
+  
   private List<File> extract8KExhibits(File sourceFile, File targetDirectory,
       String cik, String filingType, String filingDate) {
     List<File> outputFiles = new ArrayList<>();
@@ -1778,6 +1901,7 @@ public class XbrlToParquetConverter implements FileConverter {
             String.format("%s_%s_earnings.parquet", cik, filingDate));
         
         writeParquetFile(earningsRecords, earningsSchema, outputFile);
+        cleanupMacOSMetadataFiles(outputFile.getParentFile());  // Clean macOS metadata after writing
         outputFiles.add(outputFile);
         
         LOGGER.info("Extracted " + earningsRecords.size() + " earnings paragraphs from 8-K");
@@ -2448,6 +2572,36 @@ public class XbrlToParquetConverter implements FileConverter {
     return new HashMap<>();
   }
 
+  /**
+   * Generate a simple embedding for short text (used for insider forms).
+   * This is a placeholder implementation that creates deterministic vectors.
+   */
+  private List<Float> generateSimpleEmbedding(String text, int dimension) {
+    List<Float> embedding = new ArrayList<>(dimension);
+    
+    // Simple hash-based approach for deterministic embeddings
+    int hash = text.hashCode();
+    java.util.Random random = new java.util.Random(hash);
+    
+    for (int i = 0; i < dimension; i++) {
+      embedding.add(random.nextFloat() * 2.0f - 1.0f); // Range [-1, 1]
+    }
+    
+    // Normalize the vector
+    float sum = 0;
+    for (float val : embedding) {
+      sum += val * val;
+    }
+    float norm = (float) Math.sqrt(sum);
+    if (norm > 0) {
+      for (int i = 0; i < embedding.size(); i++) {
+        embedding.set(i, embedding.get(i) / norm);
+      }
+    }
+    
+    return embedding;
+  }
+  
   /**
    * Convert object to JSON string.
    */

@@ -12,7 +12,7 @@
       "autoDownload": true,
       "startYear": 2022,
       "endYear": 2024,
-      "executionEngine": "duckdb",
+      "executionEngine": "parquet",
       "testMode": false,
       "ephemeralCache": false,
       "sec.fallback.enabled": false,

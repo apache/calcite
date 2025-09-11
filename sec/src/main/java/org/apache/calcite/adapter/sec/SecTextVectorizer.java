@@ -485,6 +485,20 @@ public class SecTextVectorizer {
       Map<String, List<String>> references,
       Map<String, FinancialFact> facts) {
     
+    return createIndividualChunks(footnotes, mdaParagraphs, new ArrayList<>(), references, facts);
+  }
+  
+  /**
+   * Create individual chunks for footnotes, MD&A paragraphs, and earnings content.
+   * This is the enhanced version that includes earnings content.
+   */
+  public List<ContextualChunk> createIndividualChunks(
+      List<TextBlob> footnotes,
+      List<TextBlob> mdaParagraphs,
+      List<TextBlob> earningsBlobs,
+      Map<String, List<String>> references,
+      Map<String, FinancialFact> facts) {
+    
     List<ContextualChunk> chunks = new ArrayList<>();
     SecTokenManager tokenManager = new SecTokenManager();
 
@@ -505,6 +519,19 @@ public class SecTextVectorizer {
     for (TextBlob mdaPara : mdaParagraphs) {
       ContextualChunk chunk = vectorizeMDAParagraph(mdaPara, references, footnotes, 
                                                     facts, tokenManager);
+      if (chunk != null) {
+        // Generate real semantic embedding using configured provider
+        double[] embedding = generateRealEmbedding(chunk.text);
+        chunk = new ContextualChunk(chunk.context, chunk.text, chunk.blobType,
+                                   chunk.originalBlobId, chunk.metadata, embedding);
+        chunks.add(chunk);
+      }
+    }
+    
+    // Vectorize each earnings paragraph with referenced footnotes
+    for (TextBlob earningsBlob : earningsBlobs) {
+      ContextualChunk chunk = vectorizeEarningsParagraph(earningsBlob, references, footnotes, 
+                                                         facts, tokenManager);
       if (chunk != null) {
         // Generate real semantic embedding using configured provider
         double[] embedding = generateRealEmbedding(chunk.text);
@@ -686,6 +713,131 @@ public class SecTextVectorizer {
         enriched.toString(),
         "mda_paragraph",
         mdaPara.id,
+        metadata
+    );
+  }
+
+  /**
+   * Vectorize earnings call paragraph with contextual enrichment.
+   */
+  private ContextualChunk vectorizeEarningsParagraph(
+      TextBlob earningsBlob,
+      Map<String, List<String>> references,
+      List<TextBlob> footnotes,
+      Map<String, FinancialFact> facts,
+      SecTokenManager tokenManager) {
+
+    StringBuilder enriched = new StringBuilder();
+    Map<String, Object> metadata = new HashMap<>();
+    
+    // Start with main earnings paragraph text
+    enriched.append("[MAIN:EARNINGS:").append(earningsBlob.id).append("] ");
+    enriched.append(earningsBlob.text);
+    
+    int tokensUsed = tokenManager.estimateTokens(enriched.toString());
+    int remainingBudget = SecTokenManager.MAX_TOKENS - tokensUsed;
+
+    // Add earnings call context (speaker info and section)
+    if (earningsBlob.attributes != null) {
+      StringBuilder contextInfo = new StringBuilder();
+      
+      String speakerName = earningsBlob.attributes.get("speaker_name");
+      String speakerRole = earningsBlob.attributes.get("speaker_role");
+      String sectionType = earningsBlob.attributes.get("section_type");
+      
+      contextInfo.append("\n[CONTEXT:");
+      if (speakerName != null && !speakerName.isEmpty()) {
+        contextInfo.append(" SPEAKER:").append(speakerName);
+      }
+      if (speakerRole != null && !speakerRole.isEmpty()) {
+        contextInfo.append(" ROLE:").append(speakerRole);
+      }
+      if (sectionType != null && !sectionType.isEmpty()) {
+        contextInfo.append(" SECTION:").append(sectionType);
+      }
+      contextInfo.append("]");
+      
+      String context = contextInfo.toString();
+      if (tokenManager.estimateTokens(context) < remainingBudget * 0.1) {
+        enriched.append(context);
+        remainingBudget -= tokenManager.estimateTokens(context);
+      }
+    }
+
+    // Add section hierarchy
+    if (earningsBlob.parentSection != null) {
+      String hierarchy = String.format("\n[HIERARCHY: %s", earningsBlob.parentSection);
+      if (earningsBlob.subsection != null) {
+        hierarchy += " > " + earningsBlob.subsection;
+      }
+      hierarchy += "]";
+      
+      if (tokenManager.estimateTokens(hierarchy) < remainingBudget * 0.1) {
+        enriched.append(hierarchy);
+        remainingBudget -= tokenManager.estimateTokens(hierarchy);
+      }
+    }
+
+    // Find and add referenced footnotes (earnings calls may reference financial footnotes)
+    List<String> footnotesReferenced = extractFootnoteReferences(earningsBlob.text);
+    if (!footnotesReferenced.isEmpty() && remainingBudget > 300) {
+      metadata.put("references_footnotes", footnotesReferenced);
+      enriched.append("\n[REFERENCED_FOOTNOTES:");
+      
+      for (String fnId : footnotesReferenced) {
+        if (remainingBudget < 200) break;
+        
+        TextBlob footnote = findBlobById(footnotes, fnId);
+        if (footnote != null) {
+          // Add excerpt of footnote
+          String excerpt = tokenManager.getSmartExcerpt(footnote.text, 
+              Math.min(300, remainingBudget - 100));
+          String fnText = String.format("\n  %s: %s", fnId, excerpt);
+          
+          int fnTokens = tokenManager.estimateTokens(fnText);
+          if (fnTokens < remainingBudget) {
+            enriched.append(fnText);
+            remainingBudget -= fnTokens;
+          }
+        }
+      }
+      enriched.append("]");
+    }
+
+    // Add related financial metrics mentioned in earnings call
+    List<String> concepts = extractFinancialConcepts(earningsBlob.text);
+    if (!concepts.isEmpty() && remainingBudget > 100) {
+      metadata.put("financial_concepts", concepts);
+      enriched.append("\n[METRICS] ");
+      for (String concept : concepts.subList(0, Math.min(3, concepts.size()))) {
+        FinancialFact fact = facts.get(concept);
+        if (fact != null) {
+          enriched.append(concept).append("=").append(formatValue(fact.value)).append(" ");
+        }
+      }
+    }
+
+    // Add metadata
+    metadata.put("tokens_used", SecTokenManager.MAX_TOKENS - remainingBudget);
+    metadata.put("original_text", earningsBlob.text);
+    metadata.put("parent_section", earningsBlob.parentSection);
+    
+    // Include speaker information in metadata
+    if (earningsBlob.attributes != null) {
+      String speakerName = earningsBlob.attributes.get("speaker_name");
+      String speakerRole = earningsBlob.attributes.get("speaker_role");
+      if (speakerName != null) metadata.put("speaker_name", speakerName);
+      if (speakerRole != null) metadata.put("speaker_role", speakerRole);
+    }
+    
+    enriched.append(String.format("\n[ENRICHMENT_META tokens=%d/%d]", 
+        SecTokenManager.MAX_TOKENS - remainingBudget, SecTokenManager.MAX_TOKENS));
+
+    return new ContextualChunk(
+        "earnings_" + earningsBlob.id,
+        enriched.toString(),
+        "earnings_paragraph",
+        earningsBlob.id,
         metadata
     );
   }

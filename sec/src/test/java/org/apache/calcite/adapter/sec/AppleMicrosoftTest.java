@@ -340,8 +340,8 @@ public class AppleMicrosoftTest {
 
       // Now test cosine similarity search
       // Search for footnotes related to "revenue recognition" or "accounting policies"
-      // Note: The embedding column is an array, we need to convert it to a comma-separated string
-      // for the COSINE_SIMILARITY function which expects string parameters
+      // Note: The file adapter will automatically map COSINE_SIMILARITY to DuckDB's array_cosine_similarity
+      // and remove the CAST operations when using the DuckDB engine
       String searchQuery =
         "SELECT " +
         "  v1.cik, " +

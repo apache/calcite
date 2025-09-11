@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.sec;
 
 import org.apache.calcite.adapter.file.FileSchemaFactory;
+import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -58,6 +59,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.time.Year;
 
 /**
  * Factory for SEC schemas that extends FileSchema with SEC-specific capabilities.
@@ -99,6 +103,7 @@ public class SecSchemaFactory implements SchemaFactory {
   private final ConcurrentLinkedQueue<CompletableFuture<Void>> conversionFutures = new ConcurrentLinkedQueue<>();
   private final ConcurrentLinkedQueue<FilingToDownload> retryQueue = new ConcurrentLinkedQueue<>();
   private final List<File> scheduledForReconversion = new ArrayList<>();
+  private final Set<String> downloadedInThisCycle = java.util.concurrent.ConcurrentHashMap.newKeySet();
   private final AtomicInteger totalDownloads = new AtomicInteger(0);
   private final AtomicInteger completedDownloads = new AtomicInteger(0);
   private final AtomicInteger totalConversions = new AtomicInteger(0);
@@ -151,6 +156,149 @@ public class SecSchemaFactory implements SchemaFactory {
     LOGGER.debug("SecSchemaFactory constructor called");
   }
 
+  /**
+   * Loads default configuration from sec-schema-factory.defaults.json resource.
+   * Returns null if the resource cannot be loaded.
+   */
+  private Map<String, Object> loadDefaults() {
+    try (InputStream is = getClass().getResourceAsStream("/sec-schema-factory.defaults.json")) {
+      if (is == null) {
+        LOGGER.debug("No defaults file found at /sec-schema-factory.defaults.json");
+        return null;
+      }
+      
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode root = mapper.readTree(is);
+      JsonNode operandNode = root.get("operand");
+      if (operandNode == null) {
+        LOGGER.debug("No 'operand' section in defaults file");
+        return null;
+      }
+      
+      // Convert JsonNode to Map
+      Map<String, Object> defaults = mapper.convertValue(operandNode, Map.class);
+      
+      // Process environment variable substitutions
+      processEnvironmentVariables(defaults);
+      
+      return defaults;
+    } catch (Exception e) {
+      LOGGER.warn("Failed to load defaults from sec-schema-factory.defaults.json: " + e.getMessage());
+      return null;
+    }
+  }
+  
+  /**
+   * Recursively processes a map to substitute environment variables.
+   * Supports ${VAR_NAME} syntax for environment variable substitution.
+   */
+  private void processEnvironmentVariables(Map<String, Object> map) {
+    Pattern envPattern = Pattern.compile("\\$\\{([A-Z_][A-Z0-9_]*)\\}");
+    
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
+      Object value = entry.getValue();
+      
+      if (value instanceof String) {
+        String strValue = (String) value;
+        Matcher matcher = envPattern.matcher(strValue);
+        
+        if (matcher.matches()) {
+          // Full match - replace entire value
+          String envVar = matcher.group(1);
+          String envValue = System.getenv(envVar);
+          
+          if (envValue == null && "CURRENT_YEAR".equals(envVar)) {
+            // Special handling for CURRENT_YEAR
+            envValue = String.valueOf(Year.now().getValue());
+          }
+          
+          if (envValue != null) {
+            // Try to parse as integer if it looks like a number
+            if (envValue.matches("\\d+")) {
+              try {
+                entry.setValue(Integer.parseInt(envValue));
+              } catch (NumberFormatException e) {
+                entry.setValue(envValue);
+              }
+            } else {
+              entry.setValue(envValue);
+            }
+          } else {
+            LOGGER.debug("Environment variable {} not set, keeping placeholder", envVar);
+          }
+        } else if (matcher.find()) {
+          // Partial match - substitute within string
+          StringBuffer sb = new StringBuffer();
+          matcher.reset();
+          while (matcher.find()) {
+            String envVar = matcher.group(1);
+            String envValue = System.getenv(envVar);
+            
+            if (envValue == null && "CURRENT_YEAR".equals(envVar)) {
+              envValue = String.valueOf(Year.now().getValue());
+            }
+            
+            if (envValue != null) {
+              matcher.appendReplacement(sb, envValue);
+            } else {
+              matcher.appendReplacement(sb, matcher.group(0)); // Keep original
+            }
+          }
+          matcher.appendTail(sb);
+          entry.setValue(sb.toString());
+        }
+      } else if (value instanceof Map) {
+        // Recursive processing for nested maps
+        processEnvironmentVariables((Map<String, Object>) value);
+      } else if (value instanceof List) {
+        // Process lists (though we don't expect env vars in lists for SEC adapter)
+        List<?> list = (List<?>) value;
+        for (int i = 0; i < list.size(); i++) {
+          if (list.get(i) instanceof String) {
+            String strValue = (String) list.get(i);
+            Matcher matcher = envPattern.matcher(strValue);
+            if (matcher.matches()) {
+              String envVar = matcher.group(1);
+              String envValue = System.getenv(envVar);
+              if (envValue == null && "CURRENT_YEAR".equals(envVar)) {
+                envValue = String.valueOf(Year.now().getValue());
+              }
+              if (envValue != null) {
+                ((List<Object>) list).set(i, envValue);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  /**
+   * Merges default values into the operand map, without overwriting existing values.
+   * This ensures that explicit configuration takes precedence over defaults.
+   */
+  private void applyDefaults(Map<String, Object> operand, Map<String, Object> defaults) {
+    if (defaults == null) {
+      return;
+    }
+    
+    for (Map.Entry<String, Object> entry : defaults.entrySet()) {
+      String key = entry.getKey();
+      Object defaultValue = entry.getValue();
+      
+      if (!operand.containsKey(key)) {
+        // Key not present, add default
+        operand.put(key, defaultValue);
+      } else if (defaultValue instanceof Map && operand.get(key) instanceof Map) {
+        // Both are maps, merge recursively
+        Map<String, Object> existingMap = (Map<String, Object>) operand.get(key);
+        Map<String, Object> defaultMap = (Map<String, Object>) defaultValue;
+        applyDefaults(existingMap, defaultMap);
+      }
+      // If operand already has the key with a non-map value, keep the existing value
+    }
+  }
+
   @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
     System.out.println("DEBUG: SecSchemaFactory.create() called with operand: " + operand);
     LOGGER.debug("SecSchemaFactory.create() called");
@@ -158,6 +306,15 @@ public class SecSchemaFactory implements SchemaFactory {
 
     // Create mutable copy of operand to allow modifications
     Map<String, Object> mutableOperand = new HashMap<>(operand);
+    
+    // Load and apply defaults before processing
+    Map<String, Object> defaults = loadDefaults();
+    if (defaults != null) {
+      LOGGER.debug("Applying defaults from sec-schema-factory.defaults.json");
+      applyDefaults(mutableOperand, defaults);
+      LOGGER.debug("Operand after applying defaults: {}", mutableOperand);
+    }
+    
     this.currentOperand = mutableOperand; // Store for table auto-discovery
 
     // Determine cache directory
@@ -179,6 +336,11 @@ public class SecSchemaFactory implements SchemaFactory {
         rebuildManifestFromExistingFiles(baseDir);
       }
       downloadSecData(mutableOperand);
+      
+      // CRITICAL: Wait for all downloads and conversions to complete
+      // The downloadSecData method starts async tasks but returns immediately
+      // We need to wait for them to complete before creating the FileSchema
+      waitForAllConversions();
     } else {
       LOGGER.debug("shouldDownloadData = false");
     }
@@ -337,7 +499,7 @@ public class SecSchemaFactory implements SchemaFactory {
     if (textSimilarityConfig != null && Boolean.TRUE.equals(textSimilarityConfig.get("enabled"))) {
       Map<String, Object> vectorizedBlobsTable = new HashMap<>();
       vectorizedBlobsTable.put("name", "vectorized_blobs");
-      vectorizedBlobsTable.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_vectorized.parquet");
+      vectorizedBlobsTable.put("pattern", "cik=*/filing_type=*/year=*/*_vectorized.parquet");
       vectorizedBlobsTable.put("partitions", partitionConfig);
       partitionedTables.add(vectorizedBlobsTable);
       LOGGER.info("Added vectorized_blobs table configuration for text similarity");
@@ -381,10 +543,48 @@ public class SecSchemaFactory implements SchemaFactory {
       mutableOperand.put("secExecutionEngine", originalEngine);
     }
 
+    // Preserve text similarity configuration if present, or enable it by default
+    // This ensures COSINE_SIMILARITY and other vector functions are registered
+    Map<String, Object> textSimConfig = (Map<String, Object>) mutableOperand.get("textSimilarity");
+    if (textSimConfig == null) {
+      textSimConfig = new HashMap<>();
+      textSimConfig.put("enabled", true);
+      mutableOperand.put("textSimilarity", textSimConfig);
+    } else if (!Boolean.TRUE.equals(textSimConfig.get("enabled"))) {
+      // Ensure it's enabled even if config exists but disabled
+      textSimConfig.put("enabled", true);
+    }
+    LOGGER.info("Text similarity functions configuration: " + textSimConfig);
+
     // Now delegate to FileSchemaFactory to create the actual schema
     // with our pre-defined tables and configured directory
     LOGGER.info("Delegating to FileSchemaFactory with modified operand");
-    return FileSchemaFactory.INSTANCE.create(parentSchema, name, mutableOperand);
+    
+    // Check if text similarity is enabled before creating schema
+    boolean similarityEnabled = mutableOperand.containsKey("textSimilarity") && 
+        mutableOperand.get("textSimilarity") instanceof Map && 
+        Boolean.TRUE.equals(((Map<?,?>)mutableOperand.get("textSimilarity")).get("enabled"));
+    
+    if (similarityEnabled) {
+      // Register the functions on the parent schema BEFORE creating the FileSchema
+      // This ensures they're available in the schema resolution chain
+      try {
+        LOGGER.info("Registering text similarity functions on parent schema before FileSchema creation");
+        org.apache.calcite.adapter.file.similarity.SimilarityFunctions.registerFunctions(parentSchema);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to register similarity functions on parent schema: " + e.getMessage());
+      }
+    }
+    
+    Schema fileSchema = FileSchemaFactory.INSTANCE.create(parentSchema, name, mutableOperand);
+    
+    // The FileSchemaFactory should have already registered functions if textSimilarity is enabled
+    // The functions should be available through both parent schema and FileSchema registration
+    if (similarityEnabled) {
+      LOGGER.info("Text similarity enabled - functions should be available through FileSchemaFactory registration");
+    }
+    
+    return fileSchema;
   }
 
 
@@ -394,6 +594,34 @@ public class SecSchemaFactory implements SchemaFactory {
     boolean result = (autoDownload != null && autoDownload) || (useMockData != null && useMockData);
     System.out.println("DEBUG: shouldDownloadData: autoDownload=" + autoDownload + ", useMockData=" + useMockData + ", result=" + result);
     return result;
+  }
+  
+  /**
+   * Wait for all downloads and conversions to complete.
+   * This is critical to ensure the FileSchema sees the converted Parquet files.
+   */
+  private void waitForAllConversions() {
+    try {
+      // Wait for download futures if any are still running
+      if (!downloadFutures.isEmpty()) {
+        LOGGER.info("Waiting for {} downloads to complete...", downloadFutures.size());
+        CompletableFuture<Void> allDownloads = 
+            CompletableFuture.allOf(downloadFutures.toArray(new CompletableFuture[0]));
+        allDownloads.get(45, TimeUnit.MINUTES);
+        LOGGER.info("All downloads completed");
+      }
+      
+      // Wait for conversion futures if any are still running
+      if (!conversionFutures.isEmpty()) {
+        LOGGER.info("Waiting for {} conversions to complete...", conversionFutures.size());
+        CompletableFuture<Void> allConversions = 
+            CompletableFuture.allOf(conversionFutures.toArray(new CompletableFuture[0]));
+        allConversions.get(30, TimeUnit.MINUTES);
+        LOGGER.info("All conversions completed: {} files", completedConversions.get());
+      }
+    } catch (Exception e) {
+      LOGGER.warn("Error waiting for downloads/conversions to complete: " + e.getMessage());
+    }
   }
 
   private void addToManifest(File baseDirectory, File xbrlFile) {
@@ -412,15 +640,45 @@ public class SecSchemaFactory implements SchemaFactory {
                    accession.substring(12);
       }
 
-      // For now use generic form/date - would need to parse from XBRL to get actual values
-      String manifestKey = cik + "|" + accession + "|PROCESSED|" + System.currentTimeMillis();
+      // Check which files were actually created for this accession
+      boolean hasVectorized = false;
+      Map<String, Object> textSimilarityConfig = (Map<String, Object>) currentOperand.get("textSimilarity");
+      if (textSimilarityConfig != null && Boolean.TRUE.equals(textSimilarityConfig.get("enabled"))) {
+        // Check if vectorized file exists for this accession in the parquet directory
+        File parquetDir = new File(baseDirectory.getParentFile(), "sec-parquet");
+        if (parquetDir.exists()) {
+          // Look for vectorized files with this accession number
+          String accessionNoHyphens = accession.replace("-", "");
+          File[] cikDirs = parquetDir.listFiles((dir, name) -> name.startsWith("cik="));
+          for (File ckDir : cikDirs != null ? cikDirs : new File[0]) {
+            File[] filingTypeDirs = ckDir.listFiles((dir, name) -> name.startsWith("filing_type="));
+            for (File ftDir : filingTypeDirs != null ? filingTypeDirs : new File[0]) {
+              File[] yearDirs = ftDir.listFiles((dir, name) -> name.startsWith("year="));
+              for (File yDir : yearDirs != null ? yearDirs : new File[0]) {
+                File[] vectorizedFiles = yDir.listFiles((dir, name) -> 
+                    name.contains(accessionNoHyphens) && name.endsWith("_vectorized.parquet"));
+                if (vectorizedFiles != null && vectorizedFiles.length > 0) {
+                  hasVectorized = true;
+                  break;
+                }
+              }
+              if (hasVectorized) break;
+            }
+            if (hasVectorized) break;
+          }
+        }
+      }
+
+      // Include vectorized status in manifest key
+      String fileTypes = hasVectorized ? "PROCESSED_WITH_VECTORS" : "PROCESSED";
+      String manifestKey = cik + "|" + accession + "|" + fileTypes + "|" + System.currentTimeMillis();
 
       File manifestFile = new File(baseDirectory, "processed_filings.manifest");
       synchronized (SecSchemaFactory.class) {
         try (PrintWriter pw = new PrintWriter(new FileOutputStream(manifestFile, true))) {
           pw.println(manifestKey);
         }
-        LOGGER.debug("Added to manifest after Parquet conversion: " + manifestKey);
+        LOGGER.debug("Added to manifest after Parquet conversion: " + manifestKey + " (vectorized=" + hasVectorized + ")");
       }
     } catch (Exception e) {
       LOGGER.debug("Could not update manifest: " + e.getMessage());
@@ -465,7 +723,9 @@ public class SecSchemaFactory implements SchemaFactory {
                 }
 
                 // Check for HTML files (indicates a filing was downloaded)
-                File[] htmlFiles = accessionDir.listFiles((dir, name) -> name.endsWith(".htm") || name.endsWith(".html"));
+                // Exclude macOS metadata files
+                File[] htmlFiles = accessionDir.listFiles((dir, name) -> 
+                    !name.startsWith("._") && (name.endsWith(".htm") || name.endsWith(".html")));
                 if (htmlFiles != null && htmlFiles.length > 0) {
                   // For now, add with generic form/date - actual values would need parsing
                   String manifestKey = cik + "|" + accession + "|UNKNOWN|UNKNOWN";
@@ -602,6 +862,10 @@ public class SecSchemaFactory implements SchemaFactory {
   private void downloadSecData(Map<String, Object> operand) {
     System.out.println("DEBUG: downloadSecData() called - STARTING SEC DATA DOWNLOAD");
     LOGGER.info("downloadSecData() called - STARTING SEC DATA DOWNLOAD");
+    
+    // Clear download tracking for new cycle
+    downloadedInThisCycle.clear();
+    
     try {
       // Check if directory is specified in config, otherwise use default
       String configuredDir = (String) operand.get("directory");
@@ -731,6 +995,8 @@ public class SecSchemaFactory implements SchemaFactory {
             fos.write(buffer, 0, bytesRead);
           }
         }
+        // Clean up macOS metadata files after writing
+        cleanupMacOSMetadataFilesRecursive(cikDir);
         LOGGER.info("Downloaded submissions metadata for CIK " + normalizedCik);
       } finally {
         rateLimiter.release();
@@ -789,6 +1055,15 @@ public class SecSchemaFactory implements SchemaFactory {
       LOGGER.info("Scheduling " + filingsToDownload.size() + " filings for download for CIK " + normalizedCik);
 
       for (FilingToDownload filing : filingsToDownload) {
+        // Create unique key for deduplication  
+        String filingKey = filing.cik + "|" + filing.accession + "|" + filing.form + "|" + filing.filingDate;
+        
+        // Skip if already scheduled for download in this cycle
+        if (!downloadedInThisCycle.add(filingKey)) {
+          LOGGER.debug("Skipping duplicate download task for: " + filing.form + " " + filing.filingDate);
+          continue;
+        }
+        
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
           downloadFilingDocumentWithRateLimit(provider, filing);
           int completed = completedDownloads.incrementAndGet();
@@ -884,9 +1159,29 @@ public class SecSchemaFactory implements SchemaFactory {
       if (manifestFile.exists()) {
         try {
           Set<String> processedFilings = new HashSet<>(Files.readAllLines(manifestFile.toPath()));
-          if (processedFilings.contains(manifestKey)) {
+          
+          // Check if this filing is in the manifest
+          boolean isProcessed = false;
+          boolean hasVectorized = false;
+          for (String entry : processedFilings) {
+            if (entry.startsWith(cik + "|" + accession + "|")) {
+              isProcessed = true;
+              hasVectorized = entry.contains("PROCESSED_WITH_VECTORS");
+              break;
+            }
+          }
+          
+          // If text similarity is enabled but vectorized files don't exist, need reprocessing
+          Map<String, Object> textSimilarityConfig = (Map<String, Object>) currentOperand.get("textSimilarity");
+          boolean needsVectorized = textSimilarityConfig != null && 
+              Boolean.TRUE.equals(textSimilarityConfig.get("enabled"));
+          
+          if (isProcessed && (!needsVectorized || hasVectorized)) {
             LOGGER.debug("Filing fully processed (in manifest), skipping: " + form + " " + filingDate);
             return;
+          } else if (isProcessed && needsVectorized && !hasVectorized) {
+            LOGGER.debug("Filing needs vectorization, will reprocess: " + form + " " + filingDate);
+            // Continue with processing to add vectorized files
           }
         } catch (Exception e) {
           LOGGER.debug("Could not read manifest: " + e.getMessage());
@@ -941,7 +1236,7 @@ public class SecSchemaFactory implements SchemaFactory {
         needXbrl = true;
       }
 
-      // TEMPORARY DEBUG: Also check if Parquet conversion was successful
+      // Check if Parquet conversion was successful
       boolean needParquetReprocessing = false;
       String year = String.valueOf(java.time.LocalDate.parse(filingDate).getYear());
       File parquetDir = new File(cikDir.getParentFile().getParentFile(), "sec-parquet");
@@ -949,12 +1244,25 @@ public class SecSchemaFactory implements SchemaFactory {
       // Need to include filing_type in the path
       File filingTypeDir = new File(cikParquetDir, "filing_type=" + form.replace("-", ""));
       File yearDir = new File(filingTypeDir, "year=" + year);
-      // The actual filename uses cik_filingDate pattern, not accession number
-      File factsFile = new File(yearDir, String.format("%s_%s_facts.parquet", cik, filingDate));
+      
+      // Check for the appropriate parquet file based on form type
+      // Forms 3/4/5 create _insider.parquet files, others create _facts.parquet files
+      String filenameSuffix = isInsiderForm ? "insider" : "facts";
+      File parquetFile = new File(yearDir, String.format("%s_%s_%s.parquet", cik, filingDate, filenameSuffix));
 
-      if (!factsFile.exists() || factsFile.length() == 0) {
+      if (!parquetFile.exists() || parquetFile.length() == 0) {
         needParquetReprocessing = true;
-        LOGGER.debug("Missing or empty Parquet file: " + factsFile.getPath());
+        LOGGER.debug("Missing or empty Parquet file: " + parquetFile.getPath());
+      }
+
+      // Also check for vectorized file if text similarity is enabled
+      Map<String, Object> textSimilarityConfig = (Map<String, Object>) currentOperand.get("textSimilarity");
+      if (textSimilarityConfig != null && Boolean.TRUE.equals(textSimilarityConfig.get("enabled"))) {
+        File vectorizedFile = new File(yearDir, String.format("%s_%s_vectorized.parquet", cik, filingDate));
+        if (!vectorizedFile.exists() || vectorizedFile.length() == 0) {
+          needParquetReprocessing = true;
+          LOGGER.debug("Missing or empty vectorized Parquet file: " + vectorizedFile.getPath());
+        }
       }
 
       if (!needHtml && !needXbrl && !needParquetReprocessing) {
@@ -1183,9 +1491,11 @@ public class SecSchemaFactory implements SchemaFactory {
         if (accessionDirs != null) {
           for (File accessionDir : accessionDirs) {
             // Find XBRL and HTML files in this accession directory
+            // Exclude macOS metadata files that start with ._
             File[] xbrlFiles = accessionDir.listFiles((dir, name) ->
+                !name.startsWith("._") && (
                 name.endsWith("_htm.xml") || name.endsWith(".xml") ||
-                name.endsWith(".htm") || name.endsWith(".html"));
+                name.endsWith(".htm") || name.endsWith(".html")));
 
             if (xbrlFiles != null) {
               for (File xbrlFile : xbrlFiles) {
@@ -1205,7 +1515,6 @@ public class SecSchemaFactory implements SchemaFactory {
 
       // Convert XBRL files in parallel
       totalConversions.set(xbrlFilesToConvert.size());
-      LOGGER.info("DEBUG: Found " + xbrlFilesToConvert.size() + " XBRL files to convert");
       LOGGER.info("Scheduling " + xbrlFilesToConvert.size() + " XBRL files for conversion");
 
       for (File xbrlFile : xbrlFilesToConvert) {
@@ -1213,15 +1522,37 @@ public class SecSchemaFactory implements SchemaFactory {
           try {
             XbrlToParquetConverter converter = new XbrlToParquetConverter();
             
+            // Extract accession number from file path (parent directory name)
+            // Path is like: /sec-data/0000789019/000078901922000007/ownership.xml
+            String accession = xbrlFile.getParentFile().getName();
+            
+            // Create a simple ConversionMetadata to pass accession to converter
+            ConversionMetadata metadata = new ConversionMetadata(secParquetDir);
+            ConversionMetadata.ConversionRecord record = new ConversionMetadata.ConversionRecord();
+            record.originalFile = xbrlFile.getAbsolutePath();
+            // Store accession in the sourceFile field for now - converter can extract it
+            record.sourceFile = accession;
+            metadata.recordConversion(xbrlFile, record);
+            
             // The converter now properly extracts metadata from the XML content itself
-            List<File> outputFiles = converter.convert(xbrlFile, secParquetDir, null);
+            List<File> outputFiles = converter.convert(xbrlFile, secParquetDir, metadata);
             LOGGER.info("Converted " + xbrlFile.getName() + " to " +
                 outputFiles.size() + " Parquet files");
 
             // Add to manifest after successful conversion
             addToManifest(xbrlFile.getParentFile().getParentFile().getParentFile(), xbrlFile);
+          } catch (java.nio.channels.OverlappingFileLockException e) {
+            // Non-fatal: Another thread is processing this file, skip it
+            LOGGER.debug("Skipping " + xbrlFile.getName() + " - already being processed by another thread");
           } catch (Exception e) {
-            LOGGER.info("Failed to convert " + xbrlFile.getName() + ": " + e.getMessage());
+            // Check if the cause is an OverlappingFileLockException
+            Throwable cause = e.getCause();
+            if (cause instanceof java.nio.channels.OverlappingFileLockException) {
+              // Non-fatal: Another thread is processing this file, skip it
+              LOGGER.debug("Skipping " + xbrlFile.getName() + " - already being processed by another thread");
+            } else {
+              LOGGER.info("Failed to convert " + xbrlFile.getName() + ": " + e.getMessage());
+            }
           }
           int completed = completedConversions.incrementAndGet();
           if (completed % 10 == 0) {
@@ -1237,6 +1568,9 @@ public class SecSchemaFactory implements SchemaFactory {
       allConversions.get(30, TimeUnit.MINUTES); // Wait up to 30 minutes
 
       LOGGER.info("Processed " + completedConversions.get() + " XBRL files into Parquet tables in: " + secParquetDir);
+      
+      // Bulk cleanup of macOS metadata files at the end of processing
+      cleanupAllMacOSMetadataFiles(secParquetDir);
 
       LOGGER.info("DEBUG: Checking what was created in secParquetDir after conversion");
       File[] afterConversion = secParquetDir.listFiles();
@@ -1584,5 +1918,50 @@ public class SecSchemaFactory implements SchemaFactory {
     // Return empty list to signal "download all filing types"
     // EdgarDownloader will interpret empty list as "all types"
     return new ArrayList<>();
+  }
+  
+  /**
+   * Bulk cleanup of all macOS metadata files in the parquet directory.
+   * This is run at the end of processing to clean up any ._* files that were created.
+   */
+  private void cleanupAllMacOSMetadataFiles(File directory) {
+    if (directory == null || !directory.exists()) {
+      return;
+    }
+    
+    int totalDeleted = 0;
+    try {
+      totalDeleted = cleanupMacOSMetadataFilesRecursive(directory);
+      if (totalDeleted > 0) {
+        LOGGER.info("Bulk cleanup: Removed " + totalDeleted + " macOS metadata files from " + directory.getAbsolutePath());
+      }
+    } catch (Exception e) {
+      LOGGER.debug("Error during bulk macOS metadata cleanup: " + e.getMessage());
+    }
+  }
+  
+  /**
+   * Recursively delete macOS metadata files (._* files).
+   * @return Number of files deleted
+   */
+  private int cleanupMacOSMetadataFilesRecursive(File directory) {
+    int deleted = 0;
+    
+    File[] files = directory.listFiles();
+    if (files != null) {
+      for (File file : files) {
+        if (file.isDirectory()) {
+          // Recurse into subdirectories
+          deleted += cleanupMacOSMetadataFilesRecursive(file);
+        } else if (file.getName().startsWith("._")) {
+          // Delete macOS metadata file
+          if (file.delete()) {
+            deleted++;
+          }
+        }
+      }
+    }
+    
+    return deleted;
   }
 }
