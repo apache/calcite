@@ -454,7 +454,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
 
   @Override public void visit(LOSort loSort) throws FrontendException {
     // TODO Hanlde custom sortFunc from Pig???
-    final int limit = (int) loSort.getLimit();
+    final long limit = loSort.getLimit();
     List<RexNode> relSortCols = new ArrayList<>();
     if (loSort.isStar()) {
       // Sort using all columns
