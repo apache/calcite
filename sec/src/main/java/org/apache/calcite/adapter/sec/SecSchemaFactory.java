@@ -105,6 +105,7 @@ public class SecSchemaFactory implements SchemaFactory {
   private final AtomicInteger completedConversions = new AtomicInteger(0);
   private final AtomicInteger rateLimitHits = new AtomicInteger(0);
   private Map<String, Object> currentOperand; // Store operand for table auto-discovery
+  private RSSRefreshMonitor rssMonitor; // RSS monitor for automatic refresh
 
   public static final SecSchemaFactory INSTANCE = new SecSchemaFactory();
 
@@ -381,6 +382,16 @@ public class SecSchemaFactory implements SchemaFactory {
       mutableOperand.put("secExecutionEngine", originalEngine);
     }
 
+    // Start RSS monitor if configured
+    Map<String, Object> refreshConfig = (Map<String, Object>) mutableOperand.get("refreshMonitoring");
+    if (refreshConfig != null && Boolean.TRUE.equals(refreshConfig.get("enabled"))) {
+      if (rssMonitor == null) {
+        LOGGER.info("Starting RSS refresh monitor");
+        rssMonitor = new RSSRefreshMonitor(mutableOperand);
+        rssMonitor.start();
+      }
+    }
+
     // Now delegate to FileSchemaFactory to create the actual schema
     // with our pre-defined tables and configured directory
     LOGGER.info("Delegating to FileSchemaFactory with modified operand");
@@ -597,6 +608,14 @@ public class SecSchemaFactory implements SchemaFactory {
     } catch (Exception e) {
       LOGGER.error("Failed to create mock Parquet file: " + file, e);
     }
+  }
+
+  /**
+   * Public static method to trigger SEC data download from external components like RSS monitor.
+   */
+  public static void triggerDownload(Map<String, Object> operand) {
+    SecSchemaFactory factory = new SecSchemaFactory();
+    factory.downloadSecData(operand);
   }
 
   private void downloadSecData(Map<String, Object> operand) {
