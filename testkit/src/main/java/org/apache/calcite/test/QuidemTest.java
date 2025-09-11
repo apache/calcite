@@ -272,7 +272,7 @@ public abstract class QuidemTest {
     }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
-      fail("Files differ: " + outFile + " " + inFile + "\n"
+      fail("Files differ:\ndiff " + inFile + " " + outFile + "\n"
           + diff);
     }
   }
