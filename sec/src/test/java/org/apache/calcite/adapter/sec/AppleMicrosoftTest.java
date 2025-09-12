@@ -63,7 +63,6 @@ public class AppleMicrosoftTest {
          Statement stmt = conn.createStatement()) {
 
       // First, check if the table exists
-      System.out.println("Testing financial_line_items table access...");
 
       String query =
         "SELECT cik, filing_type, \"year\", concept, \"value\", numeric_value " +
@@ -131,7 +130,6 @@ public class AppleMicrosoftTest {
     try (Connection conn = DriverManager.getConnection(jdbcUrl, props)) {
 
       // Test each expected table with a simple count query
-      System.out.println("Testing available SEC tables:");
 
       // Test financial_line_items
       try (Statement stmt = conn.createStatement();
@@ -235,7 +233,6 @@ public class AppleMicrosoftTest {
         "WHERE cik = '0000320193' " +
         "LIMIT 10";
 
-      System.out.println("Testing xbrl_relationships table...");
 
       try (ResultSet rs = stmt.executeQuery(query)) {
         ResultSetMetaData meta = rs.getMetaData();
@@ -258,7 +255,6 @@ public class AppleMicrosoftTest {
         }
 
         assertTrue(rowCount > 0, "Should have relationship data");
-        System.out.println("Found " + rowCount + " relationships");
       }
     }
   }
@@ -334,7 +330,6 @@ public class AppleMicrosoftTest {
       try (ResultSet rs = stmt.executeQuery(checkQuery)) {
         assertTrue(rs.next(), "Should have footnote embeddings");
         int footnoteCount = rs.getInt("cnt");
-        System.out.println("Found " + footnoteCount + " footnote embeddings");
         assertTrue(footnoteCount > 0, "Should have at least some footnote embeddings");
       }
 
@@ -368,7 +363,6 @@ public class AppleMicrosoftTest {
       try (ResultSet rs = stmt.executeQuery(searchQuery)) {
         int resultCount = 0;
         System.out.println("\nTop similar footnotes:");
-        System.out.println("=" + "=".repeat(80));
 
         while (rs.next()) {
           resultCount++;
@@ -387,7 +381,6 @@ public class AppleMicrosoftTest {
               resultCount, cik, filingType, year, similarity);
           System.out.println("   Blob ID: " + blobId);
           System.out.println("   Text: " + displayText.replaceAll("\\s+", " "));
-          System.out.println("-" + "-".repeat(79));
         }
 
         assertTrue(resultCount > 0, "Should find similar footnotes using cosine similarity");
@@ -420,7 +413,6 @@ public class AppleMicrosoftTest {
       try (ResultSet rs = stmt.executeQuery(stockCompQuery)) {
         int resultCount = 0;
         System.out.println("\nTop similar footnotes about stock compensation:");
-        System.out.println("=" + "=".repeat(80));
 
         while (rs.next()) {
           resultCount++;

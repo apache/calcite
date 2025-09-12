@@ -34,7 +34,6 @@ public class DJIANetIncomeAnalysisTest {
     System.out.println("================================================================================");
     System.out.println("DJIA AVERAGE NET INCOME ANALYSIS");
     System.out.println("================================================================================");
-    System.out.println();
 
     // Create model configuration for DJIA companies
     String model = String.format("{"
@@ -65,16 +64,13 @@ public class DJIANetIncomeAnalysisTest {
     System.out.println("  - Years: 2022-2024");
     System.out.println("  - Filing Types: 10-K (annual reports)");
     System.out.println("  - Auto Download: enabled");
-    System.out.println();
 
     Class.forName("org.apache.calcite.jdbc.Driver");
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", props)) {
       System.out.println("✓ Connected to SEC adapter");
-      System.out.println();
 
       // Test if financial_line_items table exists and has data
-      System.out.println("Testing financial_line_items table:");
       try (Statement stmt = conn.createStatement();
            ResultSet rs =
                stmt.executeQuery("SELECT COUNT(*) as record_count FROM financial_line_items")) {
@@ -87,7 +83,6 @@ public class DJIANetIncomeAnalysisTest {
         System.out.println("  ✗ financial_line_items table error: " + e.getMessage());
         throw e;
       }
-      System.out.println();
 
       // Execute net income analysis
       System.out.println("================================================================================");
@@ -129,7 +124,6 @@ public class DJIANetIncomeAnalysisTest {
 
         System.out.printf("%-12s %-10s %-20s %-20s %-20s%n",
             "Fiscal Year", "Companies", "Avg Net Income ($M)", "Min Net Income ($M)", "Max Net Income ($M)");
-        System.out.println("-".repeat(90));
 
         boolean hasResults = false;
         while (rs.next()) {
@@ -156,7 +150,6 @@ public class DJIANetIncomeAnalysisTest {
         assertTrue(hasResults, "Should find net income data for DJIA companies");
       }
 
-      System.out.println();
       System.out.println("✓ Net income analysis completed successfully");
 
     } catch (SQLException e) {

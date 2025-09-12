@@ -27,10 +27,8 @@ import org.junit.jupiter.api.Test;
 public class EmbeddingDemoTest {
 
   @Test public void demonstrateEmbeddings() {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("XBRL FINANCIAL TEXT EMBEDDING DEMONSTRATION");
-    System.out.println("=".repeat(80));
 
     // Sample financial texts
     String[] texts = {
@@ -47,7 +45,6 @@ public class EmbeddingDemoTest {
 
     // Generate embeddings
     System.out.println("\n1. GENERATING EMBEDDINGS");
-    System.out.println("-".repeat(40));
     String[] embeddings = new String[texts.length];
 
     for (int i = 0; i < texts.length; i++) {
@@ -66,7 +63,6 @@ public class EmbeddingDemoTest {
 
     // Calculate similarity matrix
     System.out.println("\n2. SIMILARITY MATRIX (Cosine Similarity)");
-    System.out.println("-".repeat(40));
     System.out.println("        Rev1    Rev2    Prof    Debt    Liq");
 
     for (int i = 0; i < embeddings.length; i++) {
@@ -75,12 +71,10 @@ public class EmbeddingDemoTest {
         double sim = SimilarityFunctions.cosineSimilarity(embeddings[i], embeddings[j]);
         System.out.printf("%.3f   ", sim);
       }
-      System.out.println();
     }
 
     // Demonstrate SQL-like queries
     System.out.println("\n3. SQL QUERY EXAMPLES");
-    System.out.println("-".repeat(40));
 
     // Find similar documents to Revenue text 1
     System.out.println("\nQuery: Find documents similar to 'Revenue increased 15%...'");
@@ -132,7 +126,6 @@ public class EmbeddingDemoTest {
 
     // Show how context affects embeddings
     System.out.println("\n4. CONTEXT IMPACT DEMONSTRATION");
-    System.out.println("-".repeat(40));
 
     String sameText = "Revenue increased 15% to $394 billion driven by strong iPhone sales";
     String embed1 = SecEmbeddingModel.generateEmbedding(sameText, "Revenue");
@@ -149,7 +142,6 @@ public class EmbeddingDemoTest {
 
     // Financial metrics extraction
     System.out.println("\n5. FINANCIAL METRICS DETECTION");
-    System.out.println("-".repeat(40));
 
     String[] testTexts = {
         "Revenue grew to $394.3B with gross margin of 44.1%",
@@ -179,9 +171,7 @@ public class EmbeddingDemoTest {
       System.out.printf("  Best matching context: %s (similarity: %.3f)\n", bestContext, bestSim);
     }
 
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("DEMONSTRATION COMPLETE");
-    System.out.println("=".repeat(80) + "\n");
   }
 }

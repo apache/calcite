@@ -31,14 +31,11 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SimplifiedModelTest {
 
   @Test public void testSimplifiedModels() throws Exception {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("SIMPLIFIED MODEL FILES TEST");
-    System.out.println("=".repeat(80));
 
     // Load and display the simple model
     System.out.println("\n1. SIMPLE MODEL (Minimal Configuration)");
-    System.out.println("-".repeat(40));
 
     InputStream simpleStream = getClass().getResourceAsStream("/simple-test-model.json");
     assertNotNull(simpleStream, "Simple test model should exist");
@@ -53,7 +50,6 @@ public class SimplifiedModelTest {
 
     // Show what's automatically configured
     System.out.println("\n2. AUTOMATIC DEFAULTS PROVIDED");
-    System.out.println("-".repeat(40));
     System.out.println("The SecEmbeddingSchemaFactory automatically provides:");
     System.out.println("  ✓ Execution Engine: DuckDB");
     System.out.println("  ✓ Embedding Configuration:");
@@ -77,7 +73,6 @@ public class SimplifiedModelTest {
 
     // Show override example
     System.out.println("\n3. OVERRIDE EXAMPLE");
-    System.out.println("-".repeat(40));
 
     InputStream overrideStream = getClass().getResourceAsStream("/custom-override-model.json");
     if (overrideStream != null) {
@@ -90,7 +85,6 @@ public class SimplifiedModelTest {
 
     // Compare with old verbose model
     System.out.println("\n4. COMPARISON WITH OLD VERBOSE MODEL");
-    System.out.println("-".repeat(40));
 
     InputStream oldStream = getClass().getResourceAsStream("/test-embedding-model.json");
     if (oldStream != null) {
@@ -104,7 +98,6 @@ public class SimplifiedModelTest {
     }
 
     System.out.println("\n5. USAGE EXAMPLES");
-    System.out.println("-".repeat(40));
 
     System.out.println("\nMinimal configuration (using all defaults):");
     System.out.println("  {");
@@ -133,9 +126,7 @@ public class SimplifiedModelTest {
     System.out.println("    }");
     System.out.println("  }");
 
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("SIMPLIFIED MODEL TEST PASSED");
-    System.out.println("=".repeat(80) + "\n");
   }
 }

@@ -74,10 +74,8 @@ public class DJIA5YearTest {
   }
 
   @Test public void testDJIASampleQuery() throws Exception {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("TESTING DJIA 5-YEAR SEC FILINGS DOWNLOAD");
-    System.out.println("=".repeat(80) + "\n");
 
     // Create simple test model instead of loading from file
     String modelJson = "{"
@@ -109,7 +107,6 @@ public class DJIA5YearTest {
 
       // Query to check what companies and filings we have
       System.out.println("Querying DJIA company filings (2020-2024):");
-      System.out.println("-".repeat(60));
 
       try (Statement stmt = conn.createStatement();
            ResultSet rs =
@@ -125,7 +122,6 @@ public class DJIA5YearTest {
         while (rs.next()) {
           if (count == 0) {
             System.out.println("CIK        | Company                     | Type | Date       | Items");
-            System.out.println("-".repeat(70));
           }
           System.out.printf("%10s | %-27s | %-4s | %10s | %5d\n",
             rs.getString("cik"),
@@ -138,7 +134,6 @@ public class DJIA5YearTest {
           count++;
         }
 
-        System.out.println("-".repeat(70));
         System.out.println("Showing first " + count + " filings");
       }
 
@@ -182,20 +177,16 @@ public class DJIA5YearTest {
 
     Duration elapsed = Duration.between(start, Instant.now());
 
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("RESULTS:");
     System.out.println("  Total time: " + elapsed.toSeconds() + " seconds");
     System.out.println("  ✓ Successfully connected to DJIA 5-year SEC data");
-    System.out.println("=".repeat(80));
   }
 
   @Test @Tag("unit")
   public void testDJIAQuickQuery() throws Exception {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("QUICK DJIA SAMPLE QUERY TEST");
-    System.out.println("=".repeat(80) + "\n");
 
     // Create mock data for testing
     File volumeDir = new File("/Volumes/T9/calcite-test-data");
@@ -239,6 +230,5 @@ public class DJIA5YearTest {
       System.out.println("\n✓ Quick sample test passed");
     }
 
-    System.out.println("=".repeat(80));
   }
 }

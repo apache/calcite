@@ -39,7 +39,6 @@ public class DJIANetIncomeIntegrationTest {
   @Test @Timeout(value = 30, unit = TimeUnit.MINUTES) // 30 companies for 2 years
   public void testDJIANetIncomeByYear() throws Exception {
     System.out.println("\n=== DJIA NET INCOME INTEGRATION TEST ===");
-    System.out.println("Testing complete DJIA companies for prior 2 years (2023-2024)");
 
     // Create inline model for DJIA companies
     String modelJson = "{"
@@ -79,7 +78,6 @@ public class DJIANetIncomeIntegrationTest {
       System.out.println("\n=== STEP 1: Check Available Tables ===");
       try (ResultSet tables = connection.getMetaData().getTables(null, "sec", "%", new String[]{"TABLE"})) {
         while (tables.next()) {
-          System.out.println("Found table: " + tables.getString("TABLE_NAME"));
         }
       }
 
@@ -115,7 +113,6 @@ public class DJIANetIncomeIntegrationTest {
                            ", year=" + debugRs.getString("year") +
                            ", concept=" + debugRs.getString("concept"));
         }
-        System.out.println("Found " + count + " NetIncomeLoss rows");
       }
 
       String dataCheckQuery =

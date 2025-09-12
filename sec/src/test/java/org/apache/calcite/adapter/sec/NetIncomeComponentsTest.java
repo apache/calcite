@@ -211,8 +211,7 @@ public class NetIncomeComponentsTest {
           String footnotes = rs.getString("footnote_refs");
 
           if (!parent.equals(lastParent)) {
-            System.out.println("\n"
-  + parent + ":");
+            System.out.println("\n" + parent + ":");
             lastParent = parent;
           }
 
@@ -223,7 +222,6 @@ public class NetIncomeComponentsTest {
           if (footnotes != null) {
             System.out.print(" [" + footnotes + "]");
           }
-          System.out.println();
         }
       }
 
@@ -256,9 +254,7 @@ public class NetIncomeComponentsTest {
           String displayName = concept.replace("TextBlock", "")
               .replaceAll("([A-Z])", " $1").trim();
 
-          System.out.println("\n"
-  + displayName + ":");
-          System.out.println("-".repeat(displayName.length() + 1));
+          System.out.println("\n" + displayName + ":");
 
           // Show first 500 chars or first paragraph
           String preview = fullText.length() > 500 ?

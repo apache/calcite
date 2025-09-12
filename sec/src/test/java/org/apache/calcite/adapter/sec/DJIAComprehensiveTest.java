@@ -45,10 +45,8 @@ public class DJIAComprehensiveTest {
 
   @BeforeAll
   public static void setUp() throws Exception {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("DJIA COMPREHENSIVE INTEGRATION TEST");
-    System.out.println("=".repeat(80));
 
     // Create test directory with timestamp
     String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
@@ -106,14 +104,11 @@ public class DJIAComprehensiveTest {
     System.out.println("  - Filing types: 10-K, 10-Q, 8-K (default)");
     System.out.println("  - Date range: 2014-2024 (10 years)");
     System.out.println("  - Auto download: enabled");
-    System.out.println();
   }
 
   @Test public void testComprehensiveDJIAAnalysis() throws Exception {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("PHASE 1: ESTABLISHING CONNECTION AND DOWNLOADING DATA");
-    System.out.println("=".repeat(80));
 
     Properties props = new Properties();
     // Apply engine defaults for proper casing configuration
@@ -131,10 +126,8 @@ public class DJIAComprehensiveTest {
       // Let's verify the schema is available
       try (Statement stmt = conn.createStatement()) {
 
-        System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
         System.out.println("PHASE 2: VERIFYING DATA AVAILABILITY");
-        System.out.println("=".repeat(80));
 
         // Check what tables are available
         ResultSet rs =
@@ -150,10 +143,8 @@ public class DJIAComprehensiveTest {
         rs.close();
         System.out.println("Total tables: " + tableCount);
 
-        System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
         System.out.println("PHASE 3: RUNNING ANALYTICS QUERIES");
-        System.out.println("=".repeat(80));
 
         // Query 1: Count total filings by company
         System.out.println("\n1. Total filings by company:");
@@ -263,10 +254,8 @@ public class DJIAComprehensiveTest {
           System.out.println("   Financial facts table not available or empty");
         }
 
-        System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
         System.out.println("PHASE 4: TEST SUMMARY");
-        System.out.println("=".repeat(80));
 
         long endTime = System.currentTimeMillis();
         long duration = (endTime - startTime) / 1000; // seconds
@@ -304,10 +293,8 @@ public class DJIAComprehensiveTest {
 
   @AfterAll
   public static void tearDown() {
-    System.out.println("\n"
-  + "=".repeat(80));
+    System.out.println("\n" + "=".repeat(80));
     System.out.println("TEST CLEANUP");
-    System.out.println("=".repeat(80));
     System.out.println("Test data preserved in: " + testDataDir);
     System.out.println("To clean up manually, run: rm -rf " + testDataDir);
   }
