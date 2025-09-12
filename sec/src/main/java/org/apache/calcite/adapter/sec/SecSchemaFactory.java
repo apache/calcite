@@ -110,6 +110,7 @@ public class SecSchemaFactory implements SchemaFactory {
   private final AtomicInteger completedConversions = new AtomicInteger(0);
   private final AtomicInteger rateLimitHits = new AtomicInteger(0);
   private Map<String, Object> currentOperand; // Store operand for table auto-discovery
+  private RSSRefreshMonitor rssMonitor; // RSS monitor for automatic refresh
 
   public static final SecSchemaFactory INSTANCE = new SecSchemaFactory();
 
@@ -166,7 +167,7 @@ public class SecSchemaFactory implements SchemaFactory {
         LOGGER.debug("No defaults file found at /sec-schema-factory.defaults.json");
         return null;
       }
-      
+
       ObjectMapper mapper = new ObjectMapper();
       JsonNode root = mapper.readTree(is);
       JsonNode operandNode = root.get("operand");
@@ -174,44 +175,44 @@ public class SecSchemaFactory implements SchemaFactory {
         LOGGER.debug("No 'operand' section in defaults file");
         return null;
       }
-      
+
       // Convert JsonNode to Map
       Map<String, Object> defaults = mapper.convertValue(operandNode, Map.class);
-      
+
       // Process environment variable substitutions
       processEnvironmentVariables(defaults);
-      
+
       return defaults;
     } catch (Exception e) {
       LOGGER.warn("Failed to load defaults from sec-schema-factory.defaults.json: " + e.getMessage());
       return null;
     }
   }
-  
+
   /**
    * Recursively processes a map to substitute environment variables.
    * Supports ${VAR_NAME} syntax for environment variable substitution.
    */
   private void processEnvironmentVariables(Map<String, Object> map) {
     Pattern envPattern = Pattern.compile("\\$\\{([A-Z_][A-Z0-9_]*)\\}");
-    
+
     for (Map.Entry<String, Object> entry : map.entrySet()) {
       Object value = entry.getValue();
-      
+
       if (value instanceof String) {
         String strValue = (String) value;
         Matcher matcher = envPattern.matcher(strValue);
-        
+
         if (matcher.matches()) {
           // Full match - replace entire value
           String envVar = matcher.group(1);
           String envValue = System.getenv(envVar);
-          
+
           if (envValue == null && "CURRENT_YEAR".equals(envVar)) {
             // Special handling for CURRENT_YEAR
             envValue = String.valueOf(Year.now().getValue());
           }
-          
+
           if (envValue != null) {
             // Try to parse as integer if it looks like a number
             if (envValue.matches("\\d+")) {
@@ -233,11 +234,11 @@ public class SecSchemaFactory implements SchemaFactory {
           while (matcher.find()) {
             String envVar = matcher.group(1);
             String envValue = System.getenv(envVar);
-            
+
             if (envValue == null && "CURRENT_YEAR".equals(envVar)) {
               envValue = String.valueOf(Year.now().getValue());
             }
-            
+
             if (envValue != null) {
               matcher.appendReplacement(sb, envValue);
             } else {
@@ -272,7 +273,7 @@ public class SecSchemaFactory implements SchemaFactory {
       }
     }
   }
-  
+
   /**
    * Merges default values into the operand map, without overwriting existing values.
    * This ensures that explicit configuration takes precedence over defaults.
@@ -281,11 +282,11 @@ public class SecSchemaFactory implements SchemaFactory {
     if (defaults == null) {
       return;
     }
-    
+
     for (Map.Entry<String, Object> entry : defaults.entrySet()) {
       String key = entry.getKey();
       Object defaultValue = entry.getValue();
-      
+
       if (!operand.containsKey(key)) {
         // Key not present, add default
         operand.put(key, defaultValue);
@@ -306,7 +307,7 @@ public class SecSchemaFactory implements SchemaFactory {
 
     // Create mutable copy of operand to allow modifications
     Map<String, Object> mutableOperand = new HashMap<>(operand);
-    
+
     // Load and apply defaults before processing
     Map<String, Object> defaults = loadDefaults();
     if (defaults != null) {
@@ -314,7 +315,7 @@ public class SecSchemaFactory implements SchemaFactory {
       applyDefaults(mutableOperand, defaults);
       LOGGER.debug("Operand after applying defaults: {}", mutableOperand);
     }
-    
+
     this.currentOperand = mutableOperand; // Store for table auto-discovery
 
     // Determine cache directory
@@ -336,7 +337,7 @@ public class SecSchemaFactory implements SchemaFactory {
         rebuildManifestFromExistingFiles(baseDir);
       }
       downloadSecData(mutableOperand);
-      
+
       // CRITICAL: Wait for all downloads and conversions to complete
       // The downloadSecData method starts async tasks but returns immediately
       // We need to wait for them to complete before creating the FileSchema
@@ -556,15 +557,25 @@ public class SecSchemaFactory implements SchemaFactory {
     }
     LOGGER.info("Text similarity functions configuration: " + textSimConfig);
 
+    // Start RSS monitor if configured
+    Map<String, Object> refreshConfig = (Map<String, Object>) mutableOperand.get("refreshMonitoring");
+    if (refreshConfig != null && Boolean.TRUE.equals(refreshConfig.get("enabled"))) {
+      if (rssMonitor == null) {
+        LOGGER.info("Starting RSS refresh monitor");
+        rssMonitor = new RSSRefreshMonitor(mutableOperand);
+        rssMonitor.start();
+      }
+    }
+
     // Now delegate to FileSchemaFactory to create the actual schema
     // with our pre-defined tables and configured directory
     LOGGER.info("Delegating to FileSchemaFactory with modified operand");
-    
+
     // Check if text similarity is enabled before creating schema
-    boolean similarityEnabled = mutableOperand.containsKey("textSimilarity") && 
-        mutableOperand.get("textSimilarity") instanceof Map && 
+    boolean similarityEnabled = mutableOperand.containsKey("textSimilarity") &&
+        mutableOperand.get("textSimilarity") instanceof Map &&
         Boolean.TRUE.equals(((Map<?,?>)mutableOperand.get("textSimilarity")).get("enabled"));
-    
+
     if (similarityEnabled) {
       // Register the functions on the parent schema BEFORE creating the FileSchema
       // This ensures they're available in the schema resolution chain
@@ -575,15 +586,15 @@ public class SecSchemaFactory implements SchemaFactory {
         LOGGER.warn("Failed to register similarity functions on parent schema: " + e.getMessage());
       }
     }
-    
+
     Schema fileSchema = FileSchemaFactory.INSTANCE.create(parentSchema, name, mutableOperand);
-    
+
     // The FileSchemaFactory should have already registered functions if textSimilarity is enabled
     // The functions should be available through both parent schema and FileSchema registration
     if (similarityEnabled) {
       LOGGER.info("Text similarity enabled - functions should be available through FileSchemaFactory registration");
     }
-    
+
     return fileSchema;
   }
 
@@ -595,7 +606,7 @@ public class SecSchemaFactory implements SchemaFactory {
     System.out.println("DEBUG: shouldDownloadData: autoDownload=" + autoDownload + ", useMockData=" + useMockData + ", result=" + result);
     return result;
   }
-  
+
   /**
    * Wait for all downloads and conversions to complete.
    * This is critical to ensure the FileSchema sees the converted Parquet files.
@@ -605,16 +616,16 @@ public class SecSchemaFactory implements SchemaFactory {
       // Wait for download futures if any are still running
       if (!downloadFutures.isEmpty()) {
         LOGGER.info("Waiting for {} downloads to complete...", downloadFutures.size());
-        CompletableFuture<Void> allDownloads = 
+        CompletableFuture<Void> allDownloads =
             CompletableFuture.allOf(downloadFutures.toArray(new CompletableFuture[0]));
         allDownloads.get(45, TimeUnit.MINUTES);
         LOGGER.info("All downloads completed");
       }
-      
+
       // Wait for conversion futures if any are still running
       if (!conversionFutures.isEmpty()) {
         LOGGER.info("Waiting for {} conversions to complete...", conversionFutures.size());
-        CompletableFuture<Void> allConversions = 
+        CompletableFuture<Void> allConversions =
             CompletableFuture.allOf(conversionFutures.toArray(new CompletableFuture[0]));
         allConversions.get(30, TimeUnit.MINUTES);
         LOGGER.info("All conversions completed: {} files", completedConversions.get());
@@ -655,7 +666,7 @@ public class SecSchemaFactory implements SchemaFactory {
             for (File ftDir : filingTypeDirs != null ? filingTypeDirs : new File[0]) {
               File[] yearDirs = ftDir.listFiles((dir, name) -> name.startsWith("year="));
               for (File yDir : yearDirs != null ? yearDirs : new File[0]) {
-                File[] vectorizedFiles = yDir.listFiles((dir, name) -> 
+                File[] vectorizedFiles = yDir.listFiles((dir, name) ->
                     name.contains(accessionNoHyphens) && name.endsWith("_vectorized.parquet"));
                 if (vectorizedFiles != null && vectorizedFiles.length > 0) {
                   hasVectorized = true;
@@ -724,7 +735,7 @@ public class SecSchemaFactory implements SchemaFactory {
 
                 // Check for HTML files (indicates a filing was downloaded)
                 // Exclude macOS metadata files
-                File[] htmlFiles = accessionDir.listFiles((dir, name) -> 
+                File[] htmlFiles = accessionDir.listFiles((dir, name) ->
                     !name.startsWith("._") && (name.endsWith(".htm") || name.endsWith(".html")));
                 if (htmlFiles != null && htmlFiles.length > 0) {
                   // For now, add with generic form/date - actual values would need parsing
@@ -859,13 +870,21 @@ public class SecSchemaFactory implements SchemaFactory {
     }
   }
 
+  /**
+   * Public static method to trigger SEC data download from external components like RSS monitor.
+   */
+  public static void triggerDownload(Map<String, Object> operand) {
+    SecSchemaFactory factory = new SecSchemaFactory();
+    factory.downloadSecData(operand);
+  }
+
   private void downloadSecData(Map<String, Object> operand) {
     System.out.println("DEBUG: downloadSecData() called - STARTING SEC DATA DOWNLOAD");
     LOGGER.info("downloadSecData() called - STARTING SEC DATA DOWNLOAD");
-    
+
     // Clear download tracking for new cycle
     downloadedInThisCycle.clear();
-    
+
     try {
       // Check if directory is specified in config, otherwise use default
       String configuredDir = (String) operand.get("directory");
@@ -964,7 +983,7 @@ public class SecSchemaFactory implements SchemaFactory {
       List<String> filingTypes, int startYear, int endYear, File baseDir) {
     // Ensure executors are initialized
     initializeExecutors();
-    
+
     try {
       // Normalize CIK
       String normalizedCik = String.format("%010d", Long.parseLong(cik.replaceAll("[^0-9]", "")));
@@ -1055,15 +1074,15 @@ public class SecSchemaFactory implements SchemaFactory {
       LOGGER.info("Scheduling " + filingsToDownload.size() + " filings for download for CIK " + normalizedCik);
 
       for (FilingToDownload filing : filingsToDownload) {
-        // Create unique key for deduplication  
+        // Create unique key for deduplication
         String filingKey = filing.cik + "|" + filing.accession + "|" + filing.form + "|" + filing.filingDate;
-        
+
         // Skip if already scheduled for download in this cycle
         if (!downloadedInThisCycle.add(filingKey)) {
           LOGGER.debug("Skipping duplicate download task for: " + filing.form + " " + filing.filingDate);
           continue;
         }
-        
+
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
           downloadFilingDocumentWithRateLimit(provider, filing);
           int completed = completedDownloads.incrementAndGet();
@@ -1159,7 +1178,7 @@ public class SecSchemaFactory implements SchemaFactory {
       if (manifestFile.exists()) {
         try {
           Set<String> processedFilings = new HashSet<>(Files.readAllLines(manifestFile.toPath()));
-          
+
           // Check if this filing is in the manifest
           boolean isProcessed = false;
           boolean hasVectorized = false;
@@ -1170,12 +1189,12 @@ public class SecSchemaFactory implements SchemaFactory {
               break;
             }
           }
-          
+
           // If text similarity is enabled but vectorized files don't exist, need reprocessing
           Map<String, Object> textSimilarityConfig = (Map<String, Object>) currentOperand.get("textSimilarity");
-          boolean needsVectorized = textSimilarityConfig != null && 
+          boolean needsVectorized = textSimilarityConfig != null &&
               Boolean.TRUE.equals(textSimilarityConfig.get("enabled"));
-          
+
           if (isProcessed && (!needsVectorized || hasVectorized)) {
             LOGGER.debug("Filing fully processed (in manifest), skipping: " + form + " " + filingDate);
             return;
@@ -1244,7 +1263,7 @@ public class SecSchemaFactory implements SchemaFactory {
       // Need to include filing_type in the path
       File filingTypeDir = new File(cikParquetDir, "filing_type=" + form.replace("-", ""));
       File yearDir = new File(filingTypeDir, "year=" + year);
-      
+
       // Check for the appropriate parquet file based on form type
       // Forms 3/4/5 create _insider.parquet files, others create _facts.parquet files
       String filenameSuffix = isInsiderForm ? "insider" : "facts";
@@ -1455,7 +1474,7 @@ public class SecSchemaFactory implements SchemaFactory {
   private void createSecTablesFromXbrl(File baseDir, List<String> ciks, int startYear, int endYear) {
     // Ensure executors are initialized
     initializeExecutors();
-    
+
     System.out.println("DEBUG: createSecTablesFromXbrl START");
     LOGGER.info("DEBUG: createSecTablesFromXbrl START");
     LOGGER.info("DEBUG: baseDir=" + baseDir.getAbsolutePath());
@@ -1521,11 +1540,11 @@ public class SecSchemaFactory implements SchemaFactory {
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
           try {
             XbrlToParquetConverter converter = new XbrlToParquetConverter();
-            
+
             // Extract accession number from file path (parent directory name)
             // Path is like: /sec-data/0000789019/000078901922000007/ownership.xml
             String accession = xbrlFile.getParentFile().getName();
-            
+
             // Create a simple ConversionMetadata to pass accession to converter
             ConversionMetadata metadata = new ConversionMetadata(secParquetDir);
             ConversionMetadata.ConversionRecord record = new ConversionMetadata.ConversionRecord();
@@ -1533,7 +1552,7 @@ public class SecSchemaFactory implements SchemaFactory {
             // Store accession in the sourceFile field for now - converter can extract it
             record.sourceFile = accession;
             metadata.recordConversion(xbrlFile, record);
-            
+
             // The converter now properly extracts metadata from the XML content itself
             List<File> outputFiles = converter.convert(xbrlFile, secParquetDir, metadata);
             LOGGER.info("Converted " + xbrlFile.getName() + " to " +
@@ -1568,7 +1587,7 @@ public class SecSchemaFactory implements SchemaFactory {
       allConversions.get(30, TimeUnit.MINUTES); // Wait up to 30 minutes
 
       LOGGER.info("Processed " + completedConversions.get() + " XBRL files into Parquet tables in: " + secParquetDir);
-      
+
       // Bulk cleanup of macOS metadata files at the end of processing
       cleanupAllMacOSMetadataFiles(secParquetDir);
 
@@ -1919,7 +1938,7 @@ public class SecSchemaFactory implements SchemaFactory {
     // EdgarDownloader will interpret empty list as "all types"
     return new ArrayList<>();
   }
-  
+
   /**
    * Bulk cleanup of all macOS metadata files in the parquet directory.
    * This is run at the end of processing to clean up any ._* files that were created.
@@ -1928,7 +1947,7 @@ public class SecSchemaFactory implements SchemaFactory {
     if (directory == null || !directory.exists()) {
       return;
     }
-    
+
     int totalDeleted = 0;
     try {
       totalDeleted = cleanupMacOSMetadataFilesRecursive(directory);
@@ -1939,14 +1958,14 @@ public class SecSchemaFactory implements SchemaFactory {
       LOGGER.debug("Error during bulk macOS metadata cleanup: " + e.getMessage());
     }
   }
-  
+
   /**
    * Recursively delete macOS metadata files (._* files).
    * @return Number of files deleted
    */
   private int cleanupMacOSMetadataFilesRecursive(File directory) {
     int deleted = 0;
-    
+
     File[] files = directory.listFiles();
     if (files != null) {
       for (File file : files) {
@@ -1961,7 +1980,7 @@ public class SecSchemaFactory implements SchemaFactory {
         }
       }
     }
-    
+
     return deleted;
   }
 }

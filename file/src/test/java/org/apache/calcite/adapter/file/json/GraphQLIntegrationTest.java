@@ -250,6 +250,7 @@ public class GraphQLIntegrationTest {
   @Test
   public void testGraphQLMultiTable() throws Exception {
     // GraphQL query fetching multiple entities at once
+    // The model should handle everything - no manual HTTP fetching!
     String modelJson = "{\n" +
         "  \"version\": \"1.0\",\n" +
         "  \"defaultSchema\": \"graphql\",\n" +
@@ -263,11 +264,18 @@ public class GraphQLIntegrationTest {
         "          {\n" +
         "            \"name\": \"company_data\",\n" +
         "            \"url\": \"" + baseUrl + "/graphql\",\n" +
+        "            \"format\": \"json\",\n" +
         "            \"method\": \"POST\",\n" +
         "            \"body\": \"{\\\"query\\\":\\\"{ users { id name email totalOrders } orders { id userId total status } products { id name price category } }\\\"}\",\n" +
-        "            \"jsonPath\": \"$.data\",\n" +
-        "            \"flavor\": \"json\",\n" +
-        "            \"autoDiscoverTables\": true\n" +
+        "            \"headers\": {\n" +
+        "              \"Content-Type\": \"application/json\"\n" +
+        "            },\n" +
+        "            \"jsonSearchPaths\": [\n" +
+        "              \"$.data.users\",\n" +
+        "              \"$.data.orders\",\n" +
+        "              \"$.data.products\"\n" +
+        "            ],\n" +
+        "            \"tableNamePattern\": \"company_data_{pathSegment}\"\n" +
         "          }\n" +
         "        ]\n" +
         "      }\n" +
@@ -278,56 +286,20 @@ public class GraphQLIntegrationTest {
     File modelFile = new File(tempDir.toFile(), "graphql_multi.json");
     Files.writeString(modelFile.toPath(), modelJson);
     
-    // Write the GraphQL response to a file for multi-table discovery
-    File dataFile = new File(tempDir.toFile(), "company_data.json");
-    String graphqlQuery = "{\"query\":\"{ users { id name email totalOrders } orders { id userId total status } products { id name price category } }\"}";
-    
-    // Make the actual GraphQL request and save response
-    org.apache.calcite.adapter.file.storage.HttpStorageProvider provider = 
-        new org.apache.calcite.adapter.file.storage.HttpStorageProvider(
-            "POST",
-            graphqlQuery,
-            new java.util.HashMap<>(),
-            null
-        );
-    
-    try (InputStream is = provider.openInputStream(baseUrl + "/graphql")) {
-      String response = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-      
-      // Extract just the data portion
-      com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-      com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response);
-      com.fasterxml.jackson.databind.JsonNode data = root.get("data");
-      
-      Files.writeString(dataFile.toPath(), mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data));
-    }
-    
-    // Now test with auto-discovered tables
-    String multiTableModelJson = "{\n" +
-        "  \"version\": \"1.0\",\n" +
-        "  \"defaultSchema\": \"graphql\",\n" +
-        "  \"schemas\": [\n" +
-        "    {\n" +
-        "      \"name\": \"graphql\",\n" +
-        "      \"type\": \"custom\",\n" +
-        "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n" +
-        "      \"operand\": {\n" +
-        "        \"directory\": \"" + tempDir.toFile().getAbsolutePath() + "\",\n" +
-        "        \"multiTables\": true,\n" +
-        "        \"autoDiscoverTables\": true\n" +
-        "      }\n" +
-        "    }\n" +
-        "  ]\n" +
-        "}";
-    
-    File multiTableModelFile = new File(tempDir.toFile(), "graphql_auto.json");
-    Files.writeString(multiTableModelFile.toPath(), multiTableModelJson);
-    
     Properties info = new Properties();
-    info.put("model", multiTableModelFile.getAbsolutePath());
+    info.put("model", modelFile.getAbsolutePath());
     
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = conn.createStatement()) {
+      
+      // Debug: List all available tables
+      try (ResultSet rs = conn.getMetaData().getTables(null, "graphql", "%", null)) {
+        System.out.println("Available tables in schema 'graphql':");
+        while (rs.next()) {
+          String tableName = rs.getString("TABLE_NAME");
+          System.out.println("  - " + tableName);
+        }
+      }
       
       // Query users table
       ResultSet rs = stmt.executeQuery("SELECT name, totalOrders FROM \"company_data_users\" WHERE id <= 2 ORDER BY id");

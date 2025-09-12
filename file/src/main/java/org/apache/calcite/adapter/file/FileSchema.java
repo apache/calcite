@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.file;
 import org.apache.calcite.adapter.file.converters.FileConversionManager;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
+import org.apache.calcite.adapter.file.format.json.JsonMultiTableFactory;
+import org.apache.calcite.adapter.file.format.json.JsonSearchConfig;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.iceberg.IcebergMetadataTables;
 import org.apache.calcite.adapter.file.iceberg.IcebergTable;
@@ -2397,10 +2399,24 @@ public class FileSchema extends AbstractSchema {
           String jsonRefreshInterval = (String) tableDef.get("refreshInterval");
           Duration jsonEffectiveInterval = RefreshInterval.getEffectiveInterval(jsonRefreshInterval, this.refreshInterval);
 
-          // JSON table extraction would go here when JsonMultiTableFactory is available
-          // For now, skip JSONPath extraction as dependencies are not available
-          LOGGER.debug("Skipping JSONPath extraction - dependencies not available");
-          // Continue to single table creation below
+          // Create JsonSearchConfig from table definition
+          JsonSearchConfig config = JsonSearchConfig.fromTableDefinition(tableDef);
+          
+          // Create multiple tables using JsonMultiTableFactory
+          Map<String, Table> jsonTables = JsonMultiTableFactory.createTables(source, config);
+          
+          LOGGER.info("Created {} tables from JSONPath extraction", jsonTables.size());
+          
+          // Add all discovered tables to the schema
+          for (Map.Entry<String, Table> entry : jsonTables.entrySet()) {
+            String discoveredTableName = entry.getKey();
+            Table table = entry.getValue();
+            builder.put(discoveredTableName, table);
+            LOGGER.debug("Added table '{}' from JSONPath extraction", discoveredTableName);
+          }
+          
+          // Return early - we've handled this source completely
+          return true;
         }
 
         // Single table creation (existing code)
