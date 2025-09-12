@@ -164,4 +164,8 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   @Override public boolean supportsUnsignedTypes() {
     return SqlConformanceEnum.DEFAULT.supportsUnsignedTypes();
   }
+
+  @Override public boolean emptyStringIsNull() {
+    return SqlConformanceEnum.DEFAULT.emptyStringIsNull();
+  }
 }

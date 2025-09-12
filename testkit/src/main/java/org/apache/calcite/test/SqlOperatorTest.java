@@ -123,7 +123,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.linq4j.tree.Expressions.list;
-import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.QUANTIFY_OPERATORS;
 import static org.apache.calcite.sql.test.ResultCheckers.isDecimal;
@@ -599,11 +598,11 @@ public class SqlOperatorTest {
     f.checkCastToString("cast(cast('abc' as char(4)) as varchar(6))", null,
         "abc ", castType);
     f.checkString("cast(cast('a' as char(2)) as varchar(3)) || 'x' ",
-        "a x", "VARCHAR(4) NOT NULL");
+        "a x", "VARCHAR(4)");
     f.checkString("cast(cast('a' as char(3)) as varchar(5)) || 'x' ",
-        "a  x", "VARCHAR(6) NOT NULL");
+        "a  x", "VARCHAR(6)");
     f.checkString("cast('a' as char(3)) || 'x'", "a  x",
-        "CHAR(4) NOT NULL");
+        "CHAR(4)");
 
     f.checkScalar("char_length(cast(' x ' as char(4)))", 4,
         "INTEGER NOT NULL");
@@ -2149,7 +2148,7 @@ public class SqlOperatorTest {
 
     f.checkScalar("{fn CHAR(97)}", "a", "CHAR(1)");
 
-    f.checkScalar("{fn CONCAT('foo', 'bar')}", "foobar", "CHAR(6) NOT NULL");
+    f.checkScalar("{fn CONCAT('foo', 'bar')}", "foobar", "CHAR(6)");
 
     f.checkScalar("{fn DIFFERENCE('Miller', 'miller')}", "4",
         "INTEGER NOT NULL");
@@ -2169,9 +2168,8 @@ public class SqlOperatorTest {
 
     // REVIEW: is this result correct? I think it should be "abcCdef"
     f.checkScalar("{fn INSERT('abc', 1, 2, 'ABCdef')}",
-        "ABCdefc", "VARCHAR(9) NOT NULL");
-    f.checkScalar("{fn LCASE('foo' || 'bar')}",
-        "foobar", "CHAR(6) NOT NULL");
+        "ABCdefc", "VARCHAR(9)");
+    f.checkScalar("{fn LCASE('foo' || 'bar')}", "foobar", "CHAR(6)");
     if (false) {
       f.checkScalar("{fn LENGTH(string)}", null, "");
     }
@@ -2179,23 +2177,20 @@ public class SqlOperatorTest {
 
     f.checkScalar("{fn LOCATE('ha', 'alphabet', 6)}", 0, "INTEGER NOT NULL");
 
-    f.checkScalar("{fn LTRIM(' xxx  ')}", "xxx  ", "VARCHAR(6) NOT NULL");
+    f.checkScalar("{fn LTRIM(' xxx  ')}", "xxx  ", "VARCHAR(6)");
 
     f.checkScalar("{fn REPEAT('a', -100)}", "", "VARCHAR NOT NULL");
     f.checkNull("{fn REPEAT('abc', cast(null as integer))}");
     f.checkNull("{fn REPEAT(cast(null as varchar(1)), cast(null as integer))}");
 
-    f.checkString("{fn REPLACE('JACK and JUE','J','BL')}",
-        "BLACK and BLUE", "VARCHAR NOT NULL");
+    f.checkString("{fn REPLACE('JACK and JUE','J','BL')}", "BLACK and BLUE", "VARCHAR");
 
     // REPLACE returns NULL in Oracle but not in Postgres or in Calcite.
     // When [CALCITE-815] is implemented and SqlConformance#emptyStringIsNull is
     // enabled, it will return empty string as NULL.
-    f.checkString("{fn REPLACE('ciao', 'ciao', '')}", "",
-        "VARCHAR NOT NULL");
+    f.checkString("{fn REPLACE('ciao', 'ciao', '')}", "", "VARCHAR");
 
-    f.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld",
-        "VARCHAR NOT NULL");
+    f.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld", "VARCHAR");
 
     f.checkNull("{fn REPLACE(cast(null as varchar(5)), 'ciao', '')}");
     f.checkNull("{fn REPLACE('ciao', cast(null as varchar(3)), 'zz')}");
@@ -2205,7 +2200,7 @@ public class SqlOperatorTest {
     f.checkScalar(
         "{fn RTRIM(' xxx  ')}",
         " xxx",
-        "VARCHAR(6) NOT NULL");
+        "VARCHAR(6)");
 
     f.checkScalar("{fn SOUNDEX('Miller')}", "M460", "VARCHAR(4) NOT NULL");
     f.checkNull("{fn SOUNDEX(cast(null as varchar(1)))}");
@@ -2216,8 +2211,8 @@ public class SqlOperatorTest {
     f.checkScalar(
         "{fn SUBSTRING('abcdef', 2, 3)}",
         "bcd",
-        "VARCHAR(6) NOT NULL");
-    f.checkScalar("{fn UCASE('xxx')}", "XXX", "CHAR(3) NOT NULL");
+        "VARCHAR(6)");
+    f.checkScalar("{fn UCASE('xxx')}", "XXX", "CHAR(3)");
 
     // Time and Date Functions
     f.checkType("{fn CURDATE()}", "DATE NOT NULL");
@@ -2528,23 +2523,23 @@ public class SqlOperatorTest {
   @Test void testConcatOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CONCAT, VmName.EXPAND);
-    f.checkString(" 'a'||'b' ", "ab", "CHAR(2) NOT NULL");
+    f.checkString(" 'a'||'b' ", "ab", "CHAR(2)");
     f.checkNull(" 'a' || cast(null as char(2)) ");
     f.checkNull(" cast(null as char(2)) || 'b' ");
     f.checkNull(" cast(null as char(1)) || cast(null as char(2)) ");
 
-    f.checkString(" x'fe'||x'df' ", "fedf", "BINARY(2) NOT NULL");
+    f.checkString(" x'fe'||x'df' ", "fedf", "BINARY(2)");
     f.checkString(" cast('fe' as char(2)) || cast('df' as varchar)",
-        "fedf", "VARCHAR NOT NULL");
+        "fedf", "VARCHAR");
     // Precision is larger than VARCHAR allows, so result is unbounded
     f.checkString(" cast('fe' as char(2)) || cast('df' as varchar(65535))",
-        "fedf", "VARCHAR NOT NULL");
+        "fedf", "VARCHAR");
     f.checkString(" cast('fe' as char(2)) || cast('df' as varchar(33333))",
-        "fedf", "VARCHAR(33335) NOT NULL");
+        "fedf", "VARCHAR(33335)");
     f.checkNull("x'ff' || cast(null as varbinary)");
     f.checkNull(" cast(null as ANY) || cast(null as ANY) ");
     f.checkString("cast('a' as varchar) || cast('b' as varchar) "
-        + "|| cast('c' as varchar)", "abc", "VARCHAR NOT NULL");
+        + "|| cast('c' as varchar)", "abc", "VARCHAR");
 
     f.checkScalar("array[1, 2] || array[2, 3]", "[1, 2, 2, 3]",
         "INTEGER NOT NULL ARRAY NOT NULL");
@@ -2554,6 +2549,16 @@ public class SqlOperatorTest {
             + "array[cast(null as char)]",
         "[hello, world, !, null]", "CHAR(5) ARRAY NOT NULL");
     f.checkNull("cast(null as integer array) || array[1]");
+
+    final Consumer<SqlOperatorFixture> consumerOracle = f1 -> {
+      f1.checkNull("'' || ''");
+      f1.checkFails("rand() || 'a'",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
+    };
+    final List<SqlConformanceEnum> oracleConformanceEnums =
+        list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
+    f.forEachConformance(oracleConformanceEnums, consumerOracle);
   }
 
   @Test void testConcatFunc() {
@@ -2583,7 +2588,7 @@ public class SqlOperatorTest {
   @Test void testManyLibraries() {
     SqlOperatorFixture f =
         fixture().withLibraries(SqlLibrary.STANDARD, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL);
-    f.checkScalar("substr('a', 1, 2)", "a", "VARCHAR(1) NOT NULL");
+    f.checkScalar("substr('a', 1, 2)", "a", "VARCHAR(1)");
   }
 
   /** Test case for
@@ -4774,38 +4779,52 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.OVERLAY, VmName.EXPAND);
     f.checkString("overlay('ABCdef' placing 'abc' from 1)",
-        "abcdef", "VARCHAR(9) NOT NULL");
+        "abcdef", "VARCHAR(9)");
     f.checkString("overlay('ABCdef' placing 'abc' from 1 for 2)",
-        "abcCdef", "VARCHAR(9) NOT NULL");
+        "abcCdef", "VARCHAR(9)");
     f.checkString("overlay(cast('ABCdef' as varchar(10)) placing "
             + "cast('abc' as char(5)) from 1 for 2)",
-        "abc  Cdef", "VARCHAR(15) NOT NULL");
+        "abc  Cdef", "VARCHAR(15)");
     f.checkString("overlay(cast('ABCdef' as char(10)) placing "
             + "cast('abc' as char(5)) from 1 for 2)",
         "abc  Cdef    ",
-        "VARCHAR(15) NOT NULL");
+        "VARCHAR(15)");
     f.checkNull("overlay('ABCdef' placing 'abc'"
         + " from 1 for cast(null as integer))");
     f.checkNull("overlay(cast(null as varchar(1)) placing 'abc' from 1)");
 
     f.checkString("overlay(x'ABCdef' placing x'abcd' from 1)",
-        "abcdef", "VARBINARY(5) NOT NULL");
+        "abcdef", "VARBINARY(5)");
     f.checkString("overlay(x'ABCDEF1234' placing x'2345' from 1 for 2)",
-        "2345ef1234", "VARBINARY(7) NOT NULL");
+        "2345ef1234", "VARBINARY(7)");
     if (f.brokenTestsEnabled()) {
       f.checkString("overlay(cast(x'ABCdef' as varbinary(5)) placing "
               + "cast(x'abcd' as binary(3)) from 1 for 2)",
-          "abc  Cdef", "VARBINARY(8) NOT NULL");
+          "abc  Cdef", "VARBINARY(8)");
     }
     if (f.brokenTestsEnabled()) {
       f.checkString("overlay(cast(x'ABCdef' as binary(5)) placing "
               + "cast(x'abcd' as binary(3)) from 1 for 2)",
-          "abc  Cdef    ", "VARBINARY(8) NOT NULL");
+          "abc  Cdef    ", "VARBINARY(8)");
     }
     f.checkNull("overlay(x'ABCdef' placing x'abcd'"
         + " from 1 for cast(null as integer))");
     f.checkNull("overlay(cast(null as varbinary(1)) placing x'abcd' from 1)");
     f.checkNull("overlay(x'abcd' placing x'abcd' from cast(null as integer))");
+
+    final Consumer<SqlOperatorFixture> consumerOracle = f1 -> {
+      f.checkString("overlay('  ' placing '' from 1 for 1)",
+          " ", "VARCHAR(2)");
+      f1.checkNull("overlay(cast(null as varchar(1)) placing 'abc' from 1)");
+      f1.checkNull("overlay('A' placing '' from 1 for 1)");
+      f1.checkNull("overlay('abc' placing '' from 1 for 3)");
+      f1.checkFails("overlay(cast(rand() as varchar) placing '' from 1 for 1)",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
+    };
+    final List<SqlConformanceEnum> oracleConformanceEnums =
+            list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
+    f.forEachConformance(oracleConformanceEnums, consumerOracle);
   }
 
   @Test void testPositionFunc() {
@@ -4847,10 +4866,8 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     checkReplaceFunc(f);
     // case-sensitive
-    f.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciAciaoo",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaoao",
-        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciAciaoo", "VARCHAR");
+    f.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaoao", "VARCHAR");
   }
 
   /** Test case for
@@ -4862,24 +4879,29 @@ public class SqlOperatorTest {
     checkReplaceFunc(f);
     // case-insensitive
     SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.SQL_SERVER_2008);
-    f1.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciciaociaoo",
-        "VARCHAR NOT NULL");
-    f1.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaociaoo",
-        "VARCHAR NOT NULL");
+    f1.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciciaociaoo", "VARCHAR");
+    f1.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaociaoo", "VARCHAR");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-815">[CALCITE-815]
+   * Add an option to allow empty strings to represent null values</a>. */
+  @Test void testReplaceFuncEmptyIsNull() {
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.ORACLE_12);
+    f.checkNull("REPLACE('ciao', 'ciao', '')");
+    f.checkNull("REPLACE('', 'ci', 'ciao')");
+    f.checkString("REPLACE('hello world', 'o', '')", "hell wrld", "VARCHAR");
+    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao", "VARCHAR");
+    f.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
   }
 
   private static void checkReplaceFunc(SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.REPLACE, VmName.EXPAND);
-    f.checkString("REPLACE('ciao', 'ciao', '')", "",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('ciao', '', 'ciao')", "ciao",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('', 'ciao', 'ciao')", "",
-        "VARCHAR NOT NULL");
-    f.checkString("REPLACE('hello world', 'o', '')", "hell wrld",
-        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ciao', 'ciao', '')", "", "VARCHAR");
+    f.checkString("REPLACE('ciao', '', 'ciao')", "ciao", "VARCHAR");
+    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao", "VARCHAR");
+    f.checkString("REPLACE('', 'ciao', 'ciao')", "", "VARCHAR");
+    f.checkString("REPLACE('hello world', 'o', '')", "hell wrld", "VARCHAR");
     f.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
     f.checkNull("REPLACE('ciao', cast(null as varchar(3)), 'zz')");
     f.checkNull("REPLACE('ciao', 'bella', cast(null as varchar(3)))");
@@ -6211,11 +6233,19 @@ public class SqlOperatorTest {
   @Test void testUpperFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.UPPER, VmName.EXPAND);
-    f.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
-    f.checkString("upper('A')", "A", "CHAR(1) NOT NULL");
-    f.checkString("upper('1')", "1", "CHAR(1) NOT NULL");
-    f.checkString("upper('aa')", "AA", "CHAR(2) NOT NULL");
+    f.checkString("upper('a')", "A", "CHAR(1)");
+    f.checkString("upper('A')", "A", "CHAR(1)");
+    f.checkString("upper('1')", "1", "CHAR(1)");
+    f.checkString("upper('aa')", "AA", "CHAR(2)");
     f.checkNull("upper(cast(null as varchar(1)))");
+
+    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkNull("upper('')");
+    f1.checkString("upper('a')", "A", "CHAR(1)");
+    f.checkString("upper('  ')", "  ", "CHAR(2)");
+    f1.checkFails("upper(cast(rand() as varchar))",
+        ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+        true);
   }
 
   @Test void testLeftFunc() {
@@ -7547,11 +7577,19 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.LOWER, VmName.EXPAND);
 
     // SQL:2003 6.29.8 The type of lower is the type of its argument
-    f.checkString("lower('A')", "a", "CHAR(1) NOT NULL");
-    f.checkString("lower('a')", "a", "CHAR(1) NOT NULL");
-    f.checkString("lower('1')", "1", "CHAR(1) NOT NULL");
-    f.checkString("lower('AA')", "aa", "CHAR(2) NOT NULL");
+    f.checkString("lower('A')", "a", "CHAR(1)");
+    f.checkString("lower('a')", "a", "CHAR(1)");
+    f.checkString("lower('1')", "1", "CHAR(1)");
+    f.checkString("lower('AA')", "aa", "CHAR(2)");
     f.checkNull("lower(cast(null as varchar(1)))");
+
+    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkNull("lower('')");
+    f1.checkString("lower('A')", "a", "CHAR(1)");
+    f.checkString("lower('  ')", "  ", "CHAR(2)");
+    f1.checkFails("lower(cast(rand() as varchar))",
+        ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+        true);
   }
 
   @Test void testInitcapFunc() {
@@ -7561,12 +7599,10 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.INITCAP);
 
-    f.checkString("initcap('aA')", "Aa", "CHAR(2) NOT NULL");
-    f.checkString("initcap('Aa')", "Aa", "CHAR(2) NOT NULL");
-    f.checkString("initcap('1a')", "1a", "CHAR(2) NOT NULL");
-    f.checkString("initcap('ab cd Ef 12')",
-        "Ab Cd Ef 12",
-        "CHAR(11) NOT NULL");
+    f.checkString("initcap('aA')", "Aa", "CHAR(2)");
+    f.checkString("initcap('Aa')", "Aa", "CHAR(2)");
+    f.checkString("initcap('1a')", "1a", "CHAR(2)");
+    f.checkString("initcap('ab cd Ef 12')", "Ab Cd Ef 12", "CHAR(11)");
     f.checkNull("initcap(cast(null as varchar(1)))");
 
     // dtbug 232
@@ -7577,6 +7613,13 @@ public class SqlOperatorTest {
                 + "'INITCAP\\(<CHARACTER>\\)'",
             false);
     f.checkType("initcap(cast(null as date))", "VARCHAR");
+
+    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
+    f1.checkNull("initcap('')");
+    f.checkString("initcap('  ')", "  ", "CHAR(2)");
+    f1.checkFails("initcap(cast(rand() as varchar))",
+        ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+        true);
   }
 
   @Test void testPowerFunc() {
@@ -11491,13 +11534,13 @@ public class SqlOperatorTest {
   @Test void testIndexOutOfBounds() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("substring('abc' from 2 for 2147483650)",
-        "bc", "VARCHAR(3) NOT NULL");
+        "bc", "VARCHAR(3)");
     f.checkScalar("substring('abc' from 2147483650)",
-        "", "VARCHAR(3) NOT NULL");
+        "", "VARCHAR(3)");
     f.checkScalar("substring('abc' from 2147483650 for 2147483650)",
-        "", "VARCHAR(3) NOT NULL");
+        "", "VARCHAR(3)");
     f.checkScalar("substring('abc' from 2147483650 for 2)",
-        "", "VARCHAR(3) NOT NULL");
+        "", "VARCHAR(3)");
     f.checkFails("^substring('abc' from 2 for 2147483650.0)^",
         "Cannot apply 'SUBSTRING' to arguments of type "
             + "'SUBSTRING\\(<CHAR\\(3\\)> FROM <INTEGER> FOR <DECIMAL\\(11, 1\\)>\\)'\\. "
@@ -11529,35 +11572,35 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.SUBSTRING);
     f.checkScalar(
         String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', %d)}", Integer.MIN_VALUE),
-        "abcdef", "VARCHAR(6) NOT NULL");
+        "abcdef", "VARCHAR(6)");
 
     f.checkScalar(
         String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', %d, %d)}", Integer.MIN_VALUE,
-            Integer.MAX_VALUE + 10L), "abcdef", "VARCHAR(6) NOT NULL");
+            Integer.MAX_VALUE + 10L), "abcdef", "VARCHAR(6)");
 
     f.checkScalar(
         String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', CAST(%d AS BIGINT))}",
-            Integer.MIN_VALUE), "abcdef", "VARCHAR(6) NOT NULL");
+            Integer.MIN_VALUE), "abcdef", "VARCHAR(6)");
   }
 
   private static void checkSubstringFunction(SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.SUBSTRING);
     f.checkString("substring('abc' from 1 for 2)",
-        "ab", "VARCHAR(3) NOT NULL");
+        "ab", "VARCHAR(3)");
     f.checkString("substring(x'aabbcc' from 1 for 2)",
-        "aabb", "VARBINARY(3) NOT NULL");
+        "aabb", "VARBINARY(3)");
     f.checkString("substring('abc' from 2 for 2147483646)",
-        "bc", "VARCHAR(3) NOT NULL");
+        "bc", "VARCHAR(3)");
     f.checkString(
         String.format(Locale.ROOT, "substring('string', CAST(%d AS TINYINT), %d)",
-        Byte.MIN_VALUE, Byte.MAX_VALUE + 10), "string", "VARCHAR(6) NOT NULL");
+        Byte.MIN_VALUE, Byte.MAX_VALUE + 10), "string", "VARCHAR(6)");
 
     switch (f.conformance().semantics()) {
     case BIG_QUERY:
       f.checkString("substring('abc' from 1 for -1)", "",
-          "VARCHAR(3) NOT NULL");
+          "VARCHAR(3)");
       f.checkString("substring(x'aabbcc' from 1 for -1)", "",
-          "VARBINARY(3) NOT NULL");
+          "VARBINARY(3)");
       break;
     default:
       f.checkFails(
@@ -11841,7 +11884,7 @@ public class SqlOperatorTest {
         if (binary) {
           expected = DOUBLER.apply(expected);
         }
-        f.checkString(expression, expected, type + NON_NULLABLE_SUFFIX);
+        f.checkString(expression, expected, type);
       }
     }
   }
@@ -11950,12 +11993,12 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.TRIM, VmName.EXPAND);
 
     // SQL:2003 6.29.11 Trimming a CHAR yields a VARCHAR
-    f.checkString("trim('a' from 'aAa')", "A", "VARCHAR(3) NOT NULL");
-    f.checkString("trim(both 'a' from 'aAa')", "A", "VARCHAR(3) NOT NULL");
-    f.checkString("trim(' aAa ')", "aAa", "VARCHAR(5) NOT NULL");
-    f.checkString("trim(both ' ' from ' aAa ')", "aAa", "VARCHAR(5) NOT NULL");
-    f.checkString("trim(leading 'a' from 'aAa')", "Aa", "VARCHAR(3) NOT NULL");
-    f.checkString("trim(trailing 'a' from 'aAa')", "aA", "VARCHAR(3) NOT NULL");
+    f.checkString("trim('a' from 'aAa')", "A", "VARCHAR(3)");
+    f.checkString("trim(both 'a' from 'aAa')", "A", "VARCHAR(3)");
+    f.checkString("trim(' aAa ')", "aAa", "VARCHAR(5)");
+    f.checkString("trim(both ' ' from ' aAa ')", "aAa", "VARCHAR(5)");
+    f.checkString("trim(leading 'a' from 'aAa')", "Aa", "VARCHAR(3)");
+    f.checkString("trim(trailing 'a' from 'aAa')", "aA", "VARCHAR(3)");
     f.checkNull("trim(null)");
     f.checkNull("trim(cast(null as varchar(1)) from 'a')");
     f.checkNull("trim('a' from cast(null as varchar(1)))");
@@ -11973,14 +12016,27 @@ public class SqlOperatorTest {
 
     final Consumer<SqlOperatorFixture> consumer = f1 -> {
       f1.checkString("trim(leading 'eh' from 'hehe__hehe')", "__hehe",
-          "VARCHAR(10) NOT NULL");
+          "VARCHAR(10)");
       f1.checkString("trim(trailing 'eh' from 'hehe__hehe')", "hehe__",
-          "VARCHAR(10) NOT NULL");
-      f1.checkString("trim('eh' from 'hehe__hehe')", "__", "VARCHAR(10) NOT NULL");
+          "VARCHAR(10)");
+      f1.checkString("trim('eh' from 'hehe__hehe')", "__", "VARCHAR(10)");
     };
     final List<SqlConformanceEnum> conformanceEnums =
         list(SqlConformanceEnum.MYSQL_5, SqlConformanceEnum.SQL_SERVER_2008);
     f.forEachConformance(conformanceEnums, consumer);
+
+    final Consumer<SqlOperatorFixture> consumerOracle = f1 -> {
+      f1.checkNull("trim(null)");
+      f1.checkNull("trim('  ')");
+      f1.checkNull("trim('a' from 'a')");
+      f1.checkNull("trim('A' from 'AAA')");
+      f1.checkFails("trim(cast(rand() as varchar))",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
+    };
+    final List<SqlConformanceEnum> oracleConformanceEnums =
+            list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
+    f.forEachConformance(oracleConformanceEnums, consumerOracle);
   }
 
   @Test void testRtrimFunc() {
@@ -11990,13 +12046,23 @@ public class SqlOperatorTest {
         "No match found for function signature RTRIM\\(<CHARACTER>\\)",
         false);
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
+      f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6)");
       f.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
             SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
+
+    final SqlOperatorFixture f1 = f0.withConformance(SqlConformanceEnum.ORACLE_12);
+    final Consumer<SqlOperatorFixture> consumerOracle = f2 -> {
+      f2.checkNull("rtrim(null)");
+      f2.checkNull("rtrim('  ')");
+      f2.checkFails("rtrim(cast(rand() as varchar))",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
+    };
+    f1.forEachLibrary(libraries, consumerOracle);
   }
 
   @Test void testLtrimFunc() {
@@ -12006,13 +12072,23 @@ public class SqlOperatorTest {
         "No match found for function signature LTRIM\\(<CHARACTER>\\)",
         false);
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
+      f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6)");
       f.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
             SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
+
+    final SqlOperatorFixture f1 = f0.withConformance(SqlConformanceEnum.ORACLE_12);
+    final Consumer<SqlOperatorFixture> consumerOracle = f2 -> {
+      f2.checkNull("ltrim(null)");
+      f2.checkNull("ltrim('  ')");
+      f2.checkFails("ltrim(cast(rand() as varchar))",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
+    };
+    f1.forEachLibrary(libraries, consumerOracle);
   }
 
   @Test void testGreatestFunc() {
