@@ -167,6 +167,9 @@ public class XbrlToParquetConverter implements FileConverter {
               cik, normalizedFilingType,
               filingDate.substring(0, 4)));
       partitionDir.mkdirs();
+      
+      // Clean up macOS metadata files after creating directories
+      cleanupMacOSMetadataFilesRecursive(targetDirectory);
 
       // Convert financial facts to Parquet
       File factsFile =
@@ -208,6 +211,9 @@ public class XbrlToParquetConverter implements FileConverter {
 
       LOGGER.info("Converted XBRL to Parquet: " + sourceFile.getName() +
           " -> " + outputFiles.size() + " files");
+      
+      // Final cleanup of macOS metadata files in the entire target directory
+      cleanupMacOSMetadataFilesRecursive(targetDirectory);
 
     } catch (Exception e) {
       throw new IOException("Failed to convert XBRL to Parquet", e);
@@ -773,14 +779,26 @@ public class XbrlToParquetConverter implements FileConverter {
       // Parse with Jsoup
       org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-      // Look for inline XBRL elements (ix: namespace)
-      // Common tags: ix:nonnumeric, ix:nonfraction, ix:continuation
-      org.jsoup.select.Elements ixElements = jsoupDoc.select("[*|nonnumeric], [*|nonfraction], [*|continuation]");
+      // Look for inline XBRL elements with various namespace prefixes
+      // Try multiple selectors for different inline XBRL formats
+      org.jsoup.select.Elements ixElements = jsoupDoc.select(
+          "ix\\:nonnumeric, ix\\:nonfraction, ix\\:continuation, " +
+          "ix\\:nonNumeric, ix\\:nonFraction, " +
+          "[name^='us-gaap:'], [name^='dei:'], [name^='srt:'], " +
+          "span[contextref], div[contextref], td[contextref]"
+      );
 
       if (ixElements.isEmpty()) {
-        // No inline XBRL found
-        return null;
+        // Try alternate inline XBRL format (HTML elements with contextRef)
+        ixElements = jsoupDoc.select("[contextRef]");
+        if (ixElements.isEmpty()) {
+          // No inline XBRL found
+          LOGGER.fine("No inline XBRL elements found in: " + htmlFile.getName());
+          return null;
+        }
       }
+
+      LOGGER.info("Found " + ixElements.size() + " inline XBRL elements in: " + htmlFile.getName());
 
       // Create a new XML document from inline XBRL elements
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -792,8 +810,69 @@ public class XbrlToParquetConverter implements FileConverter {
       Element root = doc.createElement("xbrl");
       doc.appendChild(root);
 
-      // Extract contexts from HTML
-      org.jsoup.select.Elements contexts = jsoupDoc.select("[*|context]");
+      // Extract and convert inline XBRL facts to standard XBRL format
+      for (org.jsoup.nodes.Element ixElement : ixElements) {
+        String name = ixElement.attr("name");
+        String contextRef = ixElement.attr("contextref");
+        if (contextRef == null || contextRef.isEmpty()) {
+          contextRef = ixElement.attr("contextRef");
+        }
+        
+        // Skip if no name attribute - try tag-based extraction
+        if (name == null || name.isEmpty()) {
+          String tagName = ixElement.tagName();
+          // For ix:nonFraction and ix:nonNumeric elements
+          if (tagName.equals("ix:nonfraction") || tagName.equals("ix:nonnumeric")) {
+            name = ixElement.attr("name");
+          } else if (tagName.startsWith("ix:")) {
+            // Use the tag name itself as concept
+            name = "us-gaap:" + tagName.substring(3);
+          } else {
+            continue; // Skip elements without proper name
+          }
+        }
+        
+        if (name == null || name.isEmpty()) {
+          continue;
+        }
+        
+        String value = ixElement.text().trim();
+        
+        // Create fact element with proper namespace
+        if (!value.isEmpty() && contextRef != null && !contextRef.isEmpty()) {
+          // Extract namespace and local name
+          String namespace = "us-gaap";
+          String localName = name;
+          if (name.contains(":")) {
+            String[] parts = name.split(":", 2);
+            namespace = parts[0];
+            localName = parts[1];
+          }
+          
+          Element fact = doc.createElementNS(
+              "http://fasb.org/us-gaap/2024", 
+              namespace + ":" + localName
+          );
+          fact.setAttribute("contextRef", contextRef);
+          
+          // Handle numeric values - remove commas and formatting
+          if (ixElement.hasAttr("scale") || ixElement.hasAttr("decimals")) {
+            value = value.replaceAll("[,$()]", "").trim();
+            if (value.startsWith("(") && value.endsWith(")")) {
+              value = "-" + value.substring(1, value.length() - 1);
+            }
+          }
+          
+          fact.setTextContent(value);
+          root.appendChild(fact);
+        }
+      }
+
+      // Extract contexts from HTML (both ix:context and xbrli:context)
+      org.jsoup.select.Elements contexts = jsoupDoc.select(
+          "ix\\:context, xbrli\\:context, [id^='c'], [id^='C']"
+      );
+      Map<String, Element> contextMap = new HashMap<>();
       for (org.jsoup.nodes.Element context : contexts) {
         Element xmlContext = doc.createElement("context");
         xmlContext.setAttribute("id", context.attr("id"));
@@ -900,6 +979,28 @@ public class XbrlToParquetConverter implements FileConverter {
             LOGGER.fine("Removed macOS metadata file from parent: " + metadataFile.getName());
           }
         }
+      }
+    }
+  }
+  
+  /**
+   * Recursively clean up macOS metadata files (._* files) from a directory tree.
+   * 
+   * @param directory The root directory to clean recursively
+   */
+  private void cleanupMacOSMetadataFilesRecursive(File directory) {
+    if (directory == null || !directory.exists() || !directory.isDirectory()) {
+      return;
+    }
+    
+    // Clean this directory
+    cleanupMacOSMetadataFiles(directory);
+    
+    // Recursively clean subdirectories
+    File[] subdirs = directory.listFiles(File::isDirectory);
+    if (subdirs != null) {
+      for (File subdir : subdirs) {
+        cleanupMacOSMetadataFilesRecursive(subdir);
       }
     }
   }
