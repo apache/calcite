@@ -114,7 +114,7 @@ public class SortRemoveRedundantRule
     // If the limit's fetch is 0, we could use
     // CoreRules.SORT_FETCH_ZERO_INSTANCE to deal with it, so we don't need to
     // deal with it in this rule.
-    final Optional<Integer> rowCountThreshold = getRowCountThreshold(sort);
+    final Optional<Long> rowCountThreshold = getRowCountThreshold(sort);
 
     if (!rowCountThreshold.isPresent()) {
       return;
@@ -127,10 +127,10 @@ public class SortRemoveRedundantRule
     }
   }
 
-  private static Optional<Integer> getRowCountThreshold(Sort sort) {
+  private static Optional<Long> getRowCountThreshold(Sort sort) {
     if (RelOptUtil.isLimit(sort)) {
-      final int fetch =
-          sort.fetch instanceof RexLiteral ? RexLiteral.intValue(sort.fetch) : 0;
+      final long fetch =
+          sort.fetch instanceof RexLiteral ? RexLiteral.longValue(sort.fetch) : 0;
 
       // We don't need to deal with fetch is 0.
       if (fetch == 0) {
@@ -139,13 +139,13 @@ public class SortRemoveRedundantRule
 
       // If sort is 'order by x limit n', the target threshold is 1.
       if (RelOptUtil.isOrder(sort)) {
-        return Optional.of(1);
+        return Optional.of(1L);
       }
 
       // If sort is 'limit n', the target threshold is the limit's fetch.
       return Optional.of(fetch);
     } else if (RelOptUtil.isPureOrder(sort)) {
-      return Optional.of(1);
+      return Optional.of(1L);
     }
     return Optional.empty();
   }
