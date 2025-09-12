@@ -4497,6 +4497,6 @@ public abstract class SqlLibraryOperators {
               ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING),
               // Allow 2 or 3 arguments
-              number -> number == 2 || number == 3),
+              number -> number == 2),
           SqlFunctionCategory.STRING);
 }
