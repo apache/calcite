@@ -1294,8 +1294,8 @@ public class ConversionMetadata {
     try (RandomAccessFile raf = new RandomAccessFile(lockFile, "rw");
          FileChannel channel = raf.getChannel()) {
 
-      // Acquire shared lock for reading
-      try (FileLock lock = channel.lock(0, Long.MAX_VALUE, true)) {
+      // Acquire shared lock for reading with retry
+      try (FileLock lock = acquireLockWithRetry(channel, 0, Long.MAX_VALUE, true)) {
         @SuppressWarnings("unchecked")
         Map<String, ConversionRecord> loaded =
             MAPPER.readValue(
@@ -1340,8 +1340,8 @@ public class ConversionMetadata {
     try (RandomAccessFile raf = new RandomAccessFile(lockFile, "rw");
          FileChannel channel = raf.getChannel()) {
 
-      // Acquire exclusive lock
-      try (FileLock lock = channel.lock()) {
+      // Acquire exclusive lock with retry
+      try (FileLock lock = acquireLockWithRetry(channel, 0, Long.MAX_VALUE, false)) {
         // Write to temp file first
         MAPPER.writeValue(tempFile, conversions);
 
@@ -1359,6 +1359,39 @@ public class ConversionMetadata {
         tempFile.delete();
       }
     }
+  }
+
+  /**
+   * Acquires file lock with retry and exponential backoff to handle concurrent access.
+   */
+  private FileLock acquireLockWithRetry(FileChannel channel, long position, long size, boolean shared) throws IOException {
+    int maxRetries = 10;
+    long baseDelayMs = 10;
+    
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return channel.lock(position, size, shared);
+      } catch (java.nio.channels.OverlappingFileLockException e) {
+        if (attempt == maxRetries - 1) {
+          throw new IOException("Failed to acquire file lock after " + maxRetries + " attempts", e);
+        }
+        
+        // Exponential backoff with jitter
+        long delayMs = baseDelayMs * (1L << attempt);
+        delayMs += (long) (Math.random() * delayMs * 0.1); // Add 10% jitter
+        
+        try {
+          Thread.sleep(delayMs);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+          throw new IOException("Interrupted while waiting for file lock", ie);
+        }
+        
+        LOGGER.debug("Retrying file lock acquisition, attempt {}/{}", attempt + 2, maxRetries);
+      }
+    }
+    
+    throw new IOException("Unreachable code");
   }
 
   /**
