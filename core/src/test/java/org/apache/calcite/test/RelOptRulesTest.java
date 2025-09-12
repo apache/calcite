@@ -11241,4 +11241,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .withProgram(program)
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7178">[CALCITE-7178]
+   * FETCH and OFFSET in EnumerableMergeUnionRule do not support BIGINT</a>. */
+  @Test void testEnumerableMergeUnionRule() {
+    final String sql = "SELECT deptno, job, sal\n"
+        + "FROM emp\n"
+        + "UNION ALL\n"
+        + "SELECT deptno, job, sal\n"
+        + "FROM emp order by deptno limit 3000000000 offset 2500000000";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+          p.addRule(EnumerableRules.ENUMERABLE_MERGE_UNION_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
 }

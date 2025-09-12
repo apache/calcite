@@ -500,7 +500,7 @@ public abstract class PruneEmptyRules {
           Sort sort = call.rel(0);
           return sort.fetch != null
               && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.intValue(sort.fetch) == 0;
+              && RexLiteral.longValue(sort.fetch) == 0;
         }
 
       };

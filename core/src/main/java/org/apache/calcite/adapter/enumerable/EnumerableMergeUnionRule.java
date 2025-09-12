@@ -92,8 +92,8 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
         inputFetch = sort.fetch;
       } else if (sort.fetch instanceof RexLiteral && sort.offset instanceof RexLiteral) {
         inputFetch =
-            call.builder().literal(RexLiteral.intValue(sort.fetch)
-                + RexLiteral.intValue(sort.offset));
+            call.builder().literal(RexLiteral.longValue(sort.fetch)
+                + RexLiteral.longValue(sort.offset));
       }
     }
 
