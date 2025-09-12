@@ -1,5 +1,8 @@
 ## Java Practices
 
+- **CRITICAL**: All Java code must be Java 8 compatible - no newer language features
+- **PROHIBITED**: Text blocks (Java 15+), var keyword (Java 10+), switch expressions (Java 14+)
+- **PROHIBITED**: Record classes (Java 16+), pattern matching (Java 17+), sealed classes (Java 17+)
 - Never use the deprecated java.sql.Time, use java.sql.LocalTime instead
 - When computing day offsets from epoch, never use any Java function that might misapply a local TZ offset, for example, toLocalDate().
 - ALWAYS ask for more guidance if you are not confident in your reasoning.
@@ -9,6 +12,7 @@
 - When testing timestamp with no tz, values should be stored as UTC, but read and adjusted to local TZ.
 - The test suite should be run with the default settings, unless the test is specifically designed to test a specific setting.
 - Never relax a test to pass when it should fail without asking for approval from the user.
+- **CRITICAL**: All test failures MUST be investigated and resolved with evidence-based fixes.
 - The file adapter tests are extensive and require an extended timeout to complete
 - Running all tests requires an extended timeout
 
@@ -24,7 +28,29 @@
 - Always quote reserved words that have been used as identifiers in SQL statements.
 - Always quote mixed or upper case identifiers.
 - Never quote lower case identifiers.
-- Always analyze and present a plane for code changes, then request approval to make changes.
+- Always analyze and present a plan for code changes, then request approval to make changes.
+- **MANDATORY**: Verify all changes with tests before claiming completion.
+
+## Verification Requirements - MANDATORY
+
+### Before Any "Fix" Claim
+- **REQUIRED**: Execute the exact failing scenario that prompted the fix
+- **REQUIRED**: Demonstrate the fix resolves the original issue
+- **REQUIRED**: Run all related tests to ensure no regressions
+- **PROHIBITED**: Claiming "fixed" without executing verification steps
+
+### Before Any "Implementation" Claim  
+- **REQUIRED**: Execute end-to-end test with real data
+- **REQUIRED**: Verify all public methods produce expected outputs
+- **REQUIRED**: Test error handling and edge cases
+- **PROHIBITED**: Claiming "implemented" for stub/placeholder code
+
+### Verification Evidence Required
+When claiming completion, provide:
+1. **Test execution output** showing success
+2. **Sample data** demonstrating functionality  
+3. **Command used** for verification
+4. **Expected vs actual results** comparison
 
 ## Implementation Honesty Rules - CRITICAL
 
@@ -34,20 +60,24 @@
 - **NEVER** say "I've added X" when X is just empty methods or placeholder code
 - **ALWAYS** be explicit about what is actually implemented vs what is stubbed
 
-### Stub Code Rules
-- **PROHIBITED**: Committing stub methods without clearly marking them as stubs
-- **REQUIRED**: If creating placeholder code, mark it clearly:
+### Stub Code Rules - ZERO TOLERANCE
+- **PROHIBITED**: Any stub method without `// STUB:` comment and issue tracking
+- **REQUIRED**: All stubs must have associated TODO with specific completion criteria
+- **REQUIRED**: Stub methods must throw `UnsupportedOperationException` with descriptive message
+- **EXAMPLE**:
   ```java
-  // TODO: Not implemented - stub only
-  // STUB: This method returns empty data
-  // PLACEHOLDER: Actual implementation needed
+  // STUB: Placeholder for MD&A extraction - needs NLP parsing implementation
+  // TODO: Implement using Stanford NLP or similar - tracked in issue #123
+  public List<String> extractMDAText() {
+      throw new UnsupportedOperationException("MD&A extraction not implemented - stub only");
+  }
   ```
 - **REQUIRED**: Commit messages must reflect actual state:
   - ❌ BAD: "feat: add text vectorization with contextual enrichment"
   - ✅ GOOD: "feat: add stub structure for text vectorization (not implemented)"
   - ✅ GOOD: "wip: add placeholder methods for MD&A extraction"
 
-### Completion Claims
+### Completion Claims - VERIFICATION REQUIRED
 - **ONLY** claim something is complete when:
   - It actually extracts/processes real data
   - It has been tested with real inputs
@@ -56,6 +86,14 @@
   - Methods return empty lists/null
   - Core logic is missing
   - The feature doesn't work end-to-end
+
+### Completion Verification Checklist
+Before claiming any feature complete:
+- [ ] All methods return real data (not empty lists/nulls)
+- [ ] Core functionality tested with production-like data
+- [ ] Error cases handled appropriately
+- [ ] Integration tests pass
+- [ ] No `UnsupportedOperationException` in production paths
 
 ### Required Disclosure
 When implementing features:
@@ -68,6 +106,31 @@ When implementing features:
 - Use "wip:" prefix for work-in-progress commits with stubs
 - Use "stub:" or "scaffold:" prefix when adding structure without implementation
 - Only use "feat:" when the feature actually works
+
+## Task Ordering and Completion - CRITICAL
+
+### No Task Abandonment
+- **PROHIBITED**: Moving to next task when current task has unresolved issues
+- **PROHIBITED**: Claiming "constraints" to avoid completing current work
+- **REQUIRED**: Resolve current task completely before proceeding
+- **REQUIRED**: If truly blocked, get explicit approval to defer
+
+### Task Status Transparency
+- **REQUIRED**: Explicitly state task status: "In Progress", "Blocked", "Complete"
+- **REQUIRED**: For "Blocked" status, provide specific blocker details
+- **REQUIRED**: For "Complete" status, provide verification evidence
+- **PROHIBITED**: Ambiguous status like "mostly done" or "should work"
+
+### Mandatory Status Reporting Format
+For every work session, use this exact format:
+
+**TASK STATUS REPORT**
+- **Current Task**: [specific task description]
+- **Status**: [In Progress/Blocked/Complete]
+- **Actions Taken**: [specific commands executed, files modified]
+- **Verification**: [test results, execution output, proof of functionality]
+- **Next Steps**: [if not complete, specific next actions]
+- **Blockers**: [if blocked, specific technical obstacles]
 
 ## Splunk Adapter Notes
 
@@ -145,6 +208,20 @@ useJUnitPlatform {
 
 ## Test Debugging Practices
 
+## Problem Resolution Standards - CRITICAL
+
+### Root Cause Analysis Required
+- **PROHIBITED**: Surface-level fixes without understanding root cause
+- **REQUIRED**: Document investigation process and findings
+- **REQUIRED**: Trace through full execution path for failures
+- **REQUIRED**: Test fix against original failure scenario
+
+### Evidence-Based Development
+- **REQUIRED**: Use debugger/logging to understand actual program behavior
+- **REQUIRED**: Generate stack traces for complex issue analysis  
+- **REQUIRED**: Test hypotheses with isolated test cases
+- **PROHIBITED**: Guessing at solutions without evidence
+
 ### Primary Debugging Approach: Fix, Don't Replace
 - **ALWAYS** debug failing tests through systematic tracing and analysis
 - **NEVER** create new tests to avoid fixing failing ones
@@ -205,3 +282,33 @@ useJUnitPlatform {
 3. **Scratch files**:
    - Create in personal directories outside the project
    - Or use `/tmp/` for truly temporary files
+
+## Accountability Framework - ENFORCEMENT
+
+### Pre-Commit Checklist - MANDATORY
+Before any git commit:
+- [ ] All modified code builds without errors
+- [ ] All related tests pass (provide command + output)
+- [ ] No debugging artifacts left in code
+- [ ] Commit message accurately describes actual changes
+- [ ] If claiming "fix", original issue scenario tested and resolved
+
+### Communication Standards
+- **PROHIBITED**: "This should work" - require "This works, verified by [command/test]"
+- **PROHIBITED**: "I think the issue is..." - require "The issue is [specific root cause], traced via [method]"  
+- **PROHIBITED**: "Let me try..." - require "I will execute [specific plan] to resolve [specific issue]"
+
+### Quality Gates - NON-NEGOTIABLE
+A task is ONLY complete when:
+1. **Functionality verified**: Real execution with expected inputs/outputs
+2. **Tests passing**: All unit and integration tests green  
+3. **Code quality**: No warnings, proper error handling, no debug artifacts
+4. **Documentation current**: Comments and docs reflect actual behavior
+5. **Regression tested**: Related functionality still works
+
+### Escalation Protocol
+If encountering genuine blockers:
+1. Document the specific technical obstacle
+2. Show attempted solutions and their failures
+3. Request specific guidance or approve deferral
+4. **Never** abandon work without explicit approval
