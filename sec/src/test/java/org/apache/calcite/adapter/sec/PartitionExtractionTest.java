@@ -18,27 +18,29 @@ package org.apache.calcite.adapter.sec;
 
 import org.apache.calcite.adapter.file.partition.PartitionDetector;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-public class TestPartitionExtraction {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+/**
+ * Unit tests for partition extraction functionality.
+ */
+@Tag("unit")
+public class PartitionExtractionTest {
 
   @Test void testHivePartitionExtraction() {
-    String testPath = "/Volumes/T9/calcite-sec-cache/sec-parquet/cik=0000320193/filing_type=10K/year=2023/0000320193_2023-09-30_facts.parquet";
-
-    System.out.println("Testing partition extraction for: " + testPath);
+    String testPath = "/test/data/sec-parquet/cik=0000320193/filing_type=10K/year=2023/0000320193_2023-09-30_facts.parquet";
 
     PartitionDetector.PartitionInfo info = PartitionDetector.extractHivePartitions(testPath);
 
-    if (info != null) {
-      System.out.println("Partition columns: " + info.getPartitionColumns());
-      System.out.println("Partition values: " + info.getPartitionValues());
-
-      System.out.println("\nDetailed values:");
-      for (String col : info.getPartitionColumns()) {
-        System.out.println("  " + col + " = " + info.getPartitionValues().get(col));
-      }
-    } else {
-      System.out.println("No partitions detected!");
-    }
+    assertNotNull(info, "Partition info should not be null");
+    assertEquals(3, info.getPartitionColumns().size(), "Should detect 3 partition columns");
+    
+    // Verify partition columns
+    assertEquals("0000320193", info.getPartitionValues().get("cik"));
+    assertEquals("10K", info.getPartitionValues().get("filing_type"));
+    assertEquals("2023", info.getPartitionValues().get("year"));
   }
 }
