@@ -286,7 +286,6 @@ jobs:
       with:
         java-version: 11
         distribution: 'zulu'
-        cache: 'gradle'
     - name: 'Clone Avatica to Maven Local repository'
       run: |
         git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
@@ -439,7 +438,6 @@ jobs:
       with:
         java-version: 17
         distribution: 'zulu'
-        cache: 'gradle'
     - name: 'Checkout Druid dataset'
       uses: actions/checkout@v5
       with:
