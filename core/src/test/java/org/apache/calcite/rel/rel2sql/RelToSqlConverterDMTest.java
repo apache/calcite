@@ -13780,4 +13780,18 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.VERTICA.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testRegexpLike() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpLikeNode =
+        builder.call(SqlLibraryOperators.SNOWFLAKE_REGEXP_LIKE, builder.literal("abc123"),
+            builder.literal("abc[0-9]+"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpLikeNode, "regexpLike"))
+        .build();
+    final String expectedSql = "SELECT REGEXP_LIKE('abc123', 'abc[0-9]+') AS \"regexpLike\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
 }

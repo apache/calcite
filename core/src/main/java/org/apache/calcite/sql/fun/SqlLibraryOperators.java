@@ -3605,7 +3605,7 @@ public abstract class SqlLibraryOperators {
               ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)),
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {ORACLE, MYSQL})
   public static final SqlFunction REGEXP_LIKE =
       new SqlFunction("REGEXP_LIKE",
           SqlKind.OTHER_FUNCTION,
@@ -4486,4 +4486,17 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.STRING),
               OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING)),
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_REGEXP_LIKE =
+      new SqlFunction("REGEXP_LIKE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING),
+              // Allow 2 or 3 arguments
+              number -> number == 2 || number == 3),
+          SqlFunctionCategory.STRING);
 }
