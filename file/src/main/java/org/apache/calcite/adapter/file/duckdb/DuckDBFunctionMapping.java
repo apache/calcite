@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.duckdb;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 
@@ -77,6 +78,10 @@ public class DuckDBFunctionMapping {
     FUNCTION_MAP.put("READ_CSV", "read_csv_auto");
     FUNCTION_MAP.put("READ_PARQUET", "read_parquet");
     FUNCTION_MAP.put("READ_JSON", "read_json_auto");
+    
+    // Vector similarity functions - map to DuckDB's native array functions
+    FUNCTION_MAP.put("COSINE_SIMILARITY", "array_cosine_similarity");
+    FUNCTION_MAP.put("COSINE_DISTANCE", "array_cosine_distance");
   }
 
   /**
@@ -138,6 +143,29 @@ public class DuckDBFunctionMapping {
         for (int i = 0; i < call.operandCount(); i++) {
           if (i > 0) writer.print(", ");
           call.operand(i).unparse(writer, 0, 0);
+        }
+        writer.print(")");
+        break;
+
+      case "COSINE_SIMILARITY":
+      case "COSINE_DISTANCE":
+        // DuckDB's array functions work directly with array columns
+        // Remove any CAST to VARCHAR operations and use arrays directly
+        writer.keyword(duckdbFunc);
+        writer.print("(");
+        for (int i = 0; i < call.operandCount(); i++) {
+          if (i > 0) writer.print(", ");
+          
+          // Skip CAST operations for embedding arrays
+          SqlNode operand = call.operand(i);
+          if (operand instanceof SqlCall && 
+              ((SqlCall) operand).getOperator().getKind() == SqlKind.CAST) {
+            // If this is a CAST operation, just use the inner expression
+            SqlCall castCall = (SqlCall) operand;
+            castCall.operand(0).unparse(writer, 0, 0);
+          } else {
+            operand.unparse(writer, 0, 0);
+          }
         }
         writer.print(")");
         break;

@@ -407,8 +407,45 @@ public class FileSchemaFactory implements SchemaFactory {
       if (Boolean.TRUE.equals(enabled)) {
         LOGGER.info("FileSchemaFactory: Registering text similarity functions for schema '{}'", name);
         try {
+          // Register functions on the parent schema
           org.apache.calcite.adapter.file.similarity.SimilarityFunctions.registerFunctions(schemaPlus);
-          LOGGER.info("FileSchemaFactory: Successfully registered text similarity functions");
+          
+          // Also register functions directly on the FileSchema instance for direct schema queries
+          com.google.common.collect.ImmutableMultimap.Builder<String, org.apache.calcite.schema.Function> functionBuilder =
+              com.google.common.collect.ImmutableMultimap.builder();
+          
+          // Add similarity functions to the FileSchema
+          functionBuilder.put("COSINE_SIMILARITY",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "cosineSimilarity"));
+          functionBuilder.put("COSINE_DISTANCE",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "cosineDistance"));
+          functionBuilder.put("EUCLIDEAN_DISTANCE",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "euclideanDistance"));
+          functionBuilder.put("DOT_PRODUCT",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "dotProduct"));
+          functionBuilder.put("VECTORS_SIMILAR",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "vectorsSimilar"));
+          functionBuilder.put("VECTOR_NORM",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "vectorNorm"));
+          functionBuilder.put("NORMALIZE_VECTOR",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "normalizeVector"));
+          functionBuilder.put("TEXT_SIMILARITY",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "textSimilarity"));
+          functionBuilder.put("EMBED",
+              org.apache.calcite.schema.impl.ScalarFunctionImpl.create(
+                  org.apache.calcite.adapter.file.similarity.SimilarityFunctions.class, "embed"));
+          
+          fileSchema.setFunctionMultimap(functionBuilder.build());
+          
+          LOGGER.info("FileSchemaFactory: Successfully registered text similarity functions on both parent schema and FileSchema instance");
         } catch (Exception e) {
           LOGGER.warn("FileSchemaFactory: Failed to register similarity functions: " + e.getMessage(), e);
         }

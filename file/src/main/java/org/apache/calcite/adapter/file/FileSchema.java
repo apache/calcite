@@ -47,6 +47,7 @@ import org.apache.calcite.adapter.file.table.GlobParquetTable;
 import org.apache.calcite.adapter.file.table.JsonScannableTable;
 import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
 import org.apache.calcite.adapter.file.table.PartitionedParquetTable;
+import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -56,6 +57,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -1357,6 +1360,9 @@ public class FileSchema extends AbstractSchema {
     return files.toArray(new File[0]);
   }
 
+  // Functions registered with this schema (for similarity functions, etc.)
+  private volatile Multimap<String, Function> functionMultimap = ImmutableMultimap.of();
+
   // Make volatile for thread visibility
   private volatile Map<String, Table> tableCache = null;
 
@@ -1416,6 +1422,19 @@ public class FileSchema extends AbstractSchema {
   public synchronized void clearTableCache() {
     tableCache = null;
     LOGGER.debug("[FileSchema] Table cache cleared");
+  }
+
+  /**
+   * Sets the function multimap for this schema.
+   * This is used by FileSchemaFactory to register similarity functions.
+   */
+  public synchronized void setFunctionMultimap(Multimap<String, Function> functions) {
+    this.functionMultimap = functions;
+    LOGGER.debug("[FileSchema] Registered {} functions", functions.size());
+  }
+
+  @Override protected Multimap<String, Function> getFunctionMultimap() {
+    return functionMultimap;
   }
 
   @Override protected synchronized Map<String, Table> getTableMap() {
