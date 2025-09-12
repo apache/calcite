@@ -30,21 +30,46 @@ public class SimilarityFunctions {
 
   /**
    * Computes cosine similarity between two vectors.
+   * Handles various input types including:
+   * - String representations (comma-separated values or DuckDB array format)
+   * - Native arrays (float[], double[], etc.)
+   * - Collections (List<Float>, List<Double>, etc.)
+   * - Avro arrays (GenericData.Array)
+   * - Any object with a string representation of a vector
+   *
    * Returns a value between -1 and 1, where 1 means identical direction,
    * 0 means orthogonal, and -1 means opposite direction.
    *
-   * @param vector1 First vector as comma-separated string
-   * @param vector2 Second vector as comma-separated string
+   * @param vector1 First vector (any supported format)
+   * @param vector2 Second vector (any supported format)
    * @return Cosine similarity score
    */
-  public static double cosineSimilarity(String vector1, String vector2) {
+  public static double cosineSimilarity(Object vector1, Object vector2) {
     if (vector1 == null || vector2 == null) {
       return 0.0;
     }
 
-    double[] v1 = parseVector(vector1);
-    double[] v2 = parseVector(vector2);
+    double[] v1 = extractFloatArray(vector1);
+    double[] v2 = extractFloatArray(vector2);
 
+    return computeCosineSimilarity(v1, v2);
+  }
+
+  /**
+   * Cosine similarity for String arguments (called by Calcite for CHARACTER columns).
+   * 
+   * @param vector1 First vector as string
+   * @param vector2 Second vector as string
+   * @return Cosine similarity score
+   */
+  public static double cosineSimilarity(String vector1, String vector2) {
+    return cosineSimilarity((Object) vector1, (Object) vector2);
+  }
+
+  /**
+   * Core cosine similarity computation.
+   */
+  private static double computeCosineSimilarity(double[] v1, double[] v2) {
     if (v1.length != v2.length) {
       throw new IllegalArgumentException(
           "Vectors must have the same dimension: " + v1.length + " vs " + v2.length);
@@ -289,6 +314,116 @@ public class SimilarityFunctions {
     }
 
     return result;
+  }
+
+  /**
+   * Extracts a float array from various input types.
+   * Supports native arrays, Collections, Avro arrays, and string representations.
+   * Also handles DuckDB array formats and JSON-like array strings.
+   */
+  private static double[] extractFloatArray(Object obj) {
+    if (obj == null) {
+      return new double[0];
+    }
+
+    // Handle string representation (comma-separated values or array notation)
+    if (obj instanceof String) {
+      String str = (String) obj;
+      // Handle DuckDB array format: [1.0, 2.0, 3.0] or similar
+      str = str.trim();
+      if (str.startsWith("[") && str.endsWith("]")) {
+        str = str.substring(1, str.length() - 1);
+      }
+      // Also handle parentheses format: (1.0, 2.0, 3.0)
+      if (str.startsWith("(") && str.endsWith(")")) {
+        str = str.substring(1, str.length() - 1);
+      }
+      return parseVector(str);
+    }
+
+    // Handle native arrays
+    if (obj instanceof float[]) {
+      float[] floats = (float[]) obj;
+      double[] result = new double[floats.length];
+      for (int i = 0; i < floats.length; i++) {
+        result[i] = floats[i];
+      }
+      return result;
+    }
+
+    if (obj instanceof double[]) {
+      return (double[]) obj;
+    }
+
+    // Handle Collections (List<Float>, List<Double>, etc.)
+    if (obj instanceof java.util.List) {
+      java.util.List<?> list = (java.util.List<?>) obj;
+      double[] result = new double[list.size()];
+      for (int i = 0; i < list.size(); i++) {
+        Object item = list.get(i);
+        if (item instanceof Number) {
+          result[i] = ((Number) item).doubleValue();
+        } else {
+          throw new IllegalArgumentException(
+              "List contains non-numeric element at position " + i + ": " + item);
+        }
+      }
+      return result;
+    }
+
+    // Handle Avro GenericArray
+    if (obj.getClass().getName().contains("GenericData$Array") ||
+        obj.getClass().getName().contains("GenericArray")) {
+      try {
+        // Use reflection to handle Avro arrays without hard dependency
+        java.lang.reflect.Method sizeMethod = obj.getClass().getMethod("size");
+        java.lang.reflect.Method getMethod = obj.getClass().getMethod("get", int.class);
+        
+        int size = (Integer) sizeMethod.invoke(obj);
+        double[] result = new double[size];
+        
+        for (int i = 0; i < size; i++) {
+          Object item = getMethod.invoke(obj, i);
+          if (item instanceof Number) {
+            result[i] = ((Number) item).doubleValue();
+          } else {
+            throw new IllegalArgumentException(
+                "Array contains non-numeric element at position " + i + ": " + item);
+          }
+        }
+        return result;
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Failed to extract Avro array: " + e.getMessage(), e);
+      }
+    }
+
+    // Handle other array types through reflection
+    if (obj.getClass().isArray()) {
+      try {
+        int length = java.lang.reflect.Array.getLength(obj);
+        double[] result = new double[length];
+        for (int i = 0; i < length; i++) {
+          Object item = java.lang.reflect.Array.get(obj, i);
+          if (item instanceof Number) {
+            result[i] = ((Number) item).doubleValue();
+          } else {
+            throw new IllegalArgumentException(
+                "Array contains non-numeric element at position " + i + ": " + item);
+          }
+        }
+        return result;
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Failed to extract array: " + e.getMessage(), e);
+      }
+    }
+
+    // Last resort - try to parse as string
+    try {
+      return parseVector(obj.toString());
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Cannot convert object of type " + obj.getClass().getName() + " to float array: " + e.getMessage(), e);
+    }
   }
 
   /**
