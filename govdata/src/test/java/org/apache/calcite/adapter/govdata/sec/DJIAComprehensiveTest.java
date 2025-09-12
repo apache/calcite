@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,7 +69,7 @@ public class DJIAComprehensiveTest {
   +
       "    \"type\": \"custom\",\n"
   +
-      "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n"
+      "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\",\n"
   +
       "    \"operand\": {\n"
   +

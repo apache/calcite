@@ -4,8 +4,9 @@
   "schemas": [{
     "name": "EDGAR",
     "type": "custom",
-    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
     "operand": {
+      "dataSource": "sec",
       "directory": "/Users/kennethstott/calcite/sec/apple-data",
       "executionEngine": "linq4j",
       "enableSecProcessing": true,

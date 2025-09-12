@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -85,7 +85,6 @@ public class AppleMicrosoftTest {
         for (int i = 1; i <= meta.getColumnCount(); i++) {
           String colName = meta.getColumnName(i);
           String colType = meta.getColumnTypeName(i);
-          System.out.println("Column " + i + ": " + colName + " (" + colType + ")");
           if (colName.equalsIgnoreCase("year")) {
             yearColumnIndex = i;
             // Verify year is typed as INTEGER
@@ -115,7 +114,6 @@ public class AppleMicrosoftTest {
         }
 
         assertTrue(rowCount > 0, "Should have found some net income data");
-        System.out.println("Successfully queried " + rowCount + " rows");
       }
     }
   }
@@ -136,7 +134,6 @@ public class AppleMicrosoftTest {
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.financial_line_items")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - financial_line_items: " + count + " rows");
         assertTrue(count > 0, "financial_line_items should have data");
       }
 
@@ -145,7 +142,6 @@ public class AppleMicrosoftTest {
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.filing_contexts")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - filing_contexts: " + count + " rows");
         assertTrue(count > 0, "filing_contexts should have data");
       }
 
@@ -154,7 +150,6 @@ public class AppleMicrosoftTest {
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.mda_sections")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - mda_sections: " + count + " rows");
         assertTrue(count > 0, "mda_sections should have data");
       }
 
@@ -163,17 +158,14 @@ public class AppleMicrosoftTest {
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.xbrl_relationships")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - xbrl_relationships: " + count + " rows");
         assertTrue(count > 0, "xbrl_relationships should have data");
       }
 
       // Test vectorized_blobs table - should exist when enableVectorization=true
-      System.out.println("\n== Vectorization Tables (enableVectorization=true) ==");
       try (Statement stmt = conn.createStatement();
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.vectorized_blobs")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - vectorized_blobs: " + count + " rows");
         assertTrue(count > 0, "vectorized_blobs should have data when enableVectorization=true");
 
         // Check that we have footnotes and MD&A
@@ -181,7 +173,6 @@ public class AppleMicrosoftTest {
              ResultSet rs2 = stmt2.executeQuery(
                "SELECT blob_type, COUNT(*) as cnt FROM sec.vectorized_blobs " +
                "GROUP BY blob_type ORDER BY blob_type")) {
-          System.out.println("  Blob types:");
           while (rs2.next()) {
             System.out.println("    - " + rs2.getString("blob_type") + ": " + rs2.getInt("cnt"));
           }
@@ -195,9 +186,7 @@ public class AppleMicrosoftTest {
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.insider_transactions")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - insider_transactions: " + count + " rows (may be 0 for 10-K only)");
       } catch (SQLException e) {
-        System.out.println("  - insider_transactions: TABLE NOT FOUND");
       }
 
       // Check if earnings_transcripts table exists (might not have data for 10-K filings)
@@ -205,9 +194,7 @@ public class AppleMicrosoftTest {
            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sec.earnings_transcripts")) {
         assertTrue(rs.next());
         int count = rs.getInt(1);
-        System.out.println("  - earnings_transcripts: " + count + " rows (may be 0 for 10-K only)");
       } catch (SQLException e) {
-        System.out.println("  - earnings_transcripts: TABLE NOT FOUND");
       }
 
       System.out.println("\nSummary: 4 core tables + vectorization tables found. " +
@@ -236,7 +223,6 @@ public class AppleMicrosoftTest {
 
       try (ResultSet rs = stmt.executeQuery(query)) {
         ResultSetMetaData meta = rs.getMetaData();
-        System.out.println("xbrl_relationships columns:");
 
         for (int i = 1; i <= meta.getColumnCount(); i++) {
           System.out.println("  " + meta.getColumnName(i) + " - " + meta.getColumnTypeName(i));
@@ -278,7 +264,6 @@ public class AppleMicrosoftTest {
       try (ResultSet rs = stmt.executeQuery(query)) {
         ResultSetMetaData meta = rs.getMetaData();
 
-        System.out.println("Table schema for financial_line_items:");
         System.out.println("Column count: " + meta.getColumnCount());
 
         // Verify expected columns exist
@@ -318,7 +303,7 @@ public class AppleMicrosoftTest {
     try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
          Statement stmt = conn.createStatement()) {
 
-      System.out.println("\n=== Testing Cosine Similarity Search on Footnotes ===");
+      // Test section header removed for compliance
 
       // First, verify we have footnote embeddings in vectorized_blobs
       String checkQuery =
@@ -357,12 +342,10 @@ public class AppleMicrosoftTest {
         "ORDER BY similarity_score DESC " +
         "LIMIT 10";
 
-      System.out.println("\nSearching for footnotes similar to 'revenue recognition' or 'accounting policies'...");
       System.out.println("Query: " + searchQuery);
 
       try (ResultSet rs = stmt.executeQuery(searchQuery)) {
         int resultCount = 0;
-        System.out.println("\nTop similar footnotes:");
 
         while (rs.next()) {
           resultCount++;
@@ -384,7 +367,6 @@ public class AppleMicrosoftTest {
         }
 
         assertTrue(resultCount > 0, "Should find similar footnotes using cosine similarity");
-        System.out.println("\nFound " + resultCount + " similar footnotes");
       }
 
       // Test another similarity search - look for footnotes about "stock compensation"
@@ -408,11 +390,9 @@ public class AppleMicrosoftTest {
         "ORDER BY similarity_score DESC " +
         "LIMIT 5";
 
-      System.out.println("\n\nSearching for Apple footnotes similar to 'stock compensation'...");
 
       try (ResultSet rs = stmt.executeQuery(stockCompQuery)) {
         int resultCount = 0;
-        System.out.println("\nTop similar footnotes about stock compensation:");
 
         while (rs.next()) {
           resultCount++;
@@ -425,7 +405,6 @@ public class AppleMicrosoftTest {
         }
 
         assertTrue(resultCount > 0, "Should find footnotes about stock compensation");
-        System.out.println("\nFound " + resultCount + " footnotes about stock compensation");
       }
 
       // Test that the COSINE_SIMILARITY function works with proper vector dimensions
@@ -442,7 +421,6 @@ public class AppleMicrosoftTest {
         int totalFootnotes = rs.getInt("total_footnotes");
         double avgDimension = rs.getDouble("avg_dimension");
 
-        System.out.println("\n\nEmbedding Statistics:");
         System.out.println("  Total footnotes with embeddings: " + totalFootnotes);
         System.out.println("  Average embedding dimension: " + avgDimension);
 
@@ -451,7 +429,7 @@ public class AppleMicrosoftTest {
             "Embeddings should be 256-dimensional as configured");
       }
 
-      System.out.println("\n=== Cosine Similarity Search Test Completed Successfully ===");
+      // Test section header removed for compliance
     }
   }
 
@@ -465,10 +443,9 @@ public class AppleMicrosoftTest {
     try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
          Statement stmt = conn.createStatement()) {
 
-      System.out.println("=== Testing Footnotes and Stock Prices Integration ===");
+      // Test section header removed for compliance
 
       // First, check what tables are available
-      System.out.println("\n0. Available tables:");
       DatabaseMetaData metaData = conn.getMetaData();
       try (ResultSet tables = metaData.getTables(null, "SEC", "%", null)) {
         while (tables.next()) {
@@ -477,7 +454,6 @@ public class AppleMicrosoftTest {
       }
 
       // Test 1: Verify vectorized_blobs (footnotes) exist
-      System.out.println("\n1. Testing footnotes with embeddings...");
       String footnoteQuery = 
         "SELECT cik, filing_type, \"year\", blob_type, original_text " +
         "FROM sec.vectorized_blobs " +
@@ -497,11 +473,10 @@ public class AppleMicrosoftTest {
           }
         }
         assertTrue(footnoteCount > 0, "Should have footnote embeddings");
-        System.out.println("✅ Found " + footnoteCount + " footnote embeddings");
+        // Success message removed for compliance
       }
 
       // Test 2: Check if stock prices table exists and test conditionally
-      System.out.println("\n2. Testing stock prices (if available)...");
       boolean hasStockPrices = false;
       
       try (ResultSet tables = metaData.getTables(null, "SEC", "stock_prices", null)) {
@@ -528,18 +503,15 @@ public class AppleMicrosoftTest {
             System.out.printf("  %s on %s: $%.2f (volume: %,d)%n", 
                 ticker, date, close, volume);
           }
-          System.out.println("✅ Found " + priceCount + " stock price records");
+          // Success message removed for compliance
         }
       } else {
-        System.out.println("ℹ️  Stock prices table not available (Yahoo Finance API may have failed)");
       }
 
       // Test 3: Test cosine similarity search on available blobs (if function available)
-      System.out.println("\n3. Testing cosine similarity search (if available)...");
       
       // First check what blob types we have
       String blobTypesQuery = "SELECT blob_type, COUNT(*) as cnt FROM sec.vectorized_blobs GROUP BY blob_type";
-      System.out.println("  Available blob types:");
       try (ResultSet rs = stmt.executeQuery(blobTypesQuery)) {
         while (rs.next()) {
           System.out.printf("    - %s: %d records%n", rs.getString("blob_type"), rs.getInt("cnt"));
@@ -565,18 +537,16 @@ public class AppleMicrosoftTest {
             System.out.printf("  Record %d: %s%n", resultCount, blobType);
           }
           assertTrue(resultCount > 0, "Should have vectorized blob data");
-          System.out.println("✅ Vectorized blob data available");
+          // Success message removed for compliance
         }
       } catch (SQLException e) {
         if (e.getMessage().contains("cosine_similarity") || e.getMessage().contains("COSINE_SIMILARITY")) {
-          System.out.println("ℹ️  COSINE_SIMILARITY function not available in this configuration");
         } else {
           throw e;
         }
       }
 
       // Test 4: Test core SEC financial data
-      System.out.println("\n4. Testing core SEC financial data...");
       String financialQuery = 
         "SELECT cik, filing_type, \"year\", concept, \"value\" " +
         "FROM sec.financial_line_items " +
@@ -596,12 +566,11 @@ public class AppleMicrosoftTest {
           System.out.printf("  CIK %s: %s = %s%n", cik, concept, value);
         }
         assertTrue(financialCount > 0, "Should have financial data");
-        System.out.println("✅ Core SEC financial data available");
+        // Success message removed for compliance
       }
 
       // Test 5: Conditional join test only if stock prices exist
       if (hasStockPrices) {
-        System.out.println("\n5. Testing join between stock prices and SEC data...");
         String joinQuery = 
           "SELECT f.cik, f.filing_type, s.ticker, s.\"close\" " +
           "FROM sec.financial_line_items f " +
@@ -620,13 +589,12 @@ public class AppleMicrosoftTest {
             
             System.out.printf("  CIK %s (%s): $%.2f%n", cik, ticker, close);
           }
-          System.out.println("✅ Join between stock prices and SEC data working (" + joinCount + " records)");
+          // Success message removed for compliance
         }
       } else {
-        System.out.println("\n5. Skipping stock price join test (no stock prices available)");
       }
 
-      System.out.println("\n=== All available tests passed! ===");
+      // Test section header removed for compliance
     }
   }
 }

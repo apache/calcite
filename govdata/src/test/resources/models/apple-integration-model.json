@@ -4,10 +4,12 @@
   "schemas": [{
     "name": "sec",
     "type": "custom",
-    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
     "operand": {
       "directory": "/Volumes/T9/calcite-sec-cache",
-      "testMode": true
+      "ciks": ["0000320193"],
+      "startYear": 2023,
+      "endYear": 2023
     }
   }]
 }

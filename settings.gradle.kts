@@ -92,7 +92,7 @@ include(
     "splunk",
     "testkit",
     "ubenchmark",
-    "sec"
+    "govdata"
 )
 
 // See https://github.com/gradle/gradle/issues/1348#issuecomment-284758705 and

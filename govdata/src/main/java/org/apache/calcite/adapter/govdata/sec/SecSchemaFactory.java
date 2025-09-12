@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
@@ -75,7 +75,7 @@ public class SecSchemaFactory implements SchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecSchemaFactory.class);
 
   static {
-    System.out.println("DEBUG: SecSchemaFactory class loaded!!");
+    LOGGER.debug("SecSchemaFactory class loaded");
   }
 
   // Standard SEC data cache directory - XBRL files are immutable, cache forever
@@ -153,7 +153,7 @@ public class SecSchemaFactory implements SchemaFactory {
   }
 
   public SecSchemaFactory() {
-    System.out.println("DEBUG: SecSchemaFactory constructor called!!");
+    LOGGER.debug("SecSchemaFactory constructor called");
     LOGGER.debug("SecSchemaFactory constructor called");
   }
 
@@ -301,7 +301,7 @@ public class SecSchemaFactory implements SchemaFactory {
   }
 
   @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
-    System.out.println("DEBUG: SecSchemaFactory.create() called with operand: " + operand);
+    LOGGER.debug("SecSchemaFactory.create() called with operand: {}", operand);
     LOGGER.debug("SecSchemaFactory.create() called");
     LOGGER.debug("Operand: {}", operand);
 
@@ -326,7 +326,7 @@ public class SecSchemaFactory implements SchemaFactory {
     String cacheHome = configuredDir != null ? configuredDir : SEC_DATA_HOME;
 
     // Handle SEC data download if configured
-    System.out.println("DEBUG: About to check shouldDownloadData...");
+    LOGGER.debug("About to check shouldDownloadData");
     LOGGER.debug("Checking shouldDownloadData...");
     if (shouldDownloadData(mutableOperand)) {
       LOGGER.debug("shouldDownloadData = true, calling downloadSecData");
@@ -603,7 +603,7 @@ public class SecSchemaFactory implements SchemaFactory {
     Boolean autoDownload = (Boolean) operand.get("autoDownload");
     Boolean useMockData = (Boolean) operand.get("useMockData");
     boolean result = (autoDownload != null && autoDownload) || (useMockData != null && useMockData);
-    System.out.println("DEBUG: shouldDownloadData: autoDownload=" + autoDownload + ", useMockData=" + useMockData + ", result=" + result);
+    LOGGER.debug("shouldDownloadData: autoDownload={}, useMockData={}, result={}", autoDownload, useMockData, result);
     return result;
   }
 
@@ -879,7 +879,7 @@ public class SecSchemaFactory implements SchemaFactory {
   }
 
   private void downloadSecData(Map<String, Object> operand) {
-    System.out.println("DEBUG: downloadSecData() called - STARTING SEC DATA DOWNLOAD");
+    LOGGER.info("Starting SEC data download");
     LOGGER.info("downloadSecData() called - STARTING SEC DATA DOWNLOAD");
 
     // Clear download tracking for new cycle
@@ -1475,7 +1475,7 @@ public class SecSchemaFactory implements SchemaFactory {
     // Ensure executors are initialized
     initializeExecutors();
 
-    System.out.println("DEBUG: createSecTablesFromXbrl START");
+    LOGGER.debug("Creating SEC tables from XBRL data");
     LOGGER.info("DEBUG: createSecTablesFromXbrl START");
     LOGGER.info("DEBUG: baseDir=" + baseDir.getAbsolutePath());
     LOGGER.info("DEBUG: ciks.size()=" + ciks.size());
@@ -1915,15 +1915,32 @@ public class SecSchemaFactory implements SchemaFactory {
     }
   }
 
+  /**
+   * Extract and resolve company identifiers from schema operand.
+   * 
+   * <p>Automatically resolves identifiers using CikRegistry:
+   * <ul>
+   *   <li>Ticker symbols: "AAPL" → "0000320193" (Apple's CIK)</li>
+   *   <li>Company groups: "FAANG" → ["0001326801", "0000320193", "0001018724", "0001065280", "0001652044"]</li>
+   *   <li>Raw CIKs: "0000320193" → "0000320193" (normalized to 10 digits)</li>
+   *   <li>Mixed inputs: ["AAPL", "FAANG", "0001018724"] → all resolved to CIKs</li>
+   * </ul>
+   * 
+   * @param operand Schema operand map containing 'ciks' parameter
+   * @return List of resolved 10-digit CIK strings ready for SEC data fetching
+   */
   private List<String> getCiksFromConfig(Map<String, Object> operand) {
     Object ciks = operand.get("ciks");
     if (ciks instanceof List) {
+      // Handle array of identifiers: ["AAPL", "MSFT", "FAANG"]
       List<String> cikList = new ArrayList<>();
       for (Object cik : (List<?>) ciks) {
+        // Each identifier resolved via CikRegistry: ticker→CIK, group→multiple CIKs, raw CIK→normalized
         cikList.addAll(CikRegistry.resolveCiks(cik.toString()));
       }
       return cikList;
     } else if (ciks instanceof String) {
+      // Handle single identifier: "AAPL" or "FAANG" or "0000320193"
       return CikRegistry.resolveCiks((String) ciks);
     }
     return new ArrayList<>();

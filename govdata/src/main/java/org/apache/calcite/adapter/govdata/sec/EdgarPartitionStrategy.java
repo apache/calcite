@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

@@ -8,7 +8,6 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "build/apple-edgar-test-data/parquet",
-        "executionEngine": "duckdb",
         "textSimilarity": {
           "enabled": true,
           "embeddingDimension": 128,

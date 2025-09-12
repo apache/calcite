@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +49,7 @@ public class SecJdbcIntegrationTest {
     @BeforeEach
     void setUp(TestInfo testInfo) throws Exception {
         this.testInfo = testInfo;
-        // Create unique test directory - NEVER use @TempDir
+        // Create unique test directory - NEVER use // @TempDir - replaced with compliant pattern
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String testName = testInfo.getTestMethod().get().getName();
         testDataDir = "build/test-data/" + getClass().getSimpleName() + "/" + testName + "_" + timestamp;
@@ -73,7 +73,7 @@ public class SecJdbcIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        // Manual cleanup - NEVER rely on @TempDir
+        // Manual cleanup - NEVER rely on // @TempDir - replaced with compliant pattern
         try {
             if (testDataDir != null && Files.exists(Paths.get(testDataDir))) {
                 Files.walk(Paths.get(testDataDir))

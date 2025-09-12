@@ -4,8 +4,9 @@
   "schemas": [{
     "name": "sec",
     "type": "custom",
-    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
     "operand": {
+      "dataSource": "sec",
       "directory": "/Volumes/T9/calcite-sec-cache",
       "ciks": ["AAPL"],
       "filingTypes": ["10-K", "10-Q"],

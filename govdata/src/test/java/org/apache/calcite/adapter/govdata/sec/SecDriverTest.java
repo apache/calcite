@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -38,8 +38,9 @@ public class SecDriverTest {
         + "\"schemas\":[{"
         + "\"name\":\"SEC\","
         + "\"type\":\"custom\","
-        + "\"factory\":\"org.apache.calcite.adapter.sec.SecSchemaFactory\","
+        + "\"factory\":\"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
         + "\"operand\":{"
+        + "\"dataSource\":\"sec\","
         + "\"testMode\":true,"
         + "\"useMockData\":true"
         + "}"
@@ -59,8 +60,9 @@ public class SecDriverTest {
         + "\"schemas\":[{"
         + "\"name\":\"SEC\","
         + "\"type\":\"custom\","
-        + "\"factory\":\"org.apache.calcite.adapter.sec.SecSchemaFactory\","
+        + "\"factory\":\"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
         + "\"operand\":{"
+        + "\"dataSource\":\"sec\","
         + "\"ciks\":[\"AAPL\"],"
         + "\"testMode\":true"
         + "}"
@@ -73,8 +75,9 @@ public class SecDriverTest {
         + "\"schemas\":[{"
         + "\"name\":\"SEC\","
         + "\"type\":\"custom\","
-        + "\"factory\":\"org.apache.calcite.adapter.sec.SecSchemaFactory\","
+        + "\"factory\":\"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
         + "\"operand\":{"
+        + "\"dataSource\":\"sec\","
         + "\"ciks\":[\"AAPL\",\"MSFT\",\"GOOGL\"],"
         + "\"startYear\":2020,"
         + "\"endYear\":2023,"

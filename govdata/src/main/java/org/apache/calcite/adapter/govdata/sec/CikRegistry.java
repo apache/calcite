@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -330,13 +330,20 @@ public class CikRegistry {
   }
 
   /**
-   * Resolve a CIK identifier or alias to a list of actual CIKs.
+   * Resolve a company identifier to a list of normalized 10-digit CIKs.
+   * 
+   * <p>This is the core method that powers ticker-to-CIK conversion throughout the SEC adapter.
+   * All company identifiers are automatically resolved using this registry:
    *
    * @param identifier Can be:
-   *   - A raw CIK number (e.g., "0000320193")
-   *   - A stock ticker (e.g., "AAPL")
-   *   - A group alias (e.g., "FAANG", "MAGNIFICENT7")
-   * @return List of resolved CIK numbers
+   *   <ul>
+   *     <li>Stock ticker: "AAPL" → ["0000320193"] (Apple Inc.)</li>
+   *     <li>Company group: "FAANG" → ["0001326801", "0000320193", "0001018724", "0001065280", "0001652044"]</li>
+   *     <li>Raw CIK: "0000320193" → ["0000320193"] (normalized with leading zeros)</li>
+   *     <li>Raw CIK: "320193" → ["0000320193"] (padded to 10 digits)</li>
+   *     <li>Special marker: "_ALL_EDGAR_FILERS" → [7800+ CIKs] (dynamically loaded)</li>
+   *   </ul>
+   * @return List of resolved 10-digit CIK strings, empty list if identifier not found
    */
   public static List<String> resolveCiks(String identifier) {
     if (identifier == null || identifier.isEmpty()) {

@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
+import org.apache.calcite.adapter.govdata.GovDataTestModels;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -40,45 +41,23 @@ public class InsiderTradingTest {
   public void testForm4Parsing() throws Exception {
     System.out.println("\n=== FORM 4 INSIDER TRADING TEST ===");
 
-    // Create inline model for test
-    String modelJson = "{"
-        + "\"version\": \"1.0\","
-        + "\"defaultSchema\": \"sec\","
-        + "\"schemas\": [{"
-        + "  \"name\": \"sec\","
-        + "  \"type\": \"custom\","
-        + "  \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\","
-        + "  \"operand\": {"
-        + "    \"directory\": \"/tmp/sec-insider-test\","
-        + "    \"ephemeralCache\": true,"
-        + "    \"testMode\": true,"
-        + "    \"ciks\": [\"AAPL\"],"  // Apple
-        + "    \"filingTypes\": [\"4\"],"  // Only Form 4
-        + "    \"startYear\": 2024,"
-        + "    \"endYear\": 2024,"
-        + "    \"autoDownload\": true"
-        + "  }"
-        + "}]"
-        + "}";
-
-    // Write model to temp file
-    java.io.File modelFile = java.io.File.createTempFile("insider-test", ".json");
-    modelFile.deleteOnExit();
-    java.nio.file.Files.writeString(modelFile.toPath(), modelJson);
+    // Load insider trading test model from resources
+    // Note: Using ticker "AAPL" which gets automatically converted to CIK "0000320193" by CikRegistry
+    String modelPath = GovDataTestModels.createTestModelWithYears("insider-trading-model", 2024, 2024);
 
     // Connection properties
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
     info.setProperty("unquotedCasing", "TO_LOWER");
 
-    String jdbcUrl = "jdbc:calcite:model=" + modelFile.getAbsolutePath();
+    String jdbcUrl = "jdbc:calcite:model=" + modelPath;
 
     try (Connection connection = DriverManager.getConnection(jdbcUrl, info)) {
 
       // Check if insider_transactions table exists
       System.out.println("\n=== STEP 1: Check Table Schema ===");
-      
-      String tableQuery = 
+
+      String tableQuery =
           "SELECT \"TABLE_NAME\" " +
           "FROM information_schema.\"TABLES\" " +
           "WHERE \"TABLE_SCHEMA\" = 'sec' " +
@@ -86,7 +65,7 @@ public class InsiderTradingTest {
 
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(tableQuery)) {
-        
+
         assertTrue(rs.next(), "insider_transactions table should exist");
         assertEquals("insider_transactions", rs.getString("TABLE_NAME").toLowerCase());
         System.out.println("✓ insider_transactions table exists");
@@ -94,8 +73,10 @@ public class InsiderTradingTest {
 
       // Query insider transactions
       System.out.println("\n=== STEP 2: Query Insider Transactions ===");
-      
-      String transQuery = 
+
+      // Note: Using Apple's actual CIK (0000320193) in SQL query
+      // This corresponds to ticker "AAPL" used in model configuration above
+      String transQuery =
           "SELECT " +
           "    reporting_person_name, " +
           "    transaction_date, " +
@@ -104,7 +85,7 @@ public class InsiderTradingTest {
           "    price_per_share, " +
           "    shares_transacted * price_per_share as transaction_value " +
           "FROM sec.insider_transactions " +
-          "WHERE cik = '0000320193' " +  // Apple's CIK
+          "WHERE cik = '0000320193' " +  // Apple's CIK (converted from "AAPL" ticker)
           "  AND transaction_code IN ('S', 'P') " +  // Sales and Purchases
           "  AND shares_transacted IS NOT NULL " +
           "ORDER BY transaction_date DESC " +
@@ -112,11 +93,11 @@ public class InsiderTradingTest {
 
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(transQuery)) {
-        
+
         int count = 0;
         System.out.println("\nRecent Insider Transactions:");
         System.out.println("============================================");
-        
+
         while (rs.next()) {
           count++;
           String name = rs.getString("reporting_person_name");
@@ -125,12 +106,12 @@ public class InsiderTradingTest {
           double shares = rs.getDouble("shares_transacted");
           double price = rs.getDouble("price_per_share");
           double value = rs.getDouble("transaction_value");
-          
+
           String action = code.equals("S") ? "SOLD" : "BOUGHT";
           System.out.printf("%s %s %,.0f shares @ $%.2f = $%,.0f on %s\n",
               name, action, shares, price, value, date);
         }
-        
+
         if (count > 0) {
           System.out.println("\n✓ Found " + count + " insider transactions");
         } else {
@@ -140,8 +121,8 @@ public class InsiderTradingTest {
 
       // Aggregate insider activity
       System.out.println("\n=== STEP 3: Aggregate Insider Activity ===");
-      
-      String aggregateQuery = 
+
+      String aggregateQuery =
           "SELECT " +
           "    COUNT(DISTINCT reporting_person_name) as insiders, " +
           "    COUNT(CASE WHEN transaction_code = 'S' THEN 1 END) as sales, " +
@@ -149,25 +130,25 @@ public class InsiderTradingTest {
           "    SUM(CASE WHEN transaction_code = 'S' THEN shares_transacted ELSE 0 END) as shares_sold, " +
           "    SUM(CASE WHEN transaction_code = 'P' THEN shares_transacted ELSE 0 END) as shares_bought " +
           "FROM sec.insider_transactions " +
-          "WHERE cik = '0000320193' " +
+          "WHERE cik = '0000320193' " +  // Apple's CIK (matches "AAPL" from config)
           "  AND filing_type = '4'";
 
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(aggregateQuery)) {
-        
+
         if (rs.next()) {
           int insiders = rs.getInt("insiders");
           int sales = rs.getInt("sales");
           int purchases = rs.getInt("purchases");
           double sharesSold = rs.getDouble("shares_sold");
           double sharesBought = rs.getDouble("shares_bought");
-          
+
           System.out.println("\nInsider Trading Summary:");
           System.out.println("========================");
           System.out.printf("Unique Insiders: %d\n", insiders);
           System.out.printf("Sale Transactions: %d (%.0f shares)\n", sales, sharesSold);
           System.out.printf("Purchase Transactions: %d (%.0f shares)\n", purchases, sharesBought);
-          
+
           if (sharesSold > sharesBought) {
             System.out.println("Net Activity: SELLING");
           } else if (sharesBought > sharesSold) {

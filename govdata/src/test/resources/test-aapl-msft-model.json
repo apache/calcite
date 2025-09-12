@@ -4,26 +4,12 @@
   "schemas": [{
     "name": "sec",
     "type": "custom",
-    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
     "operand": {
       "directory": "/Volumes/T9/sec-test-aapl-msft-cache",
       "ciks": ["0000320193", "0000789019"],
-      "autoDownload": true,
       "startYear": 2024,
-      "endYear": 2024,
-      "testMode": false,
-      "ephemeralCache": false,
-      "sec.fallback.enabled": false,
-      "textSimilarity": {
-        "enabled": true,
-        "embeddingDimension": 256,
-        "provider": "local",
-        "maxTextLength": 8192
-      },
-      "extractFootnotes": true,
-      "extractMDA": true,
-      "extractRiskFactors": true,
-      "fetchStockPrices": true
+      "endYear": 2024
     }
   }]
 }

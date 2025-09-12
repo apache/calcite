@@ -5,8 +5,9 @@
     {
       "name": "SEC",
       "type": "custom",
-      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
       "operand": {
+      "dataSource": "sec",
         "directory": "sec-data",
         "targetDirectory": "parquet-data",
         "executionEngine": "duckdb",

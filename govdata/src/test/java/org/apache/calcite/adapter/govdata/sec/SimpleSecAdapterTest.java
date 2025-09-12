@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
+import org.apache.calcite.adapter.govdata.GovDataTestModels;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -50,39 +51,14 @@ public class SimpleSecAdapterTest {
   }
 
   @Test void testApple2023NetIncome() throws Exception {
-    // Create inline model JSON
-    String modelJson = "{"
-        + "\"version\": \"1.0\","
-        + "\"defaultSchema\": \"sec\","
-        + "\"schemas\": [{"
-        + "  \"name\": \"sec\","
-        + "  \"type\": \"custom\","
-        + "  \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\","
-        + "  \"operand\": {"
-        + "    \"directory\": \"/Volumes/T9/calcite-sec-cache\","
-        + "    \"ciks\": [\"0000320193\"],"  // Just Apple
-        + "    \"filingTypes\": [\"10-K\"],"
-        + "    \"autoDownload\": true,"
-        + "    \"startYear\": 2023,"
-        + "    \"endYear\": 2023,"  // Just 2023
-        + "    \"executionEngine\": \"duckdb\","
-        + "    \"testMode\": false,"
-        + "    \"ephemeralCache\": false,"
-        + "    \"sec.fallback.enabled\": false"
-        + "  }"
-        + "}]"
-        + "}";
-
-    // Write model to temp file
-    File modelFile = File.createTempFile("sec-test-model", ".json");
-    modelFile.deleteOnExit();
-    java.nio.file.Files.writeString(modelFile.toPath(), modelJson);
+    // Load Apple integration model from resources
+    String modelPath = GovDataTestModels.loadTestModel("apple-integration-model");
 
     Properties props = new Properties();
     props.setProperty("lex", "ORACLE");
     props.setProperty("unquotedCasing", "TO_LOWER");
 
-    String jdbcUrl = "jdbc:calcite:model=" + modelFile.getAbsolutePath();
+    String jdbcUrl = "jdbc:calcite:model=" + modelPath;
 
     System.out.println("Connecting with JDBC URL: " + jdbcUrl);
 

@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
+import org.apache.calcite.adapter.govdata.GovDataTestModels;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -40,35 +41,15 @@ public class BasicSecSchemaTest {
   public void testSchemaWithAllTables() throws Exception {
     System.out.println("\n=== BASIC SEC SCHEMA TEST ===");
 
-    // Create inline model for test
-    String modelJson = "{"
-        + "\"version\": \"1.0\","
-        + "\"defaultSchema\": \"sec\","
-        + "\"schemas\": [{"
-        + "  \"name\": \"sec\","
-        + "  \"type\": \"custom\","
-        + "  \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\","
-        + "  \"operand\": {"
-        + "    \"directory\": \"/tmp/sec-schema-test\","
-        + "    \"ephemeralCache\": true,"
-        + "    \"testMode\": true,"
-        + "    \"ciks\": [\"TEST1\"],"
-        + "    \"autoDownload\": false"
-        + "  }"
-        + "}]"
-        + "}";
-
-    // Write model to temp file
-    java.io.File modelFile = java.io.File.createTempFile("schema-test", ".json");
-    modelFile.deleteOnExit();
-    java.nio.file.Files.writeString(modelFile.toPath(), modelJson);
+    // Load test model from resources
+    String modelPath = GovDataTestModels.loadTestModel("basic-test-model");
 
     // Connection properties
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
     info.setProperty("unquotedCasing", "TO_LOWER");
 
-    String jdbcUrl = "jdbc:calcite:model=" + modelFile.getAbsolutePath();
+    String jdbcUrl = "jdbc:calcite:model=" + modelPath;
 
     try (Connection connection = DriverManager.getConnection(jdbcUrl, info)) {
 

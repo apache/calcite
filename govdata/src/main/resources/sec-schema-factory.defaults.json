@@ -1,5 +1,6 @@
 {
   "operand": {
+    "dataSource": "sec",
     "filingTypes": [
       "10-K",
       "10-Q",

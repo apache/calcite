@@ -5,12 +5,10 @@
     {
       "name": "SEC",
       "type": "custom",
-      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
       "operand": {
         "testMode": true,
         "useMockData": true,
-        "ephemeralCache": true,
-        "sec.fallback.enabled": false
       }
     }
   ]

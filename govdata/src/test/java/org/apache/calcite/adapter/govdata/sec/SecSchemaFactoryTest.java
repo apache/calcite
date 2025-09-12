@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
@@ -37,7 +37,7 @@ public class SecSchemaFactoryTest {
 
   @Test public void testFactoryIsFound() throws Exception {
     // Try to load the factory using the same mechanism Calcite uses
-    String factoryClassName = "org.apache.calcite.adapter.sec.SecSchemaFactory";
+    String factoryClassName = "org.apache.calcite.adapter.govdata.GovDataSchemaFactory";
 
     // First verify class can be loaded
     Class<?> factoryClass = Class.forName(factoryClassName);
@@ -67,7 +67,7 @@ public class SecSchemaFactoryTest {
 
   @Test public void testFactoryViaModelHandler() throws Exception {
     // This tests if ModelHandler can find the factory
-    String factoryClassName = "org.apache.calcite.adapter.sec.SecSchemaFactory";
+    String factoryClassName = "org.apache.calcite.adapter.govdata.GovDataSchemaFactory";
 
     // ModelHandler uses this pattern to load factories
     Class<?> clazz = Class.forName(factoryClassName);

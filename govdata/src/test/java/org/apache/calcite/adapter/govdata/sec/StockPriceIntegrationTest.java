@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -280,7 +280,7 @@ public class StockPriceIntegrationTest {
         + "\"schemas\": [{"
         + "\"name\": \"SEC\","
         + "\"type\": \"custom\","
-        + "\"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\","
+        + "\"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
         + "\"operand\": {"
         + "\"directory\": \"%s\","
         + "\"ephemeralCache\": true,"

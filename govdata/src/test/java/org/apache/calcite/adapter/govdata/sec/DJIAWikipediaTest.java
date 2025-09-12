@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.calcite.adapter.sec.SecDataFetcher;
+import org.apache.calcite.adapter.govdata.sec.SecDataFetcher;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

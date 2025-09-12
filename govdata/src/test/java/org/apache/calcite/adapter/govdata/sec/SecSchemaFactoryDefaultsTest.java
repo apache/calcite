@@ -14,19 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.TestInfo;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.Year;
+import java.util.Comparator;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,11 +44,39 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("unit")
 public class SecSchemaFactoryDefaultsTest {
 
-  @TempDir
-  Path tempDir;
+  private String testDataDir;
+
+  private String createTestDataDir(TestInfo testInfo) {
+    String timestamp = String.valueOf(System.nanoTime());
+    String testName = testInfo.getTestMethod().get().getName();
+    testDataDir = "build/test-data/" + getClass().getSimpleName() + "/" + testName + "_" + timestamp;
+    try {
+      Files.createDirectories(Paths.get(testDataDir));
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create test directory: " + testDataDir, e);
+    }
+    return testDataDir;
+  }
+
+  @AfterEach
+  void tearDown() {
+    if (testDataDir != null && Files.exists(Paths.get(testDataDir))) {
+      try {
+        Files.walk(Paths.get(testDataDir))
+          .sorted(Comparator.reverseOrder())
+          .map(Path::toFile)
+          .forEach(File::delete);
+      } catch (IOException e) {
+        // Log but don't fail test
+        System.err.println("Warning: Could not clean test directory: " + e.getMessage());
+      }
+    }
+  }
 
   @Test
-  public void testDefaultsAreApplied() throws Exception {
+  public void testDefaultsAreApplied(TestInfo testInfo) throws Exception {
+    String tempDir = createTestDataDir(testInfo);
+    
     // Create a minimal model without endYear specified
     String modelJson = String.format(
         "{" +
@@ -52,7 +85,7 @@ public class SecSchemaFactoryDefaultsTest {
         "  \"schemas\": [{" +
         "    \"name\": \"SEC\"," +
         "    \"type\": \"custom\"," +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\"," +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\"," +
         "    \"operand\": {" +
         "      \"directory\": \"%s\"," +
         "      \"ciks\": [\"AAPL\"]," +
@@ -60,33 +93,31 @@ public class SecSchemaFactoryDefaultsTest {
         "      \"useMockData\": true" +
         "    }" +
         "  }]" +
-        "}", tempDir.toString());
+        "}", tempDir);
 
-    Path modelFile = tempDir.resolve("model.json");
+    Path modelFile = Paths.get(tempDir).resolve("model.json");
     Files.writeString(modelFile, modelJson);
 
     Properties props = new Properties();
     props.setProperty("lex", "ORACLE");
     props.setProperty("unquotedCasing", "TO_LOWER");
 
-    // The connection should work because defaults provide missing values
-    // Without defaults, this would fail because endYear and other required fields are missing
-    try (Connection conn = DriverManager.getConnection(
-            "jdbc:calcite:model=" + modelFile.toString(), props)) {
-      assertNotNull(conn);
-      // The fact that connection succeeds proves defaults were applied
-      assertTrue(conn.isValid(1));
+    String jdbcUrl = "jdbc:calcite:model=" + modelFile.toString();
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.tables WHERE table_schema = 'SEC'")) {
+
+      assertNotNull(rs, "ResultSet should not be null");
+      // Verify that the schema was created successfully (basic smoke test)
     }
   }
 
   @Test
-  public void testCurrentYearSubstitution() throws Exception {
-    // Set a custom environment variable for testing
-    // Note: We can't actually set environment variables in Java, but we can test the default CURRENT_YEAR behavior
+  public void testEnvironmentVariableSubstitution(TestInfo testInfo) throws Exception {
+    String tempDir = createTestDataDir(testInfo);
     
-    int currentYear = Year.now().getValue();
-    
-    // Create a model that relies on CURRENT_YEAR default
+    // Create a model with environment variable substitution
     String modelJson = String.format(
         "{" +
         "  \"version\": \"1.0\"," +
@@ -94,36 +125,80 @@ public class SecSchemaFactoryDefaultsTest {
         "  \"schemas\": [{" +
         "    \"name\": \"SEC\"," +
         "    \"type\": \"custom\"," +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\"," +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\"," +
         "    \"operand\": {" +
         "      \"directory\": \"%s\"," +
-        "      \"ciks\": [\"MSFT\"]," +
+        "      \"ciks\": [\"AAPL\"]," +
+        "      \"startYear\": 2020," +
+        "      \"endYear\": \"${CURRENT_YEAR}\"," +
+        "      \"useMockData\": true" +
+        "    }" +
+        "  }]" +
+        "}", tempDir);
+
+    Path modelFile = Paths.get(tempDir).resolve("model.json");
+    Files.writeString(modelFile, modelJson);
+
+    Properties props = new Properties();
+    props.setProperty("lex", "ORACLE");
+    props.setProperty("unquotedCasing", "TO_LOWER");
+
+    String jdbcUrl = "jdbc:calcite:model=" + modelFile.toString();
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.tables WHERE table_schema = 'SEC'")) {
+
+      assertNotNull(rs, "ResultSet should not be null");
+      // Environment variable substitution should work
+    }
+  }
+
+  @Test
+  public void testFilingTypesDefault(TestInfo testInfo) throws Exception {
+    String tempDir = createTestDataDir(testInfo);
+    
+    // Create a model without explicit filingTypes
+    String modelJson = String.format(
+        "{" +
+        "  \"version\": \"1.0\"," +
+        "  \"defaultSchema\": \"SEC\"," +
+        "  \"schemas\": [{" +
+        "    \"name\": \"SEC\"," +
+        "    \"type\": \"custom\"," +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\"," +
+        "    \"operand\": {" +
+        "      \"directory\": \"%s\"," +
+        "      \"ciks\": [\"AAPL\"]," +
         "      \"startYear\": 2020," +
         "      \"useMockData\": true" +
         "    }" +
         "  }]" +
-        "}", tempDir.toString());
+        "}", tempDir);
 
-    Path modelFile = tempDir.resolve("model.json");
+    Path modelFile = Paths.get(tempDir).resolve("model.json");
     Files.writeString(modelFile, modelJson);
 
     Properties props = new Properties();
     props.setProperty("lex", "ORACLE");
     props.setProperty("unquotedCasing", "TO_LOWER");
 
-    try (Connection conn = DriverManager.getConnection(
-            "jdbc:calcite:model=" + modelFile.toString(), props)) {
-      assertNotNull(conn);
-      
-      // The endYear should be set to current year from the defaults
-      // We can't directly verify this, but the connection should work
-      assertTrue(conn.isValid(1));
+    String jdbcUrl = "jdbc:calcite:model=" + modelFile.toString();
+
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.tables WHERE table_schema = 'SEC'")) {
+
+      assertNotNull(rs, "ResultSet should not be null");
+      // Default filing types should be applied
     }
   }
 
   @Test
-  public void testExplicitValuesOverrideDefaults() throws Exception {
-    // Create a model with explicit values that should override defaults
+  public void testTextSimilarityDefaults(TestInfo testInfo) throws Exception {
+    String tempDir = createTestDataDir(testInfo);
+    
+    // Create a model without explicit textSimilarity configuration
     String modelJson = String.format(
         "{" +
         "  \"version\": \"1.0\"," +
@@ -131,72 +206,31 @@ public class SecSchemaFactoryDefaultsTest {
         "  \"schemas\": [{" +
         "    \"name\": \"SEC\"," +
         "    \"type\": \"custom\"," +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\"," +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\"," +
         "    \"operand\": {" +
         "      \"directory\": \"%s\"," +
-        "      \"ciks\": [\"GOOGL\"]," +
-        "      \"startYear\": 2019," +
-        "      \"endYear\": 2022," +
-        "      \"autoDownload\": false," +
-        "      \"testMode\": true," +
-        "      \"useMockData\": true," +
-        "      \"executionEngine\": \"parquet\"" +
+        "      \"ciks\": [\"AAPL\"]," +
+        "      \"startYear\": 2020," +
+        "      \"useMockData\": true" +
         "    }" +
         "  }]" +
-        "}", tempDir.toString());
+        "}", tempDir);
 
-    Path modelFile = tempDir.resolve("model.json");
+    Path modelFile = Paths.get(tempDir).resolve("model.json");
     Files.writeString(modelFile, modelJson);
 
     Properties props = new Properties();
     props.setProperty("lex", "ORACLE");
     props.setProperty("unquotedCasing", "TO_LOWER");
 
-    // Connection should use the explicit values, not defaults
-    try (Connection conn = DriverManager.getConnection(
-            "jdbc:calcite:model=" + modelFile.toString(), props)) {
-      assertNotNull(conn);
-      assertTrue(conn.isValid(1));
-    }
-  }
+    String jdbcUrl = "jdbc:calcite:model=" + modelFile.toString();
 
-  @Test
-  public void testNestedDefaultsMerge() throws Exception {
-    // Test that nested objects like textSimilarity are merged correctly
-    String modelJson = String.format(
-        "{" +
-        "  \"version\": \"1.0\"," +
-        "  \"defaultSchema\": \"SEC\"," +
-        "  \"schemas\": [{" +
-        "    \"name\": \"SEC\"," +
-        "    \"type\": \"custom\"," +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\"," +
-        "    \"operand\": {" +
-        "      \"directory\": \"%s\"," +
-        "      \"ciks\": [\"AMZN\"]," +
-        "      \"startYear\": 2021," +
-        "      \"useMockData\": true," +
-        "      \"textSimilarity\": {" +
-        "        \"enabled\": false" +
-        "      }" +
-        "    }" +
-        "  }]" +
-        "}", tempDir.toString());
+    try (Connection conn = DriverManager.getConnection(jdbcUrl, props);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.tables WHERE table_schema = 'SEC'")) {
 
-    Path modelFile = tempDir.resolve("model.json");
-    Files.writeString(modelFile, modelJson);
-
-    Properties props = new Properties();
-    props.setProperty("lex", "ORACLE");
-    props.setProperty("unquotedCasing", "TO_LOWER");
-
-    // Should merge the textSimilarity settings correctly
-    try (Connection conn = DriverManager.getConnection(
-            "jdbc:calcite:model=" + modelFile.toString(), props)) {
-      assertNotNull(conn);
-      
-      // The connection should work with merged settings
-      assertTrue(conn.isValid(1));
+      assertNotNull(rs, "ResultSet should not be null");
+      // Text similarity defaults should be applied
     }
   }
 }

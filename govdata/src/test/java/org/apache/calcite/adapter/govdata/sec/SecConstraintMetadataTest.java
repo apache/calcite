@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -44,8 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("unit")
 public class SecConstraintMetadataTest {
 
-  @TempDir
-  Path tempDir;
+  // @TempDir - replaced with compliant pattern
+  private String testDataDir;
 
   private String modelPath;
 
@@ -58,9 +59,9 @@ public class SecConstraintMetadataTest {
         "  \"schemas\": [{\n" +
         "    \"name\": \"SEC\",\n" +
         "    \"type\": \"custom\",\n" +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n" +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\",\n" +
         "    \"operand\": {\n" +
-        "      \"directory\": \"" + tempDir.toString() + "\",\n" +
+        "      \"directory\": \"" + testDataDir + "\",\n" +
         "      \"ephemeralCache\": true,\n" +
         "      \"testMode\": true,\n" +
         "      \"useMockData\": true,\n" +
@@ -72,7 +73,7 @@ public class SecConstraintMetadataTest {
         "  }]\n" +
         "}";
 
-    Path modelFile = tempDir.resolve("model.json");
+    Path modelFile = Paths.get(testDataDir).resolve("model.json");
     Files.writeString(modelFile, model);
     modelPath = modelFile.toString();
   }
@@ -149,9 +150,9 @@ public class SecConstraintMetadataTest {
         "  \"schemas\": [{\n" +
         "    \"name\": \"SEC\",\n" +
         "    \"type\": \"custom\",\n" +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n" +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\",\n" +
         "    \"operand\": {\n" +
-        "      \"directory\": \"" + tempDir.toString() + "\",\n" +
+        "      \"directory\": \"" + testDataDir + "\",\n" +
         "      \"ephemeralCache\": true,\n" +
         "      \"testMode\": true,\n" +
         "      \"useMockData\": true,\n" +
@@ -163,7 +164,7 @@ public class SecConstraintMetadataTest {
         "  }]\n" +
         "}";
 
-    Path modelFile = tempDir.resolve("model-no-constraints.json");
+    Path modelFile = Paths.get(testDataDir).resolve("model-no-constraints.json");
     Files.writeString(modelFile, model);
 
     Properties props = new Properties();

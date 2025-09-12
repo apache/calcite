@@ -5,8 +5,9 @@
     {
       "name": "sec_djia",
       "type": "custom",
-      "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
       "operand": {
+      "dataSource": "sec",
         "dataDirectory": "/Volumes/T9/sec-data/djia-5year",
         "download": true,
         "realData": true,

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ public class Dow30SecAdapterTest {
         model.append("    {\n");
         model.append("      \"name\": \"sec\",\n");
         model.append("      \"type\": \"custom\",\n");
-        model.append("      \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n");
+        model.append("      \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\",\n");
         model.append("      \"operand\": {\n");
         model.append("        \"directory\": \"/Volumes/T9/sec-data/dow30-full\",\n");
         model.append("        \"enableSecProcessing\": true,\n");

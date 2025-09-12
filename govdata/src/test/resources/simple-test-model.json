@@ -4,17 +4,14 @@
   "schemas": [{
     "name": "sec",
     "type": "custom",
-    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
     "operand": {
       "cacheDirectory": "${SEC_TEST_DATA_DIR:-build/test-data/sec}/calcite-sec-cache",
       "ciks": ["AAPL"],
       "autoDownload": false,
       "startYear": 2023,
       "endYear": 2023,
-      "executionEngine": "duckdb",
       "testMode": true,
-      "ephemeralCache": true,
-      "sec.fallback.enabled": false
     }
   }]
 }

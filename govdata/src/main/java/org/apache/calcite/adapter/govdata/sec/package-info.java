@@ -36,7 +36,7 @@
  * <h2>Architecture</h2>
  * <p>The adapter consists of:
  * <ul>
- *   <li>{@link org.apache.calcite.adapter.sec.SecSchemaFactory} - Entry point that extends FileSchemaFactory</li>
+ *   <li>{@link org.apache.calcite.adapter.govdata.GovDataSchemaFactory} - Entry point that extends FileSchemaFactory</li>
  *   <li>{@link org.apache.calcite.adapter.sec.SecToParquetConverter} - Converts XBRL to Parquet</li>
  *   <li>{@link org.apache.calcite.adapter.sec.EdgarPartitionStrategy} - Implements CIK/type/date partitioning</li>
  * </ul>
@@ -49,7 +49,7 @@
  *   "schemas": [{
  *     "name": "EDGAR",
  *     "type": "custom",
- *     "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+ *     "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
  *     "operand": {
  *       "directory": "/data/edgar",
  *       "executionEngine": "duckdb",
@@ -88,4 +88,4 @@
  * LIMIT 10;
  * }</pre>
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;

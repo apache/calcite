@@ -1,4 +1,4 @@
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -169,7 +169,7 @@ public class EightKExtractionTest {
         "  \"schemas\": [{\n" +
         "    \"name\": \"sec\",\n" +
         "    \"type\": \"custom\",\n" +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n" +
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\",\n" +
         "    \"operand\": {\n" +
         "      \"directory\": \"%s\",\n" +
         "      \"ciks\": [\"0000320193\", \"0000789019\"],\n" +

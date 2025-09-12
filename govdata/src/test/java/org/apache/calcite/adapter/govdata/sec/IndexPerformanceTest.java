@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -423,7 +423,7 @@ public class IndexPerformanceTest {
         "\"defaultSchema\":\"sec\"," +
         "\"schemas\":[{" +
         "\"name\":\"sec\"," +
-        "\"factory\":\"org.apache.calcite.adapter.sec.SecSchemaFactory\"," +
+        "\"factory\":\"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\"," +
         "\"operand\":{" +
         "\"directory\":\"%s\"," +
         "\"enableSecProcessing\":true," +

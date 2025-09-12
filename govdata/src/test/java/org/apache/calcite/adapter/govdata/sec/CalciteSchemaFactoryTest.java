@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.sec;
+package org.apache.calcite.adapter.govdata.sec;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ public class CalciteSchemaFactoryTest {
   +
         "    \"type\": \"custom\",\n"
   +
-        "    \"factory\": \"org.apache.calcite.adapter.sec.SecSchemaFactory\",\n"
+        "    \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\",\n"
   +
         "    \"operand\": {\n"
   +
