@@ -1,8 +1,8 @@
-# Stock Price Integration in SEC Adapter
+# Stock Price Integration in GovData SEC Adapter
 
 ## Overview
 
-The SEC adapter includes built-in stock price functionality that automatically downloads and integrates daily End-of-Day (EOD) stock prices from Yahoo Finance. This enables powerful analytics combining fundamental SEC filing data with market price movements.
+The GovData SEC adapter includes built-in stock price functionality that automatically downloads and integrates daily End-of-Day (EOD) stock prices from Yahoo Finance. This enables powerful analytics combining fundamental SEC filing data with market price movements.
 
 ## Key Features
 
@@ -23,7 +23,7 @@ Stock prices are enabled by default. Control via:
 {
   "schemas": [{
     "name": "SEC",
-    "factory": "org.apache.calcite.adapter.sec.SecSchemaFactory",
+    "factory": "org.apache.calcite.adapter.govdata.sec.SecSchemaFactory",
     "operand": {
       "fetchStockPrices": true,  // Enable (default: true)
       "ciks": ["AAPL", "MSFT"],
@@ -37,10 +37,10 @@ Stock prices are enabled by default. Control via:
 #### Connection URL
 ```java
 // Enable stock prices
-String url = "jdbc:sec:ciks=AAPL&fetchStockPrices=true";
+String url = "jdbc:govdata:source=sec&ciks=AAPL&fetchStockPrices=true";
 
 // Disable stock prices
-String url = "jdbc:sec:ciks=AAPL&fetchStockPrices=false";
+String url = "jdbc:govdata:source=sec&ciks=AAPL&fetchStockPrices=false";
 ```
 
 #### Environment Variable

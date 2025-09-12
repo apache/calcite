@@ -1,4 +1,105 @@
-# SEC Adapter Usage with Data Directory
+# Government Data Adapter Usage Guide
+
+The Government Data adapter provides unified access to various U.S. government data sources through SQL queries.
+
+## Supported Data Sources
+
+- **SEC (Securities and Exchange Commission)** - EDGAR filing data, company financials, insider trading
+- **Census (U.S. Census Bureau)** - Demographics, economic data *(coming soon)*
+- **IRS (Internal Revenue Service)** - Tax statistics, exempt organizations *(coming soon)*
+- **Treasury (U.S. Treasury)** - Economic indicators, debt data *(coming soon)*
+
+## Quick Start
+
+### Using JDBC URLs (Recommended)
+
+```java
+// Connect to SEC data using ticker symbols (automatically converted to CIKs)
+String url = "jdbc:govdata:source=sec&ciks=AAPL,MSFT";
+Connection conn = DriverManager.getConnection(url);
+
+// Equivalent using actual CIK numbers
+// String url = "jdbc:govdata:source=sec&ciks=0000320193,0000789019";
+
+// Future: Connect to other government sources
+// String url = "jdbc:govdata:source=census&dataset=acs&geography=state";
+```
+
+#### Company Identifier Resolution
+
+The GovData adapter automatically resolves company identifiers using the built-in CikRegistry:
+
+- **Ticker Symbols**: `AAPL` → `0000320193` (Apple Inc.)
+- **Company Groups**: `FAANG` → 5 CIKs for Facebook/Meta, Apple, Amazon, Netflix, Google
+- **Raw CIKs**: `0000320193` → Used as-is (10-digit format with leading zeros)
+
+**Common Examples:**
+```java
+// Individual companies by ticker
+"ciks=AAPL"              → Apple (0000320193)
+"ciks=MSFT"              → Microsoft (0000789019)
+"ciks=GOOGL"             → Alphabet/Google (0001652044)
+
+// Multiple companies
+"ciks=AAPL,MSFT,GOOGL"   → Three major tech companies
+"ciks=MAGNIFICENT7"       → Apple, Microsoft, Google, Amazon, Meta, Tesla, NVIDIA
+
+// Mix of tickers, groups, and CIKs
+"ciks=AAPL,FAANG,0001018724" → Apple + FAANG group + Amazon (by CIK)
+```
+
+**Available Company Groups:**
+- `MAGNIFICENT7` - Apple, Microsoft, Google, Amazon, Meta, Tesla, NVIDIA
+- `FAANG` - Facebook/Meta, Apple, Amazon, Netflix, Google
+- `BIG_TECH` - Major technology companies (14 companies)
+- `BIG_BANKS` - JPMorgan, Bank of America, Wells Fargo, Citigroup, Goldman Sachs, Morgan Stanley
+- `DOW30` - All 30 Dow Jones Industrial Average companies
+- `SP500` - S&P 500 representative sample (top 50 by weight)
+- `FORTUNE100` - Fortune 100 companies
+- `SEMICONDUCTORS` - NVIDIA, Intel, AMD, Qualcomm, Micron, etc.
+- `AUTO` - Tesla, Ford, GM, Stellantis
+- `ENERGY` - Chevron, ExxonMobil, Phillips 66, etc.
+
+**Resolution Process:**
+1. Input string is checked against group aliases first
+2. Then checked against ticker symbol registry (150+ tickers)
+3. Finally treated as raw CIK if not found in registry
+4. All identifiers are normalized to 10-digit CIK format (with leading zeros)
+
+### Using Model Files
+
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "GOV", 
+  "schemas": [{
+    "name": "GOV",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "dataSource": "sec",
+      "ciks": ["AAPL", "MSFT"],       // Tickers automatically converted to CIKs
+      // "ciks": ["0000320193", "0000789019"], // Equivalent using raw CIKs
+      "startYear": 2020,
+      "endYear": 2023
+    }
+  }]
+}
+```
+
+**Model File Examples:**
+```json
+// Using company groups
+"ciks": ["FAANG"]                  // Expands to 5 CIKs
+
+// Using single ticker
+"ciks": "AAPL"                     // Also works as string (not array)
+
+// Mixed identifiers  
+"ciks": ["AAPL", "MAGNIFICENT7", "0001018724"]  // Ticker + group + raw CIK
+```
+
+# SEC Data Source Usage
 
 ## Directory Structure
 

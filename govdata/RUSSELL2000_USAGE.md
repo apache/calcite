@@ -7,20 +7,20 @@ The Russell 2000 index contains 2000 small-cap companies. Due to the large numbe
 ### Option 1: Use the Built-in Subset
 ```java
 // Top 50 most traded Russell 2000 companies
-String url = "jdbc:sec:ciks=RUSSELL2000";
+String url = "jdbc:govdata:source=sec&ciks=RUSSELL2000";
 
 // Specific sectors
-String url = "jdbc:sec:ciks=RUSSELL2000_TECH";
-String url = "jdbc:sec:ciks=RUSSELL2000_FINANCE";
+String url = "jdbc:govdata:source=sec&ciks=RUSSELL2000_TECH";
+String url = "jdbc:govdata:source=sec&ciks=RUSSELL2000_FINANCE";
 ```
 
 ### Option 2: Load Full Russell 2000 Registry
 ```bash
 # Set custom registry to load more companies
-export SEC_CIK_REGISTRY=/path/to/calcite/sec/src/main/resources/russell2000-registry.json
+export SEC_CIK_REGISTRY=/path/to/calcite/govdata/src/main/resources/russell2000-registry.json
 
 # Now you can use all Russell 2000 groups
-java -cp ... "jdbc:sec:ciks=RUSSELL2000_TOP100"
+java -cp ... "jdbc:govdata:source=sec&ciks=RUSSELL2000_TOP100"
 ```
 
 ### Option 3: Combine Multiple Registries
@@ -58,7 +58,7 @@ The russell2000-registry.json includes:
 
 ### Analyze Russell 2000 Tech Sector
 ```java
-String url = "jdbc:sec:ciks=RUSSELL2000_TECH&startYear=2022";
+String url = "jdbc:govdata:source=sec&ciks=RUSSELL2000_TECH&startYear=2022";
 
 try (Connection conn = DriverManager.getConnection(url)) {
     Statement stmt = conn.createStatement();
@@ -74,10 +74,10 @@ try (Connection conn = DriverManager.getConnection(url)) {
 ### Compare Small-Cap vs Large-Cap
 ```java
 // Small-cap (Russell 2000)
-String smallCap = "jdbc:sec:ciks=RUSSELL2000_TOP100&startYear=2023";
+String smallCap = "jdbc:govdata:source=sec&ciks=RUSSELL2000_TOP100&startYear=2023";
 
 // Large-cap (S&P 500)
-String largeCap = "jdbc:sec:ciks=SP500&startYear=2023";
+String largeCap = "jdbc:govdata:source=sec&ciks=SP500&startYear=2023";
 ```
 
 ### Custom Russell 2000 Portfolio
