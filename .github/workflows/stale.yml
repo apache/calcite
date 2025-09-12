@@ -39,7 +39,7 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-    - uses: actions/stale@v9
+    - uses: actions/stale@v10
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-pr-message: 'This pull request has been marked as stale due to 30 days of inactivity. It will be closed in 90 days if no further activity occurs. If you think that’s incorrect or this pull request requires a review, please simply write any comment. If closed, you can revive the PR at any time and @mention a reviewer or discuss it on the dev@calcite.apache.org list. Thank you for your contributions.'
