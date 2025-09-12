@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.govdata.sec;
 
 import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
+import org.apache.calcite.model.JsonTable;
+import org.apache.calcite.schema.ConstraintCapableSchemaFactory;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -71,7 +73,7 @@ import java.time.Year;
  * <p>This factory leverages the file adapter's FileConversionManager for XBRL
  * processing and HtmlToJsonConverter for HTML table extraction.
  */
-public class SecSchemaFactory implements SchemaFactory {
+public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecSchemaFactory.class);
 
   static {
@@ -114,8 +116,37 @@ public class SecSchemaFactory implements SchemaFactory {
 
   public static final SecSchemaFactory INSTANCE = new SecSchemaFactory();
 
+  // Constraint metadata support
+  private Map<String, Map<String, Object>> tableConstraints = new HashMap<>();
+
   static {
     LOGGER.debug("SecSchemaFactory class loaded");
+  }
+
+  /**
+   * Returns true to enable constraint metadata support in SEC adapter.
+   * This allows model files to define primary keys, foreign keys, and unique keys
+   * for SEC tables to support query optimization and JDBC metadata.
+   */
+  @Override
+  public boolean supportsConstraints() {
+    return true;
+  }
+
+  /**
+   * Receives constraint metadata from ModelHandler for tables defined in model files.
+   * The constraints are stored and later used by the FileSchemaFactory to provide
+   * table statistics and constraint metadata.
+   */
+  @Override
+  public void setTableConstraints(Map<String, Map<String, Object>> tableConstraints, List<JsonTable> tableDefinitions) {
+    LOGGER.debug("Received constraint metadata for {} tables", tableConstraints.size());
+    this.tableConstraints = new HashMap<>(tableConstraints);
+    
+    // Log constraints for debugging
+    for (Map.Entry<String, Map<String, Object>> entry : tableConstraints.entrySet()) {
+      LOGGER.debug("Table '{}' has constraints: {}", entry.getKey(), entry.getValue());
+    }
   }
 
   private synchronized void initializeExecutors() {
@@ -570,6 +601,12 @@ public class SecSchemaFactory implements SchemaFactory {
     // Now delegate to FileSchemaFactory to create the actual schema
     // with our pre-defined tables and configured directory
     LOGGER.info("Delegating to FileSchemaFactory with modified operand");
+
+    // Add constraint metadata to operand if available
+    if (!tableConstraints.isEmpty()) {
+      LOGGER.debug("Adding constraint metadata for {} tables to FileSchemaFactory operand", tableConstraints.size());
+      mutableOperand.put("tableConstraints", tableConstraints);
+    }
 
     // Check if text similarity is enabled before creating schema
     boolean similarityEnabled = mutableOperand.containsKey("textSimilarity") &&
