@@ -4112,6 +4112,39 @@ EnumerableProject(R_REGIONKEY=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEnumerableMergeUnionRule">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, job, sal
+FROM emp
+UNION ALL
+SELECT deptno, job, sal
+FROM emp order by deptno limit 3000000000 offset 2500000000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+    LogicalUnion(all=[true])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(DEPTNO=[$0], JOB=[$1], SAL=[$2])
+  EnumerableLimit(offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+    EnumerableMergeUnion(all=[true])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableProject(DEPTNO=[$7], JOB=[$2], SAL=[$5])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableProject(DEPTNO=[$7], JOB=[$2], SAL=[$5])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEnumerableProjectRule">
     <Resource name="sql">
       <![CDATA[select R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)
