@@ -11533,12 +11533,17 @@ class RelToSqlConverterDMTest {
   @Test public void testRegexpCount() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpCountRexNode =
-        builder.call(SqlLibraryOperators.REGEXP_COUNT, builder.literal("foo1 foo foo40 foo"), builder.literal("foo"));
+        builder.call(SqlLibraryOperators.REGEXP_COUNT, builder.literal("foo1 foo foo40 foo"),
+            builder.literal("foo"));
+    final RexNode regexpCountRexNodeWithThreeArgs =
+        builder.call(SqlLibraryOperators.REGEXP_COUNT, builder.literal("foo1 foo foo40 foo"),
+            builder.literal("foo"), builder.literal(2));
     final RelNode root = builder
         .values(new String[] {""}, 1)
-        .project(builder.alias(regexpCountRexNode, "value"))
+        .project(builder.alias(regexpCountRexNode, "value"), regexpCountRexNodeWithThreeArgs)
         .build();
-    final String expectedSFQuery = "SELECT REGEXP_COUNT('foo1 foo foo40 foo', 'foo') AS \"value\"";
+    final String expectedSFQuery = "SELECT REGEXP_COUNT('foo1 foo foo40 foo', 'foo') AS \"value\", "
+        + "REGEXP_COUNT('foo1 foo foo40 foo', 'foo', 2) AS \"$f1\"";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
@@ -13109,6 +13114,20 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedSql =
         "SELECT FLOOR('2009.34343') AS "
+            + "\"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testArrayUniqueAggFunctionForSnowflake() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.ARRAY_UNIQUE_AGG, builder.field(1));
+    final RelNode root = builder
+        .project(parseTSNode1)
+        .build();
+    final String expectedSql =
+        "SELECT ARRAY_AGG(DISTINCT \"ENAME\") AS "
             + "\"$f0\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
