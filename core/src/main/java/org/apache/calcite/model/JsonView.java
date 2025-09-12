@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -95,7 +96,16 @@ public class JsonView extends JsonTable {
       @JsonProperty("stream") JsonStream stream,
       @JsonProperty(value = "sql", required = true) Object sql,
       @JsonProperty("path") @Nullable List<String> path,
-      @JsonProperty("modifiable") @Nullable Boolean modifiable) {
+      @JsonProperty("modifiable") @Nullable Boolean modifiable,
+      @JsonProperty("constraints") @Nullable Map<String, Object> constraints) {
+    super(name, stream, constraints);
+    this.sql = requireNonNull(sql, "sql");
+    this.path = path;
+    this.modifiable = modifiable;
+  }
+
+  /** Backward-compatible constructor without constraints parameter. */
+  public JsonView(String name, JsonStream stream, Object sql, @Nullable List<String> path, @Nullable Boolean modifiable) {
     super(name, stream);
     this.sql = requireNonNull(sql, "sql");
     this.path = path;

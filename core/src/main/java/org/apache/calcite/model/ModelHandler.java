@@ -26,6 +26,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.AggregateFunction;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.ScalarFunction;
+import org.apache.calcite.schema.ConstraintCapableSchemaFactory;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -287,14 +288,64 @@ public class ModelHandler {
       final SchemaFactory schemaFactory =
           AvaticaUtils.instantiatePlugin(SchemaFactory.class,
               jsonSchema.factory);
+
+      // Check if the factory supports constraint metadata and prepare operand map
+      Map<String, Object> operandMap;
+      if (schemaFactory instanceof ConstraintCapableSchemaFactory) {
+        ConstraintCapableSchemaFactory constraintFactory = (ConstraintCapableSchemaFactory) schemaFactory;
+        if (constraintFactory.supportsConstraints()) {
+          // Extract constraint metadata from table definitions
+          Map<String, Map<String, Object>> tableConstraints = extractTableConstraints(jsonSchema.tables);
+          // Create mutable operand map with constraints
+          operandMap = operandMapWithConstraints(jsonSchema, jsonSchema.operand, tableConstraints);
+          // Also pass table definitions for additional context
+          constraintFactory.setTableConstraints(tableConstraints, jsonSchema.tables);
+        } else {
+          operandMap = operandMap(jsonSchema, jsonSchema.operand);
+        }
+      } else {
+        operandMap = operandMap(jsonSchema, jsonSchema.operand);
+      }
+
       final Schema schema =
-          schemaFactory.create(
-              parentSchema, jsonSchema.name, operandMap(jsonSchema, jsonSchema.operand));
+          schemaFactory.create(parentSchema, jsonSchema.name, operandMap);
       final SchemaPlus schemaPlus = parentSchema.add(jsonSchema.name, schema);
       populateSchema(jsonSchema, schemaPlus);
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonSchema, e);
     }
+  }
+
+  /**
+   * Extracts constraint metadata from table definitions in a schema.
+   *
+   * @param tables List of table definitions from the schema
+   * @return Map from table name to constraint definitions
+   */
+  private static Map<String, Map<String, Object>> extractTableConstraints(List<JsonTable> tables) {
+    Map<String, Map<String, Object>> tableConstraints = new java.util.HashMap<>();
+    for (JsonTable table : tables) {
+      if (table.constraints != null && !table.constraints.isEmpty()) {
+        tableConstraints.put(table.name, table.constraints);
+      }
+    }
+    return tableConstraints;
+  }
+
+  /** Creates an operand map with constraint metadata for constraint-capable schema factories. */
+  private Map<String, Object> operandMapWithConstraints(
+      @Nullable JsonSchema jsonSchema,
+      @Nullable Map<String, Object> operand,
+      Map<String, Map<String, Object>> tableConstraints) {
+    // Start with the base operand map
+    Map<String, Object> baseMap = operandMap(jsonSchema, operand);
+    
+    // Create mutable copy and add constraints if present
+    Map<String, Object> mutableMap = new java.util.HashMap<>(baseMap);
+    if (!tableConstraints.isEmpty()) {
+      mutableMap.put("tableConstraints", tableConstraints);
+    }
+    return mutableMap;
   }
 
   /** Adds extra entries to an operand to a custom schema. */

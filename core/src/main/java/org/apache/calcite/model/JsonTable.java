@@ -23,6 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -58,9 +59,22 @@ public abstract class JsonTable {
    * the history of the table is also available. */
   public final @Nullable JsonStream stream;
 
+  /** Constraint definitions for this table (primary keys, foreign keys, etc.).
+   *
+   * <p>Optional. When present, provides metadata hints for query optimization
+   * and JDBC metadata support. Constraints are not enforced by the underlying
+   * storage engines.
+   */
+  public final @Nullable Map<String, Object> constraints;
+
   protected JsonTable(String name, @Nullable JsonStream stream) {
+    this(name, stream, null);
+  }
+
+  protected JsonTable(String name, @Nullable JsonStream stream, @Nullable Map<String, Object> constraints) {
     this.name = requireNonNull(name, "name");
     this.stream = stream;
+    this.constraints = constraints;
   }
 
   public abstract void accept(ModelHandler handler);
