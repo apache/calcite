@@ -1,0 +1,428 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.adapter.govdata;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Comprehensive business definition comments for government data tables and columns.
+ *
+ * <p>This class provides standardized business definitions for SEC and GEO 
+ * government data tables that are exposed through JDBC metadata operations.
+ * Comments explain the business meaning and usage of each table and column.
+ */
+public final class TableCommentDefinitions {
+  
+  private TableCommentDefinitions() {
+    // Utility class
+  }
+
+  // =========================== SEC SCHEMA COMMENTS ===========================
+  
+  /** SEC schema table comments */
+  private static final Map<String, String> SEC_TABLE_COMMENTS = new HashMap<>();
+  
+  /** SEC schema column comments */
+  private static final Map<String, Map<String, String>> SEC_COLUMN_COMMENTS = new HashMap<>();
+  
+  static {
+    // financial_line_items table
+    SEC_TABLE_COMMENTS.put("financial_line_items", 
+        "Financial statement line items extracted from SEC XBRL filings. Each row represents a single "
+        + "financial concept (e.g., Revenue, Assets, Liabilities) with its value for a specific reporting "
+        + "period and context. Data is sourced from 10-K annual and 10-Q quarterly filings.");
+    
+    Map<String, String> financialLineItemsCols = new HashMap<>();
+    financialLineItemsCols.put("cik", "Central Index Key - SEC's unique 10-digit identifier for registered entities");
+    financialLineItemsCols.put("filing_type", "Type of SEC filing (10-K for annual reports, 10-Q for quarterly reports)");
+    financialLineItemsCols.put("year", "Fiscal year of the filing (YYYY format)");
+    financialLineItemsCols.put("filing_date", "Date when the filing was submitted to SEC (YYYY-MM-DD format)");
+    financialLineItemsCols.put("concept", "XBRL concept name representing the financial metric (e.g., 'Revenues', 'Assets', 'NetIncomeLoss')");
+    financialLineItemsCols.put("context_ref", "Reference to the XBRL context defining the reporting entity, period, and dimensions");
+    financialLineItemsCols.put("value", "Numeric value of the financial concept (typically in USD)");
+    financialLineItemsCols.put("label", "Human-readable label for the concept from XBRL taxonomy");
+    financialLineItemsCols.put("units", "Unit of measurement (typically 'USD' for monetary values, 'shares' for share counts)");
+    financialLineItemsCols.put("decimals", "Number of decimal places for rounding the value (-3 means thousands, -6 means millions)");
+    financialLineItemsCols.put("accession_number", "Unique SEC document identifier (NNNNNNNNNN-NN-NNNNNN format)");
+    financialLineItemsCols.put("period_start", "Start date of the reporting period (YYYY-MM-DD format)");
+    financialLineItemsCols.put("period_end", "End date of the reporting period (YYYY-MM-DD format)");
+    SEC_COLUMN_COMMENTS.put("financial_line_items", financialLineItemsCols);
+    
+    // filing_metadata table
+    SEC_TABLE_COMMENTS.put("filing_metadata", 
+        "Core filing information and company metadata for SEC submissions. Contains one row per filing "
+        + "with essential details about the submitting entity, filing type, dates, and document references. "
+        + "This table serves as the master record for linking detailed financial data.");
+    
+    Map<String, String> filingMetadataCols = new HashMap<>();
+    filingMetadataCols.put("cik", "Central Index Key - SEC's unique 10-digit identifier for the filing entity");
+    filingMetadataCols.put("accession_number", "Unique SEC document identifier in NNNNNNNNNN-NN-NNNNNN format");
+    filingMetadataCols.put("filing_type", "Type of SEC filing (10-K, 10-Q, 8-K, etc.)");
+    filingMetadataCols.put("filing_date", "Date when the filing was submitted to SEC (YYYY-MM-DD format)");
+    filingMetadataCols.put("company_name", "Legal name of the reporting entity as registered with SEC");
+    filingMetadataCols.put("fiscal_year", "Company's fiscal year for this filing (YYYY format)");
+    filingMetadataCols.put("fiscal_year_end", "Company's fiscal year end date (MM-DD format, e.g., '12-31')");
+    filingMetadataCols.put("period_of_report", "End date of the reporting period covered by this filing (YYYY-MM-DD format)");
+    filingMetadataCols.put("acceptance_datetime", "Date and time when SEC accepted the filing (YYYY-MM-DD HH:MM:SS format)");
+    filingMetadataCols.put("primary_document", "Filename of the primary filing document (e.g., 'form10k.htm')");
+    filingMetadataCols.put("file_size", "Size of the filing in bytes");
+    filingMetadataCols.put("state_of_incorporation", "Two-letter state code where the entity is incorporated (e.g., 'DE', 'CA')");
+    SEC_COLUMN_COMMENTS.put("filing_metadata", filingMetadataCols);
+    
+    // insider_transactions table  
+    SEC_TABLE_COMMENTS.put("insider_transactions",
+        "Insider trading transactions reported on SEC Forms 3, 4, and 5. Tracks stock purchases, sales, "
+        + "and other equity transactions by company officers, directors, and 10% shareholders. Each row "
+        + "represents a single transaction with details about the insider, transaction type, and ownership changes.");
+    
+    Map<String, String> insiderTransactionsCols = new HashMap<>();
+    insiderTransactionsCols.put("cik", "CIK of the company (issuer) whose securities were traded");
+    insiderTransactionsCols.put("filing_type", "Type of insider form (3 for initial, 4 for changes, 5 for annual)");
+    insiderTransactionsCols.put("year", "Year of the filing (YYYY format)");
+    insiderTransactionsCols.put("filing_date", "Date when the insider form was filed with SEC (YYYY-MM-DD format)");
+    insiderTransactionsCols.put("transaction_id", "Unique identifier for this transaction within the filing");
+    insiderTransactionsCols.put("insider_cik", "CIK of the insider (officer/director) making the transaction");
+    insiderTransactionsCols.put("insider_name", "Full name of the insider (officer, director, or beneficial owner)");
+    insiderTransactionsCols.put("insider_title", "Title or position of the insider (CEO, CFO, Director, etc.)");
+    insiderTransactionsCols.put("transaction_date", "Date when the transaction occurred (YYYY-MM-DD format)");
+    insiderTransactionsCols.put("transaction_code", "SEC transaction code (P=Purchase, S=Sale, A=Grant, etc.)");
+    insiderTransactionsCols.put("security_title", "Type of security traded (Common Stock, Stock Option, etc.)");
+    insiderTransactionsCols.put("shares_transacted", "Number of shares or units involved in the transaction");
+    insiderTransactionsCols.put("price_per_share", "Price per share for the transaction (in USD)");
+    insiderTransactionsCols.put("total_value", "Total dollar value of the transaction (shares * price)");
+    insiderTransactionsCols.put("shares_owned_following", "Total shares owned by insider after this transaction");
+    insiderTransactionsCols.put("ownership_type", "Direct (D) or Indirect (I) ownership of the securities");
+    SEC_COLUMN_COMMENTS.put("insider_transactions", insiderTransactionsCols);
+    
+    // footnotes table
+    SEC_TABLE_COMMENTS.put("footnotes",
+        "Financial statement footnotes and disclosures extracted from SEC filings. Contains the textual "
+        + "explanations, accounting policies, and supplementary information that accompany financial statements. "
+        + "Each row represents a single footnote or disclosure section.");
+    
+    Map<String, String> footnotesCols = new HashMap<>(); 
+    footnotesCols.put("cik", "Central Index Key of the filing entity");
+    footnotesCols.put("filing_type", "Type of SEC filing containing this footnote");
+    footnotesCols.put("year", "Fiscal year of the filing");
+    footnotesCols.put("accession_number", "SEC document identifier for the filing");
+    footnotesCols.put("footnote_id", "Unique identifier for this footnote within the filing");
+    footnotesCols.put("footnote_title", "Title or heading of the footnote section");
+    footnotesCols.put("footnote_text", "Full text content of the footnote");
+    footnotesCols.put("footnote_type", "Category of footnote (accounting policy, subsequent events, etc.)");
+    footnotesCols.put("table_reference", "Financial statement table that this footnote relates to");
+    footnotesCols.put("sequence_number", "Order of this footnote within the filing");
+    SEC_COLUMN_COMMENTS.put("footnotes", footnotesCols);
+  }
+  
+  // =========================== GEO SCHEMA COMMENTS ===========================
+  
+  /** GEO schema table comments */
+  private static final Map<String, String> GEO_TABLE_COMMENTS = new HashMap<>();
+  
+  /** GEO schema column comments */
+  private static final Map<String, Map<String, String>> GEO_COLUMN_COMMENTS = new HashMap<>();
+  
+  static {
+    // tiger_states table
+    GEO_TABLE_COMMENTS.put("tiger_states",
+        "U.S. state boundaries and metadata from Census TIGER/Line shapefiles. Includes geographic "
+        + "and demographic attributes for all 50 states, District of Columbia, Puerto Rico, and other "
+        + "U.S. territories. Updated annually by the U.S. Census Bureau.");
+    
+    Map<String, String> tigerStatesCols = new HashMap<>();
+    tigerStatesCols.put("state_fips", "2-digit Federal Information Processing Standards (FIPS) code for the state");
+    tigerStatesCols.put("state_code", "2-letter USPS state abbreviation (e.g., 'CA', 'NY', 'TX')");
+    tigerStatesCols.put("state_name", "Full official state name (e.g., 'California', 'New York', 'Texas')");
+    tigerStatesCols.put("state_abbr", "2-letter state abbreviation (same as state_code)");
+    tigerStatesCols.put("region", "Census region (1=Northeast, 2=Midwest, 3=South, 4=West)");
+    tigerStatesCols.put("division", "Census division within region (more granular than region)");
+    tigerStatesCols.put("land_area", "Land area in square meters (excludes water bodies)");
+    tigerStatesCols.put("water_area", "Water area in square meters (lakes, rivers, coastal waters)");
+    tigerStatesCols.put("total_area", "Total area in square meters (land + water)");
+    tigerStatesCols.put("latitude", "Geographic center latitude in decimal degrees");
+    tigerStatesCols.put("longitude", "Geographic center longitude in decimal degrees");
+    GEO_COLUMN_COMMENTS.put("tiger_states", tigerStatesCols);
+    
+    // tiger_counties table
+    GEO_TABLE_COMMENTS.put("tiger_counties", 
+        "U.S. county boundaries from Census TIGER/Line shapefiles. Counties are the primary legal "
+        + "divisions of states and serve as the basis for many statistical and administrative functions. "
+        + "Includes parishes (Louisiana), boroughs (Alaska), and independent cities.");
+    
+    Map<String, String> tigerCountiesCols = new HashMap<>();
+    tigerCountiesCols.put("state_fips", "2-digit FIPS code of the state containing this county");
+    tigerCountiesCols.put("county_fips", "5-digit FIPS code for the county (state + 3-digit county code)");
+    tigerCountiesCols.put("county_name", "Official county name (e.g., 'Los Angeles', 'Cook', 'Harris')");
+    tigerCountiesCols.put("county_type", "Type of county subdivision (County, Parish, Borough, Independent City)");
+    tigerCountiesCols.put("state_name", "Name of the state containing this county");
+    tigerCountiesCols.put("land_area", "Land area in square meters");
+    tigerCountiesCols.put("water_area", "Water area in square meters");
+    tigerCountiesCols.put("total_area", "Total area in square meters (land + water)");
+    tigerCountiesCols.put("latitude", "Geographic center latitude in decimal degrees");
+    tigerCountiesCols.put("longitude", "Geographic center longitude in decimal degrees"); 
+    tigerCountiesCols.put("population", "Total population from most recent decennial census");
+    GEO_COLUMN_COMMENTS.put("tiger_counties", tigerCountiesCols);
+    
+    // census_places table
+    GEO_TABLE_COMMENTS.put("census_places",
+        "Census designated places including incorporated cities, towns, villages, and census designated "
+        + "places (CDPs). These are statistical geographic entities used by the Census Bureau for "
+        + "data collection and tabulation. Includes population and housing unit counts.");
+    
+    Map<String, String> censusPlacesCols = new HashMap<>();
+    censusPlacesCols.put("place_fips", "5-digit FIPS place code within the state");
+    censusPlacesCols.put("place_name", "Official name of the place (city, town, village, or CDP)");
+    censusPlacesCols.put("state_fips", "2-digit FIPS code of the state containing this place");
+    censusPlacesCols.put("state_code", "2-letter state abbreviation");
+    censusPlacesCols.put("state_name", "Full state name");
+    censusPlacesCols.put("place_type", "Type of place (city, town, village, CDP, borough, etc.)");
+    censusPlacesCols.put("county_fips", "5-digit FIPS code of the primary county containing this place");
+    censusPlacesCols.put("population", "Total population from most recent decennial census");
+    censusPlacesCols.put("housing_units", "Total number of housing units from most recent census");
+    censusPlacesCols.put("land_area", "Land area in square meters");
+    censusPlacesCols.put("water_area", "Water area in square meters");
+    censusPlacesCols.put("latitude", "Geographic center latitude in decimal degrees");
+    censusPlacesCols.put("longitude", "Geographic center longitude in decimal degrees");
+    GEO_COLUMN_COMMENTS.put("census_places", censusPlacesCols);
+    
+    // hud_zip_county table
+    GEO_TABLE_COMMENTS.put("hud_zip_county",
+        "HUD USPS ZIP code to county crosswalk mapping. Maps 5-digit ZIP codes to counties with "
+        + "allocation ratios for residential, business, and other address types. Essential for "
+        + "geographic analysis of ZIP-based data. Updated quarterly by HUD.");
+    
+    Map<String, String> hudZipCountyCols = new HashMap<>();
+    hudZipCountyCols.put("zip", "5-digit USPS ZIP code");
+    hudZipCountyCols.put("county_fips", "5-digit FIPS county code that contains addresses in this ZIP");
+    hudZipCountyCols.put("state_fips", "2-digit FIPS code of the state");
+    hudZipCountyCols.put("state_code", "2-letter state abbreviation");
+    hudZipCountyCols.put("county_name", "Official county name");
+    hudZipCountyCols.put("res_ratio", "Ratio of residential addresses in this ZIP-county combination (0.0 to 1.0)");
+    hudZipCountyCols.put("bus_ratio", "Ratio of business addresses in this ZIP-county combination (0.0 to 1.0)");
+    hudZipCountyCols.put("oth_ratio", "Ratio of other address types in this ZIP-county combination (0.0 to 1.0)");
+    hudZipCountyCols.put("tot_ratio", "Total ratio for this ZIP-county combination (sum of res + bus + oth)");
+    hudZipCountyCols.put("usps_zip_pref_city", "USPS preferred city name for this ZIP code");
+    hudZipCountyCols.put("usps_zip_pref_state", "USPS preferred state abbreviation for this ZIP code");
+    GEO_COLUMN_COMMENTS.put("hud_zip_county", hudZipCountyCols);
+    
+    // tiger_zctas table
+    GEO_TABLE_COMMENTS.put("tiger_zctas",
+        "ZIP Code Tabulation Areas (ZCTAs) from Census TIGER/Line files. Statistical entities "
+        + "that represent ZIP Code service areas for statistical analysis. More stable than actual "
+        + "ZIP codes and better suited for census data linkage. Include population and housing counts.");
+    
+    Map<String, String> tigerZctasCols = new HashMap<>();
+    tigerZctasCols.put("zcta5", "5-digit ZIP Code Tabulation Area code");
+    tigerZctasCols.put("zcta5_name", "ZCTA name (usually 'ZCTA5 XXXXX')");
+    tigerZctasCols.put("state_fips", "Primary state FIPS code for this ZCTA");
+    tigerZctasCols.put("state_code", "Primary state 2-letter abbreviation");
+    tigerZctasCols.put("land_area", "Land area in square meters");
+    tigerZctasCols.put("water_area", "Water area in square meters");
+    tigerZctasCols.put("total_area", "Total area in square meters (land + water)");
+    tigerZctasCols.put("intpt_lat", "Internal point latitude (geographic center)");
+    tigerZctasCols.put("intpt_lon", "Internal point longitude (geographic center)");
+    tigerZctasCols.put("population", "Total population from most recent decennial census");
+    tigerZctasCols.put("housing_units", "Total housing units from most recent census");
+    tigerZctasCols.put("aland_sqmi", "Land area in square miles");
+    tigerZctasCols.put("awater_sqmi", "Water area in square miles");
+    GEO_COLUMN_COMMENTS.put("tiger_zctas", tigerZctasCols);
+    
+    // tiger_census_tracts table
+    GEO_TABLE_COMMENTS.put("tiger_census_tracts",
+        "Census tracts from TIGER/Line files. Small statistical subdivisions of counties with "
+        + "populations typically between 1,200 and 8,000 people. Primary geography for detailed "
+        + "demographic analysis and American Community Survey (ACS) data tabulation.");
+    
+    Map<String, String> tigerTractsCols = new HashMap<>();
+    tigerTractsCols.put("tract_geoid", "11-digit census tract Geographic Identifier (GEOID)");
+    tigerTractsCols.put("state_fips", "2-digit state FIPS code");
+    tigerTractsCols.put("county_fips", "3-digit county FIPS code within state");
+    tigerTractsCols.put("tract_code", "6-digit tract code within county");
+    tigerTractsCols.put("tract_name", "Tract name (usually numeric identifier)");
+    tigerTractsCols.put("namelsad", "Name and Legal/Statistical Area Description");
+    tigerTractsCols.put("mtfcc", "MAF/TIGER Feature Class Code");
+    tigerTractsCols.put("funcstat", "Functional status of the tract");
+    tigerTractsCols.put("land_area", "Land area in square meters");
+    tigerTractsCols.put("water_area", "Water area in square meters");
+    tigerTractsCols.put("intpt_lat", "Internal point latitude");
+    tigerTractsCols.put("intpt_lon", "Internal point longitude");
+    tigerTractsCols.put("population", "Total population");
+    tigerTractsCols.put("housing_units", "Total housing units");
+    tigerTractsCols.put("aland_sqmi", "Land area in square miles");
+    tigerTractsCols.put("awater_sqmi", "Water area in square miles");
+    GEO_COLUMN_COMMENTS.put("tiger_census_tracts", tigerTractsCols);
+    
+    // tiger_block_groups table
+    GEO_TABLE_COMMENTS.put("tiger_block_groups",
+        "Census block groups from TIGER/Line files. Statistical divisions of census tracts, "
+        + "typically containing 600-3,000 people. Smallest geography for American Community Survey "
+        + "(ACS) sample data and essential for neighborhood-level demographic analysis.");
+    
+    Map<String, String> tigerBlockGroupsCols = new HashMap<>();
+    tigerBlockGroupsCols.put("bg_geoid", "12-digit block group Geographic Identifier");
+    tigerBlockGroupsCols.put("state_fips", "2-digit state FIPS code");
+    tigerBlockGroupsCols.put("county_fips", "3-digit county FIPS code");
+    tigerBlockGroupsCols.put("tract_code", "6-digit census tract code");
+    tigerBlockGroupsCols.put("blkgrp", "1-digit block group number within tract");
+    tigerBlockGroupsCols.put("namelsad", "Name and Legal/Statistical Area Description");
+    tigerBlockGroupsCols.put("mtfcc", "MAF/TIGER Feature Class Code");
+    tigerBlockGroupsCols.put("funcstat", "Functional status of the block group");
+    tigerBlockGroupsCols.put("land_area", "Land area in square meters");
+    tigerBlockGroupsCols.put("water_area", "Water area in square meters");
+    tigerBlockGroupsCols.put("intpt_lat", "Internal point latitude");
+    tigerBlockGroupsCols.put("intpt_lon", "Internal point longitude");
+    tigerBlockGroupsCols.put("population", "Total population");
+    tigerBlockGroupsCols.put("housing_units", "Total housing units");
+    tigerBlockGroupsCols.put("aland_sqmi", "Land area in square miles");
+    tigerBlockGroupsCols.put("awater_sqmi", "Water area in square miles");
+    GEO_COLUMN_COMMENTS.put("tiger_block_groups", tigerBlockGroupsCols);
+    
+    // tiger_cbsa table
+    GEO_TABLE_COMMENTS.put("tiger_cbsa",
+        "Core Based Statistical Areas (CBSAs) from TIGER/Line files. Geographic entities associated "
+        + "with urban cores of 10,000+ population. Includes Metropolitan Statistical Areas (50,000+) "
+        + "and Micropolitan Statistical Areas (10,000-49,999). Essential for urban/regional analysis.");
+    
+    Map<String, String> tigerCbsaCols = new HashMap<>();
+    tigerCbsaCols.put("cbsa_code", "5-digit Core Based Statistical Area code");
+    tigerCbsaCols.put("cbsa_name", "CBSA name (e.g., 'New York-Newark-Jersey City, NY-NJ-PA')");
+    tigerCbsaCols.put("namelsad", "Name and Legal/Statistical Area Description");
+    tigerCbsaCols.put("lsad", "Legal/Statistical Area Description code");
+    tigerCbsaCols.put("memi", "Metropolitan/Micropolitan indicator");
+    tigerCbsaCols.put("mtfcc", "MAF/TIGER Feature Class Code");
+    tigerCbsaCols.put("land_area", "Land area in square meters");
+    tigerCbsaCols.put("water_area", "Water area in square meters");
+    tigerCbsaCols.put("intpt_lat", "Internal point latitude");
+    tigerCbsaCols.put("intpt_lon", "Internal point longitude");
+    tigerCbsaCols.put("cbsa_type", "Metropolitan or Micropolitan designation");
+    tigerCbsaCols.put("population", "Total population");
+    tigerCbsaCols.put("aland_sqmi", "Land area in square miles");
+    tigerCbsaCols.put("awater_sqmi", "Water area in square miles");
+    GEO_COLUMN_COMMENTS.put("tiger_cbsa", tigerCbsaCols);
+    
+    // hud_zip_cbsa_div table
+    GEO_TABLE_COMMENTS.put("hud_zip_cbsa_div",
+        "HUD crosswalk mapping ZIP codes to CBSA Divisions. CBSA Divisions are Metropolitan "
+        + "Divisions within large Metropolitan Statistical Areas, enabling sub-metropolitan analysis "
+        + "for major urban areas like New York, Los Angeles, Chicago.");
+    
+    Map<String, String> hudZipCbsaDivCols = new HashMap<>();
+    hudZipCbsaDivCols.put("zip", "5-digit ZIP code");
+    hudZipCbsaDivCols.put("cbsadiv", "CBSA Division code");
+    hudZipCbsaDivCols.put("cbsadiv_name", "CBSA Division name");
+    hudZipCbsaDivCols.put("cbsa", "Parent CBSA code");
+    hudZipCbsaDivCols.put("cbsa_name", "Parent CBSA name");
+    hudZipCbsaDivCols.put("res_ratio", "Proportion of residential addresses in this geographic relationship");
+    hudZipCbsaDivCols.put("bus_ratio", "Proportion of business addresses in this geographic relationship");
+    hudZipCbsaDivCols.put("oth_ratio", "Proportion of other addresses in this geographic relationship");
+    hudZipCbsaDivCols.put("tot_ratio", "Total proportion of all addresses in this geographic relationship");
+    hudZipCbsaDivCols.put("usps_city", "USPS-assigned city name for the ZIP code");
+    hudZipCbsaDivCols.put("state_code", "2-letter state abbreviation");
+    GEO_COLUMN_COMMENTS.put("hud_zip_cbsa_div", hudZipCbsaDivCols);
+    
+    // hud_zip_congressional table
+    GEO_TABLE_COMMENTS.put("hud_zip_congressional",
+        "HUD crosswalk mapping ZIP codes to Congressional Districts. Essential for political "
+        + "analysis, constituent services, and connecting corporate/demographic data to "
+        + "political representation. Updated for 119th Congress district boundaries.");
+    
+    Map<String, String> hudZipCongressionalCols = new HashMap<>();
+    hudZipCongressionalCols.put("zip", "5-digit ZIP code");
+    hudZipCongressionalCols.put("cd", "Congressional District number within state");
+    hudZipCongressionalCols.put("cd_name", "Congressional District name");
+    hudZipCongressionalCols.put("state_cd", "State-Congressional District code (SSDD format)");
+    hudZipCongressionalCols.put("res_ratio", "Proportion of residential addresses in this district");
+    hudZipCongressionalCols.put("bus_ratio", "Proportion of business addresses in this district");
+    hudZipCongressionalCols.put("oth_ratio", "Proportion of other addresses in this district");
+    hudZipCongressionalCols.put("tot_ratio", "Total proportion of all addresses in this district");
+    hudZipCongressionalCols.put("usps_city", "USPS-assigned city name for the ZIP code");
+    hudZipCongressionalCols.put("state_code", "2-letter state abbreviation");
+    hudZipCongressionalCols.put("state_name", "Full state name");
+    GEO_COLUMN_COMMENTS.put("hud_zip_congressional", hudZipCongressionalCols);
+  }
+  
+  // =========================== PUBLIC API METHODS ===========================
+  
+  /**
+   * Gets the business definition comment for a SEC schema table.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @return table comment or null if not found
+   */
+  public static @Nullable String getSecTableComment(String tableName) {
+    return SEC_TABLE_COMMENTS.get(tableName.toLowerCase());
+  }
+  
+  /**
+   * Gets the business definition comment for a SEC schema column.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @param columnName name of the column (case-insensitive)  
+   * @return column comment or null if not found
+   */
+  public static @Nullable String getSecColumnComment(String tableName, String columnName) {
+    Map<String, String> tableColumns = SEC_COLUMN_COMMENTS.get(tableName.toLowerCase());
+    return tableColumns != null ? tableColumns.get(columnName.toLowerCase()) : null;
+  }
+  
+  /**
+   * Gets all column comments for a SEC schema table.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @return map of column names to comments, or empty map if table not found
+   */
+  public static Map<String, String> getSecColumnComments(String tableName) {
+    Map<String, String> comments = SEC_COLUMN_COMMENTS.get(tableName.toLowerCase());
+    return comments != null ? new HashMap<>(comments) : new HashMap<>();
+  }
+  
+  /**
+   * Gets the business definition comment for a GEO schema table.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @return table comment or null if not found
+   */
+  public static @Nullable String getGeoTableComment(String tableName) {
+    return GEO_TABLE_COMMENTS.get(tableName.toLowerCase());
+  }
+  
+  /**
+   * Gets the business definition comment for a GEO schema column.
+   * 
+   * @param tableName name of the table (case-insensitive) 
+   * @param columnName name of the column (case-insensitive)
+   * @return column comment or null if not found
+   */
+  public static @Nullable String getGeoColumnComment(String tableName, String columnName) {
+    Map<String, String> tableColumns = GEO_COLUMN_COMMENTS.get(tableName.toLowerCase());
+    return tableColumns != null ? tableColumns.get(columnName.toLowerCase()) : null;
+  }
+  
+  /**
+   * Gets all column comments for a GEO schema table.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @return map of column names to comments, or empty map if table not found
+   */
+  public static Map<String, String> getGeoColumnComments(String tableName) {
+    Map<String, String> comments = GEO_COLUMN_COMMENTS.get(tableName.toLowerCase());
+    return comments != null ? new HashMap<>(comments) : new HashMap<>();
+  }
+}
