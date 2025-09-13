@@ -1,0 +1,119 @@
+#!/bin/bash
+# Geographic Data Environment Variables Template
+# 
+# INSTRUCTIONS:
+# 1. Copy this file to geo-env.sh:
+#    cp geo-env.sh.template geo-env.sh
+# 
+# 2. Edit geo-env.sh and replace the placeholder values with your actual credentials
+# 
+# 3. Source the file before using the geographic adapter:
+#    source geo-env.sh
+#
+# 4. The geo-env.sh file is git-ignored, so your credentials won't be committed
+#
+# ============================================================================
+
+# Census Bureau API Key (Required for demographic data)
+# Get your free key at: https://api.census.gov/data/key_signup.html
+# - No payment required
+# - Instant approval
+# - 500 requests per day limit
+export CENSUS_API_KEY="REPLACE_WITH_YOUR_CENSUS_API_KEY"
+
+# HUD USER Credentials (Required for ZIP code crosswalk data)
+# Register for free at: https://www.huduser.gov/portal/datasets/usps_crosswalk.html
+# - No payment required
+# - Used for ZIP to County/Tract/CBSA mappings
+export HUD_USERNAME="REPLACE_WITH_YOUR_HUD_USERNAME"
+export HUD_PASSWORD="REPLACE_WITH_YOUR_HUD_PASSWORD"
+
+# HUD API Token (Optional - more secure than username/password)
+# If you have a token, it will be used instead of username/password
+export HUD_TOKEN="REPLACE_WITH_YOUR_HUD_TOKEN_IF_AVAILABLE"
+
+# ============================================================================
+# CONFIGURATION OPTIONS (you can modify these)
+# ============================================================================
+
+# Unified government data directory (hive-partitioned parquet)
+# Geographic data will be stored under: /source=geo/type={boundary,demographic,crosswalk}/
+export GOVDATA_PARQUET_DIR="/Volumes/T9/govdata-parquet"
+export GEO_CACHE_DIR="/Volumes/T9/govdata-parquet"
+
+# Data year for TIGER/Line boundary files (2020-2024 available)
+export GEO_DATA_YEAR="2024"
+
+# Auto-download data when first accessed (true/false)
+# If false, you'll need to manually trigger downloads
+export GEO_AUTO_DOWNLOAD="true"
+
+# Enabled data sources (comma-separated: tiger,census,hud)
+# - tiger: TIGER/Line shapefiles (no credentials needed)
+# - census: Census API data (requires CENSUS_API_KEY)
+# - hud: HUD crosswalk data (requires HUD credentials)
+export GEO_ENABLED_SOURCES="tiger,census,hud"
+
+# ============================================================================
+# VALIDATION (don't modify below)
+# ============================================================================
+
+# Function to check if credentials are set
+check_credentials() {
+    local missing=0
+    
+    if [[ "$CENSUS_API_KEY" == "REPLACE_WITH_YOUR_CENSUS_API_KEY" ]]; then
+        echo "⚠️  Warning: CENSUS_API_KEY not configured (Census API data won't be available)"
+        missing=$((missing + 1))
+    else
+        echo "✅ CENSUS_API_KEY configured"
+    fi
+    
+    if [[ "$HUD_USERNAME" == "REPLACE_WITH_YOUR_HUD_USERNAME" ]]; then
+        echo "⚠️  Warning: HUD_USERNAME not configured (HUD crosswalk data won't be available)"
+        missing=$((missing + 1))
+    else
+        echo "✅ HUD_USERNAME configured"
+    fi
+    
+    if [[ "$HUD_PASSWORD" == "REPLACE_WITH_YOUR_HUD_PASSWORD" ]]; then
+        echo "⚠️  Warning: HUD_PASSWORD not configured"
+        missing=$((missing + 1))
+    else
+        echo "✅ HUD_PASSWORD configured"
+    fi
+    
+    if [[ "$HUD_TOKEN" != "REPLACE_WITH_YOUR_HUD_TOKEN_IF_AVAILABLE" ]] && [[ -n "$HUD_TOKEN" ]]; then
+        echo "✅ HUD_TOKEN configured (will use token authentication)"
+    fi
+    
+    echo ""
+    echo "Cache directory: $GEO_CACHE_DIR"
+    echo "Data year: $GEO_DATA_YEAR"
+    echo "Auto-download: $GEO_AUTO_DOWNLOAD"
+    echo "Enabled sources: $GEO_ENABLED_SOURCES"
+    
+    if [[ $missing -eq 0 ]]; then
+        echo ""
+        echo "✅ All required credentials are configured!"
+    else
+        echo ""
+        echo "⚠️  Some credentials are missing. You can still use TIGER/Line data without credentials."
+        echo "   To get full functionality, please obtain the missing credentials from:"
+        echo "   - Census API: https://api.census.gov/data/key_signup.html"
+        echo "   - HUD Portal: https://www.huduser.gov/portal/datasets/usps_crosswalk.html"
+    fi
+}
+
+# Run validation
+echo "============================================================================"
+echo "Geographic Data Environment Variables Loaded"
+echo "============================================================================"
+check_credentials
+echo "============================================================================"
+
+# Create cache directory if it doesn't exist
+if [[ ! -d "$GEO_CACHE_DIR" ]]; then
+    echo "Creating cache directory: $GEO_CACHE_DIR"
+    mkdir -p "$GEO_CACHE_DIR"
+fi

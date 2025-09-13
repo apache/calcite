@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "defaultSchema": "GEO",
+  "schemas": [{
+    "name": "GEO",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "dataSource": "geo",
+      "cacheDir": "${GOVDATA_PARQUET_DIR:/Volumes/T9/govdata-parquet}",
+      "censusApiKey": "${CENSUS_API_KEY:}",
+      "hudUsername": "${HUD_USERNAME:}",
+      "hudPassword": "${HUD_PASSWORD:}",
+      "hudToken": "${HUD_TOKEN:}",
+      "enabledSources": ["tiger", "census", "hud"],
+      "dataYear": 2024,
+      "autoDownload": true
+    }
+  }]
+}
