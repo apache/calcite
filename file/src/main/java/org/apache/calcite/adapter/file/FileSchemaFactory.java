@@ -22,7 +22,9 @@ import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
 import org.apache.calcite.adapter.file.metadata.InformationSchema;
 import org.apache.calcite.adapter.file.metadata.PostgresMetadataSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.model.JsonTable;
 import org.apache.calcite.model.ModelHandler;
+import org.apache.calcite.schema.ConstraintCapableSchemaFactory;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -44,7 +46,7 @@ import java.util.UUID;
  * See <a href="http://calcite.apache.org/docs/file_adapter.html">File adapter</a>.
  */
 @SuppressWarnings("UnusedDeclaration")
-public class FileSchemaFactory implements SchemaFactory {
+public class FileSchemaFactory implements ConstraintCapableSchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchemaFactory.class);
 
   static {
@@ -53,6 +55,10 @@ public class FileSchemaFactory implements SchemaFactory {
 
   /** Public singleton, per factory contract. */
   public static final FileSchemaFactory INSTANCE = new FileSchemaFactory();
+  
+  // Store constraint metadata from model files
+  private Map<String, Map<String, Object>> tableConstraints;
+  private List<JsonTable> tableDefinitions;
 
   /** Name of the column that is implicitly created in a CSV stream table
    * to hold the data arrival time. */
@@ -387,6 +393,11 @@ public class FileSchemaFactory implements SchemaFactory {
         new FileSchema(parentSchema, name, directoryFile, baseDirectory, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
         columnNameCasing, storageType, storageConfig, flatten, csvTypeInference, primeCache);
+    
+    // Pass constraint metadata to FileSchema if available
+    if (tableConstraints != null && !tableConstraints.isEmpty()) {
+      fileSchema.setConstraintMetadata(tableConstraints);
+    }
 
     // Force table discovery to populate the schema before creating metadata schemas
     LOGGER.debug("FileSchemaFactory: About to call fileSchema.getTableMap() for table discovery");
@@ -555,5 +566,20 @@ public class FileSchemaFactory implements SchemaFactory {
       return Boolean.parseBoolean((String) value);
     }
     return null;
+  }
+  
+  @Override
+  public boolean supportsConstraints() {
+    // Enable constraint support for file-based schemas
+    return true;
+  }
+  
+  @Override
+  public void setTableConstraints(Map<String, Map<String, Object>> tableConstraints,
+      List<JsonTable> tableDefinitions) {
+    this.tableConstraints = tableConstraints;
+    this.tableDefinitions = tableDefinitions;
+    LOGGER.debug("Received constraint metadata for {} tables",
+        tableConstraints != null ? tableConstraints.size() : 0);
   }
 }

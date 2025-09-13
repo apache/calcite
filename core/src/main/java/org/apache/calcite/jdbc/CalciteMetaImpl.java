@@ -857,6 +857,31 @@ public class CalciteMetaImpl extends MetaImpl {
           calciteTable.getJdbcTableType().jdbcName);
       this.calciteTable = requireNonNull(calciteTable, "calciteTable");
     }
+    
+    /**
+     * Gets the table comment/remarks for JDBC metadata.
+     * 
+     * @return table comment if the table implements CommentableTable, null otherwise
+     */
+    public String getTableComment() {
+      if (calciteTable instanceof org.apache.calcite.schema.CommentableTable) {
+        return ((org.apache.calcite.schema.CommentableTable) calciteTable).getTableComment();
+      }
+      return null;
+    }
+    
+    /**
+     * Gets the column comment/remarks for JDBC metadata.
+     * 
+     * @param columnName name of the column
+     * @return column comment if the table implements CommentableTable, null otherwise
+     */
+    public String getColumnComment(String columnName) {
+      if (calciteTable instanceof org.apache.calcite.schema.CommentableTable) {
+        return ((org.apache.calcite.schema.CommentableTable) calciteTable).getColumnComment(columnName);
+      }
+      return null;
+    }
   }
 
   /** Metadata describing a Calcite schema. */

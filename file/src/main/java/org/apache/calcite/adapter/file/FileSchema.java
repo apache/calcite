@@ -4217,6 +4217,9 @@ public class FileSchema extends AbstractSchema {
 
   // Map to store explicit table mappings: source file path -> explicit table name
   private final Map<String, String> explicitTableMappings = new ConcurrentHashMap<>();
+  
+  // Constraint metadata from model files
+  private Map<String, Map<String, Object>> constraintMetadata = new HashMap<>();
 
   /**
    * Stores the mapping from source file to explicit table name.
@@ -4338,6 +4341,30 @@ public class FileSchema extends AbstractSchema {
     }
 
     return (List<Map<String, Object>>) tableDef.get("fields");
+  }
+  
+  /**
+   * Sets constraint metadata for tables in this schema.
+   * Called by FileSchemaFactory to pass constraint definitions from model files.
+   * 
+   * @param constraintMetadata Map from table name to constraint definitions
+   */
+  public void setConstraintMetadata(Map<String, Map<String, Object>> constraintMetadata) {
+    this.constraintMetadata = constraintMetadata;
+    LOGGER.debug("Received constraint metadata for {} tables", constraintMetadata.size());
+    
+    // Tables will use this metadata when getStatistic() is called
+    // This enables query optimization and JDBC metadata support
+  }
+  
+  /**
+   * Gets constraint metadata for a specific table.
+   * 
+   * @param tableName The table name
+   * @return Constraint metadata or null if none defined
+   */
+  public Map<String, Object> getTableConstraints(String tableName) {
+    return constraintMetadata.get(tableName);
   }
 
 }

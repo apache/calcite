@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.CommentableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
@@ -158,6 +159,7 @@ public class InformationSchema extends AbstractSchema {
           .add("TABLE_SCHEMA", SqlTypeName.VARCHAR)
           .add("TABLE_NAME", SqlTypeName.VARCHAR)
           .add("TABLE_TYPE", SqlTypeName.VARCHAR)
+          .add("TABLE_COMMENT", SqlTypeName.VARCHAR)  // Added for business definitions
           .add("SELF_REFERENCING_COLUMN_NAME", SqlTypeName.VARCHAR)
           .add("REFERENCE_GENERATION", SqlTypeName.VARCHAR)
           .add("USER_DEFINED_TYPE_CATALOG", SqlTypeName.VARCHAR)
@@ -176,11 +178,20 @@ public class InformationSchema extends AbstractSchema {
         SchemaPlus schema = rootSchema.subSchemas().get(schemaName);
         if (schema != null) {
           for (String tableName : schema.tables().getNames(LikePattern.any())) {
+            Table table = schema.tables().get(tableName);
+            String tableComment = null;
+            
+            // Get table comment if available
+            if (table instanceof CommentableTable) {
+              tableComment = ((CommentableTable) table).getTableComment();
+            }
+            
             rows.add(new Object[]{
                 catalogName,
                 schemaName,
                 tableName,
                 "BASE TABLE",
+                tableComment,  // TABLE_COMMENT
                 null,
                 null,
                 null,
@@ -252,6 +263,7 @@ public class InformationSchema extends AbstractSchema {
           .add("IS_GENERATED", SqlTypeName.VARCHAR)
           .add("GENERATION_EXPRESSION", SqlTypeName.VARCHAR)
           .add("IS_UPDATABLE", SqlTypeName.VARCHAR)
+          .add("COLUMN_COMMENT", SqlTypeName.VARCHAR)  // Added for business definitions
           .build();
     }
 
@@ -278,6 +290,12 @@ public class InformationSchema extends AbstractSchema {
               int position = 1;
               for (RelDataTypeField field : rowType.getFieldList()) {
                 SqlTypeName sqlType = field.getType().getSqlTypeName();
+                String columnComment = null;
+                
+                // Get column comment if available
+                if (table instanceof CommentableTable) {
+                  columnComment = ((CommentableTable) table).getColumnComment(field.getName());
+                }
 
                 rows.add(new Object[]{
                     catalogName,                        // TABLE_CATALOG
@@ -323,7 +341,8 @@ public class InformationSchema extends AbstractSchema {
                     null,                             // IDENTITY_CYCLE
                     "NEVER",                          // IS_GENERATED
                     null,                             // GENERATION_EXPRESSION
-                    "YES"                             // IS_UPDATABLE
+                    "YES",                            // IS_UPDATABLE
+                    columnComment                     // COLUMN_COMMENT
                 });
               }
             }
