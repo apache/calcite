@@ -150,52 +150,48 @@ select deptno, (select sum(empno) from "scott".emp where 1 = 0 group by ()) as x
 !ok
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
-select deptno, (select sum(empno) from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
-+--------+----------------------+
-| DEPTNO |          X           |
-+--------+----------------------+
-| 10     | 23555                |
-| 20     | 38501                |
-| 30     | 46116                |
-| 40     | null                 |
-+--------+----------------------+
+select deptno, (select sum(cast(empno as bigint)) from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
++--------+-------+
+| DEPTNO | X     |
++--------+-------+
+|     10 | 23555 |
+|     20 | 38501 |
+|     30 | 46116 |
+|     40 |       |
++--------+-------+
 (4 rows)
 
 !ok
-!}
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
 !if (false) {
 select deptno, (select sum(empno) from "scott".emp where deptno = dept.deptno limit 0) as x from "scott".dept;
-+--------+----------------------+
-| DEPTNO |          X           |
-+--------+----------------------+
-| 10     | 23555                |
-| 20     | 38501                |
-| 30     | 46116                |
-| 40     | null                 |
-+--------+----------------------+
++--------+-------+
+| DEPTNO | X     |
++--------+-------+
+|     10 | 23555 |
+|     20 | 38501 |
+|     30 | 46116 |
+|     40 |       |
++--------+-------+
 (4 rows)
 
 !ok
 !}
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
 select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
-+--------+------+
-| DEPTNO |  X   |
-+--------+------+
-| 10     | 10   |
-| 20     | 20   |
-| 30     | 30   |
-| 40     | null |
-+--------+------+
++--------+----+
+| DEPTNO | X  |
++--------+----+
+|     10 | 10 |
+|     20 | 20 |
+|     30 | 30 |
+|     40 |    |
++--------+----+
 (4 rows)
 
 !ok
-!}
 
 select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 0) as x from "scott".dept;
 +--------+---+
