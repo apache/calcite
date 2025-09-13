@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "defaultSchema": "geo",
+  "schemas": [
+    {
+      "name": "geo",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "geo",
+        "cacheDirectory": "${GEO_CACHE_DIR:/Volumes/T9/geo-test-limited}",
+        "autoDownload": true,
+        "dataYear": 2024,
+        "enabledSources": ["tiger"],
+        "limitedMode": true,
+        "states": ["CA", "NY"],
+        "censusApiKey": "${CENSUS_API_KEY:}",
+        "hudUsername": "${HUD_USERNAME:}",
+        "hudPassword": "${HUD_PASSWORD:}"
+      }
+    }
+  ]
+}

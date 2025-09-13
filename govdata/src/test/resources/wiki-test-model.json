@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [{
+    "name": "sec",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "directory": "${GOVDATA_PARQUET_DIR:/Volumes/T9/govdata-parquet}/wiki-test",
+      "ciks": "WIKI_SP500",
+      "filingTypes": ["10-K"],
+      "autoDownload": true,
+      "startYear": 2023,
+      "endYear": 2024,
+      "executionEngine": "${CALCITE_FILE_ENGINE_TYPE:DUCKDB}",
+      "testMode": false
+    }
+  }]
+}

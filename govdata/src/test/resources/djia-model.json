@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [{
+    "name": "sec",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "directory": "${GOVDATA_PARQUET_DIR:/Volumes/T9/govdata-parquet}/djia-test",
+      "ciks": ["DOW30"],
+      "filingTypes": ["10-K", "10-Q"],
+      "autoDownload": true,
+      "startYear": 2019,
+      "endYear": 2024,
+      "executionEngine": "${CALCITE_FILE_ENGINE_TYPE:DUCKDB}"
+    }
+  }]
+}

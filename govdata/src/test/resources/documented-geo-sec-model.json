@@ -1,0 +1,144 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [
+    {
+      "name": "sec",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "sec",
+        "cacheDirectory": "${SEC_CACHE_DIR:/Volumes/T9/sec-test-documented}",
+        "autoDownload": false
+      },
+      "tables": [
+        {
+          "name": "financial_line_items",
+          "comment": "Financial statement line items extracted from SEC XBRL filings. Each row represents a single financial concept (e.g., Revenue, NetIncome) with its value for a specific reporting period.",
+          "columns": [
+            {"name": "cik", "comment": "Central Index Key - SEC's unique identifier for registered entities"},
+            {"name": "filing_type", "comment": "Type of SEC filing (10-K for annual, 10-Q for quarterly, 8-K for current)"},
+            {"name": "year", "comment": "Fiscal year of the filing"},
+            {"name": "concept", "comment": "XBRL concept name representing the financial metric (e.g., 'Revenue', 'NetIncomeLoss')"},
+            {"name": "numeric_value", "comment": "The monetary or numeric value of the concept"},
+            {"name": "units", "comment": "Unit of measurement (typically 'USD' for dollars)"},
+            {"name": "period_start", "comment": "Start date of the reporting period"},
+            {"name": "period_end", "comment": "End date of the reporting period"},
+            {"name": "state_of_incorporation", "comment": "Two-letter state code where the entity is incorporated"}
+          ]
+        },
+        {
+          "name": "filing_metadata",
+          "comment": "Metadata about SEC filings including company information and filing details",
+          "columns": [
+            {"name": "cik", "comment": "Central Index Key - SEC's unique identifier"},
+            {"name": "company_name", "comment": "Legal name of the reporting entity"},
+            {"name": "filing_type", "comment": "Type of SEC filing"},
+            {"name": "filing_date", "comment": "Date when the filing was submitted to SEC"},
+            {"name": "accession_number", "comment": "Unique SEC document identifier"},
+            {"name": "fiscal_year_end", "comment": "Company's fiscal year end date"},
+            {"name": "state_of_incorporation", "comment": "State where entity is incorporated"}
+          ]
+        },
+        {
+          "name": "insider_transactions",
+          "comment": "Insider trading transactions reported on Forms 3, 4, and 5. Tracks stock purchases and sales by company officers and directors.",
+          "columns": [
+            {"name": "cik", "comment": "CIK of the company whose stock was traded"},
+            {"name": "insider_cik", "comment": "CIK of the insider making the transaction"},
+            {"name": "insider_name", "comment": "Name of the insider (officer/director)"},
+            {"name": "transaction_date", "comment": "Date of the stock transaction"},
+            {"name": "transaction_code", "comment": "SEC transaction code (P=Purchase, S=Sale, etc.)"},
+            {"name": "shares", "comment": "Number of shares transacted"},
+            {"name": "price_per_share", "comment": "Price per share in the transaction"},
+            {"name": "ownership_type", "comment": "Direct (D) or Indirect (I) ownership"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "geo",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "geo",
+        "cacheDirectory": "${GEO_CACHE_DIR:/Volumes/T9/geo-test-documented}",
+        "autoDownload": false
+      },
+      "tables": [
+        {
+          "name": "tiger_states",
+          "comment": "U.S. state boundaries and metadata from Census TIGER/Line shapefiles. Includes geographic and demographic attributes for all 50 states plus territories.",
+          "columns": [
+            {"name": "state_fips", "comment": "2-digit Federal Information Processing Standards code for the state"},
+            {"name": "state_code", "comment": "2-letter USPS state abbreviation (e.g., 'CA', 'NY')"},
+            {"name": "state_name", "comment": "Full state name (e.g., 'California', 'New York')"},
+            {"name": "state_abbr", "comment": "2-letter state abbreviation (same as state_code)"},
+            {"name": "land_area", "comment": "Land area in square meters"},
+            {"name": "water_area", "comment": "Water area in square meters"}
+          ]
+        },
+        {
+          "name": "tiger_counties",
+          "comment": "U.S. county boundaries from Census TIGER/Line. Counties are the primary legal divisions of states.",
+          "columns": [
+            {"name": "state_fips", "comment": "2-digit FIPS code of the state containing this county"},
+            {"name": "county_fips", "comment": "5-digit FIPS code for the county (state + county codes)"},
+            {"name": "county_name", "comment": "Official county name"},
+            {"name": "county_type", "comment": "Type of county subdivision (County, Parish, Borough, etc.)"},
+            {"name": "land_area", "comment": "Land area in square meters"},
+            {"name": "water_area", "comment": "Water area in square meters"}
+          ]
+        },
+        {
+          "name": "census_places",
+          "comment": "Census designated places including cities, towns, and villages. These are statistical geographic entities.",
+          "columns": [
+            {"name": "place_code", "comment": "5-digit FIPS place code"},
+            {"name": "place_name", "comment": "Name of the place (city/town/village)"},
+            {"name": "state_code", "comment": "2-letter state abbreviation"},
+            {"name": "place_type", "comment": "Type of place (city, town, CDP, etc.)"},
+            {"name": "population", "comment": "Total population from most recent census"},
+            {"name": "housing_units", "comment": "Total number of housing units"}
+          ]
+        },
+        {
+          "name": "hud_zip_county",
+          "comment": "HUD USPS ZIP code to county crosswalk. Maps ZIP codes to counties with residential and business ratios.",
+          "columns": [
+            {"name": "zip", "comment": "5-digit USPS ZIP code"},
+            {"name": "county_code", "comment": "5-digit FIPS county code"},
+            {"name": "res_ratio", "comment": "Ratio of residential addresses in this ZIP-county combination"},
+            {"name": "bus_ratio", "comment": "Ratio of business addresses in this ZIP-county combination"},
+            {"name": "oth_ratio", "comment": "Ratio of other addresses in this ZIP-county combination"},
+            {"name": "tot_ratio", "comment": "Total ratio for this ZIP-county combination"}
+          ]
+        }
+      ]
+    }
+  ],
+  "constraints": {
+    "financial_line_items": {
+      "foreignKeys": [
+        {
+          "columns": ["state_of_incorporation"],
+          "targetSchema": "geo",
+          "targetTable": "tiger_states",
+          "targetColumns": ["state_code"],
+          "comment": "Links companies to their state of incorporation for geographic analysis"
+        }
+      ]
+    },
+    "filing_metadata": {
+      "foreignKeys": [
+        {
+          "columns": ["state_of_incorporation"],
+          "targetSchema": "geo",
+          "targetTable": "tiger_states",
+          "targetColumns": ["state_code"],
+          "comment": "Links company metadata to state geographic data"
+        }
+      ]
+    }
+  }
+}
