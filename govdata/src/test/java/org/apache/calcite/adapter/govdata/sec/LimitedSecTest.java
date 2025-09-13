@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.govdata.sec;
 
+import org.apache.calcite.adapter.govdata.TestEnvironmentLoader;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -35,43 +38,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Tag("integration")
 public class LimitedSecTest {
 
+  @BeforeAll
+  public static void setupEnvironment() {
+    // Ensure .env.test is loaded before any tests run
+    TestEnvironmentLoader.ensureLoaded();
+  }
+
   @Test @Timeout(value = 5, unit = TimeUnit.MINUTES)
   public void testLimitedSecData() throws Exception {
     System.out.println("\n=== LIMITED SEC DATA TEST ===");
     System.out.println("Testing with Apple (AAPL) and Microsoft (MSFT) for 2022-2023, 10-K only");
 
-    // Create inline model for limited test
-    String modelJson = "{"
-        + "\"version\": \"1.0\","
-        + "\"defaultSchema\": \"sec\","
-        + "\"schemas\": [{"
-        + "  \"name\": \"sec\","
-        + "  \"type\": \"custom\","
-        + "  \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
-        + "  \"operand\": {"
-        + "    \"directory\": \"/Volumes/T9/calcite-sec-cache-limited\","
-        + "    \"ciks\": [\"AAPL\", \"MSFT\"],"  // Just Apple and Microsoft
-        + "    \"filingTypes\": [\"10-K\"],"      // Just 10-K filings
-        + "    \"autoDownload\": true,"
-        + "    \"startYear\": 2022,"
-        + "    \"endYear\": 2023,"
-        + "    \"executionEngine\": \"parquet\","
-        + "    \"testMode\": false"
-        + "  }"
-        + "}]"
-        + "}";
-
-    // Write model to temp file
-    java.io.File modelFile = java.io.File.createTempFile("limited-sec-test", ".json");
-    modelFile.deleteOnExit();
-    java.nio.file.Files.writeString(modelFile.toPath(), modelJson);
+    // Use external model file
+    String modelPath = getClass().getResource("/limited-sec-model.json").getPath();
 
     // Connection properties
     Properties info = new Properties();
     info.setProperty("lex", "ORACLE");
     info.setProperty("unquotedCasing", "TO_LOWER");
 
-    String jdbcUrl = "jdbc:calcite:model=" + modelFile.getAbsolutePath();
+    String jdbcUrl = "jdbc:calcite:model=" + modelPath;
 
     try (Connection connection = DriverManager.getConnection(jdbcUrl, info)) {
 

@@ -95,3 +95,12 @@ local-test.properties
 # Temporary test directories
 build/temp-tests/
 **/temp-tests/
+
+# Geographic data credentials and cache
+geo-env.sh
+.env.test
+geo-credentials.properties
+.geo-credentials.properties
+*-credentials.properties
+/tmp/calcite-geo-cache/
+/geo-cache/

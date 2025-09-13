@@ -46,6 +46,7 @@ public class SecConstraintsIntegrationTest {
    * Test that SEC adapter supports constraint metadata in model files.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testConstraintMetadataInModelFile() throws Exception {
     // Create a temporary model file with constraint definitions
     String modelJson = "{\n" +
@@ -97,8 +98,9 @@ public class SecConstraintsIntegrationTest {
 
       // Verify that schema factory received constraint metadata
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      Schema secSchema = rootSchema.getSubSchema("SEC");
-      assertNotNull(secSchema, "SEC schema should be created");
+      SchemaPlus secSchemaPlus = rootSchema.getSubSchema("SEC");
+      assertNotNull(secSchemaPlus, "SEC schema should be created");
+      Schema secSchema = secSchemaPlus.unwrap(Schema.class);
 
       // Test JDBC metadata for primary keys
       DatabaseMetaData metadata = connection.getMetaData();
@@ -140,6 +142,7 @@ public class SecConstraintsIntegrationTest {
    * Test that SEC adapter supports constraints without breaking backward compatibility.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testBackwardCompatibilityWithoutConstraints() throws Exception {
     // Create a model file WITHOUT constraint definitions (legacy format)
     String modelJson = "{\n" +
@@ -169,8 +172,9 @@ public class SecConstraintsIntegrationTest {
 
       // Verify that schema is created successfully without constraints
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      Schema secSchema = rootSchema.getSubSchema("SEC");
-      assertNotNull(secSchema, "SEC schema should be created even without constraint definitions");
+      SchemaPlus secSchemaPlus = rootSchema.getSubSchema("SEC");
+      assertNotNull(secSchemaPlus, "SEC schema should be created even without constraint definitions");
+      Schema secSchema = secSchemaPlus.unwrap(Schema.class);
 
       // Test that basic queries still work
       try (Statement stmt = connection.createStatement()) {

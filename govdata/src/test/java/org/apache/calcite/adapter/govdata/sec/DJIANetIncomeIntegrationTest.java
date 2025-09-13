@@ -34,46 +34,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Integration test for DJIA net income analysis using complete DJIA companies.
  */
 @Tag("integration")
-public class DJIANetIncomeIntegrationTest {
+public class DJIANetIncomeIntegrationTest extends BaseSecTest {
 
   @Test @Timeout(value = 30, unit = TimeUnit.MINUTES) // 30 companies for 2 years
   public void testDJIANetIncomeByYear() throws Exception {
     System.out.println("\n=== DJIA NET INCOME INTEGRATION TEST ===");
 
-    // Create inline model for DJIA companies
-    String modelJson = "{"
-        + "\"version\": \"1.0\","
-        + "\"defaultSchema\": \"sec\","
-        + "\"schemas\": [{"
-        + "  \"name\": \"sec\","
-        + "  \"type\": \"custom\","
-        + "  \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
-        + "  \"operand\": {"
-        + "    \"directory\": \"/Volumes/T9/calcite-sec-cache\","
-        + "    \"ciks\": \"_DJIA_CONSTITUENTS\","
-        + "    \"filingTypes\": [\"10-K\"],"
-        + "    \"autoDownload\": false,"  // Use existing cached data
-        + "    \"startYear\": 2023,"
-        + "    \"endYear\": 2024,"
-        + "    \"executionEngine\": \"parquet\","
-        + "    \"testMode\": false"
-        + "  }"
-        + "}]"
-        + "}";
-
-    // Write model to temp file
-    java.io.File modelFile = java.io.File.createTempFile("djia-integration-test", ".json");
-    modelFile.deleteOnExit();
-    java.nio.file.Files.writeString(modelFile.toPath(), modelJson);
-
-    // Connection properties
-    Properties info = new Properties();
-    info.setProperty("lex", "ORACLE");
-    info.setProperty("unquotedCasing", "TO_LOWER");
-
-    String jdbcUrl = "jdbc:calcite:model=" + modelFile.getAbsolutePath();
-
-    try (Connection connection = DriverManager.getConnection(jdbcUrl, info)) {
+    // Use external model file
+    try (Connection connection = createConnection("/djia-integration-model.json")) {
 
       System.out.println("\n=== STEP 1: Check Available Tables ===");
       try (ResultSet tables = connection.getMetaData().getTables(null, "sec", "%", new String[]{"TABLE"})) {

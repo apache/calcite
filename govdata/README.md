@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/apache/calcite/actions/workflows/gradle.yml/badge.svg)](https://github.com/apache/calcite/actions/workflows/gradle.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-The Government Data Adapter provides unified SQL access to various government data sources through Apache Calcite. Currently supports SEC financial data with plans for Census, IRS, Treasury, and other government datasets.
+The Government Data Adapter provides unified SQL access to various government data sources through Apache Calcite. Currently supports SEC financial data and HUD/Census geographic data, with plans for additional Census demographics, IRS, Treasury, and other government datasets.
 
 ## Quick Start
 
@@ -48,11 +48,19 @@ ResultSet rs = conn.createStatement().executeQuery(
 - **Text Analytics**: MD&A, footnotes, risk factors extraction
 - **Earnings Transcripts**: 8-K earnings call content
 
+### Geographic and Census Data (NEW)
+- **HUD/Census Integration**: Access to geographic and demographic datasets
+- **Fair Market Rent (FMR)**: Housing cost data by metropolitan area
+- **Income Limits**: Area median income and affordability metrics
+- **Geographic Boundaries**: County, state, and metropolitan area definitions
+- **Unified Schema**: Consistent interface across government data sources
+
 ### Data Processing
 - **Smart Caching**: Intelligent local storage and refresh
 - **Partitioned Storage**: Efficient Parquet organization by CIK/filing type/year  
 - **Multiple Engines**: DuckDB, Arrow, LINQ4J, Parquet execution support
 - **Text Similarity**: Vector embeddings for semantic search
+- **Constraint Metadata**: Universal support for key constraints and relationships
 
 ### Company Identification
 - **CIK Registry**: 13,000+ ticker-to-CIK mappings
@@ -79,6 +87,7 @@ implementation("org.apache.calcite:calcite-govdata:1.41.0-SNAPSHOT")
 
 ### Currently Supported
 - **SEC EDGAR**: Financial filings, insider trading, earnings
+- **HUD/Census Geographic Data**: Fair Market Rent, Income Limits, Geographic boundaries
 
 ### Planned Support
 - **US Census**: Demographics, economic indicators
@@ -139,6 +148,12 @@ String url = "jdbc:govdata:ciks=MAGNIFICENT7&startYear=2023";
 - `footnotes` - Financial statement footnotes
 - `risk_factors` - Risk factor disclosures
 
+### Geographic Data Tables
+- `fair_market_rent` - HUD Fair Market Rent by area and bedroom count
+- `income_limits` - HUD Income Limits by area and household size
+- `geographic_boundaries` - County, state, and metropolitan area definitions
+- `cbsa_definitions` - Core-Based Statistical Area metadata
+
 ## Examples
 
 ### Financial Analysis
@@ -180,6 +195,34 @@ SELECT
 FROM vectorized_blobs 
 WHERE blob_type = 'business_description'
   AND COSINE_SIMILARITY(embedding, target_embedding) > 0.8;
+```
+
+### Geographic Data Analysis
+```sql
+-- Fair Market Rent by metropolitan area
+SELECT 
+    area_name,
+    state,
+    efficiency,
+    one_bedroom,
+    two_bedroom,
+    three_bedroom,
+    four_bedroom
+FROM fair_market_rent
+WHERE metro = 1  -- Metropolitan areas only
+  AND state = 'CA'
+ORDER BY two_bedroom DESC
+LIMIT 10;
+
+-- Income limits for California counties
+SELECT 
+    area_name,
+    median_income,
+    l50_1,  -- 50% AMI for 1-person household
+    l80_4   -- 80% AMI for 4-person household
+FROM income_limits
+WHERE state_alpha = 'CA'
+ORDER BY median_income DESC;
 ```
 
 ## Performance
@@ -225,30 +268,24 @@ WHERE blob_type = 'business_description'
 2. **Government Data Router**: Unified entry point for multiple data sources  
 3. **Extensible Schema**: Easy addition of new government data sources
 4. **EDGAR Compliance**: Respects SEC rate limits and terms of service
+5. **Constraint Metadata Support**: Universal constraint and key relationship metadata
+6. **Unified Data Architecture**: Consistent schema patterns across all government sources
 
 ### Component Structure
 ```
 govdata/
-├── GovDataSchemaFactory     # Main entry point and data source router
-├── GovDataDriver           # JDBC driver for connection string parsing
-├── sec/                    # SEC-specific implementation
-│   ├── SecSchemaFactory    # SEC data schema and table management
-│   ├── CikRegistry         # Ticker-to-CIK resolution
+├── GovDataSchemaFactory       # Main entry point and data source router
+├── GovDataDriver             # JDBC driver for connection string parsing
+├── sec/                      # SEC-specific implementation
+│   ├── SecSchemaFactory      # SEC data schema and table management
+│   ├── CikRegistry           # Ticker-to-CIK resolution
 │   ├── XbrlToParquetConverter # XBRL processing pipeline
 │   └── SecHttpStorageProvider # EDGAR-compliant HTTP client
-└── common/                 # Shared utilities for government data
-```
-
-## Backward Compatibility
-
-The adapter maintains compatibility with existing SEC adapter usage:
-
-```java
-// Legacy SEC adapter syntax still works
-String url = "jdbc:sec:ciks=AAPL";
-
-// Automatically routes to new GovData architecture
-// with deprecation warnings
+├── geo/                      # Geographic data implementation
+│   ├── GeoSchemaFactory      # HUD/Census data schema management
+│   ├── HudDataProvider       # HUD Fair Market Rent and Income Limits
+│   └── GeographicBoundaries  # County, state, and metro area definitions
+└── common/                   # Shared utilities for government data
 ```
 
 ## Contributing
