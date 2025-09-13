@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.govdata.TableCommentDefinitions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.CommentableSchema;
 import org.apache.calcite.schema.CommentableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -55,7 +56,7 @@ import java.util.Set;
  *   <li>ZIP to Census geography crosswalk</li>
  * </ul>
  */
-public class GeoSchema extends AbstractSchema {
+public class GeoSchema extends AbstractSchema implements CommentableSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(GeoSchema.class);
 
   private final SchemaPlus parentSchema;
@@ -445,5 +446,12 @@ public class GeoSchema extends AbstractSchema {
         org.apache.calcite.config.CalciteConnectionConfig config) {
       return delegate.rolledUpColumnValidInsideAgg(column, call, parent, config);
     }
+  }
+
+  @Override public @Nullable String getComment() {
+    return "U.S. government geographic data including Census TIGER boundaries, "
+        + "HUD USPS ZIP code crosswalks, and demographic statistics. "
+        + "Enables spatial analysis, geographic aggregation, and crosswalk between "
+        + "ZIP codes, counties, census tracts, congressional districts, and metropolitan areas.";
   }
 }

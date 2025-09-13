@@ -17,8 +17,11 @@
 package org.apache.calcite.adapter.govdata.sec;
 
 import org.apache.calcite.adapter.file.FileSchema;
+import org.apache.calcite.schema.CommentableSchema;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +33,7 @@ import java.util.Map;
 /**
  * SEC-specific schema implementation that extends FileSchema.
  */
-public class SecSchema extends FileSchema {
+public class SecSchema extends FileSchema implements CommentableSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecSchema.class);
 
   @SuppressWarnings("unchecked")
@@ -53,5 +56,13 @@ public class SecSchema extends FileSchema {
       cacheHome = System.getProperty("user.home") + "/.calcite/sec-cache";
     }
     return new File(cacheHome);
+  }
+
+  @Override public @Nullable String getComment() {
+    return "Securities and Exchange Commission financial data including "
+        + "XBRL filings (10-K, 10-Q, 8-K), insider trading transactions, "
+        + "stock prices, and earnings transcripts. "
+        + "Enables financial analysis, regulatory compliance monitoring, "
+        + "and investment research across public companies.";
   }
 }
