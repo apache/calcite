@@ -81,8 +81,8 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   }
 
   // Standard SEC data cache directory - XBRL files are immutable, cache forever
-  // Default to /Volumes/T9 for testing, can be overridden with -Dsec.data.home
-  private static final String DEFAULT_SEC_HOME = "/Volumes/T9/calcite-sec-cache";
+  // Default to home for testing, can be overridden with -Dsec.data.home
+  private static final String DEFAULT_SEC_HOME = "~/sec-cache";
   private static final String SEC_DATA_HOME = System.getProperty("sec.data.home", DEFAULT_SEC_HOME);
   private static final String SEC_RAW_DIR = SEC_DATA_HOME + "/sec-data";
   private static final String SEC_PARQUET_DIR = SEC_DATA_HOME + "/sec-parquet";
@@ -142,7 +142,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   public void setTableConstraints(Map<String, Map<String, Object>> tableConstraints, List<JsonTable> tableDefinitions) {
     LOGGER.debug("Received constraint metadata for {} tables", tableConstraints.size());
     this.tableConstraints = new HashMap<>(tableConstraints);
-    
+
     // Log constraints for debugging
     for (Map.Entry<String, Map<String, Object>> entry : tableConstraints.entrySet()) {
       LOGGER.debug("Table '{}' has constraints: {}", entry.getKey(), entry.getValue());
@@ -329,6 +329,76 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
       }
       // If operand already has the key with a non-map value, keep the existing value
     }
+  }
+
+  /**
+   * Defines default constraint metadata for SEC tables.
+   * These constraints serve as documentation hints for query optimization.
+   */
+  private Map<String, Map<String, Object>> defineSecTableConstraints() {
+    Map<String, Map<String, Object>> constraints = new HashMap<>();
+
+    // financial_line_items table
+    Map<String, Object> financialLineItems = new HashMap<>();
+    financialLineItems.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "concept", "period"));
+
+    Map<String, Object> filingMetadataFK = new HashMap<>();
+    filingMetadataFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    filingMetadataFK.put("targetTable", "filing_metadata");
+    filingMetadataFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    financialLineItems.put("foreignKeys", Arrays.asList(filingMetadataFK));
+    constraints.put("financial_line_items", financialLineItems);
+
+    // filing_metadata table
+    Map<String, Object> filingMetadata = new HashMap<>();
+    filingMetadata.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    filingMetadata.put("unique", Arrays.asList(Arrays.asList("accession_number")));
+    constraints.put("filing_metadata", filingMetadata);
+
+    // footnotes table
+    Map<String, Object> footnotes = new HashMap<>();
+    footnotes.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "footnote_id"));
+
+    Map<String, Object> footnotesFilingFK = new HashMap<>();
+    footnotesFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    footnotesFilingFK.put("targetTable", "filing_metadata");
+    footnotesFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    footnotes.put("foreignKeys", Arrays.asList(footnotesFilingFK));
+    constraints.put("footnotes", footnotes);
+
+    // insider_transactions table
+    Map<String, Object> insiderTransactions = new HashMap<>();
+    insiderTransactions.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "transaction_id"));
+
+    Map<String, Object> insiderFilingFK = new HashMap<>();
+    insiderFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    insiderFilingFK.put("targetTable", "filing_metadata");
+    insiderFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    insiderTransactions.put("foreignKeys", Arrays.asList(insiderFilingFK));
+    constraints.put("insider_transactions", insiderTransactions);
+
+    // stock_prices table
+    Map<String, Object> stockPrices = new HashMap<>();
+    stockPrices.put("primaryKey", Arrays.asList("ticker", "date"));
+    stockPrices.put("unique", Arrays.asList(Arrays.asList("cik", "date")));
+    constraints.put("stock_prices", stockPrices);
+
+    // earnings_transcripts table (if present)
+    Map<String, Object> earningsTranscripts = new HashMap<>();
+    earningsTranscripts.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    Map<String, Object> earningsFilingFK = new HashMap<>();
+    earningsFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    earningsFilingFK.put("targetTable", "filing_metadata");
+    earningsFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    earningsTranscripts.put("foreignKeys", Arrays.asList(earningsFilingFK));
+    constraints.put("earnings_transcripts", earningsTranscripts);
+
+    return constraints;
   }
 
   @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
@@ -602,10 +672,33 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     // with our pre-defined tables and configured directory
     LOGGER.info("Delegating to FileSchemaFactory with modified operand");
 
-    // Add constraint metadata to operand if available
+    // Merge default constraints with provided constraints
+    Map<String, Map<String, Object>> allConstraints = defineSecTableConstraints();
+
+    // Add any model-provided constraints, overriding defaults where specified
     if (!tableConstraints.isEmpty()) {
-      LOGGER.debug("Adding constraint metadata for {} tables to FileSchemaFactory operand", tableConstraints.size());
-      mutableOperand.put("tableConstraints", tableConstraints);
+      LOGGER.debug("Merging {} model-provided constraints with defaults", tableConstraints.size());
+      for (Map.Entry<String, Map<String, Object>> entry : tableConstraints.entrySet()) {
+        String tableName = entry.getKey();
+        Map<String, Object> modelConstraints = entry.getValue();
+
+        if (allConstraints.containsKey(tableName)) {
+          // Merge with existing defaults
+          Map<String, Object> defaultConstraints = allConstraints.get(tableName);
+          Map<String, Object> merged = new HashMap<>(defaultConstraints);
+          merged.putAll(modelConstraints);  // Model constraints override defaults
+          allConstraints.put(tableName, merged);
+        } else {
+          // New table not in defaults
+          allConstraints.put(tableName, modelConstraints);
+        }
+      }
+    }
+
+    // Add constraint metadata to operand if we have any
+    if (!allConstraints.isEmpty()) {
+      LOGGER.debug("Adding constraint metadata for {} tables to FileSchemaFactory operand", allConstraints.size());
+      mutableOperand.put("tableConstraints", allConstraints);
     }
 
     // Check if text similarity is enabled before creating schema
@@ -1954,7 +2047,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
 
   /**
    * Extract and resolve company identifiers from schema operand.
-   * 
+   *
    * <p>Automatically resolves identifiers using CikRegistry:
    * <ul>
    *   <li>Ticker symbols: "AAPL" → "0000320193" (Apple's CIK)</li>
@@ -1962,7 +2055,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
    *   <li>Raw CIKs: "0000320193" → "0000320193" (normalized to 10 digits)</li>
    *   <li>Mixed inputs: ["AAPL", "FAANG", "0001018724"] → all resolved to CIKs</li>
    * </ul>
-   * 
+   *
    * @param operand Schema operand map containing 'ciks' parameter
    * @return List of resolved 10-digit CIK strings ready for SEC data fetching
    */
