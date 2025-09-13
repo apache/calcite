@@ -21,6 +21,8 @@ ResultSet rs = conn.createStatement().executeQuery(
 ```
 
 ### Model-Based Configuration
+
+#### SEC Financial Data
 ```json
 {
   "version": "1.0",
@@ -30,10 +32,85 @@ ResultSet rs = conn.createStatement().executeQuery(
     "type": "custom",
     "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
     "operand": {
+      "dataSource": "sec",
       "directory": "/path/to/cache",
       "ciks": ["AAPL", "MSFT", "GOOGL"],
       "startYear": 2020,
       "endYear": 2024
+    }
+  }]
+}
+```
+
+#### Economic Data
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "econ",
+  "schemas": [{
+    "name": "econ",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "dataSource": "econ",
+      "blsApiKey": "${BLS_API_KEY}",
+      "fredApiKey": "${FRED_API_KEY}",
+      "updateFrequency": "daily",
+      "historicalDepth": "10 years",
+      "enabledSources": ["bls", "fred", "treasury"]
+    }
+  }]
+}
+```
+
+#### Public Safety Data
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "safety",
+  "schemas": [{
+    "name": "safety",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "dataSource": "safety",
+      "fbiApiKey": "${FBI_API_KEY}",
+      "femaApiKey": "${FEMA_API_KEY}",
+      "nhtsaApiKey": "${NHTSA_API_KEY}",
+      "updateFrequency": "monthly",
+      "historicalDepth": "5 years",
+      "enabledSources": ["fbi", "nhtsa", "fema"],
+      "spatialAnalysis": {"enabled": true, "radiusAnalysis": ["1mi", "5mi"]}
+    }
+  }]
+}
+```
+
+#### Public Data
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "pub",
+  "schemas": [{
+    "name": "pub",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+    "operand": {
+      "dataSource": "pub",
+      "wikipediaLanguages": ["en", "es", "fr"],
+      "osmRegions": ["us", "canada", "mexico"],
+      "wikidataEndpoint": "https://query.wikidata.org/sparql",
+      "openalexApiKey": "${OPENALEX_API_KEY}",
+      "updateFrequency": "daily",
+      "entityLinking": {
+        "enabled": true,
+        "confidenceThreshold": 0.8
+      },
+      "spatialAnalysis": {
+        "enabled": true,
+        "bufferAnalysis": ["100m", "500m", "1km"]
+      },
+      "cacheDirectory": "${PUB_CACHE_DIR:/tmp/pub-cache}"
     }
   }]
 }
@@ -88,12 +165,35 @@ implementation("org.apache.calcite:calcite-govdata:1.41.0-SNAPSHOT")
 ### Currently Supported
 - **SEC EDGAR**: Financial filings, insider trading, earnings
 - **HUD/Census Geographic Data**: Fair Market Rent, Income Limits, Geographic boundaries
+- **Economic Data (ECON)**: BLS employment statistics, Federal Reserve indicators, Treasury yields
+- **Public Safety (SAFETY)**: FBI crime statistics, traffic safety data, emergency services, disasters
+- **Public Data (PUB)**: Wikipedia encyclopedia content, OpenStreetMap geographic data, Wikidata structured knowledge, academic research
+
+### Economic Data Sources (NEW)
+The `econ` schema provides unified access to U.S. economic indicators:
+- **Bureau of Labor Statistics (BLS)**: Employment data, CPI/PPI inflation metrics, wage growth
+- **Federal Reserve (FRED)**: 800,000+ economic time series, interest rates, GDP components
+- **U.S. Treasury**: Daily yield curves, auction results, federal debt statistics
+- **Bureau of Economic Analysis (BEA)**: GDP by state/industry, trade data
+
+### Public Safety Data Sources (NEW)
+The `safety` schema provides comprehensive public safety and risk assessment data:
+- **FBI Crime Data Explorer**: NIBRS incident data, UCR summary statistics, hate crimes, arrest data
+- **NHTSA Traffic Safety**: Fatal crash analysis (FARS), vehicle safety data, traffic violations
+- **FEMA Emergency Management**: Disaster declarations, public assistance projects, hazard mitigation
+- **Local Emergency Services**: 911 call data, fire incidents, EMS responses (where available)
+
+### Public Data Sources (NEW)
+The `pub` schema provides ubiquitous public data for comprehensive knowledge intelligence:
+- **Wikipedia**: Encyclopedia articles, entity data, knowledge extraction across 300+ languages
+- **OpenStreetMap**: Buildings, transportation, amenities, detailed geographic data worldwide
+- **Wikidata**: Structured knowledge base with 45+ million entities and relationship data
+- **Academic Research**: Publications, patents, institutional data from OpenAlex and other sources
+- **Entity Resolution**: Cross-reference linking between all data sources with confidence scoring
 
 ### Planned Support
 - **US Census**: Demographics, economic indicators
-- **IRS**: Tax statistics, exempt organizations  
-- **Treasury**: Government spending, debt data
-- **Federal Reserve**: Economic data, interest rates
+- **IRS**: Tax statistics, exempt organizations
 
 ## Configuration
 
@@ -153,6 +253,17 @@ String url = "jdbc:govdata:ciks=MAGNIFICENT7&startYear=2023";
 - `income_limits` - HUD Income Limits by area and household size
 - `geographic_boundaries` - County, state, and metropolitan area definitions
 - `cbsa_definitions` - Core-Based Statistical Area metadata
+
+### Public Knowledge Tables
+- `wikipedia_articles` - Encyclopedia articles with text content and metadata
+- `wikipedia_entities` - Entity information extracted from Wikipedia pages
+- `openstreetmap_buildings` - Building footprints and property information
+- `openstreetmap_transportation` - Roads, transit, and transportation infrastructure
+- `openstreetmap_amenities` - Points of interest, services, and facilities
+- `wikidata_entities` - Structured entity database with properties and relationships
+- `academic_publications` - Research papers and academic literature
+- `patent_applications` - Innovation and technology transfer data
+- `entity_relationships` - Cross-source entity linking and resolution data
 
 ## Examples
 
@@ -225,6 +336,170 @@ WHERE state_alpha = 'CA'
 ORDER BY median_income DESC;
 ```
 
+### Economic Data Analysis
+```sql
+-- Current economic dashboard
+SELECT 
+    'Unemployment Rate' as indicator,
+    value as current_value,
+    percent_change_year as yoy_change
+FROM econ.employment_statistics
+WHERE series_id = 'UNRATE'
+  AND date = (SELECT MAX(date) FROM econ.employment_statistics)
+UNION ALL
+SELECT 
+    'CPI Inflation',
+    percent_change_year,
+    percent_change_year - LAG(percent_change_year, 12) OVER (ORDER BY date)
+FROM econ.inflation_metrics
+WHERE index_type = 'CPI-U' AND item_code = 'All Items';
+
+-- Yield curve analysis
+SELECT 
+    date,
+    MAX(CASE WHEN maturity_months = 3 THEN yield_percent END) as "3M",
+    MAX(CASE WHEN maturity_months = 24 THEN yield_percent END) as "2Y",
+    MAX(CASE WHEN maturity_months = 120 THEN yield_percent END) as "10Y",
+    MAX(CASE WHEN maturity_months = 120 THEN yield_percent END) - 
+    MAX(CASE WHEN maturity_months = 24 THEN yield_percent END) as "10Y-2Y_spread"
+FROM econ.treasury_yields
+WHERE date >= CURRENT_DATE - INTERVAL '1 year'
+GROUP BY date
+ORDER BY date DESC;
+
+-- Company performance vs. economic conditions
+SELECT 
+    s.company_name,
+    s.fiscal_year,
+    s.revenue_growth_yoy,
+    e.gdp_growth_yoy,
+    e.unemployment_rate,
+    CORR(s.revenue_growth_yoy, e.gdp_growth_yoy) OVER (
+        PARTITION BY s.cik ORDER BY s.fiscal_year
+    ) as revenue_gdp_correlation
+FROM sec.financial_metrics s
+JOIN econ.economic_indicators e ON s.fiscal_year = e.year;
+```
+
+### Public Safety Risk Assessment
+```sql
+-- Comprehensive safety analysis for business locations
+SELECT 
+    g.county_name,
+    g.state_name,
+    s.violent_crime_rate_per_100k,
+    s.property_crime_rate_per_100k,
+    s.traffic_fatality_rate_per_100k,
+    s.disaster_risk_score,
+    s.overall_safety_score,
+    s.safety_rank_in_state,
+    e.unemployment_rate,
+    CASE 
+        WHEN s.overall_safety_score >= 8.0 THEN 'LOW RISK'
+        WHEN s.overall_safety_score >= 6.0 THEN 'MODERATE RISK'
+        ELSE 'HIGH RISK'
+    END as risk_category
+FROM safety.public_safety_index s
+JOIN geo.counties g ON s.area_code = g.county_fips
+JOIN econ.regional_employment e ON g.county_fips = e.area_code
+WHERE s.area_type = 'county' AND s.year = 2023
+ORDER BY s.overall_safety_score DESC;
+
+-- Crime trend analysis by metropolitan area
+SELECT 
+    l.agency_name,
+    l.state_code,
+    COUNT(*) as total_incidents,
+    COUNT(CASE WHEN c.offense_name LIKE '%THEFT%' THEN 1 END) as theft_incidents,
+    AVG(CASE WHEN c.cleared_flag = 'Y' THEN 1.0 ELSE 0.0 END) as clearance_rate,
+    STRING_AGG(DISTINCT c.location_type, ', ') as common_locations
+FROM safety.crime_incidents c
+JOIN safety.law_enforcement_agencies l ON c.agency_ori = l.agency_ori
+WHERE c.incident_date >= '2023-01-01' AND l.population_served > 50000
+GROUP BY l.agency_ori, l.agency_name, l.state_code
+ORDER BY total_incidents DESC LIMIT 20;
+
+-- Cross-domain business risk analysis
+SELECT 
+    cf.company_name,
+    cf.facility_city,
+    s.violent_crime_rate_per_100k,
+    t.fatal_crashes_per_year,
+    d.disaster_count_5year,
+    e.unemployment_rate,
+    CASE 
+        WHEN s.overall_safety_score >= 7.5 AND e.unemployment_rate <= 5.0 THEN 'PREFERRED'
+        WHEN s.overall_safety_score >= 6.0 THEN 'ACCEPTABLE'
+        ELSE 'HIGH_RISK'
+    END as location_recommendation
+FROM sec.company_facilities cf
+JOIN safety.public_safety_index s ON cf.county_fips = s.area_code
+JOIN safety.traffic_fatalities t ON cf.county_fips = t.county_fips
+JOIN safety.disaster_declarations d ON cf.county_fips = d.county_fips  
+JOIN econ.regional_employment e ON cf.county_fips = e.area_code
+WHERE cf.cik = '0000320193' AND s.year = 2023;
+```
+
+### Public Data Intelligence Analysis
+```sql
+-- Enhanced company intelligence with public data
+SELECT 
+    s.company_name,
+    s.cik,
+    w.founded_date,
+    w.founder_names,
+    w.headquarters_location,
+    w.industry_description,
+    w.notable_events,
+    STRING_AGG(DISTINCT wr.related_entity, ', ') as business_relationships,
+    COUNT(DISTINCT p.patent_id) as patent_count,
+    AVG(a.citation_count) as avg_citation_impact
+FROM sec.company_metadata s
+JOIN pub.wikipedia_entities w ON s.cik = w.linked_cik
+LEFT JOIN pub.entity_relationships wr ON w.entity_id = wr.source_entity_id
+LEFT JOIN pub.patent_applications p ON w.entity_id = p.assignee_entity_id
+LEFT JOIN pub.academic_publications a ON w.entity_id = a.affiliation_entity_id
+WHERE s.cik IN ('0000320193', '0000789019')  -- Apple, Microsoft
+GROUP BY s.cik, s.company_name, w.founded_date, w.founder_names, 
+         w.headquarters_location, w.industry_description, w.notable_events;
+
+-- Geographic business environment analysis
+SELECT 
+    cf.company_name,
+    cf.facility_address,
+    osm.building_type,
+    osm.nearby_amenities,
+    osm.transportation_access,
+    STRING_AGG(DISTINCT osm.amenity_type, ', ') as local_services,
+    COUNT(DISTINCT osm.restaurant_count) as dining_options,
+    AVG(osm.walkability_score) as walkability
+FROM sec.company_facilities cf
+JOIN pub.openstreetmap_buildings osm ON ST_Contains(osm.geometry, cf.location_point)
+JOIN pub.openstreetmap_amenities amen ON ST_DWithin(cf.location_point, amen.location, 500)
+WHERE cf.cik = '0000320193'
+GROUP BY cf.company_name, cf.facility_address, osm.building_type, 
+         osm.nearby_amenities, osm.transportation_access, osm.walkability_score;
+
+-- Cross-domain knowledge discovery
+SELECT 
+    w.entity_name,
+    w.entity_type,
+    w.description,
+    COUNT(DISTINCT er.target_entity_id) as relationship_count,
+    STRING_AGG(DISTINCT wd.property_value, '; ') as structured_facts,
+    COSINE_SIMILARITY(w.content_embedding, target_concept.embedding) as concept_similarity
+FROM pub.wikipedia_entities w
+JOIN pub.entity_relationships er ON w.entity_id = er.source_entity_id
+JOIN pub.wikidata_entities wd ON w.wikidata_id = wd.entity_id
+CROSS JOIN (SELECT embedding FROM pub.concept_embeddings WHERE concept = 'artificial intelligence') target_concept
+WHERE w.entity_type = 'organization' 
+  AND COSINE_SIMILARITY(w.content_embedding, target_concept.embedding) > 0.8
+GROUP BY w.entity_id, w.entity_name, w.entity_type, w.description, 
+         w.content_embedding, target_concept.embedding
+ORDER BY concept_similarity DESC
+LIMIT 20;
+```
+
 ## Performance
 
 ### Caching Strategy
@@ -285,6 +560,23 @@ govdata/
 │   ├── GeoSchemaFactory      # HUD/Census data schema management
 │   ├── HudDataProvider       # HUD Fair Market Rent and Income Limits
 │   └── GeographicBoundaries  # County, state, and metro area definitions
+├── econ/                     # Economic data implementation
+│   ├── EconSchemaFactory     # Economic data schema management
+│   ├── BlsApiClient          # Bureau of Labor Statistics API integration
+│   ├── FredApiClient         # Federal Reserve Economic Data API
+│   └── TreasuryDataProvider  # Treasury yields and auction data
+├── safety/                   # Public safety data implementation
+│   ├── SafetySchemaFactory   # Public safety data schema management
+│   ├── FbiApiClient          # FBI Crime Data Explorer API integration
+│   ├── NhtsaApiClient        # NHTSA traffic safety data API
+│   ├── FemaApiClient         # FEMA disaster and emergency data
+│   └── LocalDataPortalClient # Municipal crime and emergency data
+├── pub/                      # Public data implementation
+│   ├── PubSchemaFactory      # Public data schema management
+│   ├── WikipediaApiClient    # Wikipedia REST API integration
+│   ├── OpenStreetMapClient   # OSM Overpass API and data processing
+│   ├── WikidataClient        # Wikidata SPARQL endpoint integration
+│   └── AcademicDataProvider  # OpenAlex and research database access
 └── common/                   # Shared utilities for government data
 ```
 

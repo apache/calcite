@@ -18,7 +18,10 @@ package org.apache.calcite.adapter.govdata;
 
 import org.apache.calcite.adapter.file.metadata.InformationSchema;
 import org.apache.calcite.adapter.file.metadata.PostgreSqlCatalogSchema;
+import org.apache.calcite.adapter.govdata.econ.EconSchemaFactory;
 import org.apache.calcite.adapter.govdata.geo.GeoSchemaFactory;
+import org.apache.calcite.adapter.govdata.pub.PubSchemaFactory;
+import org.apache.calcite.adapter.govdata.safety.SafetySchemaFactory;
 import org.apache.calcite.adapter.govdata.sec.SecSchemaFactory;
 import org.apache.calcite.model.JsonTable;
 import org.apache.calcite.schema.ConstraintCapableSchemaFactory;
@@ -42,9 +45,11 @@ import java.util.Map;
  * <ul>
  *   <li>sec - Securities and Exchange Commission (EDGAR filings)</li>
  *   <li>geo - Geographic data (Census TIGER, HUD crosswalk, demographics)</li>
+ *   <li>econ - Economic data (BLS employment, FRED indicators, Treasury yields)</li>
+ *   <li>safety - Public safety data (FBI crime, NHTSA traffic, FEMA disasters)</li>
+ *   <li>pub - Public data (Wikipedia, OpenStreetMap, Wikidata, academic research)</li>
  *   <li>census - U.S. Census Bureau data (future)</li>
  *   <li>irs - Internal Revenue Service data (future)</li>
- *   <li>treasury - U.S. Treasury data (future)</li>
  * </ul>
  *
  * <p>Example model configuration:
@@ -102,6 +107,24 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
       case "geographic":
         return createGeoSchema(parentSchema, name, operand);
       
+      case "econ":
+      case "economic":
+      case "economy":
+        return createEconSchema(parentSchema, name, operand);
+      
+      case "safety":
+      case "crime":
+      case "publicsafety":
+      case "public_safety":
+        return createSafetySchema(parentSchema, name, operand);
+      
+      case "pub":
+      case "public":
+      case "wikipedia":
+      case "osm":
+      case "openstreetmap":
+        return createPubSchema(parentSchema, name, operand);
+      
       case "census":
         throw new UnsupportedOperationException(
             "Census data source not yet implemented. Coming soon!");
@@ -110,14 +133,10 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
         throw new UnsupportedOperationException(
             "IRS data source not yet implemented. Coming soon!");
         
-      case "treasury":
-        throw new UnsupportedOperationException(
-            "Treasury data source not yet implemented. Coming soon!");
-        
       default:
         throw new IllegalArgumentException(
             "Unsupported government data source: '" + dataSource + "'. " +
-            "Supported sources: sec, geo, census (future), irs (future), treasury (future)");
+            "Supported sources: sec, geo, econ, safety, pub, census (future), irs (future)");
     }
   }
   
@@ -176,6 +195,120 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
     if (schemaDataSources.containsValue("SEC")) {
       // GEO doesn't have outgoing FKs to SEC, but we track it for completeness
       LOGGER.debug("SEC schema exists - cross-domain relationships available");
+    }
+    
+    if (!allConstraints.isEmpty() && tableDefinitions != null) {
+      factory.setTableConstraints(allConstraints, tableDefinitions);
+    }
+    
+    Schema schema = factory.create(parentSchema, name, operand);
+    createdSchemas.put(name.toUpperCase(), schema);
+    return schema;
+  }
+  
+  /**
+   * Creates Economic data schema using the specialized Econ factory.
+   */
+  private Schema createEconSchema(SchemaPlus parentSchema, String name,
+      Map<String, Object> operand) {
+    LOGGER.debug("Delegating to EconSchemaFactory for economic data");
+    
+    // Track this schema for cross-domain constraint detection
+    schemaDataSources.put(name.toUpperCase(), "ECON");
+    
+    EconSchemaFactory factory = new EconSchemaFactory();
+    
+    // Build constraint metadata including cross-domain constraints
+    Map<String, Map<String, Object>> allConstraints = new HashMap<>();
+    if (tableConstraints != null) {
+      allConstraints.putAll(tableConstraints);
+    }
+    
+    // Add cross-domain constraints if SEC or GEO schemas exist
+    if (schemaDataSources.containsValue("SEC")) {
+      LOGGER.debug("SEC schema exists - economic/financial correlations available");
+    }
+    if (schemaDataSources.containsValue("GEO")) {
+      LOGGER.debug("GEO schema exists - regional economic analysis available");
+    }
+    
+    if (!allConstraints.isEmpty() && tableDefinitions != null) {
+      factory.setTableConstraints(allConstraints, tableDefinitions);
+    }
+    
+    Schema schema = factory.create(parentSchema, name, operand);
+    createdSchemas.put(name.toUpperCase(), schema);
+    return schema;
+  }
+  
+  /**
+   * Creates Public Safety data schema using the specialized Safety factory.
+   */
+  private Schema createSafetySchema(SchemaPlus parentSchema, String name,
+      Map<String, Object> operand) {
+    LOGGER.debug("Delegating to SafetySchemaFactory for public safety data");
+    
+    // Track this schema for cross-domain constraint detection
+    schemaDataSources.put(name.toUpperCase(), "SAFETY");
+    
+    SafetySchemaFactory factory = new SafetySchemaFactory();
+    
+    // Build constraint metadata including cross-domain constraints
+    Map<String, Map<String, Object>> allConstraints = new HashMap<>();
+    if (tableConstraints != null) {
+      allConstraints.putAll(tableConstraints);
+    }
+    
+    // Add cross-domain constraints if other schemas exist
+    if (schemaDataSources.containsValue("SEC")) {
+      LOGGER.debug("SEC schema exists - business risk assessment available");
+    }
+    if (schemaDataSources.containsValue("GEO")) {
+      LOGGER.debug("GEO schema exists - spatial crime/safety analysis available");
+    }
+    if (schemaDataSources.containsValue("ECON")) {
+      LOGGER.debug("ECON schema exists - socioeconomic crime correlations available");
+    }
+    
+    if (!allConstraints.isEmpty() && tableDefinitions != null) {
+      factory.setTableConstraints(allConstraints, tableDefinitions);
+    }
+    
+    Schema schema = factory.create(parentSchema, name, operand);
+    createdSchemas.put(name.toUpperCase(), schema);
+    return schema;
+  }
+  
+  /**
+   * Creates Public data schema using the specialized Pub factory.
+   */
+  private Schema createPubSchema(SchemaPlus parentSchema, String name,
+      Map<String, Object> operand) {
+    LOGGER.debug("Delegating to PubSchemaFactory for public data");
+    
+    // Track this schema for cross-domain constraint detection
+    schemaDataSources.put(name.toUpperCase(), "PUB");
+    
+    PubSchemaFactory factory = new PubSchemaFactory();
+    
+    // Build constraint metadata including cross-domain constraints
+    Map<String, Map<String, Object>> allConstraints = new HashMap<>();
+    if (tableConstraints != null) {
+      allConstraints.putAll(tableConstraints);
+    }
+    
+    // Add cross-domain constraints if other schemas exist
+    if (schemaDataSources.containsValue("SEC")) {
+      LOGGER.debug("SEC schema exists - corporate intelligence enhancement available");
+    }
+    if (schemaDataSources.containsValue("GEO")) {
+      LOGGER.debug("GEO schema exists - geographic context enrichment available");
+    }
+    if (schemaDataSources.containsValue("ECON")) {
+      LOGGER.debug("ECON schema exists - economic research correlation available");
+    }
+    if (schemaDataSources.containsValue("SAFETY")) {
+      LOGGER.debug("SAFETY schema exists - contextual safety analysis available");
     }
     
     if (!allConstraints.isEmpty() && tableDefinitions != null) {
