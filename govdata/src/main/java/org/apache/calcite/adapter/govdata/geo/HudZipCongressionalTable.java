@@ -97,11 +97,43 @@ public class HudZipCongressionalTable extends AbstractTable implements Scannable
             
             try {
               if (fetcher != null) {
-                LOGGER.debug("Loading HUD ZIP to Congressional District crosswalk data");
+                LOGGER.info("Loading HUD ZIP to Congressional District crosswalk data for Q2 2024");
                 
-                // TODO: Implement HUD API call for ZIP-Congressional District crosswalk
-                // This would call fetcher.downloadZipCongressionalCrosswalk()
-                // and parse the resulting CSV data
+                // Download ZIP-Congressional District crosswalk data from HUD API
+                java.io.File csvFile = fetcher.downloadZipToCongressionalDistrict("2", 2024);
+                
+                // Load the crosswalk records from the CSV file
+                List<HudCrosswalkFetcher.CrosswalkRecord> records = fetcher.loadCrosswalkData(csvFile);
+                
+                // Convert to table format
+                for (HudCrosswalkFetcher.CrosswalkRecord record : records) {
+                  // Parse state-congressional district code (format: SSDD where SS=state, DD=district)
+                  String stateCd = record.geoCode;
+                  String cd = "";
+                  String cdName = "Congressional District " + record.geoCode;
+                  
+                  // Extract district number from state-district code
+                  if (stateCd != null && stateCd.length() >= 2) {
+                    cd = stateCd.substring(2); // District part
+                  }
+                  
+                  data.add(new Object[] {
+                      record.zip,              // zip
+                      cd,                      // cd
+                      cdName,                  // cd_name
+                      stateCd,                 // state_cd (full SSDD code)
+                      record.resRatio,         // res_ratio
+                      record.busRatio,         // bus_ratio
+                      record.othRatio,         // oth_ratio
+                      record.totRatio,         // tot_ratio
+                      record.city,             // usps_city
+                      record.state,            // state_code
+                      ""                       // state_name (not in HUD data)
+                  });
+                }
+                
+                LOGGER.info("Loaded {} ZIP-Congressional District crosswalk records", data.size());
+                
               } else {
                 LOGGER.warn("HUD fetcher not configured. Cannot load ZIP-Congressional District crosswalk.");
               }

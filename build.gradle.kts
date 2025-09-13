@@ -64,6 +64,11 @@ plugins {
 repositories {
     // At least for RAT
     mavenCentral()
+    // GeoTools repository for TIGER shapefile parsing
+    maven {
+        url = uri("https://repo.osgeo.org/repository/release/")
+        name = "OSGeo Release Repository"
+    }
 }
 
 tasks.wrapper {

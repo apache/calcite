@@ -108,14 +108,35 @@ public class TigerZctasTable extends AbstractTable implements ScannableTable {
               }
               
               if (zctaDir.exists()) {
-                // Load ZCTA data from shapefile or processed parquet
-                // This would typically parse the shapefile and extract attributes
-                // For now, return empty list as placeholder
-                LOGGER.debug("Loading ZCTA data from {}", zctaDir);
+                LOGGER.info("Loading ZCTA data from {}", zctaDir);
                 
-                // TODO: Implement actual shapefile parsing
-                // Would use GeoTools or similar library to read .shp/.dbf files
-                // and extract ZCTA attributes
+                // Parse TIGER ZCTA shapefile
+                data = TigerShapefileParser.parseShapefile(zctaDir, "tl_2024_us_zcta520", feature -> {
+                  String zcta5 = TigerShapefileParser.getStringAttribute(feature, "ZCTA5CE20");
+                  if (zcta5.isEmpty()) {
+                    zcta5 = TigerShapefileParser.getStringAttribute(feature, "ZCTA5CE10");
+                  }
+                  if (zcta5.isEmpty()) {
+                    return null; // Skip invalid records
+                  }
+                  
+                  return new Object[] {
+                      zcta5,                                                          // zcta5
+                      "ZCTA5 " + zcta5,                                              // zcta5_name
+                      "", // state_fips - not directly available in national ZCTA file
+                      "", // state_code - would need lookup table
+                      TigerShapefileParser.getDoubleAttribute(feature, "ALAND20"),   // land_area
+                      TigerShapefileParser.getDoubleAttribute(feature, "AWATER20"),  // water_area
+                      TigerShapefileParser.getDoubleAttribute(feature, "ALAND20") + 
+                          TigerShapefileParser.getDoubleAttribute(feature, "AWATER20"), // total_area
+                      TigerShapefileParser.getDoubleAttribute(feature, "INTPTLAT20"), // intpt_lat
+                      TigerShapefileParser.getDoubleAttribute(feature, "INTPTLON20"), // intpt_lon
+                      0,  // population - not in TIGER file, would need separate census data
+                      0,  // housing_units - not in TIGER file
+                      TigerShapefileParser.getDoubleAttribute(feature, "ALAND20") / 2589988.110336,  // aland_sqmi
+                      TigerShapefileParser.getDoubleAttribute(feature, "AWATER20") / 2589988.110336  // awater_sqmi
+                  };
+                });
               } else {
                 LOGGER.warn("ZCTA data not available. Run with autoDownload=true to fetch data.");
               }

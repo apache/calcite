@@ -110,11 +110,35 @@ public class TigerCbsaTable extends AbstractTable implements ScannableTable {
               }
               
               if (cbsaDir.exists()) {
-                // Load CBSA data from shapefile or processed parquet
-                LOGGER.debug("Loading CBSA data from {}", cbsaDir);
+                LOGGER.info("Loading CBSA data from {}", cbsaDir);
                 
-                // TODO: Implement actual shapefile parsing
-                // CBSAs are national-level files
+                // Parse TIGER CBSA shapefile (national-level file)
+                data = TigerShapefileParser.parseShapefile(cbsaDir, "tl_2024_us_cbsa", feature -> {
+                  String cbsaCode = TigerShapefileParser.getStringAttribute(feature, "CBSAFP");
+                  if (cbsaCode.isEmpty()) {
+                    return null; // Skip invalid records
+                  }
+                  
+                  String memi = TigerShapefileParser.getStringAttribute(feature, "MEMI");
+                  String cbsaType = "1".equals(memi) ? "Metropolitan" : "Micropolitan";
+                  
+                  return new Object[] {
+                      cbsaCode,                                                        // cbsa_code
+                      TigerShapefileParser.getStringAttribute(feature, "NAME"),       // cbsa_name
+                      TigerShapefileParser.getStringAttribute(feature, "NAMELSAD"),  // namelsad
+                      TigerShapefileParser.getStringAttribute(feature, "LSAD"),       // lsad
+                      memi,                                                           // memi
+                      TigerShapefileParser.getStringAttribute(feature, "MTFCC"),      // mtfcc
+                      TigerShapefileParser.getDoubleAttribute(feature, "ALAND"),      // land_area
+                      TigerShapefileParser.getDoubleAttribute(feature, "AWATER"),     // water_area
+                      TigerShapefileParser.getDoubleAttribute(feature, "INTPTLAT"),   // intpt_lat
+                      TigerShapefileParser.getDoubleAttribute(feature, "INTPTLON"),   // intpt_lon
+                      cbsaType,                                                       // cbsa_type
+                      0,  // population - not in TIGER file, would need separate census data
+                      TigerShapefileParser.getDoubleAttribute(feature, "ALAND") / 2589988.110336,   // aland_sqmi
+                      TigerShapefileParser.getDoubleAttribute(feature, "AWATER") / 2589988.110336   // awater_sqmi
+                  };
+                });
               } else {
                 LOGGER.warn("CBSA data not available. Run with autoDownload=true to fetch data.");
               }

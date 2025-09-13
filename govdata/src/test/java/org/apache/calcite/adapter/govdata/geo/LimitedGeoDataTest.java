@@ -96,11 +96,21 @@ public class LimitedGeoDataTest {
       System.out.println("\n=== STEP 1: Check Available Tables ===");
       
       List<String> tables = new ArrayList<>();
-      try (ResultSet rs = conn.getMetaData().getTables(null, "GEO", "%", new String[]{"TABLE"})) {
-        while (rs.next()) {
-          String tableName = rs.getString("TABLE_NAME");
-          tables.add(tableName);
-          System.out.println("Found table: " + tableName);
+      // Try different schema names (uppercase and lowercase)
+      for (String schemaName : new String[]{"GEO", "geo", null}) {
+        try (ResultSet rs = conn.getMetaData().getTables(null, schemaName, "%", new String[]{"TABLE"})) {
+          while (rs.next()) {
+            String tableName = rs.getString("TABLE_NAME");
+            String tableSchema = rs.getString("TABLE_SCHEM");
+            String fullName = (tableSchema != null ? tableSchema + "." : "") + tableName;
+            if (!tables.contains(tableName)) {
+              tables.add(tableName);
+              System.out.println("Found table: " + fullName);
+            }
+          }
+        }
+        if (!tables.isEmpty()) {
+          break; // Found tables, no need to try other schema names
         }
       }
       
@@ -111,10 +121,10 @@ public class LimitedGeoDataTest {
           "Should have tiger_counties table");
       
       System.out.println("\n=== STEP 2: Query TIGER States Data ===");
-      String statesQuery = "SELECT state_fips, state_code, state_name, state_abbr " +
-                          "FROM geo.tiger_states " +
-                          "WHERE state_abbr IN ('CA', 'NY', 'TX') " +
-                          "ORDER BY state_abbr";
+      String statesQuery = "SELECT \"state_fips\", \"state_code\", \"state_name\", \"state_abbr\" " +
+                          "FROM \"geo\".\"tiger_states\" " +
+                          "WHERE \"state_abbr\" IN ('CA', 'NY', 'TX') " +
+                          "ORDER BY \"state_abbr\"";
       
       try (Statement stmt = conn.createStatement();
            ResultSet rs = stmt.executeQuery(statesQuery)) {
@@ -138,10 +148,10 @@ public class LimitedGeoDataTest {
       }
       
       System.out.println("\n=== STEP 3: Query TIGER Counties Data ===");
-      String countiesQuery = "SELECT state_fips, county_fips, county_name " +
-                            "FROM geo.tiger_counties " +
-                            "WHERE state_fips IN ('06', '36', '48') " + // CA, NY, TX FIPS codes
-                            "ORDER BY state_fips, county_name " +
+      String countiesQuery = "SELECT \"state_fips\", \"county_fips\", \"county_name\" " +
+                            "FROM \"geo\".\"tiger_counties\" " +
+                            "WHERE \"state_fips\" IN ('06', '36', '48') " + // CA, NY, TX FIPS codes
+                            "ORDER BY \"state_fips\", \"county_name\" " +
                             "LIMIT 10";
       
       try (Statement stmt = conn.createStatement();
@@ -169,10 +179,10 @@ public class LimitedGeoDataTest {
       
       if (hasCensusData) {
         System.out.println("\n=== STEP 4: Query Census Population Data ===");
-        String popQuery = "SELECT state_code, county_code, total_population " +
-                         "FROM geo.census_population " +
-                         "WHERE state_code IN ('06', '36', '48') " +
-                         "ORDER BY total_population DESC " +
+        String popQuery = "SELECT \"state_code\", \"county_code\", \"total_population\" " +
+                         "FROM \"geo\".\"census_population\" " +
+                         "WHERE \"state_code\" IN ('06', '36', '48') " +
+                         "ORDER BY \"total_population\" DESC " +
                          "LIMIT 5";
         
         try (Statement stmt = conn.createStatement();
@@ -200,10 +210,10 @@ public class LimitedGeoDataTest {
       
       if (hasHudData) {
         System.out.println("\n=== STEP 5: Query HUD Crosswalk Data ===");
-        String hudQuery = "SELECT zip, county_code, res_ratio " +
-                         "FROM geo.hud_zip_county " +
-                         "WHERE zip LIKE '900%' " + // LA area ZIPs
-                         "ORDER BY zip " +
+        String hudQuery = "SELECT \"zip\", \"county_code\", \"res_ratio\" " +
+                         "FROM \"geo\".\"hud_zip_county\" " +
+                         "WHERE \"zip\" LIKE '900%' " + // LA area ZIPs
+                         "ORDER BY \"zip\" " +
                          "LIMIT 5";
         
         try (Statement stmt = conn.createStatement();
@@ -304,7 +314,7 @@ public class LimitedGeoDataTest {
     
     try (Connection conn = DriverManager.getConnection(jdbcUrl, info)) {
       // Check for primary keys on tiger_states
-      try (ResultSet pks = conn.getMetaData().getPrimaryKeys(null, "GEO", "tiger_states")) {
+      try (ResultSet pks = conn.getMetaData().getPrimaryKeys(null, "GEO", "TIGER_STATES")) {
         List<String> pkColumns = new ArrayList<>();
         while (pks.next()) {
           pkColumns.add(pks.getString("COLUMN_NAME"));
@@ -313,7 +323,7 @@ public class LimitedGeoDataTest {
       }
       
       // Check for foreign keys from tiger_counties to tiger_states
-      try (ResultSet fks = conn.getMetaData().getImportedKeys(null, "GEO", "tiger_counties")) {
+      try (ResultSet fks = conn.getMetaData().getImportedKeys(null, "GEO", "TIGER_COUNTIES")) {
         System.out.println("\nForeign keys on tiger_counties:");
         while (fks.next()) {
           System.out.printf("  %s -> %s.%s\n",

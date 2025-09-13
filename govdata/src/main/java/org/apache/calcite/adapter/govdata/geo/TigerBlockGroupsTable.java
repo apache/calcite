@@ -111,11 +111,52 @@ public class TigerBlockGroupsTable extends AbstractTable implements ScannableTab
               }
               
               if (bgDir.exists()) {
-                // Load Block Group data from shapefile or processed parquet
-                LOGGER.debug("Loading Block Group data from {}", bgDir);
+                LOGGER.info("Loading Block Group data from {}", bgDir);
                 
-                // TODO: Implement actual shapefile parsing
-                // Block groups are provided at the state level
+                // Parse TIGER Block Group shapefiles (state-level files)
+                File[] stateDirectories = bgDir.listFiles(File::isDirectory);
+                if (stateDirectories != null) {
+                  for (File stateDir : stateDirectories) {
+                    LOGGER.debug("Processing block groups for state directory: {}", stateDir.getName());
+                    
+                    // Parse block group shapefile for this state (e.g., tl_2024_06_bg for California)
+                    String stateCode = stateDir.getName();
+                    String expectedPrefix = "tl_2024_" + stateCode + "_bg";
+                    
+                    List<Object[]> stateBlockGroups = TigerShapefileParser.parseShapefile(stateDir, expectedPrefix, feature -> {
+                      String geoid = TigerShapefileParser.getStringAttribute(feature, "GEOID");
+                      if (geoid.length() != 12) {
+                        return null; // Skip invalid block group records
+                      }
+                      
+                      String stateFips = geoid.substring(0, 2);
+                      String countyFips = geoid.substring(2, 5);
+                      String tractCode = geoid.substring(5, 11);
+                      String blkgrp = geoid.substring(11, 12);
+                      
+                      return new Object[] {
+                          geoid,                                                           // bg_geoid
+                          stateFips,                                                      // state_fips
+                          countyFips,                                                     // county_fips
+                          tractCode,                                                      // tract_code
+                          blkgrp,                                                         // blkgrp
+                          TigerShapefileParser.getStringAttribute(feature, "NAMELSAD"), // namelsad
+                          TigerShapefileParser.getStringAttribute(feature, "MTFCC"),     // mtfcc
+                          TigerShapefileParser.getStringAttribute(feature, "FUNCSTAT"),  // funcstat
+                          TigerShapefileParser.getDoubleAttribute(feature, "ALAND"),     // land_area
+                          TigerShapefileParser.getDoubleAttribute(feature, "AWATER"),    // water_area
+                          TigerShapefileParser.getDoubleAttribute(feature, "INTPTLAT"),  // intpt_lat
+                          TigerShapefileParser.getDoubleAttribute(feature, "INTPTLON"),  // intpt_lon
+                          0,  // population - not in TIGER file, would need separate census data
+                          0,  // housing_units - not in TIGER file
+                          TigerShapefileParser.getDoubleAttribute(feature, "ALAND") / 2589988.110336,   // aland_sqmi
+                          TigerShapefileParser.getDoubleAttribute(feature, "AWATER") / 2589988.110336   // awater_sqmi
+                      };
+                    });
+                    
+                    data.addAll(stateBlockGroups);
+                  }
+                }
               } else {
                 LOGGER.warn("Block Group data not available. Run with autoDownload=true to fetch data.");
               }
