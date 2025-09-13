@@ -57,6 +57,7 @@ import org.locationtech.jts.geom.Geometry;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
@@ -1288,6 +1289,14 @@ public class RexLiteral extends RexNode {
   public static long longValue(RexNode node) {
     final Number number = numberValue(node);
     return number.longValue();
+  }
+
+  /** Returns the value of a literal, cast, or unary minus, as a BigDecimal;
+   * never null. Uses {@link BigDecimal} for consistency with numeric literals
+   * and to facilitate precise comparison operations.*/
+  public static BigDecimal bigIntegerValue(RexNode node) {
+    final BigDecimal value = (BigDecimal) castNonNull(findValue(node));
+    return value.setScale(0, RoundingMode.HALF_UP);
   }
 
   public static @Nullable String stringValue(RexNode node) {

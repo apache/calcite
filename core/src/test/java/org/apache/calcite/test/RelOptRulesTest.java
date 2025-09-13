@@ -1636,7 +1636,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * FETCH in SortRemoveRedundantRule do not support BIGINT</a>. */
   @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2() {
     final String sql = "select * from\n"
-        + "(VALUES 1,2,3,4,5,6) as t1 limit 3000000000";
+        // The maximum value of BIGINT is   9223372036854775807.
+        + "(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807";
     sql(sql)
         .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
         .check();

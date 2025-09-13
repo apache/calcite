@@ -24,6 +24,7 @@ import org.apache.calcite.rex.RexLiteral;
 
 import org.immutables.value.Value;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -114,7 +115,7 @@ public class SortRemoveRedundantRule
     // If the limit's fetch is 0, we could use
     // CoreRules.SORT_FETCH_ZERO_INSTANCE to deal with it, so we don't need to
     // deal with it in this rule.
-    final Optional<Long> rowCountThreshold = getRowCountThreshold(sort);
+    final Optional<BigDecimal> rowCountThreshold = getRowCountThreshold(sort);
 
     if (!rowCountThreshold.isPresent()) {
       return;
@@ -122,30 +123,34 @@ public class SortRemoveRedundantRule
 
     // If the threshold is not null and less than or equal to targetMaxRowCount,
     // then we could remove the redundant sort.
-    if (inputMaxRowCount != null && inputMaxRowCount <= rowCountThreshold.get()) {
+    if (inputMaxRowCount != null
+        && Double.isFinite(inputMaxRowCount)
+        && new BigDecimal(inputMaxRowCount).compareTo(rowCountThreshold.get()) <= 0) {
       call.transformTo(sort.getInput());
     }
   }
 
-  private static Optional<Long> getRowCountThreshold(Sort sort) {
+  private static Optional<BigDecimal> getRowCountThreshold(Sort sort) {
     if (RelOptUtil.isLimit(sort)) {
-      final long fetch =
-          sort.fetch instanceof RexLiteral ? RexLiteral.longValue(sort.fetch) : 0;
+      final BigDecimal fetch =
+          sort.fetch instanceof RexLiteral
+              ? RexLiteral.bigIntegerValue(sort.fetch)
+              : BigDecimal.ZERO;
 
       // We don't need to deal with fetch is 0.
-      if (fetch == 0) {
+      if (fetch.equals(BigDecimal.ZERO)) {
         return Optional.empty();
       }
 
       // If sort is 'order by x limit n', the target threshold is 1.
       if (RelOptUtil.isOrder(sort)) {
-        return Optional.of(1L);
+        return Optional.of(BigDecimal.ONE);
       }
 
       // If sort is 'limit n', the target threshold is the limit's fetch.
       return Optional.of(fetch);
     } else if (RelOptUtil.isPureOrder(sort)) {
-      return Optional.of(1L);
+      return Optional.of(BigDecimal.ONE);
     }
     return Optional.empty();
   }
