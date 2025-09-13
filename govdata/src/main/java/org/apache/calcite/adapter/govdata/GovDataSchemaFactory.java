@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.govdata;
 
 import org.apache.calcite.adapter.file.metadata.InformationSchema;
+import org.apache.calcite.adapter.file.metadata.PostgreSqlCatalogSchema;
 import org.apache.calcite.adapter.govdata.geo.GeoSchemaFactory;
 import org.apache.calcite.adapter.govdata.sec.SecSchemaFactory;
 import org.apache.calcite.model.JsonTable;
@@ -244,8 +245,9 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
   }
   
   /**
-   * Adds metadata schemas (information_schema and metadata) to the parent schema.
+   * Adds metadata schemas (information_schema, pg_catalog, and metadata) to the parent schema.
    * This provides SQL-standard access to table and column metadata including comments.
+   * Includes PostgreSQL-compatible pg_catalog for schema comments.
    */
   private void addMetadataSchemas(SchemaPlus parentSchema) {
     // Find root schema
@@ -255,6 +257,20 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
     }
     
     // Only add metadata schemas if they don't already exist
+    if (rootSchema.subSchemas().get("information_schema") == null) {
+      LOGGER.debug("Adding information_schema to root");
+      InformationSchema informationSchema = new InformationSchema(rootSchema, "CALCITE");
+      rootSchema.add("information_schema", informationSchema);
+    }
+    
+    // Add PostgreSQL catalog schema for schema comments
+    if (rootSchema.subSchemas().get("pg_catalog") == null) {
+      LOGGER.debug("Adding pg_catalog schema to root for PostgreSQL compatibility");
+      PostgreSqlCatalogSchema pgCatalog = new PostgreSqlCatalogSchema(rootSchema, "CALCITE");
+      rootSchema.add("pg_catalog", pgCatalog);
+    }
+    
+    // Legacy metadata schema for backward compatibility
     if (rootSchema.subSchemas().get("metadata") == null) {
       LOGGER.debug("Adding metadata schema to root");
       InformationSchema metadataSchema = new InformationSchema(rootSchema, "CALCITE");
