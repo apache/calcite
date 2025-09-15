@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [
+    {
+      "name": "sec",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "sec",
+        "directory": "${SEC_VALIDATION_CACHE:/tmp/govdata-complete-validation/sec}",
+        "startYear": 2023,
+        "endYear": 2024,
+        "filingTypes": ["10-K", "10-Q", "8-K"],
+        "ciks": ["0000320193", "0000789019"],
+        "autoDownload": true,
+        "enableConstraints": true
+      }
+    },
+    {
+      "name": "econ",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "econ",
+        "cacheDirectory": "${ECON_VALIDATION_CACHE:/tmp/govdata-complete-validation/econ}",
+        "startYear": 2023,
+        "endYear": 2024,
+        "fredApiKey": "${FRED_API_KEY}",
+        "blsApiKey": "${BLS_API_KEY}",
+        "autoDownload": true,
+        "enabledSources": ["bls", "fred", "treasury"]
+      }
+    },
+    {
+      "name": "geo",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "geo",
+        "cacheDir": "${GEO_VALIDATION_CACHE:/tmp/govdata-complete-validation/geo}",
+        "startYear": 2023,
+        "endYear": 2024,
+        "censusApiKey": "${CENSUS_API_KEY}",
+        "hudUsername": "${HUD_USERNAME}",
+        "hudPassword": "${HUD_PASSWORD}",
+        "enabledSources": ["tiger"],
+        "states": ["CA", "NY"],
+        "autoDownload": true,
+        "enableConstraints": true
+      }
+    }
+  ]
+}
