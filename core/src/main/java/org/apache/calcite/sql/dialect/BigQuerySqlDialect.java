@@ -394,7 +394,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         && RexUtil.isLiteral(call.getOperands().get(0), false)
         && !SqlTypeUtil.isNumeric(call.type)
         && !SqlTypeUtil.isDate(call.type)
-        && !SqlTypeUtil.isTimestamp(call.type);
+        && !SqlTypeUtil.isTimestamp(call.type)
+        && !SqlTypeUtil.isBoolean(call.type);
   }
 
   @Override public boolean supportsApproxCountDistinct() {
