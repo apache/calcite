@@ -16,6 +16,15 @@
  */
 package org.apache.calcite.adapter.govdata.geo;
 
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,16 +40,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Simple utility class for parsing TIGER DBF files (without GeoTools dependency).
+ * Utility class for parsing TIGER shapefiles with improved error handling.
  * 
- * <p>Focuses on attribute data extraction from the .dbf component of shapefiles.
- * Does not parse geometric data but provides access to the tabular attributes.
+ * <p>Provides access to both attribute data and geometric data from shapefiles.
+ * Uses JTS for robust geometry handling and proper WKT conversion.
  */
 public class TigerShapefileParser {
   private static final Logger LOGGER = LoggerFactory.getLogger(TigerShapefileParser.class);
+  private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
+  private static final double SIMPLIFICATION_TOLERANCE = 0.001; // ~100m at equator
   
   /**
-   * Parse a TIGER shapefile and extract features from DBF file.
+   * Parse a TIGER shapefile and extract features with JTS geometry support.
    * 
    * @param shapefileDir Directory containing shapefile components
    * @param expectedPrefix Expected filename prefix (e.g., "tl_2024_us_zcta520")
@@ -64,15 +75,30 @@ public class TigerShapefileParser {
       // Parse DBF file and extract records
       List<Map<String, Object>> dbfRecords = parseDbfFile(dbfFile);
       
-      // Convert using attribute mapper
-      for (Map<String, Object> record : dbfRecords) {
-        Object[] mappedRecord = attributeMapper.mapAttributes(new SimpleDbfFeature(record));
+      // Parse geometry from .shp file if it exists
+      File shpFile = findShpFileByPrefix(shapefileDir, expectedPrefix);
+      List<Geometry> geometries = new ArrayList<>();
+      if (shpFile != null) {
+        LOGGER.info("Parsing geometry from SHP file: {}", shpFile.getName());
+        geometries = parseShpFileGeometries(shpFile);
+      }
+      
+      // Convert using attribute mapper, adding geometry if available
+      for (int i = 0; i < dbfRecords.size(); i++) {
+        Map<String, Object> record = dbfRecords.get(i);
+        
+        // Add geometry to the record if available
+        Geometry geometry = (i < geometries.size()) ? geometries.get(i) : null;
+        record.put("_GEOMETRY_", geometry);
+        
+        Object[] mappedRecord = attributeMapper.mapAttributes(new ShapefileFeature(record));
         if (mappedRecord != null) {
           records.add(mappedRecord);
         }
       }
       
-      LOGGER.info("Parsed {} features from {}", records.size(), dbfFile.getName());
+      LOGGER.info("Parsed {} features from {} (with {} geometries)", 
+          records.size(), dbfFile.getName(), geometries.size());
       
     } catch (Exception e) {
       LOGGER.error("Error parsing shapefile in directory: " + shapefileDir, e);
@@ -95,6 +121,20 @@ public class TigerShapefileParser {
     return (files != null && files.length > 0) ? files[0] : null;
   }
   
+  /**
+   * Find SHP file by prefix in directory.
+   */
+  private static File findShpFileByPrefix(File dir, String prefix) {
+    if (!dir.exists() || !dir.isDirectory()) {
+      return null;
+    }
+    
+    File[] files = dir.listFiles((d, name) -> 
+        name.startsWith(prefix) && name.toLowerCase().endsWith(".shp"));
+    
+    return (files != null && files.length > 0) ? files[0] : null;
+  }
+
   /**
    * Parse DBF file and return list of attribute maps.
    */
@@ -211,22 +251,307 @@ public class TigerShapefileParser {
         return value;
     }
   }
+
+  /**
+   * Parse geometries from SHP file using JTS and return as JTS Geometry objects.
+   */
+  private static List<Geometry> parseShpFileGeometries(File shpFile) {
+    List<Geometry> geometries = new ArrayList<>();
+    
+    try (FileInputStream fis = new FileInputStream(shpFile)) {
+      // Read SHP header
+      byte[] headerBytes = new byte[100];
+      fis.read(headerBytes);
+      
+      ByteBuffer header = ByteBuffer.wrap(headerBytes);
+      
+      // File code (should be 9994) - big endian
+      header.order(ByteOrder.BIG_ENDIAN);
+      int fileCode = header.getInt();
+      if (fileCode != 9994) {
+        LOGGER.warn("Invalid shapefile file code: {}", fileCode);
+        return geometries;
+      }
+      
+      // Switch to little endian for remaining header
+      header.order(ByteOrder.LITTLE_ENDIAN);
+      header.position(32);
+      
+      // Version and shape type
+      int version = header.getInt();
+      int shapeType = header.getInt();
+      
+      LOGGER.debug("SHP file: version={}, shapeType={}", version, shapeType);
+      
+      // Skip bounding box (8 doubles = 64 bytes)
+      header.position(100);
+      
+      // Read shapes
+      while (fis.available() > 0) {
+        // Read record header (8 bytes)
+        byte[] recordHeader = new byte[8];
+        int bytesRead = fis.read(recordHeader);
+        if (bytesRead < 8) break;
+        
+        ByteBuffer recordBuf = ByteBuffer.wrap(recordHeader);
+        recordBuf.order(ByteOrder.BIG_ENDIAN);
+        int recordNumber = recordBuf.getInt();
+        int contentLength = recordBuf.getInt() * 2; // Convert from 16-bit words to bytes
+        
+        if (contentLength <= 0 || contentLength > 50 * 1024 * 1024) { // 50MB limit
+          LOGGER.warn("Skipping record {} with invalid/large size: {} bytes", recordNumber, contentLength);
+          if (contentLength > 0 && contentLength < Integer.MAX_VALUE) {
+            fis.skip(contentLength);
+          }
+          geometries.add(null);
+          continue;
+        }
+        
+        // Read record content
+        byte[] content = new byte[contentLength];
+        bytesRead = fis.read(content);
+        if (bytesRead < contentLength) {
+          LOGGER.warn("Incomplete read for record {}", recordNumber);
+          geometries.add(null);
+          continue;
+        }
+        
+        // Parse shape using JTS
+        Geometry geometry = parseShapeRecordWithJTS(content, shapeType);
+        geometries.add(geometry);
+      }
+      
+      LOGGER.info("Extracted {} geometries from {}", geometries.size(), shpFile.getName());
+      
+    } catch (Exception e) {
+      LOGGER.warn("Error parsing SHP file {}: {}", shpFile.getName(), e.getMessage());
+    }
+    
+    return geometries;
+  }
   
+  /**
+   * Parse a single shape record using JTS and return JTS Geometry.
+   */
+  private static Geometry parseShapeRecordWithJTS(byte[] content, int shapeType) {
+    try {
+      if (content.length < 4) {
+        return null;
+      }
+      
+      ByteBuffer buf = ByteBuffer.wrap(content).order(ByteOrder.LITTLE_ENDIAN);
+      int recordShapeType = buf.getInt();
+      
+      switch (recordShapeType) {
+        case 0: // Null shape
+          return null;
+          
+        case 1: // Point
+          if (buf.remaining() < 16) return null;
+          double x = buf.getDouble();
+          double y = buf.getDouble();
+          return GEOMETRY_FACTORY.createPoint(new Coordinate(x, y));
+          
+        case 5: // Polygon
+          return parsePolygonWithJTS(buf);
+          
+        case 3: // Polyline
+          return parsePolylineWithJTS(buf);
+          
+        case 8: // MultiPoint
+          return parseMultiPointWithJTS(buf);
+          
+        case 11: // PointZ
+          if (buf.remaining() < 24) return null;
+          double xz = buf.getDouble();
+          double yz = buf.getDouble();
+          // Skip Z for now
+          return GEOMETRY_FACTORY.createPoint(new Coordinate(xz, yz));
+          
+        case 13: // PolylineZ
+          return parsePolylineWithJTS(buf);
+          
+        case 15: // PolygonZ
+          return parsePolygonWithJTS(buf);
+          
+        default:
+          LOGGER.debug("Unsupported shape type: {}", recordShapeType);
+          return null;
+      }
+      
+    } catch (Exception e) {
+      LOGGER.debug("Error parsing shape record: {}", e.getMessage());
+      return null;
+    }
+  }
+  
+  /**
+   * Parse polygon using JTS.
+   */
+  private static Geometry parsePolygonWithJTS(ByteBuffer buf) {
+    try {
+      if (buf.remaining() < 40) return null;
+      
+      // Skip bounding box
+      buf.position(buf.position() + 32);
+      
+      int numParts = buf.getInt();
+      int numPoints = buf.getInt();
+      
+      if (numParts <= 0 || numPoints <= 0) return null;
+      if (buf.remaining() < numParts * 4 + numPoints * 16) return null;
+      
+      // Read part indices
+      int[] partIndices = new int[numParts];
+      for (int i = 0; i < numParts; i++) {
+        partIndices[i] = buf.getInt();
+      }
+      
+      // Read all coordinates
+      List<Coordinate> allCoords = new ArrayList<>();
+      for (int i = 0; i < numPoints && buf.remaining() >= 16; i++) {
+        double x = buf.getDouble();
+        double y = buf.getDouble();
+        allCoords.add(new Coordinate(x, y));
+      }
+      
+      if (allCoords.size() < 4) return null; // Need at least 4 points for polygon
+      
+      // Create outer ring from first part
+      int firstPartStart = partIndices[0];
+      int firstPartEnd = (numParts > 1) ? partIndices[1] : numPoints;
+      
+      if (firstPartEnd <= firstPartStart) return null;
+      
+      List<Coordinate> ringCoords = new ArrayList<>();
+      for (int i = firstPartStart; i < firstPartEnd && i < allCoords.size(); i++) {
+        ringCoords.add(allCoords.get(i));
+      }
+      
+      // Simplify if too many points
+      if (ringCoords.size() > 1000) {
+        int step = ringCoords.size() / 500; // Sample down to ~500 points
+        List<Coordinate> simplified = new ArrayList<>();
+        for (int i = 0; i < ringCoords.size(); i += step) {
+          simplified.add(ringCoords.get(i));
+        }
+        ringCoords = simplified;
+      }
+      
+      // Ensure ring is closed
+      if (ringCoords.size() >= 4 && !ringCoords.get(0).equals(ringCoords.get(ringCoords.size() - 1))) {
+        ringCoords.add(new Coordinate(ringCoords.get(0)));
+      }
+      
+      if (ringCoords.size() < 4) return null;
+      
+      LinearRing shell = GEOMETRY_FACTORY.createLinearRing(ringCoords.toArray(new Coordinate[0]));
+      Polygon polygon = GEOMETRY_FACTORY.createPolygon(shell);
+      
+      // Apply topology-preserving simplification for very complex polygons
+      if (polygon.getNumPoints() > 1000) {
+        polygon = (Polygon) TopologyPreservingSimplifier.simplify(polygon, SIMPLIFICATION_TOLERANCE);
+      }
+      
+      return polygon;
+      
+    } catch (Exception e) {
+      LOGGER.debug("Error parsing polygon with JTS: {}", e.getMessage());
+      return null;
+    }
+  }
+  
+  /**
+   * Parse polyline using JTS.
+   */
+  private static Geometry parsePolylineWithJTS(ByteBuffer buf) {
+    try {
+      if (buf.remaining() < 40) return null;
+      
+      buf.position(buf.position() + 32); // Skip bbox
+      
+      int numParts = buf.getInt();
+      int numPoints = buf.getInt();
+      
+      if (numParts <= 0 || numPoints <= 0) return null;
+      if (buf.remaining() < numParts * 4 + numPoints * 16) return null;
+      
+      // Skip part indices for now, just read first linestring
+      buf.position(buf.position() + numParts * 4);
+      
+      List<Coordinate> coords = new ArrayList<>();
+      int maxPoints = Math.min(500, numPoints); // Limit for performance
+      int step = Math.max(1, numPoints / maxPoints);
+      
+      for (int i = 0; i < numPoints && buf.remaining() >= 16; i++) {
+        double x = buf.getDouble();
+        double y = buf.getDouble();
+        
+        if (i % step == 0 || i == 0 || i == numPoints - 1) {
+          coords.add(new Coordinate(x, y));
+        }
+      }
+      
+      if (coords.size() < 2) return null;
+      
+      return GEOMETRY_FACTORY.createLineString(coords.toArray(new Coordinate[0]));
+      
+    } catch (Exception e) {
+      LOGGER.debug("Error parsing polyline with JTS: {}", e.getMessage());
+      return null;
+    }
+  }
+  
+  /**
+   * Parse multipoint using JTS.
+   */
+  private static Geometry parseMultiPointWithJTS(ByteBuffer buf) {
+    try {
+      if (buf.remaining() < 36) return null;
+      
+      buf.position(buf.position() + 32); // Skip bbox
+      
+      int numPoints = buf.getInt();
+      if (numPoints <= 0) return null;
+      
+      List<Point> points = new ArrayList<>();
+      int maxPoints = Math.min(100, numPoints); // Limit for performance
+      int step = Math.max(1, numPoints / maxPoints);
+      
+      for (int i = 0; i < numPoints && buf.remaining() >= 16; i++) {
+        double x = buf.getDouble();
+        double y = buf.getDouble();
+        
+        if (i % step == 0) {
+          points.add(GEOMETRY_FACTORY.createPoint(new Coordinate(x, y)));
+        }
+      }
+      
+      if (points.isEmpty()) return null;
+      
+      return GEOMETRY_FACTORY.createMultiPoint(points.toArray(new Point[0]));
+      
+    } catch (Exception e) {
+      LOGGER.debug("Error parsing multipoint with JTS: {}", e.getMessage());
+      return null;
+    }
+  }
+
   /**
    * Interface for mapping shapefile attributes to Object arrays.
    */
   @FunctionalInterface
   public interface AttributeMapper {
-    Object[] mapAttributes(SimpleDbfFeature feature);
+    Object[] mapAttributes(ShapefileFeature feature);
   }
   
   /**
-   * Simple wrapper around DBF record map.
+   * Wrapper around shapefile feature data.
    */
-  public static class SimpleDbfFeature {
+  public static class ShapefileFeature {
     private final Map<String, Object> attributes;
     
-    public SimpleDbfFeature(Map<String, Object> attributes) {
+    public ShapefileFeature(Map<String, Object> attributes) {
       this.attributes = attributes;
     }
     
@@ -238,7 +563,7 @@ public class TigerShapefileParser {
   /**
    * Get safe string attribute from feature.
    */
-  public static String getStringAttribute(SimpleDbfFeature feature, String attributeName) {
+  public static String getStringAttribute(ShapefileFeature feature, String attributeName) {
     Object value = feature.getAttribute(attributeName);
     return (value != null) ? value.toString().trim() : "";
   }
@@ -246,7 +571,7 @@ public class TigerShapefileParser {
   /**
    * Get safe double attribute from feature.
    */
-  public static Double getDoubleAttribute(SimpleDbfFeature feature, String attributeName) {
+  public static Double getDoubleAttribute(ShapefileFeature feature, String attributeName) {
     Object value = feature.getAttribute(attributeName);
     if (value == null) return 0.0;
     
@@ -259,6 +584,24 @@ public class TigerShapefileParser {
     } catch (NumberFormatException e) {
       LOGGER.warn("Could not parse {} as double: {}", attributeName, value);
       return 0.0;
+    }
+  }
+  
+  /**
+   * Get geometry as WKT string from feature with JTS support.
+   */
+  public static String getGeometryAttribute(ShapefileFeature feature) {
+    Object geomObj = feature.getAttribute("_GEOMETRY_");
+    if (geomObj == null || !(geomObj instanceof Geometry)) {
+      return null;
+    }
+    
+    try {
+      Geometry geometry = (Geometry) geomObj;
+      return geometry.toText();
+    } catch (Exception e) {
+      LOGGER.warn("Error extracting geometry: {}", e.getMessage());
+      return null;
     }
   }
   

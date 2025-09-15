@@ -105,12 +105,43 @@ public class XbrlToParquetConverter implements FileConverter {
       }
 
       // If not inline XBRL or parsing failed, try traditional XBRL
-      if (doc == null) {
-        // Parse traditional XBRL/XML file
+      if (doc == null && !fileName.endsWith(".htm") && !fileName.endsWith(".html")) {
+        // Parse traditional XBRL/XML file only if it's not HTML
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
         doc = builder.parse(sourceFile);
+      }
+      
+      // For inline XBRL files that failed to parse, create minimal metadata
+      if (doc == null && (fileName.endsWith(".htm") || fileName.endsWith(".html"))) {
+        // Extract metadata from the HTML file content and directory structure
+        String parentPath = sourceFile.getParentFile().getAbsolutePath();
+        String cik = extractCikFromPath(parentPath);
+        String filingType = extractFilingTypeFromPath(sourceFile);
+        
+        // Extract filing date from the HTML content
+        String filingDate = extractFilingDateFromHtml(sourceFile);
+        if (filingDate == null) {
+          // Fallback to filename extraction
+          filingDate = extractFilingDateFromFilename(fileName);
+        }
+        
+        String extractedAccession = extractAccessionFromPath(parentPath);
+        
+        if (cik != null && filingType != null && filingDate != null) {
+          // Also try to extract company info from HTML
+          Map<String, String> companyInfo = extractCompanyInfoFromHtml(sourceFile);
+          
+          // Create metadata file with extracted information
+          createEnhancedMetadata(sourceFile, targetDirectory, cik, filingType, filingDate, 
+              extractedAccession != null ? extractedAccession : accession, companyInfo);
+          LOGGER.info("Created metadata for inline XBRL file: " + fileName);
+          return outputFiles; // Skip full conversion for now
+        } else {
+          LOGGER.warning("Could not extract minimal metadata from: " + fileName);
+          return outputFiles;
+        }
       }
 
       // Extract filing metadata
@@ -176,6 +207,14 @@ public class XbrlToParquetConverter implements FileConverter {
           new File(partitionDir, String.format("%s_%s_facts.parquet", cik, filingDate));
       writeFactsToParquet(doc, factsFile, cik, filingType, filingDate);
       outputFiles.add(factsFile);
+
+      // Write filing metadata (company info, state of incorporation, etc.)
+      File metadataFile =
+          new File(partitionDir, String.format("%s_%s_metadata.parquet", cik, filingDate));
+      writeMetadataToParquet(doc, metadataFile, cik, filingType, filingDate, sourceFile);
+      if (metadataFile.exists()) {
+        outputFiles.add(metadataFile);
+      }
 
       // Convert contexts to Parquet
       File contextsFile =
@@ -574,6 +613,154 @@ public class XbrlToParquetConverter implements FileConverter {
 
     // Clean up macOS metadata files
     cleanupMacOSMetadataFiles(outputFile.getParentFile());
+  }
+
+  private void writeMetadataToParquet(Document doc, File outputFile,
+      String cik, String filingType, String filingDate, File sourceFile) throws IOException {
+    
+    // Create Avro schema for filing metadata
+    // NOTE: Partition columns (cik, filing_type, year) are NOT included in the file
+    Schema schema = SchemaBuilder.record("FilingMetadata")
+        .fields()
+        .requiredString("accession_number")
+        .requiredString("filing_date")
+        .optionalString("company_name")
+        .optionalString("state_of_incorporation")
+        .optionalString("fiscal_year_end")
+        .optionalString("business_address")
+        .optionalString("mailing_address")
+        .optionalString("phone")
+        .optionalString("document_type")
+        .optionalString("period_end_date")
+        .optionalLong("sic_code")
+        .optionalString("irs_number")
+        .endRecord();
+
+    List<GenericRecord> records = new ArrayList<>();
+    GenericRecord record = new GenericData.Record(schema);
+    
+    // Extract accession number from filename
+    String accessionNumber = extractAccessionNumber(sourceFile.getName());
+    record.put("accession_number", accessionNumber != null ? accessionNumber : "");
+    record.put("filing_date", filingDate);
+    
+    // Extract DEI (Document and Entity Information) elements
+    // Try different namespaces and formats
+    String companyName = extractDeiValue(doc, "EntityRegistrantName", "RegistrantName");
+    record.put("company_name", companyName);
+    
+    String stateOfIncorp = extractDeiValue(doc, "EntityIncorporationStateCountryCode", 
+                                           "StateOrCountryOfIncorporation");
+    record.put("state_of_incorporation", stateOfIncorp);
+    
+    String fiscalYearEnd = extractDeiValue(doc, "CurrentFiscalYearEndDate", "FiscalYearEnd");
+    record.put("fiscal_year_end", fiscalYearEnd);
+    
+    String businessAddress = extractDeiValue(doc, "EntityAddressAddressLine1", "BusinessAddress");
+    record.put("business_address", businessAddress);
+    
+    String mailingAddress = extractDeiValue(doc, "EntityAddressMailingAddressLine1", "MailingAddress");
+    record.put("mailing_address", mailingAddress);
+    
+    String phone = extractDeiValue(doc, "EntityPhoneNumber", "Phone");
+    record.put("phone", phone);
+    
+    String docType = extractDeiValue(doc, "DocumentType", "FormType");
+    record.put("document_type", docType);
+    
+    String periodEnd = extractDeiValue(doc, "DocumentPeriodEndDate", "PeriodEndDate");
+    record.put("period_end_date", periodEnd);
+    
+    // Try to extract SIC code
+    String sicStr = extractDeiValue(doc, "EntityStandardIndustrialClassificationCode", "SicCode");
+    if (sicStr != null && !sicStr.isEmpty()) {
+      try {
+        record.put("sic_code", Long.parseLong(sicStr));
+      } catch (NumberFormatException e) {
+        record.put("sic_code", null);
+      }
+    } else {
+      record.put("sic_code", null);
+    }
+    
+    String irsNumber = extractDeiValue(doc, "EntityTaxIdentificationNumber", "IrsNumber");
+    record.put("irs_number", irsNumber);
+    
+    records.add(record);
+    
+    // Write to Parquet
+    @SuppressWarnings("deprecation")
+    ParquetWriter<GenericRecord> writer = AvroParquetWriter
+        .<GenericRecord>builder(new org.apache.hadoop.fs.Path(outputFile.toURI()))
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build();
+
+    try {
+      for (GenericRecord rec : records) {
+        writer.write(rec);
+      }
+    } finally {
+      writer.close();
+    }
+
+    LOGGER.info("Wrote filing metadata to " + outputFile);
+    
+    // Clean up macOS metadata files
+    cleanupMacOSMetadataFiles(outputFile.getParentFile());
+  }
+  
+  private String extractDeiValue(Document doc, String... possibleTags) {
+    // Try to find DEI elements in the XML document
+    for (String tag : possibleTags) {
+      // Try with dei: namespace
+      NodeList nodes = doc.getElementsByTagNameNS("*", tag);
+      if (nodes.getLength() > 0) {
+        String text = nodes.item(0).getTextContent();
+        if (text != null && !text.trim().isEmpty()) {
+          return text.trim();
+        }
+      }
+      
+      // Try without namespace
+      nodes = doc.getElementsByTagName(tag);
+      if (nodes.getLength() > 0) {
+        String text = nodes.item(0).getTextContent();
+        if (text != null && !text.trim().isEmpty()) {
+          return text.trim();
+        }
+      }
+      
+      // Try with dei: prefix
+      nodes = doc.getElementsByTagName("dei:" + tag);
+      if (nodes.getLength() > 0) {
+        String text = nodes.item(0).getTextContent();
+        if (text != null && !text.trim().isEmpty()) {
+          return text.trim();
+        }
+      }
+    }
+    return null;
+  }
+  
+  private String extractAccessionNumber(String filename) {
+    // Extract accession number from filename like "0000320193-24-000123.xml"
+    if (filename != null) {
+      // Remove file extension
+      String nameWithoutExt = filename.replaceAll("\\.[^.]+$", "");
+      // Look for pattern with dashes
+      if (nameWithoutExt.matches("\\d{10}-\\d{2}-\\d{6}")) {
+        return nameWithoutExt;
+      }
+      // Try extracting from path segments
+      String[] parts = nameWithoutExt.split("[/_]");
+      for (String part : parts) {
+        if (part.matches("\\d{10}-\\d{2}-\\d{6}")) {
+          return part;
+        }
+      }
+    }
+    return null;
   }
 
   private void writeContextsToParquet(Document doc, File outputFile,
@@ -2742,5 +2929,330 @@ public class XbrlToParquetConverter implements FileConverter {
       return text;
     }
     return text.substring(0, maxLength - 3) + "...";
+  }
+  
+  private String extractCikFromPath(String path) {
+    // Extract CIK from path like "/sec-data/0000320193/000032019323000106/"
+    Pattern pattern = Pattern.compile("/(\\d{10})/");
+    Matcher matcher = pattern.matcher(path);
+    if (matcher.find()) {
+      return matcher.group(1);
+    }
+    return null;
+  }
+  
+  private String extractFilingTypeFromPath(File sourceFile) {
+    // Try to determine filing type from filename and parent directory
+    String filename = sourceFile.getName().toLowerCase();
+    String parentName = sourceFile.getParentFile().getName().toLowerCase();
+    
+    // Check filename patterns
+    if (filename.contains("10k") || filename.contains("10-k") || parentName.contains("10k")) {
+      return "10-K";
+    } else if (filename.contains("10q") || filename.contains("10-q") || parentName.contains("10q")) {
+      return "10-Q";
+    } else if (filename.contains("8k") || filename.contains("8-k") || 
+               filename.contains("_8k") || parentName.contains("8k")) {
+      return "8-K";
+    } else if (filename.contains("def14a") || parentName.contains("def14a")) {
+      return "DEF14A";
+    }
+    
+    // Try to infer from filename patterns
+    // Files like "aapl-20240928.htm" are usually 10-K/10-Q based on date
+    if (filename.matches(".*-20\\d{6}\\.htm.*")) {
+      // Check if it's end of September (Q4 - likely 10-K)
+      if (filename.contains("0930") || filename.contains("0928")) {
+        return "10-K";
+      } else if (filename.contains("0331") || filename.contains("0330") || 
+                 filename.contains("0630") || filename.contains("0629") ||
+                 filename.contains("1231") || filename.contains("1230")) {
+        return "10-Q";
+      }
+    }
+    
+    // Default to 8-K for other HTML files as they're most common
+    return "8-K";
+  }
+  
+  private String extractFilingDateFromFilename(String filename) {
+    // Extract date from filename like "aapl-20230930.htm" or "msft-20240630.htm"
+    // Also handle 8-K names like "ny20007635x4_8k.htm" or "d447690d8k.htm"
+    Pattern pattern = Pattern.compile("(20\\d{6})");  // Look for dates starting with 20
+    Matcher matcher = pattern.matcher(filename);
+    if (matcher.find()) {
+      String dateStr = matcher.group(1);
+      // Convert YYYYMMDD to YYYY-MM-DD
+      if (dateStr.length() == 8) {
+        String year = dateStr.substring(0, 4);
+        String month = dateStr.substring(4, 6);
+        String day = dateStr.substring(6, 8);
+        // Validate the date components
+        try {
+          int y = Integer.parseInt(year);
+          int m = Integer.parseInt(month);
+          int d = Integer.parseInt(day);
+          if (y >= 2000 && y <= 2030 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+            return year + "-" + month + "-" + day;
+          }
+        } catch (NumberFormatException e) {
+          // Invalid date format
+        }
+      }
+    }
+    
+    // If no valid date found, try to use current year
+    // This is a fallback for files without dates in the name
+    return "2024-01-01";  // Default date for filing
+  }
+  
+  private String extractAccessionFromPath(String path) {
+    // Extract accession from path like "/sec-data/0000320193/000032019323000106/"
+    Pattern pattern = Pattern.compile("/(\\d{18})/");
+    Matcher matcher = pattern.matcher(path);
+    if (matcher.find()) {
+      String acc = matcher.group(1);
+      // Format as 0000320193-23-000106
+      return acc.substring(0, 10) + "-" + acc.substring(10, 12) + "-" + acc.substring(12);
+    }
+    return null;
+  }
+  
+  private String extractFilingDateFromHtml(File htmlFile) {
+    try {
+      String content = Files.readString(htmlFile.toPath());
+      
+      // Try various patterns to find the period end date in iXBRL
+      // Pattern 1: ix:nonnumeric with name containing PeriodEndDate
+      Pattern pattern1 = Pattern.compile("name=\"[^\"]*PeriodEndDate[^\"]*\"[^>]*>([^<]+)</");
+      Matcher matcher1 = pattern1.matcher(content);
+      if (matcher1.find()) {
+        String dateStr = matcher1.group(1).trim();
+        return normalizeDate(dateStr);
+      }
+      
+      // Pattern 2: contextRef with period end date
+      Pattern pattern2 = Pattern.compile("contextref=\"[^\"]*\"[^>]*>\\s*(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}/\\d{1,2}/\\d{4})");
+      Matcher matcher2 = pattern2.matcher(content);
+      if (matcher2.find()) {
+        String dateStr = matcher2.group(1).trim();
+        return normalizeDate(dateStr);
+      }
+      
+      // Pattern 3: Look for dei:DocumentPeriodEndDate
+      Pattern pattern3 = Pattern.compile("dei:DocumentPeriodEndDate[^>]*>([^<]+)</");
+      Matcher matcher3 = pattern3.matcher(content);
+      if (matcher3.find()) {
+        String dateStr = matcher3.group(1).trim();
+        return normalizeDate(dateStr);
+      }
+      
+      // Pattern 4: Look for period end in meta tags
+      Pattern pattern4 = Pattern.compile("<meta[^>]*name=\"[^\"]*period[^\"]*\"[^>]*content=\"([^\"]+)\"");
+      Matcher matcher4 = pattern4.matcher(content);
+      if (matcher4.find()) {
+        String dateStr = matcher4.group(1).trim();
+        return normalizeDate(dateStr);
+      }
+      
+    } catch (IOException e) {
+      LOGGER.warning("Failed to read HTML file for date extraction: " + e.getMessage());
+    }
+    return null;
+  }
+  
+  private Map<String, String> extractCompanyInfoFromHtml(File htmlFile) {
+    Map<String, String> info = new HashMap<>();
+    try {
+      String content = Files.readString(htmlFile.toPath());
+      
+      // Extract company name
+      Pattern namePattern = Pattern.compile("dei:EntityRegistrantName[^>]*>([^<]+)</");
+      Matcher nameMatcher = namePattern.matcher(content);
+      if (nameMatcher.find()) {
+        info.put("company_name", nameMatcher.group(1).trim());
+      }
+      
+      // Extract state of incorporation
+      Pattern statePattern = Pattern.compile("dei:EntityIncorporationStateCountryCode[^>]*>([^<]+)</");
+      Matcher stateMatcher = statePattern.matcher(content);
+      if (stateMatcher.find()) {
+        info.put("state_of_incorporation", stateMatcher.group(1).trim());
+      }
+      
+      // Extract fiscal year end
+      Pattern fyPattern = Pattern.compile("dei:CurrentFiscalYearEndDate[^>]*>([^<]+)</");
+      Matcher fyMatcher = fyPattern.matcher(content);
+      if (fyMatcher.find()) {
+        info.put("fiscal_year_end", fyMatcher.group(1).trim());
+      }
+      
+      // Extract SIC code
+      Pattern sicPattern = Pattern.compile("dei:EntityStandardIndustrialClassificationCode[^>]*>([^<]+)</");
+      Matcher sicMatcher = sicPattern.matcher(content);
+      if (sicMatcher.find()) {
+        info.put("sic_code", sicMatcher.group(1).trim());
+      }
+      
+    } catch (IOException e) {
+      LOGGER.warning("Failed to read HTML file for company info extraction: " + e.getMessage());
+    }
+    return info;
+  }
+  
+  private String normalizeDate(String dateStr) {
+    if (dateStr == null || dateStr.isEmpty()) {
+      return null;
+    }
+    
+    // Already in YYYY-MM-DD format
+    if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+      return dateStr;
+    }
+    
+    // MM/DD/YYYY format
+    if (dateStr.matches("\\d{1,2}/\\d{1,2}/\\d{4}")) {
+      String[] parts = dateStr.split("/");
+      return String.format("%s-%02d-%02d", parts[2], 
+          Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+    }
+    
+    // YYYYMMDD format
+    if (dateStr.matches("\\d{8}")) {
+      return dateStr.substring(0, 4) + "-" + dateStr.substring(4, 6) + "-" + dateStr.substring(6, 8);
+    }
+    
+    // Month DD, YYYY format (e.g., "September 30, 2024")
+    Pattern monthDayYear = Pattern.compile("(\\w+)\\s+(\\d{1,2}),\\s+(\\d{4})");
+    Matcher matcher = monthDayYear.matcher(dateStr);
+    if (matcher.find()) {
+      String month = matcher.group(1);
+      String day = matcher.group(2);
+      String year = matcher.group(3);
+      int monthNum = getMonthNumber(month);
+      if (monthNum > 0) {
+        return String.format("%s-%02d-%02d", year, monthNum, Integer.parseInt(day));
+      }
+    }
+    
+    return null;
+  }
+  
+  private int getMonthNumber(String month) {
+    String[] months = {"january", "february", "march", "april", "may", "june",
+                       "july", "august", "september", "october", "november", "december"};
+    String monthLower = month.toLowerCase();
+    for (int i = 0; i < months.length; i++) {
+      if (months[i].startsWith(monthLower.substring(0, Math.min(3, monthLower.length())))) {
+        return i + 1;
+      }
+    }
+    return 0;
+  }
+  
+  private void createEnhancedMetadata(File sourceFile, File targetDirectory, String cik,
+      String filingType, String filingDate, String accession, Map<String, String> companyInfo) throws IOException {
+    // Create partition directory
+    String normalizedFilingType = filingType.replace("-", "").replace("/", "");
+    File partitionDir = new File(targetDirectory, 
+        String.format("cik=%s/filing_type=%s/year=%s", cik, normalizedFilingType, filingDate.substring(0, 4)));
+    partitionDir.mkdirs();
+    
+    // Create metadata parquet file
+    File metadataFile = new File(partitionDir, String.format("%s_%s_metadata.parquet", cik, filingDate));
+    
+    // Define schema for metadata
+    Schema schema = SchemaBuilder.record("FilingMetadata")
+        .fields()
+        .requiredString("accession_number")
+        .requiredString("filing_date")
+        .optionalString("company_name")
+        .optionalString("state_of_incorporation")
+        .optionalString("fiscal_year_end")
+        .optionalString("sic_code")
+        .optionalString("irs_number")
+        .optionalString("business_address")
+        .optionalString("mailing_address")
+        .requiredString("filing_url")
+        .endRecord();
+    
+    Path path = new Path(metadataFile.toURI());
+    @SuppressWarnings("deprecation")
+    ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build();
+    
+    try {
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("accession_number", accession != null ? accession : cik + "-" + filingDate);
+      record.put("filing_date", filingDate);
+      record.put("company_name", companyInfo.get("company_name"));
+      record.put("state_of_incorporation", companyInfo.get("state_of_incorporation"));
+      record.put("fiscal_year_end", companyInfo.get("fiscal_year_end"));
+      record.put("sic_code", companyInfo.get("sic_code"));
+      record.put("irs_number", companyInfo.get("irs_number"));
+      record.put("business_address", companyInfo.get("business_address"));
+      record.put("mailing_address", companyInfo.get("mailing_address"));
+      record.put("filing_url", sourceFile.getName());
+      
+      writer.write(record);
+    } finally {
+      writer.close();
+    }
+  }
+  
+  private void createMinimalMetadata(File sourceFile, File targetDirectory, String cik,
+      String filingType, String filingDate, String accession) throws IOException {
+    // Create partition directory
+    String normalizedFilingType = filingType.replace("-", "").replace("/", "");
+    File partitionDir = new File(targetDirectory, 
+        String.format("cik=%s/filing_type=%s/year=%s", cik, normalizedFilingType, filingDate.substring(0, 4)));
+    partitionDir.mkdirs();
+    
+    // Create metadata parquet file
+    File metadataFile = new File(partitionDir, String.format("%s_%s_metadata.parquet", cik, filingDate));
+    
+    // Define schema for minimal metadata
+    Schema schema = SchemaBuilder.record("FilingMetadata")
+        .fields()
+        .requiredString("accession_number")
+        .requiredString("filing_date")
+        .optionalString("company_name")
+        .optionalString("state_of_incorporation")
+        .optionalString("fiscal_year_end")
+        .optionalString("sic_code")
+        .optionalString("irs_number")
+        .optionalString("business_address")
+        .optionalString("mailing_address")
+        .requiredString("filing_url")
+        .endRecord();
+    
+    Path path = new Path(metadataFile.toURI());
+    @SuppressWarnings("deprecation")
+    ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build();
+    
+    try {
+      
+      GenericRecord record = new GenericData.Record(schema);
+      record.put("accession_number", accession != null ? accession : cik + "-" + filingDate);
+      record.put("filing_date", filingDate);
+      // We don't have company info from inline XBRL that failed to parse
+      record.put("company_name", null);
+      record.put("state_of_incorporation", null);
+      record.put("fiscal_year_end", null);
+      record.put("sic_code", null);
+      record.put("irs_number", null);
+      record.put("business_address", null);
+      record.put("mailing_address", null);
+      record.put("filing_url", sourceFile.getName());
+      
+      writer.write(record);
+    } finally {
+      writer.close();
+    }
   }
 }

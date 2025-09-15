@@ -67,13 +67,19 @@ public class CensusApiClient {
   
   private final String apiKey;
   private final File cacheDir;
+  private final List<Integer> censusYears;
   private final ObjectMapper objectMapper;
   private final Semaphore rateLimiter;
   private final AtomicLong lastRequestTime;
   
   public CensusApiClient(String apiKey, File cacheDir) {
+    this(apiKey, cacheDir, new ArrayList<>());
+  }
+  
+  public CensusApiClient(String apiKey, File cacheDir, List<Integer> censusYears) {
     this.apiKey = apiKey;
     this.cacheDir = cacheDir;
+    this.censusYears = censusYears;
     this.objectMapper = new ObjectMapper();
     this.rateLimiter = new Semaphore(MAX_REQUESTS_PER_SECOND);
     this.lastRequestTime = new AtomicLong(0);

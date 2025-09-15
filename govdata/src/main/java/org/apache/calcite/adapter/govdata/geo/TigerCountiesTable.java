@@ -62,10 +62,11 @@ public class TigerCountiesTable extends AbstractTable implements ScannableTable 
         try {
           LOGGER.info("Fetching TIGER counties data");
           
-          // Download counties shapefile
-          File countiesDir = tigerDownloader.downloadCounties();
+          // Download counties shapefiles for all years
+          tigerDownloader.downloadCounties();
           
           // For now, return stub data - would need shapefile parsing
+          // TODO: Iterate through year partitions and merge data
           LOGGER.warn("TIGER shapefile parsing not yet implemented, returning empty result");
           return new TigerCountiesEnumerator();
           

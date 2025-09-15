@@ -62,10 +62,11 @@ public class TigerStatesTable extends AbstractTable implements ScannableTable {
         try {
           LOGGER.info("Fetching TIGER states data");
           
-          // Download states shapefile
-          File statesDir = tigerDownloader.downloadStates();
+          // Download states shapefiles for all years
+          tigerDownloader.downloadStates();
           
           // For now, return stub data - would need shapefile parsing
+          // TODO: Iterate through year partitions and merge data
           LOGGER.warn("TIGER shapefile parsing not yet implemented, returning empty result");
           return new TigerStatesEnumerator();
           

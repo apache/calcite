@@ -27,6 +27,8 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -54,43 +56,75 @@ public class TigerDataDownloader {
   private static final String TIGER_BASE_URL = "https://www2.census.gov/geo/tiger";
   
   private final File cacheDir;
-  private final int dataYear;
+  private final List<Integer> dataYears;
   private final boolean autoDownload;
   
-  public TigerDataDownloader(File cacheDir, int dataYear, boolean autoDownload) {
+  /**
+   * Constructor with year list.
+   */
+  public TigerDataDownloader(File cacheDir, List<Integer> dataYears, boolean autoDownload) {
     this.cacheDir = cacheDir;
-    this.dataYear = dataYear;
+    this.dataYears = dataYears;
     this.autoDownload = autoDownload;
     
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
     }
     
-    LOGGER.info("TIGER data downloader initialized for year {} in directory: {}", 
-        dataYear, cacheDir);
+    LOGGER.info("TIGER data downloader initialized for years {} in directory: {}", 
+        dataYears, cacheDir);
   }
   
   /**
-   * Download state boundary shapefile.
+   * Backward compatibility constructor with single year.
    */
-  public File downloadStates() throws IOException {
-    String filename = String.format("tl_%d_us_state.zip", dataYear);
-    String url = String.format("%s/TIGER%d/STATE/%s", TIGER_BASE_URL, dataYear, filename);
+  public TigerDataDownloader(File cacheDir, int dataYear, boolean autoDownload) {
+    this(cacheDir, Arrays.asList(dataYear), autoDownload);
+  }
+  
+  /**
+   * Download state boundary shapefiles for all configured years.
+   */
+  public void downloadStates() throws IOException {
+    for (int year : dataYears) {
+      downloadStatesForYear(year);
+    }
+  }
+  
+  /**
+   * Download state boundary shapefile for the first configured year.
+   * For backward compatibility with tests.
+   */
+  public File downloadStatesFirstYear() throws IOException {
+    if (dataYears.isEmpty()) {
+      return null;
+    }
+    return downloadStatesForYear(dataYears.get(0));
+  }
+  
+  /**
+   * Download state boundary shapefile for a specific year.
+   */
+  public File downloadStatesForYear(int year) throws IOException {
+    String filename = String.format("tl_%d_us_state.zip", year);
+    String url = String.format("%s/TIGER%d/STATE/%s", TIGER_BASE_URL, year, filename);
     
-    File targetDir = new File(cacheDir, "states");
+    // Create year-partitioned directory structure
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "states");
     File zipFile = new File(targetDir, filename);
     
     if (zipFile.exists()) {
-      LOGGER.info("States shapefile already exists: {}", zipFile);
+      LOGGER.info("States shapefile already exists for year {}: {}", year, zipFile);
       return targetDir;
     }
     
     if (!autoDownload) {
-      LOGGER.info("Auto-download disabled. States shapefile not found: {}", zipFile);
+      LOGGER.info("Auto-download disabled. States shapefile not found for year {}: {}", year, zipFile);
       return null;
     }
     
-    LOGGER.info("Downloading states shapefile from: {}", url);
+    LOGGER.info("Downloading states shapefile for year {} from: {}", year, url);
     targetDir.mkdirs();
     downloadFile(url, zipFile);
     extractZipFile(zipFile, targetDir);
@@ -99,42 +133,74 @@ public class TigerDataDownloader {
   }
   
   /**
-   * Download county boundary shapefile.
+   * Download county boundary shapefiles for all configured years.
    */
-  public File downloadCounties() throws IOException {
-    String filename = String.format("tl_%d_us_county.zip", dataYear);
-    String url = String.format("%s/TIGER%d/COUNTY/%s", TIGER_BASE_URL, dataYear, filename);
+  public void downloadCounties() throws IOException {
+    for (int year : dataYears) {
+      downloadCountiesForYear(year);
+    }
+  }
+  
+  /**
+   * Download county boundary shapefile for the first configured year.
+   * For backward compatibility with tests.
+   */
+  public File downloadCountiesFirstYear() throws IOException {
+    if (dataYears.isEmpty()) {
+      return null;
+    }
+    return downloadCountiesForYear(dataYears.get(0));
+  }
+  
+  /**
+   * Download county boundary shapefile for a specific year.
+   */
+  public File downloadCountiesForYear(int year) throws IOException {
+    String filename = String.format("tl_%d_us_county.zip", year);
+    String url = String.format("%s/TIGER%d/COUNTY/%s", TIGER_BASE_URL, year, filename);
     
-    File targetDir = new File(cacheDir, "counties");
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "counties");
     File zipFile = new File(targetDir, filename);
     
     if (zipFile.exists()) {
-      LOGGER.info("Counties shapefile already exists: {}", zipFile);
+      LOGGER.info("Counties shapefile already exists for year {}: {}", year, zipFile);
       return targetDir;
     }
     
     if (!autoDownload) {
-      LOGGER.info("Auto-download disabled. Counties shapefile not found: {}", zipFile);
+      LOGGER.info("Auto-download disabled. Counties shapefile not found for year {}: {}", year, zipFile);
       return null;
     }
     
-    LOGGER.info("Downloading counties shapefile from: {}", url);
+    LOGGER.info("Downloading counties shapefile for year {} from: {}", year, url);
     targetDir.mkdirs();
     downloadFile(url, zipFile);
     extractZipFile(zipFile, targetDir);
     
     return targetDir;
+  }
+  
+  /**
+   * Download places (cities, towns) boundary shapefiles for all configured years.
+   */
+  public void downloadPlaces() throws IOException {
+    // Download places for all states (simplified for now)
+    for (int year : dataYears) {
+      downloadAllPlacesForYear(year);
+    }
   }
   
   /**
    * Download places (cities, towns) boundary shapefile.
    * Note: Places are downloaded by state FIPS code.
    */
-  public File downloadPlaces(String stateFips) throws IOException {
-    String filename = String.format("tl_%d_%s_place.zip", dataYear, stateFips);
-    String url = String.format("%s/TIGER%d/PLACE/%s", TIGER_BASE_URL, dataYear, filename);
+  public File downloadPlacesForYear(int year, String stateFips) throws IOException {
+    String filename = String.format("tl_%d_%s_place.zip", year, stateFips);
+    String url = String.format("%s/TIGER%d/PLACE/%s", TIGER_BASE_URL, year, filename);
     
-    File targetDir = new File(cacheDir, "places/" + stateFips);
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "places/" + stateFips);
     File zipFile = new File(targetDir, filename);
     
     if (zipFile.exists()) {
@@ -157,9 +223,9 @@ public class TigerDataDownloader {
   }
   
   /**
-   * Download all places for all states.
+   * Download all places for all states for a specific year.
    */
-  public void downloadPlaces() throws IOException {
+  private void downloadAllPlacesForYear(int year) throws IOException {
     // Download places for all 50 states + DC + territories
     String[] stateFipsCodes = {
         "01", "02", "04", "05", "06", "08", "09", "10", "11", "12",
@@ -172,21 +238,31 @@ public class TigerDataDownloader {
     
     for (String stateFips : stateFipsCodes) {
       try {
-        downloadPlaces(stateFips);
+        downloadPlacesForYear(year, stateFips);
       } catch (Exception e) {
-        LOGGER.warn("Failed to download places for state {}: {}", stateFips, e.getMessage());
+        LOGGER.warn("Failed to download places for state {} year {}: {}", stateFips, year, e.getMessage());
       }
     }
   }
   
   /**
-   * Download ZIP Code Tabulation Areas (ZCTAs) shapefile.
+   * Download ZIP Code Tabulation Areas (ZCTAs) shapefiles for all configured years.
    */
-  public File downloadZctas() throws IOException {
-    String filename = String.format("tl_%d_us_zcta520.zip", dataYear);
-    String url = String.format("%s/TIGER%d/ZCTA520/%s", TIGER_BASE_URL, dataYear, filename);
+  public void downloadZctas() throws IOException {
+    for (int year : dataYears) {
+      downloadZctasForYear(year);
+    }
+  }
+  
+  /**
+   * Download ZIP Code Tabulation Areas (ZCTAs) shapefile for a specific year.
+   */
+  public File downloadZctasForYear(int year) throws IOException {
+    String filename = String.format("tl_%d_us_zcta520.zip", year);
+    String url = String.format("%s/TIGER%d/ZCTA520/%s", TIGER_BASE_URL, year, filename);
     
-    File targetDir = new File(cacheDir, "zctas");
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "zctas");
     File zipFile = new File(targetDir, filename);
     
     if (zipFile.exists()) {
@@ -209,26 +285,36 @@ public class TigerDataDownloader {
   }
   
   /**
-   * Download congressional districts shapefile.
+   * Download congressional districts shapefiles for all configured years.
    */
-  public File downloadCongressionalDistricts() throws IOException {
-    String filename = String.format("tl_%d_us_cd118.zip", dataYear); // 118th Congress
-    String url = String.format("%s/TIGER%d/CD/%s", TIGER_BASE_URL, dataYear, filename);
+  public void downloadCongressionalDistricts() throws IOException {
+    for (int year : dataYears) {
+      downloadCongressionalDistrictsForYear(year);
+    }
+  }
+  
+  /**
+   * Download congressional districts shapefile for a specific year.
+   */
+  public File downloadCongressionalDistrictsForYear(int year) throws IOException {
+    String filename = String.format("tl_%d_us_cd118.zip", year); // 118th Congress
+    String url = String.format("%s/TIGER%d/CD/%s", TIGER_BASE_URL, year, filename);
     
-    File targetDir = new File(cacheDir, "congressional_districts");
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "congressional_districts");
     File zipFile = new File(targetDir, filename);
     
     if (zipFile.exists()) {
-      LOGGER.info("Congressional districts shapefile already exists: {}", zipFile);
+      LOGGER.info("Congressional districts shapefile already exists for year {}: {}", year, zipFile);
       return targetDir;
     }
     
     if (!autoDownload) {
-      LOGGER.info("Auto-download disabled. Congressional districts shapefile not found: {}", zipFile);
+      LOGGER.info("Auto-download disabled. Congressional districts shapefile not found for year {}: {}", year, zipFile);
       return null;
     }
     
-    LOGGER.info("Downloading congressional districts shapefile from: {}", url);
+    LOGGER.info("Downloading congressional districts shapefile for year {} from: {}", year, url);
     targetDir.mkdirs();
     downloadFile(url, zipFile);
     extractZipFile(zipFile, targetDir);
@@ -318,82 +404,158 @@ public class TigerDataDownloader {
   }
   
   /**
-   * Download census tracts shapefile for all states.
+   * Download census tracts shapefiles for all configured years.
    */
-  public File downloadCensusTracts() throws IOException {
-    String filename = String.format("tl_%d_us_tract.zip", dataYear);
-    String url = String.format("%s/TIGER%d/TRACT/%s", TIGER_BASE_URL, dataYear, filename);
+  public void downloadCensusTracts() throws IOException {
+    for (int year : dataYears) {
+      downloadCensusTractsForYear(year);
+    }
+  }
+  
+  /**
+   * Download census tracts shapefile for a specific year.
+   * Census tracts are organized by state, so we'll download for selected states.
+   */
+  public File downloadCensusTractsForYear(int year) throws IOException {
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "census_tracts");
     
-    File targetDir = new File(cacheDir, "census_tracts");
-    File zipFile = new File(targetDir, filename);
-    
-    if (zipFile.exists()) {
-      LOGGER.info("Census tracts shapefile already exists: {}", zipFile);
+    // Check if we already have census tract data
+    if (targetDir.exists() && targetDir.listFiles() != null && targetDir.listFiles().length > 0) {
+      LOGGER.info("Census tracts already downloaded for year {}: {}", year, targetDir);
       return targetDir;
     }
     
     if (!autoDownload) {
-      LOGGER.info("Auto-download disabled. Census tracts shapefile not found: {}", zipFile);
+      LOGGER.info("Auto-download disabled. Census tracts not found for year {}: {}", year, targetDir);
       return null;
     }
     
-    LOGGER.info("Downloading census tracts shapefile from: {}", url);
     targetDir.mkdirs();
-    downloadFile(url, zipFile);
-    extractZipFile(zipFile, targetDir);
+    
+    // Download census tracts for selected states only
+    // Using same states as we do for places: CA(06), TX(48), NY(36), FL(12)
+    String[] stateFips = {"06", "48", "36", "12"};
+    
+    for (String fips : stateFips) {
+      String filename = String.format("tl_%d_%s_tract.zip", year, fips);
+      String url = String.format("%s/TIGER%d/TRACT/%s", TIGER_BASE_URL, year, filename);
+      
+      File stateDir = new File(targetDir, fips);
+      File zipFile = new File(stateDir, filename);
+      
+      if (zipFile.exists()) {
+        LOGGER.info("Census tracts shapefile already exists for state {}: {}", fips, zipFile);
+        continue;
+      }
+      
+      LOGGER.info("Downloading census tracts shapefile for state {} year {} from: {}", fips, year, url);
+      stateDir.mkdirs();
+      
+      try {
+        downloadFile(url, zipFile);
+        extractZipFile(zipFile, stateDir);
+      } catch (IOException e) {
+        LOGGER.warn("Failed to download census tracts for state {}: {}", fips, e.getMessage());
+        // Continue with other states even if one fails
+      }
+    }
     
     return targetDir;
   }
   
   /**
-   * Download block groups shapefile for all states.
+   * Download block groups shapefiles for all configured years.
    */
-  public File downloadBlockGroups() throws IOException {
-    String filename = String.format("tl_%d_us_bg.zip", dataYear);
-    String url = String.format("%s/TIGER%d/BG/%s", TIGER_BASE_URL, dataYear, filename);
+  public void downloadBlockGroups() throws IOException {
+    for (int year : dataYears) {
+      downloadBlockGroupsForYear(year);
+    }
+  }
+  
+  /**
+   * Download block groups shapefile for a specific year.
+   * Block groups are organized by state, so we'll download for selected states.
+   */
+  public File downloadBlockGroupsForYear(int year) throws IOException {
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "block_groups");
     
-    File targetDir = new File(cacheDir, "block_groups");
-    File zipFile = new File(targetDir, filename);
-    
-    if (zipFile.exists()) {
-      LOGGER.info("Block groups shapefile already exists: {}", zipFile);
+    // Check if we already have block group data
+    if (targetDir.exists() && targetDir.listFiles() != null && targetDir.listFiles().length > 0) {
+      LOGGER.info("Block groups already downloaded for year {}: {}", year, targetDir);
       return targetDir;
     }
     
     if (!autoDownload) {
-      LOGGER.info("Auto-download disabled. Block groups shapefile not found: {}", zipFile);
+      LOGGER.info("Auto-download disabled. Block groups not found for year {}: {}", year, targetDir);
       return null;
     }
     
-    LOGGER.info("Downloading block groups shapefile from: {}", url);
     targetDir.mkdirs();
-    downloadFile(url, zipFile);
-    extractZipFile(zipFile, targetDir);
+    
+    // Download block groups for selected states only
+    // Using same states as we do for places: CA(06), TX(48), NY(36), FL(12)
+    String[] stateFips = {"06", "48", "36", "12"};
+    
+    for (String fips : stateFips) {
+      String filename = String.format("tl_%d_%s_bg.zip", year, fips);
+      String url = String.format("%s/TIGER%d/BG/%s", TIGER_BASE_URL, year, filename);
+      
+      File stateDir = new File(targetDir, fips);
+      File zipFile = new File(stateDir, filename);
+      
+      if (zipFile.exists()) {
+        LOGGER.info("Block groups shapefile already exists for state {}: {}", fips, zipFile);
+        continue;
+      }
+      
+      LOGGER.info("Downloading block groups shapefile for state {} year {} from: {}", fips, year, url);
+      stateDir.mkdirs();
+      
+      try {
+        downloadFile(url, zipFile);
+        extractZipFile(zipFile, stateDir);
+      } catch (IOException e) {
+        LOGGER.warn("Failed to download block groups for state {}: {}", fips, e.getMessage());
+        // Continue with other states even if one fails
+      }
+    }
     
     return targetDir;
   }
   
   /**
-   * Download Core Based Statistical Areas (CBSAs) shapefile.
+   * Download Core Based Statistical Areas (CBSAs) shapefiles for all configured years.
    */
-  public File downloadCbsas() throws IOException {
-    String filename = String.format("tl_%d_us_cbsa.zip", dataYear);
-    String url = String.format("%s/TIGER%d/CBSA/%s", TIGER_BASE_URL, dataYear, filename);
+  public void downloadCbsas() throws IOException {
+    for (int year : dataYears) {
+      downloadCbsasForYear(year);
+    }
+  }
+  
+  /**
+   * Download Core Based Statistical Areas (CBSAs) shapefile for a specific year.
+   */
+  public File downloadCbsasForYear(int year) throws IOException {
+    String filename = String.format("tl_%d_us_cbsa.zip", year);
+    String url = String.format("%s/TIGER%d/CBSA/%s", TIGER_BASE_URL, year, filename);
     
-    File targetDir = new File(cacheDir, "cbsa");
+    File yearDir = new File(cacheDir, String.format("year=%d", year));
+    File targetDir = new File(yearDir, "cbsa");
     File zipFile = new File(targetDir, filename);
     
     if (zipFile.exists()) {
-      LOGGER.info("CBSA shapefile already exists: {}", zipFile);
+      LOGGER.info("CBSA shapefile already exists for year {}: {}", year, zipFile);
       return targetDir;
     }
     
     if (!autoDownload) {
-      LOGGER.info("Auto-download disabled. CBSA shapefile not found: {}", zipFile);
+      LOGGER.info("Auto-download disabled. CBSA shapefile not found for year {}: {}", year, zipFile);
       return null;
     }
     
-    LOGGER.info("Downloading CBSA shapefile from: {}", url);
+    LOGGER.info("Downloading CBSA shapefile for year {} from: {}", year, url);
     targetDir.mkdirs();
     downloadFile(url, zipFile);
     extractZipFile(zipFile, targetDir);

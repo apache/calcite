@@ -39,6 +39,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,7 +68,8 @@ public class GeoSchema extends AbstractSchema implements CommentableSchema {
   private final String hudPassword;
   private final String hudToken;
   private final Set<String> enabledSources;
-  private final int dataYear;
+  private final List<Integer> tigerYears;
+  private final List<Integer> censusYears;
   private final boolean autoDownload;
   
   // Data fetchers (to be implemented)
@@ -83,14 +85,16 @@ public class GeoSchema extends AbstractSchema implements CommentableSchema {
 
   public GeoSchema(SchemaPlus parentSchema, String name, String cacheDir,
       String censusApiKey, String hudUsername, String hudPassword,
-      String[] enabledSources, int dataYear, boolean autoDownload) {
+      String[] enabledSources, List<Integer> tigerYears, List<Integer> censusYears, 
+      boolean autoDownload) {
     this(parentSchema, name, cacheDir, censusApiKey, hudUsername, hudPassword, 
-         null, enabledSources, dataYear, autoDownload);
+         null, enabledSources, tigerYears, censusYears, autoDownload);
   }
   
   public GeoSchema(SchemaPlus parentSchema, String name, String cacheDir,
       String censusApiKey, String hudUsername, String hudPassword, String hudToken,
-      String[] enabledSources, int dataYear, boolean autoDownload) {
+      String[] enabledSources, List<Integer> tigerYears, List<Integer> censusYears, 
+      boolean autoDownload) {
     
     this.parentSchema = parentSchema;
     this.name = name;
@@ -100,7 +104,8 @@ public class GeoSchema extends AbstractSchema implements CommentableSchema {
     this.hudPassword = hudPassword;
     this.hudToken = hudToken;
     this.enabledSources = new HashSet<>(Arrays.asList(enabledSources));
-    this.dataYear = dataYear;
+    this.tigerYears = tigerYears;
+    this.censusYears = censusYears;
     this.autoDownload = autoDownload;
     
     // Initialize data fetchers
@@ -112,24 +117,26 @@ public class GeoSchema extends AbstractSchema implements CommentableSchema {
 
   private void initializeDataFetchers() {
     LOGGER.info("Initializing geographic data fetchers");
+    LOGGER.info("  TIGER years: {}", tigerYears);
+    LOGGER.info("  Census years: {}", censusYears);
     
     // Initialize TIGER downloader with hive-partitioned structure
-    if (enabledSources.contains("tiger")) {
-      // TIGER data goes under: /govdata-parquet/source=geo/type=boundary/
+    if (enabledSources.contains("tiger") && !tigerYears.isEmpty()) {
+      // TIGER data goes under: /govdata-parquet/source=geo/type=boundary/year=YYYY/
       File boundaryDir = new File(new File(cacheDir, "source=geo"), "type=boundary");
-      this.tigerDownloader = new TigerDataDownloader(boundaryDir, dataYear, autoDownload);
+      this.tigerDownloader = new TigerDataDownloader(boundaryDir, tigerYears, autoDownload);
     }
     
     // Initialize Census API client with hive-partitioned structure
-    if (enabledSources.contains("census") && censusApiKey != null) {
-      // Census data goes under: /govdata-parquet/source=geo/type=demographic/
+    if (enabledSources.contains("census") && censusApiKey != null && !censusYears.isEmpty()) {
+      // Census data goes under: /govdata-parquet/source=geo/type=demographic/year=YYYY/
       File demographicDir = new File(new File(cacheDir, "source=geo"), "type=demographic");
-      this.censusClient = new CensusApiClient(censusApiKey, demographicDir);
+      this.censusClient = new CensusApiClient(censusApiKey, demographicDir, censusYears);
     }
     
     // Initialize HUD crosswalk fetcher with hive-partitioned structure
     if (enabledSources.contains("hud")) {
-      // HUD data goes under: /govdata-parquet/source=geo/type=crosswalk/
+      // HUD data goes under: /govdata-parquet/source=geo/type=crosswalk/year=YYYY/
       File crosswalkDir = new File(new File(cacheDir, "source=geo"), "type=crosswalk");
       if (hudToken != null && !hudToken.isEmpty()) {
         // Use token if available
@@ -239,7 +246,7 @@ public class GeoSchema extends AbstractSchema implements CommentableSchema {
     // Download TIGER data
     if (tigerDownloader != null) {
       try {
-        LOGGER.info("Downloading TIGER/Line data for year {}", dataYear);
+        LOGGER.info("Downloading TIGER/Line data for years: {}", tigerYears);
         tigerDownloader.downloadStates();
         tigerDownloader.downloadCounties();
         tigerDownloader.downloadPlaces();
