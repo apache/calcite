@@ -57,7 +57,7 @@ public class QuickGeoDownloadTest {
     // Download just states (small file ~5MB)
     System.out.println("Downloading states shapefile...");
     TigerDataDownloader tiger = new TigerDataDownloader(boundaryDir, 2024, true);
-    File statesDir = tiger.downloadStates();
+    File statesDir = tiger.downloadStatesFirstYear();
     
     // Verify download
     assertNotNull(statesDir, "States directory should be created");

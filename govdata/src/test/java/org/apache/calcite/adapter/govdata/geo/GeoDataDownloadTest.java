@@ -106,7 +106,7 @@ public class GeoDataDownloadTest {
           new File(tempDir, "tiger-data"), 2024, true);
       
       // Download states shapefile
-      File statesDir = downloader.downloadStates();
+      File statesDir = downloader.downloadStatesFirstYear();
       
       assertNotNull(statesDir, "States directory should be created");
       assertTrue(statesDir.exists(), "States directory should exist");
@@ -119,7 +119,7 @@ public class GeoDataDownloadTest {
       
       // Download counties shapefile
       System.out.println("\nDownloading counties data...");
-      File countiesDir = downloader.downloadCounties();
+      File countiesDir = downloader.downloadCountiesFirstYear();
       
       assertNotNull(countiesDir, "Counties directory should be created");
       assertTrue(countiesDir.exists(), "Counties directory should exist");
