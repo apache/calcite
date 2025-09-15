@@ -23,6 +23,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -31,9 +32,11 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Combine;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -124,6 +127,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.hasExpandedTree;
 import static org.apache.calcite.test.Matchers.hasFieldNames;
 import static org.apache.calcite.test.Matchers.hasHints;
@@ -136,6 +140,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -5585,6 +5591,289 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+
+  @Test void testCombine() {
+    // Create two separate queries
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode scan1 = builder.scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .project(builder.field("ENAME"))
+        .build();
+    RelNode scan2 = builder.scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(20)))
+        .project(builder.field("SAL"))
+        .build();
+
+    // Test combine with varargs
+    RelNode combine1 = builder.combine(scan1, scan2).build();
+    assertThat(combine1, instanceOf(Combine.class));
+    assertThat(combine1.getInputs(), hasSize(2));
+
+    // Test combine with Iterable
+    RelNode combine2 = builder.combine(Arrays.asList(scan1, scan2)).build();
+    assertThat(combine2, instanceOf(Combine.class));
+    assertThat(combine2.getInputs(), hasSize(2));
+
+    // Test combine with stack
+    builder.push(scan1)
+        .push(scan2);
+    RelNode combine3 = builder.combine(2).build();
+    assertThat(combine3, instanceOf(Combine.class));
+    assertThat(((Combine) combine3).getInputs(), hasSize(2));
+
+    // Test combine with all stack
+    builder.clear();
+    builder.push(scan1)
+        .push(scan2);
+    RelNode combine4 = builder.combine().build();
+    assertThat(combine4, instanceOf(Combine.class));
+    assertThat(combine4.getInputs(), hasSize(2));
+  }
+
+  @Test void testCombineWithSharedSubexpression() {
+    // Test that demonstrates how Combine can optimize queries with shared subexpressions
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Create a common subexpression - employees with salary > 1000
+    builder.scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("SAL"), builder.literal(1000)));
+    RelNode commonSubexpr = builder.build();
+
+    // Query 1: Count high earners by department
+    RelNode query1 = builder.push(commonSubexpr)
+        .aggregate(builder.groupKey("DEPTNO"), builder.count())
+        .build();
+
+    // Query 2: Get names of high earners
+    RelNode query2 = builder.push(commonSubexpr)
+        .project(builder.field("ENAME"), builder.field("SAL"))
+        .build();
+
+    // Combine both queries - planner can recognize shared subexpression
+    RelNode combined = builder.combine(query1, query2).build();
+
+    assertThat(combined, instanceOf(Combine.class));
+    assertThat(combined.getInputs(), hasSize(2));
+    // Both queries share the same filter as their base
+    assertThat(combined.getInputs().get(0).getInput(0), instanceOf(Filter.class));
+    assertThat(combined.getInputs().get(1).getInput(0), instanceOf(Filter.class));
+  }
+
+  @Test void testCombineDifferentRowTypes() {
+    // Test that Combine doesn't require inputs to have the same row type.
+    // Contrast to Union which requires row types to unify to the same row type, element-wise.
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Query 1: Returns (ENAME: VARCHAR)
+    RelNode query1 = builder.scan("EMP")
+        .project(builder.field("ENAME"))
+        .build();
+
+    // Query 2: Returns (DEPTNO: INTEGER, AVG_SAL: DECIMAL)
+    RelNode query2 = builder.scan("EMP")
+        .aggregate(builder.groupKey("DEPTNO"),
+            builder.avg(false, "AVG_SAL", builder.field("SAL")))
+        .build();
+
+    // Query 3: Returns just count (COUNT: BIGINT)
+    RelNode query3 = builder.scan("DEPT")
+        .aggregate(builder.groupKey(), builder.count())
+        .build();
+
+    // Combine can handle different row types
+    RelNode combined = builder.combine(query1, query2, query3).build();
+
+    assertThat(combined, instanceOf(Combine.class));
+    assertThat(combined.getInputs(), hasSize(3));
+    // Verify each has different row type
+    assertThat(combined.getInputs().get(0).getRowType().getFieldCount(), is(1));
+    assertThat(combined.getInputs().get(1).getRowType().getFieldCount(), is(2));
+    assertThat(combined.getInputs().get(2).getRowType().getFieldCount(), is(1));
+  }
+
+  @Test void testCombineMetadata() {
+    // Test metadata methods for Combine operator
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Create queries with known characteristics
+    RelNode query1 = builder.scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .build();
+
+    RelNode query2 = builder.scan("DEPT")
+        .project(builder.field("DNAME"))
+        .build();
+
+    RelNode combined = builder.combine(query1, query2).build();
+
+    // Test that Combine has proper metadata
+    assertThat(combined, instanceOf(Combine.class));
+
+    RelMetadataQuery mq = combined.getCluster().getMetadataQuery();
+
+    // Test row count - should be sum of inputs
+    Double rowCount = mq.getRowCount(combined);
+    assertThat(rowCount, notNullValue());
+
+    // Test cost computation
+    RelOptCost selfCost =
+        combined.computeSelfCost(combined.getCluster().getPlanner(), mq);
+    assertThat(selfCost, notNullValue());
+    assertThat(selfCost.getCpu(), greaterThan(0.0));
+
+    // Test cumulative cost includes all inputs
+    RelOptCost cumulativeCost = mq.getCumulativeCost(combined);
+    assertThat(cumulativeCost, notNullValue());
+
+    // Cumulative cost should be greater than self cost
+    assertThat(cumulativeCost.isLt(selfCost), is(false));
+  }
+
+  @Test void testCombineCumulativeCost() {
+    // Comprehensive test for getCumulativeCost with Combine operator
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Create three queries with different complexities
+    // Query 1: Simple scan
+    RelNode scan = builder.scan("EMP").build();
+
+    // Query 2: Scan with filter
+    RelNode filtered = builder.scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("SAL"), builder.literal(1000)))
+        .build();
+
+    // Query 3: Scan with aggregation
+    RelNode aggregated = builder.scan("EMP")
+        .aggregate(builder.groupKey("DEPTNO"),
+            builder.count(false, "CNT"),
+            builder.sum(false, "SUM_SAL", builder.field("SAL")))
+        .build();
+
+    // Create Combine with all three queries
+    RelNode combined = builder.combine(scan, filtered, aggregated).build();
+
+    RelMetadataQuery mq = combined.getCluster().getMetadataQuery();
+
+    // Get individual cumulative costs
+    RelOptCost scanCost = mq.getCumulativeCost(scan);
+    RelOptCost filteredCost = mq.getCumulativeCost(filtered);
+    RelOptCost aggregatedCost = mq.getCumulativeCost(aggregated);
+
+    assertThat(scanCost, notNullValue());
+    assertThat(filteredCost, notNullValue());
+    assertThat(aggregatedCost, notNullValue());
+
+    // Get Combine's costs
+    RelOptCost combineSelfCost =
+        combined.computeSelfCost(combined.getCluster().getPlanner(), mq);
+    RelOptCost combineCumulativeCost = mq.getCumulativeCost(combined);
+
+    assertThat(combineSelfCost, notNullValue());
+    assertThat(combineCumulativeCost, notNullValue());
+
+    // Verify cumulative cost is sum of all input costs plus self cost
+    RelOptCost expectedTotal = combineSelfCost
+        .plus(scanCost)
+        .plus(filteredCost)
+        .plus(aggregatedCost);
+
+    // The cumulative cost should equal the sum
+    assertThat(combineCumulativeCost.getRows(),
+        is(expectedTotal.getRows()));
+    assertThat(combineCumulativeCost.getCpu(),
+        is(expectedTotal.getCpu()));
+    assertThat(combineCumulativeCost.getIo(),
+        is(expectedTotal.getIo()));
+
+    // Verify relationships between costs
+    // Filtered should cost more than simple scan
+    assertThat(filteredCost.isLt(scanCost), is(false));
+
+    // Aggregated should cost more than simple scan
+    assertThat(aggregatedCost.isLt(scanCost), is(false));
+
+    // Combined cumulative cost should be greater than any individual cost
+    assertThat(combineCumulativeCost.isLt(scanCost), is(false));
+    assertThat(combineCumulativeCost.isLt(filteredCost), is(false));
+    assertThat(combineCumulativeCost.isLt(aggregatedCost), is(false));
+  }
+
+  @Test void testCombineCumulativeCostWithSharedInputs() {
+    // Test cumulative cost when Combine has shared subexpressions
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Create a base scan that will be shared
+    RelNode baseScan = builder.scan("EMP").build();
+    RelOptCost baseScanCost =
+        baseScan.computeSelfCost(baseScan.getCluster().getPlanner(),
+            baseScan.getCluster().getMetadataQuery());
+    assertThat(baseScanCost, notNullValue());
+
+    // Create two queries that use the same base scan
+    RelNode query1 = builder.push(baseScan)
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .project(builder.field("ENAME"))
+        .build();
+
+    RelNode query2 = builder.push(baseScan)
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(20)))
+        .aggregate(builder.groupKey(), builder.count())
+        .build();
+
+    // Combine the queries
+    RelNode combined = builder.combine(query1, query2).build();
+
+    RelMetadataQuery mq = combined.getCluster().getMetadataQuery();
+
+    // Get costs
+    RelOptCost query1Cost = mq.getCumulativeCost(query1).minus(baseScanCost);
+    RelOptCost query2Cost = mq.getCumulativeCost(query2).minus(baseScanCost);
+    RelOptCost combinedCost = mq.getCumulativeCost(combined);
+
+    assertThat(query1Cost, notNullValue());
+    assertThat(query2Cost, notNullValue());
+    assertThat(combinedCost, notNullValue());
+
+    // Even with shared base scan, Combine's cumulative cost
+    // should include full cost of each branch
+    RelOptCost combineSelfCost =
+        combined.computeSelfCost(combined.getCluster().getPlanner(), mq);
+    RelOptCost expectedTotal = combineSelfCost
+        .plus(baseScanCost.multiplyBy(2)) // base scan counted twice since used in both queries
+        .plus(query1Cost)
+        .plus(query2Cost);
+
+    assertThat(combinedCost.getRows(), is(expectedTotal.getRows()));
+    assertThat(combinedCost.getCpu(), is(expectedTotal.getCpu()));
+    assertThat(combinedCost.getIo(), is(expectedTotal.getIo()));
+  }
+
+  @Test void testCombineCumulativeCostEmpty() {
+    // Test edge case with empty inputs
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Create an empty values relation
+    RelNode emptyValues = builder.values(new String[]{"x"}, 0).build();
+
+    // Create a normal query
+    RelNode normalQuery = builder.scan("DEPT").build();
+
+    // Combine empty and normal
+    RelNode combined = builder.combine(emptyValues, normalQuery).build();
+
+    RelMetadataQuery mq = combined.getCluster().getMetadataQuery();
+
+    // Should still compute costs correctly even with empty input
+    RelOptCost combinedCost = mq.getCumulativeCost(combined);
+    assertThat(combinedCost, notNullValue());
+    assertThat(combinedCost.getRows(), greaterThan(-1.0));
+    assertThat(combinedCost.getCpu(), greaterThan(-1.0));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4415">[CALCITE-4415]
    * SqlStdOperatorTable.NOT_LIKE has a wrong implementor</a>. */
@@ -5607,6 +5896,55 @@ public class RelBuilderTest {
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1440">[CALCITE-1440]
+   * Combine operator - combines multiple SQL queries into a single plan</a>. */
+  @Test void testCombineExplain() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    // Query 1: Simple filter on department 10
+    RelNode query1 = builder
+        .scan("EMP")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(10)))
+        .project(builder.field("ENAME"), builder.field("SAL"))
+        .build();
+
+    // Query 2: Aggregate to get average salary by department
+    RelNode query2 = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey("DEPTNO"),
+            builder.avg(false, "AVG_SAL", builder.field("SAL")))
+        .build();
+
+    // Query 3: Find all departments
+    RelNode query3 = builder
+        .scan("DEPT")
+        .project(builder.field("DEPTNO"), builder.field("DNAME"))
+        .build();
+
+    // Combine all three queries
+    RelNode combined = builder.combine(query1, query2, query3).build();
+
+    // Test that the combine node is of the correct type
+    assertThat(combined, instanceOf(Combine.class));
+    Combine combineNode = (Combine) combined;
+    assertThat(combineNode.getInputs(), hasSize(3));
+
+    String expectedPlan =
+          "Combine\n"
+        + "  LogicalProject(ENAME=[$1], SAL=[$5])\n"
+        + "    LogicalFilter(condition=[=($7, 10)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalAggregate(group=[{7}], AVG_SAL=[AVG($5)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+
+    // Test that explain() works correctly for Combine
+    String explanation = combined.explain();
+    assertThat(explanation, containsStringLinux(expectedPlan));
   }
 
   /** Test case for
