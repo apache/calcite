@@ -188,6 +188,12 @@ class UdfTest {
         + "           className: '"
         + Smalls.MyUnbase64Function.class.getName()
         + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'CHARACTERARRAY',\n"
+        + "           className: '"
+        + Smalls.CharacterArrayFunction.class.getName()
+        + "'\n"
         + "         }\n"
         + "       ]\n"
         + "     }\n"
@@ -1099,6 +1105,16 @@ class UdfTest {
     final String sql2 = "select \"adhoc\".unbase64(cast('" + testBase64
         + "' as varchar)) = x'" + testHex + "' as C\n";
     withUdf().query(sql2).returns("C=true\n");
+  }
+
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7186">[CALCITE-7186]</a>
+   * Add mapping from Character[] to VARCHAR in Java UDF.
+   */
+  @Test void testCharacterArrayComparison() {
+    final String testString = "abc";
+    String sql = "values \"adhoc\".characterarray('" + testString + "')";
+    withUdf().query(sql).typeIs("[EXPR$0 VARCHAR]");
   }
 
   /**
