@@ -47,7 +47,7 @@ dependencies {
     // HTML parsing for inline XBRL
     implementation("org.jsoup:jsoup")
 
-    // Simple shapefile parsing (alternative to GeoTools)
+    // Geometry processing with JTS (lightweight)
     implementation("org.locationtech.jts:jts-core:1.19.0")
 
     // Embedding model dependencies

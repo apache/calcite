@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "defaultSchema": "sec",
+  "schemas": [
+    {
+      "name": "econ",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "econ",
+        "cacheDirectory": "${ECON_TEST_CACHE:/tmp/govdata-validation/econ}",
+        "startYear": 2023,
+        "endYear": 2024
+      }
+    },
+    {
+      "name": "geo",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.govdata.GovDataSchemaFactory",
+      "operand": {
+        "dataSource": "geo",
+        "cacheDirectory": "${GEO_TEST_CACHE:/tmp/govdata-validation/geo}",
+        "startYear": 2023,
+        "endYear": 2024,
+        "states": ["CA", "NY", "TX"]
+      }
+    }
+  ]
+}

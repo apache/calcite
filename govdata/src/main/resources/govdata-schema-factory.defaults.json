@@ -1,16 +1,19 @@
 {
-  "operand": {
-    "dataSource": "sec",
+  "sec": {
+    "directory": "${GOVDATA_PARQUET_DIR}/source=sec",
+    "cacheDirectory": "${GOVDATA_CACHE_DIR}/sec",
+    "startYear": "${GOVDATA_START_YEAR:2020}",
+    "endYear": "${GOVDATA_END_YEAR:2024}",
     "filingTypes": [
       "10-K",
-      "10-Q", 
+      "10-Q",
       "8-K",
       "DEF 14A",
       "20-F",
       "40-F",
       "S-1",
       "S-3",
-      "S-4", 
+      "S-4",
       "S-8",
       "10-K/A",
       "10-Q/A",
@@ -22,8 +25,7 @@
       "5"
     ],
     "autoDownload": true,
-    "endYear": "${CURRENT_YEAR}",
-    "executionEngine": "duckdb",
+    "executionEngine": "${CALCITE_FILE_ENGINE_TYPE:DUCKDB}",
     "testMode": false,
     "ephemeralCache": true,
     "sec.fallback.enabled": false,
@@ -37,5 +39,28 @@
     "extractMDA": true,
     "extractRiskFactors": true,
     "fetchStockPrices": true
+  },
+  "econ": {
+    "directory": "${GOVDATA_PARQUET_DIR}/source=econ",
+    "cacheDirectory": "${GOVDATA_CACHE_DIR}/econ",
+    "startYear": "${GOVDATA_START_YEAR:2020}",
+    "endYear": "${GOVDATA_END_YEAR:2024}",
+    "fredApiKey": "${FRED_API_KEY}",
+    "blsApiKey": "${BLS_API_KEY}",
+    "treasuryApiKey": "${TREASURY_API_KEY}",
+    "autoDownload": true,
+    "enabledSources": ["fred", "bls", "treasury"]
+  },
+  "geo": {
+    "directory": "${GOVDATA_PARQUET_DIR}/source=geo",
+    "cacheDirectory": "${GOVDATA_CACHE_DIR}/geo",
+    "startYear": "${GOVDATA_START_YEAR:2020}",
+    "endYear": "${GOVDATA_END_YEAR:2024}",
+    "censusApiKey": "${CENSUS_API_KEY}",2
+    "hudUsername": "${HUD_USERNAME}",
+    "hudPassword": "${HUD_PASSWORD}",
+    "hudToken": "${HUD_TOKEN}",
+    "autoDownload": true,
+    "enabledSources": ["tiger", "census", "hud"]
   }
 }

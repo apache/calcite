@@ -357,6 +357,11 @@ allprojects {
     repositories {
         // RAT and Autostyle dependencies
         mavenCentral()
+        // GeoTools repository for TIGER shapefile parsing
+        maven {
+            url = uri("https://repo.osgeo.org/repository/release/")
+            name = "OSGeo Release Repository"
+        }
     }
 
     val javaUsed = file("src/main/java").isDirectory
