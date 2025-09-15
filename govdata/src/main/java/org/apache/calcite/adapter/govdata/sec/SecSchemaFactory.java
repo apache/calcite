@@ -76,16 +76,24 @@ import java.time.Year;
 public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecSchemaFactory.class);
 
+  // Standard SEC data cache directory - XBRL files are immutable, cache forever
+  // Required environment variables - error if not set
+  private static final String GOVDATA_CACHE_DIR = System.getenv("GOVDATA_CACHE_DIR");
+  private static final String GOVDATA_PARQUET_DIR = System.getenv("GOVDATA_PARQUET_DIR");
+  
   static {
     LOGGER.debug("SecSchemaFactory class loaded");
+    if (GOVDATA_CACHE_DIR == null || GOVDATA_CACHE_DIR.isEmpty()) {
+      throw new IllegalStateException("GOVDATA_CACHE_DIR environment variable must be set");
+    }
+    if (GOVDATA_PARQUET_DIR == null || GOVDATA_PARQUET_DIR.isEmpty()) {
+      throw new IllegalStateException("GOVDATA_PARQUET_DIR environment variable must be set");
+    }
   }
-
-  // Standard SEC data cache directory - XBRL files are immutable, cache forever
-  // Default to home for testing, can be overridden with -Dsec.data.home
-  private static final String DEFAULT_SEC_HOME = "~/sec-cache";
-  private static final String SEC_DATA_HOME = System.getProperty("sec.data.home", DEFAULT_SEC_HOME);
-  private static final String SEC_RAW_DIR = SEC_DATA_HOME + "/sec-data";
-  private static final String SEC_PARQUET_DIR = SEC_DATA_HOME + "/sec-parquet";
+  
+  // SEC data directories
+  private static final String SEC_RAW_DIR = GOVDATA_CACHE_DIR + "/sec";
+  private static final String SEC_PARQUET_DIR = GOVDATA_PARQUET_DIR + "/source=sec";
 
   // Parallel processing configuration
   private static final int DOWNLOAD_THREADS = 3; // Reduced to 3 concurrent downloads for better rate limiting
@@ -118,10 +126,6 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
 
   // Constraint metadata support
   private Map<String, Map<String, Object>> tableConstraints = new HashMap<>();
-
-  static {
-    LOGGER.debug("SecSchemaFactory class loaded");
-  }
 
   /**
    * Returns true to enable constraint metadata support in SEC adapter.
@@ -354,6 +358,15 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> filingMetadata = new HashMap<>();
     filingMetadata.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number"));
     filingMetadata.put("unique", Arrays.asList(Arrays.asList("accession_number")));
+    
+    // Cross-schema FK to geo.tiger_states.state_code (2-letter codes)
+    Map<String, Object> filingToStatesFk = new HashMap<>();
+    filingToStatesFk.put("columns", Arrays.asList("state_of_incorporation"));
+    filingToStatesFk.put("targetSchema", "geo");
+    filingToStatesFk.put("targetTable", "tiger_states");
+    filingToStatesFk.put("targetColumns", Arrays.asList("state_code"));
+    
+    filingMetadata.put("foreignKeys", Arrays.asList(filingToStatesFk));
     constraints.put("filing_metadata", filingMetadata);
 
     // footnotes table
@@ -365,6 +378,10 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     footnotesFilingFK.put("targetTable", "filing_metadata");
     footnotesFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
 
+    // Note: Relationships to financial_line_items and xbrl_relationships are conceptual
+    // since footnotes reference concepts rather than specific line items
+    // These are better handled as JOIN queries using the referenced_concept field
+    
     footnotes.put("foreignKeys", Arrays.asList(footnotesFilingFK));
     constraints.put("footnotes", footnotes);
 
@@ -398,6 +415,57 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     earningsTranscripts.put("foreignKeys", Arrays.asList(earningsFilingFK));
     constraints.put("earnings_transcripts", earningsTranscripts);
 
+    // vectorized_blobs table
+    Map<String, Object> vectorizedBlobs = new HashMap<>();
+    vectorizedBlobs.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "blob_id"));
+
+    Map<String, Object> vectorizedFilingFK = new HashMap<>();
+    vectorizedFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    vectorizedFilingFK.put("targetTable", "filing_metadata");
+    vectorizedFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    // Note: Relationships to mda_sections, footnotes, and earnings_transcripts are handled
+    // via the source_table and source_id fields which contain the table name and row identifier
+    
+    vectorizedBlobs.put("foreignKeys", Arrays.asList(vectorizedFilingFK));
+    constraints.put("vectorized_blobs", vectorizedBlobs);
+
+    // mda_sections table 
+    Map<String, Object> mdaSections = new HashMap<>();
+    mdaSections.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "section_id"));
+
+    Map<String, Object> mdaFilingFK = new HashMap<>();
+    mdaFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    mdaFilingFK.put("targetTable", "filing_metadata");
+    mdaFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    mdaSections.put("foreignKeys", Arrays.asList(mdaFilingFK));
+    constraints.put("mda_sections", mdaSections);
+
+    // xbrl_relationships table
+    Map<String, Object> xbrlRelationships = new HashMap<>();
+    xbrlRelationships.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "relationship_id"));
+
+    Map<String, Object> xbrlFilingFK = new HashMap<>();
+    xbrlFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    xbrlFilingFK.put("targetTable", "filing_metadata");
+    xbrlFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    xbrlRelationships.put("foreignKeys", Arrays.asList(xbrlFilingFK));
+    constraints.put("xbrl_relationships", xbrlRelationships);
+
+    // filing_contexts table
+    Map<String, Object> filingContexts = new HashMap<>();
+    filingContexts.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number", "context_id"));
+
+    Map<String, Object> contextsFilingFK = new HashMap<>();
+    contextsFilingFK.put("columns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+    contextsFilingFK.put("targetTable", "filing_metadata");
+    contextsFilingFK.put("targetColumns", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+
+    filingContexts.put("foreignKeys", Arrays.asList(contextsFilingFK));
+    constraints.put("filing_contexts", filingContexts);
+
     return constraints;
   }
 
@@ -420,11 +488,22 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     this.currentOperand = mutableOperand; // Store for table auto-discovery
 
     // Determine cache directory
+    // First check for GOVDATA_PARQUET_DIR environment variable
     String configuredDir = (String) mutableOperand.get("directory");
     if (configuredDir == null) {
       configuredDir = (String) mutableOperand.get("cacheDirectory");
     }
-    String cacheHome = configuredDir != null ? configuredDir : SEC_DATA_HOME;
+    
+    // Use GOVDATA_PARQUET_DIR if available, otherwise fall back to configured or default
+    String cacheHome;
+    if (GOVDATA_CACHE_DIR != null && GOVDATA_PARQUET_DIR != null) {
+      // Raw XBRL data goes to GOVDATA_CACHE_DIR/sec
+      // Parquet data goes to GOVDATA_PARQUET_DIR/source=sec
+      cacheHome = SEC_RAW_DIR; // For raw XBRL data
+      LOGGER.info("Using unified govdata directories - cache: {}, parquet: {}/source=sec", GOVDATA_CACHE_DIR, GOVDATA_PARQUET_DIR);
+    } else {
+      cacheHome = configuredDir != null ? configuredDir : SEC_RAW_DIR;
+    }
 
     // Handle SEC data download if configured
     LOGGER.debug("About to check shouldDownloadData");
@@ -501,6 +580,31 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     }
 
     partitionedTables.add(financialLineItems);
+
+    // Define filing_metadata as a partitioned table with filing-level information
+    Map<String, Object> filingMetadata = new HashMap<>();
+    filingMetadata.put("name", "filing_metadata");
+    filingMetadata.put("pattern", "cik=*/filing_type=*/year=*/[!.]*_metadata.parquet");
+    filingMetadata.put("partitions", partitionConfig);
+    
+    if (enableConstraints == null || enableConstraints) {
+      Map<String, Object> constraints = new HashMap<>();
+      // Primary key: (cik, filing_type, year, accession_number)
+      constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number"));
+      constraints.put("unique", Arrays.asList(Arrays.asList("accession_number")));
+      
+      // Cross-schema FK to geo.tiger_states.state_code (2-letter codes)
+      Map<String, Object> filingToStatesFk = new HashMap<>();
+      filingToStatesFk.put("columns", Arrays.asList("state_of_incorporation"));
+      filingToStatesFk.put("targetSchema", "geo");
+      filingToStatesFk.put("targetTable", "tiger_states");
+      filingToStatesFk.put("targetColumns", Arrays.asList("state_code"));
+      
+      constraints.put("foreignKeys", Arrays.asList(filingToStatesFk));
+      filingMetadata.put("constraints", constraints);
+    }
+    
+    partitionedTables.add(filingMetadata);
 
     // Define filing_contexts as a partitioned table with constraints
     Map<String, Object> filingContexts = new HashMap<>();
@@ -617,7 +721,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     LOGGER.info("Pre-defined {} partitioned table patterns", partitionedTables.size());
 
     // Ensure the parquet directory exists
-    File secParquetDir = new File(cacheHome, "sec-parquet");
+    File secParquetDir = new File(SEC_PARQUET_DIR);
 
     if (secParquetDir.exists() && secParquetDir.isDirectory()) {
       LOGGER.info("Using SEC parquet cache directory: {}", secParquetDir.getAbsolutePath());
@@ -895,7 +999,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   private void createMockParquetFiles(File baseDir) {
     try {
       // Create parquet directory structure for mock data
-      File secParquetDir = new File(baseDir.getParentFile(), "sec-parquet");
+      File secParquetDir = new File(SEC_PARQUET_DIR);
       secParquetDir.mkdirs();
 
       // Create directories and minimal Parquet files for each table pattern
@@ -1021,7 +1125,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
       if (configuredDir == null) {
         configuredDir = (String) operand.get("cacheDirectory");
       }
-      String cacheHome = configuredDir != null ? configuredDir : SEC_DATA_HOME;
+      String cacheHome = configuredDir != null ? configuredDir : SEC_RAW_DIR;
 
       // XBRL files are immutable - once downloaded, they never change
       // Use configured cache directory
@@ -1614,8 +1718,8 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     try {
       // baseDir is already the sec-data directory, don't nest another level
       File secRawDir = baseDir;
-      // Parquet directory is a sibling of sec-data
-      File secParquetDir = new File(baseDir.getParentFile(), "sec-parquet");
+      // Parquet directory uses unified GOVDATA_PARQUET_DIR structure
+      File secParquetDir = new File(SEC_PARQUET_DIR);
       secParquetDir.mkdirs();
 
       LOGGER.info("DEBUG: secRawDir=" + secRawDir.getAbsolutePath() + " exists=" + secRawDir.exists());
@@ -1754,7 +1858,7 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   private void createSecFilingsTable(File baseDir, Map<String, Object> operand) {
     try {
       File secRawDir = new File(baseDir, "sec-raw");
-      File secParquetDir = new File(baseDir, "sec-parquet");
+      File secParquetDir = new File(SEC_PARQUET_DIR);
       secParquetDir.mkdirs();
 
       if (!secRawDir.exists() || !secRawDir.isDirectory()) {

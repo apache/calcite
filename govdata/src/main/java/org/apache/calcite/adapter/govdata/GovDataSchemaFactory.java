@@ -95,8 +95,9 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
     
     LOGGER.info("Creating government data schema for source: {}", dataSource);
     
-    // Add metadata schema support
-    addMetadataSchemas(parentSchema);
+    // Don't add metadata schemas here - FileSchemaFactory will add them
+    // Adding them in both places causes circular references and stack overflow
+    // addMetadataSchemas(parentSchema);
     
     switch (dataSource.toLowerCase()) {
       case "sec":
@@ -410,12 +411,8 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
       rootSchema.add("metadata", metadataSchema);
     }
     
-    // Add reference to metadata schema at current level if not at root
-    if (parentSchema != rootSchema && parentSchema.subSchemas().get("metadata") == null) {
-      SchemaPlus metadataSchema = rootSchema.subSchemas().get("metadata");
-      if (metadataSchema != null) {
-        parentSchema.add("metadata", metadataSchema.unwrap(Schema.class));
-      }
-    }
+    // Don't add reference to metadata schema at current level - it causes circular references
+    // when FileSchemaFactory also adds metadata schemas. The metadata schemas are already
+    // accessible from the root level.
   }
 }

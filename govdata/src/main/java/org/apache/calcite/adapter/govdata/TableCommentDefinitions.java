@@ -358,6 +358,191 @@ public final class TableCommentDefinitions {
     GEO_COLUMN_COMMENTS.put("hud_zip_congressional", hudZipCongressionalCols);
   }
   
+  // =========================== ECON SCHEMA COMMENTS ===========================
+  
+  /** ECON schema table comments */
+  private static final Map<String, String> ECON_TABLE_COMMENTS = new HashMap<>();
+  
+  /** ECON schema column comments */
+  private static final Map<String, Map<String, String>> ECON_COLUMN_COMMENTS = new HashMap<>();
+  
+  static {
+    // employment_statistics table
+    ECON_TABLE_COMMENTS.put("employment_statistics",
+        "U.S. employment and unemployment statistics from the Bureau of Labor Statistics (BLS). "
+        + "Contains monthly data on unemployment rates, labor force participation, job openings, "
+        + "and employment levels by sector. Essential for economic analysis and labor market trends.");
+    
+    Map<String, String> employmentStatsCols = new HashMap<>();
+    employmentStatsCols.put("date", "Observation date (first day of month for monthly data)");
+    employmentStatsCols.put("series_id", "BLS series identifier (e.g., 'LNS14000000' for unemployment rate)");
+    employmentStatsCols.put("series_name", "Human-readable description of the data series");
+    employmentStatsCols.put("value", "Metric value (percentage for rates, thousands for employment counts)");
+    employmentStatsCols.put("unit", "Unit of measurement (percent, thousands, index)");
+    employmentStatsCols.put("seasonally_adjusted", "Whether data is seasonally adjusted (true/false)");
+    employmentStatsCols.put("percent_change_month", "Percent change from previous month");
+    employmentStatsCols.put("percent_change_year", "Year-over-year percent change");
+    employmentStatsCols.put("category", "Major category (Employment, Unemployment, Labor Force)");
+    employmentStatsCols.put("subcategory", "Detailed subcategory (Manufacturing, Services, etc.)");
+    ECON_COLUMN_COMMENTS.put("employment_statistics", employmentStatsCols);
+    
+    // inflation_metrics table
+    ECON_TABLE_COMMENTS.put("inflation_metrics",
+        "Consumer and Producer Price Index data from BLS tracking inflation across different "
+        + "categories of goods and services. Includes CPI-U for urban consumers, CPI-W for wage earners, "
+        + "and PPI for producer prices. Critical for understanding inflation trends and purchasing power.");
+    
+    Map<String, String> inflationMetricsCols = new HashMap<>();
+    inflationMetricsCols.put("date", "Observation date for the index value");
+    inflationMetricsCols.put("index_type", "Type of price index (CPI-U, CPI-W, PPI, etc.)");
+    inflationMetricsCols.put("item_code", "BLS item code for specific good/service category");
+    inflationMetricsCols.put("item_name", "Description of item or category (All items, Food, Energy, etc.)");
+    inflationMetricsCols.put("index_value", "Index value with base period = 100");
+    inflationMetricsCols.put("percent_change_month", "Month-over-month percent change");
+    inflationMetricsCols.put("percent_change_year", "Year-over-year percent change (inflation rate)");
+    inflationMetricsCols.put("area_code", "Geographic area code (U.S., regions, or metro areas)");
+    inflationMetricsCols.put("area_name", "Geographic area name");
+    inflationMetricsCols.put("seasonally_adjusted", "Whether data is seasonally adjusted");
+    ECON_COLUMN_COMMENTS.put("inflation_metrics", inflationMetricsCols);
+    
+    // wage_growth table
+    ECON_TABLE_COMMENTS.put("wage_growth",
+        "Average earnings and compensation data by industry and occupation from BLS. "
+        + "Tracks hourly and weekly earnings, employment cost index, and wage growth trends. "
+        + "Essential for understanding labor cost pressures and income trends across sectors.");
+    
+    Map<String, String> wageGrowthCols = new HashMap<>();
+    wageGrowthCols.put("date", "Observation date");
+    wageGrowthCols.put("series_id", "BLS series identifier for wage data");
+    wageGrowthCols.put("industry_code", "NAICS industry classification code");
+    wageGrowthCols.put("industry_name", "Industry description");
+    wageGrowthCols.put("occupation_code", "SOC occupation classification code");
+    wageGrowthCols.put("occupation_name", "Occupation description");
+    wageGrowthCols.put("average_hourly_earnings", "Average hourly earnings in dollars");
+    wageGrowthCols.put("average_weekly_earnings", "Average weekly earnings in dollars");
+    wageGrowthCols.put("employment_cost_index", "Employment cost index with base = 100");
+    wageGrowthCols.put("percent_change_year", "Year-over-year percent change in earnings");
+    ECON_COLUMN_COMMENTS.put("wage_growth", wageGrowthCols);
+    
+    // regional_employment table
+    ECON_TABLE_COMMENTS.put("regional_employment",
+        "State and metropolitan area employment statistics from BLS Local Area Unemployment Statistics "
+        + "(LAUS). Provides unemployment rates, employment levels, and labor force participation by "
+        + "geographic region. Critical for regional economic analysis and geographic comparisons.");
+    
+    Map<String, String> regionalEmploymentCols = new HashMap<>();
+    regionalEmploymentCols.put("date", "Observation date");
+    regionalEmploymentCols.put("area_code", "Geographic area code (FIPS or MSA code)");
+    regionalEmploymentCols.put("area_name", "Geographic area name");
+    regionalEmploymentCols.put("area_type", "Type of area (state, MSA, county)");
+    regionalEmploymentCols.put("state_code", "Two-letter state abbreviation");
+    regionalEmploymentCols.put("unemployment_rate", "Unemployment rate as percentage");
+    regionalEmploymentCols.put("employment_level", "Number of employed persons");
+    regionalEmploymentCols.put("labor_force", "Total labor force size");
+    regionalEmploymentCols.put("participation_rate", "Labor force participation rate as percentage");
+    regionalEmploymentCols.put("employment_population_ratio", "Employment to population ratio");
+    ECON_COLUMN_COMMENTS.put("regional_employment", regionalEmploymentCols);
+    
+    // treasury_yields table
+    ECON_TABLE_COMMENTS.put("treasury_yields",
+        "Daily U.S. Treasury yield curve rates from Treasury Direct API. Provides yields for "
+        + "various maturities from 1-month to 30-year securities. Essential benchmark for risk-free "
+        + "rates, corporate bond pricing, and monetary policy analysis.");
+    
+    Map<String, String> treasuryYieldsCols = new HashMap<>();
+    treasuryYieldsCols.put("date", "Observation date (YYYY-MM-DD)");
+    treasuryYieldsCols.put("maturity_months", "Maturity period in months (1, 3, 6, 12, 24, 60, 120, 360)");
+    treasuryYieldsCols.put("maturity_label", "Human-readable maturity (1M, 3M, 2Y, 10Y, 30Y)");
+    treasuryYieldsCols.put("yield_percent", "Yield rate as annual percentage");
+    treasuryYieldsCols.put("yield_type", "Type of yield (nominal, real/TIPS, average)");
+    treasuryYieldsCols.put("source", "Data source (Treasury Direct)");
+    ECON_COLUMN_COMMENTS.put("treasury_yields", treasuryYieldsCols);
+    
+    // federal_debt table
+    ECON_TABLE_COMMENTS.put("federal_debt",
+        "U.S. federal debt statistics from Treasury Fiscal Data API. Tracks daily debt levels "
+        + "including debt held by public, intragovernmental holdings, and total outstanding debt. "
+        + "Critical for fiscal policy analysis and understanding government financing needs.");
+    
+    Map<String, String> federalDebtCols = new HashMap<>();
+    federalDebtCols.put("date", "Observation date");
+    federalDebtCols.put("debt_type", "Type of debt measurement (Total, Held by Public, Intragovernmental)");
+    federalDebtCols.put("amount_billions", "Debt amount in billions of dollars");
+    federalDebtCols.put("percent_of_gdp", "Debt as percentage of GDP (when available)");
+    federalDebtCols.put("holder_category", "Category of debt holder");
+    federalDebtCols.put("debt_held_by_public", "Portion held by public in billions");
+    federalDebtCols.put("intragovernmental_holdings", "Portion held by government accounts in billions");
+    ECON_COLUMN_COMMENTS.put("federal_debt", federalDebtCols);
+    
+    // world_indicators table
+    ECON_TABLE_COMMENTS.put("world_indicators",
+        "International economic indicators from World Bank for major economies. Includes GDP, "
+        + "inflation, unemployment, population, and government debt for G20 countries. Enables "
+        + "international comparisons and global economic analysis.");
+    
+    Map<String, String> worldIndicatorsCols = new HashMap<>();
+    worldIndicatorsCols.put("country_code", "ISO 3-letter country code (USA, CHN, DEU, etc.)");
+    worldIndicatorsCols.put("country_name", "Full country name");
+    worldIndicatorsCols.put("indicator_code", "World Bank indicator code (e.g., NY.GDP.MKTP.CD)");
+    worldIndicatorsCols.put("indicator_name", "Indicator description");
+    worldIndicatorsCols.put("year", "Observation year");
+    worldIndicatorsCols.put("value", "Indicator value");
+    worldIndicatorsCols.put("unit", "Unit of measurement (USD, percent, persons)");
+    worldIndicatorsCols.put("scale", "Scale factor if applicable");
+    ECON_COLUMN_COMMENTS.put("world_indicators", worldIndicatorsCols);
+    
+    // fred_indicators table
+    ECON_TABLE_COMMENTS.put("fred_indicators",
+        "Federal Reserve Economic Data (FRED) time series covering 800,000+ economic indicators. "
+        + "Includes interest rates, monetary aggregates, exchange rates, commodity prices, and "
+        + "economic activity measures. Primary source for U.S. economic time series data.");
+    
+    Map<String, String> fredIndicatorsCols = new HashMap<>();
+    fredIndicatorsCols.put("series_id", "FRED series identifier (DFF, GDP, UNRATE, etc.)");
+    fredIndicatorsCols.put("series_name", "Human-readable series description");
+    fredIndicatorsCols.put("date", "Observation date");
+    fredIndicatorsCols.put("value", "Observation value");
+    fredIndicatorsCols.put("units", "Unit of measurement");
+    fredIndicatorsCols.put("frequency", "Data frequency (D=Daily, W=Weekly, M=Monthly, Q=Quarterly, A=Annual)");
+    fredIndicatorsCols.put("seasonal_adjustment", "Seasonal adjustment method if applicable");
+    fredIndicatorsCols.put("last_updated", "Timestamp when series was last updated");
+    ECON_COLUMN_COMMENTS.put("fred_indicators", fredIndicatorsCols);
+    
+    // gdp_components table
+    ECON_TABLE_COMMENTS.put("gdp_components",
+        "Detailed GDP components from Bureau of Economic Analysis (BEA) NIPA tables. Breaks down "
+        + "GDP into personal consumption, investment, government spending, and net exports. Provides "
+        + "granular view of economic activity drivers and sectoral contributions to growth.");
+    
+    Map<String, String> gdpComponentsCols = new HashMap<>();
+    gdpComponentsCols.put("table_id", "BEA NIPA table identifier");
+    gdpComponentsCols.put("line_number", "Line number within NIPA table");
+    gdpComponentsCols.put("line_description", "Component description (e.g., Personal Consumption, Fixed Investment)");
+    gdpComponentsCols.put("series_code", "BEA series code");
+    gdpComponentsCols.put("year", "Observation year");
+    gdpComponentsCols.put("value", "Component value in billions of dollars");
+    gdpComponentsCols.put("units", "Unit of measurement (typically billions of dollars)");
+    gdpComponentsCols.put("frequency", "Data frequency (A=Annual, Q=Quarterly, M=Monthly)");
+    ECON_COLUMN_COMMENTS.put("gdp_components", gdpComponentsCols);
+    
+    // regional_income table
+    ECON_TABLE_COMMENTS.put("regional_income",
+        "State and regional personal income statistics from BEA Regional Economic Accounts. "
+        + "Includes total personal income, per capita income, and population by state. Essential "
+        + "for understanding regional economic disparities and income trends across states.");
+    
+    Map<String, String> regionalIncomeCols = new HashMap<>();
+    regionalIncomeCols.put("geo_fips", "Geographic FIPS code");
+    regionalIncomeCols.put("geo_name", "Geographic area name (state or region)");
+    regionalIncomeCols.put("metric", "Metric type (Total Income, Per Capita Income, Population)");
+    regionalIncomeCols.put("line_code", "BEA line code");
+    regionalIncomeCols.put("line_description", "Detailed description of the metric");
+    regionalIncomeCols.put("year", "Observation year");
+    regionalIncomeCols.put("value", "Metric value (dollars or persons)");
+    regionalIncomeCols.put("units", "Unit of measurement");
+    ECON_COLUMN_COMMENTS.put("regional_income", regionalIncomeCols);
+  }
+  
   // =========================== PUBLIC API METHODS ===========================
   
   /**
@@ -423,6 +608,39 @@ public final class TableCommentDefinitions {
    */
   public static Map<String, String> getGeoColumnComments(String tableName) {
     Map<String, String> comments = GEO_COLUMN_COMMENTS.get(tableName.toLowerCase());
+    return comments != null ? new HashMap<>(comments) : new HashMap<>();
+  }
+  
+  /**
+   * Gets the business definition comment for an ECON schema table.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @return table comment or null if not found
+   */
+  public static @Nullable String getEconTableComment(String tableName) {
+    return ECON_TABLE_COMMENTS.get(tableName.toLowerCase());
+  }
+  
+  /**
+   * Gets the business definition comment for an ECON schema column.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @param columnName name of the column (case-insensitive)
+   * @return column comment or null if not found
+   */
+  public static @Nullable String getEconColumnComment(String tableName, String columnName) {
+    Map<String, String> tableColumns = ECON_COLUMN_COMMENTS.get(tableName.toLowerCase());
+    return tableColumns != null ? tableColumns.get(columnName.toLowerCase()) : null;
+  }
+  
+  /**
+   * Gets all column comments for an ECON schema table.
+   * 
+   * @param tableName name of the table (case-insensitive)
+   * @return map of column names to comments, or empty map if table not found
+   */
+  public static Map<String, String> getEconColumnComments(String tableName) {
+    Map<String, String> comments = ECON_COLUMN_COMMENTS.get(tableName.toLowerCase());
     return comments != null ? new HashMap<>(comments) : new HashMap<>();
   }
 }
