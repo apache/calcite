@@ -524,12 +524,12 @@ public class BlsDataDownloader {
         String seriesId = entry.getKey();
         for (Map<String, Object> dataPoint : entry.getValue()) {
           GenericRecord record = new GenericData.Record(schema);
-          record.put("date", dataPoint.get("date"));
+          record.put("date", dataPoint.get("date") != null ? dataPoint.get("date") : "");
           record.put("index_type", getIndexType(seriesId));
           record.put("item_code", getItemCode(seriesId));
           record.put("area_code", "0000");  // National
-          record.put("item_name", dataPoint.get("series_name"));
-          record.put("index_value", dataPoint.get("value"));
+          record.put("item_name", dataPoint.get("series_name") != null ? dataPoint.get("series_name") : getSeriesName(seriesId));
+          record.put("index_value", dataPoint.get("value") != null ? dataPoint.get("value") : 0.0);
           record.put("area_name", "U.S. city average");
           record.put("seasonally_adjusted", isSeasonallyAdjusted(seriesId));
           writer.write(record);
