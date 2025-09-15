@@ -62,6 +62,8 @@ public final class GeneratedMetadata_CumulativeCostHandler
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
     if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableInterpreter) {
       return provider0.getCumulativeCost((org.apache.calcite.adapter.enumerable.EnumerableInterpreter) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Combine) {
+      return provider0.getCumulativeCost((org.apache.calcite.rel.core.Combine) r, mq);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getCumulativeCost((org.apache.calcite.rel.RelNode) r, mq);
     } else {

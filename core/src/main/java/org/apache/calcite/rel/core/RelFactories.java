@@ -130,6 +130,9 @@ public class RelFactories {
   public static final RepeatUnionFactory DEFAULT_REPEAT_UNION_FACTORY =
       new RepeatUnionFactoryImpl();
 
+  public static final CombineFactory DEFAULT_COMBINE_FACTORY =
+      new CombineFactoryImpl();
+
   public static final Struct DEFAULT_STRUCT =
       new Struct(DEFAULT_FILTER_FACTORY,
           DEFAULT_PROJECT_FACTORY,
@@ -148,7 +151,8 @@ public class RelFactories {
           DEFAULT_SAMPLE_FACTORY,
           DEFAULT_MATCH_FACTORY,
           DEFAULT_SPOOL_FACTORY,
-          DEFAULT_REPEAT_UNION_FACTORY);
+          DEFAULT_REPEAT_UNION_FACTORY,
+          DEFAULT_COMBINE_FACTORY);
 
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
@@ -704,6 +708,25 @@ public class RelFactories {
     }
   }
 
+  /**
+   * Can create a {@link Combine} of the appropriate type for a rule's calling
+   * convention.
+   */
+  public interface CombineFactory {
+    /** Creates a {@link Combine}. */
+    RelNode createCombine(RelOptCluster cluster, List<RelNode> inputs);
+  }
+
+  /**
+   * Implementation of {@link CombineFactory} that returns a
+   * {@link Combine}.
+   */
+  private static class CombineFactoryImpl implements CombineFactory {
+    @Override public RelNode createCombine(RelOptCluster cluster, List<RelNode> inputs) {
+      return Combine.create(cluster, cluster.traitSet(), inputs);
+    }
+  }
+
   /** Immutable record that contains an instance of each factory. */
   public static class Struct {
     public final FilterFactory filterFactory;
@@ -724,6 +747,7 @@ public class RelFactories {
     public final SampleFactory sampleFactory;
     public final SpoolFactory spoolFactory;
     public final RepeatUnionFactory repeatUnionFactory;
+    public final CombineFactory combineFactory;
 
     private Struct(FilterFactory filterFactory,
         ProjectFactory projectFactory,
@@ -742,7 +766,8 @@ public class RelFactories {
         SampleFactory sampleFactory,
         MatchFactory matchFactory,
         SpoolFactory spoolFactory,
-        RepeatUnionFactory repeatUnionFactory) {
+        RepeatUnionFactory repeatUnionFactory,
+        CombineFactory combineFactory) {
       this.filterFactory = requireNonNull(filterFactory, "filterFactory");
       this.projectFactory = requireNonNull(projectFactory, "projectFactory");
       this.aggregateFactory = requireNonNull(aggregateFactory, "aggregateFactory");
@@ -762,6 +787,7 @@ public class RelFactories {
       this.matchFactory = requireNonNull(matchFactory, "matchFactory");
       this.spoolFactory = requireNonNull(spoolFactory, "spoolFactory");
       this.repeatUnionFactory = requireNonNull(repeatUnionFactory, "repeatUnionFactory");
+      this.combineFactory = requireNonNull(combineFactory, "combineFactory");
     }
 
     public static Struct fromContext(Context context) {
@@ -805,7 +831,9 @@ public class RelFactories {
           context.maybeUnwrap(SpoolFactory.class)
               .orElse(DEFAULT_SPOOL_FACTORY),
           context.maybeUnwrap(RepeatUnionFactory.class)
-              .orElse(DEFAULT_REPEAT_UNION_FACTORY));
+              .orElse(DEFAULT_REPEAT_UNION_FACTORY),
+          context.maybeUnwrap(CombineFactory.class)
+              .orElse(DEFAULT_COMBINE_FACTORY));
     }
   }
 }
