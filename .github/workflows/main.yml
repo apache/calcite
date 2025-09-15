@@ -47,7 +47,7 @@ env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
   DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
   GUAVA_MIN: '21.0' # oldest supported Guava version
-  GUAVA_MAX: '33.3.0-jre' # latest supported Guava version
+  GUAVA_MAX: '33.4.8-jre' # latest supported Guava version
   GUAVA: '21.0' # most jobs test against oldest Guava version
 
 jobs:
