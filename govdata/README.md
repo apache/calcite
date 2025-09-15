@@ -54,14 +54,17 @@ ResultSet rs = conn.createStatement().executeQuery(
     "operand": {
       "dataSource": "econ",
       "blsApiKey": "${BLS_API_KEY}",
-      "fredApiKey": "${FRED_API_KEY}",
+      "cacheDirectory": "${ECON_CACHE_DIR:/tmp/calcite-econ-cache}",
       "updateFrequency": "daily",
-      "historicalDepth": "10 years",
-      "enabledSources": ["bls", "fred", "treasury"]
+      "enabledSources": ["bls"]
     }
   }]
 }
 ```
+
+**Note**: The ECON schema uses unified date range configuration from environment variables:
+- `GOVDATA_START_YEAR` and `GOVDATA_END_YEAR` (default: last 5 years)
+- Optional override: `ECON_START_YEAR` and `ECON_END_YEAR`
 
 #### Public Safety Data
 ```json
@@ -169,11 +172,18 @@ implementation("org.apache.calcite:calcite-govdata:1.41.0-SNAPSHOT")
 - **Public Safety (SAFETY)**: FBI crime statistics, traffic safety data, emergency services, disasters
 - **Public Data (PUB)**: Wikipedia encyclopedia content, OpenStreetMap geographic data, Wikidata structured knowledge, academic research
 
-### Economic Data Sources (NEW)
+### Economic Data Sources (ECON Schema)
 The `econ` schema provides unified access to U.S. economic indicators:
-- **Bureau of Labor Statistics (BLS)**: Employment data, CPI/PPI inflation metrics, wage growth
-- **Federal Reserve (FRED)**: 800,000+ economic time series, interest rates, GDP components
-- **U.S. Treasury**: Daily yield curves, auction results, federal debt statistics
+
+**Currently Implemented (BLS API):**
+- **employment_statistics**: Monthly unemployment rate, labor force participation, employment levels
+- **inflation_metrics**: Consumer Price Index (CPI) and Producer Price Index (PPI) data
+- **wage_growth**: Average hourly/weekly earnings by industry and occupation
+- **regional_employment**: State and metropolitan area employment statistics
+
+**Planned Future Integration:**
+- **Federal Reserve (FRED)**: Interest rates, GDP components, 800,000+ economic series
+- **U.S. Treasury**: Daily yield curves, auction results, federal debt statistics  
 - **Bureau of Economic Analysis (BEA)**: GDP by state/industry, trade data
 
 ### Public Safety Data Sources (NEW)
@@ -344,41 +354,50 @@ SELECT
     value as current_value,
     percent_change_year as yoy_change
 FROM econ.employment_statistics
-WHERE series_id = 'UNRATE'
+WHERE series_id = 'LNS14000000'  -- BLS unemployment rate series
   AND date = (SELECT MAX(date) FROM econ.employment_statistics)
 UNION ALL
 SELECT 
-    'CPI Inflation',
-    percent_change_year,
-    percent_change_year - LAG(percent_change_year, 12) OVER (ORDER BY date)
+    'CPI Inflation' as indicator,
+    index_value as current_value,
+    percent_change_year as yoy_change
 FROM econ.inflation_metrics
-WHERE index_type = 'CPI-U' AND item_code = 'All Items';
+WHERE index_type = 'CPI-U' 
+  AND item_name = 'All items'
+  AND date = (SELECT MAX(date) FROM econ.inflation_metrics);
 
--- Yield curve analysis
+-- Regional unemployment analysis
 SELECT 
-    date,
-    MAX(CASE WHEN maturity_months = 3 THEN yield_percent END) as "3M",
-    MAX(CASE WHEN maturity_months = 24 THEN yield_percent END) as "2Y",
-    MAX(CASE WHEN maturity_months = 120 THEN yield_percent END) as "10Y",
-    MAX(CASE WHEN maturity_months = 120 THEN yield_percent END) - 
-    MAX(CASE WHEN maturity_months = 24 THEN yield_percent END) as "10Y-2Y_spread"
-FROM econ.treasury_yields
-WHERE date >= CURRENT_DATE - INTERVAL '1 year'
-GROUP BY date
-ORDER BY date DESC;
+    s.state_name,
+    r.unemployment_rate,
+    r.employment_level,
+    r.labor_force,
+    r.participation_rate,
+    RANK() OVER (ORDER BY r.unemployment_rate ASC) as unemployment_rank
+FROM econ.regional_employment r
+JOIN geo.tiger_states s ON r.state_code = s.state_code
+WHERE r.date = (SELECT MAX(date) FROM econ.regional_employment)
+  AND r.area_type = 'state'
+ORDER BY r.unemployment_rate ASC;
 
--- Company performance vs. economic conditions
+-- Company performance vs. employment conditions
 SELECT 
-    s.company_name,
-    s.fiscal_year,
-    s.revenue_growth_yoy,
-    e.gdp_growth_yoy,
+    f.company_name,
+    f.fiscal_year,
+    AVG(f.value) as avg_net_income,
     e.unemployment_rate,
-    CORR(s.revenue_growth_yoy, e.gdp_growth_yoy) OVER (
-        PARTITION BY s.cik ORDER BY s.fiscal_year
-    ) as revenue_gdp_correlation
-FROM sec.financial_metrics s
-JOIN econ.economic_indicators e ON s.fiscal_year = e.year;
+    e.labor_force_participation
+FROM sec.financial_line_items f
+JOIN (
+    SELECT 
+        EXTRACT(YEAR FROM date) as year,
+        AVG(CASE WHEN series_id = 'LNS14000000' THEN value END) as unemployment_rate,
+        AVG(CASE WHEN series_id = 'LNS11300000' THEN value END) as labor_force_participation
+    FROM econ.employment_statistics
+    GROUP BY EXTRACT(YEAR FROM date)
+) e ON f.fiscal_year = e.year
+WHERE f.concept = 'NetIncomeLoss'
+GROUP BY f.company_name, f.fiscal_year, e.unemployment_rate, e.labor_force_participation;
 ```
 
 ### Public Safety Risk Assessment
