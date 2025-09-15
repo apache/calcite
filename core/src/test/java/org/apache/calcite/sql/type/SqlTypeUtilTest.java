@@ -208,7 +208,7 @@ class SqlTypeUtilTest {
         sqlTypeName, is(SqlTypeName.VARBINARY));
 
     sqlTypeName = JavaToSqlTypeConversionRules.instance().lookup(Character[].class);
-    assertThat("Character[].class should map to SqlTypeName.VARBINARY",
+    assertThat("Character[].class should map to SqlTypeName.VARCHAR",
         sqlTypeName, is(SqlTypeName.VARCHAR));
   }
 
