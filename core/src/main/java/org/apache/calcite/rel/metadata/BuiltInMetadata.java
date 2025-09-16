@@ -905,16 +905,62 @@ public abstract class BuiltInMetadata {
   public interface FunctionalDependency extends Metadata {
     MetadataDef<FunctionalDependency> DEF =
         MetadataDef.of(FunctionalDependency.class, FunctionalDependency.Handler.class,
-            BuiltInMethod.FUNCTIONAL_DEPENDENCY.method);
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_SET.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_CLOSURE.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_CANDIDATE_KEYS.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_GET_ALL.method);
 
     /**
      * Returns whether column is functionally dependent on column.
      */
     @Nullable Boolean determines(int key, int column);
 
+    /**
+     * Returns whether a set of columns functionally determines another set of columns.
+     *
+     * @param determinants the determining columns (keys)
+     * @param dependents the dependent columns
+     * @return true if determinants → dependents
+     */
+    Boolean determinesSet(ImmutableBitSet determinants, ImmutableBitSet dependents);
+
+    /**
+     * Returns the closure of a set of columns under all functional dependencies.
+     *
+     * @param attrs the input attribute set
+     * @return the closure (all attributes functionally determined by the input)
+     */
+    ImmutableBitSet closure(ImmutableBitSet attrs);
+
+    /**
+     * Returns candidate keys for the relation within the specified set of attributes.
+     *
+     * @param attributes the set of attributes to consider when finding keys
+     * @return a set of minimal attribute sets that determine all attributes
+     */
+    Set<ImmutableBitSet> candidateKeys(ImmutableBitSet attributes);
+
+    /**
+     * Returns all functional dependencies in the relation.
+     *
+     * @return the set of functional dependencies
+     */
+    FunctionalDependencySet getFunctionalDependencies();
+
     /** Handler API. */
     interface Handler extends MetadataHandler<FunctionalDependency> {
       @Nullable Boolean determines(RelNode r, RelMetadataQuery mq, int key, int column);
+
+      Boolean determinesSet(RelNode r, RelMetadataQuery mq,
+          ImmutableBitSet determinants, ImmutableBitSet dependents);
+
+      ImmutableBitSet closure(RelNode r, RelMetadataQuery mq, ImmutableBitSet attrs);
+
+      Set<ImmutableBitSet> candidateKeys(RelNode r, RelMetadataQuery mq,
+          ImmutableBitSet attributes);
+
+      FunctionalDependencySet getFunctionalDependencies(RelNode r, RelMetadataQuery mq);
 
       @Override default MetadataDef<FunctionalDependency> getDef() {
         return DEF;
