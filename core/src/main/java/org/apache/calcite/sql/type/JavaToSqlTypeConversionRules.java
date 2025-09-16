@@ -63,7 +63,6 @@ public class JavaToSqlTypeConversionRules {
           .put(boolean.class, SqlTypeName.BOOLEAN)
           .put(Boolean.class, SqlTypeName.BOOLEAN)
           .put(byte[].class, SqlTypeName.VARBINARY)
-          .put(Byte[].class, SqlTypeName.VARBINARY)
           .put(ByteString.class, SqlTypeName.VARBINARY)
           .put(String.class, SqlTypeName.VARCHAR)
           .put(char[].class, SqlTypeName.VARCHAR)
