@@ -200,14 +200,10 @@ class SqlTypeUtilTest {
 
   /**
    * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7186">[CALCITE-7186]</a>
-   * Add mapping from Byte[] to VARBINARY and Character[] to VARCHAR in Java UDF.
+   * Add mapping from Character[] to VARCHAR in Java UDF.
    */
   @Test void testJavaToSqlCharacterArrayAndByteArrayMapping() {
-    SqlTypeName sqlTypeName = JavaToSqlTypeConversionRules.instance().lookup(Byte[].class);
-    assertThat("Byte[].class should map to SqlTypeName.VARBINARY",
-        sqlTypeName, is(SqlTypeName.VARBINARY));
-
-    sqlTypeName = JavaToSqlTypeConversionRules.instance().lookup(Character[].class);
+    SqlTypeName sqlTypeName = JavaToSqlTypeConversionRules.instance().lookup(Character[].class);
     assertThat("Character[].class should map to SqlTypeName.VARCHAR",
         sqlTypeName, is(SqlTypeName.VARCHAR));
   }

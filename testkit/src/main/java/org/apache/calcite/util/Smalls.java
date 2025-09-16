@@ -1492,4 +1492,23 @@ public class Smalls {
       }
     }
   }
+
+  public static class CharacterArrayFunction {
+    public static Character[] eval(String s) {
+      if (s == null) {
+        return null;
+      }
+      try {
+        Character[] characters = new Character[s.length()];
+        int index = 0;
+        for (char c : s.toCharArray()) {
+          characters[index] = c;
+          index++;
+        }
+        return characters;
+      } catch (Exception e) {
+        return null;
+      }
+    }
+  }
 }
