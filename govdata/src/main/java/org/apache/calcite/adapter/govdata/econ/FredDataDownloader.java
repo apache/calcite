@@ -124,6 +124,12 @@ public class FredDataDownloader {
     public static final String BANK_CREDIT = "TOTBKCR";                     // Bank Credit, All Commercial Banks
     public static final String BANK_LENDING_STANDARDS = "DRTSCILM";         // Net Percentage of Banks Tightening Standards for C&I Loans
     public static final String MORTGAGE_DELINQUENCY_RATE = "DRSFRMACBS";    // Delinquency Rate on Single-Family Residential Mortgages
+    
+    // Real Estate Metrics
+    public static final String BUILDING_PERMITS = "PERMIT";                 // New Private Housing Permits
+    public static final String MEDIAN_HOME_PRICE = "MSPUS";                 // Median Sales Price of Houses Sold in the United States
+    public static final String RENTAL_VACANCY_RATE = "RRVRUSQ156N";         // Rental Vacancy Rate in the United States
+    public static final String SINGLE_UNIT_HOUSING_STARTS = "HOUST1F";      // Housing Starts: 1-Unit Structures
   }
   
   // Default series to download if none specified
@@ -142,7 +148,12 @@ public class FredDataDownloader {
       Series.COMMERCIAL_BANK_DEPOSITS,
       Series.BANK_CREDIT,
       Series.BANK_LENDING_STANDARDS,
-      Series.MORTGAGE_DELINQUENCY_RATE
+      Series.MORTGAGE_DELINQUENCY_RATE,
+      // Real Estate Metrics
+      Series.BUILDING_PERMITS,
+      Series.MEDIAN_HOME_PRICE,
+      Series.RENTAL_VACANCY_RATE,
+      Series.SINGLE_UNIT_HOUSING_STARTS
   );
   
   public FredDataDownloader(String cacheDir, String apiKey, StorageProvider storageProvider) {
