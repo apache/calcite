@@ -193,10 +193,45 @@ public class BeaDataDownloader {
    * Downloads all BEA data for the specified year range.
    */
   public void downloadAll(int startYear, int endYear) throws IOException, InterruptedException {
-    LOGGER.info("Downloading BEA data for years {} to {}", startYear, endYear);
+    LOGGER.info("Downloading all BEA data for years {} to {}", startYear, endYear);
     
+    // Download all datasets year by year to match expected directory structure
     for (int year = startYear; year <= endYear; year++) {
+      // Download GDP components
       downloadGdpComponentsForYear(year);
+      
+      // Download regional income for single year
+      try {
+        LOGGER.info("About to call downloadRegionalIncomeForYear for year {}", year);
+        downloadRegionalIncomeForYear(year);
+        LOGGER.info("Successfully completed downloadRegionalIncomeForYear for year {}", year);
+      } catch (Exception e) {
+        LOGGER.error("Failed to download regional income data for year {}: {}", year, e.getMessage(), e);
+      }
+      
+      // Download trade statistics for single year  
+      try {
+        LOGGER.info("Downloading trade statistics for year {}", year);
+        downloadTradeStatisticsForYear(year);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to download trade statistics for year {}: {}", year, e.getMessage());
+      }
+      
+      // Download ITA data for single year
+      try {
+        LOGGER.info("Downloading ITA data for year {}", year);
+        downloadItaDataForYear(year);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to download ITA data for year {}: {}", year, e.getMessage());
+      }
+      
+      // Download industry GDP for single year
+      try {
+        LOGGER.info("Downloading industry GDP data for year {}", year);
+        downloadIndustryGdpForYear(year);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to download industry GDP data for year {}: {}", year, e.getMessage());
+      }
     }
   }
   
@@ -442,6 +477,169 @@ public class BeaDataDownloader {
   }
   
   /**
+   * Downloads regional income data for a single year.
+   */
+  public void downloadRegionalIncomeForYear(int year) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      LOGGER.error("BEA API key is missing - cannot download regional income data");
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    LOGGER.info("Downloading BEA regional income data for year {} with API key: {}...", year, apiKey.substring(0, 4));
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
+    
+    List<RegionalIncome> incomeData = new ArrayList<>();
+    
+    // Regional API requires separate calls for each LineCode (1=Income, 2=Population, 3=Per Capita)
+    String[] lineCodes = {"1", "2", "3"};
+    
+    for (String lineCode : lineCodes) {
+      LOGGER.debug("Downloading regional income data for year {} LineCode {}", year, lineCode);
+      
+      String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableName=SAINC1&LineCode=%s&GeoFips=STATE&Year=%d&ResultFormat=JSON",
+          apiKey, Datasets.REGIONAL, lineCode, year);
+      
+      String url = BEA_API_BASE + "?" + params;
+      
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .timeout(Duration.ofSeconds(30))
+          .build();
+      
+      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      
+      if (response.statusCode() != 200) {
+        LOGGER.warn("BEA regional income API request failed for year {} LineCode {} with status: {}", year, lineCode, response.statusCode());
+        continue;
+      }
+      
+      JsonNode root = MAPPER.readTree(response.body());
+      JsonNode results = root.get("BEAAPI").get("Results");
+      
+      // Check for API errors
+      if (results != null && results.has("Error")) {
+        JsonNode error = results.get("Error");
+        LOGGER.warn("BEA API error for year {} LineCode {}: {} - {}", year, lineCode, 
+                   error.get("APIErrorCode").asText(), error.get("APIErrorDescription").asText());
+        continue;
+      }
+      
+      if (results != null && results.has("Data")) {
+        JsonNode dataArray = results.get("Data");
+        if (dataArray != null && dataArray.isArray()) {
+          for (JsonNode record : dataArray) {
+            try {
+              RegionalIncome income = new RegionalIncome();
+              
+              // Get fields with null checks
+              JsonNode geoFipsNode = record.get("GeoFips");
+              JsonNode geoNameNode = record.get("GeoName");
+              JsonNode codeNode = record.get("Code");
+              JsonNode lineCodeNode = record.get("LineCode");  // Try both Code and LineCode
+              JsonNode descNode = record.get("Description");
+              JsonNode timePeriodNode = record.get("TimePeriod");
+              JsonNode dataValueNode = record.get("DataValue");
+              
+              if (geoFipsNode == null || geoNameNode == null || timePeriodNode == null || dataValueNode == null) {
+                LOGGER.debug("Skipping record with missing required fields");
+                continue;
+              }
+              
+              income.geoFips = geoFipsNode.asText();
+              income.geoName = geoNameNode.asText();
+              
+              // Handle LineCode - BEA Regional uses LineCode, not Code
+              if (lineCodeNode != null) {
+                income.lineCode = lineCodeNode.asText();
+              } else if (codeNode != null) {
+                income.lineCode = codeNode.asText();
+              } else {
+                income.lineCode = lineCode;  // Use the LineCode from the request
+              }
+              
+              // Description might be in different field or not present
+              if (descNode != null) {
+                income.lineDescription = descNode.asText();
+              } else {
+                // Set description based on line code
+                if ("1".equals(income.lineCode)) {
+                  income.lineDescription = "Personal income (thousands of dollars)";
+                } else if ("2".equals(income.lineCode)) {
+                  income.lineDescription = "Population (persons)";
+                } else if ("3".equals(income.lineCode)) {
+                  income.lineDescription = "Per capita personal income (dollars)";
+                } else {
+                  income.lineDescription = "Line " + income.lineCode;
+                }
+              }
+              
+              income.year = Integer.parseInt(timePeriodNode.asText());
+              
+              String dataValue = dataValueNode.asText();
+              if (!"NoteRef".equals(dataValue) && !dataValue.isEmpty() && !"(NA)".equals(dataValue)) {
+                try {
+                  income.value = Double.parseDouble(dataValue.replace(",", ""));
+                } catch (NumberFormatException e) {
+                  continue;
+                }
+              } else {
+                continue;
+              }
+              
+              // Set units based on line code
+              if ("1".equals(income.lineCode)) {
+                income.units = "Thousands of dollars";
+                income.metric = "Total Personal Income";
+              } else if ("2".equals(income.lineCode)) {
+                income.units = "Persons";
+                income.metric = "Population";
+              } else if ("3".equals(income.lineCode)) {
+                income.units = "Dollars";
+                income.metric = "Per Capita Personal Income";
+              }
+              
+              incomeData.add(income);
+            } catch (Exception e) {
+              LOGGER.debug("Failed to parse regional income record: {}", e.getMessage());
+            }
+          }
+        }
+      }
+    }
+    
+    // Save as JSON
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "regional_income.json");
+    LOGGER.info("Preparing to save {} regional income records to {}", incomeData.size(), jsonFilePath);
+    
+    Map<String, Object> data = new HashMap<>();
+    List<Map<String, Object>> incomeList = new ArrayList<>();
+    
+    for (RegionalIncome income : incomeData) {
+      Map<String, Object> incomeMap = new HashMap<>();
+      incomeMap.put("geo_fips", income.geoFips);
+      incomeMap.put("geo_name", income.geoName);
+      incomeMap.put("metric", income.metric);
+      incomeMap.put("line_code", income.lineCode);
+      incomeMap.put("line_description", income.lineDescription);
+      incomeMap.put("year", income.year);
+      incomeMap.put("value", income.value);
+      incomeMap.put("units", income.units);
+      incomeList.add(incomeMap);
+    }
+    
+    data.put("regional_income", incomeList);
+    data.put("download_date", LocalDate.now().toString());
+    data.put("year", year);
+    
+    String jsonContent = MAPPER.writeValueAsString(data);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
+    
+    LOGGER.info("Regional income data saved to: {} ({} records)", jsonFilePath, incomeData.size());
+  }
+  
+  /**
    * Downloads regional personal income data by state.
    */
   public File downloadRegionalIncome(int startYear, int endYear) throws IOException, InterruptedException {
@@ -538,6 +736,109 @@ public class BeaDataDownloader {
    */
   public File downloadTradeStatistics() throws IOException, InterruptedException {
     return downloadTradeStatistics(getDefaultStartYear(), getDefaultEndYear());
+  }
+  
+  /**
+   * Downloads trade statistics for a single year.
+   */
+  public void downloadTradeStatisticsForYear(int year) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    LOGGER.info("Downloading BEA trade statistics for year {}", year);
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
+    
+    List<TradeStatistic> tradeData = new ArrayList<>();
+    
+    // Download exports and imports (Table 125) for single year
+    String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableName=%s&Frequency=A&Year=%d&ResultFormat=JSON",
+        apiKey, Datasets.NIPA, NipaTables.EXPORTS_IMPORTS, year);
+    
+    String url = BEA_API_BASE + "?" + params;
+    
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .timeout(Duration.ofSeconds(30))
+        .build();
+    
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    
+    if (response.statusCode() != 200) {
+      LOGGER.warn("BEA trade statistics API request failed for year {} with status: {}", year, response.statusCode());
+      return;
+    }
+    
+    JsonNode root = MAPPER.readTree(response.body());
+    JsonNode results = root.get("BEAAPI").get("Results");
+    
+    if (results != null && results.has("Data")) {
+      JsonNode dataArray = results.get("Data");
+      if (dataArray != null && dataArray.isArray()) {
+        for (JsonNode record : dataArray) {
+          TradeStatistic trade = new TradeStatistic();
+          trade.tableId = NipaTables.EXPORTS_IMPORTS;
+          trade.lineNumber = record.get("LineNumber").asInt();
+          trade.lineDescription = record.get("LineDescription").asText();
+          trade.seriesCode = record.get("SeriesCode").asText();
+          trade.year = record.get("TimePeriod").asInt();
+          trade.frequency = "A";
+          trade.units = "Billions of dollars";
+          
+          // Parse value, handling special cases
+          String dataValue = record.get("DataValue").asText();
+          if (!"NoteRef".equals(dataValue) && !dataValue.isEmpty() && !"(NA)".equals(dataValue)) {
+            try {
+              trade.value = Double.parseDouble(dataValue.replace(",", ""));
+            } catch (NumberFormatException e) {
+              continue; // Skip invalid values
+            }
+          } else {
+            continue;
+          }
+          
+          // Determine trade type and category from line description
+          parseTradeTypeAndCategory(trade);
+          
+          tradeData.add(trade);
+        }
+      }
+    }
+    
+    // Calculate trade balances for matching export/import pairs
+    calculateTradeBalances(tradeData);
+    
+    // Save as JSON
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "trade_statistics.json");
+    Map<String, Object> data = new HashMap<>();
+    List<Map<String, Object>> tradeList = new ArrayList<>();
+    
+    for (TradeStatistic trade : tradeData) {
+      Map<String, Object> tradeMap = new HashMap<>();
+      tradeMap.put("table_id", trade.tableId);
+      tradeMap.put("line_number", trade.lineNumber);
+      tradeMap.put("line_description", trade.lineDescription);
+      tradeMap.put("series_code", trade.seriesCode);
+      tradeMap.put("year", trade.year);
+      tradeMap.put("value", trade.value);
+      tradeMap.put("units", trade.units);
+      tradeMap.put("frequency", trade.frequency);
+      tradeMap.put("trade_type", trade.tradeType);
+      tradeMap.put("category", trade.category);
+      tradeMap.put("trade_balance", trade.tradeBalance);
+      tradeList.add(tradeMap);
+    }
+    
+    data.put("trade_statistics", tradeList);
+    data.put("download_date", LocalDate.now().toString());
+    data.put("year", year);
+    
+    String jsonContent = MAPPER.writeValueAsString(data);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
+    
+    LOGGER.info("Trade statistics saved to: {} ({} records)", jsonFilePath, tradeData.size());
   }
   
   /**
@@ -776,6 +1077,113 @@ public class BeaDataDownloader {
   }
   
   /**
+   * Downloads ITA data for a single year.
+   */
+  public void downloadItaDataForYear(int year) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    LOGGER.info("Downloading BEA ITA data for year {}", year);
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
+    
+    List<ItaData> itaRecords = new ArrayList<>();
+    
+    // Download key ITA indicators for single year
+    String[] indicators = {
+        ItaIndicators.BALANCE_GOODS,
+        ItaIndicators.BALANCE_SERVICES,
+        ItaIndicators.BALANCE_GOODS_SERVICES,
+        ItaIndicators.BALANCE_CURRENT_ACCOUNT
+    };
+    
+    for (String indicator : indicators) {
+      String params = String.format("UserID=%s&method=GetData&datasetname=%s&Indicator=%s&AreaOrCountry=AllCountries&Frequency=A&Year=%d&ResultFormat=JSON",
+          apiKey, Datasets.ITA, indicator, year);
+      
+      String url = BEA_API_BASE + "?" + params;
+      
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .timeout(Duration.ofSeconds(30))
+          .build();
+      
+      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      
+      if (response.statusCode() != 200) {
+        LOGGER.warn("ITA API request failed for indicator {} year {} with status: {}", indicator, year, response.statusCode());
+        continue;
+      }
+      
+      JsonNode root = MAPPER.readTree(response.body());
+      JsonNode results = root.get("BEAAPI").get("Results");
+      
+      if (results != null && results.has("Data")) {
+        JsonNode dataArray = results.get("Data");
+        if (dataArray != null && dataArray.isArray()) {
+          for (JsonNode record : dataArray) {
+            ItaData ita = new ItaData();
+            ita.indicator = record.get("Indicator").asText();
+            ita.areaOrCountry = record.get("AreaOrCountry").asText();
+            ita.frequency = record.get("Frequency").asText();
+            ita.year = Integer.parseInt(record.get("Year").asText());
+            ita.timeSeriesId = record.get("TimeSeriesId").asText();
+            ita.timeSeriesDescription = record.get("TimeSeriesDescription").asText();
+            ita.units = "USD Millions";
+            
+            // Parse value, handling special cases
+            String dataValue = record.get("DataValue").asText();
+            if (!"NoteRef".equals(dataValue) && !dataValue.isEmpty() && !"(NA)".equals(dataValue)) {
+              try {
+                ita.value = Double.parseDouble(dataValue.replace(",", ""));
+              } catch (NumberFormatException e) {
+                continue; // Skip invalid values
+              }
+            } else {
+              continue;
+            }
+            
+            // Set indicator description
+            ita.indicatorDescription = getItaIndicatorDescription(ita.indicator);
+            
+            itaRecords.add(ita);
+          }
+        }
+      }
+    }
+    
+    // Save as JSON
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "ita_data.json");
+    Map<String, Object> data = new HashMap<>();
+    List<Map<String, Object>> itaList = new ArrayList<>();
+    
+    for (ItaData ita : itaRecords) {
+      Map<String, Object> itaMap = new HashMap<>();
+      itaMap.put("indicator", ita.indicator);
+      itaMap.put("indicator_description", ita.indicatorDescription);
+      itaMap.put("area_or_country", ita.areaOrCountry);
+      itaMap.put("frequency", ita.frequency);
+      itaMap.put("year", ita.year);
+      itaMap.put("value", ita.value);
+      itaMap.put("units", ita.units);
+      itaMap.put("time_series_id", ita.timeSeriesId);
+      itaMap.put("time_series_description", ita.timeSeriesDescription);
+      itaList.add(itaMap);
+    }
+    
+    data.put("ita_data", itaList);
+    data.put("download_date", LocalDate.now().toString());
+    data.put("year", year);
+    
+    String jsonContent = MAPPER.writeValueAsString(data);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
+    
+    LOGGER.info("ITA data saved to: {} ({} records)", jsonFilePath, itaRecords.size());
+  }
+  
+  /**
    * Downloads comprehensive International Transactions Accounts (ITA) data.
    * Provides detailed trade balances, current account, and capital flows.
    */
@@ -930,6 +1338,353 @@ public class BeaDataDownloader {
     LOGGER.info("ITA data Parquet written: {} ({} records)", outputFile.getAbsolutePath(), itaRecords.size());
   }
   
+  /**
+   * Downloads GDP by Industry data using default date range.
+   */
+  public File downloadIndustryGdp() throws IOException, InterruptedException {
+    return downloadIndustryGdp(getDefaultStartYear(), getDefaultEndYear());
+  }
+  
+  /**
+   * Downloads industry GDP data for a single year.
+   */
+  public void downloadIndustryGdpForYear(int year) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    LOGGER.info("Downloading BEA GDP by Industry data for year {}", year);
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
+    
+    List<IndustryGdpData> industryData = new ArrayList<>();
+    
+    // Key industries to download (NAICS codes) - limited for single year
+    String[] keyIndustries = {
+        "31G",     // Manufacturing
+        "52",      // Finance and insurance
+        "53",      // Real estate and rental and leasing
+        "54",      // Professional, scientific, and technical services
+        "GSLG",    // Government
+    };
+    
+    // Download annual data for Table 1 (Value Added by Industry)
+    for (String industry : keyIndustries) {
+      String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableID=1&Frequency=A&Year=%d&Industry=%s&ResultFormat=JSON",
+          apiKey, Datasets.GDP_BY_INDUSTRY, year, industry);
+      
+      String url = BEA_API_BASE + "?" + params;
+      
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .timeout(Duration.ofSeconds(30))
+          .build();
+      
+      try {
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        if (response.statusCode() != 200) {
+          LOGGER.warn("GDP by Industry API request failed for industry {} year {} with status: {}", industry, year, response.statusCode());
+          continue;
+        }
+        
+        JsonNode root = MAPPER.readTree(response.body());
+        
+        // The GDP by Industry API returns data in a different structure
+        JsonNode results = root.get("BEAAPI").get("Results");
+        if (results != null && results.isArray() && results.size() > 0) {
+          JsonNode dataNode = results.get(0);
+          if (dataNode.has("Data")) {
+            JsonNode dataArray = dataNode.get("Data");
+            if (dataArray != null && dataArray.isArray()) {
+              for (JsonNode record : dataArray) {
+                IndustryGdpData gdp = new IndustryGdpData();
+                gdp.tableId = record.get("TableID").asInt();
+                gdp.frequency = record.get("Frequency").asText();
+                gdp.year = Integer.parseInt(record.get("Year").asText());
+                gdp.quarter = record.get("Quarter").asText();
+                gdp.industryCode = record.get("Industry").asText();
+                gdp.industryDescription = record.get("IndustrYDescription").asText();
+                gdp.units = "Billions of dollars";
+                
+                // Parse value, handling special cases
+                String dataValue = record.get("DataValue").asText();
+                if (!"NoteRef".equals(dataValue) && !dataValue.isEmpty() && !"(NA)".equals(dataValue) && !dataValue.equals("...")) {
+                  try {
+                    gdp.value = Double.parseDouble(dataValue.replace(",", ""));
+                  } catch (NumberFormatException e) {
+                    continue; // Skip invalid values
+                  }
+                } else {
+                  continue;
+                }
+                
+                if (record.has("NoteRef")) {
+                  gdp.noteRef = record.get("NoteRef").asText();
+                }
+                
+                industryData.add(gdp);
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.warn("Error processing industry {} for year {}: {}", industry, year, e.getMessage());
+      }
+    }
+    
+    // Save as JSON
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "industry_gdp.json");
+    Map<String, Object> data = new HashMap<>();
+    List<Map<String, Object>> gdpList = new ArrayList<>();
+    
+    for (IndustryGdpData gdp : industryData) {
+      Map<String, Object> gdpMap = new HashMap<>();
+      gdpMap.put("table_id", gdp.tableId);
+      gdpMap.put("frequency", gdp.frequency);
+      gdpMap.put("year", gdp.year);
+      gdpMap.put("quarter", gdp.quarter);
+      gdpMap.put("industry_code", gdp.industryCode);
+      gdpMap.put("industry_description", gdp.industryDescription);
+      gdpMap.put("value", gdp.value);
+      gdpMap.put("units", gdp.units);
+      gdpMap.put("note_ref", gdp.noteRef);
+      gdpList.add(gdpMap);
+    }
+    
+    data.put("industry_gdp", gdpList);
+    data.put("download_date", LocalDate.now().toString());
+    data.put("year", year);
+    
+    String jsonContent = MAPPER.writeValueAsString(data);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
+    
+    LOGGER.info("Industry GDP data saved to: {} ({} records)", jsonFilePath, industryData.size());
+  }
+  
+  /**
+   * Downloads GDP by Industry data showing value added by NAICS industry classification.
+   * Provides quarterly and annual data for all industries including manufacturing, 
+   * services, finance, technology, and government sectors.
+   */
+  public File downloadIndustryGdp(int startYear, int endYear) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    LOGGER.info("Downloading BEA GDP by Industry data for {}-{}", startYear, endYear);
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir,
+        String.format("source=econ/type=industry_gdp/year_range=%d_%d", startYear, endYear));
+    storageProvider.createDirectories(outputDirPath);
+    
+    List<IndustryGdpData> industryData = new ArrayList<>();
+    
+    // Build year list for API request
+    List<String> years = new ArrayList<>();
+    for (int year = startYear; year <= endYear; year++) {
+      years.add(String.valueOf(year));
+    }
+    String yearParam = String.join(",", years);
+    
+    // Key industries to download (NAICS codes)
+    String[] keyIndustries = {
+        "11",      // Agriculture, forestry, fishing, and hunting
+        "21",      // Mining
+        "22",      // Utilities
+        "23",      // Construction
+        "31G",     // Manufacturing
+        "42",      // Wholesale trade
+        "44RT",    // Retail trade
+        "48TW",    // Transportation and warehousing
+        "51",      // Information
+        "52",      // Finance and insurance
+        "53",      // Real estate and rental and leasing
+        "54",      // Professional, scientific, and technical services
+        "55",      // Management of companies and enterprises
+        "56",      // Administrative and waste management services
+        "61",      // Educational services
+        "62",      // Health care and social assistance
+        "71",      // Arts, entertainment, and recreation
+        "72",      // Accommodation and food services
+        "81",      // Other services
+        "GSLG",    // Government
+    };
+    
+    // Download annual data for Table 1 (Value Added by Industry)
+    for (String industry : keyIndustries) {
+      String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableID=1&Frequency=A&Year=%s&Industry=%s&ResultFormat=JSON",
+          apiKey, Datasets.GDP_BY_INDUSTRY, yearParam, industry);
+      
+      String url = BEA_API_BASE + "?" + params;
+      
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .timeout(Duration.ofSeconds(30))
+          .build();
+      
+      try {
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        
+        if (response.statusCode() != 200) {
+          LOGGER.warn("GDP by Industry API request failed for industry {} with status: {}", industry, response.statusCode());
+          continue;
+        }
+        
+        JsonNode root = MAPPER.readTree(response.body());
+        
+        // The GDP by Industry API returns data in a different structure
+        JsonNode results = root.get("BEAAPI").get("Results");
+        if (results != null && results.isArray() && results.size() > 0) {
+          JsonNode dataNode = results.get(0);
+          if (dataNode.has("Data")) {
+            JsonNode dataArray = dataNode.get("Data");
+            if (dataArray != null && dataArray.isArray()) {
+              for (JsonNode record : dataArray) {
+                IndustryGdpData gdp = new IndustryGdpData();
+                gdp.tableId = record.get("TableID").asInt();
+                gdp.frequency = record.get("Frequency").asText();
+                gdp.year = Integer.parseInt(record.get("Year").asText());
+                gdp.quarter = record.get("Quarter").asText();
+                gdp.industryCode = record.get("Industry").asText();
+                gdp.industryDescription = record.get("IndustrYDescription").asText();
+                gdp.units = "Billions of dollars";
+                
+                // Parse value, handling special cases
+                String dataValue = record.get("DataValue").asText();
+                if (!"NoteRef".equals(dataValue) && !dataValue.isEmpty() && !"(NA)".equals(dataValue) && !dataValue.equals("...")) {
+                  try {
+                    gdp.value = Double.parseDouble(dataValue.replace(",", ""));
+                  } catch (NumberFormatException e) {
+                    continue; // Skip invalid values
+                  }
+                } else {
+                  continue;
+                }
+                
+                if (record.has("NoteRef")) {
+                  gdp.noteRef = record.get("NoteRef").asText();
+                }
+                
+                industryData.add(gdp);
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.warn("Error processing industry {}: {}", industry, e.getMessage());
+      }
+    }
+    
+    // Also download quarterly data for recent years (last 2 years only for size)
+    int quarterlyStartYear = Math.max(startYear, endYear - 1);
+    for (int year = quarterlyStartYear; year <= endYear; year++) {
+      for (String quarter : new String[]{"Q1", "Q2", "Q3", "Q4"}) {
+        // Download quarterly data for manufacturing sector as example
+        String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableID=1&Frequency=Q&Year=%d&Quarter=%s&Industry=31G&ResultFormat=JSON",
+            apiKey, Datasets.GDP_BY_INDUSTRY, year, quarter);
+        
+        String url = BEA_API_BASE + "?" + params;
+        
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofSeconds(30))
+            .build();
+        
+        try {
+          HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+          
+          if (response.statusCode() == 200) {
+            JsonNode root = MAPPER.readTree(response.body());
+            JsonNode results = root.get("BEAAPI").get("Results");
+            if (results != null && results.isArray() && results.size() > 0) {
+              JsonNode dataNode = results.get(0);
+              if (dataNode.has("Data")) {
+                JsonNode dataArray = dataNode.get("Data");
+                if (dataArray != null && dataArray.isArray()) {
+                  for (JsonNode record : dataArray) {
+                    IndustryGdpData gdp = new IndustryGdpData();
+                    gdp.tableId = record.get("TableID").asInt();
+                    gdp.frequency = record.get("Frequency").asText();
+                    gdp.year = year;
+                    gdp.quarter = quarter;
+                    gdp.industryCode = record.get("Industry").asText();
+                    gdp.industryDescription = record.get("IndustrYDescription").asText();
+                    gdp.units = "Billions of dollars";
+                    
+                    String dataValue = record.get("DataValue").asText();
+                    if (!"NoteRef".equals(dataValue) && !dataValue.isEmpty() && !"(NA)".equals(dataValue) && !dataValue.equals("...")) {
+                      try {
+                        gdp.value = Double.parseDouble(dataValue.replace(",", ""));
+                      } catch (NumberFormatException e) {
+                        continue;
+                      }
+                    } else {
+                      continue;
+                    }
+                    
+                    industryData.add(gdp);
+                  }
+                }
+              }
+            }
+          }
+        } catch (Exception e) {
+          LOGGER.debug("Quarterly data not available for {} {}", year, quarter);
+        }
+      }
+    }
+    
+    // Convert to Parquet
+    String parquetFilePath = storageProvider.resolvePath(outputDirPath, "industry_gdp.parquet");
+    File parquetFile = new File(parquetFilePath);
+    writeIndustryGdpParquet(industryData, parquetFile);
+    
+    LOGGER.info("Industry GDP data saved to: {} ({} records)", parquetFilePath, industryData.size());
+    return parquetFile;
+  }
+  
+  @SuppressWarnings("deprecation")
+  private void writeIndustryGdpParquet(List<IndustryGdpData> industryData, File outputFile) throws IOException {
+    Schema schema = SchemaBuilder.record("IndustryGdpData")
+        .namespace("org.apache.calcite.adapter.govdata.econ")
+        .fields()
+        .name("table_id").type().intType().noDefault()
+        .name("frequency").type().stringType().noDefault()
+        .name("year").type().intType().noDefault()
+        .name("quarter").type().stringType().noDefault()
+        .name("industry_code").type().stringType().noDefault()
+        .name("industry_description").type().stringType().noDefault()
+        .name("value").type().doubleType().noDefault()
+        .name("units").type().stringType().noDefault()
+        .name("note_ref").type().nullable().stringType().noDefault()
+        .endRecord();
+    
+    try (ParquetWriter<GenericRecord> writer = AvroParquetWriter
+        .<GenericRecord>builder(new org.apache.hadoop.fs.Path(outputFile.getAbsolutePath()))
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+      
+      for (IndustryGdpData gdp : industryData) {
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("table_id", gdp.tableId);
+        record.put("frequency", gdp.frequency);
+        record.put("year", gdp.year);
+        record.put("quarter", gdp.quarter);
+        record.put("industry_code", gdp.industryCode);
+        record.put("industry_description", gdp.industryDescription);
+        record.put("value", gdp.value);
+        record.put("units", gdp.units);
+        record.put("note_ref", gdp.noteRef);
+        writer.write(record);
+      }
+    }
+    
+    LOGGER.info("Industry GDP Parquet written: {} ({} records)", outputFile.getAbsolutePath(), industryData.size());
+  }
+  
   @SuppressWarnings("deprecation")
   private void writeGdpComponentsParquet(List<GdpComponent> components, File outputFile) throws IOException {
     Schema schema = SchemaBuilder.record("GdpComponent")
@@ -969,17 +1724,18 @@ public class BeaDataDownloader {
   
   @SuppressWarnings("deprecation")
   private void writeRegionalIncomeParquet(List<RegionalIncome> incomeData, File outputFile) throws IOException {
+    // IMPORTANT: Do not include 'year' in the schema - it's a partition key derived from directory structure
     Schema schema = SchemaBuilder.record("RegionalIncome")
         .namespace("org.apache.calcite.adapter.govdata.econ")
         .fields()
-        .requiredString("geo_fips")
-        .requiredString("geo_name")
-        .requiredString("metric")
-        .requiredString("line_code")
-        .requiredString("line_description")
-        .requiredInt("year")
-        .requiredDouble("value")
-        .requiredString("units")
+        .name("geo_fips").type().stringType().noDefault()
+        .name("geo_name").type().stringType().noDefault()
+        .name("metric").type().nullable().stringType().noDefault()
+        .name("line_code").type().stringType().noDefault()
+        .name("line_description").type().stringType().noDefault()
+        // year removed - it's a partition key from directory structure
+        .name("value").type().doubleType().noDefault()
+        .name("units").type().nullable().stringType().noDefault()
         .endRecord();
     
     org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(outputFile.getAbsolutePath());
@@ -996,7 +1752,7 @@ public class BeaDataDownloader {
         record.put("metric", income.metric);
         record.put("line_code", income.lineCode);
         record.put("line_description", income.lineDescription);
-        record.put("year", income.year);
+        // Don't put year - it's derived from the partition directory
         record.put("value", income.value);
         record.put("units", income.units);
         writer.write(record);
@@ -1056,16 +1812,99 @@ public class BeaDataDownloader {
   private static class GdpByIndustryData {
     String tableId;
     String industry;
-    String industryId;
+    String industryDescription;
     int year;
+    String quarter;
     double value;
     String units;
     String metric;
     String frequency;
   }
   
+  private static class IndustryGdpData {
+    int tableId;
+    String frequency;
+    int year;
+    String quarter;
+    String industryCode;
+    String industryDescription;
+    double value;
+    String units;
+    String noteRef;
+  }
+  
   /**
-   * Converts cached BEA data to Parquet format.
+   * Converts regional income JSON to Parquet format.
+   */
+  public void convertRegionalIncomeToParquet(File sourceDir, File targetFile) throws IOException {
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting regional income data from {} to parquet: {}", sourceDirPath, targetFilePath);
+    
+    // Skip if target file already exists
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
+      return;
+    }
+    
+    // Ensure target directory exists
+    String parentDir = targetFile.getParent();
+    if (parentDir != null) {
+      storageProvider.createDirectories(parentDir);
+    }
+    
+    List<RegionalIncome> incomeData = new ArrayList<>();
+    
+    // Look for regional income JSON files in the source directory
+    List<StorageProvider.FileEntry> files = storageProvider.listFiles(sourceDirPath, false);
+    
+    for (StorageProvider.FileEntry file : files) {
+      if ("regional_income.json".equals(file.getName()) && !file.getName().startsWith(".")) {
+        try {
+          String content;
+          try (InputStream inputStream = storageProvider.openInputStream(file.getPath())) {
+            content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+          }
+          JsonNode root = MAPPER.readTree(content);
+          JsonNode incomeArray = root.get("regional_income");
+          
+          if (incomeArray != null && incomeArray.isArray()) {
+            for (JsonNode inc : incomeArray) {
+              try {
+                RegionalIncome income = new RegionalIncome();
+                income.geoFips = inc.get("geo_fips").asText();
+                income.geoName = inc.get("geo_name").asText();
+                income.metric = inc.get("metric").asText();
+                income.lineCode = inc.get("line_code").asText();
+                income.lineDescription = inc.get("line_description").asText();
+                income.year = inc.get("year").asInt();
+                income.value = inc.get("value").asDouble();
+                income.units = inc.get("units").asText();
+                
+                incomeData.add(income);
+              } catch (Exception e) {
+                LOGGER.warn("Failed to parse regional income record: {}", e.getMessage());
+              }
+            }
+          }
+        } catch (Exception e) {
+          LOGGER.warn("Failed to process regional income JSON file {}: {}", file.getPath(), e.getMessage());
+        }
+      }
+    }
+    
+    if (!incomeData.isEmpty()) {
+      // Write parquet file
+      writeRegionalIncomeParquet(incomeData, targetFile);
+      LOGGER.info("Converted regional income data to parquet: {} ({} records)", targetFilePath, incomeData.size());
+    } else {
+      LOGGER.warn("No regional income data found in {}", sourceDirPath);
+    }
+  }
+  
+  /**
+   * Converts cached BEA GDP components data to Parquet format.
    * This method is called by EconSchemaFactory after downloading data.
    * 
    * @param sourceDir Directory containing cached BEA JSON data
@@ -1166,6 +2005,366 @@ public class BeaDataDownloader {
         record.put("frequency", comp.get("frequency"));
         writer.write(record);
       }
+    }
+  }
+  
+  /**
+   * Converts trade statistics JSON files to Parquet format.
+   */
+  public void convertTradeStatisticsToParquet(File sourceDir, File targetFile) throws IOException {
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting trade statistics data from {} to parquet: {}", sourceDirPath, targetFilePath);
+    
+    // Skip if target file already exists
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
+      return;
+    }
+    
+    // Read JSON file
+    File jsonFile = new File(sourceDir, "trade_statistics.json");
+    if (!jsonFile.exists()) {
+      LOGGER.warn("Trade statistics JSON file not found: {}", jsonFile.getAbsolutePath());
+      return;
+    }
+    
+    String jsonContent;
+    try (InputStream inputStream = storageProvider.openInputStream(jsonFile.getAbsolutePath())) {
+      jsonContent = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    List<Map<String, Object>> records = parseTradeStatisticsJson(jsonContent);
+    
+    if (records.isEmpty()) {
+      LOGGER.warn("No trade statistics records found in {}", jsonFile.getAbsolutePath());
+      return;
+    }
+    
+    writeTradeStatisticsParquet(records, targetFilePath);
+  }
+  
+  private List<Map<String, Object>> parseTradeStatisticsJson(String jsonContent) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode rootNode = mapper.readTree(jsonContent);
+    
+    List<Map<String, Object>> records = new ArrayList<>();
+    
+    JsonNode results = rootNode.path("BEAAPI").path("Results");
+    if (results.isArray() && results.size() > 0) {
+      JsonNode data = results.get(0).path("Data");
+      
+      for (JsonNode item : data) {
+        Map<String, Object> record = new HashMap<>();
+        record.put("table_id", item.path("TableID").asText());
+        record.put("line_number", item.path("LineNumber").asText());
+        record.put("line_description", item.path("LineDescription").asText());
+        record.put("series_code", item.path("SeriesCode").asText());
+        record.put("year", item.path("TimePeriod").asInt());
+        record.put("value", item.path("DataValue").asDouble());
+        record.put("units", item.path("UNIT_MULT").asText("Millions of Dollars"));
+        record.put("frequency", "A");
+        record.put("trade_type", parseTradeType(item.path("LineDescription").asText()));
+        record.put("category", parseTradeCategory(item.path("LineDescription").asText()));
+        record.put("trade_balance", 0.0);
+        records.add(record);
+      }
+    }
+    
+    return records;
+  }
+  
+  @SuppressWarnings("deprecation")
+  private void writeTradeStatisticsParquet(List<Map<String, Object>> records, String outputFile) throws IOException {
+    Schema schema = SchemaBuilder.record("TradeStatistics")
+        .namespace("org.apache.calcite.adapter.govdata.econ")
+        .fields()
+        .name("table_id").type().stringType().noDefault()
+        .name("line_number").type().stringType().noDefault()
+        .name("line_description").type().stringType().noDefault()
+        .name("series_code").type().stringType().noDefault()
+        .name("value").type().doubleType().noDefault()
+        .name("units").type().stringType().noDefault()
+        .name("frequency").type().stringType().noDefault()
+        .name("trade_type").type().stringType().noDefault()
+        .name("category").type().stringType().noDefault()
+        .name("trade_balance").type().doubleType().noDefault()
+        .endRecord();
+    
+    File file = new File(outputFile);
+    file.getParentFile().mkdirs();
+    
+    org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(file.getAbsolutePath());
+    
+    try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+      
+      for (Map<String, Object> record : records) {
+        GenericRecord avroRecord = new GenericData.Record(schema);
+        avroRecord.put("table_id", record.get("table_id"));
+        avroRecord.put("line_number", record.get("line_number"));
+        avroRecord.put("line_description", record.get("line_description"));
+        avroRecord.put("series_code", record.get("series_code"));
+        avroRecord.put("value", record.get("value"));
+        avroRecord.put("units", record.get("units"));
+        avroRecord.put("frequency", record.get("frequency"));
+        avroRecord.put("trade_type", record.get("trade_type"));
+        avroRecord.put("category", record.get("category"));
+        avroRecord.put("trade_balance", record.get("trade_balance"));
+        writer.write(avroRecord);
+      }
+    }
+  }
+  
+  /**
+   * Converts ITA data JSON files to Parquet format.
+   */
+  public void convertItaDataToParquet(File sourceDir, File targetFile) throws IOException {
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting ITA data from {} to parquet: {}", sourceDirPath, targetFilePath);
+    
+    // Skip if target file already exists
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
+      return;
+    }
+    
+    // Read JSON file
+    File jsonFile = new File(sourceDir, "ita_data.json");
+    if (!jsonFile.exists()) {
+      LOGGER.warn("ITA data JSON file not found: {}", jsonFile.getAbsolutePath());
+      return;
+    }
+    
+    String jsonContent;
+    try (InputStream inputStream = storageProvider.openInputStream(jsonFile.getAbsolutePath())) {
+      jsonContent = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    List<Map<String, Object>> records = parseItaDataJson(jsonContent);
+    
+    if (records.isEmpty()) {
+      LOGGER.warn("No ITA data records found in {}", jsonFile.getAbsolutePath());
+      return;
+    }
+    
+    writeItaDataParquet(records, targetFilePath);
+  }
+  
+  private List<Map<String, Object>> parseItaDataJson(String jsonContent) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode rootNode = mapper.readTree(jsonContent);
+    
+    List<Map<String, Object>> records = new ArrayList<>();
+    
+    JsonNode results = rootNode.path("BEAAPI").path("Results");
+    if (results.isArray() && results.size() > 0) {
+      JsonNode data = results.get(0).path("Data");
+      
+      for (JsonNode item : data) {
+        Map<String, Object> record = new HashMap<>();
+        record.put("table_id", item.path("TableID").asText());
+        record.put("line_number", item.path("LineNumber").asText());
+        record.put("line_description", item.path("LineDescription").asText());
+        record.put("series_code", item.path("SeriesCode").asText());
+        record.put("value", item.path("DataValue").asDouble());
+        record.put("units", item.path("UNIT_MULT").asText("Millions of Dollars"));
+        record.put("frequency", "A");
+        records.add(record);
+      }
+    }
+    
+    return records;
+  }
+  
+  @SuppressWarnings("deprecation")
+  private void writeItaDataParquet(List<Map<String, Object>> records, String outputFile) throws IOException {
+    Schema schema = SchemaBuilder.record("ItaData")
+        .namespace("org.apache.calcite.adapter.govdata.econ")
+        .fields()
+        .name("table_id").type().stringType().noDefault()
+        .name("line_number").type().stringType().noDefault()
+        .name("line_description").type().stringType().noDefault()
+        .name("series_code").type().stringType().noDefault()
+        .name("value").type().doubleType().noDefault()
+        .name("units").type().stringType().noDefault()
+        .name("frequency").type().stringType().noDefault()
+        .endRecord();
+    
+    File file = new File(outputFile);
+    file.getParentFile().mkdirs();
+    
+    org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(file.getAbsolutePath());
+    
+    try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+      
+      for (Map<String, Object> record : records) {
+        GenericRecord avroRecord = new GenericData.Record(schema);
+        avroRecord.put("table_id", record.get("table_id"));
+        avroRecord.put("line_number", record.get("line_number"));
+        avroRecord.put("line_description", record.get("line_description"));
+        avroRecord.put("series_code", record.get("series_code"));
+        avroRecord.put("value", record.get("value"));
+        avroRecord.put("units", record.get("units"));
+        avroRecord.put("frequency", record.get("frequency"));
+        writer.write(avroRecord);
+      }
+    }
+  }
+  
+  /**
+   * Converts industry GDP JSON files to Parquet format.
+   */
+  public void convertIndustryGdpToParquet(File sourceDir, File targetFile) throws IOException {
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting industry GDP data from {} to parquet: {}", sourceDirPath, targetFilePath);
+    
+    // Skip if target file already exists
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
+      return;
+    }
+    
+    // Read JSON file
+    File jsonFile = new File(sourceDir, "industry_gdp.json");
+    if (!jsonFile.exists()) {
+      LOGGER.warn("Industry GDP JSON file not found: {}", jsonFile.getAbsolutePath());
+      return;
+    }
+    
+    String jsonContent;
+    try (InputStream inputStream = storageProvider.openInputStream(jsonFile.getAbsolutePath())) {
+      jsonContent = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    List<Map<String, Object>> records = parseIndustryGdpJson(jsonContent);
+    
+    if (records.isEmpty()) {
+      LOGGER.warn("No industry GDP records found in {}", jsonFile.getAbsolutePath());
+      return;
+    }
+    
+    writeIndustryGdpParquet(records, targetFilePath);
+  }
+  
+  private List<Map<String, Object>> parseIndustryGdpJson(String jsonContent) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode rootNode = mapper.readTree(jsonContent);
+    
+    List<Map<String, Object>> records = new ArrayList<>();
+    
+    JsonNode results = rootNode.path("BEAAPI").path("Results");
+    if (results.isArray() && results.size() > 0) {
+      JsonNode data = results.get(0).path("Data");
+      
+      for (JsonNode item : data) {
+        Map<String, Object> record = new HashMap<>();
+        record.put("table_id", item.path("TableID").asText());
+        record.put("line_number", item.path("LineNumber").asText());
+        record.put("line_description", item.path("LineDescription").asText());
+        record.put("series_code", item.path("SeriesCode").asText());
+        record.put("value", item.path("DataValue").asDouble());
+        record.put("units", item.path("UNIT_MULT").asText("Millions of Dollars"));
+        record.put("frequency", "A");
+        record.put("industry", parseIndustryFromDescription(item.path("LineDescription").asText()));
+        records.add(record);
+      }
+    }
+    
+    return records;
+  }
+  
+  @SuppressWarnings("deprecation")
+  private void writeIndustryGdpParquet(List<Map<String, Object>> records, String outputFile) throws IOException {
+    Schema schema = SchemaBuilder.record("IndustryGdp")
+        .namespace("org.apache.calcite.adapter.govdata.econ")
+        .fields()
+        .name("table_id").type().stringType().noDefault()
+        .name("line_number").type().stringType().noDefault()
+        .name("line_description").type().stringType().noDefault()
+        .name("series_code").type().stringType().noDefault()
+        .name("value").type().doubleType().noDefault()
+        .name("units").type().stringType().noDefault()
+        .name("frequency").type().stringType().noDefault()
+        .name("industry").type().stringType().noDefault()
+        .endRecord();
+    
+    File file = new File(outputFile);
+    file.getParentFile().mkdirs();
+    
+    org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(file.getAbsolutePath());
+    
+    try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+      
+      for (Map<String, Object> record : records) {
+        GenericRecord avroRecord = new GenericData.Record(schema);
+        avroRecord.put("table_id", record.get("table_id"));
+        avroRecord.put("line_number", record.get("line_number"));
+        avroRecord.put("line_description", record.get("line_description"));
+        avroRecord.put("series_code", record.get("series_code"));
+        avroRecord.put("value", record.get("value"));
+        avroRecord.put("units", record.get("units"));
+        avroRecord.put("frequency", record.get("frequency"));
+        avroRecord.put("industry", record.get("industry"));
+        writer.write(avroRecord);
+      }
+    }
+  }
+  
+  private String parseTradeType(String description) {
+    String desc = description.toLowerCase();
+    if (desc.contains("export")) {
+      return "Exports";
+    } else if (desc.contains("import")) {
+      return "Imports";
+    } else {
+      return "Other";
+    }
+  }
+  
+  private String parseTradeCategory(String description) {
+    String desc = description.toLowerCase();
+    if (desc.contains("goods")) {
+      return "Goods";
+    } else if (desc.contains("services")) {
+      return "Services";
+    } else if (desc.contains("food")) {
+      return "Food";
+    } else {
+      return "Other";
+    }
+  }
+  
+  private String parseIndustryFromDescription(String description) {
+    String desc = description.toLowerCase();
+    if (desc.contains("agriculture")) {
+      return "Agriculture";
+    } else if (desc.contains("mining")) {
+      return "Mining";
+    } else if (desc.contains("manufacturing")) {
+      return "Manufacturing";
+    } else if (desc.contains("construction")) {
+      return "Construction";
+    } else if (desc.contains("finance")) {
+      return "Finance";
+    } else if (desc.contains("retail")) {
+      return "Retail";
+    } else if (desc.contains("real estate")) {
+      return "Real Estate";
+    } else if (desc.contains("information")) {
+      return "Information";
+    } else {
+      return "Other";
     }
   }
 }

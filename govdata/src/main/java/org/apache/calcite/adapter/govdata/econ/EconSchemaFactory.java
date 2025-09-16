@@ -107,10 +107,21 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     LOGGER.info("  Parquet directory: {}", econParquetDir);
     LOGGER.info("  Year range: {} - {}", startYear, endYear);
     
-    // Extract API keys from environment variables
+    // Extract API keys from environment variables or system properties
     String blsApiKey = System.getenv("BLS_API_KEY");
+    if (blsApiKey == null) {
+      blsApiKey = System.getProperty("BLS_API_KEY");
+    }
+    
     String fredApiKey = System.getenv("FRED_API_KEY");
+    if (fredApiKey == null) {
+      fredApiKey = System.getProperty("FRED_API_KEY");
+    }
+    
     String beaApiKey = System.getenv("BEA_API_KEY");
+    if (beaApiKey == null) {
+      beaApiKey = System.getProperty("BEA_API_KEY");
+    }
     
     // Check for operand overrides (model can override environment)
     if (operand.get("blsApiKey") != null) {
@@ -357,9 +368,24 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
         
         // Convert to parquet files for each year
         for (int year = startYear; year <= endYear; year++) {
+          // Convert GDP components
           File gdpParquet = new File(indicatorsDir, "year=" + year + "/gdp_components.parquet");
           gdpParquet.getParentFile().mkdirs();
           beaDownloader.convertToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), gdpParquet);
+          
+          // Convert regional income - use the specific converter method
+          File regionalIncomeParquet = new File(indicatorsDir, "year=" + year + "/regional_income.parquet");
+          beaDownloader.convertRegionalIncomeToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), regionalIncomeParquet);
+          
+          // Convert BEA trade statistics, ITA data, and industry GDP data
+          File tradeParquet = new File(indicatorsDir, "year=" + year + "/trade_statistics.parquet");
+          beaDownloader.convertTradeStatisticsToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), tradeParquet);
+          
+          File itaParquet = new File(indicatorsDir, "year=" + year + "/ita_data.parquet");
+          beaDownloader.convertItaDataToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), itaParquet);
+          
+          File industryGdpParquet = new File(indicatorsDir, "year=" + year + "/industry_gdp.parquet");
+          beaDownloader.convertIndustryGdpToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), industryGdpParquet);
         }
         
         LOGGER.info("BEA data download completed");
@@ -436,7 +462,11 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
                 Map<String, Object> tableDef = new java.util.HashMap<>();
                 tableDef.put("name", tableName.toLowerCase());
                 tableDef.put("type", "PartitionedParquetTable");
-                tableDef.put("pattern", "**/" + tableName + ".parquet");
+                
+                // Build the correct pattern based on the type partition
+                // typeName is already extracted above (line 448)
+                String pattern = "type=" + typeName + "/year=*/" + tableName + ".parquet";
+                tableDef.put("pattern", pattern);
                 
                 // Add comment based on table name
                 String comment = getTableComment(tableName);
@@ -528,6 +558,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> employmentStats = new java.util.HashMap<>();
     employmentStats.put("name", "employment_statistics");
     employmentStats.put("type", "PartitionedParquetTable");
+    employmentStats.put("pattern", "type=indicators/year=*/employment_statistics.parquet");
     employmentStats.put("comment", "U.S. employment and unemployment statistics from BLS including national "
         + "unemployment rate, labor force participation, job openings, and employment by sector. "
         + "Updated monthly with seasonal adjustments.");
@@ -536,6 +567,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> inflationMetrics = new java.util.HashMap<>();
     inflationMetrics.put("name", "inflation_metrics");
     inflationMetrics.put("type", "PartitionedParquetTable");
+    inflationMetrics.put("pattern", "type=indicators/year=*/inflation_metrics.parquet");
     inflationMetrics.put("comment", "Consumer Price Index (CPI) and Producer Price Index (PPI) data tracking "
         + "inflation across different categories of goods and services. Includes urban, regional, "
         + "and sector-specific inflation rates.");
@@ -544,6 +576,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> wageGrowth = new java.util.HashMap<>();
     wageGrowth.put("name", "wage_growth");
     wageGrowth.put("type", "PartitionedParquetTable");
+    wageGrowth.put("pattern", "type=indicators/year=*/wage_growth.parquet");
     wageGrowth.put("comment", "Average hourly earnings, weekly earnings, and employment cost index by "
         + "industry and occupation. Tracks wage growth trends and labor cost pressures.");
     tables.add(wageGrowth);
@@ -551,6 +584,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> regionalEmployment = new java.util.HashMap<>();
     regionalEmployment.put("name", "regional_employment");
     regionalEmployment.put("type", "PartitionedParquetTable");
+    regionalEmployment.put("pattern", "type=regional/year=*/regional_employment.parquet");
     regionalEmployment.put("comment", "State and metropolitan area employment statistics including "
         + "unemployment rates, job growth, and labor force participation by geographic region.");
     tables.add(regionalEmployment);
@@ -559,6 +593,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> treasuryYields = new java.util.HashMap<>();
     treasuryYields.put("name", "treasury_yields");
     treasuryYields.put("type", "PartitionedParquetTable");
+    treasuryYields.put("pattern", "type=timeseries/year=*/treasury_yields.parquet");
     treasuryYields.put("comment", "Daily U.S. Treasury yield curve rates from 1-month to 30-year maturities. "
         + "Includes nominal yields, TIPS yields, and yield curve shape indicators. "
         + "Source: U.S. Treasury Direct API.");
@@ -567,6 +602,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> federalDebt = new java.util.HashMap<>();
     federalDebt.put("name", "federal_debt");
     federalDebt.put("type", "PartitionedParquetTable");
+    federalDebt.put("pattern", "type=timeseries/year=*/federal_debt.parquet");
     federalDebt.put("comment", "U.S. federal debt statistics including total public debt, debt held by public, "
         + "and intragovernmental holdings. Tracks debt levels, composition, and trends. "
         + "Source: Treasury Fiscal Data API.");
@@ -576,6 +612,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> worldIndicators = new java.util.HashMap<>();
     worldIndicators.put("name", "world_indicators");
     worldIndicators.put("type", "PartitionedParquetTable");
+    worldIndicators.put("pattern", "type=indicators/year=*/world_indicators.parquet");
     worldIndicators.put("comment", "International economic indicators from World Bank for major economies. "
         + "Includes GDP, inflation, unemployment, government debt, and population statistics. "
         + "Enables comparison of U.S. economic performance with global peers.");
@@ -585,6 +622,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> fredIndicators = new java.util.HashMap<>();
     fredIndicators.put("name", "fred_indicators");
     fredIndicators.put("type", "PartitionedParquetTable");
+    fredIndicators.put("pattern", "type=indicators/year=*/fred_indicators.parquet");
     fredIndicators.put("comment", "Federal Reserve Economic Data (FRED) time series including GDP, "
         + "interest rates, monetary aggregates, and other key economic indicators.");
     tables.add(fredIndicators);
@@ -593,6 +631,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> gdpComponents = new java.util.HashMap<>();
     gdpComponents.put("name", "gdp_components");
     gdpComponents.put("type", "PartitionedParquetTable");
+    gdpComponents.put("pattern", "type=indicators/year=*/gdp_components.parquet");
     gdpComponents.put("comment", "Detailed GDP components from BEA including consumption, investment, "
         + "government spending, and net exports broken down by subcategories.");
     tables.add(gdpComponents);
@@ -601,6 +640,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> consumerPriceIndex = new java.util.HashMap<>();
     consumerPriceIndex.put("name", "consumer_price_index");
     consumerPriceIndex.put("type", "PartitionedParquetTable");
+    consumerPriceIndex.put("pattern", "type=indicators/year=*/consumer_price_index.parquet");
     consumerPriceIndex.put("comment", "Detailed CPI data by category and geographic area from BLS.");
     tables.add(consumerPriceIndex);
     
@@ -608,6 +648,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> gdpStatistics = new java.util.HashMap<>();
     gdpStatistics.put("name", "gdp_statistics");
     gdpStatistics.put("type", "PartitionedParquetTable");
+    gdpStatistics.put("pattern", "type=indicators/year=*/gdp_statistics.parquet");
     gdpStatistics.put("comment", "Quarterly and annual GDP growth rates, nominal and real GDP values.");
     tables.add(gdpStatistics);
     
@@ -615,6 +656,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> regionalIncome = new java.util.HashMap<>();
     regionalIncome.put("name", "regional_income");
     regionalIncome.put("type", "PartitionedParquetTable");
+    regionalIncome.put("pattern", "type=indicators/year=*/regional_income.parquet");
     regionalIncome.put("comment", "State and regional personal income statistics from BEA Regional Economic Accounts. "
         + "Includes total income, per capita income, and population by state.");
     tables.add(regionalIncome);
@@ -623,6 +665,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> tradeStatistics = new java.util.HashMap<>();
     tradeStatistics.put("name", "trade_statistics");
     tradeStatistics.put("type", "PartitionedParquetTable");
+    tradeStatistics.put("pattern", "type=indicators/year=*/trade_statistics.parquet");
     tradeStatistics.put("comment", "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. "
         + "Comprehensive breakdown of goods and services trade by category with calculated trade balances.");
     tables.add(tradeStatistics);
@@ -631,6 +674,7 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> itaData = new java.util.HashMap<>();
     itaData.put("name", "ita_data");
     itaData.put("type", "PartitionedParquetTable");
+    itaData.put("pattern", "type=indicators/year=*/ita_data.parquet");
     itaData.put("comment", "International Transactions Accounts (ITA) from BEA providing balance of payments statistics. "
         + "Includes trade balance, current account, capital account, and income balances.");
     tables.add(itaData);

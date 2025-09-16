@@ -172,6 +172,59 @@ public class EconSchema extends FileSchema implements CommentableSchema {
         + "Enables comparison of U.S. economic performance with global peers.");
     tables.add(worldIndicators);
     
+    // FRED tables
+    Map<String, Object> fredIndicators = new HashMap<>();
+    fredIndicators.put("name", "fred_indicators");
+    fredIndicators.put("type", "PartitionedParquetTable");
+    fredIndicators.put("comment", "Federal Reserve Economic Data (FRED) time series covering 800,000+ economic indicators. "
+        + "Includes interest rates, monetary aggregates, exchange rates, commodity prices, and "
+        + "economic activity measures. Primary source for U.S. economic time series data.");
+    tables.add(fredIndicators);
+    
+    // BEA tables
+    Map<String, Object> gdpComponents = new HashMap<>();
+    gdpComponents.put("name", "gdp_components");
+    gdpComponents.put("type", "PartitionedParquetTable");
+    gdpComponents.put("comment", "Detailed GDP components from Bureau of Economic Analysis (BEA) NIPA tables. "
+        + "Breaks down GDP into personal consumption, investment, government spending, and net exports. "
+        + "Provides granular view of economic activity drivers and sectoral contributions to growth.");
+    tables.add(gdpComponents);
+    
+    Map<String, Object> regionalIncome = new HashMap<>();
+    regionalIncome.put("name", "regional_income");
+    regionalIncome.put("type", "PartitionedParquetTable");
+    regionalIncome.put("comment", "State and regional personal income statistics from BEA Regional Economic Accounts. "
+        + "Includes total personal income, per capita income, and population by state. Essential "
+        + "for understanding regional economic disparities and income trends across states.");
+    tables.add(regionalIncome);
+    
+    Map<String, Object> tradeStatistics = new HashMap<>();
+    tradeStatistics.put("name", "trade_statistics");
+    tradeStatistics.put("type", "PartitionedParquetTable");
+    tradeStatistics.put("comment", "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. "
+        + "Provides comprehensive breakdown of goods and services trade by category including foods, "
+        + "industrial supplies, capital goods, automotive, and consumer goods. Includes calculated "
+        + "trade balances for matching export/import pairs. Essential for trade policy analysis.");
+    tables.add(tradeStatistics);
+    
+    Map<String, Object> itaData = new HashMap<>();
+    itaData.put("name", "ita_data");
+    itaData.put("type", "PartitionedParquetTable");
+    itaData.put("comment", "International Transactions Accounts (ITA) from BEA providing comprehensive balance "
+        + "of payments statistics. Includes trade balance, current account balance, capital "
+        + "account flows, and primary/secondary income balances. Critical for understanding "
+        + "international financial flows and the U.S. position in global markets.");
+    tables.add(itaData);
+    
+    Map<String, Object> industryGdp = new HashMap<>();
+    industryGdp.put("name", "industry_gdp");
+    industryGdp.put("type", "PartitionedParquetTable");
+    industryGdp.put("comment", "GDP by Industry data from BEA showing value added by NAICS industry sectors. "
+        + "Provides comprehensive breakdown of economic output by industry including "
+        + "agriculture, mining, manufacturing, services, and government sectors. Available "
+        + "at both annual and quarterly frequencies for detailed sectoral analysis.");
+    tables.add(industryGdp);
+    
     return tables;
   }
   
