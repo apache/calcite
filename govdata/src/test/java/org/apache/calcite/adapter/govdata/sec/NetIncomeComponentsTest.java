@@ -35,7 +35,6 @@ public class NetIncomeComponentsTest {
 
   @Test @Timeout(value = 5, unit = TimeUnit.MINUTES)
   public void testNetIncomeWithComponents() throws Exception {
-    System.out.println("\n=== NET INCOME WITH COMPONENTS AND FOOTNOTES TEST ===");
 
     // Create inline model for limited test
     String modelJson = "{"
