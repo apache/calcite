@@ -69,6 +69,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -1493,19 +1494,14 @@ public class Smalls {
     }
   }
 
+  /** User-defined function that decodes Character[] to VARCHAR. */
   public static class CharacterArrayFunction {
-    public static Character[] eval(String s) {
+    public static byte[] eval(String s) {
       if (s == null) {
         return null;
       }
       try {
-        Character[] characters = new Character[s.length()];
-        int index = 0;
-        for (char c : s.toCharArray()) {
-          characters[index] = c;
-          index++;
-        }
-        return characters;
+        return s.getBytes(StandardCharsets.UTF_8);
       } catch (Exception e) {
         return null;
       }
