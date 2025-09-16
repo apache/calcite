@@ -130,6 +130,12 @@ public class FredDataDownloader {
     public static final String MEDIAN_HOME_PRICE = "MSPUS";                 // Median Sales Price of Houses Sold in the United States
     public static final String RENTAL_VACANCY_RATE = "RRVRUSQ156N";         // Rental Vacancy Rate in the United States
     public static final String SINGLE_UNIT_HOUSING_STARTS = "HOUST1F";      // Housing Starts: 1-Unit Structures
+    
+    // Consumer Sentiment Indices
+    public static final String CONSUMER_SENTIMENT = "UMCSENT";              // University of Michigan Consumer Sentiment Index
+    public static final String REAL_DISPOSABLE_INCOME = "DSPIC96";          // Real Disposable Personal Income
+    public static final String CONSUMER_CONFIDENCE = "CSCICP03USM665S";     // Consumer Confidence Index
+    public static final String PERSONAL_SAVING_RATE = "PSAVERT";            // Personal Saving Rate
   }
   
   // Default series to download if none specified
@@ -153,7 +159,12 @@ public class FredDataDownloader {
       Series.BUILDING_PERMITS,
       Series.MEDIAN_HOME_PRICE,
       Series.RENTAL_VACANCY_RATE,
-      Series.SINGLE_UNIT_HOUSING_STARTS
+      Series.SINGLE_UNIT_HOUSING_STARTS,
+      // Consumer Sentiment Indices
+      Series.CONSUMER_SENTIMENT,
+      Series.REAL_DISPOSABLE_INCOME,
+      Series.CONSUMER_CONFIDENCE,
+      Series.PERSONAL_SAVING_RATE
   );
   
   public FredDataDownloader(String cacheDir, String apiKey, StorageProvider storageProvider) {
