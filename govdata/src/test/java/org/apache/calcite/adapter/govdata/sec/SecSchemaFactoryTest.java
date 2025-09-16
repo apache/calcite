@@ -42,16 +42,13 @@ public class SecSchemaFactoryTest {
     // First verify class can be loaded
     Class<?> factoryClass = Class.forName(factoryClassName);
     assertNotNull(factoryClass);
-    System.err.println("Factory class loaded: " + factoryClass);
 
     // Verify it implements SchemaFactory
     assertTrue(SchemaFactory.class.isAssignableFrom(factoryClass));
-    System.err.println("Factory implements SchemaFactory: true");
 
     // Try to instantiate it
     SchemaFactory factory = (SchemaFactory) factoryClass.getDeclaredConstructor().newInstance();
     assertNotNull(factory);
-    System.err.println("Factory instance created: " + factory);
 
     // Try to create a schema with it
     SchemaPlus rootSchema = org.apache.calcite.jdbc.CalciteSchema.createRootSchema(false).plus();
@@ -62,7 +59,6 @@ public class SecSchemaFactoryTest {
 
     Schema schema = factory.create(rootSchema, "test", operand);
     assertNotNull(schema);
-    System.err.println("Schema created: " + schema);
   }
 
   @Test public void testFactoryViaModelHandler() throws Exception {
@@ -74,6 +70,5 @@ public class SecSchemaFactoryTest {
     SchemaFactory factory = (SchemaFactory) clazz.getDeclaredConstructor().newInstance();
 
     assertNotNull(factory);
-    System.err.println("Factory loaded via ModelHandler pattern: " + factory);
   }
 }

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test XBRL adapter with connection parameters.
  */
-@Tag("unit")
+@Tag("integration")
 public class ConnectionParamsTest {
 
   @Test public void testConnectionParameters() throws Exception {

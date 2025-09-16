@@ -83,11 +83,6 @@ public class Dow30PerformanceTest {
   }
 
   @Test public void testDow30FullDownloadWithMetrics() throws Exception {
-    LOGGER.info("==========================================================");
-    LOGGER.info("Starting Dow 30 SEC Filing Download Performance Test");
-    LOGGER.info("Base Directory: " + BASE_DIRECTORY);
-    LOGGER.info("Years to Download: " + YEARS_TO_DOWNLOAD);
-    LOGGER.info("==========================================================\n");
 
     Instant testStart = Instant.now();
 
@@ -102,9 +97,6 @@ public class Dow30PerformanceTest {
 
     String jdbcUrl = "jdbc:calcite:";
 
-    LOGGER.info("Connecting to SEC adapter...");
-    LOGGER.info("Date Range: " + startDate + " to " + endDate);
-
     // Register driver
     Class.forName("org.apache.calcite.jdbc.Driver");
     try (Connection conn = DriverManager.getConnection(jdbcUrl, props)) {
@@ -114,10 +106,6 @@ public class Dow30PerformanceTest {
       // Generate performance report
       generatePerformanceReport(testStart);
 
-    } catch (Exception e) {
-      LOGGER.severe("Test failed: " + e.getMessage());
-      e.printStackTrace();
-      throw e;
     }
   }
 

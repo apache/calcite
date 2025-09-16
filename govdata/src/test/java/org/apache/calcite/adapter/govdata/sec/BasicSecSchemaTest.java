@@ -40,7 +40,6 @@ public class BasicSecSchemaTest {
   @Test
   @org.junit.jupiter.api.Disabled("GovDataTestModels not available")
   public void testSchemaWithAllTables() throws Exception {
-    System.out.println("\n=== BASIC SEC SCHEMA TEST ===");
 
     // Load test model from resources
     String modelPath = null; // GovDataTestModels.loadTestModel("basic-test-model");
@@ -58,44 +57,24 @@ public class BasicSecSchemaTest {
       DatabaseMetaData metaData = connection.getMetaData();
       
       // List all tables in SEC schema
-      System.out.println("\n=== SEC Schema Tables ===");
       Set<String> tables = new HashSet<>();
       
       try (ResultSet rs = metaData.getTables(null, "sec", "%", null)) {
         while (rs.next()) {
           String tableName = rs.getString("TABLE_NAME");
           tables.add(tableName.toLowerCase());
-          System.out.println("  Table: " + tableName);
         }
       }
       
       // Verify expected tables exist
-      System.out.println("\n=== Table Verification ===");
-      
-      // Core tables
       assertTrue(tables.contains("financial_line_items"), "financial_line_items table should exist");
-      System.out.println("✓ financial_line_items table exists");
-      
       assertTrue(tables.contains("financial_facts"), "financial_facts table should exist");
-      System.out.println("✓ financial_facts table exists");
-      
       assertTrue(tables.contains("management_discussion"), "management_discussion table should exist");
-      System.out.println("✓ management_discussion table exists");
-      
       assertTrue(tables.contains("company_metadata"), "company_metadata table should exist");
-      System.out.println("✓ company_metadata table exists");
-      
-      // New tables for insider trading and earnings
       assertTrue(tables.contains("insider_transactions"), "insider_transactions table should exist");
-      System.out.println("✓ insider_transactions table exists");
-      
       assertTrue(tables.contains("earnings_transcripts"), "earnings_transcripts table should exist");
-      System.out.println("✓ earnings_transcripts table exists");
       
-      System.out.println("\n=== SUMMARY ===");
-      System.out.println("Successfully verified SEC schema creation:");
-      System.out.println("  Total tables found: " + tables.size());
-      System.out.println("  All expected tables present");
+      assertTrue(tables.size() >= 6, "Should have at least 6 expected tables, found " + tables.size());
     }
   }
 }
