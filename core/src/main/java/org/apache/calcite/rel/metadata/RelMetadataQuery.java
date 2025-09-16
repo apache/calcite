@@ -1004,4 +1004,57 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       }
     }
   }
+
+  /**
+   * Determines whether a set of columns functionally determines another set of columns.
+   */
+  public Boolean determinesSet(RelNode rel, ImmutableBitSet determinants,
+      ImmutableBitSet dependents) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.determinesSet(rel, this, determinants, dependents);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the closure of a set of columns under all functional dependencies.
+   */
+  public ImmutableBitSet closure(RelNode rel, ImmutableBitSet attrs) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.closure(rel, this, attrs);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns candidate keys for the relation within the specified set of attributes.
+   */
+  public Set<ImmutableBitSet> candidateKeys(RelNode rel, ImmutableBitSet attributes) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.candidateKeys(rel, this, attributes);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns all functional dependencies in the relation.
+   */
+  public FunctionalDependencySet getFunctionalDependencies(RelNode rel) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.getFunctionalDependencies(rel, this);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
 }
