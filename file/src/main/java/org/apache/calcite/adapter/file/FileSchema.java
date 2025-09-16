@@ -66,6 +66,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -1532,8 +1533,9 @@ public class FileSchema extends AbstractSchema {
         // Use DirectFileSource for PARQUET engine to bypass Sources cache, but handle gzip properly
         Source source;
         // Check if this is a StorageProviderFile
-        if (file instanceof StorageProviderFile) {
-          StorageProviderFile spFile = (StorageProviderFile) file;
+        if (file instanceof org.apache.calcite.adapter.file.storage.StorageProviderFile) {
+          org.apache.calcite.adapter.file.storage.StorageProviderFile spFile = 
+              (org.apache.calcite.adapter.file.storage.StorageProviderFile) file;
           source = new StorageProviderSource(spFile.getFileEntry(), spFile.getStorageProvider());
         } else if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
           // For compressed files, we still need Sources.of() to handle decompression
@@ -3765,7 +3767,7 @@ public class FileSchema extends AbstractSchema {
         if (!entry.isDirectory() && isFileNameSupported(entry.getName())) {
           // Create a virtual File object that represents the remote file
           // The actual content will be fetched through the storage provider when needed
-          files.add(new StorageProviderFile(entry, storageProvider));
+          files.add(org.apache.calcite.adapter.file.storage.StorageProviderFile.create(entry, storageProvider));
         }
       }
 
@@ -4259,6 +4261,163 @@ public class FileSchema extends AbstractSchema {
    */
   public File getBaseDirectory() {
     return baseDirectory;
+  }
+
+  /**
+   * Writes content to storage (local filesystem or cloud storage like S3).
+   * If a storage provider is configured, uses it; otherwise writes to local filesystem.
+   * Creates parent directories as needed.
+   *
+   * @param relativePath The relative path from the base directory or storage root
+   * @param content The content to write
+   * @throws IOException If an I/O error occurs
+   */
+  public void writeToStorage(String relativePath, byte[] content) throws IOException {
+    if (storageProvider != null) {
+      // Use storage provider (S3, etc.)
+      String fullPath = resolvePath(relativePath);
+      storageProvider.writeFile(fullPath, content);
+    } else {
+      // Use local filesystem
+      File targetFile;
+      if (baseDirectory != null) {
+        targetFile = new File(baseDirectory, relativePath);
+      } else {
+        targetFile = new File(relativePath);
+      }
+      
+      // Create parent directories if needed
+      File parentDir = targetFile.getParentFile();
+      if (parentDir != null && !parentDir.exists()) {
+        parentDir.mkdirs();
+      }
+      
+      Files.write(targetFile.toPath(), content);
+    }
+  }
+
+  /**
+   * Writes content from an input stream to storage.
+   * If a storage provider is configured, uses it; otherwise writes to local filesystem.
+   *
+   * @param relativePath The relative path from the base directory or storage root
+   * @param content The input stream to write from
+   * @throws IOException If an I/O error occurs
+   */
+  public void writeToStorage(String relativePath, InputStream content) throws IOException {
+    if (storageProvider != null) {
+      // Use storage provider (S3, etc.)
+      String fullPath = resolvePath(relativePath);
+      storageProvider.writeFile(fullPath, content);
+    } else {
+      // For local filesystem, read the stream and write as bytes
+      byte[] buffer = readAllBytes(content);
+      writeToStorage(relativePath, buffer);
+    }
+  }
+
+  /**
+   * Creates directories in storage.
+   * For cloud storage like S3, this might create marker objects.
+   *
+   * @param relativePath The relative directory path to create
+   * @throws IOException If an I/O error occurs
+   */
+  public void createStorageDirectories(String relativePath) throws IOException {
+    if (storageProvider != null) {
+      String fullPath = resolvePath(relativePath);
+      storageProvider.createDirectories(fullPath);
+    } else {
+      File targetDir;
+      if (baseDirectory != null) {
+        targetDir = new File(baseDirectory, relativePath);
+      } else {
+        targetDir = new File(relativePath);
+      }
+      targetDir.mkdirs();
+    }
+  }
+
+  /**
+   * Checks if a file or directory exists in storage.
+   *
+   * @param relativePath The relative path to check
+   * @return true if the path exists
+   * @throws IOException If an I/O error occurs
+   */
+  public boolean existsInStorage(String relativePath) throws IOException {
+    if (storageProvider != null) {
+      String fullPath = resolvePath(relativePath);
+      return storageProvider.exists(fullPath);
+    } else {
+      File targetFile;
+      if (baseDirectory != null) {
+        targetFile = new File(baseDirectory, relativePath);
+      } else {
+        targetFile = new File(relativePath);
+      }
+      return targetFile.exists();
+    }
+  }
+
+  /**
+   * Deletes a file or directory from storage.
+   *
+   * @param relativePath The relative path to delete
+   * @return true if the file was deleted, false if it didn't exist
+   * @throws IOException If an I/O error occurs
+   */
+  public boolean deleteFromStorage(String relativePath) throws IOException {
+    if (storageProvider != null) {
+      String fullPath = resolvePath(relativePath);
+      return storageProvider.delete(fullPath);
+    } else {
+      File targetFile;
+      if (baseDirectory != null) {
+        targetFile = new File(baseDirectory, relativePath);
+      } else {
+        targetFile = new File(relativePath);
+      }
+      if (targetFile.exists()) {
+        return targetFile.delete();
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Resolves a relative path against the appropriate base path.
+   * For storage providers, uses the configured storage root.
+   * For local filesystem, uses the baseDirectory.
+   */
+  private String resolvePath(String relativePath) {
+    if (storageProvider != null) {
+      // For storage providers, need to determine the base path
+      if (sourceDirectory != null) {
+        String sourcePath = sourceDirectory.getAbsolutePath();
+        if (sourcePath.startsWith("s3://") || sourcePath.startsWith("gs://") || 
+            sourcePath.startsWith("azure://") || sourcePath.startsWith("http")) {
+          // Cloud storage path
+          return storageProvider.resolvePath(sourcePath, relativePath);
+        }
+      }
+      // Default: use relativePath as-is
+      return relativePath;
+    }
+    return relativePath;
+  }
+
+  /**
+   * Helper method to read all bytes from an input stream.
+   */
+  private byte[] readAllBytes(InputStream inputStream) throws IOException {
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    byte[] data = new byte[8192];
+    int nRead;
+    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+    return buffer.toByteArray();
   }
 
   /**

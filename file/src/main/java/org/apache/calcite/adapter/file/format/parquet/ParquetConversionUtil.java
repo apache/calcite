@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.file.format.parquet;
 
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
+import org.apache.calcite.adapter.file.storage.StorageProvider;
+import org.apache.calcite.adapter.file.storage.StorageProviderFile;
 import org.apache.calcite.adapter.file.table.CsvTable;
 import org.apache.calcite.adapter.file.util.NullEquivalents;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -84,74 +86,78 @@ public class ParquetConversionUtil {
     return cacheDir;
   }
 
-
   /**
-   * Gets the cached Parquet file for an explicit table name.
-   * This version should be used when we have an explicit table name from testModel.json.
-   */
-  public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled, String casing, String explicitTableName) {
-    if (explicitTableName != null && !explicitTableName.isEmpty()) {
-      // Use explicit table name for the cache file
-      String casedName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(explicitTableName, casing);
-      String sanitizedName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(casedName);
-      return new File(cacheDir, sanitizedName + ".parquet");
-    }
-    // Fall back to source file name
-    return getCachedParquetFile(sourceFile, cacheDir, typeInferenceEnabled, casing);
-  }
-
-  /**
-   * Get the cached Parquet file for a source file with configurable casing.
-   * The cache file name should match the table name exactly.
+   * Get the cached Parquet file location for a given source file.
    */
   public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled, String casing) {
     String baseName = sourceFile.getName();
-
-    // Remove compression extension if present
-    if (baseName.endsWith(".gz") || baseName.endsWith(".bz2") || baseName.endsWith(".xz")) {
+    if (baseName.contains(".")) {
       int lastDot = baseName.lastIndexOf('.');
       if (lastDot > 0) {
         baseName = baseName.substring(0, lastDot);
       }
     }
-
-    // Remove file type extension to get the table name
-    // This matches how FileSchema determines table names
-    if (baseName.endsWith(".csv") || baseName.endsWith(".tsv") ||
-        baseName.endsWith(".json") || baseName.endsWith(".xml") ||
-        baseName.endsWith(".html") || baseName.endsWith(".htm")) {
-      int lastDot = baseName.lastIndexOf('.');
-      if (lastDot > 0) {
-        baseName = baseName.substring(0, lastDot);
-      }
-    }
-
-    // Don't change the name - preserve it exactly as is
-    // Only sanitize for SQL identifier safety
     baseName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(baseName);
     return new File(cacheDir, baseName + ".parquet");
   }
 
   /**
-   * Check if a Parquet conversion is needed based on file timestamps.
+   * Check if a path represents an S3 location.
    */
-  public static boolean needsConversion(File sourceFile, File parquetFile) {
-    if (!parquetFile.exists()) {
-      return true;
-    }
-    // Check if source file is newer than the cached Parquet file
-    // Add a small buffer (1 second) to handle filesystem timestamp precision issues
-    return sourceFile.lastModified() > (parquetFile.lastModified() + 1000);
+  private static boolean isS3Path(String path) {
+    return path != null && path.startsWith("s3://");
   }
 
+  /**
+   * Helper method to detect if a path is an S3 URI and convert it to S3A format for Hadoop.
+   */
+  private static String getHadoopPath(String path) {
+    if (path != null && path.startsWith("s3://")) {
+      return path.replace("s3://", "s3a://");
+    }
+    return path;
+  }
 
   /**
-   * Convert a source file to Parquet by querying it through Calcite with configurable casing.
+   * Configure Hadoop Configuration for S3A access using AWS SDK credentials chain.
    */
-  public static File convertToParquet(Source source, String tableName, Table table,
-      File cacheDir, SchemaPlus parentSchema, String schemaName, String casing) throws Exception {
+  private static void configureS3Access(org.apache.hadoop.conf.Configuration conf) {
+    // Use AWS SDK default credential provider chain (same as S3StorageProvider)
+    conf.set("fs.s3a.aws.credentials.provider", 
+        "com.amazonaws.auth.DefaultAWSCredentialsProviderChain");
+    
+    // Try to get region from AWS SDK default chain
+    try {
+      com.amazonaws.regions.DefaultAwsRegionProviderChain regionProvider = 
+          new com.amazonaws.regions.DefaultAwsRegionProviderChain();
+      String region = regionProvider.getRegion();
+      if (region != null) {
+        conf.set("fs.s3a.endpoint.region", region);
+        LOGGER.debug("Configured S3A region: {}", region);
+      }
+    } catch (Exception e) {
+      LOGGER.debug("Could not auto-detect AWS region, using default: {}", e.getMessage());
+      // Fallback to us-west-1 (same as S3StorageProvider)
+      conf.set("fs.s3a.endpoint.region", "us-west-1");
+    }
+    
+    // Performance optimizations for Parquet writing
+    conf.set("fs.s3a.multipart.size", "64M");
+    conf.set("fs.s3a.multipart.threshold", "128M"); 
+    conf.set("fs.s3a.fast.upload", "true");
+    
+    LOGGER.info("Configured Hadoop for S3A access using AWS credentials chain");
+  }
 
-    File sourceFile = new File(source.path());
+  /**
+   * Convert source to Parquet using StorageProviderFile abstraction.
+   * This method supports both local filesystem and S3 storage.
+   */
+  public static StorageProviderFile convertToParquet(Source source, String tableName, Table table,
+      StorageProviderFile cacheDirFile, SchemaPlus parentSchema, String schemaName, String casing,
+      StorageProvider storageProvider) throws Exception {
+
+    StorageProviderFile sourceFile = StorageProviderFile.create(source.path(), storageProvider);
 
     // Check if type inference is enabled for CSV tables
     boolean typeInferenceEnabled = false;
@@ -160,12 +166,143 @@ public class ParquetConversionUtil {
       typeInferenceEnabled = config != null && config.isEnabled();
     }
 
-    // Use concurrent cache for thread-safe conversion with type inference suffix and schema name
-    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, schemaName, casing, tempFile -> {
-      performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
-    });
+    // Generate Parquet file name from source
+    String baseName = sourceFile.getName();
+    if (baseName.contains(".")) {
+      int lastDot = baseName.lastIndexOf('.');
+      if (lastDot > 0) {
+        baseName = baseName.substring(0, lastDot);
+      }
+    }
+    baseName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(baseName);
+    
+    // Create target Parquet file path
+    String targetPath = cacheDirFile.getPath();
+    if (!targetPath.endsWith("/")) {
+      targetPath += "/";
+    }
+    targetPath += baseName + ".parquet";
+    
+    StorageProviderFile parquetFile = StorageProviderFile.create(targetPath, storageProvider);
+    
+    // Check if conversion is needed
+    if (!needsConversion(sourceFile, parquetFile)) {
+      LOGGER.debug("Parquet file is up to date, skipping conversion: {}", parquetFile.getPath());
+      return parquetFile;
+    }
+    
+    LOGGER.info("Converting {} to Parquet at: {}", sourceFile.getPath(), parquetFile.getPath());
+    
+    if (parquetFile.isLocal()) {
+      // Use existing local file system approach with locking
+      File localCacheDir = cacheDirFile.getFile();
+      File localSourceFile = sourceFile.getFile();
+      File result = ConcurrentParquetCache.convertWithLocking(localSourceFile, localCacheDir, 
+          typeInferenceEnabled, schemaName, casing, tempFile -> {
+        performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
+      });
+      return StorageProviderFile.create(result.getAbsolutePath(), storageProvider);
+    } else {
+      // Use S3/remote storage approach
+      performRemoteConversion(source, tableName, table, parquetFile, parentSchema, schemaName);
+      return parquetFile;
+    }
   }
 
+  /**
+   * Legacy method for backward compatibility - delegates to StorageProviderFile version.
+   */
+  public static File convertToParquet(Source source, String tableName, Table table,
+      File cacheDir, SchemaPlus parentSchema, String schemaName, String casing) throws Exception {
+
+    // Create StorageProviderFile instances for local files
+    StorageProviderFile cacheDirFile = StorageProviderFile.create(cacheDir.getAbsolutePath(), 
+        new org.apache.calcite.adapter.file.storage.LocalFileStorageProvider());
+    
+    StorageProviderFile result = convertToParquet(source, tableName, table, cacheDirFile, 
+        parentSchema, schemaName, casing, new org.apache.calcite.adapter.file.storage.LocalFileStorageProvider());
+    
+    return result.getFile();
+  }
+
+
+  /**
+   * Check if conversion is needed by comparing source and target timestamps.
+   */
+  private static boolean needsConversion(StorageProviderFile sourceFile, StorageProviderFile parquetFile) throws Exception {
+    try {
+      if (!parquetFile.exists()) {
+        LOGGER.debug("Target Parquet file does not exist, conversion needed");
+        return true;
+      }
+      
+      long sourceTime = sourceFile.lastModified();
+      long parquetTime = parquetFile.lastModified();
+      
+      boolean needsConversion = sourceTime > parquetTime;
+      LOGGER.debug("Source time: {}, Parquet time: {}, needs conversion: {}", 
+          sourceTime, parquetTime, needsConversion);
+      
+      return needsConversion;
+    } catch (Exception e) {
+      LOGGER.warn("Error checking conversion timestamps, assuming conversion needed: {}", e.getMessage());
+      return true;
+    }
+  }
+
+  /**
+   * Check if conversion is needed by comparing source and target File timestamps (backward compatibility).
+   */
+  public static boolean needsConversion(File sourceFile, File parquetFile) {
+    try {
+      if (!parquetFile.exists()) {
+        LOGGER.debug("Target Parquet file does not exist, conversion needed");
+        return true;
+      }
+      
+      long sourceTime = sourceFile.lastModified();
+      long parquetTime = parquetFile.lastModified();
+      
+      boolean needsConversion = sourceTime > parquetTime;
+      LOGGER.debug("Source time: {}, Parquet time: {}, needs conversion: {}", 
+          sourceTime, parquetTime, needsConversion);
+      
+      return needsConversion;
+    } catch (Exception e) {
+      LOGGER.warn("Error checking conversion timestamps, assuming conversion needed: {}", e.getMessage());
+      return true;
+    }
+  }
+
+  /**
+   * Perform conversion to remote storage (S3, etc.).
+   */
+  private static void performRemoteConversion(Source source, String tableName, Table table,
+      StorageProviderFile targetFile, SchemaPlus parentSchema, String schemaName) throws Exception {
+    
+    LOGGER.debug("Starting remote Parquet conversion for table: {}", tableName);
+    
+    // For remote storage, we'll perform the conversion locally first, then upload
+    java.io.File tempFile = java.io.File.createTempFile("parquet-conv-", ".parquet");
+    try {
+      // Use direct conversion to temp file
+      if (!tryDirectConversion(table, tempFile, schemaName)) {
+        throw new RuntimeException("Table does not support direct scanning: " + tableName +
+            ". Only ScannableTable implementations are supported for Parquet conversion.");
+      }
+      
+      // Upload temp file to target location
+      try (java.io.InputStream input = java.nio.file.Files.newInputStream(tempFile.toPath())) {
+        targetFile.writeInputStream(input);
+      }
+      
+      LOGGER.info("Remote Parquet conversion completed: {}", targetFile.getPath());
+    } finally {
+      if (tempFile.exists()) {
+        tempFile.delete();
+      }
+    }
+  }
 
   /**
    * Perform the actual conversion to a temporary file.
@@ -291,15 +428,32 @@ public class ParquetConversionUtil {
       throw e;
     }
 
-    // Delete existing file if it exists
-    if (targetFile.exists()) {
-      targetFile.delete();
+    // Determine the output path and configure Hadoop accordingly
+    String outputPath;
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    // Check if we're working with an S3 path (cache directory could be S3)
+    if (isS3Path(targetFilePath)) {
+      outputPath = getHadoopPath(targetFilePath);
+      LOGGER.info("Writing Parquet file to S3: {}", outputPath);
+    } else {
+      // Delete existing local file if it exists
+      if (targetFile.exists()) {
+        targetFile.delete();
+      }
+      outputPath = targetFilePath;
+      LOGGER.debug("Writing Parquet file locally: {}", outputPath);
     }
 
     // Write to Parquet using direct writer
-    org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(targetFile.getAbsolutePath());
+    org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(outputPath);
     org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
     conf.set("parquet.enable.vectorized.reader", "true");
+    
+    // Configure S3A access if needed
+    if (isS3Path(targetFilePath)) {
+      configureS3Access(conf);
+    }
 
     org.apache.parquet.hadoop.example.GroupWriteSupport.setSchema(schema, conf);
 
