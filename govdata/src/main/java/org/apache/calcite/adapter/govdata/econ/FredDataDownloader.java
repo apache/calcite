@@ -118,6 +118,12 @@ public class FredDataDownloader {
     public static final String VIX = "VIXCLS";                   // VIX Volatility Index
     public static final String DOLLAR_INDEX = "DTWEXBGS";        // Trade Weighted US Dollar Index
     public static final String CORPORATE_SPREADS = "BAMLC0A0CM"; // Investment Grade Corporate Spreads
+    
+    // Banking Indicators
+    public static final String COMMERCIAL_BANK_DEPOSITS = "DPSACBW027SBOG"; // Deposits at Commercial Banks
+    public static final String BANK_CREDIT = "TOTBKCR";                     // Bank Credit, All Commercial Banks
+    public static final String BANK_LENDING_STANDARDS = "DRTSCILM";         // Net Percentage of Banks Tightening Standards for C&I Loans
+    public static final String MORTGAGE_DELINQUENCY_RATE = "DRSFRMACBS";    // Delinquency Rate on Single-Family Residential Mortgages
   }
   
   // Default series to download if none specified
@@ -131,7 +137,12 @@ public class FredDataDownloader {
       Series.HOUSING_STARTS,
       Series.INDUSTRIAL_PRODUCTION,
       Series.SP500,
-      Series.DOLLAR_INDEX
+      Series.DOLLAR_INDEX,
+      // Banking Indicators
+      Series.COMMERCIAL_BANK_DEPOSITS,
+      Series.BANK_CREDIT,
+      Series.BANK_LENDING_STANDARDS,
+      Series.MORTGAGE_DELINQUENCY_RATE
   );
   
   public FredDataDownloader(String cacheDir, String apiKey, StorageProvider storageProvider) {
@@ -414,9 +425,16 @@ public class FredDataDownloader {
     }
     
     LOGGER.info("FRED indicators data collected: {} observations", observations.size());
-    // For compatibility, return a File representing the output directory
+    
+    // Convert to Parquet format
+    String parquetFileName = String.format("fred_indicators_%s_%s.parquet", 
+        startDate.substring(0, 10), endDate.substring(0, 10));
+    String parquetPath = storageProvider.resolvePath(outputDirPath, parquetFileName);
+    convertToParquet(observations, parquetPath);
+    
+    // For compatibility, return a File representing the Parquet file
     // Note: This assumes local storage for the return value
-    return new File(outputDirPath);
+    return new File(parquetPath);
   }
   
   /**
@@ -455,6 +473,28 @@ public class FredDataDownloader {
     }
     
     return null;
+  }
+  
+  /**
+   * Converts FRED observations to Parquet format.
+   */
+  private void convertToParquet(List<FredObservation> observations, String targetFilePath) throws IOException {
+    // Convert FredObservation objects to Map format for compatibility with existing writer
+    List<Map<String, Object>> mapObservations = new ArrayList<>();
+    for (FredObservation obs : observations) {
+      Map<String, Object> map = new HashMap<>();
+      map.put("series_id", obs.seriesId);
+      map.put("series_name", obs.seriesName);
+      map.put("date", obs.date);
+      map.put("value", obs.value);
+      map.put("units", obs.units);
+      map.put("frequency", obs.frequency);
+      mapObservations.add(map);
+    }
+    
+    File targetFile = new File(targetFilePath);
+    writeFredIndicatorsParquet(mapObservations, targetFile);
+    LOGGER.info("Converted FRED indicators to parquet: {} ({} observations)", targetFilePath, observations.size());
   }
   
   
