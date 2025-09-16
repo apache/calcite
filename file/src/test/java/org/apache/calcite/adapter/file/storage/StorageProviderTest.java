@@ -145,4 +145,109 @@ import org.junit.jupiter.api.Tag;
     assertEquals("/base/file.txt/relative.txt",
         provider.resolvePath("/base/file.txt", "relative.txt"));
   }
+  
+  @Test void testLocalFileWriteOperations() throws IOException {
+    StorageProvider provider = new LocalFileStorageProvider();
+    
+    // Test writeFile with byte array
+    File testFile1 = new File(tempDir, "write-test1.txt");
+    String content1 = "This is a test file";
+    provider.writeFile(testFile1.getAbsolutePath(), content1.getBytes(StandardCharsets.UTF_8));
+    
+    assertTrue(testFile1.exists());
+    try (InputStream is = provider.openInputStream(testFile1.getAbsolutePath())) {
+      String readContent = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      assertEquals(content1, readContent);
+    }
+    
+    // Test writeFile with InputStream
+    File testFile2 = new File(tempDir, "write-test2.txt");
+    String content2 = "This is another test file";
+    try (InputStream inputStream = new java.io.ByteArrayInputStream(content2.getBytes(StandardCharsets.UTF_8))) {
+      provider.writeFile(testFile2.getAbsolutePath(), inputStream);
+    }
+    
+    assertTrue(testFile2.exists());
+    try (Reader reader = provider.openReader(testFile2.getAbsolutePath())) {
+      StringBuilder sb = new StringBuilder();
+      int ch;
+      while ((ch = reader.read()) != -1) {
+        sb.append((char) ch);
+      }
+      assertEquals(content2, sb.toString());
+    }
+    
+    // Test overwrite existing file
+    String newContent = "Overwritten content";
+    provider.writeFile(testFile1.getAbsolutePath(), newContent.getBytes(StandardCharsets.UTF_8));
+    
+    try (InputStream is = provider.openInputStream(testFile1.getAbsolutePath())) {
+      String readContent = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      assertEquals(newContent, readContent);
+    }
+    
+    // Test write to non-existent directory (should create parent directories)
+    File nestedFile = new File(tempDir, "nested/deep/file.txt");
+    String nestedContent = "Nested file content";
+    provider.writeFile(nestedFile.getAbsolutePath(), nestedContent.getBytes(StandardCharsets.UTF_8));
+    
+    assertTrue(nestedFile.exists());
+    assertTrue(nestedFile.getParentFile().exists());
+    
+    // Test createDirectories
+    File newDir = new File(tempDir, "new/directory/structure");
+    provider.createDirectories(newDir.getAbsolutePath());
+    assertTrue(newDir.exists());
+    assertTrue(newDir.isDirectory());
+    
+    // Test delete file
+    assertTrue(provider.delete(testFile1.getAbsolutePath()));
+    assertFalse(testFile1.exists());
+    
+    // Test delete non-existent file returns false
+    assertFalse(provider.delete(testFile1.getAbsolutePath()));
+    
+    // Test delete directory
+    File emptyDir = new File(tempDir, "empty");
+    emptyDir.mkdir();
+    assertTrue(provider.delete(emptyDir.getAbsolutePath()));
+    assertFalse(emptyDir.exists());
+    
+    // Test copyFile
+    File sourceFile = new File(tempDir, "source.txt");
+    File destFile = new File(tempDir, "destination.txt");
+    String sourceContent = "Content to copy";
+    provider.writeFile(sourceFile.getAbsolutePath(), sourceContent.getBytes(StandardCharsets.UTF_8));
+    
+    provider.copyFile(sourceFile.getAbsolutePath(), destFile.getAbsolutePath());
+    
+    assertTrue(destFile.exists());
+    try (InputStream is = provider.openInputStream(destFile.getAbsolutePath())) {
+      String copiedContent = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      assertEquals(sourceContent, copiedContent);
+    }
+    
+    // Source file should still exist after copy
+    assertTrue(sourceFile.exists());
+  }
+  
+  @Test void testReadOnlyProviderWriteOperations() {
+    // Test that read-only providers throw UnsupportedOperationException for write operations
+    StorageProvider httpProvider = StorageProviderFactory.createFromUrl("http://example.com/file.txt");
+    
+    assertThrows(UnsupportedOperationException.class, () -> 
+        httpProvider.writeFile("/test.txt", new byte[0]));
+    
+    assertThrows(UnsupportedOperationException.class, () -> 
+        httpProvider.writeFile("/test.txt", new java.io.ByteArrayInputStream(new byte[0])));
+    
+    assertThrows(UnsupportedOperationException.class, () -> 
+        httpProvider.createDirectories("/test"));
+    
+    assertThrows(UnsupportedOperationException.class, () -> 
+        httpProvider.delete("/test.txt"));
+    
+    assertThrows(UnsupportedOperationException.class, () -> 
+        httpProvider.copyFile("/source.txt", "/dest.txt"));
+  }
 }

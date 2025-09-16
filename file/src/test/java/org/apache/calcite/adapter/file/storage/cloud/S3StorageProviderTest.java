@@ -215,4 +215,98 @@ public class S3StorageProviderTest {
       // Expected if prefix doesn't exist
     }
   }
+  
+  @Test void testS3WriteOperations() throws IOException {
+    assumeTrue(isS3Available(), "S3 credentials not configured, skipping test");
+    
+    S3StorageProvider provider = new S3StorageProvider();
+    String bucket = getTestBucket();
+    String testPrefix = "calcite-test/" + System.currentTimeMillis() + "/";
+    
+    try {
+      // Test writeFile with byte array
+      String testFile1 = "s3://" + bucket + "/" + testPrefix + "write-test1.txt";
+      String content1 = "This is a test file for S3 write operations";
+      provider.writeFile(testFile1, content1.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      
+      // Verify file exists
+      assertTrue(provider.exists(testFile1), "File should exist after writing");
+      
+      // Read back and verify content
+      try (InputStream is = provider.openInputStream(testFile1)) {
+        String readContent = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(content1, readContent, "Content should match what was written");
+      }
+      
+      // Test writeFile with InputStream
+      String testFile2 = "s3://" + bucket + "/" + testPrefix + "write-test2.json";
+      String jsonContent = "{\"test\": \"data\", \"value\": 123}";
+      try (InputStream inputStream = new java.io.ByteArrayInputStream(
+          jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+        provider.writeFile(testFile2, inputStream);
+      }
+      
+      // Verify JSON file exists and content
+      assertTrue(provider.exists(testFile2), "JSON file should exist after writing");
+      StorageProvider.FileMetadata metadata = provider.getMetadata(testFile2);
+      assertNotNull(metadata);
+      assertEquals(jsonContent.length(), metadata.getSize());
+      
+      // Test overwrite existing file
+      String newContent = "Overwritten content in S3";
+      provider.writeFile(testFile1, newContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      
+      try (InputStream is = provider.openInputStream(testFile1)) {
+        String readContent = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(newContent, readContent, "Content should be overwritten");
+      }
+      
+      // Test write with nested path (S3 doesn't require creating directories)
+      String nestedFile = "s3://" + bucket + "/" + testPrefix + "nested/deep/file.parquet";
+      byte[] parquetData = "Mock parquet data".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      provider.writeFile(nestedFile, parquetData);
+      assertTrue(provider.exists(nestedFile), "Nested file should exist");
+      
+      // Test createDirectories (creates marker object)
+      String dirPath = "s3://" + bucket + "/" + testPrefix + "new-directory/";
+      provider.createDirectories(dirPath);
+      // In S3, directories are conceptual, but we can check if objects with this prefix exist
+      
+      // Test copyFile
+      String sourceFile = testFile1;
+      String destFile = "s3://" + bucket + "/" + testPrefix + "copied-file.txt";
+      provider.copyFile(sourceFile, destFile);
+      
+      assertTrue(provider.exists(destFile), "Copied file should exist");
+      try (InputStream is = provider.openInputStream(destFile)) {
+        String copiedContent = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(newContent, copiedContent, "Copied content should match source");
+      }
+      
+      // Test delete file
+      assertTrue(provider.delete(testFile1), "Should successfully delete file");
+      assertFalse(provider.exists(testFile1), "File should not exist after deletion");
+      
+      // Test delete non-existent file returns false
+      assertFalse(provider.delete(testFile1), "Deleting non-existent file should return false");
+      
+      // Cleanup - delete all test files
+      provider.delete(testFile2);
+      provider.delete(nestedFile);
+      provider.delete(destFile);
+      
+    } catch (Exception e) {
+      // Cleanup on failure
+      try {
+        // Best effort cleanup
+        provider.delete("s3://" + bucket + "/" + testPrefix + "write-test1.txt");
+        provider.delete("s3://" + bucket + "/" + testPrefix + "write-test2.json");
+        provider.delete("s3://" + bucket + "/" + testPrefix + "nested/deep/file.parquet");
+        provider.delete("s3://" + bucket + "/" + testPrefix + "copied-file.txt");
+      } catch (IOException ignored) {
+        // Ignore cleanup errors
+      }
+      throw e;
+    }
+  }
 }
