@@ -30,12 +30,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.calcite.adapter.file.storage.StorageProvider;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,6 +69,7 @@ public class FredDataDownloader {
   private final String cacheDir;
   private final String apiKey;
   private final HttpClient httpClient;
+  private final StorageProvider storageProvider;
   
   // Key FRED series IDs for economic indicators
   public static class Series {
@@ -128,9 +134,20 @@ public class FredDataDownloader {
       Series.DOLLAR_INDEX
   );
   
+  public FredDataDownloader(String cacheDir, String apiKey, StorageProvider storageProvider) {
+    this.cacheDir = cacheDir;
+    this.apiKey = apiKey;
+    this.storageProvider = storageProvider;
+    this.httpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build();
+  }
+  
+  // Temporary compatibility constructor - creates LocalFileStorageProvider internally
   public FredDataDownloader(String cacheDir, String apiKey) {
     this.cacheDir = cacheDir;
     this.apiKey = apiKey;
+    this.storageProvider = org.apache.calcite.adapter.file.storage.StorageProviderFactory.createFromUrl(cacheDir);
     this.httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build();
@@ -216,8 +233,8 @@ public class FredDataDownloader {
     
     LOGGER.info("Downloading {} FRED series for year {}", DEFAULT_SERIES.size(), year);
     
-    Path outputDir = Paths.get(cacheDir, "source=econ", "type=indicators", "year=" + year);
-    Files.createDirectories(outputDir);
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
     
     List<Map<String, Object>> observations = new ArrayList<>();
     Map<String, FredSeriesInfo> seriesInfoMap = new HashMap<>();
@@ -290,16 +307,16 @@ public class FredDataDownloader {
     }
     
     // Save raw JSON data to cache
-    File jsonFile = new File(outputDir.toFile(), "fred_indicators.json");
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "fred_indicators.json");
     Map<String, Object> data = new HashMap<>();
     data.put("observations", observations);
     data.put("download_date", LocalDate.now().toString());
     data.put("year", year);
     
     String jsonContent = MAPPER.writeValueAsString(data);
-    Files.writeString(jsonFile.toPath(), jsonContent);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
     
-    LOGGER.info("FRED indicators saved to: {} ({} observations)", jsonFile, observations.size());
+    LOGGER.info("FRED indicators saved to: {} ({} observations)", jsonFilePath, observations.size());
   }
 
   /**
@@ -321,9 +338,10 @@ public class FredDataDownloader {
     
     LOGGER.info("Downloading {} FRED series from {} to {}", seriesIds.size(), startDate, endDate);
     
-    Path outputDir = Paths.get(cacheDir, "source=econ", "type=fred_indicators",
-        String.format("date_range=%s_%s", startDate.substring(0, 10), endDate.substring(0, 10)));
-    Files.createDirectories(outputDir);
+    String outputDirPath = storageProvider.resolvePath(cacheDir, 
+        String.format("source=econ/type=fred_indicators/date_range=%s_%s", 
+            startDate.substring(0, 10), endDate.substring(0, 10)));
+    storageProvider.createDirectories(outputDirPath);
     
     List<FredObservation> observations = new ArrayList<>();
     Map<String, FredSeriesInfo> seriesInfoMap = new HashMap<>();
@@ -396,7 +414,9 @@ public class FredDataDownloader {
     }
     
     LOGGER.info("FRED indicators data collected: {} observations", observations.size());
-    return outputDir.toFile();
+    // For compatibility, return a File representing the output directory
+    // Note: This assumes local storage for the return value
+    return new File(outputDirPath);
   }
   
   /**
@@ -467,27 +487,35 @@ public class FredDataDownloader {
    * @param targetFile Target parquet file to create
    */
   public void convertToParquet(File sourceDir, File targetFile) throws IOException {
-    LOGGER.info("Converting FRED data from {} to parquet: {}", sourceDir, targetFile);
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting FRED data from {} to parquet: {}", sourceDirPath, targetFilePath);
     
     // Skip if target file already exists
-    if (targetFile.exists()) {
-      LOGGER.info("Target parquet file already exists, skipping: {}", targetFile);
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
       return;
     }
     
     // Ensure target directory exists
-    targetFile.getParentFile().mkdirs();
+    String parentDir = targetFile.getParent();
+    if (parentDir != null) {
+      storageProvider.createDirectories(parentDir);
+    }
     
     List<Map<String, Object>> observations = new ArrayList<>();
     
     // Look for FRED indicators JSON files in the source directory
-    File[] jsonFiles = sourceDir.listFiles((dir, name) -> 
-        name.equals("fred_indicators.json") && !name.startsWith("."));
+    List<StorageProvider.FileEntry> files = storageProvider.listFiles(sourceDirPath, false);
     
-    if (jsonFiles != null) {
-      for (File jsonFile : jsonFiles) {
+    for (StorageProvider.FileEntry file : files) {
+      if ("fred_indicators.json".equals(file.getName()) && !file.getName().startsWith(".")) {
         try {
-          String content = Files.readString(jsonFile.toPath());
+          String content;
+          try (InputStream inputStream = storageProvider.openInputStream(file.getPath())) {
+            content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+          }
           JsonNode root = MAPPER.readTree(content);
           JsonNode obsArray = root.get("observations");
           
@@ -505,7 +533,7 @@ public class FredDataDownloader {
             }
           }
         } catch (Exception e) {
-          LOGGER.warn("Failed to process FRED JSON file {}: {}", jsonFile, e.getMessage());
+          LOGGER.warn("Failed to process FRED JSON file {}: {}", file.getPath(), e.getMessage());
         }
       }
     }
@@ -513,7 +541,7 @@ public class FredDataDownloader {
     // Write parquet file
     writeFredIndicatorsParquet(observations, targetFile);
     
-    LOGGER.info("Converted FRED data to parquet: {} ({} observations)", targetFile, observations.size());
+    LOGGER.info("Converted FRED data to parquet: {} ({} observations)", targetFilePath, observations.size());
   }
   
   @SuppressWarnings("deprecation")

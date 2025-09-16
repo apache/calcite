@@ -30,8 +30,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.calcite.adapter.file.storage.StorageProvider;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -62,6 +66,7 @@ public class BeaDataDownloader {
   private final String cacheDir;
   private final String apiKey;
   private final HttpClient httpClient;
+  private final StorageProvider storageProvider;
   
   // BEA dataset names
   public static class Datasets {
@@ -86,9 +91,20 @@ public class BeaDataDownloader {
     public static final String SAVINGS_RATE = "58";      // Personal Saving Rate
   }
   
+  public BeaDataDownloader(String cacheDir, String apiKey, StorageProvider storageProvider) {
+    this.cacheDir = cacheDir;
+    this.apiKey = apiKey;
+    this.storageProvider = storageProvider;
+    this.httpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build();
+  }
+  
+  // Temporary compatibility constructor - creates LocalFileStorageProvider internally
   public BeaDataDownloader(String cacheDir, String apiKey) {
     this.cacheDir = cacheDir;
     this.apiKey = apiKey;
+    this.storageProvider = org.apache.calcite.adapter.file.storage.StorageProviderFactory.createFromUrl(cacheDir);
     this.httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build();
@@ -165,8 +181,8 @@ public class BeaDataDownloader {
     
     LOGGER.info("Downloading BEA GDP components for year {}", year);
     
-    Path outputDir = Paths.get(cacheDir, "source=econ", "type=indicators", "year=" + year);
-    Files.createDirectories(outputDir);
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
     
     List<GdpComponent> components = new ArrayList<>();
     
@@ -223,7 +239,7 @@ public class BeaDataDownloader {
     }
     
     // Save raw JSON data to cache
-    File jsonFile = new File(outputDir.toFile(), "gdp_components.json");
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "gdp_components.json");
     Map<String, Object> data = new HashMap<>();
     List<Map<String, Object>> componentsData = new ArrayList<>();
     
@@ -245,9 +261,9 @@ public class BeaDataDownloader {
     data.put("year", year);
     
     String jsonContent = MAPPER.writeValueAsString(data);
-    Files.writeString(jsonFile.toPath(), jsonContent);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
     
-    LOGGER.info("GDP components saved to: {} ({} records)", jsonFile, components.size());
+    LOGGER.info("GDP components saved to: {} ({} records)", jsonFilePath, components.size());
   }
 
   /**
@@ -267,9 +283,9 @@ public class BeaDataDownloader {
     
     LOGGER.info("Downloading BEA GDP components for {}-{}", startYear, endYear);
     
-    Path outputDir = Paths.get(cacheDir, "source=econ", "type=gdp_components",
-        String.format("year_range=%d_%d", startYear, endYear));
-    Files.createDirectories(outputDir);
+    String outputDirPath = storageProvider.resolvePath(cacheDir, 
+        String.format("source=econ/type=gdp_components/year_range=%d_%d", startYear, endYear));
+    storageProvider.createDirectories(outputDirPath);
     
     List<GdpComponent> components = new ArrayList<>();
     
@@ -381,10 +397,11 @@ public class BeaDataDownloader {
     }
     
     // Convert to Parquet
-    File parquetFile = new File(outputDir.toFile(), "gdp_components.parquet");
+    String parquetFilePath = storageProvider.resolvePath(outputDirPath, "gdp_components.parquet");
+    File parquetFile = new File(parquetFilePath);
     writeGdpComponentsParquet(components, parquetFile);
     
-    LOGGER.info("GDP components saved to: {} ({} records)", parquetFile, components.size());
+    LOGGER.info("GDP components saved to: {} ({} records)", parquetFilePath, components.size());
     return parquetFile;
   }
   
@@ -405,9 +422,9 @@ public class BeaDataDownloader {
     
     LOGGER.info("Downloading BEA regional income data for {}-{}", startYear, endYear);
     
-    Path outputDir = Paths.get(cacheDir, "source=econ", "type=regional_income",
-        String.format("year_range=%d_%d", startYear, endYear));
-    Files.createDirectories(outputDir);
+    String outputDirPath = storageProvider.resolvePath(cacheDir,
+        String.format("source=econ/type=regional_income/year_range=%d_%d", startYear, endYear));
+    storageProvider.createDirectories(outputDirPath);
     
     List<RegionalIncome> incomeData = new ArrayList<>();
     
@@ -479,10 +496,11 @@ public class BeaDataDownloader {
     }
     
     // Convert to Parquet
-    File parquetFile = new File(outputDir.toFile(), "regional_income.parquet");
+    String parquetFilePath = storageProvider.resolvePath(outputDirPath, "regional_income.parquet");
+    File parquetFile = new File(parquetFilePath);
     writeRegionalIncomeParquet(incomeData, parquetFile);
     
-    LOGGER.info("Regional income data saved to: {} ({} records)", parquetFile, incomeData.size());
+    LOGGER.info("Regional income data saved to: {} ({} records)", parquetFilePath, incomeData.size());
     return parquetFile;
   }
   
@@ -591,27 +609,35 @@ public class BeaDataDownloader {
    * @param targetFile Target parquet file to create
    */
   public void convertToParquet(File sourceDir, File targetFile) throws IOException {
-    LOGGER.info("Converting BEA data from {} to parquet: {}", sourceDir, targetFile);
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting BEA data from {} to parquet: {}", sourceDirPath, targetFilePath);
     
     // Skip if target file already exists
-    if (targetFile.exists()) {
-      LOGGER.info("Target parquet file already exists, skipping: {}", targetFile);
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
       return;
     }
     
     // Ensure target directory exists
-    targetFile.getParentFile().mkdirs();
+    String parentDir = targetFile.getParent();
+    if (parentDir != null) {
+      storageProvider.createDirectories(parentDir);
+    }
     
     List<Map<String, Object>> components = new ArrayList<>();
     
     // Look for GDP components JSON files in the source directory
-    File[] jsonFiles = sourceDir.listFiles((dir, name) -> 
-        name.equals("gdp_components.json") && !name.startsWith("."));
+    List<StorageProvider.FileEntry> files = storageProvider.listFiles(sourceDirPath, false);
     
-    if (jsonFiles != null) {
-      for (File jsonFile : jsonFiles) {
+    for (StorageProvider.FileEntry file : files) {
+      if ("gdp_components.json".equals(file.getName()) && !file.getName().startsWith(".")) {
         try {
-          String content = Files.readString(jsonFile.toPath());
+          String content;
+          try (InputStream inputStream = storageProvider.openInputStream(file.getPath())) {
+            content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+          }
           JsonNode root = MAPPER.readTree(content);
           JsonNode componentsArray = root.get("components");
           
@@ -631,7 +657,7 @@ public class BeaDataDownloader {
             }
           }
         } catch (Exception e) {
-          LOGGER.warn("Failed to process BEA JSON file {}: {}", jsonFile, e.getMessage());
+          LOGGER.warn("Failed to process BEA JSON file {}: {}", file.getPath(), e.getMessage());
         }
       }
     }
@@ -639,7 +665,7 @@ public class BeaDataDownloader {
     // Write parquet file
     writeGdpComponentsMapParquet(components, targetFile);
     
-    LOGGER.info("Converted BEA data to parquet: {} ({} components)", targetFile, components.size());
+    LOGGER.info("Converted BEA data to parquet: {} ({} components)", targetFilePath, components.size());
   }
   
   @SuppressWarnings("deprecation")

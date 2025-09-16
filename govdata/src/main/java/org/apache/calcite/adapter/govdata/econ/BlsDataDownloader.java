@@ -32,8 +32,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.calcite.adapter.file.storage.StorageProvider;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -62,6 +66,7 @@ public class BlsDataDownloader {
   private final String apiKey;
   private final String cacheDir;
   private final HttpClient httpClient;
+  private final StorageProvider storageProvider;
   
   // Common BLS series IDs
   public static class Series {
@@ -85,9 +90,20 @@ public class BlsDataDownloader {
     public static final String TX_UNEMPLOYMENT = "LASST480000000000003";
   }
   
+  public BlsDataDownloader(String apiKey, String cacheDir, StorageProvider storageProvider) {
+    this.apiKey = apiKey;
+    this.cacheDir = cacheDir;
+    this.storageProvider = storageProvider;
+    this.httpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(10))
+        .build();
+  }
+  
+  // Temporary compatibility constructor - creates LocalFileStorageProvider internally
   public BlsDataDownloader(String apiKey, String cacheDir) {
     this.apiKey = apiKey;
     this.cacheDir = cacheDir;
+    this.storageProvider = org.apache.calcite.adapter.file.storage.StorageProviderFactory.createFromUrl(cacheDir);
     this.httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build();
@@ -180,8 +196,8 @@ public class BlsDataDownloader {
     // Download for each year separately to match FileSchema partitioning expectations
     File lastFile = null;
     for (int year = startYear; year <= endYear; year++) {
-      Path outputDir = Paths.get(cacheDir, "source=econ", "type=indicators", "year=" + year);
-      Files.createDirectories(outputDir);
+      String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+      storageProvider.createDirectories(outputDirPath);
     
     // Download key employment series
     List<String> seriesIds = List.of(
@@ -193,11 +209,11 @@ public class BlsDataDownloader {
       String rawJson = fetchMultipleSeriesRaw(seriesIds, year, year);
       
       // Save raw JSON data to cache directory
-      File jsonFile = new File(outputDir.toFile(), "employment_statistics.json");
-      Files.writeString(jsonFile.toPath(), rawJson, StandardCharsets.UTF_8);
+      String jsonFilePath = storageProvider.resolvePath(outputDirPath, "employment_statistics.json");
+      storageProvider.writeFile(jsonFilePath, rawJson.getBytes(StandardCharsets.UTF_8));
       
-      LOGGER.info("Employment statistics raw data saved for year {}: {}", year, jsonFile);
-      lastFile = jsonFile;
+      LOGGER.info("Employment statistics raw data saved for year {}: {}", year, jsonFilePath);
+      lastFile = new File(jsonFilePath);
     }
     
     return lastFile;
@@ -219,8 +235,8 @@ public class BlsDataDownloader {
     // Download for each year separately
     File lastFile = null;
     for (int year = startYear; year <= endYear; year++) {
-      Path outputDir = Paths.get(cacheDir, "source=econ", "type=indicators", "year=" + year);
-      Files.createDirectories(outputDir);
+      String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+      storageProvider.createDirectories(outputDirPath);
     
     List<String> seriesIds = List.of(
         Series.CPI_ALL_URBAN,
@@ -231,11 +247,11 @@ public class BlsDataDownloader {
       String rawJson = fetchMultipleSeriesRaw(seriesIds, year, year);
       
       // Save raw JSON data to cache directory
-      File jsonFile = new File(outputDir.toFile(), "inflation_metrics.json");
-      Files.writeString(jsonFile.toPath(), rawJson, StandardCharsets.UTF_8);
+      String jsonFilePath = storageProvider.resolvePath(outputDirPath, "inflation_metrics.json");
+      storageProvider.writeFile(jsonFilePath, rawJson.getBytes(StandardCharsets.UTF_8));
       
-      LOGGER.info("Inflation metrics raw data saved for year {}: {}", year, jsonFile);
-      lastFile = jsonFile;
+      LOGGER.info("Inflation metrics raw data saved for year {}: {}", year, jsonFilePath);
+      lastFile = new File(jsonFilePath);
     }
     
     return lastFile;
