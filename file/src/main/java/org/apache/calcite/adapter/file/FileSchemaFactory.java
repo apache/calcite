@@ -21,6 +21,8 @@ import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
 import org.apache.calcite.adapter.file.metadata.InformationSchema;
 import org.apache.calcite.adapter.file.metadata.PostgresMetadataSchema;
+import org.apache.calcite.adapter.file.storage.S3StorageProvider;
+import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.model.JsonTable;
 import org.apache.calcite.model.ModelHandler;
@@ -222,9 +224,36 @@ public class FileSchemaFactory implements ConstraintCapableSchemaFactory {
         (List<Map<String, Object>>) operand.get("partitionedTables");
 
     // Get storage provider configuration
-    final String storageType = (String) operand.get("storageType");
+    String storageType = (String) operand.get("storageType");
     @SuppressWarnings("unchecked") Map<String, Object> storageConfig =
         (Map<String, Object>) operand.get("storageConfig");
+    
+    // Auto-detect storage type from directory path
+    if (storageType == null && directory != null) {
+      if (directory.startsWith("s3://")) {
+        storageType = "s3";
+        LOGGER.info("Auto-detected S3 storage from directory path: {}", directory);
+      } else if (directory.startsWith("http://") || directory.startsWith("https://")) {
+        storageType = "http";
+        LOGGER.info("Auto-detected HTTP storage from directory path: {}", directory);
+      } else if (directory.startsWith("hdfs://")) {
+        storageType = "hdfs";
+        LOGGER.info("Auto-detected HDFS storage from directory path: {}", directory);
+      }
+    }
+    
+    // Auto-detect storage type from baseDirectory path for cache/parquet locations
+    final Object baseDirObj = operand.get("baseDirectory");
+    if (storageType == null && baseDirObj instanceof String) {
+      String baseDirStr = (String) baseDirObj;
+      if (baseDirStr.startsWith("s3://")) {
+        storageType = "s3";
+        LOGGER.info("Auto-detected S3 storage from baseDirectory path: {}", baseDirStr);
+      } else if (baseDirStr.startsWith("hdfs://")) {
+        storageType = "hdfs";
+        LOGGER.info("Auto-detected HDFS storage from baseDirectory path: {}", baseDirStr);
+      }
+    }
 
     // Get refresh interval for schema (default for all tables)
     final String refreshInterval = (String) operand.get("refreshInterval");

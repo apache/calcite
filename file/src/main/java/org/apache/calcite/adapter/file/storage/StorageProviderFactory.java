@@ -62,6 +62,15 @@ public class StorageProviderFactory {
       case "s3":
         return getCachedProvider("s3", S3StorageProvider::new);
 
+      case "hdfs":
+        return getCachedProvider("hdfs", () -> {
+          try {
+            return new HDFSStorageProvider();
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to create HDFS storage provider", e);
+          }
+        });
+
       case "ftp":
       case "ftps":
         return getCachedProvider("ftp", FtpStorageProvider::new);
@@ -112,6 +121,25 @@ public class StorageProviderFactory {
           return new S3StorageProvider((AmazonS3) config.get("s3Client"));
         }
         return getCachedProvider("s3", S3StorageProvider::new);
+
+      case "hdfs":
+        if (config != null && config.containsKey("hadoopConfig")) {
+          // Custom Hadoop configuration provided
+          try {
+            org.apache.hadoop.conf.Configuration hadoopConfig = 
+                (org.apache.hadoop.conf.Configuration) config.get("hadoopConfig");
+            return new HDFSStorageProvider(hadoopConfig);
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to create HDFS storage provider with custom config", e);
+          }
+        }
+        return getCachedProvider("hdfs", () -> {
+          try {
+            return new HDFSStorageProvider();
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to create HDFS storage provider", e);
+          }
+        });
 
       case "ftp":
       case "ftps":
