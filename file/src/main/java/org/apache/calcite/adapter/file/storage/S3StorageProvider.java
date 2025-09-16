@@ -19,16 +19,23 @@ package org.apache.calcite.adapter.file.storage;
 import org.apache.calcite.adapter.file.storage.cache.PersistentStorageCache;
 import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -281,6 +288,120 @@ public class S3StorageProvider implements StorageProvider {
       buffer.write(data, 0, nRead);
     }
     return buffer.toByteArray();
+  }
+
+  @Override public void writeFile(String path, byte[] content) throws IOException {
+    S3Uri s3Uri = parseS3Uri(path);
+    
+    ObjectMetadata metadata = new ObjectMetadata();
+    metadata.setContentLength(content.length);
+    
+    // Set content type based on file extension
+    String contentType = guessContentType(path);
+    if (contentType != null) {
+      metadata.setContentType(contentType);
+    }
+    
+    try (InputStream input = new ByteArrayInputStream(content)) {
+      PutObjectRequest request = new PutObjectRequest(s3Uri.bucket, s3Uri.key, input, metadata);
+      s3Client.putObject(request);
+    } catch (AmazonServiceException e) {
+      throw new IOException("Failed to write file to S3: " + path, e);
+    }
+  }
+
+  @Override public void writeFile(String path, InputStream content) throws IOException {
+    S3Uri s3Uri = parseS3Uri(path);
+    
+    // For input streams, we need to buffer the content to determine size
+    // This is required for S3 uploads unless using multipart upload
+    byte[] buffer = readAllBytes(content);
+    writeFile(path, buffer);
+  }
+
+  @Override public void createDirectories(String path) throws IOException {
+    // S3 doesn't have real directories, they're just prefixes
+    // We can create a marker object if needed, but it's often not necessary
+    // For compatibility, we'll create an empty object with a trailing slash
+    if (!path.endsWith("/")) {
+      path = path + "/";
+    }
+    
+    S3Uri s3Uri = parseS3Uri(path);
+    
+    // Create an empty marker object
+    ObjectMetadata metadata = new ObjectMetadata();
+    metadata.setContentLength(0);
+    
+    try (InputStream emptyContent = new ByteArrayInputStream(new byte[0])) {
+      PutObjectRequest request = new PutObjectRequest(s3Uri.bucket, s3Uri.key, emptyContent, metadata);
+      s3Client.putObject(request);
+    } catch (AmazonServiceException e) {
+      // Ignore if it already exists
+      if (e.getStatusCode() != 409) { // 409 = Conflict
+        throw new IOException("Failed to create directory marker in S3: " + path, e);
+      }
+    }
+  }
+
+  @Override public boolean delete(String path) throws IOException {
+    S3Uri s3Uri = parseS3Uri(path);
+    
+    try {
+      // Check if object exists first
+      if (!s3Client.doesObjectExist(s3Uri.bucket, s3Uri.key)) {
+        return false;
+      }
+      
+      // Delete the object
+      DeleteObjectRequest request = new DeleteObjectRequest(s3Uri.bucket, s3Uri.key);
+      s3Client.deleteObject(request);
+      return true;
+    } catch (AmazonServiceException e) {
+      throw new IOException("Failed to delete S3 object: " + path, e);
+    }
+  }
+
+  @Override public void copyFile(String source, String destination) throws IOException {
+    S3Uri sourceUri = parseS3Uri(source);
+    S3Uri destUri = parseS3Uri(destination);
+    
+    try {
+      // Check if source exists
+      if (!s3Client.doesObjectExist(sourceUri.bucket, sourceUri.key)) {
+        throw new IOException("Source file does not exist in S3: " + source);
+      }
+      
+      // Perform the copy
+      CopyObjectRequest copyRequest = new CopyObjectRequest(
+          sourceUri.bucket, sourceUri.key,
+          destUri.bucket, destUri.key);
+      
+      s3Client.copyObject(copyRequest);
+    } catch (AmazonServiceException e) {
+      throw new IOException("Failed to copy S3 object from " + source + " to " + destination, e);
+    }
+  }
+
+  /**
+   * Guess content type based on file extension.
+   */
+  private String guessContentType(String path) {
+    String lowercasePath = path.toLowerCase();
+    if (lowercasePath.endsWith(".json")) {
+      return "application/json";
+    } else if (lowercasePath.endsWith(".csv")) {
+      return "text/csv";
+    } else if (lowercasePath.endsWith(".parquet")) {
+      return "application/x-parquet";
+    } else if (lowercasePath.endsWith(".xml")) {
+      return "application/xml";
+    } else if (lowercasePath.endsWith(".txt")) {
+      return "text/plain";
+    } else if (lowercasePath.endsWith(".yaml") || lowercasePath.endsWith(".yml")) {
+      return "application/x-yaml";
+    }
+    return "application/octet-stream";
   }
 
   private static class S3Uri {

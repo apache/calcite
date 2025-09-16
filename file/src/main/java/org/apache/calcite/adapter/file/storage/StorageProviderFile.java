@@ -18,53 +18,34 @@ package org.apache.calcite.adapter.file.storage;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
+import java.io.InputStream;
 
 /**
- * A File wrapper for remote files accessed through a StorageProvider.
- * This class allows remote files to be used in places where File objects are expected.
- * Note that most File operations will not work correctly since the file doesn't exist locally.
- * The main purpose is to provide a path and name for the file.
+ * A File wrapper that provides unified interface for both local files 
+ * and remote storage files accessed through a StorageProvider.
  */
 public class StorageProviderFile extends File {
   private final StorageProvider.FileEntry fileEntry;
   private final StorageProvider storageProvider;
+  private final boolean isLocal;
 
-  /**
-   * Creates a StorageProviderFile that represents a remote file.
-   *
-   * @param fileEntry The file entry from the storage provider
-   * @param storageProvider The storage provider for accessing the file
-   */
-  public StorageProviderFile(StorageProvider.FileEntry fileEntry, StorageProvider storageProvider) {
+  // Constructor for local files
+  private StorageProviderFile(String path) {
+    super(path);
+    this.fileEntry = null;
+    this.storageProvider = null;
+    this.isLocal = true;
+  }
+
+  // Constructor for remote files
+  private StorageProviderFile(StorageProvider.FileEntry fileEntry, StorageProvider storageProvider) {
     super(createTempPath(fileEntry));
     this.fileEntry = fileEntry;
     this.storageProvider = storageProvider;
+    this.isLocal = false;
   }
 
-  /**
-   * Creates a temporary path for the file.
-   * This path doesn't actually exist on disk but provides a valid path string.
-   */
   private static String createTempPath(StorageProvider.FileEntry fileEntry) {
-    // Use the path from the file entry
-    String path = fileEntry.getPath();
-    // Ensure it's an absolute path
-    if (!path.startsWith("/")) {
-      path = "/" + path;
-    }
-    return path;
-  }
-
-  @Override public String getName() {
-    return fileEntry.getName();
-  }
-
-  @Override public String getPath() {
-    return fileEntry.getPath();
-  }
-
-  @Override public String getAbsolutePath() {
     String path = fileEntry.getPath();
     if (!path.startsWith("/")) {
       path = "/" + path;
@@ -72,75 +53,150 @@ public class StorageProviderFile extends File {
     return path;
   }
 
-  @Override public String getCanonicalPath() throws IOException {
-    return getAbsolutePath();
+  @Override
+  public boolean exists() {
+    if (isLocal) {
+      return super.exists();
+    } else {
+      try {
+        return storageProvider.exists(fileEntry.getPath());
+      } catch (IOException e) {
+        return false;
+      }
+    }
   }
 
-  @Override public File getCanonicalFile() throws IOException {
+  @Override
+  public long lastModified() {
+    if (isLocal) {
+      return super.lastModified();
+    } else {
+      return fileEntry.getLastModified();
+    }
+  }
+
+  @Override
+  public long length() {
+    if (isLocal) {
+      return super.length();
+    } else {
+      return fileEntry.getSize();
+    }
+  }
+
+  @Override
+  public boolean delete() {
+    if (isLocal) {
+      return super.delete();
+    } else {
+      try {
+        return storageProvider.delete(fileEntry.getPath());
+      } catch (IOException e) {
+        return false;
+      }
+    }
+  }
+
+  @Override
+  public boolean mkdirs() {
+    if (isLocal) {
+      return super.mkdirs();
+    } else {
+      try {
+        String parent = getParent();
+        if (parent != null) {
+          storageProvider.createDirectories(parent);
+        }
+        return true;
+      } catch (IOException e) {
+        return false;
+      }
+    }
+  }
+
+  public void ensureParentDirs() throws IOException {
+    if (isLocal) {
+      File parent = getParentFile();
+      if (parent != null && !parent.exists()) {
+        parent.mkdirs();
+      }
+    } else {
+      String parent = getParent();
+      if (parent != null) {
+        storageProvider.createDirectories(parent);
+      }
+    }
+  }
+
+  public InputStream openInputStream() throws IOException {
+    if (isLocal) {
+      return java.nio.file.Files.newInputStream(toPath());
+    } else {
+      return storageProvider.openInputStream(fileEntry.getPath());
+    }
+  }
+
+  public void writeBytes(byte[] content) throws IOException {
+    if (isLocal) {
+      ensureParentDirs();
+      java.nio.file.Files.write(toPath(), content);
+    } else {
+      storageProvider.writeFile(fileEntry.getPath(), content);
+    }
+  }
+
+  public void writeInputStream(InputStream input) throws IOException {
+    if (isLocal) {
+      ensureParentDirs();
+      try (java.io.FileOutputStream output = new java.io.FileOutputStream(this)) {
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = input.read(buffer)) != -1) {
+          output.write(buffer, 0, bytesRead);
+        }
+      }
+    } else {
+      storageProvider.writeFile(fileEntry.getPath(), input);
+    }
+  }
+
+  public boolean isLocal() {
+    return isLocal;
+  }
+
+  public File getFile() {
+    if (!isLocal) {
+      throw new UnsupportedOperationException("Remote storage file cannot be converted to File object: " + getPath());
+    }
     return this;
   }
 
-  @Override public boolean exists() {
-    try {
-      return storageProvider.exists(fileEntry.getPath());
-    } catch (IOException e) {
-      return false;
-    }
-  }
-
-  @Override public boolean isFile() {
-    return !fileEntry.isDirectory();
-  }
-
-  @Override public boolean isDirectory() {
-    return fileEntry.isDirectory();
-  }
-
-  @Override public long length() {
-    return fileEntry.getSize();
-  }
-
-  @Override public long lastModified() {
-    return fileEntry.getLastModified();
-  }
-
-  @Override public boolean canRead() {
-    return true; // Assume readable if listed by storage provider
-  }
-
-  @Override public boolean canWrite() {
-    return false; // Storage providers are read-only
-  }
-
-  @Override public boolean canExecute() {
-    return false;
-  }
-
-  @Override public URI toURI() {
-    try {
-      // Create a custom URI for the storage provider file
-      String scheme = storageProvider.getStorageType();
-      String path = fileEntry.getPath();
-      if (!path.startsWith("/")) {
-        path = "/" + path;
-      }
-      return new URI(scheme, null, path, null);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create URI for storage provider file: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Gets the storage provider for this file.
-   */
   public StorageProvider getStorageProvider() {
     return storageProvider;
   }
 
-  /**
-   * Gets the file entry for this file.
-   */
   public StorageProvider.FileEntry getFileEntry() {
     return fileEntry;
+  }
+
+  /**
+   * Create a StorageProviderFile for the given path using the appropriate storage provider.
+   */
+  public static StorageProviderFile create(String path, StorageProvider storageProvider) {
+    if (storageProvider instanceof LocalFileStorageProvider || 
+        (path.startsWith("/") && !path.startsWith("hdfs://")) || 
+        path.matches("^[A-Za-z]:.*")) {
+      // Local filesystem path
+      return new StorageProviderFile(path);
+    } else {
+      throw new UnsupportedOperationException("Use constructor with FileEntry for remote files");
+    }
+  }
+
+  /**
+   * Create a StorageProviderFile for remote storage.
+   */
+  public static StorageProviderFile create(StorageProvider.FileEntry fileEntry, StorageProvider storageProvider) {
+    return new StorageProviderFile(fileEntry, storageProvider);
   }
 }

@@ -99,6 +99,73 @@ public interface StorageProvider {
   String resolvePath(String basePath, String relativePath);
 
   /**
+   * Writes content to a file.
+   * Creates the file if it doesn't exist, overwrites if it does.
+   *
+   * @param path The file path
+   * @param content The content to write
+   * @throws IOException If an I/O error occurs
+   * @throws UnsupportedOperationException If this storage provider is read-only
+   */
+  default void writeFile(String path, byte[] content) throws IOException {
+    throw new UnsupportedOperationException(
+        "Write operations are not supported by " + getStorageType() + " storage provider");
+  }
+
+  /**
+   * Writes content from an input stream to a file.
+   * Creates the file if it doesn't exist, overwrites if it does.
+   *
+   * @param path The file path
+   * @param content The input stream to write from
+   * @throws IOException If an I/O error occurs
+   * @throws UnsupportedOperationException If this storage provider is read-only
+   */
+  default void writeFile(String path, InputStream content) throws IOException {
+    throw new UnsupportedOperationException(
+        "Write operations are not supported by " + getStorageType() + " storage provider");
+  }
+
+  /**
+   * Creates directories for the given path.
+   * Creates parent directories as needed.
+   *
+   * @param path The directory path to create
+   * @throws IOException If an I/O error occurs
+   * @throws UnsupportedOperationException If this storage provider is read-only
+   */
+  default void createDirectories(String path) throws IOException {
+    throw new UnsupportedOperationException(
+        "Directory creation is not supported by " + getStorageType() + " storage provider");
+  }
+
+  /**
+   * Deletes a file or directory.
+   *
+   * @param path The path to delete
+   * @return true if the file was deleted, false if it didn't exist
+   * @throws IOException If an I/O error occurs
+   * @throws UnsupportedOperationException If this storage provider is read-only
+   */
+  default boolean delete(String path) throws IOException {
+    throw new UnsupportedOperationException(
+        "Delete operations are not supported by " + getStorageType() + " storage provider");
+  }
+
+  /**
+   * Copies a file from source to destination.
+   *
+   * @param source The source file path
+   * @param destination The destination file path
+   * @throws IOException If an I/O error occurs
+   * @throws UnsupportedOperationException If this storage provider is read-only
+   */
+  default void copyFile(String source, String destination) throws IOException {
+    throw new UnsupportedOperationException(
+        "Copy operations are not supported by " + getStorageType() + " storage provider");
+  }
+
+  /**
    * Checks if a file has changed compared to cached metadata.
    * This method helps avoid unnecessary updates by comparing current file state
    * with previously cached metadata.

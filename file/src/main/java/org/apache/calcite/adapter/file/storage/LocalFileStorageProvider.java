@@ -21,11 +21,14 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -176,5 +179,98 @@ public class LocalFileStorageProvider implements StorageProvider {
     }
 
     return base.resolve(relativePath).normalize().toString();
+  }
+
+  @Override public void writeFile(String path, byte[] content) throws IOException {
+    Path filePath = parsePath(path);
+    
+    // Create parent directories if they don't exist
+    Path parentDir = filePath.getParent();
+    if (parentDir != null && !Files.exists(parentDir)) {
+      Files.createDirectories(parentDir);
+    }
+    
+    // Write the file, creating or overwriting as needed
+    Files.write(filePath, content, 
+        StandardOpenOption.CREATE, 
+        StandardOpenOption.TRUNCATE_EXISTING,
+        StandardOpenOption.WRITE);
+  }
+
+  @Override public void writeFile(String path, InputStream content) throws IOException {
+    Path filePath = parsePath(path);
+    
+    // Create parent directories if they don't exist
+    Path parentDir = filePath.getParent();
+    if (parentDir != null && !Files.exists(parentDir)) {
+      Files.createDirectories(parentDir);
+    }
+    
+    // Copy the input stream to the file
+    try (OutputStream out = Files.newOutputStream(filePath,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING,
+        StandardOpenOption.WRITE)) {
+      byte[] buffer = new byte[8192];
+      int bytesRead;
+      while ((bytesRead = content.read(buffer)) != -1) {
+        out.write(buffer, 0, bytesRead);
+      }
+    }
+  }
+
+  @Override public void createDirectories(String path) throws IOException {
+    Path dirPath = parsePath(path);
+    Files.createDirectories(dirPath);
+  }
+
+  @Override public boolean delete(String path) throws IOException {
+    Path filePath = parsePath(path);
+    if (!Files.exists(filePath)) {
+      return false;
+    }
+    
+    // If it's a directory, ensure it's empty before deleting
+    if (Files.isDirectory(filePath)) {
+      // For now, only delete empty directories
+      // For recursive delete, would need to walk the tree
+      Files.delete(filePath);
+    } else {
+      Files.delete(filePath);
+    }
+    return true;
+  }
+
+  @Override public void copyFile(String source, String destination) throws IOException {
+    Path sourcePath = parsePath(source);
+    Path destPath = parsePath(destination);
+    
+    if (!Files.exists(sourcePath)) {
+      throw new IOException("Source file does not exist: " + source);
+    }
+    
+    // Create parent directories for destination if needed
+    Path parentDir = destPath.getParent();
+    if (parentDir != null && !Files.exists(parentDir)) {
+      Files.createDirectories(parentDir);
+    }
+    
+    // Copy the file, replacing if it exists
+    Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+  }
+
+  /**
+   * Helper method to parse a path string that might be a file:// URL.
+   */
+  private Path parsePath(String path) throws IOException {
+    if (path.startsWith("file:")) {
+      try {
+        java.net.URI uri = new java.net.URI(path);
+        return Paths.get(uri);
+      } catch (java.net.URISyntaxException e) {
+        throw new IOException("Invalid file URI: " + path, e);
+      }
+    }
+    return Paths.get(path);
   }
 }

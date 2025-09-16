@@ -203,11 +203,11 @@ public class StorageProviderSource implements Source {
   @Override public Optional<File> fileOpt() {
     // Storage provider files don't have local File representations
     // Return a StorageProviderFile for compatibility
-    return Optional.of(new StorageProviderFile(fileEntry, storageProvider));
+    return Optional.of(StorageProviderFile.create(fileEntry, storageProvider));
   }
 
   @Override public File file() {
     // Return a StorageProviderFile for compatibility
-    return new StorageProviderFile(fileEntry, storageProvider);
+    return StorageProviderFile.create(fileEntry, storageProvider);
   }
 }
