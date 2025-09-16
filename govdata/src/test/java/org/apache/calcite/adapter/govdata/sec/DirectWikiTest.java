@@ -34,11 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DirectWikiTest {
 
   @Test public void testWikipediaDirectQuery() throws Exception {
-    System.out.println("\n"
-  + "=".repeat(80));
-    System.out.println("TESTING DIRECT WIKIPEDIA QUERY");
-    System.out.println("=".repeat(80) + "\n");
-
     // Register the Calcite driver
     Class.forName("org.apache.calcite.jdbc.Driver");
 
@@ -73,27 +68,19 @@ public class DirectWikiTest {
          Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT ticker, company FROM wiki.dow30")) {
 
-      System.out.println("Ticker | Company");
-      System.out.println("-".repeat(50));
-
       int count = 0;
       while (rs.next() && count < 35) {
         String ticker = rs.getString("ticker");
         String company = rs.getString("company");
-        System.out.printf("%-6s | %s\n", ticker, company);
+        // Verify we get valid data
+        assertTrue(ticker != null && !ticker.trim().isEmpty(), "Ticker should not be empty");
+        assertTrue(company != null && !company.trim().isEmpty(), "Company should not be empty");
         count++;
       }
-
-      System.out.println("-".repeat(50));
-      System.out.println("Found " + count + " companies");
 
       assertTrue(count > 0, "Should find at least one company");
       assertTrue(count >= 25 && count <= 35,
           "Should find approximately 30 companies, found " + count);
-
-      System.out.println("\n✓ SUCCESS: Wikipedia query returned " + count + " DJIA constituents");
     }
-
-    System.out.println("=".repeat(80));
   }
 }

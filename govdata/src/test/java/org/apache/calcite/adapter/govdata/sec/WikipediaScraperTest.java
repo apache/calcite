@@ -29,18 +29,19 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("integration")
 public class WikipediaScraperTest {
   @Test public void testWikipediaDJIAScraper() throws Exception {
-      System.out.println("Testing Wikipedia DJIA scraper...");
       List<String> constituents = SecDataFetcher.fetchDJIAAConstituents();
 
-      System.out.println("Found " + constituents.size() + " DJIA constituents:");
-      for (String ticker : constituents) {
-        System.out.println("  - " + ticker);
+      assertNotNull(constituents, "Constituents list should not be null");
+      assertTrue(constituents.size() > 0, "Should find at least one constituent");
+      
+      // Verify each constituent is a valid ticker/CIK
+      for (String constituent : constituents) {
+        assertNotNull(constituent, "Constituent should not be null");
+        assertFalse(constituent.trim().isEmpty(), "Constituent should not be empty");
       }
-
-      if (constituents.size() == 30) {
-        System.out.println("✓ Success: Found expected 30 DJIA constituents");
-      } else {
-        System.out.println("⚠ Warning: Expected 30 constituents, found " + constituents.size());
-      }
+      
+      // Should find approximately 30 DJIA constituents
+      assertTrue(constituents.size() >= 25 && constituents.size() <= 35,
+          "Expected 25-35 DJIA constituents, found " + constituents.size());
   }
 }
