@@ -24,11 +24,13 @@ Storage providers can be configured at two levels:
 
 **Schema-level** (all files use same provider):
 - **Amazon S3** - List and access all files in S3 bucket
+- **HDFS** - Direct access to Hadoop Distributed File System clusters
 - **HTTP/HTTPS** - Access files from web servers
 - **SharePoint** - Browse SharePoint document libraries
 
 **Table-level** (auto-detected from URL):
 - `s3://bucket/file.csv` → S3 storage
+- `hdfs://namenode:9000/data/file.parquet` → HDFS storage
 - `https://api.com/data.json` → HTTP storage
 - `/local/path/file.parquet` → Local storage
 
@@ -264,8 +266,22 @@ The File Adapter supports multiple storage systems (Local, S3, HTTP/HTTPS, Share
 
 Or use URL-based auto-detection:
 - `s3://bucket/file.parquet` → S3 Storage
+- `hdfs://namenode:9000/data/file.parquet` → HDFS Storage
 - `https://api.com/data.json` → HTTP Storage  
 - `/local/path/file.csv` → Local Storage
+
+**HDFS Configuration Example:**
+```json
+{
+  "storageType": "hdfs",
+  "storageConfig": {
+    "hadoopConfig": {
+      "fs.defaultFS": "hdfs://namenode:9000",
+      "dfs.client.use.datanode.hostname": "true"
+    }
+  }
+}
+```
 
 **📚 For complete configuration details, see [Storage Providers Documentation](docs/storage-providers.md)**
 
@@ -298,6 +314,21 @@ Or use URL-based auto-detection:
       }
     },
     {
+      "name": "data_lake",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "hdfs://namenode:9000/enterprise-data",
+        "executionEngine": "duckdb",  // Enterprise HDFS cluster with complex queries
+        "storageType": "hdfs",
+        "storageConfig": {
+          "hadoopConfig": {
+            "fs.defaultFS": "hdfs://namenode:9000",
+            "dfs.replication": "3"
+          }
+        }
+      }
+    },
+    {
       "name": "analytics",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
@@ -321,15 +352,25 @@ FROM hot_data.active_sessions h
 JOIN warehouse.purchases w ON h.user_id = w.user_id
 WHERE h.last_activity > CURRENT_TIMESTAMP - INTERVAL '1' HOUR;
 
--- Query combining multiple engines
+-- Query combining multiple engines including HDFS data lake
 SELECT 
   a.product_category,
   COUNT(DISTINCT h.user_id) as active_users,
-  SUM(w.revenue) as total_revenue
+  SUM(w.revenue) as total_revenue,
+  AVG(dl.customer_lifetime_value) as avg_clv
 FROM analytics.product_metrics a
 JOIN hot_data.user_activity h ON a.product_id = h.product_id  
 JOIN warehouse.sales w ON a.product_id = w.product_id
+JOIN data_lake.customer_profiles dl ON h.user_id = dl.customer_id
 GROUP BY a.product_category;
+
+-- Query enterprise HDFS data directly with DuckDB analytics
+SELECT customer_segment, 
+       MEDIAN(purchase_amount) as median_purchase,
+       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY purchase_amount) as p95_purchase
+FROM data_lake.customer_transactions 
+WHERE transaction_date >= CURRENT_DATE - INTERVAL '30' DAY
+GROUP BY customer_segment;
 ```
 
 ### Materialized Views (Configuration Only)
@@ -452,7 +493,11 @@ Tables can use glob patterns (`*`, `?`, `[]`) to combine multiple files into a s
     },
     {
       "name": "s3_data",
-      "url": "s3://bucket/path/2024-*.csv"  // S3 glob pattern (limited support)
+      "url": "s3://bucket/path/2024-*.csv"  // S3 glob pattern
+    },
+    {
+      "name": "hdfs_logs", 
+      "url": "hdfs://namenode:9000/logs/**/error-*.log"  // HDFS recursive glob pattern
     }
   ]
 }
@@ -461,6 +506,7 @@ Tables can use glob patterns (`*`, `?`, `[]`) to combine multiple files into a s
 **Storage Support for Glob Patterns:**
 - **Local files** (`file://` or bare paths): ✅ Supported
 - **S3** (`s3://`): ✅ Supported
+- **HDFS** (`hdfs://`): ✅ Supported
 - **HTTP/HTTPS**: ❌ Not supported - no directory listing capability
 - **FTP/SFTP**: ❌ Not supported
 
