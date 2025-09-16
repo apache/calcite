@@ -581,6 +581,25 @@ public final class TableCommentDefinitions {
     itaDataCols.put("time_series_id", "BEA time series identifier");
     itaDataCols.put("time_series_description", "Detailed time series description");
     ECON_COLUMN_COMMENTS.put("ita_data", itaDataCols);
+    
+    // industry_gdp table
+    ECON_TABLE_COMMENTS.put("industry_gdp",
+        "GDP by Industry data from BEA showing value added by NAICS industry sectors. "
+        + "Provides comprehensive breakdown of economic output by industry including "
+        + "agriculture, mining, manufacturing, services, and government sectors. Available "
+        + "at both annual and quarterly frequencies for detailed sectoral analysis.");
+    
+    Map<String, String> industryGdpCols = new HashMap<>();
+    industryGdpCols.put("table_id", "BEA GDPbyIndustry table identifier");
+    industryGdpCols.put("frequency", "Data frequency (A=Annual, Q=Quarterly)");
+    industryGdpCols.put("year", "Observation year");
+    industryGdpCols.put("quarter", "Quarter for quarterly data (Q1-Q4) or year for annual");
+    industryGdpCols.put("industry_code", "NAICS industry classification code");
+    industryGdpCols.put("industry_description", "Industry sector description");
+    industryGdpCols.put("value", "Value added by industry in billions of dollars");
+    industryGdpCols.put("units", "Unit of measurement (billions of dollars)");
+    industryGdpCols.put("note_ref", "Reference to explanatory notes if applicable");
+    ECON_COLUMN_COMMENTS.put("industry_gdp", industryGdpCols);
   }
   
   // =========================== PUBLIC API METHODS ===========================
