@@ -543,6 +543,11 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
       case "ita_data":
         return "International Transactions Accounts (ITA) from BEA providing balance of payments statistics. "
             + "Includes trade balance, current account, capital account, and income balances.";
+      case "industry_gdp":
+        return "GDP by Industry data from BEA showing value added by NAICS industry sectors. "
+            + "Provides comprehensive breakdown of economic output by industry including "
+            + "agriculture, mining, manufacturing, services, and government sectors. Available "
+            + "at both annual and quarterly frequencies for detailed sectoral analysis.";
       default:
         return null;
     }
