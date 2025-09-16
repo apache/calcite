@@ -541,6 +541,46 @@ public final class TableCommentDefinitions {
     regionalIncomeCols.put("value", "Metric value (dollars or persons)");
     regionalIncomeCols.put("units", "Unit of measurement");
     ECON_COLUMN_COMMENTS.put("regional_income", regionalIncomeCols);
+    
+    // trade_statistics table
+    ECON_TABLE_COMMENTS.put("trade_statistics",
+        "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. Provides "
+        + "comprehensive breakdown of goods and services trade by category including foods, "
+        + "industrial supplies, capital goods, automotive, and consumer goods. Includes calculated "
+        + "trade balances for matching export/import pairs. Essential for trade policy analysis.");
+    
+    Map<String, String> tradeStatsCols = new HashMap<>();
+    tradeStatsCols.put("table_id", "BEA NIPA table identifier (T40205B)");
+    tradeStatsCols.put("line_number", "Line number within the NIPA table");
+    tradeStatsCols.put("line_description", "Detailed description of trade category");
+    tradeStatsCols.put("series_code", "BEA series code for this trade component");
+    tradeStatsCols.put("year", "Observation year");
+    tradeStatsCols.put("value", "Trade value in billions of dollars");
+    tradeStatsCols.put("units", "Unit of measurement (billions of dollars)");
+    tradeStatsCols.put("frequency", "Data frequency (A=Annual)");
+    tradeStatsCols.put("trade_type", "Type of trade flow (Exports, Imports, or Other)");
+    tradeStatsCols.put("category", "Parsed trade category (Goods, Services, Food, Capital Goods, etc.)");
+    tradeStatsCols.put("trade_balance", "Calculated trade balance (exports minus imports) for category");
+    ECON_COLUMN_COMMENTS.put("trade_statistics", tradeStatsCols);
+    
+    // ita_data table
+    ECON_TABLE_COMMENTS.put("ita_data",
+        "International Transactions Accounts (ITA) from BEA providing comprehensive balance "
+        + "of payments statistics. Includes trade balance, current account balance, capital "
+        + "account flows, and primary/secondary income balances. Critical for understanding "
+        + "international financial flows and the U.S. position in global markets.");
+    
+    Map<String, String> itaDataCols = new HashMap<>();
+    itaDataCols.put("indicator", "ITA indicator code (e.g., BalGds, BalCurrAcct, BalCapAcct)");
+    itaDataCols.put("indicator_description", "Human-readable description of the indicator");
+    itaDataCols.put("area_or_country", "Geographic scope (typically 'AllCountries' for aggregates)");
+    itaDataCols.put("frequency", "Data frequency (A=Annual, Q=Quarterly)");
+    itaDataCols.put("year", "Observation year");
+    itaDataCols.put("value", "Balance value in millions of USD (negative = deficit)");
+    itaDataCols.put("units", "Unit of measurement (USD Millions)");
+    itaDataCols.put("time_series_id", "BEA time series identifier");
+    itaDataCols.put("time_series_description", "Detailed time series description");
+    ECON_COLUMN_COMMENTS.put("ita_data", itaDataCols);
   }
   
   // =========================== PUBLIC API METHODS ===========================

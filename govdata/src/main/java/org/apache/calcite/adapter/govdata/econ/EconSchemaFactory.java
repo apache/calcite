@@ -504,6 +504,15 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
         return "Detailed CPI data by category and geographic area from BLS.";
       case "gdp_statistics":
         return "Quarterly and annual GDP growth rates, nominal and real GDP values.";
+      case "regional_income":
+        return "State and regional personal income statistics from BEA Regional Economic Accounts. "
+            + "Includes total income, per capita income, and population by state.";
+      case "trade_statistics":
+        return "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. "
+            + "Comprehensive breakdown of goods and services trade by category with calculated trade balances.";
+      case "ita_data":
+        return "International Transactions Accounts (ITA) from BEA providing balance of payments statistics. "
+            + "Includes trade balance, current account, capital account, and income balances.";
       default:
         return null;
     }
@@ -601,6 +610,30 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     gdpStatistics.put("type", "PartitionedParquetTable");
     gdpStatistics.put("comment", "Quarterly and annual GDP growth rates, nominal and real GDP values.");
     tables.add(gdpStatistics);
+    
+    // Regional income table (BEA)
+    Map<String, Object> regionalIncome = new java.util.HashMap<>();
+    regionalIncome.put("name", "regional_income");
+    regionalIncome.put("type", "PartitionedParquetTable");
+    regionalIncome.put("comment", "State and regional personal income statistics from BEA Regional Economic Accounts. "
+        + "Includes total income, per capita income, and population by state.");
+    tables.add(regionalIncome);
+    
+    // Trade statistics table (BEA NIPA)
+    Map<String, Object> tradeStatistics = new java.util.HashMap<>();
+    tradeStatistics.put("name", "trade_statistics");
+    tradeStatistics.put("type", "PartitionedParquetTable");
+    tradeStatistics.put("comment", "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. "
+        + "Comprehensive breakdown of goods and services trade by category with calculated trade balances.");
+    tables.add(tradeStatistics);
+    
+    // ITA data table (BEA International Transactions)
+    Map<String, Object> itaData = new java.util.HashMap<>();
+    itaData.put("name", "ita_data");
+    itaData.put("type", "PartitionedParquetTable");
+    itaData.put("comment", "International Transactions Accounts (ITA) from BEA providing balance of payments statistics. "
+        + "Includes trade balance, current account, capital account, and income balances.");
+    tables.add(itaData);
     
     return tables;
   }
