@@ -542,6 +542,23 @@ public final class TableCommentDefinitions {
     regionalIncomeCols.put("units", "Unit of measurement");
     ECON_COLUMN_COMMENTS.put("regional_income", regionalIncomeCols);
     
+    // state_gdp table
+    ECON_TABLE_COMMENTS.put("state_gdp",
+        "State-level GDP statistics from BEA Regional Economic Accounts (SAGDP2N table). "
+        + "Provides both total GDP and per capita real GDP by state across all NAICS industry sectors. "
+        + "Essential for understanding state economic output, productivity differences, and regional "
+        + "economic performance comparisons across the United States.");
+    
+    Map<String, String> stateGdpCols = new HashMap<>();
+    stateGdpCols.put("geo_fips", "FIPS code for state (e.g., '06' for California)");
+    stateGdpCols.put("geo_name", "State name");
+    stateGdpCols.put("line_code", "BEA line code (1=Total GDP, 2=Per capita GDP)");
+    stateGdpCols.put("line_description", "Description of the metric (All industry total or Per capita real GDP)");
+    stateGdpCols.put("year", "Year of the GDP measurement");
+    stateGdpCols.put("value", "GDP value (in millions for total, in chained dollars for per capita)");
+    stateGdpCols.put("units", "Unit of measurement");
+    ECON_COLUMN_COMMENTS.put("state_gdp", stateGdpCols);
+    
     // trade_statistics table
     ECON_TABLE_COMMENTS.put("trade_statistics",
         "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. Provides "

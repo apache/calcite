@@ -17,10 +17,12 @@
 package org.apache.calcite.adapter.govdata.econ;
 
 import org.apache.calcite.adapter.govdata.TestEnvironmentLoader;
+import org.apache.calcite.adapter.govdata.econ.BeaDataDownloader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -33,6 +35,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Simple test to verify all ECON tables are exposed and queryable.
@@ -86,6 +89,7 @@ public class EconSchemaTableExposureTest {
     expectedTables.add("fred_indicators");
     expectedTables.add("gdp_components");
     expectedTables.add("regional_income");
+    expectedTables.add("state_gdp");
     expectedTables.add("trade_statistics");
     expectedTables.add("ita_data");
     expectedTables.add("industry_gdp");
@@ -94,18 +98,90 @@ public class EconSchemaTableExposureTest {
         "jdbc:calcite:model=" + modelFile, props);
          Statement stmt = conn.createStatement()) {
       
-      // Test each table with EXPLAIN PLAN
+      // Test each table by sampling data and checking for rows
       for (String table : expectedTables) {
-        String query = "EXPLAIN PLAN FOR SELECT * FROM econ." + table + " LIMIT 1";
+        String query = "SELECT COUNT(*) as row_count FROM econ." + table;
         
         try (ResultSet rs = stmt.executeQuery(query)) {
-          assertTrue(rs.next(), "EXPLAIN PLAN should work for " + table);
+          assertTrue(rs.next(), "COUNT query should work for " + table);
+          int rowCount = rs.getInt("row_count");
+          System.out.println("Table " + table + " has " + rowCount + " rows");
+          
+          // Verify the table has actual data
+          if (rowCount > 0) {
+            // Sample a few rows to ensure data is accessible
+            String sampleQuery = "SELECT * FROM econ." + table + " LIMIT 3";
+            try (ResultSet sampleRs = stmt.executeQuery(sampleQuery)) {
+              assertTrue(sampleRs.next(), "Table " + table + " should have accessible sample data");
+              System.out.println("✅ Table " + table + " is queryable with " + rowCount + " rows");
+            }
+          } else {
+            System.out.println("⚠️  Table " + table + " exists but has no data (" + rowCount + " rows)");
+          }
         } catch (Exception e) {
           fail("Table " + table + " is not queryable: " + e.getMessage());
         }
       }
       
-      System.out.println("✅ All " + expectedTables.size() + " ECON tables are exposed and queryable!");
+      System.out.println("✅ All " + expectedTables.size() + " ECON tables are exposed and testable!");
+    }
+  }
+  
+  @Test
+  public void testStateGdpTableExists() throws Exception {
+    // Create model JSON
+    String modelJson = 
+        "{"
+        + "  \"version\": \"1.0\","
+        + "  \"defaultSchema\": \"econ\","
+        + "  \"schemas\": ["
+        + "    {"
+        + "      \"name\": \"econ\","
+        + "      \"type\": \"custom\","
+        + "      \"factory\": \"org.apache.calcite.adapter.govdata.GovDataSchemaFactory\","
+        + "      \"operand\": {"
+        + "        \"dataSource\": \"econ\","
+        + "        \"executionEngine\": \"DUCKDB\""
+        + "      }"
+        + "    }"
+        + "  ]"
+        + "}";
+    
+    Path modelFile = Files.createTempFile("model", ".json");
+    Files.write(modelFile, modelJson.getBytes());
+    
+    Properties props = new Properties();
+    props.setProperty("lex", "ORACLE");
+    props.setProperty("unquotedCasing", "TO_LOWER");
+    
+    try (Connection conn = DriverManager.getConnection(
+        "jdbc:calcite:model=" + modelFile, props);
+         Statement stmt = conn.createStatement()) {
+      
+      // Simple test - just try to query state_gdp table
+      String query = "SELECT COUNT(*) as row_count FROM econ.state_gdp";
+      
+      try (ResultSet rs = stmt.executeQuery(query)) {
+        assertTrue(rs.next(), "Query should return a result");
+        int rowCount = rs.getInt("row_count");
+        System.out.println("✅ state_gdp table contains " + rowCount + " rows");
+        
+        if (rowCount > 0) {
+          // If data exists, show a sample
+          query = "SELECT geo_fips, geo_name, line_code, line_description, year, value, units "
+              + "FROM econ.state_gdp LIMIT 3";
+          
+          try (ResultSet rs2 = stmt.executeQuery(query)) {
+            while (rs2.next()) {
+              System.out.println("✅ Sample: " + rs2.getString("geo_fips") + " (" + rs2.getString("geo_name") + "), " 
+                  + rs2.getString("line_description") + ", " + rs2.getInt("year") + ": " + rs2.getDouble("value"));
+            }
+          }
+        }
+      } catch (Exception e) {
+        System.out.println("❌ state_gdp table query failed: " + e.getMessage());
+        throw e;
+      }
     }
   }
 }

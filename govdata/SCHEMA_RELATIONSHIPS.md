@@ -16,6 +16,7 @@ The Government Data adapter provides three distinct schemas:
 - **SEC → GEO**: `filing_metadata.state_of_incorporation` → `tiger_states.state_code` (2-letter state codes)
 - **ECON → GEO**: `regional_employment.state_code` → `tiger_states.state_code` (2-letter state codes)
 - **ECON → GEO**: `regional_income.geo_fips` → `tiger_states.state_fips` (partial - state-level FIPS only)
+- **ECON → GEO**: `state_gdp.geo_fips` → `tiger_states.state_fips` (state-level FIPS codes)
 
 **Within-Schema Relationships**:
 - **ECON → ECON**: Series overlap between data sources (metadata-only, not enforced)
@@ -309,6 +310,17 @@ erDiagram
         decimal percent_change_year
     }
     
+    %% ECON.state_gdp
+    state_gdp {
+        string geo_fips PK,FK
+        string line_code PK
+        int year PK
+        string geo_name
+        string line_description
+        decimal value
+        string units
+    }
+    
     %% =============================
     %% GEO SCHEMA (Geographic Data)
     %% =============================
@@ -412,6 +424,7 @@ erDiagram
     filing_metadata }o--|| tiger_states : "state_of_incorporation → state_code"
     regional_employment }o--|| tiger_states : "state_code → state_code"
     regional_income }o--|| tiger_states : "geo_fips → state_fips (2-digit state FIPS)"
+    state_gdp }o--|| tiger_states : "geo_fips → state_fips"
     
     %% Other cross-schema relationships
     stock_prices }o--|| filing_metadata : "belongs to company"
@@ -446,6 +459,10 @@ This allows true referential integrity without requiring data transformation.
 3. **regional_income.geo_fips → tiger_states.state_fips** 
    - Format: FIPS codes (partial - state-level only)
    - Note: Only works for 2-digit state FIPS, not 5-digit county FIPS
+   - Implementation: `defineCrossDomainConstraintsForEcon()`
+
+4. **state_gdp.geo_fips → tiger_states.state_fips**
+   - Format: FIPS codes (state-level, e.g., "06" for California)
    - Implementation: `defineCrossDomainConstraintsForEcon()`
 
 #### Implemented Within-Schema FKs
@@ -526,6 +543,7 @@ This allows true referential integrity without requiring data transformation.
 - **fred_indicators**: Federal Reserve economic time series data (800K+ indicators)
 - **gdp_components**: BEA GDP components and detailed economic accounts
 - **regional_income**: BEA state and regional personal income statistics
+- **state_gdp**: BEA state-level GDP statistics by NAICS industry (total and per capita)
 
 ## Query Examples Using Cross-Schema Relationships
 

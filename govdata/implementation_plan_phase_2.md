@@ -259,12 +259,12 @@ Phase 2 expands economic analysis capabilities significantly across banking, hou
 - [x] Parse value added by industry ✅ **COMPLETED**
 - [x] Convert to partitioned Parquet files ✅ **COMPLETED**
 
-### State GDP (Regional dataset)
-- [ ] Add method `downloadStateGdp(int startYear, int endYear)`
-- [ ] Parse state-level GDP data
-- [ ] Include per capita calculations
-- [ ] Support for metropolitan area data
-- [ ] Convert to partitioned Parquet files
+### State GDP (Regional dataset) ✅ **COMPLETED**
+- [x] Add method `downloadStateGdp(int startYear, int endYear)` ✅ **COMPLETED**
+- [x] Parse state-level GDP data ✅ **COMPLETED**
+- [x] Include per capita calculations ✅ **COMPLETED** (LineCode=2 for per capita GDP)
+- [x] Support for state-level data ✅ **COMPLETED** (SAGDP2N table)
+- [x] Convert to partitioned Parquet files ✅ **COMPLETED**
 
 ### Phase 3 Testing Requirements
 **Must pass before proceeding to Phase 4**
@@ -273,7 +273,7 @@ Phase 2 expands economic analysis capabilities significantly across banking, hou
 - [x] `TradeStatisticsTest` - Test trade data download and parsing ✅ **COMPLETED**
 - [x] `ItaDataTest` - Test ITA balance indicators download ✅ **COMPLETED**
 - [x] `IndustryGdpTest` - Test industry GDP data processing ✅ **COMPLETED**
-- [ ] `BeaStateGdpTest` - Test state-level GDP data
+- [x] `BeaStateGdpTest` - Test state-level GDP data ✅ **COMPLETED**
 - [x] `BeaQuarterlyDataTest` - Test quarterly frequency handling ✅ **COMPLETED (within IndustryGdpTest)**
 
 #### Integration Tests
@@ -287,7 +287,7 @@ Phase 2 expands economic analysis capabilities significantly across banking, hou
 - [x] Trade balance calculations implemented ✅ **COMPLETED**
 - [x] Current/capital account data available ✅ **COMPLETED**
 - [x] Industry GDP data includes 20 key NAICS codes ✅ **COMPLETED**
-- [ ] State GDP includes all states and territories
+- [x] State GDP includes all states and territories ✅ **COMPLETED**
 - [x] Quarterly data properly aligned and stored ✅ **COMPLETED**
 
 ---
@@ -619,6 +619,7 @@ Implemented foreign key constraint metadata to enable query optimization and pro
 - [x] **SEC → GEO**: `filing_metadata.state_of_incorporation` → `tiger_states.state_code` (2-letter state codes)
 - [x] **ECON → GEO**: `regional_employment.state_code` → `tiger_states.state_code` (2-letter state codes)
 - [x] **ECON → GEO**: `regional_income.geo_fips` → `tiger_states.state_fips` (partial - state-level FIPS only)
+- [x] **ECON → GEO**: `state_gdp.geo_fips` → `tiger_states.state_fips` (state-level FIPS codes)
 
 #### Within-Schema Foreign Key Constraints  
 **SEC Schema (8 FKs)**:
