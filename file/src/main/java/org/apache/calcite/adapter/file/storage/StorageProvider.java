@@ -206,6 +206,20 @@ public interface StorageProvider {
   }
 
   /**
+   * Clean up macOS metadata files in the specified directory.
+   * Removes files like ._*, .DS_Store, *.crc, *~, *.tmp that can interfere 
+   * with data processing tools like DuckDB.
+   * Only effective for local storage providers.
+   *
+   * @param directoryPath The directory path to clean up
+   * @throws IOException If an I/O error occurs
+   */
+  default void cleanupMacosMetadata(String directoryPath) throws IOException {
+    // Default implementation is no-op
+    // Only local storage providers need to implement this
+  }
+
+  /**
    * File entry representing a file in a directory listing.
    */
   class FileEntry {

@@ -259,6 +259,74 @@ public class LocalFileStorageProvider implements StorageProvider {
     Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
   }
 
+  @Override
+  public void cleanupMacosMetadata(String directoryPath) throws IOException {
+    File dir = new File(directoryPath);
+    if (!dir.exists() || !dir.isDirectory()) {
+      return; // Nothing to clean up
+    }
+    
+    // Define patterns for files to clean up
+    String[] patterns = {
+        "._",        // macOS resource forks
+        ".DS_Store", // macOS directory metadata
+        ".crc",      // Hadoop checksum files (suffix check)
+        "~",         // Backup files (suffix check)
+        ".tmp"       // Temporary files (suffix check)
+    };
+    
+    cleanupDirectory(dir, patterns);
+  }
+  
+  /**
+   * Recursively clean up unwanted metadata files in directory.
+   */
+  private void cleanupDirectory(File dir, String[] patterns) throws IOException {
+    File[] files = dir.listFiles();
+    if (files == null) {
+      return;
+    }
+    
+    for (File file : files) {
+      if (file.isDirectory()) {
+        // Recursively clean subdirectories
+        cleanupDirectory(file, patterns);
+      } else {
+        // Check if file matches any cleanup pattern
+        String fileName = file.getName();
+        boolean shouldDelete = false;
+        
+        for (String pattern : patterns) {
+          if (pattern.equals(".DS_Store") && fileName.equals(".DS_Store")) {
+            shouldDelete = true;
+            break;
+          } else if (pattern.equals("._") && fileName.startsWith("._")) {
+            shouldDelete = true;
+            break;
+          } else if (pattern.equals(".crc") && fileName.endsWith(".crc")) {
+            shouldDelete = true;
+            break;
+          } else if (pattern.equals("~") && fileName.endsWith("~")) {
+            shouldDelete = true;
+            break;
+          } else if (pattern.equals(".tmp") && fileName.endsWith(".tmp")) {
+            shouldDelete = true;
+            break;
+          }
+        }
+        
+        if (shouldDelete) {
+          try {
+            Files.delete(file.toPath());
+          } catch (IOException e) {
+            // Log but don't fail the whole operation for individual file cleanup issues
+            System.err.println("Warning: Could not delete metadata file " + file.getPath() + ": " + e.getMessage());
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Helper method to parse a path string that might be a file:// URL.
    */
