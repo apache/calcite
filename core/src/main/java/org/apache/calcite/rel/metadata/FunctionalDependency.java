@@ -27,15 +27,13 @@ import java.util.Set;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Represents a functional dependency X determines Y in relational database theory.
+ * Functional dependency: X (column indexes) determines Y.
  *
- * <p>A functional dependency X determines Y holds in a relation R if and only if:
- * for any two tuples t1 and t2 in R, if t1[X] = t2[X], then t1[Y] = t2[Y].
+ * <p>X, Y are sets of column indexes.
  *
- * <p>In other words, the values of attributes X uniquely determine the values
- * of attributes Y. X is called the determinant and Y is called the dependent.
+ * <p>If t1[X]=t2[X], then t1[Y]=t2[Y] for any tuples t1, t2.
  *
- * <p>This class is immutable and thread-safe.
+ * <p>If X determines Y, X also determines any superset of Y.
  */
 public class FunctionalDependency {
   private final ImmutableBitSet determinants;

@@ -44,12 +44,16 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     final String sql = "select empno, deptno, deptno + 1 as deptNoPlus1, rand() as rand"
         + " from emp where deptno < 20";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], DEPTNO=[$7], DEPTNOPLUS1=[+($7, 1)], RAND=[RAND()])
-    //  LogicalFilter(condition=[<($7, 20)])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    // Plan is:
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], DEPTNOPLUS1=[+($7, 1)], RAND=[RAND()])\n"
+          + "  LogicalFilter(condition=[<($7, 20)])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;       // empno - primary key
@@ -83,12 +87,15 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     final String sql = "select deptno, count(*) as \"count\", sum(sal) as sumSal"
         + " from emp group by deptno";
 
-    // Plan is:
-    // LogicalAggregate(group=[{0}], count=[COUNT()], SUMSAL=[SUM($1)])
-    //  LogicalProject(DEPTNO=[$7], SAL=[$5])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalAggregate(group=[{0}], count=[COUNT()], SUMSAL=[SUM($1)])\n"
+          + "  LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int deptNo = 0;    // deptno (group by column)
@@ -111,11 +118,14 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
   @Test void testFunctionalDependencyWithIdenticalExpressions() {
     final String sql = "select deptno, deptno as deptno2, deptno + 1 as deptno3 from emp";
 
-    // Plan is:
-    // LogicalProject(DEPTNO=[$7], DEPTNO2=[$7], DEPTNO3=[+($7, 1)])
-    //  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(DEPTNO=[$7], DEPTNO2=[$7], DEPTNO3=[+($7, 1)])\n"
+          + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int deptNo = 0;     // deptno
@@ -136,17 +146,19 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
   }
 
   @Test void testFunctionalDependencyJoin() {
-    // Test inner join with emp and dept tables
     final String sql = "select e.empno, e.ename, e.deptno, d.name"
         + " from emp e join dept d on e.deptno = d.deptno";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], NAME=[$10])
-    //  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], NAME=[$10])\n"
+          + "  LogicalJoin(condition=[=($7, $9)], joinType=[inner])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;    // e.empno
@@ -175,12 +187,15 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
   @Test void testFunctionalDependencyFilter() {
     final String sql = "select empno, ename, sal from emp where sal > 1000";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])
-    //  LogicalFilter(condition=[>($5, 1000)])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
+          + "  LogicalFilter(condition=[>($5, 1000)])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;  // empno
@@ -201,12 +216,15 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + "case when sal > 2000 then 'high' else 'low' end as sal_category"
         + " from emp";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], SAL=[$5], RAISED_SAL=[*($5, 1.1:DECIMAL(2, 1))],
-    //                SAL_CATEGORY=[CASE(>($5, 2000), 'high', 'low ')])
-    //  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], SAL=[$5], RAISED_SAL=[*($5, 1.1:DECIMAL(2, 1))],"
+          + " SAL_CATEGORY=[CASE(>($5, 2000), 'high', 'low ')])\n"
+          + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;        // empno
@@ -232,16 +250,19 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + " union all "
         + " select empno, deptno from emp where deptno = 20";
 
-    // Plan is:
-    // LogicalUnion(all=[true])
-    //  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-    //    LogicalFilter(condition=[=($7, 10)])
-    //      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-    //    LogicalFilter(condition=[=($7, 20)])
-    //      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalUnion(all=[true])\n"
+          + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
+          + "    LogicalFilter(condition=[=($7, 10)])\n"
+          + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
+          + "    LogicalFilter(condition=[=($7, 20)])\n"
+          + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;   // empno
@@ -258,11 +279,14 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
   @Test void testFunctionalDependencyMultipleKeys() {
     final String sql = "select empno, deptno, empno * 100 + deptno as composite from emp";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], DEPTNO=[$7], COMPOSITE=[+(*($0, 100), $7)])
-    //  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], COMPOSITE=[+(*($0, 100), $7)])\n"
+          + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;      // empno
@@ -280,11 +304,14 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     final String sql = "select empno, 100 as constant_col, deptno"
         + " from emp";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], CONSTANT_COL=[100], DEPTNO=[$7])
-    //  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], CONSTANT_COL=[100], DEPTNO=[$7])\n"
+          + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;       // empno
@@ -304,11 +331,14 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
   @Test void testFunctionalDependencyNonDeterministicFunctions() {
     final String sql = "select empno, rand() as random1, rand() as random2 from emp";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], RANDOM1=[RAND()], RANDOM2=[RAND()])
-    //  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], RANDOM1=[RAND()], RANDOM2=[RAND()])\n"
+          + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;    // empno
@@ -329,13 +359,16 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + "FROM emp e\n"
         + "LEFT JOIN dept d ON e.deptno = d.deptno";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])
-    //  LogicalJoin(condition=[=($7, $9)], joinType=[left])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
+          + "  LogicalJoin(condition=[=($7, $9)], joinType=[left])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;     // e.empno
@@ -354,13 +387,16 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + "FROM emp e\n"
         + "JOIN dept d ON e.deptno = d.deptno";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])
-    //  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
+          + "  LogicalJoin(condition=[=($7, $9)], joinType=[inner])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;     // e.empno
@@ -379,15 +415,17 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + "FROM dept d\n"
         + "RIGHT JOIN emp e ON e.deptno = d.deptno";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$2], DEPTNO=[$9], NAME=[$1])
-    //  LogicalJoin(condition=[=($9, $0)], joinType=[right])
-    //    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$2], DEPTNO=[$9], NAME=[$1])\n"
+          + "  LogicalJoin(condition=[=($9, $0)], joinType=[right])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
-    System.out.println(RelOptUtil.toString(relNode));
 
     int empNo = 0;     // e.empno
     int deptno = 1;    // e.deptno
@@ -405,13 +443,16 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + "FROM emp e\n"
         + "FULL JOIN dept d ON e.deptno = d.deptno";
 
-    // Plan is:
-    // LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])
-    //  LogicalJoin(condition=[=($7, $9)], joinType=[full])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
+          + "  LogicalJoin(condition=[=($7, $9)], joinType=[full])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;     // e.empno
@@ -430,13 +471,6 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
         + "intersect\n"
         + "select deptno, deptno from dept\n";
 
-    // Plan is:
-    // LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[semi])
-    //  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //  LogicalProject(DEPTNO=[$0], DEPTNO0=[$0])
-    //    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-
     RelNode relNode = sql(sql).toRel();
     HepPlanner hepPlanner =
         new HepPlanner(
@@ -444,6 +478,16 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
                 ImmutableList.of(CoreRules.INTERSECT_TO_SEMI_JOIN)).build());
     hepPlanner.setRoot(relNode);
     relNode = hepPlanner.findBestExp();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[semi])\n"
+          + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "  LogicalProject(DEPTNO=[$0], DEPTNO0=[$0])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;    // empno
@@ -458,12 +502,15 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     final String sql = "select empno, ename, deptno, sal"
         + " from emp order by empno, deptno";
 
-    // Plan is:
-    // LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
-    //  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], SAL=[$5])
-    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])\n"
+          + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], SAL=[$5])\n"
+          + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     int empNo = 0;   // empno
@@ -494,16 +541,19 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     final String sql = "select * from (select deptno as d1, deptno as d2 from emp) as t1\n"
         + " join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST";
 
-    // Plan is:
-    // LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
-    //  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5],
-    //                 HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
-    //    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-    //      LogicalProject(D1=[$7], D2=[$7])
-    //        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    //      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-
     final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode),
+        is(""
+          + "LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+          + "  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5],"
+          + " HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])\n"
+          + "    LogicalJoin(condition=[=($0, $9)], joinType=[inner])\n"
+          + "      LogicalProject(D1=[$7], D2=[$7])\n"
+          + "        LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+          + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
     final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
 
     Sort sort = (Sort) relNode;
