@@ -1514,6 +1514,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "HASHROW":
       unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
+    case "TIME_TRUNC":
     case "TRUNC":
       final SqlWriter.Frame trunc = getTruncFrame(writer, call);
       call.operand(0).unparse(writer, leftPrec, rightPrec);
