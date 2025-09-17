@@ -1493,7 +1493,7 @@ public class Smalls {
     }
   }
 
-  /** User-defined function that convert Character[] to VARCHAR. */
+  /** User-defined function with return type Character[]. */
   public static class CharacterArrayFunction {
     public static Character[] eval(String s) {
       if (s == null) {
