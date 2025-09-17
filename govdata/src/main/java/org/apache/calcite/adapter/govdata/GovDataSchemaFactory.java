@@ -32,6 +32,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -231,6 +232,8 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
     }
     if (schemaDataSources.containsValue("GEO")) {
       LOGGER.debug("GEO schema exists - regional economic analysis available");
+      Map<String, Map<String, Object>> crossDomainConstraints = defineCrossDomainConstraintsForEcon();
+      allConstraints.putAll(crossDomainConstraints);
     }
     
     if (!allConstraints.isEmpty() && tableDefinitions != null) {
@@ -358,22 +361,80 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
       return constraints;
     }
     
-    // Define FK from financial_line_items.state_of_incorporation to tiger_states.state_code
-    Map<String, Object> financialLineItemsConstraints = new HashMap<>();
+    // Define FK from filing_metadata.state_of_incorporation to tiger_states.state_code
+    Map<String, Object> filingMetadataConstraints = new HashMap<>();
     Map<String, Object> stateIncorpFK = new HashMap<>();
     stateIncorpFK.put("columns", Arrays.asList("state_of_incorporation"));
     stateIncorpFK.put("targetTable", Arrays.asList(geoSchemaName, "tiger_states"));
     stateIncorpFK.put("targetColumns", Arrays.asList("state_code"));
     
-    financialLineItemsConstraints.put("foreignKeys", Arrays.asList(stateIncorpFK));
-    constraints.put("financial_line_items", financialLineItemsConstraints);
+    filingMetadataConstraints.put("foreignKeys", Arrays.asList(stateIncorpFK));
+    constraints.put("filing_metadata", filingMetadataConstraints);
     
-    LOGGER.info("Added cross-domain FK constraint: financial_line_items.state_of_incorporation -> {}.tiger_states.state_code", 
+    LOGGER.info("Added cross-domain FK constraint: filing_metadata.state_of_incorporation -> {}.tiger_states.state_code", 
         geoSchemaName);
     
     // Future: Add more cross-domain constraints as needed
     // e.g., insider_transactions.insider_state -> tiger_states.state_code
     // e.g., company locations -> census_places
+    
+    return constraints;
+  }
+  
+  /**
+   * Defines cross-domain foreign key constraints from ECON tables to GEO tables.
+   * These are automatically added when both ECON and GEO schemas are present in the model.
+   * 
+   * @return Map of table names to their cross-domain constraint definitions
+   */
+  private Map<String, Map<String, Object>> defineCrossDomainConstraintsForEcon() {
+    Map<String, Map<String, Object>> constraints = new HashMap<>();
+    
+    // Find the GEO schema name
+    String geoSchemaName = null;
+    for (Map.Entry<String, String> entry : schemaDataSources.entrySet()) {
+      if ("GEO".equals(entry.getValue())) {
+        geoSchemaName = entry.getKey();
+        break;
+      }
+    }
+    
+    if (geoSchemaName == null) {
+      return constraints;
+    }
+    
+    // regional_employment.state_code -> tiger_states.state_code (2-letter codes)
+    Map<String, Object> regionalEmploymentConstraints = new HashMap<>();
+    List<Map<String, Object>> regionalEmploymentFks = new ArrayList<>();
+    
+    Map<String, Object> regionalEmploymentToStatesFK = new HashMap<>();
+    regionalEmploymentToStatesFK.put("columns", Arrays.asList("state_code"));
+    regionalEmploymentToStatesFK.put("targetTable", Arrays.asList(geoSchemaName, "tiger_states"));
+    regionalEmploymentToStatesFK.put("targetColumns", Arrays.asList("state_code"));
+    regionalEmploymentFks.add(regionalEmploymentToStatesFK);
+    
+    regionalEmploymentConstraints.put("foreignKeys", regionalEmploymentFks);
+    constraints.put("regional_employment", regionalEmploymentConstraints);
+    
+    LOGGER.info("Added cross-domain FK constraint: regional_employment.state_code -> {}.tiger_states.state_code", 
+        geoSchemaName);
+    
+    // regional_income.geo_fips -> tiger_states.state_fips (FIPS codes)
+    // NOTE: This is a partial FK - only valid when geo_fips contains 2-digit state codes
+    Map<String, Object> regionalIncomeConstraints = new HashMap<>();
+    List<Map<String, Object>> regionalIncomeFks = new ArrayList<>();
+    
+    Map<String, Object> regionalIncomeToStatesFK = new HashMap<>();
+    regionalIncomeToStatesFK.put("columns", Arrays.asList("geo_fips"));
+    regionalIncomeToStatesFK.put("targetTable", Arrays.asList(geoSchemaName, "tiger_states"));
+    regionalIncomeToStatesFK.put("targetColumns", Arrays.asList("state_fips"));
+    regionalIncomeFks.add(regionalIncomeToStatesFK);
+    
+    regionalIncomeConstraints.put("foreignKeys", regionalIncomeFks);
+    constraints.put("regional_income", regionalIncomeConstraints);
+    
+    LOGGER.info("Added cross-domain FK constraint: regional_income.geo_fips -> {}.tiger_states.state_fips (partial FK for state-level data)", 
+        geoSchemaName);
     
     return constraints;
   }
