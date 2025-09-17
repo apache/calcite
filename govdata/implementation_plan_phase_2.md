@@ -605,3 +605,65 @@ Phase 2 expands economic analysis capabilities significantly across banking, hou
 - Complete coverage for years 2022-2023
 
 Phase 3 dramatically expands BEA data coverage from 1 dataset (NIPA) to comprehensive support for all 13 available datasets, with 3 major datasets already fully implemented (NIPA, ITA, GDPbyIndustry)!
+
+---
+
+## Phase 7: Cross-Domain Foreign Key Constraints ✅ **COMPLETED (2025-09-17)**
+
+### Overview
+Implemented foreign key constraint metadata to enable query optimization and provide relationship documentation across SEC, ECON, and GEO schemas.
+
+### Implementation Achievements ✅
+
+#### Cross-Domain Foreign Key Constraints
+- [x] **SEC → GEO**: `filing_metadata.state_of_incorporation` → `tiger_states.state_code` (2-letter state codes)
+- [x] **ECON → GEO**: `regional_employment.state_code` → `tiger_states.state_code` (2-letter state codes)
+- [x] **ECON → GEO**: `regional_income.geo_fips` → `tiger_states.state_fips` (partial - state-level FIPS only)
+
+#### Within-Schema Foreign Key Constraints  
+**SEC Schema (8 FKs)**:
+- [x] All SEC tables → filing_metadata (central reference table)
+- [x] financial_line_items, footnotes, insider_transactions, earnings_transcripts
+- [x] vectorized_blobs, mda_sections, xbrl_relationships, filing_contexts
+
+**ECON Schema (3 FKs)**:
+- [x] employment_statistics.series_id → fred_indicators.series_id
+- [x] inflation_metrics.area_code → regional_employment.area_code  
+- [x] gdp_components.table_id → fred_indicators.series_id
+
+**GEO Schema (11 FKs)**:
+- [x] Complete geographic hierarchy relationships
+- [x] Counties → States, Places → States
+- [x] HUD ZIP tables → Counties/States
+- [x] Census tracts → Counties, Block groups → Tracts
+
+### Technical Implementation
+- **Centralized Management**: Cross-domain FKs managed in `GovDataSchemaFactory`
+- **Dynamic Application**: FKs only added when both source and target schemas present
+- **Format Validation**: Strict format compatibility checking (2-letter vs FIPS codes)
+- **Environment Handling**: Fixed SecSchemaFactory to support both env vars and system properties
+
+### Key Design Decisions
+- **Temporal Relationships**: NOT implemented as FKs due to different reporting cycles
+- **Format Compatibility**: Only matching data formats can have FK relationships
+- **Metadata-Only**: Constraints are metadata for query optimization, not runtime enforced
+- **Partial FKs**: Documented where relationships only work for data subsets
+
+### Documentation Updates
+- [x] Created FK_DESIGN_PRINCIPLES.md with format compatibility rules
+- [x] Updated SCHEMA_RELATIONSHIPS.md with all 25 implemented FK constraints
+- [x] Added temporal relationship explanation (why they're not FKs)
+- [x] Complete ERD diagram with all relationships
+
+### Testing
+- [x] CrossDomainFKIntegrationTest - 4 tests covering all scenarios
+- [x] Tests verify FKs are discoverable when multiple schemas present
+- [x] Tests confirm no FKs added without target schema
+
+### Impact
+- **Query Optimization**: Optimizer can leverage FK metadata for better join planning
+- **Data Lineage**: Clear documentation of relationships between domains
+- **Cross-Domain Analysis**: Enables sophisticated multi-schema queries
+- **Developer Experience**: Relationships discoverable through JDBC metadata
+
+**Phase 7 Complete**: Cross-domain foreign key constraints fully implemented, tested, and documented!

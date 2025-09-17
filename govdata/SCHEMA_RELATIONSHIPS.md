@@ -10,11 +10,21 @@ The Government Data adapter provides three distinct schemas:
 | **ECON** | Economic Data | BLS, Treasury, FRED, BEA, World Bank data | employment_statistics, inflation_metrics, treasury_yields, fred_indicators |
 | **GEO** | Geographic Data | Census boundaries, HUD ZIP mappings | tiger_states, tiger_counties, hud_zip_* tables |
 
-### Cross-Schema Relationships (Implemented Foreign Keys)
-- **SEC → GEO**: Companies incorporated in states (state_of_incorporation → state_code)
-- **ECON → GEO**: Regional employment/income by state (state_code/geo_fips → state codes/FIPS)
-- **ECON → ECON**: Series overlap between data sources (BLS ↔ FRED, GDP components ↔ FRED)
-- **SEC ↔ ECON**: Economic indicators affect stock prices (temporal correlation queries)
+### Cross-Schema Foreign Key Constraints (Implemented)
+
+**Geographic Relationships (Format-Compatible FKs)**:
+- **SEC → GEO**: `filing_metadata.state_of_incorporation` → `tiger_states.state_code` (2-letter state codes)
+- **ECON → GEO**: `regional_employment.state_code` → `tiger_states.state_code` (2-letter state codes)
+- **ECON → GEO**: `regional_income.geo_fips` → `tiger_states.state_fips` (partial - state-level FIPS only)
+
+**Within-Schema Relationships**:
+- **ECON → ECON**: Series overlap between data sources (metadata-only, not enforced)
+- **GEO → GEO**: Geographic hierarchy FKs (counties → states, places → states)
+
+**Temporal Relationships (NOT Foreign Keys)**:
+- **SEC ↔ ECON**: Economic indicators and stock prices (use temporal joins in queries)
+- Different reporting cycles prevent direct FK constraints
+- Handled through application-level temporal correlation queries
 
 ## Entity Relationship Diagram
 
@@ -422,19 +432,51 @@ The **GEO.tiger_states** table serves as the bridge between different state code
 
 This allows true referential integrity without requiring data transformation.
 
-### Valid Cross-Schema Foreign Keys
+### Foreign Key Implementation Status
 
-#### Cross-Schema (SEC → GEO)
+#### Implemented Cross-Schema FKs (in GovDataSchemaFactory)
 1. **filing_metadata.state_of_incorporation → tiger_states.state_code**
-
-#### Cross-Schema (ECON → GEO)
+   - Format: 2-letter state codes (e.g., "CA", "TX")
+   - Implementation: `defineCrossDomainConstraintsForSec()`
+   
 2. **regional_employment.state_code → tiger_states.state_code**
-3. **regional_income.geo_fips → tiger_states.state_fips** (partial FK - 2-digit state FIPS codes)
+   - Format: 2-letter state codes
+   - Implementation: `defineCrossDomainConstraintsForEcon()`
+   
+3. **regional_income.geo_fips → tiger_states.state_fips** 
+   - Format: FIPS codes (partial - state-level only)
+   - Note: Only works for 2-digit state FIPS, not 5-digit county FIPS
+   - Implementation: `defineCrossDomainConstraintsForEcon()`
 
-#### Intra-Schema (ECON → ECON)
-4. **employment_statistics.series_id → fred_indicators.series_id** (partial overlap)
-5. **inflation_metrics.area_code → regional_employment.area_code** (geographic overlap)
-6. **gdp_components.table_id → fred_indicators.series_id** (GDP series temporal relationship)
+#### Implemented Within-Schema FKs
+
+**SEC Schema Internal FKs (to filing_metadata)**:
+1. **financial_line_items** → **filing_metadata** (cik, filing_type, year, accession_number)
+2. **footnotes** → **filing_metadata** (cik, filing_type, year, accession_number)
+3. **insider_transactions** → **filing_metadata** (cik, filing_type, year, accession_number)
+4. **earnings_transcripts** → **filing_metadata** (cik, filing_type, year, accession_number)
+5. **vectorized_blobs** → **filing_metadata** (cik, filing_type, year, accession_number)
+6. **mda_sections** → **filing_metadata** (cik, filing_type, year, accession_number)
+7. **xbrl_relationships** → **filing_metadata** (cik, filing_type, year, accession_number)
+8. **filing_contexts** → **filing_metadata** (cik, filing_type, year, accession_number)
+
+**ECON Schema Internal FKs**:
+1. **employment_statistics.series_id** → **fred_indicators.series_id** (partial overlap)
+2. **inflation_metrics.area_code** → **regional_employment.area_code** (geographic overlap)
+3. **gdp_components.table_id** → **fred_indicators.series_id** (GDP series temporal)
+
+**GEO Schema Internal FKs (Geographic Hierarchy)**:
+1. **tiger_counties.state_fips** → **tiger_states.state_fips**
+2. **census_places.state_code** → **tiger_states.state_code**
+3. **hud_zip_county.county_fips** → **tiger_counties.county_fips**
+4. **hud_zip_county.state_fips** → **tiger_states.state_fips**
+5. **hud_zip_tract.county_fips** → **tiger_counties.county_fips**
+6. **hud_zip_tract.state_fips** → **tiger_states.state_fips**
+7. **hud_zip_cbsa.state_fips** → **tiger_states.state_fips**
+8. **tiger_census_tracts.county_fips** → **tiger_counties.county_fips**
+9. **tiger_block_groups.tract_code** → **tiger_census_tracts.tract_code**
+10. **hud_zip_cbsa_div.cbsa** → **tiger_cbsa.cbsa_code**
+11. **hud_zip_congressional.state_code** → **tiger_states.state_code**
 
 ### Conceptual Relationships (Require data extraction/parsing)
 
@@ -608,7 +650,39 @@ ORDER BY wage_growth_rate DESC;
   - CPI: Mid-month for prior month
   - PPI: Mid-month for prior month
 
+### Temporal Relationships (Why Not Foreign Keys)
+
+Temporal relationships between schemas are NOT implemented as foreign key constraints because:
+
+1. **Different Reporting Cycles**:
+   - SEC filings: Quarterly (10-Q) and Annual (10-K)
+   - Economic data: Daily, Weekly, Monthly, or Quarterly
+   - Stock prices: Daily trading days only
+   - Dates rarely align exactly across domains
+
+2. **Business Logic Required**:
+   - "As of" date matching (e.g., find economic data closest to filing date)
+   - Period overlap analysis (e.g., quarterly GDP vs fiscal quarter)
+   - Lag/lead relationships (e.g., economic indicators predict future earnings)
+
+3. **Solution: Temporal Joins**:
+   ```sql
+   -- Example: Join SEC filing with economic data from same quarter
+   SELECT f.*, e.*
+   FROM filing_metadata f
+   JOIN employment_statistics e 
+     ON YEAR(e.date) = f.year 
+     AND QUARTER(e.date) = QUARTER(f.filing_date)
+   WHERE e.series_id = 'UNRATE'
+   ```
+
+These relationships are better handled through:
+- Application-level temporal join logic
+- Window functions with date ranges
+- Specialized temporal operators (if available)
+
 ### Performance Considerations
 - Partition pruning critical for SEC queries
 - Geographic joins benefit from spatial indexes
 - Cross-domain joins should filter early to reduce data movement
+- Temporal joins should use date indexes and partition pruning
