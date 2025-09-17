@@ -264,10 +264,17 @@ public class FredDataDownloader {
       throw new IllegalStateException("FRED API key is required. Set FRED_API_KEY environment variable.");
     }
     
-    LOGGER.info("Downloading {} FRED series for year {}", DEFAULT_SERIES.size(), year);
-    
     String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
     storageProvider.createDirectories(outputDirPath);
+    
+    // Check if data already exists
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "fred_indicators.json");
+    if (storageProvider.exists(jsonFilePath)) {
+      LOGGER.info("Found cached FRED data for year {} - skipping download", year);
+      return;
+    }
+    
+    LOGGER.info("Downloading {} FRED series for year {}", DEFAULT_SERIES.size(), year);
     
     List<Map<String, Object>> observations = new ArrayList<>();
     Map<String, FredSeriesInfo> seriesInfoMap = new HashMap<>();
@@ -340,7 +347,6 @@ public class FredDataDownloader {
     }
     
     // Save raw JSON data to cache
-    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "fred_indicators.json");
     Map<String, Object> data = new HashMap<>();
     data.put("observations", observations);
     data.put("download_date", LocalDate.now().toString());
