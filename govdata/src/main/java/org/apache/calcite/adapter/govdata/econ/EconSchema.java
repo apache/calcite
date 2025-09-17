@@ -198,6 +198,15 @@ public class EconSchema extends FileSchema implements CommentableSchema {
         + "for understanding regional economic disparities and income trends across states.");
     tables.add(regionalIncome);
     
+    Map<String, Object> stateGdp = new HashMap<>();
+    stateGdp.put("name", "state_gdp");
+    stateGdp.put("type", "PartitionedParquetTable");
+    stateGdp.put("comment", "State-level GDP statistics from BEA Regional Economic Accounts (SAGDP2N table). "
+        + "Provides both total GDP and per capita real GDP by state across all NAICS industry sectors. "
+        + "Essential for understanding state economic output, productivity differences, and regional "
+        + "economic performance comparisons across the United States.");
+    tables.add(stateGdp);
+    
     Map<String, Object> tradeStatistics = new HashMap<>();
     tradeStatistics.put("name", "trade_statistics");
     tradeStatistics.put("type", "PartitionedParquetTable");

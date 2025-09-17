@@ -232,6 +232,14 @@ public class BeaDataDownloader {
       } catch (Exception e) {
         LOGGER.warn("Failed to download industry GDP data for year {}: {}", year, e.getMessage());
       }
+      
+      // Download state GDP for single year
+      try {
+        LOGGER.info("Downloading state GDP data for year {}", year);
+        downloadStateGdpForYear(year);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to download state GDP data for year {}: {}", year, e.getMessage());
+      }
     }
   }
   
@@ -1833,6 +1841,16 @@ public class BeaDataDownloader {
     String noteRef;
   }
   
+  private static class StateGdp {
+    String geoFips;
+    String geoName;
+    String lineCode;
+    String lineDescription;
+    int year;
+    double value;
+    String units;
+  }
+  
   /**
    * Converts regional income JSON to Parquet format.
    */
@@ -1900,6 +1918,364 @@ public class BeaDataDownloader {
       LOGGER.info("Converted regional income data to parquet: {} ({} records)", targetFilePath, incomeData.size());
     } else {
       LOGGER.warn("No regional income data found in {}", sourceDirPath);
+    }
+  }
+  
+  /**
+   * Downloads state GDP data using BEA Regional API.
+   * Uses the SAGDP2N table for annual state GDP by NAICS industry.
+   */
+  public File downloadStateGdp(int startYear, int endYear) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    LOGGER.info("Downloading BEA state GDP data for {}-{}", startYear, endYear);
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir,
+        String.format("source=econ/type=state_gdp/year_range=%d_%d", startYear, endYear));
+    storageProvider.createDirectories(outputDirPath);
+    
+    List<StateGdp> gdpData = new ArrayList<>();
+    
+    // Build year list
+    List<String> years = new ArrayList<>();
+    for (int year = startYear; year <= endYear; year++) {
+      years.add(String.valueOf(year));
+    }
+    String yearParam = String.join(",", years);
+    
+    // Download state GDP data
+    // TableName=SAGDP1 for state annual GDP summary
+    // LineCode=1 for Real GDP
+    String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableName=SAGDP1&LineCode=1&GeoFips=STATE&Year=%s&ResultFormat=JSON",
+        apiKey, Datasets.REGIONAL, yearParam);
+    
+    String url = BEA_API_BASE + "?" + params;
+    
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .timeout(Duration.ofSeconds(30))
+        .GET()
+        .build();
+    
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    
+    if (response.statusCode() == 200) {
+      JsonNode root = MAPPER.readTree(response.body());
+      JsonNode results = root.get("BEAAPI").get("Results");
+      JsonNode dataArray = results.get("Data");
+      if (dataArray != null && dataArray.isArray()) {
+        // Get the statistic description from Results level
+        String statistic = results.get("Statistic").asText("Real Gross Domestic Product (GDP)");
+        
+        for (JsonNode record : dataArray) {
+          StateGdp gdp = new StateGdp();
+          gdp.geoFips = record.get("GeoFips").asText();
+          gdp.geoName = record.get("GeoName").asText();
+          gdp.lineCode = record.get("Code").asText();
+          gdp.lineDescription = statistic; // Use statistic from Results level
+          gdp.year = Integer.parseInt(record.get("TimePeriod").asText());
+          
+          // Handle different value formats
+          String valueStr = record.get("DataValue").asText();
+          if ("NaN".equals(valueStr) || valueStr.isEmpty()) {
+            gdp.value = 0.0;
+          } else {
+            gdp.value = Double.parseDouble(valueStr.replaceAll(",", ""));
+          }
+          
+          gdp.units = record.get("CL_UNIT").asText("Millions of chained 2017 dollars");
+          gdpData.add(gdp);
+        }
+      }
+    }
+    
+    // Also fetch per capita GDP (LineCode=1 with different units - skip for now since SAGDP1 only has total GDP)
+    // Per capita data requires different calculation or table
+    /* params = String.format("UserID=%s&method=GetData&datasetname=%s&TableName=SAGDP1&LineCode=1&GeoFips=STATE&Year=%s&ResultFormat=JSON",
+        apiKey, Datasets.REGIONAL, yearParam); */
+    
+    url = BEA_API_BASE + "?" + params;
+    request = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .timeout(Duration.ofSeconds(30))
+        .GET()
+        .build();
+    
+    response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    
+    if (response.statusCode() == 200) {
+      JsonNode root = MAPPER.readTree(response.body());
+      JsonNode results = root.get("BEAAPI").get("Results");
+      JsonNode dataArray = results.get("Data");
+      if (dataArray != null && dataArray.isArray()) {
+        for (JsonNode record : dataArray) {
+          StateGdp gdp = new StateGdp();
+          gdp.geoFips = record.get("GeoFips").asText();
+          gdp.geoName = record.get("GeoName").asText();
+          gdp.lineCode = record.get("Code").asText();
+          gdp.lineDescription = "Per capita real GDP";
+          gdp.year = record.get("TimePeriod").asInt();
+          
+          String valueStr = record.get("DataValue").asText();
+          if ("NaN".equals(valueStr) || valueStr.isEmpty()) {
+            gdp.value = 0.0;
+          } else {
+            gdp.value = Double.parseDouble(valueStr.replaceAll(",", ""));
+          }
+          
+          gdp.units = "Dollars";
+          gdpData.add(gdp);
+        }
+      }
+    }
+    
+    // Convert to Parquet
+    String parquetFilePath = storageProvider.resolvePath(outputDirPath, "state_gdp.parquet");
+    File parquetFile = new File(parquetFilePath);
+    writeStateGdpParquet(gdpData, parquetFile);
+    
+    LOGGER.info("State GDP data saved to: {} ({} records)", parquetFilePath, gdpData.size());
+    return parquetFile;
+  }
+  
+  /**
+   * Downloads state GDP data for a single year.
+   */
+  public void downloadStateGdpForYear(int year) throws IOException, InterruptedException {
+    if (apiKey == null || apiKey.isEmpty()) {
+      LOGGER.error("BEA API key is missing - cannot download state GDP data");
+      throw new IllegalStateException("BEA API key is required. Set BEA_API_KEY environment variable.");
+    }
+    
+    String outputDirPath = storageProvider.resolvePath(cacheDir, "source=econ/type=indicators/year=" + year);
+    storageProvider.createDirectories(outputDirPath);
+    
+    // Check if data already exists
+    String jsonFilePath = storageProvider.resolvePath(outputDirPath, "state_gdp.json");
+    if (storageProvider.exists(jsonFilePath)) {
+      LOGGER.info("Found cached BEA state GDP data for year {} - skipping download", year);
+      return;
+    }
+    
+    LOGGER.info("Downloading BEA state GDP data for year {}", year);
+    
+    List<StateGdp> gdpData = new ArrayList<>();
+    
+    // Download state GDP data (LineCode=1 for total GDP, LineCode=2 for per capita)
+    String[] lineCodes = {"1", "2"};
+    String[] descriptions = {"All industry total", "Per capita real GDP"};
+    
+    for (int i = 0; i < lineCodes.length; i++) {
+      String lineCode = lineCodes[i];
+      String description = descriptions[i];
+      
+      LOGGER.debug("Downloading state GDP data for year {} LineCode {}", year, lineCode);
+      
+      String params = String.format("UserID=%s&method=GetData&datasetname=%s&TableName=SAGDP1&LineCode=%s&GeoFips=STATE&Year=%d&ResultFormat=JSON",
+          apiKey, Datasets.REGIONAL, lineCode, year);
+      
+      String url = BEA_API_BASE + "?" + params;
+      
+      HttpRequest request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .timeout(Duration.ofSeconds(30))
+          .GET()
+          .build();
+      
+      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      
+      if (response.statusCode() != 200) {
+        LOGGER.warn("BEA state GDP API request failed for year {} LineCode {} with status: {}", year, lineCode, response.statusCode());
+        continue;
+      }
+      
+      JsonNode root = MAPPER.readTree(response.body());
+      JsonNode beaApi = root.get("BEAAPI");
+      if (beaApi != null) {
+        JsonNode results = beaApi.get("Results");
+        if (results != null) {
+          JsonNode dataArray = results.get("Data");
+          if (dataArray != null && dataArray.isArray()) {
+            for (JsonNode record : dataArray) {
+              try {
+                StateGdp gdp = new StateGdp();
+                
+                JsonNode geoFipsNode = record.get("GeoFips");
+                JsonNode geoNameNode = record.get("GeoName");
+                JsonNode lineCodeNode = record.get("Code");
+                JsonNode dataValueNode = record.get("DataValue");
+                JsonNode unitMultNode = record.get("UNIT_MULT");
+                
+                if (geoFipsNode == null || geoNameNode == null || dataValueNode == null) {
+                  continue;
+                }
+                
+                gdp.geoFips = geoFipsNode.asText();
+                gdp.geoName = geoNameNode.asText();
+                gdp.lineCode = lineCodeNode != null ? lineCodeNode.asText() : lineCode;
+                gdp.lineDescription = description;
+                gdp.year = year;
+                
+                String valueStr = dataValueNode.asText();
+                if ("NaN".equals(valueStr) || valueStr.isEmpty()) {
+                  gdp.value = 0.0;
+                } else {
+                  gdp.value = Double.parseDouble(valueStr.replaceAll(",", ""));
+                }
+                
+                gdp.units = lineCode.equals("2") ? "Dollars" : 
+                    (unitMultNode != null ? unitMultNode.asText() : "Millions of Dollars");
+                
+                gdpData.add(gdp);
+              } catch (Exception e) {
+                LOGGER.debug("Failed to parse state GDP record: {}", e.getMessage());
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Save as JSON
+    LOGGER.info("Preparing to save {} state GDP records to {}", gdpData.size(), jsonFilePath);
+    
+    Map<String, Object> data = new HashMap<>();
+    List<Map<String, Object>> gdpList = new ArrayList<>();
+    
+    for (StateGdp gdp : gdpData) {
+      Map<String, Object> gdpMap = new HashMap<>();
+      gdpMap.put("geo_fips", gdp.geoFips);
+      gdpMap.put("geo_name", gdp.geoName);
+      gdpMap.put("line_code", gdp.lineCode);
+      gdpMap.put("line_description", gdp.lineDescription);
+      gdpMap.put("year", gdp.year);
+      gdpMap.put("value", gdp.value);
+      gdpMap.put("units", gdp.units);
+      gdpList.add(gdpMap);
+    }
+    
+    data.put("state_gdp", gdpList);
+    data.put("download_date", LocalDate.now().toString());
+    data.put("year", year);
+    
+    String jsonContent = MAPPER.writeValueAsString(data);
+    storageProvider.writeFile(jsonFilePath, jsonContent.getBytes(StandardCharsets.UTF_8));
+    
+    LOGGER.info("State GDP data saved to: {} ({} records)", jsonFilePath, gdpData.size());
+  }
+  
+  @SuppressWarnings("deprecation")
+  private void writeStateGdpParquet(List<StateGdp> gdpData, File outputFile) throws IOException {
+    // IMPORTANT: Do not include 'year' in the schema - it's a partition key derived from directory structure
+    Schema schema = SchemaBuilder.record("StateGdp")
+        .namespace("org.apache.calcite.adapter.govdata.econ")
+        .fields()
+        .name("geo_fips").type().stringType().noDefault()
+        .name("geo_name").type().stringType().noDefault()
+        .name("metric").type().stringType().noDefault()
+        .name("value").type().doubleType().noDefault()
+        .name("units").type().stringType().noDefault()
+        .endRecord();
+    
+    File parentDir = outputFile.getParentFile();
+    if (parentDir != null && !parentDir.exists()) {
+      parentDir.mkdirs();
+    }
+    
+    org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(outputFile.getAbsolutePath());
+    
+    try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+      
+      for (StateGdp gdp : gdpData) {
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("geo_fips", gdp.geoFips);
+        record.put("geo_name", gdp.geoName);
+        record.put("metric", gdp.lineDescription != null ? gdp.lineDescription : "GDP");
+        record.put("value", gdp.value);
+        record.put("units", gdp.units);
+        writer.write(record);
+      }
+    }
+  }
+  
+  /**
+   * Converts state GDP JSON to Parquet format.
+   */
+  public void convertStateGdpToParquet(File sourceDir, File targetFile) throws IOException {
+    String sourceDirPath = sourceDir.getAbsolutePath();
+    String targetFilePath = targetFile.getAbsolutePath();
+    
+    LOGGER.info("Converting state GDP data from {} to parquet: {}", sourceDirPath, targetFilePath);
+    
+    // Skip if target file already exists
+    if (storageProvider.exists(targetFilePath)) {
+      LOGGER.info("Target parquet file already exists, skipping: {}", targetFilePath);
+      return;
+    }
+    
+    // Ensure target directory exists
+    String parentDir = targetFile.getParent();
+    if (parentDir != null) {
+      storageProvider.createDirectories(parentDir);
+    }
+    
+    List<StateGdp> gdpData = new ArrayList<>();
+    
+    // Look for state GDP JSON files in the source directory
+    List<StorageProvider.FileEntry> files = storageProvider.listFiles(sourceDirPath, false);
+    
+    for (StorageProvider.FileEntry file : files) {
+      if ("state_gdp.json".equals(file.getName()) && !file.getName().startsWith(".")) {
+        try {
+          String content;
+          try (InputStream inputStream = storageProvider.openInputStream(file.getPath())) {
+            content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+          }
+          JsonNode root = MAPPER.readTree(content);
+          JsonNode gdpArray = root.get("state_gdp");
+          
+          if (gdpArray != null && gdpArray.isArray()) {
+            for (JsonNode gdpNode : gdpArray) {
+              try {
+                StateGdp gdp = new StateGdp();
+                gdp.geoFips = gdpNode.get("geo_fips").asText();
+                gdp.geoName = gdpNode.get("geo_name").asText();
+                gdp.lineCode = gdpNode.get("line_code").asText();
+                gdp.lineDescription = gdpNode.get("line_description").asText();
+                gdp.year = gdpNode.get("year").asInt();
+                gdp.value = gdpNode.get("value").asDouble();
+                gdp.units = gdpNode.get("units").asText();
+                
+                gdpData.add(gdp);
+              } catch (Exception e) {
+                LOGGER.warn("Failed to parse state GDP record: {}", e.getMessage());
+              }
+            }
+          }
+        } catch (Exception e) {
+          LOGGER.warn("Failed to process state GDP JSON file {}: {}", file.getPath(), e.getMessage());
+        }
+      }
+    }
+    
+    if (!gdpData.isEmpty()) {
+      // Write parquet file
+      writeStateGdpParquet(gdpData, targetFile);
+      LOGGER.info("Converted state GDP data to parquet: {} ({} records)", targetFilePath, gdpData.size());
+      
+      // Clean up macOS metadata files that can interfere with DuckDB
+      try {
+        storageProvider.cleanupMacosMetadata(parentDir);
+      } catch (IOException e) {
+        LOGGER.warn("Failed to clean up metadata files in {}: {}", parentDir, e.getMessage());
+      }
+    } else {
+      LOGGER.warn("No state GDP data found in {}", sourceDirPath);
     }
   }
   

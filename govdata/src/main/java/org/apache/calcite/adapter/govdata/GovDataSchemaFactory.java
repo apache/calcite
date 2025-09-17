@@ -436,6 +436,23 @@ public class GovDataSchemaFactory implements ConstraintCapableSchemaFactory {
     LOGGER.info("Added cross-domain FK constraint: regional_income.geo_fips -> {}.tiger_states.state_fips (partial FK for state-level data)", 
         geoSchemaName);
     
+    // state_gdp.geo_fips -> tiger_states.state_fips (FIPS codes)
+    Map<String, Object> stateGdpConstraints = new HashMap<>();
+    List<Map<String, Object>> stateGdpFks = new ArrayList<>();
+    
+    Map<String, Object> stateGdpToStatesFK = new HashMap<>();
+    stateGdpToStatesFK.put("columns", Arrays.asList("geo_fips"));
+    stateGdpToStatesFK.put("targetSchema", geoSchemaName);
+    stateGdpToStatesFK.put("targetTable", "tiger_states");
+    stateGdpToStatesFK.put("targetColumns", Arrays.asList("state_fips"));
+    stateGdpFks.add(stateGdpToStatesFK);
+    
+    stateGdpConstraints.put("foreignKeys", stateGdpFks);
+    constraints.put("state_gdp", stateGdpConstraints);
+    
+    LOGGER.info("Added cross-domain FK constraint: state_gdp.geo_fips -> {}.tiger_states.state_fips", 
+        geoSchemaName);
+    
     return constraints;
   }
   

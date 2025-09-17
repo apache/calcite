@@ -377,6 +377,10 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
           File regionalIncomeParquet = new File(indicatorsDir, "year=" + year + "/regional_income.parquet");
           beaDownloader.convertRegionalIncomeToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), regionalIncomeParquet);
           
+          // Convert State GDP data
+          File stateGdpParquet = new File(indicatorsDir, "year=" + year + "/state_gdp.parquet");
+          beaDownloader.convertStateGdpToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), stateGdpParquet);
+          
           // Convert BEA trade statistics, ITA data, and industry GDP data
           File tradeParquet = new File(indicatorsDir, "year=" + year + "/trade_statistics.parquet");
           beaDownloader.convertTradeStatisticsToParquet(new File(cacheDir, "source=econ/type=indicators/year=" + year), tradeParquet);
@@ -537,6 +541,9 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
       case "regional_income":
         return "State and regional personal income statistics from BEA Regional Economic Accounts. "
             + "Includes total income, per capita income, and population by state.";
+      case "state_gdp":
+        return "State-level GDP statistics from BEA Regional Economic Accounts (SAGDP2N table). "
+            + "Provides both total GDP and per capita real GDP by state across all NAICS industry sectors.";
       case "trade_statistics":
         return "Detailed U.S. export and import statistics from BEA NIPA Table T40205B. "
             + "Comprehensive breakdown of goods and services trade by category with calculated trade balances.";
@@ -666,6 +673,15 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
         + "Includes total income, per capita income, and population by state.");
     tables.add(regionalIncome);
     
+    // State GDP table (BEA Regional)
+    Map<String, Object> stateGdp = new java.util.HashMap<>();
+    stateGdp.put("name", "state_gdp");
+    stateGdp.put("type", "PartitionedParquetTable");
+    stateGdp.put("pattern", "type=indicators/year=*/state_gdp.parquet");
+    stateGdp.put("comment", "State-level GDP statistics from BEA Regional Economic Accounts (SAGDP2N table). "
+        + "Provides both total GDP and per capita real GDP by state across all NAICS industry sectors.");
+    tables.add(stateGdp);
+    
     // Trade statistics table (BEA NIPA)
     Map<String, Object> tradeStatistics = new java.util.HashMap<>();
     tradeStatistics.put("name", "trade_statistics");
@@ -683,6 +699,17 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     itaData.put("comment", "International Transactions Accounts (ITA) from BEA providing balance of payments statistics. "
         + "Includes trade balance, current account, capital account, and income balances.");
     tables.add(itaData);
+    
+    // Industry GDP table (BEA)
+    Map<String, Object> industryGdp = new java.util.HashMap<>();
+    industryGdp.put("name", "industry_gdp");
+    industryGdp.put("type", "PartitionedParquetTable");
+    industryGdp.put("pattern", "type=indicators/year=*/industry_gdp.parquet");
+    industryGdp.put("comment", "GDP by Industry data from BEA showing value added by NAICS industry sectors. "
+        + "Provides comprehensive breakdown of economic output by industry including "
+        + "agriculture, mining, manufacturing, services, and government sectors. Available "
+        + "at both annual and quarterly frequencies for detailed sectoral analysis.");
+    tables.add(industryGdp);
     
     return tables;
   }
@@ -743,14 +770,19 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     Map<String, Object> regionalIncomeConstraints = new java.util.HashMap<>();
     regionalIncomeConstraints.put("primaryKey", java.util.Arrays.asList("geo_fips", "metric", "year"));
     
+    // state_gdp table
+    Map<String, Object> stateGdpConstraints = new java.util.HashMap<>();
+    stateGdpConstraints.put("primaryKey", java.util.Arrays.asList("geo_fips", "line_code", "year"));
+    
     // ======================== FOREIGN KEYS ========================
     
     // Cross-domain FKs to GEO schema are now handled in GovDataSchemaFactory.defineCrossDomainConstraintsForEcon()
     // This ensures they are only added when both ECON and GEO schemas are present
     
-    // regional_employment and regional_income primary keys are already defined above
+    // regional_employment, regional_income, and state_gdp primary keys are already defined above
     constraints.put("regional_employment", regionalConstraints);
     constraints.put("regional_income", regionalIncomeConstraints);
+    constraints.put("state_gdp", stateGdpConstraints);
     
     // ======================== INTRA-SCHEMA RELATIONSHIPS ========================
     
