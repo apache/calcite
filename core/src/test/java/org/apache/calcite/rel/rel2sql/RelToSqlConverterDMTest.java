@@ -2542,6 +2542,13 @@ class RelToSqlConverterDMTest {
     sql(query).ok(expected);
   }
 
+  @Test void testRowNumberWithConditionInOrderByClause() {
+    String query = "SELECT row_number() over (order by \"employee_id\" = 1) FROM \"employee\"";
+    String expected = "SELECT ROW_NUMBER() OVER (ORDER BY (employee_id = 1) IS NULL, employee_id = 1)\n"
+        + "FROM foodmart.employee";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3112">[CALCITE-3112]
    * Support Window in RelToSqlConverter</a>. */
