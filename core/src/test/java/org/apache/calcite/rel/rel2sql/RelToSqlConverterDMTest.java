@@ -84,6 +84,7 @@ import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
+import org.apache.calcite.sql.fun.GeneratorTableFunction;
 import org.apache.calcite.sql.fun.SqlAddMonths;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -10947,6 +10948,24 @@ class RelToSqlConverterDMTest {
         + "FROM TABLE(SPLIT_TO_TABLE('a,b,c', ','))";
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testGenerator() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode arrayArg =
+        builder.call(GENERATE_ARRAY, builder.literal(1), builder.literal(9));
+
+    final RelNode root = builder
+        .functionScan(new GeneratorTableFunction(), 0, arrayArg)
+        .project(builder.field(0))
+        .build();
+
+    final String expectedBiqQuery = "SELECT *\n"
+        + "FROM GENERATOR(GENERATE_ARRAY(1, 9))\n"
+        + "AS SEQ";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testMsSqlStringSplit() {
