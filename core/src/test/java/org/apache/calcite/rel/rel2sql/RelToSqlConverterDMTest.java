@@ -2542,6 +2542,13 @@ class RelToSqlConverterDMTest {
     sql(query).ok(expected);
   }
 
+  @Test void testRowNumberWithConditionInOrderByClause() {
+    String query = "SELECT row_number() over (order by \"employee_id\" = 1) FROM \"employee\"";
+    String expected = "SELECT ROW_NUMBER() OVER (ORDER BY (employee_id = 1) IS NULL, employee_id = 1)\n"
+        + "FROM foodmart.employee";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3112">[CALCITE-3112]
    * Support Window in RelToSqlConverter</a>. */
@@ -13779,5 +13786,19 @@ class RelToSqlConverterDMTest {
     final String expectedSql = "SELECT TRUNC(CURRENT_DATE, 'HH') AS \"$f0\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.VERTICA.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testRegexpLike() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpLikeNode =
+        builder.call(SqlLibraryOperators.SNOWFLAKE_REGEXP_LIKE, builder.literal("abc123"),
+            builder.literal("abc[0-9]+"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpLikeNode, "regexpLike"))
+        .build();
+    final String expectedSql = "SELECT REGEXP_LIKE('abc123', 'abc[0-9]+') AS \"regexpLike\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 }
