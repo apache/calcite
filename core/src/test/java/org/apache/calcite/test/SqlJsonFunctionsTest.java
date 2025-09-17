@@ -458,8 +458,10 @@ class SqlJsonFunctionsTest {
     // expect exception thrown
     final String message = "com.fasterxml.jackson.core.JsonParseException: "
         + "Unexpected close marker '}': expected ']' (for Array starting at "
-        + "[Source: (String)\"[}\"; line: 1, column: 1])\n at [Source: "
-        + "(String)\"[}\"; line: 1, column: 3]";
+        + "[Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` "
+        + "disabled); line: 1, column: 1])\n at [Source: REDACTED "
+        + "(`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: "
+        + "1, column: 2]";
     assertDejsonizeFailed("[}",
         errorMatches(new InvalidJsonException(message)));
   }

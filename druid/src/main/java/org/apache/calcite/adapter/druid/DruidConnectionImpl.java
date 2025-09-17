@@ -152,7 +152,7 @@ class DruidConnectionImpl implements DruidConnection {
            // loop until token equal to "}"
             final Long timeValue = extractTimestampField(parser);
             if (parser.nextToken() == JsonToken.FIELD_NAME
-                    && parser.getCurrentName().equals("result")
+                    && parser.currentName().equals("result")
                     && parser.nextToken() == JsonToken.START_OBJECT) {
               if (posTimestampField != -1) {
                 rowBuilder.set(posTimestampField, timeValue);
@@ -171,7 +171,7 @@ class DruidConnectionImpl implements DruidConnection {
             && parser.nextToken() == JsonToken.START_OBJECT) {
           final Long timeValue = extractTimestampField(parser);
           if (parser.nextToken() == JsonToken.FIELD_NAME
-              && parser.getCurrentName().equals("result")
+              && parser.currentName().equals("result")
               && parser.nextToken() == JsonToken.START_ARRAY) {
             while (parser.nextToken() == JsonToken.START_OBJECT) {
               // loop until token equal to "}"
@@ -194,27 +194,27 @@ class DruidConnectionImpl implements DruidConnection {
           page.totalRowCount = 0;
           expectScalarField(parser, DEFAULT_RESPONSE_TIMESTAMP_COLUMN);
           if (parser.nextToken() == JsonToken.FIELD_NAME
-              && parser.getCurrentName().equals("result")
+              && parser.currentName().equals("result")
               && parser.nextToken() == JsonToken.START_OBJECT) {
             while (parser.nextToken() == JsonToken.FIELD_NAME) {
-              if (parser.getCurrentName().equals("pagingIdentifiers")
+              if (parser.currentName().equals("pagingIdentifiers")
                   && parser.nextToken() == JsonToken.START_OBJECT) {
                 JsonToken token = parser.nextToken();
                 while (parser.getCurrentToken() == JsonToken.FIELD_NAME) {
-                  page.pagingIdentifier = parser.getCurrentName();
+                  page.pagingIdentifier = parser.currentName();
                   if (parser.nextToken() == JsonToken.VALUE_NUMBER_INT) {
                     page.offset = parser.getIntValue();
                   }
                   token = parser.nextToken();
                 }
                 expect(token, JsonToken.END_OBJECT);
-              } else if (parser.getCurrentName().equals("events")
+              } else if (parser.currentName().equals("events")
                   && parser.nextToken() == JsonToken.START_ARRAY) {
                 while (parser.nextToken() == JsonToken.START_OBJECT) {
                   expectScalarField(parser, "segmentId");
                   expectScalarField(parser, "offset");
                   if (parser.nextToken() == JsonToken.FIELD_NAME
-                      && parser.getCurrentName().equals("event")
+                      && parser.currentName().equals("event")
                       && parser.nextToken() == JsonToken.START_OBJECT) {
                     parseFields(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
                     sink.send(rowBuilder.build());
@@ -224,8 +224,8 @@ class DruidConnectionImpl implements DruidConnection {
                   expect(parser, JsonToken.END_OBJECT);
                 }
                 parser.nextToken();
-              } else if (parser.getCurrentName().equals("dimensions")
-                  || parser.getCurrentName().equals("metrics")) {
+              } else if (parser.currentName().equals("dimensions")
+                  || parser.currentName().equals("metrics")) {
                 expect(parser, JsonToken.START_ARRAY);
                 while (parser.nextToken() != JsonToken.END_ARRAY) {
                   // empty
@@ -242,7 +242,7 @@ class DruidConnectionImpl implements DruidConnection {
             expectScalarField(parser, "version");
             final Long timeValue = extractTimestampField(parser);
             if (parser.nextToken() == JsonToken.FIELD_NAME
-                && parser.getCurrentName().equals("event")
+                && parser.currentName().equals("event")
                 && parser.nextToken() == JsonToken.START_OBJECT) {
               if (posTimestampField != -1) {
                 rowBuilder.set(posTimestampField, timeValue);
@@ -262,14 +262,14 @@ class DruidConnectionImpl implements DruidConnection {
             expectScalarField(parser, "segmentId");
 
             expect(parser, JsonToken.FIELD_NAME);
-            if (parser.getCurrentName().equals("columns")) {
+            if (parser.currentName().equals("columns")) {
               expect(parser, JsonToken.START_ARRAY);
               while (parser.nextToken() != JsonToken.END_ARRAY) {
                 // Skip the columns list
               }
             }
             if (parser.nextToken() == JsonToken.FIELD_NAME
-                && parser.getCurrentName().equals("events")
+                && parser.currentName().equals("events")
                 && parser.nextToken() == JsonToken.START_ARRAY) {
               // Events is Array of Arrays where each array is a row
               while (parser.nextToken() == JsonToken.START_ARRAY) {
@@ -310,7 +310,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   private static void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
-    final String fieldName = parser.getCurrentName();
+    final String fieldName = parser.currentName();
     parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
   }
 
@@ -468,9 +468,9 @@ class DruidConnectionImpl implements DruidConnection {
   private static void expectScalarField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
-    if (!parser.getCurrentName().equals(name)) {
+    if (!parser.currentName().equals(name)) {
       throw new RuntimeException("expected field " + name + ", got "
-          + parser.getCurrentName());
+          + parser.currentName());
     }
     final JsonToken t = parser.nextToken();
     switch (t) {
@@ -490,9 +490,9 @@ class DruidConnectionImpl implements DruidConnection {
   private static void expectObjectField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
-    if (!parser.getCurrentName().equals(name)) {
+    if (!parser.currentName().equals(name)) {
       throw new RuntimeException("expected field " + name + ", got "
-          + parser.getCurrentName());
+          + parser.currentName());
     }
     expect(parser, JsonToken.START_OBJECT);
     while (parser.nextToken() != JsonToken.END_OBJECT) {
@@ -504,9 +504,9 @@ class DruidConnectionImpl implements DruidConnection {
   private static @Nullable Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
-    if (!parser.getCurrentName().equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
+    if (!parser.currentName().equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
       throw new RuntimeException("expected field " + DEFAULT_RESPONSE_TIMESTAMP_COLUMN + ", got "
-          + parser.getCurrentName());
+          + parser.currentName());
     }
     parser.nextToken();
     try {
