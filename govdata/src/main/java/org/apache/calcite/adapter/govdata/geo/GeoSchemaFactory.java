@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.adapter.govdata.geo;
 
+import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.file.FileSchemaFactory;
+import org.apache.calcite.adapter.govdata.ParquetStorageHelper;
 import org.apache.calcite.model.JsonTable;
 import org.apache.calcite.schema.ConstraintCapableSchemaFactory;
 import org.apache.calcite.schema.Schema;
@@ -244,7 +246,7 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
     }
     
     // Create mock data if no real data exists (for testing)
-    createMockGeoDataIfNeeded(new File(cacheDir), tigerYears);
+    createMockGeoDataIfNeeded(geoParquetDir, tigerYears);
 
     // Now configure for FileSchemaFactory
     // Set the directory to the parquet directory with hive-partitioned structure
@@ -326,9 +328,9 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
         tigerDownloader.downloadBlockGroups();
         tigerDownloader.downloadCbsas();
         
-        // Convert shapefiles to Parquet
-        File parquetBoundaryDir = new File(geoParquetDir, BOUNDARY_TYPE);
-        convertShapefilesToParquet(tigerCacheDir, parquetBoundaryDir, tigerYears);
+        // Convert shapefiles to Parquet using StorageProvider pattern
+        String boundaryRelativeDir = BOUNDARY_TYPE;
+        convertShapefilesToParquet(tigerCacheDir, boundaryRelativeDir, tigerYears, geoParquetDir);
         
       } catch (Exception e) {
         LOGGER.error("Error downloading TIGER data", e);
@@ -408,28 +410,37 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
   /**
    * Convert shapefiles to Parquet format.
    */
-  private void convertShapefilesToParquet(File sourceCacheDir, File targetParquetDir, List<Integer> years) {
+  private void convertShapefilesToParquet(File sourceCacheDir, String targetRelativeDir, List<Integer> years, String geoParquetDir) {
+    // Create a temporary FileSchema for StorageProvider access during data download
+    Map<String, Object> tempOperand = new HashMap<>();
+    tempOperand.put("directory", geoParquetDir);
+    tempOperand.put("executionEngine", "PARQUET");
+    tempOperand.put("tableNameCasing", "SMART_CASING");
+    tempOperand.put("columnNameCasing", "SMART_CASING");
+    
+    FileSchema tempSchema = (FileSchema) FileSchemaFactory.INSTANCE.create(null, "temp", tempOperand);
+    ParquetStorageHelper storageHelper = new ParquetStorageHelper(tempSchema);
+    
     // Use the ShapefileToParquetConverter to convert downloaded shapefiles
-    ShapefileToParquetConverter converter = new ShapefileToParquetConverter();
+    ShapefileToParquetConverter converter = new ShapefileToParquetConverter(storageHelper);
     
     try {
-      LOGGER.info("Converting shapefiles to Parquet format from {} to {}", sourceCacheDir, targetParquetDir);
-      converter.convertShapefilesToParquet(sourceCacheDir, targetParquetDir);
+      LOGGER.info("Converting shapefiles to Parquet format from {} to {}", sourceCacheDir, targetRelativeDir);
+      converter.convertShapefilesToParquet(sourceCacheDir, targetRelativeDir);
       LOGGER.info("Shapefile to Parquet conversion completed");
     } catch (IOException e) {
       LOGGER.error("Error converting shapefiles to Parquet", e);
-      // Fall back to creating placeholder files
+      // Fall back to creating placeholder files using StorageProvider
       for (int year : years) {
-        File yearDir = new File(targetParquetDir, "year=" + year);
-        if (yearDir.exists()) {
-          try {
-            new File(yearDir, "states.parquet").createNewFile();
-            new File(yearDir, "counties.parquet").createNewFile();
-            new File(yearDir, "places.parquet").createNewFile();
-            LOGGER.info("Created Parquet placeholders for TIGER data year {}", year);
-          } catch (IOException ex) {
-            LOGGER.error("Error creating Parquet files", ex);
-          }
+        String yearRelativeDir = targetRelativeDir + "/year=" + year;
+        try {
+          // Create empty placeholder files via StorageProvider
+          storageHelper.createPlaceholderParquet(yearRelativeDir + "/states.parquet", "State");
+          storageHelper.createPlaceholderParquet(yearRelativeDir + "/counties.parquet", "County");
+          storageHelper.createPlaceholderParquet(yearRelativeDir + "/places.parquet", "Place");
+          LOGGER.info("Created Parquet placeholders for TIGER data year {}", year);
+        } catch (IOException ex) {
+          LOGGER.error("Error creating Parquet files via StorageProvider", ex);
         }
       }
     }
@@ -556,26 +567,25 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
    * Create mock GEO data files if they don't exist (for testing).
    */
   @SuppressWarnings("deprecation")
-  private void createMockGeoDataIfNeeded(File baseDir, List<Integer> years) {
+  private void createMockGeoDataIfNeeded(String geoParquetDir, List<Integer> years) {
     try {
+      // Create a temporary FileSchema for StorageProvider access
+      Map<String, Object> tempOperand = new HashMap<>();
+      tempOperand.put("directory", geoParquetDir);
+      tempOperand.put("executionEngine", "PARQUET");
+      tempOperand.put("tableNameCasing", "SMART_CASING");
+      tempOperand.put("columnNameCasing", "SMART_CASING");
+      
+      FileSchema tempSchema = (FileSchema) FileSchemaFactory.INSTANCE.create(null, "temp", tempOperand);
+      ParquetStorageHelper storageHelper = new ParquetStorageHelper(tempSchema);
+      
       // Check if any parquet files exist already
-      File geoDir = new File(baseDir, "source=geo/type=boundary");
-      boolean hasData = false;
-      if (geoDir.exists()) {
-        for (File yearDir : geoDir.listFiles()) {
-          if (yearDir.getName().startsWith("year=")) {
-            File statesFile = new File(yearDir, "states.parquet");
-            if (statesFile.exists()) {
-              hasData = true;
-              break;
-            }
-          }
-        }
-      }
+      String boundaryPath = BOUNDARY_TYPE + "/year=" + (years.isEmpty() ? 2024 : years.get(0)) + "/states.parquet";
+      boolean hasData = storageHelper.exists(boundaryPath);
       
       if (!hasData && !years.isEmpty()) {
         LOGGER.info("Creating mock GEO data for testing");
-        createMockGeoParquetFiles(baseDir, years.get(0));
+        createMockGeoParquetFiles(storageHelper, years.get(0));
       }
     } catch (Exception e) {
       LOGGER.warn("Failed to create mock GEO data: {}", e.getMessage());
@@ -583,16 +593,15 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
   }
   
   /**
-   * Create mock Parquet files for GEO tables.
+   * Create mock Parquet files for GEO tables using StorageProvider.
    */
   @SuppressWarnings("deprecation")
-  private void createMockGeoParquetFiles(File baseDir, int year) throws Exception {
+  private void createMockGeoParquetFiles(ParquetStorageHelper storageHelper, int year) throws Exception {
     // Create states mock data
-    File statesDir = new File(baseDir, "source=geo/type=boundary/year=" + year);
-    statesDir.mkdirs();
-    File statesFile = new File(statesDir, "states.parquet");
+    String yearDir = BOUNDARY_TYPE + "/year=" + year;
+    String statesPath = yearDir + "/states.parquet";
     
-    if (!statesFile.exists()) {
+    if (!storageHelper.exists(statesPath)) {
       org.apache.avro.Schema statesSchema = org.apache.avro.SchemaBuilder.record("State")
           .fields()
           .name("state_fips").type().stringType().noDefault()
@@ -601,38 +610,40 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
           .name("geometry").type().nullable().stringType().noDefault()
           .endRecord();
       
+      List<org.apache.avro.generic.GenericRecord> stateRecords = new ArrayList<>();
+      
+      // Add California
       org.apache.avro.generic.GenericRecord stateRecord = 
           new org.apache.avro.generic.GenericData.Record(statesSchema);
       stateRecord.put("state_fips", "06");
       stateRecord.put("state_code", "CA");
       stateRecord.put("state_name", "California");
       stateRecord.put("geometry", null);
+      stateRecords.add(stateRecord);
       
-      try (org.apache.parquet.hadoop.ParquetWriter<org.apache.avro.generic.GenericRecord> writer = 
-          org.apache.parquet.avro.AvroParquetWriter.<org.apache.avro.generic.GenericRecord>builder(
-              new org.apache.hadoop.fs.Path(statesFile.getAbsolutePath()))
-          .withSchema(statesSchema)
-          .build()) {
-        writer.write(stateRecord);
-        
-        // Add New York
-        stateRecord.put("state_fips", "36");
-        stateRecord.put("state_code", "NY");
-        stateRecord.put("state_name", "New York");
-        writer.write(stateRecord);
-        
-        // Add Washington (for Microsoft)
-        stateRecord.put("state_fips", "53");
-        stateRecord.put("state_code", "WA");
-        stateRecord.put("state_name", "Washington");
-        writer.write(stateRecord);
-      }
-      LOGGER.info("Created mock states file: {}", statesFile);
+      // Add New York
+      stateRecord = new org.apache.avro.generic.GenericData.Record(statesSchema);
+      stateRecord.put("state_fips", "36");
+      stateRecord.put("state_code", "NY");
+      stateRecord.put("state_name", "New York");
+      stateRecord.put("geometry", null);
+      stateRecords.add(stateRecord);
+      
+      // Add Washington (for Microsoft)
+      stateRecord = new org.apache.avro.generic.GenericData.Record(statesSchema);
+      stateRecord.put("state_fips", "53");
+      stateRecord.put("state_code", "WA");
+      stateRecord.put("state_name", "Washington");
+      stateRecord.put("geometry", null);
+      stateRecords.add(stateRecord);
+      
+      storageHelper.writeParquetFile(statesPath, statesSchema, stateRecords);
+      LOGGER.info("Created mock states file: {}", statesPath);
     }
     
     // Create counties mock data
-    File countiesFile = new File(statesDir, "counties.parquet");
-    if (!countiesFile.exists()) {
+    String countiesPath = yearDir + "/counties.parquet";
+    if (!storageHelper.exists(countiesPath)) {
       org.apache.avro.Schema countiesSchema = org.apache.avro.SchemaBuilder.record("County")
           .fields()
           .name("county_fips").type().stringType().noDefault()
@@ -641,52 +652,51 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
           .name("geometry").type().nullable().stringType().noDefault()
           .endRecord();
       
+      List<org.apache.avro.generic.GenericRecord> countyRecords = new ArrayList<>();
+      
+      // Add Alameda County
       org.apache.avro.generic.GenericRecord countyRecord = 
           new org.apache.avro.generic.GenericData.Record(countiesSchema);
       countyRecord.put("county_fips", "06001");
       countyRecord.put("state_fips", "06");
       countyRecord.put("county_name", "Alameda County");
       countyRecord.put("geometry", null);
+      countyRecords.add(countyRecord);
       
-      try (org.apache.parquet.hadoop.ParquetWriter<org.apache.avro.generic.GenericRecord> writer = 
-          org.apache.parquet.avro.AvroParquetWriter.<org.apache.avro.generic.GenericRecord>builder(
-              new org.apache.hadoop.fs.Path(countiesFile.getAbsolutePath()))
-          .withSchema(countiesSchema)
-          .build()) {
-        writer.write(countyRecord);
-        
-        // Add NYC county
-        countyRecord.put("county_fips", "36061");
-        countyRecord.put("state_fips", "36");
-        countyRecord.put("county_name", "New York County");
-        writer.write(countyRecord);
-      }
-      LOGGER.info("Created mock counties file: {}", countiesFile);
+      // Add NYC county
+      countyRecord = new org.apache.avro.generic.GenericData.Record(countiesSchema);
+      countyRecord.put("county_fips", "36061");
+      countyRecord.put("state_fips", "36");
+      countyRecord.put("county_name", "New York County");
+      countyRecord.put("geometry", null);
+      countyRecords.add(countyRecord);
+      
+      storageHelper.writeParquetFile(countiesPath, countiesSchema, countyRecords);
+      LOGGER.info("Created mock counties file: {}", countiesPath);
     }
     
     // Create other mock files with minimal data
-    createSimpleMockFile(statesDir, "zctas.parquet", "ZCTA", 
+    createSimpleMockFile(storageHelper, yearDir + "/zctas.parquet", "ZCTA", 
         new String[]{"zcta", "geometry"}, 
         new Object[]{"94105", null});
     
-    createSimpleMockFile(statesDir, "cbsa.parquet", "CBSA",
+    createSimpleMockFile(storageHelper, yearDir + "/cbsa.parquet", "CBSA",
         new String[]{"cbsa_code", "cbsa_name", "geometry"},
         new Object[]{"41860", "San Francisco-Oakland-Berkeley, CA", null});
     
-    createSimpleMockFile(statesDir, "census_tracts.parquet", "Tract",
+    createSimpleMockFile(storageHelper, yearDir + "/census_tracts.parquet", "Tract",
         new String[]{"tract_code", "county_fips", "geometry"},
         new Object[]{"060014001", "06001", null});
     
-    createSimpleMockFile(statesDir, "block_groups.parquet", "BlockGroup",
+    createSimpleMockFile(storageHelper, yearDir + "/block_groups.parquet", "BlockGroup",
         new String[]{"block_group_code", "tract_code", "geometry"},
         new Object[]{"060014001001", "060014001", null});
   }
   
   @SuppressWarnings("deprecation")
-  private void createSimpleMockFile(File dir, String filename, String recordName,
+  private void createSimpleMockFile(ParquetStorageHelper storageHelper, String relativePath, String recordName,
       String[] fieldNames, Object[] values) throws Exception {
-    File file = new File(dir, filename);
-    if (!file.exists()) {
+    if (!storageHelper.exists(relativePath)) {
       org.apache.avro.SchemaBuilder.FieldAssembler<org.apache.avro.Schema> fields = 
           org.apache.avro.SchemaBuilder.record(recordName).fields();
       
@@ -702,14 +712,11 @@ public class GeoSchemaFactory implements ConstraintCapableSchemaFactory {
         record.put(fieldNames[i], values[i]);
       }
       
-      try (org.apache.parquet.hadoop.ParquetWriter<org.apache.avro.generic.GenericRecord> writer = 
-          org.apache.parquet.avro.AvroParquetWriter.<org.apache.avro.generic.GenericRecord>builder(
-              new org.apache.hadoop.fs.Path(file.getAbsolutePath()))
-          .withSchema(schema)
-          .build()) {
-        writer.write(record);
-      }
-      LOGGER.info("Created mock file: {}", file);
+      List<org.apache.avro.generic.GenericRecord> records = new ArrayList<>();
+      records.add(record);
+      
+      storageHelper.writeParquetFile(relativePath, schema, records);
+      LOGGER.info("Created mock file: {}", relativePath);
     }
   }
 
