@@ -48,42 +48,42 @@ public class FunctionalDependencyTest {
   @Test void testFunctionalDependencySet() {
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
 
-    // Add some FDs: A -> B, B -> C
-    fdSet.addFD(0, 1); // A -> B
-    fdSet.addFD(1, 2); // B -> C
+    // Add some FDs: 0 -> 1, 1 -> 2
+    fdSet.addFD(0, 1); // 0 -> 1
+    fdSet.addFD(1, 2); // 1 -> 2
 
-    // Test closure: {A}+ should include A, B, C
+    // Test closure: {0}+ should include 0, 1, 2
     ImmutableBitSet closure = fdSet.closure(ImmutableBitSet.of(0));
-    assertThat(closure.get(0), is(true)); // A
-    assertThat(closure.get(1), is(true)); // B (A -> B)
-    assertThat(closure.get(2), is(true)); // C (A -> B, B -> C, so A -> C by transitivity)
+    assertThat(closure.get(0), is(true)); // 0
+    assertThat(closure.get(1), is(true)); // 1 (0 -> 1)
+    assertThat(closure.get(2), is(true)); // 2 (0 -> 1, 1 -> 2, so 0 -> 2 by transitivity)
 
     // Test determines
-    assertThat(fdSet.determines(0, 1), is(true)); // A -> B (direct)
-    assertThat(fdSet.determines(0, 2), is(true)); // A -> C (transitive)
-    assertThat(fdSet.determines(2, 0), is(false)); // C does not determine A
+    assertThat(fdSet.determines(0, 1), is(true)); // 0 -> 1 (direct)
+    assertThat(fdSet.determines(0, 2), is(true)); // 0 -> 2 (transitive)
+    assertThat(fdSet.determines(2, 0), is(false)); // 2 doesn't determine 0
   }
 
   @Test void testMinimalCover() {
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
 
     // Add redundant FDs
-    fdSet.addFD(ImmutableBitSet.of(0), ImmutableBitSet.of(1)); // A -> B
-    fdSet.addFD(ImmutableBitSet.of(1), ImmutableBitSet.of(2)); // B -> C
-    fdSet.addFD(ImmutableBitSet.of(0), ImmutableBitSet.of(2)); // A -> C
+    fdSet.addFD(ImmutableBitSet.of(0), ImmutableBitSet.of(1)); // 0 -> 1
+    fdSet.addFD(ImmutableBitSet.of(1), ImmutableBitSet.of(2)); // 1 -> 2
+    fdSet.addFD(ImmutableBitSet.of(0), ImmutableBitSet.of(2)); // 0 -> 2
 
     FunctionalDependencySet minimal = fdSet.minimalCover();
 
-    // The minimal cover should not contain A -> C since it's implied by A -> B and B -> C
+    // The minimal cover should not contain 0 -> 2 since it's implied by 0 -> 1 and 1 -> 2
     assertThat(
         minimal.implies(ImmutableBitSet.of(0),
-        ImmutableBitSet.of(1)), is(true)); // A -> B
+        ImmutableBitSet.of(1)), is(true)); // 0 -> 1
     assertThat(
         minimal.implies(ImmutableBitSet.of(1),
-        ImmutableBitSet.of(2)), is(true)); // B -> C
+        ImmutableBitSet.of(2)), is(true)); // 1 -> 2
     assertThat(
         minimal.implies(ImmutableBitSet.of(0),
-        ImmutableBitSet.of(2)), is(true)); // A -> C (derived)
+        ImmutableBitSet.of(2)), is(true)); // 0 -> 2 (derived)
 
     // Should be equivalent to original
     assertThat(fdSet.equalTo(minimal), is(true));
@@ -92,14 +92,14 @@ public class FunctionalDependencyTest {
   @Test void testKeyFinding() {
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
 
-    // Schema: A, B, C, D with FDs: A -> B, BC -> D
-    fdSet.addFD(0, 1); // A -> B
-    fdSet.addFD(ImmutableBitSet.of(1, 2), ImmutableBitSet.of(3)); // BC -> D
+    // Schema: 0, 1, 2, 3 with FDs: 0 -> 1, {1,2} -> 3
+    fdSet.addFD(0, 1); // 0 -> 1
+    fdSet.addFD(ImmutableBitSet.of(1, 2), ImmutableBitSet.of(3)); // {1,2} -> 3
 
-    ImmutableBitSet allAttributes = ImmutableBitSet.of(0, 1, 2, 3);
+    ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFds(fdSet);
     Set<ImmutableBitSet> keys = fdSet.findKeys(allAttributes);
 
-    // AC should be a key: A -> B, and BC -> D, so AC -> ABCD
+    // {0,2} should be a key: 0 -> 1, and {1,2} -> 3, so {0,2} -> {0,1,2,3}
     assertThat(keys, containsInAnyOrder(ImmutableBitSet.of(0, 2)));
 
     // Verify it's actually a key
@@ -107,9 +107,9 @@ public class FunctionalDependencyTest {
 
     // Verify non-keys
     assertThat(fdSet.isKey(ImmutableBitSet.of(0), allAttributes),
-        is(false)); // A alone is not a key
+        is(false)); // 0 alone is not a key
     assertThat(fdSet.isKey(ImmutableBitSet.of(2), allAttributes),
-        is(false)); // C alone is not a key
+        is(false)); // 2 alone is not a key
   }
 
   @Test void testSplit() {
@@ -126,13 +126,13 @@ public class FunctionalDependencyTest {
 
   @Test void testEquivalence() {
     FunctionalDependencySet fdSet1 = new FunctionalDependencySet();
-    fdSet1.addFD(0, 1); // A -> B
-    fdSet1.addFD(1, 2); // B -> C
+    fdSet1.addFD(0, 1); // 0 -> 1
+    fdSet1.addFD(1, 2); // 1 -> 2
 
     FunctionalDependencySet fdSet2 = new FunctionalDependencySet();
-    fdSet2.addFD(0, 1); // A -> B
-    fdSet2.addFD(1, 2); // B -> C
-    fdSet2.addFD(0, 2); // A -> C (redundant)
+    fdSet2.addFD(0, 1); // 0 -> 1
+    fdSet2.addFD(1, 2); // 1 -> 2
+    fdSet2.addFD(0, 2); // 0 -> 2 (redundant)
 
     // Should be equivalent despite fdSet2 having a redundant FD
     assertThat(fdSet1.equalTo(fdSet2), is(true));
@@ -141,31 +141,28 @@ public class FunctionalDependencyTest {
 
   @Test void testUnion() {
     FunctionalDependencySet fdSet1 = new FunctionalDependencySet();
-    fdSet1.addFD(0, 1); // A -> B
+    fdSet1.addFD(0, 1); // 0 -> 1
 
     FunctionalDependencySet fdSet2 = new FunctionalDependencySet();
-    fdSet2.addFD(1, 2); // B -> C
+    fdSet2.addFD(1, 2); // 1 -> 2
 
     FunctionalDependencySet union = fdSet1.union(fdSet2);
 
-    assertThat(union.determines(0, 1), is(true)); // A -> B
-    assertThat(union.determines(1, 2), is(true)); // B -> C
-    assertThat(union.determines(0, 2), is(true)); // A -> C (transitive)
+    assertThat(union.determines(0, 1), is(true)); // 0 -> 1
+    assertThat(union.determines(1, 2), is(true)); // 1 -> 2
+    assertThat(union.determines(0, 2), is(true)); // 0 -> 2 (transitive)
   }
 
   @Test void testMultipleCandidateKeys() {
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
 
-    // Schema: StudentID(0), Email(1), CourseID(2), Grade(3)
-    // FDs: StudentID <-> Email (bidirectional unique mapping)
-    //      {StudentID, CourseID} -> Grade
-    //      {Email, CourseID} -> Grade
-    fdSet.addFD(0, 1); // StudentID -> Email
-    fdSet.addFD(1, 0); // Email -> StudentID
-    fdSet.addFD(ImmutableBitSet.of(0, 2),
-        ImmutableBitSet.of(3)); // {StudentID, CourseID} -> Grade
-    fdSet.addFD(ImmutableBitSet.of(1, 2),
-        ImmutableBitSet.of(3)); // {Email, CourseID} -> Grade
+    // FDs: 0 <-> 1 (bidirectional unique mapping)
+    //      {0,2} -> 3
+    //      {1,2} -> 3
+    fdSet.addFD(0, 1); // 0 -> 1
+    fdSet.addFD(1, 0); // 1 -> 0
+    fdSet.addFD(ImmutableBitSet.of(0, 2), ImmutableBitSet.of(3)); // {0,2} -> 3
+    fdSet.addFD(ImmutableBitSet.of(1, 2), ImmutableBitSet.of(3)); // {1,2} -> 3
 
     ImmutableBitSet allAttributes = ImmutableBitSet.of(0, 1, 2, 3);
     Set<ImmutableBitSet> keys = fdSet.findKeys(allAttributes);
@@ -173,35 +170,26 @@ public class FunctionalDependencyTest {
     // Should have two candidate keys
     assertThat(keys, hasSize(2));
 
-    // Both {StudentID, CourseID} and {Email, CourseID} should be candidate keys
+    // Both {0,2} and {1,2} should be candidate keys
     assertThat(
-        keys,
-        containsInAnyOrder(ImmutableBitSet.of(0, 2),
-            ImmutableBitSet.of(1, 2)));
+        keys, containsInAnyOrder(ImmutableBitSet.of(0, 2), ImmutableBitSet.of(1, 2)));
 
     // Verify both are actually keys
     assertThat(fdSet.isKey(ImmutableBitSet.of(0, 2), allAttributes), is(true));
     assertThat(fdSet.isKey(ImmutableBitSet.of(1, 2), allAttributes), is(true));
 
     // Verify that individual attributes are not keys
-    assertThat(fdSet.isKey(ImmutableBitSet.of(0), allAttributes),
-        is(false)); // StudentID alone
-    assertThat(fdSet.isKey(ImmutableBitSet.of(1), allAttributes),
-        is(false)); // Email alone
-    assertThat(fdSet.isKey(ImmutableBitSet.of(2), allAttributes),
-        is(false)); // CourseID alone
-    assertThat(fdSet.isKey(ImmutableBitSet.of(3), allAttributes),
-        is(false)); // Grade alone
+    assertThat(fdSet.isKey(ImmutableBitSet.of(0), allAttributes), is(false)); // 0 alone
+    assertThat(fdSet.isKey(ImmutableBitSet.of(1), allAttributes), is(false)); // 1 alone
+    assertThat(fdSet.isKey(ImmutableBitSet.of(2), allAttributes), is(false)); // 2 alone
+    assertThat(fdSet.isKey(ImmutableBitSet.of(3), allAttributes), is(false)); // 3 alone
 
     // Verify superkeys (should not be minimal keys)
-    assertThat(fdSet.isSuperkey(ImmutableBitSet.of(0, 1, 2), allAttributes),
-        is(true)); // Contains both candidate keys
-    assertThat(fdSet.isKey(ImmutableBitSet.of(0, 1, 2), allAttributes),
-        is(false)); // Not minimal
+    assertThat(fdSet.isSuperkey(ImmutableBitSet.of(0, 1, 2), allAttributes), is(true));
+    assertThat(fdSet.isKey(ImmutableBitSet.of(0, 1, 2), allAttributes), is(false));
   }
 
   @Test void testProjectFunctionalDependencies() {
-    // Test basic FD set operations to ensure our implementation works
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
     fdSet.addFD(0, 1);  // 0 -> 1
     fdSet.addFD(1, 2);  // 1 -> 2

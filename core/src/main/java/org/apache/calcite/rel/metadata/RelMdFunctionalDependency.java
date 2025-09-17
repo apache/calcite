@@ -350,34 +350,10 @@ public class RelMdFunctionalDependency
       FunctionalDependencySet leftJoinFdSet = new FunctionalDependencySet(leftFdSet.getFDs());
       deriveTransitiveFDs(rel, leftJoinFdSet, leftFieldCount);
       return leftJoinFdSet;
-    case RIGHT: {
+    case RIGHT:
       // Right join: preserve right FDs, left FDs may be invalidated by NULLs
-      // 只保留右表字段决定右表字段的 FD，不做任何跨表 transitive 推导
       FunctionalDependencySet shiftedRightFdSet = shiftFdSet(rightFdSet, leftFieldCount);
-      FunctionalDependencySet filteredFdSet = new FunctionalDependencySet();
-      int totalFieldCount = rel.getRowType().getFieldCount();
-      for (FunctionalDependency fd : shiftedRightFdSet.getFunctionalDependencies()) {
-        boolean determinantsInRight = true;
-        boolean dependentsInRight = true;
-        for (int col : fd.getDeterminants()) {
-          if (col < leftFieldCount || col >= totalFieldCount) {
-            determinantsInRight = false;
-            break;
-          }
-        }
-        for (int col : fd.getDependents()) {
-          if (col < leftFieldCount || col >= totalFieldCount) {
-            dependentsInRight = false;
-            break;
-          }
-        }
-        if (determinantsInRight && dependentsInRight) {
-          filteredFdSet.addFD(fd.getDeterminants(), fd.getDependents());
-        }
-      }
-      // 禁用 deriveTransitiveFDs，彻底禁止跨表 FD
-      return filteredFdSet;
-    }
+      return shiftedRightFdSet;
     case FULL:
       // Full join: both sides may have NULLs, very conservative approach
       return new FunctionalDependencySet();
@@ -455,8 +431,9 @@ public class RelMdFunctionalDependency
     }
 
     RexCall call = (RexCall) condition;
-    if (call.getOperator().getKind() == SqlKind.EQUALS) {
-      // Handle equality condition: col1 = col2
+    if (call.getOperator().getKind() == SqlKind.EQUALS
+        || call.getOperator().getKind() == SqlKind.IS_NOT_DISTINCT_FROM) {
+      // Handle equality condition: col1 = col2 or col1 IS NOT DISTINCT FROM col2
       List<RexNode> operands = call.getOperands();
       if (operands.size() == 2) {
         RexNode left = operands.get(0);

@@ -68,6 +68,19 @@ public class FunctionalDependencySet {
   }
 
   /**
+   * Returns an ImmutableBitSet containing all attribute indexes that appear in any FD in the set.
+   */
+  public static ImmutableBitSet allAttributesFromFds(FunctionalDependencySet fds) {
+    ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    Set<FunctionalDependency> fdSet = fds.getFDs();
+    for (FunctionalDependency fd : fdSet) {
+      builder.addAll(fd.getDeterminants());
+      builder.addAll(fd.getDependents());
+    }
+    return builder.build();
+  }
+
+  /**
    * Computes the closure of a set of attributes under this functional dependency set.
    * The closure of X, denoted X+, is the set of all attributes that can be functionally
    * determined by X using the functional dependencies in this set and Armstrong's axioms.
