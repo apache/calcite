@@ -745,33 +745,11 @@ public class EconSchemaFactory implements ConstraintCapableSchemaFactory {
     
     // ======================== FOREIGN KEYS ========================
     
-    // regional_employment -> geo.tiger_states (state_code matches state_code)
-    java.util.List<Map<String, Object>> regionalEmploymentFks = new java.util.ArrayList<>();
-    Map<String, Object> regionalToStatesFk = new java.util.HashMap<>();
-    regionalToStatesFk.put("columns", java.util.Arrays.asList("state_code"));
-    regionalToStatesFk.put("targetSchema", "geo");
-    regionalToStatesFk.put("targetTable", "tiger_states");
-    regionalToStatesFk.put("targetColumns", java.util.Arrays.asList("state_code"));
-    regionalEmploymentFks.add(regionalToStatesFk);
+    // Cross-domain FKs to GEO schema are now handled in GovDataSchemaFactory.defineCrossDomainConstraintsForEcon()
+    // This ensures they are only added when both ECON and GEO schemas are present
     
-    // When area_type = 'county', area_code could reference geo.tiger_counties.county_fips
-    // However, area_code format varies by area_type (state/MSA/county), so we can't enforce this
-    
-    regionalConstraints.put("foreignKeys", regionalEmploymentFks);
+    // regional_employment and regional_income primary keys are already defined above
     constraints.put("regional_employment", regionalConstraints);
-    
-    // regional_income -> geo.tiger_states (when geo_fips is 2-digit state FIPS)
-    // Note: geo_fips can be state FIPS (2-digit) or other geographic codes
-    // We implement this as a partial FK - it will work for state-level data
-    java.util.List<Map<String, Object>> regionalIncomeFks = new java.util.ArrayList<>();
-    Map<String, Object> regionalIncomeToStatesFk = new java.util.HashMap<>();
-    regionalIncomeToStatesFk.put("columns", java.util.Arrays.asList("geo_fips"));
-    regionalIncomeToStatesFk.put("targetSchema", "geo");
-    regionalIncomeToStatesFk.put("targetTable", "tiger_states");
-    regionalIncomeToStatesFk.put("targetColumns", java.util.Arrays.asList("state_fips"));
-    regionalIncomeFks.add(regionalIncomeToStatesFk);
-    
-    regionalIncomeConstraints.put("foreignKeys", regionalIncomeFks);
     constraints.put("regional_income", regionalIncomeConstraints);
     
     // ======================== INTRA-SCHEMA RELATIONSHIPS ========================

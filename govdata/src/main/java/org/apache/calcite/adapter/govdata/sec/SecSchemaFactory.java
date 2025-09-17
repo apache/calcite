@@ -77,23 +77,40 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(SecSchemaFactory.class);
 
   // Standard SEC data cache directory - XBRL files are immutable, cache forever
-  // Required environment variables - error if not set
-  private static final String GOVDATA_CACHE_DIR = System.getenv("GOVDATA_CACHE_DIR");
-  private static final String GOVDATA_PARQUET_DIR = System.getenv("GOVDATA_PARQUET_DIR");
+  // These are populated at runtime from environment variables or system properties
+  private static String GOVDATA_CACHE_DIR;
+  private static String GOVDATA_PARQUET_DIR;
+  private static String SEC_RAW_DIR;
+  private static String SEC_PARQUET_DIR;
   
   static {
     LOGGER.debug("SecSchemaFactory class loaded");
-    if (GOVDATA_CACHE_DIR == null || GOVDATA_CACHE_DIR.isEmpty()) {
-      throw new IllegalStateException("GOVDATA_CACHE_DIR environment variable must be set");
-    }
-    if (GOVDATA_PARQUET_DIR == null || GOVDATA_PARQUET_DIR.isEmpty()) {
-      throw new IllegalStateException("GOVDATA_PARQUET_DIR environment variable must be set");
-    }
+    initializeDirectories();
   }
   
-  // SEC data directories
-  private static final String SEC_RAW_DIR = GOVDATA_CACHE_DIR + "/sec";
-  private static final String SEC_PARQUET_DIR = GOVDATA_PARQUET_DIR + "/source=sec";
+  private static void initializeDirectories() {
+    // Check both environment variables and system properties (for tests)
+    GOVDATA_CACHE_DIR = System.getenv("GOVDATA_CACHE_DIR");
+    if (GOVDATA_CACHE_DIR == null) {
+      GOVDATA_CACHE_DIR = System.getProperty("GOVDATA_CACHE_DIR");
+    }
+    
+    GOVDATA_PARQUET_DIR = System.getenv("GOVDATA_PARQUET_DIR");
+    if (GOVDATA_PARQUET_DIR == null) {
+      GOVDATA_PARQUET_DIR = System.getProperty("GOVDATA_PARQUET_DIR");
+    }
+    
+    if (GOVDATA_CACHE_DIR == null || GOVDATA_CACHE_DIR.isEmpty()) {
+      throw new IllegalStateException("GOVDATA_CACHE_DIR environment variable or system property must be set");
+    }
+    if (GOVDATA_PARQUET_DIR == null || GOVDATA_PARQUET_DIR.isEmpty()) {
+      throw new IllegalStateException("GOVDATA_PARQUET_DIR environment variable or system property must be set");
+    }
+    
+    // SEC data directories
+    SEC_RAW_DIR = GOVDATA_CACHE_DIR + "/sec";
+    SEC_PARQUET_DIR = GOVDATA_PARQUET_DIR + "/source=sec";
+  }
 
   // Parallel processing configuration
   private static final int DOWNLOAD_THREADS = 3; // Reduced to 3 concurrent downloads for better rate limiting
@@ -359,14 +376,9 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
     filingMetadata.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number"));
     filingMetadata.put("unique", Arrays.asList(Arrays.asList("accession_number")));
     
-    // Cross-schema FK to geo.tiger_states.state_code (2-letter codes)
-    Map<String, Object> filingToStatesFk = new HashMap<>();
-    filingToStatesFk.put("columns", Arrays.asList("state_of_incorporation"));
-    filingToStatesFk.put("targetSchema", "geo");
-    filingToStatesFk.put("targetTable", "tiger_states");
-    filingToStatesFk.put("targetColumns", Arrays.asList("state_code"));
+    // Cross-domain FK to GEO schema is now handled in GovDataSchemaFactory.defineCrossDomainConstraintsForSec()
+    // This ensures it's only added when both SEC and GEO schemas are present
     
-    filingMetadata.put("foreignKeys", Arrays.asList(filingToStatesFk));
     constraints.put("filing_metadata", filingMetadata);
 
     // footnotes table
@@ -593,14 +605,9 @@ public class SecSchemaFactory implements ConstraintCapableSchemaFactory {
       constraints.put("primaryKey", Arrays.asList("cik", "filing_type", "year", "accession_number"));
       constraints.put("unique", Arrays.asList(Arrays.asList("accession_number")));
       
-      // Cross-schema FK to geo.tiger_states.state_code (2-letter codes)
-      Map<String, Object> filingToStatesFk = new HashMap<>();
-      filingToStatesFk.put("columns", Arrays.asList("state_of_incorporation"));
-      filingToStatesFk.put("targetSchema", "geo");
-      filingToStatesFk.put("targetTable", "tiger_states");
-      filingToStatesFk.put("targetColumns", Arrays.asList("state_code"));
+      // Cross-domain FK to GEO schema is now handled in GovDataSchemaFactory.defineCrossDomainConstraintsForSec()
+      // This ensures it's only added when both SEC and GEO schemas are present
       
-      constraints.put("foreignKeys", Arrays.asList(filingToStatesFk));
       filingMetadata.put("constraints", constraints);
     }
     
