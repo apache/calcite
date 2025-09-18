@@ -1499,17 +1499,11 @@ public class Smalls {
       if (s == null) {
         return null;
       }
-      try {
-        Character[] characters = new Character[s.length()];
-        int index = 0;
-        for (char c : s.toCharArray()) {
-          characters[index] = c;
-          index++;
-        }
-        return characters;
-      } catch (Exception e) {
-        return null;
+      Character[] characters = new Character[s.length()];
+      for (int i = 0; i < s.length(); i++) {
+        characters[i] = s.charAt(i);
       }
+      return characters;
     }
   }
 }
