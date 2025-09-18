@@ -107,7 +107,7 @@ public class RelMdFunctionalDependency
   public Set<ImmutableBitSet> candidateKeys(
       RelNode rel, RelMetadataQuery mq, ImmutableBitSet attributes) {
     FunctionalDependencySet fdSet = mq.getFunctionalDependencies(rel);
-    return fdSet.findKeys(attributes);
+    return fdSet.findCandidateKeys(attributes);
   }
 
   /**
