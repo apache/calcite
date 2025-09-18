@@ -20,8 +20,16 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableSet;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -29,6 +37,9 @@ import java.util.Set;
  * This class implements standard algorithms for functional dependency reasoning.
  */
 public class FunctionalDependencySet {
+  // Maximum number of attributes supported in closure computation
+  private static final int MAX_CLOSURE_ATTRS = 10000;
+
   private final Set<FunctionalDependency> fdSet = new HashSet<>();
 
   public FunctionalDependencySet() {}
@@ -85,25 +96,56 @@ public class FunctionalDependencySet {
    * The closure of X, denoted X+, is the set of all attributes that can be functionally
    * determined by X using the functional dependencies in this set and Armstrong's axioms.
    *
-   * @param attrs the input attribute set
+   * @param attributes the input attribute set
    * @return the closure of the input attributes
    */
-  public ImmutableBitSet closure(ImmutableBitSet attrs) {
-    ImmutableBitSet closure = attrs;
-    boolean changed;
-    do {
-      changed = false;
-      for (FunctionalDependency fd : fdSet) {
-        if (closure.contains(fd.getDeterminants())) {
-          ImmutableBitSet newClosure = closure.union(fd.getDependents());
-          if (!newClosure.equals(closure)) {
-            closure = newClosure;
-            changed = true;
+  public ImmutableBitSet closure(ImmutableBitSet attributes) {
+    if (attributes.isEmpty()) {
+      return attributes;
+    }
+
+    if (attributes.cardinality() > MAX_CLOSURE_ATTRS) {
+      throw new IllegalArgumentException(
+          "closure only supports up to " + MAX_CLOSURE_ATTRS
+              + " attributes, but got " + attributes.cardinality());
+    }
+
+    Set<Integer> closureSet = new HashSet<>();
+    Queue<Integer> queue = new ArrayDeque<>();
+    for (int attr : attributes) {
+      closureSet.add(attr);
+      queue.add(attr);
+    }
+
+    Map<FunctionalDependency, Integer> fdMissingCount = new HashMap<>();
+    Map<Integer, List<FunctionalDependency>> attrToFDs = new HashMap<>();
+    for (FunctionalDependency fd : fdSet) {
+      fdMissingCount.put(fd, fd.getDeterminants().cardinality());
+      for (int det : fd.getDeterminants()) {
+        attrToFDs.computeIfAbsent(det, k -> new ArrayList<>()).add(fd);
+      }
+    }
+
+    while (!queue.isEmpty()) {
+      int attr = queue.poll();
+      List<FunctionalDependency> fds = attrToFDs.get(attr);
+      if (fds == null) {
+        continue;
+      }
+      for (FunctionalDependency fd : fds) {
+        int missing = fdMissingCount.get(fd) - 1;
+        fdMissingCount.put(fd, missing);
+        if (missing == 0) {
+          for (int dep : fd.getDependents()) {
+            if (closureSet.add(dep)) {
+              queue.add(dep);
+            }
           }
         }
       }
-    } while (changed);
-    return closure;
+    }
+
+    return ImmutableBitSet.of(closureSet);
   }
 
   /**
@@ -196,41 +238,78 @@ public class FunctionalDependencySet {
    * @param attributes the set of attributes to search for candidate keys within
    * @return a set of minimal attribute subsets that can determine all given attributes
    */
-  public Set<ImmutableBitSet> findKeys(ImmutableBitSet attributes) {
+  public Set<ImmutableBitSet> findCandidateKeys(ImmutableBitSet attributes) {
+    // Branch and bound algorithm for minimal candidate key search
     if (fdSet.isEmpty()) {
       return ImmutableSet.of(attributes);
     }
 
-    Set<ImmutableBitSet> level = new HashSet<>();
-    for (int attr : attributes) {
-      level.add(ImmutableBitSet.of(attr));
+    // Attributes that are not dependents of any FD
+    ImmutableBitSet essentialAttrs = findEssentialAttributes(attributes);
+    if (closure(essentialAttrs).contains(attributes)) {
+      return ImmutableSet.of(essentialAttrs);
     }
 
-    while (!level.isEmpty()) {
-      Set<ImmutableBitSet> found = new HashSet<>();
-      for (ImmutableBitSet cand : level) {
-        if (closure(cand).contains(attributes)) {
-          found.add(cand);
-        }
+    Set<ImmutableBitSet> result = new HashSet<>();
+    int minKeySize = Integer.MAX_VALUE;
+    PriorityQueue<ImmutableBitSet> queue =
+        new PriorityQueue<>(Comparator.comparingInt(ImmutableBitSet::cardinality));
+    Set<ImmutableBitSet> visited = new HashSet<>();
+    queue.add(essentialAttrs);
+
+    while (!queue.isEmpty()) {
+      ImmutableBitSet cand = queue.poll();
+      if (visited.contains(cand)) {
+        continue;
       }
-      if (!found.isEmpty()) {
-        // Keys at this level are minimal and then return
-        return found;
+      visited.add(cand);
+      if (cand.cardinality() > minKeySize) {
+        break;
       }
 
-      Set<ImmutableBitSet> next = new HashSet<>();
-      for (ImmutableBitSet cand : level) {
-        for (int attr : attributes) {
-          if (!cand.get(attr)) {
-            next.add(cand.set(attr));
-          }
+      // Branch and bound pruning: skip if cand is covered by any known key
+      boolean covered = false;
+      for (ImmutableBitSet key : result) {
+        if (key.contains(cand)) {
+          covered = true;
+          break;
         }
       }
 
-      level = next;
+      if (covered) {
+        continue;
+      }
+
+      ImmutableBitSet candClosure = closure(cand);
+      if (candClosure.contains(attributes)) {
+        result.add(cand);
+        minKeySize = cand.cardinality();
+        continue;
+      }
+
+      // Expand: only add attributes not in the closure
+      ImmutableBitSet remain = attributes.except(cand);
+      for (int attr : remain) {
+        if (candClosure.get(attr)) {
+          continue;
+        }
+        ImmutableBitSet next = cand.set(attr);
+        if (!visited.contains(next)) {
+          queue.add(next);
+        }
+      }
     }
+    return result.isEmpty() ? ImmutableSet.of(attributes) : result;
+  }
 
-    return ImmutableSet.of(attributes);
+  private ImmutableBitSet findEssentialAttributes(ImmutableBitSet attributes) {
+    // Find attributes that do not appear on the right side of any FD (essential for key)
+    ImmutableBitSet.Builder dependentsBuilder = ImmutableBitSet.builder();
+    for (FunctionalDependency fd : fdSet) {
+      dependentsBuilder.addAll(fd.getDependents());
+    }
+    ImmutableBitSet dependentsAttrs = dependentsBuilder.build();
+    return attributes.except(dependentsAttrs);
   }
 
   /**
