@@ -13167,14 +13167,14 @@ class RelToSqlConverterDMTest {
         + "(select \"birth_date\", \"first_name\"  from \"employee\" GROUP BY \"birth_date\", \"first_name\" "
         + ") GROUP BY \"birth_date\"";
 
-    final String expectedSpark = "SELECT birth_date, LISTAGG(first_name, `','`)"
+    final String expectedBigQuery = "SELECT birth_date, LISTAGG(first_name, ',')"
         + "\nFROM (SELECT birth_date, first_name, ',' AS `$f2`"
         + "\nFROM foodmart.employee"
         + "\nGROUP BY birth_date, first_name) AS t1"
         + "\nGROUP BY birth_date";
     sql(query)
         .withBigQuery()
-        .ok(expectedSpark);
+        .ok(expectedBigQuery);
   }
 
   @Test public void testToLocalTimestampFunction() {
