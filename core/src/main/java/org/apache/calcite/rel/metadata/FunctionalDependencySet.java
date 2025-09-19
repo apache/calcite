@@ -127,13 +127,20 @@ public class FunctionalDependencySet {
     }
 
     while (!queue.isEmpty()) {
-      int attr = queue.poll();
+      Integer attr = queue.poll();
+      if (attr == null) {
+        continue;
+      }
       List<FunctionalDependency> fds = attrToFDs.get(attr);
       if (fds == null) {
         continue;
       }
       for (FunctionalDependency fd : fds) {
-        int missing = fdMissingCount.get(fd) - 1;
+        Integer missing = fdMissingCount.get(fd);
+        if (missing == null) {
+          continue;
+        }
+        missing = missing - 1;
         fdMissingCount.put(fd, missing);
         if (missing == 0) {
           for (int dep : fd.getDependents()) {
@@ -259,6 +266,9 @@ public class FunctionalDependencySet {
 
     while (!queue.isEmpty()) {
       ImmutableBitSet cand = queue.poll();
+      if (cand == null) {
+        continue;
+      }
       if (visited.contains(cand)) {
         continue;
       }
