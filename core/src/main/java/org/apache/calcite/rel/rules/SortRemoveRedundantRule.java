@@ -24,6 +24,7 @@ import org.apache.calcite.rex.RexLiteral;
 
 import org.immutables.value.Value;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -114,7 +115,7 @@ public class SortRemoveRedundantRule
     // If the limit's fetch is 0, we could use
     // CoreRules.SORT_FETCH_ZERO_INSTANCE to deal with it, so we don't need to
     // deal with it in this rule.
-    final Optional<Integer> rowCountThreshold = getRowCountThreshold(sort);
+    final Optional<BigDecimal> rowCountThreshold = getRowCountThreshold(sort);
 
     if (!rowCountThreshold.isPresent()) {
       return;
@@ -122,30 +123,33 @@ public class SortRemoveRedundantRule
 
     // If the threshold is not null and less than or equal to targetMaxRowCount,
     // then we could remove the redundant sort.
-    if (inputMaxRowCount != null && inputMaxRowCount <= rowCountThreshold.get()) {
+    if (inputMaxRowCount != null
+        && Double.isFinite(inputMaxRowCount)
+        && new BigDecimal(inputMaxRowCount).compareTo(rowCountThreshold.get()) <= 0) {
       call.transformTo(sort.getInput());
     }
   }
 
-  private static Optional<Integer> getRowCountThreshold(Sort sort) {
+  private static Optional<BigDecimal> getRowCountThreshold(Sort sort) {
     if (RelOptUtil.isLimit(sort)) {
-      final int fetch =
-          sort.fetch instanceof RexLiteral ? RexLiteral.intValue(sort.fetch) : 0;
+      assert sort.fetch != null;
+      final BigDecimal fetch = ((RexLiteral) sort.fetch).getValueAs(BigDecimal.class);
 
       // We don't need to deal with fetch is 0.
-      if (fetch == 0) {
+      assert fetch != null;
+      if (fetch.equals(BigDecimal.ZERO)) {
         return Optional.empty();
       }
 
       // If sort is 'order by x limit n', the target threshold is 1.
       if (RelOptUtil.isOrder(sort)) {
-        return Optional.of(1);
+        return Optional.of(BigDecimal.ONE);
       }
 
       // If sort is 'limit n', the target threshold is the limit's fetch.
       return Optional.of(fetch);
     } else if (RelOptUtil.isPureOrder(sort)) {
-      return Optional.of(1);
+      return Optional.of(BigDecimal.ONE);
     }
     return Optional.empty();
   }

@@ -18227,6 +18227,25 @@ LogicalProject(T1=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2">
+    <Resource name="sql">
+      <![CDATA[select * from
+(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(fetch=[9823372036854775807:DECIMAL(19, 0)])
+  LogicalProject(T1=[$0])
+    LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(T1=[$0])
+  LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveWhenIsOrderAndLimit">
     <Resource name="sql">
       <![CDATA[SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10]]>
