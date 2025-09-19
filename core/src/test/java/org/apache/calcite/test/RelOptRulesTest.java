@@ -1632,6 +1632,18 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7181">[CALCITE-7181]
+   * FETCH in SortRemoveRedundantRule do not support BIGINT</a>. */
+  @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2() {
+    final String sql = "select * from\n"
+        // The maximum value of BIGINT is   9223372036854775807.
+        + "(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
    * Add optimization to remove redundant LIMIT that is more than input
    * row count</a>. */
