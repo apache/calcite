@@ -975,7 +975,14 @@ public class RelToSqlConverter extends SqlImplementor
   protected Builder buildAggregate(Aggregate e, Builder builder,
       List<SqlNode> selectList, List<SqlNode> groupByList) {
     for (AggregateCall aggCall : e.getAggCallList()) {
-      SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
+      String delimiter = null;
+      if ((aggCall.getAggregation().kind == SqlKind.LISTAGG
+          || aggCall.getAggregation().kind == SqlKind.STRING_AGG) && aggCall.getArgList().size() == 2
+          && e.getInput() instanceof Project) {
+        delimiter =
+            ((Project) e.getInput()).getChildExps().get(aggCall.getArgList().get(1)).toString();
+      }
+      SqlNode aggCallSqlNode = builder.context.toSql(aggCall, delimiter);
       RelDataType aggCallRelDataType = aggCall.getType();
       if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
         aggCallSqlNode = dialect.rewriteSingleValueExpr(aggCallSqlNode, aggCallRelDataType);

@@ -1354,11 +1354,15 @@ public abstract class SqlImplementor {
     }
 
     /** Converts a call to an aggregate function to an expression. */
-    public SqlNode toSql(AggregateCall aggCall) {
+    public SqlNode toSql(AggregateCall aggCall, @Nullable String delimiter) {
+      List<SqlNode> operandList = Util.transform(aggCall.getArgList(), this::field);
+      List<SqlNode> updatedOperandList = new ArrayList<>(operandList);
+      if (delimiter != null && operandList.get(1) instanceof SqlIdentifier) {
+        updatedOperandList.set(1, new SqlIdentifier(delimiter, operandList.get(1).getParserPosition()));
+      }
       return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
           Util.transform(aggCall.rexList, e -> toSql((RexProgram) null, e)),
-          Util.transform(aggCall.getArgList(), this::field),
-          aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
+          updatedOperandList, aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
     }
 
     /** Converts a call to an aggregate function, with a given list of operands,
