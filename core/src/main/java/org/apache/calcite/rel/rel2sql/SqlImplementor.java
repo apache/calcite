@@ -2506,15 +2506,15 @@ public abstract class SqlImplementor {
             && !canMergeProjectAndAggregate(project.getProjects(), aggregate)) {
           return true;
         }
-        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
-            ||
-            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
-          return false;
-        }
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
           return true;
+        }
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
+            ||
+            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
+          return false;
         }
 
         //check for distinct

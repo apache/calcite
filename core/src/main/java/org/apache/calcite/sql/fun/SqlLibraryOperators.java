@@ -3009,6 +3009,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SPLIT_TO_TABLE =
       new SplitToTableFunction();
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction GENERATOR =
+      new GeneratorTableFunction();
+
   /** The "TO_VARCHAR(numeric, string)" function; casts string
    * Format first_operand to specified in second operand. */
   @LibraryOperator(libraries = {SNOWFLAKE})

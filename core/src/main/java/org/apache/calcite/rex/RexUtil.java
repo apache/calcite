@@ -872,6 +872,27 @@ public class RexUtil {
   }
 
   /**
+   * Returns whether a given tree contains any {link RexDynamicParam} nodes.
+   *
+   * @param node a RexNode tree
+   */
+  public static boolean containsDynamicParam(RexNode node) {
+    try {
+      RexVisitor<Void> visitor =
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+              throw new Util.FoundOne(dynamicParam);
+            }
+          };
+      node.accept(visitor);
+      return false;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return true;
+    }
+  }
+
+  /**
    * Returns whether a given tree contains any
    * {@link org.apache.calcite.rex.RexFieldAccess} nodes.
    *

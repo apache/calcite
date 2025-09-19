@@ -48,7 +48,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.plan.JoinConditionTransferTraitDef;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -857,8 +856,6 @@ public class JdbcTest {
         + "and \"empid\" in (100, 200, 150)";
     CalciteAssert.hr()
         .query(sql)
-        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
-        planner.addRelTraitDef(JoinConditionTransferTraitDef.INSTANCE))
         .returnsUnordered("empid=100",
             "empid=200",
             "empid=150");
