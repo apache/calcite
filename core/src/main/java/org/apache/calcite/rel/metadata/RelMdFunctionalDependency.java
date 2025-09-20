@@ -136,12 +136,11 @@ public class RelMdFunctionalDependency
   }
 
   private static FunctionalDependencySet getFD(List<RelNode> inputs, RelMetadataQuery mq) {
-    FunctionalDependencySet result = new FunctionalDependencySet();
-    for (RelNode input : inputs) {
-      FunctionalDependencySet fdSet = mq.getFunctionalDependencies(input);
-      result = result.union(fdSet);
+    if (inputs.size() > 1) {
+      // Conservative approach for multi-input nodes without specific logic
+      return new FunctionalDependencySet();
     }
-    return result;
+    return mq.getFunctionalDependencies(inputs.get(0));
   }
 
   private static FunctionalDependencySet getTableScanFD(TableScan rel) {
@@ -190,7 +189,7 @@ public class RelMdFunctionalDependency
     // Map input functional dependencies to project dependencies
     mapInputFDs(inputFdSet, inputToOutputMap, projectionFdSet);
 
-    // For each pair of output columns, determine if one determines the other
+    // For a relation with 10000 columns, the cost of this would be 100,000,000.
     for (int i = 0; i < fieldCount; i++) {
       for (int j = i + 1; j < fieldCount; j++) {
         RexNode expr1 = projections.get(i);
@@ -347,13 +346,10 @@ public class RelMdFunctionalDependency
       return innerJoinFdSet;
     case LEFT:
       // Left join: preserve left FDs, right FDs may be invalidated by NULLs
-      FunctionalDependencySet leftJoinFdSet = new FunctionalDependencySet(leftFdSet.getFDs());
-      deriveTransitiveFDs(rel, leftJoinFdSet, leftFieldCount);
-      return leftJoinFdSet;
+      return new FunctionalDependencySet(leftFdSet.getFDs());
     case RIGHT:
       // Right join: preserve right FDs, left FDs may be invalidated by NULLs
-      FunctionalDependencySet shiftedRightFdSet = shiftFdSet(rightFdSet, leftFieldCount);
-      return shiftedRightFdSet;
+      return shiftFdSet(rightFdSet, leftFieldCount);
     case FULL:
       // Full join: both sides may have NULLs, very conservative approach
       return new FunctionalDependencySet();

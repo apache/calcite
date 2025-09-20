@@ -214,12 +214,32 @@ public class FunctionalDependencyTest {
   @Test void testClosureWithLargeRelation() {
     int numAttrs = 10000;
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
-    // Construct a chain dependency: 0 -> 1, 1 -> 2, ..., 99999 -> 100000
+    // Construct a chain dependency: 0 -> 1, 1 -> 2, ..., 9999 -> 10000
     for (int i = 0; i < numAttrs; i++) {
       fdSet.addFD(i, i + 1);
     }
     // Compute the closure of {0}, which should contain all attributes
     ImmutableBitSet closure = fdSet.closure(ImmutableBitSet.of(0));
+    for (int i = 0; i < numAttrs; i++) {
+      assertThat(closure.get(i), is(true));
+    }
+  }
+
+  @Test void testClosureWithWideKeys() {
+    int numAttrs = 1010;
+    int keyWidth = 10;
+    FunctionalDependencySet fdSet = new FunctionalDependencySet();
+    // Construct 1000 FDs: {0,1,...,9} -> 10, {1,2,...,10} -> 11, ...
+    for (int i = 0; i < 1000; i++) {
+      int[] determinants = new int[keyWidth];
+      for (int j = 0; j < keyWidth; j++) {
+        determinants[j] = i + j;
+      }
+      fdSet.addFD(ImmutableBitSet.of(determinants), ImmutableBitSet.of(i + keyWidth));
+    }
+    // Closure: {0,1,2,3,4,5,6,7,8,9} should eventually yield all attributes
+    ImmutableBitSet initial = ImmutableBitSet.range(0, keyWidth);
+    ImmutableBitSet closure = fdSet.closure(initial);
     for (int i = 0; i < numAttrs; i++) {
       assertThat(closure.get(i), is(true));
     }
