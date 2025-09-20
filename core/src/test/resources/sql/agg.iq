@@ -4126,4 +4126,23 @@ GROUP BY DEPTNO, JOB;
 
 !ok
 
+# [CALCITE-7189] Support MySQL-style non-standard GROUP BY
+!use scott-babel
+select deptno, ename, sal+1 as sal_1, max(sal) as max_sal from emp group by deptno;
++--------+--------+---------+---------+
+| DEPTNO | ENAME  | SAL_1   | MAX_SAL |
++--------+--------+---------+---------+
+|     10 | MILLER | 5001.00 | 5000.00 |
+|     20 | SMITH  | 3001.00 | 3000.00 |
+|     30 | WARD   | 2851.00 | 2850.00 |
++--------+--------+---------+---------+
+(3 rows)
+
+!ok
+
+EnumerableAggregate(group=[{0}], ENAME=[ANY_VALUE($1)], SAL_1=[ANY_VALUE($2)], MAX_SAL=[MAX($3)])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[+($t5, $t8)], DEPTNO=[$t7], ENAME=[$t1], $f2=[$t9], SAL=[$t5])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq
