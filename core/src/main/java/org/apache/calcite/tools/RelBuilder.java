@@ -3674,7 +3674,7 @@ public class RelBuilder {
    * @param offset Number of rows to skip; non-positive means don't skip any
    * @param fetch Maximum number of rows to fetch; negative means no limit
    */
-  public RelBuilder limit(int offset, int fetch) {
+  public RelBuilder limit(Number offset, Number fetch) {
     return sortLimit(offset, fetch, ImmutableList.of());
   }
 
@@ -3720,7 +3720,7 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Sort} by expressions, with limit and offset. */
-  public RelBuilder sortLimit(long offset, long fetch, RexNode... nodes) {
+  public RelBuilder sortLimit(Number offset, Number fetch, RexNode... nodes) {
     return sortLimit(offset, fetch, ImmutableList.copyOf(nodes));
   }
 
@@ -3739,10 +3739,16 @@ public class RelBuilder {
    * @param fetch Maximum number of rows to fetch; negative means no limit
    * @param nodes Sort expressions
    */
-  public RelBuilder sortLimit(long offset, long fetch,
+  public RelBuilder sortLimit(Number offset, Number fetch,
       Iterable<? extends RexNode> nodes) {
-    final @Nullable RexNode offsetNode = offset <= 0 ? null : literal(offset);
-    final @Nullable RexNode fetchNode = fetch < 0 ? null : literal(fetch);
+    final @Nullable RexNode offsetNode =
+        new BigDecimal(offset.toString()).compareTo(BigDecimal.ZERO) <= 0
+            ? null
+            : literal(offset);
+    final @Nullable RexNode fetchNode =
+        new BigDecimal(fetch.toString()).compareTo(BigDecimal.ZERO) < 0
+            ? null
+            : literal(fetch);
     return sortLimit(offsetNode, fetchNode, nodes);
   }
 
@@ -3770,9 +3776,12 @@ public class RelBuilder {
     final Registrar registrar = new Registrar(fields(), ImmutableList.of());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);
-    final long fetch = fetchNode instanceof RexLiteral
-        ? RexLiteral.longValue(fetchNode) : -1;
-    if (offsetNode == null && fetch == 0 && config.simplifyLimit()) {
+    final Number fetch = fetchNode instanceof RexLiteral
+        ? RexLiteral.numberValue(fetchNode) : null;
+    if (offsetNode == null
+        && fetch != null
+        && ((BigDecimal) fetch).compareTo(BigDecimal.ZERO) == 0
+        && config.simplifyLimit()) {
       return empty();
     }
     if (offsetNode == null && fetchNode == null && fieldCollations.isEmpty()) {
