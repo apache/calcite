@@ -487,6 +487,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // calls.
       selectScope = getSelectScope(select);
       expanded = expandSelectExpr(selectItem, scope, select, expansions);
+
+      // Non-strict GROUP BY: wrap non-aggregated, non-grouped columns in ANY_VALUE()
+      if (isAggregate(select)
+          && config.conformance().isNonStrictGroupBy()
+          && isNonAggregatedNonGroupedColumn(expanded, select)) {
+        expanded =
+            SqlStdOperatorTable.ANY_VALUE.createCall(expanded.getParserPosition(), expanded);
+      }
     }
     final String alias =
         SqlValidatorUtil.alias(selectItem, aliases.size());
@@ -524,6 +532,45 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     setValidatedNodeType(expanded, type);
     fields.add(alias, type);
     return false;
+  }
+
+  /**
+   * Returns true if the node is a non-aggregated, non-grouped column in SELECT.
+   */
+  private boolean isNonAggregatedNonGroupedColumn(SqlNode node, SqlSelect select) {
+    if (aggFinder.findAgg(node) != null) {
+      return false;
+    }
+
+    if (node instanceof SqlIdentifier) {
+      SqlNodeList groupList = select.getGroup();
+      if (groupList == null) {
+        return true;
+      }
+      return groupList.getList().stream()
+          .noneMatch(groupItem -> groupItem != null
+              && equalAsIdentifier((SqlIdentifier) node, groupItem));
+    }
+
+    if (node instanceof SqlCall) {
+      return ((SqlCall) node).getOperandList().stream()
+          .allMatch(operand -> isNonAggregatedNonGroupedColumn(operand, select));
+    } else if (node instanceof SqlLiteral) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Determines whether two SqlIdentifier objects are equivalent. */
+  private boolean equalAsIdentifier(SqlIdentifier id1, SqlNode node2) {
+    if (!(node2 instanceof SqlIdentifier)) {
+      return false;
+    }
+    SqlIdentifier id2 = (SqlIdentifier) node2;
+    SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+    return nameMatcher
+        .matches(String.join(".", id1.names), String.join(".", id2.names));
   }
 
   private static Map<String, String> getFieldAliases(final SelectScope scope) {
