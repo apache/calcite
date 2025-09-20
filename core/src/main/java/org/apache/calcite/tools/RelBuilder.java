@@ -36,6 +36,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Combine;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
@@ -1185,8 +1186,8 @@ public class RelBuilder {
     return cast(SqlParserPos.ZERO, expr, typeName, precision);
   }
 
-    /** Creates an expression that casts an expression to a type with a given name
-     * and precision or length. */
+  /** Creates an expression that casts an expression to a type with a given name
+   * and precision or length. */
   public RexNode cast(SqlParserPos pos, RexNode expr, SqlTypeName typeName, int precision) {
     final RelDataType type =
         cluster.getTypeFactory().createSqlType(typeName, precision);
@@ -2360,11 +2361,11 @@ public class RelBuilder {
     stack.push(
         new Frame(
           new Uncollect(
-            cluster,
-            cluster.traitSetOf(Convention.NONE),
-            frame.rel,
-            withOrdinality,
-            requireNonNull(itemAliases, "itemAliases"))));
+              cluster,
+              cluster.traitSetOf(Convention.NONE),
+              frame.rel,
+              withOrdinality,
+              requireNonNull(itemAliases, "itemAliases"))));
     return this;
   }
 
@@ -2840,8 +2841,7 @@ public class RelBuilder {
     for (Multiset.Entry<ImmutableBitSet> entry : groupSets.entrySet()) {
       int groupId = entry.getCount() - 1;
       for (int i = 0; i <= groupId; i++) {
-        groupIdToGroupSets.computeIfAbsent(i,
-            k -> Sets.newTreeSet(ImmutableBitSet.COMPARATOR))
+        groupIdToGroupSets.computeIfAbsent(i, k -> Sets.newTreeSet(ImmutableBitSet.COMPARATOR))
             .add(entry.getElement());
       }
     }
@@ -5382,5 +5382,30 @@ public class RelBuilder {
   private interface RegisterAgg {
     RexInputRef registerAgg(SqlAggFunction op, List<RexNode> operands,
         RelDataType type, @Nullable String name);
+  }
+
+  /** Creates a {@link Combine} of the top {@code n} relational expressions
+   * on the stack. */
+  public RelBuilder combine(int n) {
+    final List<RelNode> inputs = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      inputs.add(0, peek(i));
+    }
+    return push(struct.combineFactory.createCombine(cluster, inputs));
+  }
+
+  /** Creates a {@link Combine} of all relational expressions on the stack. */
+  public RelBuilder combine() {
+    return combine(size());
+  }
+
+  /** Creates a {@link Combine} of the given relational expressions. */
+  public RelBuilder combine(RelNode... inputs) {
+    return push(struct.combineFactory.createCombine(cluster, Arrays.asList(inputs)));
+  }
+
+  /** Creates a {@link Combine} of the given relational expressions. */
+  public RelBuilder combine(Iterable<? extends RelNode> inputs) {
+    return push(struct.combineFactory.createCombine(cluster, ImmutableList.copyOf(inputs)));
   }
 }
