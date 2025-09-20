@@ -66,6 +66,7 @@ public class JavaToSqlTypeConversionRules {
           .put(ByteString.class, SqlTypeName.VARBINARY)
           .put(String.class, SqlTypeName.VARCHAR)
           .put(char[].class, SqlTypeName.VARCHAR)
+          .put(Character[].class, SqlTypeName.VARCHAR)
           .put(Character.class, SqlTypeName.CHAR)
           .put(char.class, SqlTypeName.CHAR)
 

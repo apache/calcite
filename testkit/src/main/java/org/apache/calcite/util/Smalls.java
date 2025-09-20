@@ -1492,4 +1492,18 @@ public class Smalls {
       }
     }
   }
+
+  /** User-defined function with return type Character[]. */
+  public static class CharacterArrayFunction {
+    public static Character[] eval(String s) {
+      if (s == null) {
+        return null;
+      }
+      Character[] characters = new Character[s.length()];
+      for (int i = 0; i < s.length(); i++) {
+        characters[i] = s.charAt(i);
+      }
+      return characters;
+    }
+  }
 }
