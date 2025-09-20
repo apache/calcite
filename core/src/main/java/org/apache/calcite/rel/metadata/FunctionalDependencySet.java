@@ -94,7 +94,8 @@ public class FunctionalDependencySet {
   /**
    * Computes the closure of a set of attributes under this functional dependency set.
    * The closure of X, denoted X+, is the set of all attributes that can be functionally
-   * determined by X using the functional dependencies in this set and Armstrong's axioms.
+   * determined by X using the functional dependencies in this set and
+   * <a href="https://en.wikipedia.org/wiki/Armstrong%27s_axioms">Armstrong's axioms</a>
    *
    * @param attributes the input attribute set
    * @return the closure of the input attributes
