@@ -2147,6 +2147,30 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7192">[CALCITE-7192]
+   * AggregateReduceFunctionsRule lost FILTER condition in STDDEV/VAR function decomposition</a>. */
+  @Test void testVarianceStddevWithFilter() {
+    // Test to ensure FILTER conditions are correctly propagated to decomposed aggregates
+    // for all functions that use the `reduceStddev` method
+    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
+        .withOperandFor(LogicalAggregate.class)
+        .withFunctionsToReduce(
+            EnumSet.of(SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP,
+                      SqlKind.VAR_POP, SqlKind.VAR_SAMP, SqlKind.AVG))
+        .toRule();
+    final String sql = "select name, "
+        + "stddev_pop(deptno) filter (where deptno > 10), "
+        + "stddev_samp(deptno) filter (where deptno > 20), "
+        + "var_pop(deptno) filter (where deptno > 30), "
+        + "var_samp(deptno) filter (where deptno > 40), "
+        + "avg(deptno) filter (where deptno > 50)\n"
+        + "from sales.dept group by name";
+    sql(sql)
+        .withRule(rule)
+        .check();
+  }
+
   @Test void testDistinctCountWithoutGroupBy() {
     final String sql = "select max(deptno), count(distinct ename)\n"
         + "from sales.emp";

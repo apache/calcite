@@ -552,7 +552,7 @@ public class AggregateReduceFunctionsRule
 
     final AggregateCall sumArgSquaredAggCall =
         createAggregateCallWithBinding(typeFactory, SqlStdOperatorTable.SUM,
-            argSquared.getType(), oldAggRel, oldCall, argSquaredOrdinal, -1);
+            argSquared.getType(), oldAggRel, oldCall, argSquaredOrdinal, oldCall.filterArg);
 
     final RexNode sumArgSquared =
         rexBuilder.addAggCall(sumArgSquaredAggCall,

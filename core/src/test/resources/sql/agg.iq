@@ -239,6 +239,30 @@ group by gender;
 
 !ok
 
+# [CALCITE-7192] lost FILTER condition when decomposition
+select gender,
+  stddev_pop(deptno) as p,
+  stddev_pop(deptno) filter (where deptno > 50) as pf,
+  stddev_samp(deptno) as s,
+  stddev_samp(deptno) filter (where deptno > 40) as sf,
+  var_pop(deptno) as vp,
+  var_pop(deptno) filter (where deptno > 30) as vpf,
+  var_samp(deptno) as vs,
+  var_samp(deptno) filter (where deptno > 20) as vsf,
+  avg(deptno) as a,
+  avg(deptno) filter (where deptno > 10) as af
+from emp
+group by gender;
++--------+----+----+----+----+-----+-----+-----+-----+----+----+
+| GENDER | P  | PF | S  | SF | VP  | VPF | VS  | VSF | A  | AF |
++--------+----+----+----+----+-----+-----+-----+-----+----+----+
+| F      | 17 |  0 | 19 |  7 | 304 |  25 | 380 | 225 | 36 | 42 |
+| M      | 17 |    | 20 |    | 289 |   0 | 433 |     | 26 | 35 |
++--------+----+----+----+----+-----+-----+-----+-----+----+----+
+(2 rows)
+
+!ok
+
 select city, gender as c from emps;
 +---------------+---+
 | CITY          | C |
