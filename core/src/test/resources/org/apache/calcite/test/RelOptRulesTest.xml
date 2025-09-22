@@ -20071,6 +20071,28 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testVarianceStddevWithFilter">
+    <Resource name="sql">
+      <![CDATA[select name, stddev_pop(deptno) filter (where deptno > 10), stddev_samp(deptno) filter (where deptno > 20), var_pop(deptno) filter (where deptno > 30), var_samp(deptno) filter (where deptno > 40), avg(deptno) filter (where deptno > 50)
+from sales.dept group by name]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1) FILTER $2], EXPR$2=[STDDEV_SAMP($1) FILTER $3], EXPR$3=[VAR_POP($1) FILTER $4], EXPR$4=[VAR_SAMP($1) FILTER $5], EXPR$5=[AVG($1) FILTER $6])
+  LogicalProject(NAME=[$1], DEPTNO=[$0], $f2=[>($0, 10)], $f3=[>($0, 20)], $f4=[>($0, 30)], $f5=[>($0, 40)], $f6=[>($0, 50)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:DECIMAL(2, 1))):INTEGER], EXPR$2=[CAST(POWER(/(-($4, /(*($5, $5), $6)), CASE(=($6, 1), null:BIGINT, -($6, 1))), 0.5:DECIMAL(2, 1))):INTEGER], EXPR$3=[CAST(/(-($7, /(*($8, $8), $9)), $9)):INTEGER], EXPR$4=[CAST(/(-($10, /(*($11, $11), $12)), CASE(=($12, 1), null:BIGINT, -($12, 1)))):INTEGER], EXPR$5=[CAST(/($13, $14)):INTEGER])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($7) FILTER $2], agg#1=[SUM($1) FILTER $2], agg#2=[COUNT() FILTER $2], agg#3=[SUM($7) FILTER $3], agg#4=[SUM($1) FILTER $3], agg#5=[COUNT() FILTER $3], agg#6=[SUM($7) FILTER $4], agg#7=[SUM($1) FILTER $4], agg#8=[COUNT() FILTER $4], agg#9=[SUM($7) FILTER $5], agg#10=[SUM($1) FILTER $5], agg#11=[COUNT() FILTER $5], agg#12=[SUM($1) FILTER $6], agg#13=[COUNT() FILTER $6])
+    LogicalProject(NAME=[$0], DEPTNO=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[*($1, $1)])
+      LogicalProject(NAME=[$1], DEPTNO=[$0], $f2=[>($0, 10)], $f3=[>($0, 20)], $f4=[>($0, 30)], $f5=[>($0, 40)], $f6=[>($0, 50)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testWhereAnyCorrelatedInSelect">
     <Resource name="sql">
       <![CDATA[select * from emp where empno > ANY (
