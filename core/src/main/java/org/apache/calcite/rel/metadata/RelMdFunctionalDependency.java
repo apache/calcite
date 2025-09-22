@@ -184,12 +184,11 @@ public class RelMdFunctionalDependency
 
     // Create mapping from input column indices to project column indices
     Mappings.TargetMapping inputToOutputMap =
-        RelOptUtil.permutation(projections, input.getRowType());
+        RelOptUtil.permutation(projections, input.getRowType()).inverse();
 
     // Map input functional dependencies to project dependencies
     mapInputFDs(inputFdSet, inputToOutputMap, projectionFdSet);
 
-    // For a relation with 10000 columns, the cost of this would be 100,000,000.
     for (int i = 0; i < fieldCount; i++) {
       for (int j = i + 1; j < fieldCount; j++) {
         RexNode expr1 = projections.get(i);
@@ -210,18 +209,35 @@ public class RelMdFunctionalDependency
           projectionFdSet.addFD(i, j);
         }
 
-        // For complex expressions, check if they have functional dependencies
-        if (!(expr1 instanceof RexLiteral) && !(expr2 instanceof RexLiteral)
-            && RexUtil.isDeterministic(expr1) && RexUtil.isDeterministic(expr2)) {
-          ImmutableBitSet inputs1 = RelOptUtil.InputFinder.bits(expr1);
-          ImmutableBitSet inputs2 = RelOptUtil.InputFinder.bits(expr2);
-
-          if (!inputs1.isEmpty() && !inputs2.isEmpty()) {
-            if (inputFdSet.implies(inputs1, inputs2)) {
+        // For complex expressions, only allow FD if one side is RexInputRef
+        // and the other is a deterministic expression
+        if (RexUtil.isDeterministic(expr1) && RexUtil.isDeterministic(expr2)) {
+          boolean expr1IsInputRef = expr1 instanceof RexInputRef;
+          boolean expr2IsInputRef = expr2 instanceof RexInputRef;
+          if (expr1IsInputRef && expr2IsInputRef) {
+            // Both are input refs, check FD between them
+            int idx1 = ((RexInputRef) expr1).getIndex();
+            int idx2 = ((RexInputRef) expr2).getIndex();
+            if (inputFdSet.implies(ImmutableBitSet.of(idx1), ImmutableBitSet.of(idx2))) {
               projectionFdSet.addFD(i, j);
             }
-            if (inputFdSet.implies(inputs2, inputs1)) {
+            if (inputFdSet.implies(ImmutableBitSet.of(idx2), ImmutableBitSet.of(idx1))) {
               projectionFdSet.addFD(j, i);
+            }
+          } else {
+            // Only one side is input ref, the other is a deterministic expr
+            if (expr1IsInputRef) {
+              int idx1 = ((RexInputRef) expr1).getIndex();
+              ImmutableBitSet inputs2 = RelOptUtil.InputFinder.bits(expr2);
+              if (!inputs2.isEmpty() && inputFdSet.implies(ImmutableBitSet.of(idx1), inputs2)) {
+                projectionFdSet.addFD(i, j);
+              }
+            } else if (expr2IsInputRef) {
+              ImmutableBitSet inputs1 = RelOptUtil.InputFinder.bits(expr1);
+              int idx2 = ((RexInputRef) expr2).getIndex();
+              if (!inputs1.isEmpty() && inputFdSet.implies(ImmutableBitSet.of(idx2), inputs1)) {
+                projectionFdSet.addFD(j, i);
+              }
             }
           }
         }
@@ -242,9 +258,7 @@ public class RelMdFunctionalDependency
 
       // Skip this FD if any determinant column is unmappable
       boolean allMappable =
-          determinants.stream().allMatch(col -> col >= 0
-              && col < mapping.getSourceCount()
-              && mapping.getTargetOpt(col) >= 0);
+          determinants.stream().allMatch(col -> mapping.getTargetOpt(col) >= 0);
       if (!allMappable) {
         continue;
       }
@@ -270,15 +284,11 @@ public class RelMdFunctionalDependency
       ImmutableBitSet columns, Mappings.TargetMapping mapping) {
     ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     for (int col : columns) {
-      if (col < 0 || col >= mapping.getSourceCount()) {
-        return ImmutableBitSet.of();
-      }
       int mappedCol = mapping.getTargetOpt(col);
-      if (mappedCol >= 0) {
-        builder.set(mappedCol);
-      } else {
+      if (mappedCol < 0) {
         return ImmutableBitSet.of();
       }
+      builder.set(mappedCol);
     }
     return builder.build();
   }
@@ -290,9 +300,6 @@ public class RelMdFunctionalDependency
       ImmutableBitSet columns, Mappings.TargetMapping mapping) {
     ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     for (int col : columns) {
-      if (col < 0 || col >= mapping.getSourceCount()) {
-        continue;
-      }
       int mappedCol = mapping.getTargetOpt(col);
       if (mappedCol >= 0) {
         builder.set(mappedCol);
@@ -303,7 +310,6 @@ public class RelMdFunctionalDependency
 
   private static FunctionalDependencySet getAggregateFD(Aggregate rel, RelMetadataQuery mq) {
     FunctionalDependencySet fdSet = new FunctionalDependencySet();
-
     FunctionalDependencySet inputFdSet = mq.getFunctionalDependencies(rel.getInput());
 
     // Group set columns in the output

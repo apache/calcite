@@ -39,7 +39,7 @@ public class FunctionalDependency {
   private final ImmutableBitSet determinants;
   private final ImmutableBitSet dependents;
 
-  public FunctionalDependency(ImmutableBitSet determinants, ImmutableBitSet dependents) {
+  private FunctionalDependency(ImmutableBitSet determinants, ImmutableBitSet dependents) {
     this.determinants = requireNonNull(determinants, "determinants");
     this.dependents = requireNonNull(dependents, "dependents");
   }

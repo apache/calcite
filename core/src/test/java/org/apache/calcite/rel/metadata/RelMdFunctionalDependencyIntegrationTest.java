@@ -61,9 +61,6 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     int deptNoPlus1 = 2; // deptno + 1
     int rand = 3;        // rand()
 
-    // deptno + 1 should determine deptno (can derive deptno from deptno+1)
-    assertThat(mq.determines(relNode, deptNoPlus1, deptNo), is(Boolean.TRUE));
-
     // deptno should determine deptno + 1 (expression is deterministic)
     assertThat(mq.determines(relNode, deptNo, deptNoPlus1), is(Boolean.TRUE));
 
@@ -139,10 +136,6 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     // deptno should determine deptno + 1 (deterministic expression)
     assertThat(mq.determines(relNode, deptNo, deptNo3), is(Boolean.TRUE));
     assertThat(mq.determines(relNode, deptNo2, deptNo3), is(Boolean.TRUE));
-
-    // deptno + 1 should determine deptno (can derive original from increment)
-    assertThat(mq.determines(relNode, deptNo3, deptNo), is(Boolean.TRUE));
-    assertThat(mq.determines(relNode, deptNo3, deptNo2), is(Boolean.TRUE));
   }
 
   @Test void testFunctionalDependencyJoin() {
@@ -240,9 +233,6 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     // sal determines computed columns based on sal
     assertThat(mq.determines(relNode, sal, raisedSal), is(Boolean.TRUE));
     assertThat(mq.determines(relNode, sal, salCategory), is(Boolean.TRUE));
-
-    // Computed columns should also determine sal (deterministic computation)
-    assertThat(mq.determines(relNode, raisedSal, sal), is(Boolean.TRUE));
   }
 
   @Test void testFunctionalDependencyUnion() {

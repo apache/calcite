@@ -55,7 +55,7 @@ public class FunctionalDependencySet {
   }
 
   public void addFD(ImmutableBitSet determinants, ImmutableBitSet dependents) {
-    addFD(new FunctionalDependency(determinants, dependents));
+    addFD(FunctionalDependency.of(determinants, dependents));
   }
 
   public void addFD(int determinant, int dependent) {
@@ -215,7 +215,7 @@ public class FunctionalDependencySet {
         determinants = reduced;
       }
     }
-    return new FunctionalDependency(determinants, dependents);
+    return FunctionalDependency.of(determinants, dependents);
   }
 
   /**
