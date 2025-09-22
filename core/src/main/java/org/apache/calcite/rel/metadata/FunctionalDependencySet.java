@@ -70,18 +70,10 @@ public class FunctionalDependencySet {
     return Collections.unmodifiableSet(fdSet);
   }
 
-  public boolean isEmpty() {
-    return fdSet.isEmpty();
-  }
-
-  public int size() {
-    return fdSet.size();
-  }
-
   /**
    * Returns an ImmutableBitSet containing all attribute indexes that appear in any FD in the set.
    */
-  public static ImmutableBitSet allAttributesFromFds(FunctionalDependencySet fds) {
+  public static ImmutableBitSet allAttributesFromFDs(FunctionalDependencySet fds) {
     ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     Set<FunctionalDependency> fdSet = fds.getFDs();
     for (FunctionalDependency fd : fdSet) {
@@ -128,20 +120,13 @@ public class FunctionalDependencySet {
     }
 
     while (!queue.isEmpty()) {
-      Integer attr = queue.poll();
-      if (attr == null) {
-        continue;
-      }
+      int attr = queue.poll();
       List<FunctionalDependency> fds = attrToFDs.get(attr);
       if (fds == null) {
         continue;
       }
       for (FunctionalDependency fd : fds) {
-        Integer missing = fdMissingCount.get(fd);
-        if (missing == null) {
-          continue;
-        }
-        missing = missing - 1;
+        int missing = fdMissingCount.get(fd) - 1;
         fdMissingCount.put(fd, missing);
         if (missing == 0) {
           for (int dep : fd.getDependents()) {
@@ -223,18 +208,18 @@ public class FunctionalDependencySet {
    * Two FD sets are equivalent if they have the same closure for any attribute set.
    */
   public boolean equalTo(FunctionalDependencySet other) {
-    // Check if every FD in this set is implied by the other set
     for (FunctionalDependency fd : fdSet) {
       if (!other.implies(fd.getDeterminants(), fd.getDependents())) {
         return false;
       }
     }
-    // Check if every FD in the other set is implied by this set
+
     for (FunctionalDependency fd : other.fdSet) {
       if (!implies(fd.getDeterminants(), fd.getDependents())) {
         return false;
       }
     }
+
     return true;
   }
 

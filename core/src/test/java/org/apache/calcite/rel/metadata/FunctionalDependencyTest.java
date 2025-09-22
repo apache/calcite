@@ -96,7 +96,7 @@ public class FunctionalDependencyTest {
     fdSet.addFD(0, 1);
     fdSet.addFD(ImmutableBitSet.of(1, 2), ImmutableBitSet.of(3));
 
-    ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFds(fdSet);
+    ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFDs(fdSet);
     Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(allAttributes);
 
     // {0,2} should be a key: 0 -> 1, and {1,2} -> 3, so {0,2} -> {0,1,2,3}
@@ -170,7 +170,7 @@ public class FunctionalDependencyTest {
     fdSet.addFD(bitSet02, bitSet3);
     fdSet.addFD(bitSet12, bitSet3);
 
-    ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFds(fdSet);
+    ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFDs(fdSet);
     Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(allAttributes);
 
     // Should have two candidate keys

@@ -564,4 +564,37 @@ public class RelMdFunctionalDependencyIntegrationTest extends SqlToRelTestBase {
     assertThat(candidateKeys.contains(ImmutableBitSet.of(d1)), is(Boolean.TRUE));
     assertThat(candidateKeys.contains(ImmutableBitSet.of(d2)), is(Boolean.TRUE));
   }
+
+  @Test void testFunctionalDependencyFilterEquiCondition() {
+    final String sql = "SELECT e1.empno, e1.sal, e2.mgr, e2.deptno\n"
+        + "FROM emp e1\n"
+        + "JOIN emp e2\n"
+        + "ON e2.mgr IS NOT DISTINCT FROM e2.deptno\n"
+        + "WHERE e1.empno = e1.sal";
+
+    final RelNode relNode = sql(sql).toRel();
+
+    assertThat(
+        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        is(""
+            + "LogicalProject(EMPNO=[$0], SAL=[$5], MGR=[$12], DEPTNO=[$16])\n"
+            + "  LogicalFilter(condition=[=($0, $5)])\n"
+            + "    LogicalJoin(condition=[IS NOT DISTINCT FROM($12, $16)], joinType=[inner])\n"
+            + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+            + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    int empNo = 0;
+    int sal = 1;
+    int mgr = 2;
+    int deptno = 3;
+
+    // empno = sal should infer empno <-> sal
+    assertThat(mq.determines(relNode, empNo, sal), is(Boolean.TRUE));
+    assertThat(mq.determines(relNode, sal, empNo), is(Boolean.TRUE));
+    // mgr IS NOT DISTINCT FROM deptno should infer mgr <-> deptno
+    assertThat(mq.determines(relNode, mgr, deptno), is(Boolean.TRUE));
+    assertThat(mq.determines(relNode, deptno, mgr), is(Boolean.TRUE));
+  }
 }

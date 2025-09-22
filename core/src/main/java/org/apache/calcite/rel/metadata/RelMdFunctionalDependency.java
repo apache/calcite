@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -125,6 +126,8 @@ public class RelMdFunctionalDependency
       return getJoinFD((Join) rel, mq);
     } else if (rel instanceof Calc) {
       return getCalcFD((Calc) rel, mq);
+    } else if (rel instanceof Filter) {
+      return getFilterFD((Filter) rel, mq);
     } else if (rel instanceof SetOp) {
       // TODO: Handle UNION, INTERSECT, EXCEPT functional dependencies
       return new FunctionalDependencySet();
@@ -336,6 +339,12 @@ public class RelMdFunctionalDependency
     return fdSet;
   }
 
+  private static FunctionalDependencySet getFilterFD(Filter rel, RelMetadataQuery mq) {
+    FunctionalDependencySet fdSet = mq.getFunctionalDependencies(rel.getInput());
+    deriveTransitiveFDsFromEquiCondition(rel.getCondition(), fdSet);
+    return fdSet;
+  }
+
   private static FunctionalDependencySet getJoinFD(Join rel, RelMetadataQuery mq) {
     FunctionalDependencySet leftFdSet = mq.getFunctionalDependencies(rel.getLeft());
     FunctionalDependencySet rightFdSet = mq.getFunctionalDependencies(rel.getRight());
@@ -348,7 +357,7 @@ public class RelMdFunctionalDependency
       // Inner join: preserve all FDs and derive cross-table dependencies
       FunctionalDependencySet innerJoinFdSet
           = leftFdSet.union(shiftFdSet(rightFdSet, leftFieldCount));
-      deriveTransitiveFDs(rel, innerJoinFdSet, leftFieldCount);
+      deriveTransitiveFDs(rel, innerJoinFdSet);
       return innerJoinFdSet;
     case LEFT:
       // Left join: preserve left FDs, right FDs may be invalidated by NULLs
@@ -361,10 +370,10 @@ public class RelMdFunctionalDependency
       return new FunctionalDependencySet();
     case SEMI:
       // Semi join: only left table columns in result, preserve left FDs only
-      return leftFdSet;
+      return new FunctionalDependencySet(leftFdSet.getFDs());
     case ANTI:
       // Anti join: only left table columns in result, preserve left FDs only
-      return leftFdSet;
+      return new FunctionalDependencySet(leftFdSet.getFDs());
     default:
       // Conservative fallback for unknown join types
       return new FunctionalDependencySet();
@@ -389,9 +398,8 @@ public class RelMdFunctionalDependency
   /**
    * Derives cross-table functional dependencies through join conditions.
    */
-  private static void deriveTransitiveFDs(
-      Join rel, FunctionalDependencySet result, int leftFieldCount) {
-    deriveTransitiveFDsFromCondition(rel.getCondition(), result, leftFieldCount);
+  private static void deriveTransitiveFDs(Join rel, FunctionalDependencySet result) {
+    deriveTransitiveFDsFromEquiCondition(rel.getCondition(), result);
     deriveAdditionalTransitiveFDs(result);
   }
 
@@ -426,73 +434,33 @@ public class RelMdFunctionalDependency
   /**
    * Processes join conditions to derive cross-table dependencies.
    */
-  private static void deriveTransitiveFDsFromCondition(
-      RexNode condition, FunctionalDependencySet result, int leftFieldCount) {
+  private static void deriveTransitiveFDsFromEquiCondition(
+      RexNode condition, FunctionalDependencySet result) {
     if (!(condition instanceof RexCall)) {
       return;
     }
 
     RexCall call = (RexCall) condition;
+    // Handle equality condition: col1 = col2 or col1 IS NOT DISTINCT FROM col2
     if (call.getOperator().getKind() == SqlKind.EQUALS
         || call.getOperator().getKind() == SqlKind.IS_NOT_DISTINCT_FROM) {
-      // Handle equality condition: col1 = col2 or col1 IS NOT DISTINCT FROM col2
       List<RexNode> operands = call.getOperands();
       if (operands.size() == 2) {
         RexNode left = operands.get(0);
         RexNode right = operands.get(1);
 
         if (left instanceof RexInputRef && right instanceof RexInputRef) {
-          int leftCol = ((RexInputRef) left).getIndex();
-          int rightCol = ((RexInputRef) right).getIndex();
+          int leftRef = ((RexInputRef) left).getIndex();
+          int rightRef = ((RexInputRef) right).getIndex();
 
-          // Ensure one column is from left table and other from right table
-          if (leftCol < leftFieldCount && rightCol >= leftFieldCount) {
-            addTransitiveFDs(result, leftCol, rightCol);
-          } else if (rightCol < leftFieldCount && leftCol >= leftFieldCount) {
-            addTransitiveFDs(result, rightCol, leftCol);
-          }
+          result.addFD(ImmutableBitSet.of(leftRef), ImmutableBitSet.of(rightRef));
+          result.addFD(ImmutableBitSet.of(rightRef), ImmutableBitSet.of(leftRef));
         }
       }
     } else if (call.getOperator().getKind() == SqlKind.AND) {
       // Handle compound AND conditions
       for (RexNode operand : call.getOperands()) {
-        deriveTransitiveFDsFromCondition(operand, result, leftFieldCount);
-      }
-    }
-  }
-
-  /**
-   * Adds transitive dependencies between equivalent columns from equi-join.
-   */
-  private static void addTransitiveFDs(FunctionalDependencySet result,
-      int leftCol, int rightCol) {
-    List<FunctionalDependency> dependencies = new ArrayList<>(result.getFunctionalDependencies());
-
-    for (FunctionalDependency fd : dependencies) {
-      // If leftCol is determined by some columns, then rightCol is also determined
-      if (fd.getDependents().get(leftCol)) {
-        ImmutableBitSet newDependents = fd.getDependents().union(ImmutableBitSet.of(rightCol));
-        result.addFD(fd.getDeterminants(), newDependents);
-      }
-
-      // If rightCol is determined by some columns, then leftCol is also determined
-      if (fd.getDependents().get(rightCol)) {
-        ImmutableBitSet newDependents = fd.getDependents().union(ImmutableBitSet.of(leftCol));
-        result.addFD(fd.getDeterminants(), newDependents);
-      }
-
-      // If leftCol is a determinant in an FD, create equivalent FD with rightCol as determinant
-      if (fd.getDeterminants().get(leftCol)) {
-        ImmutableBitSet newDeterminants =
-            fd.getDeterminants().rebuild().clear(leftCol).set(rightCol).build();
-        result.addFD(newDeterminants, fd.getDependents());
-      }
-
-      // If rightCol is a determinant in an FD, create equivalent FD with leftCol as determinant
-      if (fd.getDeterminants().get(rightCol)) {
-        ImmutableBitSet newDeterminants =
-            fd.getDeterminants().rebuild().clear(rightCol).set(leftCol).build();
-        result.addFD(newDeterminants, fd.getDependents());
+        deriveTransitiveFDsFromEquiCondition(operand, result);
       }
     }
   }
