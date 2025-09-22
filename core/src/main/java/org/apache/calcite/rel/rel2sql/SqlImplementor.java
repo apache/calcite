@@ -1353,12 +1353,26 @@ public abstract class SqlImplementor {
       }
     }
 
-    /** Converts a call to an aggregate function to an expression. */
-    public SqlNode toSql(AggregateCall aggCall) {
+    /**
+     * Converts the given {@link AggregateCall} into its SQL representation.
+     *
+     * @param aggCall   The aggregate call containing aggregation function details.
+     * @param delimiter Optional delimiter string. If non-null, it replaces the
+     *                  second operand (when a {@link SqlIdentifier}) with this
+     *                  value. Useful for delimiter-based aggregates like
+     *                  {@code STRING_AGG} or {@code LISTAGG}.
+     * @return          A {@link SqlNode} representing the SQL form of the aggregate call.
+     */
+    public SqlNode toSql(AggregateCall aggCall, @Nullable String delimiter) {
+      List<SqlNode> operandList = Util.transform(aggCall.getArgList(), this::field);
+      List<SqlNode> updatedOperandList = new ArrayList<>(operandList);
+      if (delimiter != null && operandList.get(1) instanceof SqlIdentifier) {
+        updatedOperandList.set(
+            1, SqlLiteral.createCharString(delimiter, operandList.get(1).getParserPosition()));
+      }
       return toSql(aggCall.getAggregation(), aggCall.isDistinct(),
           Util.transform(aggCall.rexList, e -> toSql((RexProgram) null, e)),
-          Util.transform(aggCall.getArgList(), this::field),
-          aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
+          updatedOperandList, aggCall.filterArg, aggCall.collation, aggCall.isApproximate());
     }
 
     /** Converts a call to an aggregate function, with a given list of operands,

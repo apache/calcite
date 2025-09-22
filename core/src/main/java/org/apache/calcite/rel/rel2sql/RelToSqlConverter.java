@@ -975,7 +975,14 @@ public class RelToSqlConverter extends SqlImplementor
   protected Builder buildAggregate(Aggregate e, Builder builder,
       List<SqlNode> selectList, List<SqlNode> groupByList) {
     for (AggregateCall aggCall : e.getAggCallList()) {
-      SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
+      String delimiter = null;
+      if (isListaggOrStringAgg(aggCall) && aggCall.getArgList().size() == 2
+          && e.getInput() instanceof Project) {
+        delimiter =
+            requireNonNull(((RexLiteral) ((Project) e.getInput()).getChildExps().get(aggCall.getArgList().get(1)))
+                .getValue2()).toString();
+      }
+      SqlNode aggCallSqlNode = builder.context.toSql(aggCall, delimiter);
       RelDataType aggCallRelDataType = aggCall.getType();
       if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
         aggCallSqlNode = dialect.rewriteSingleValueExpr(aggCallSqlNode, aggCallRelDataType);
@@ -1011,6 +1018,17 @@ public class RelToSqlConverter extends SqlImplementor
               SqlStdOperatorTable.GROUPING.createCall(groupingList), ZERO));
     }
     return builder;
+  }
+
+  /**
+   * Checks if the aggregate function is LISTAGG or STRING_AGG.
+   *
+   * @param aggCall aggregate call
+   * @return true if the aggregate function is LISTAGG or STRING_AGG
+   */
+  private boolean isListaggOrStringAgg(AggregateCall aggCall) {
+    SqlKind kind = aggCall.getAggregation().kind;
+    return kind == SqlKind.LISTAGG || kind == SqlKind.STRING_AGG;
   }
 
   /**

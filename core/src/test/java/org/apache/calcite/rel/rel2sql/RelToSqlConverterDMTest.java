@@ -13162,6 +13162,21 @@ class RelToSqlConverterDMTest {
         .ok(expectedSpark);
   }
 
+  @Test public void testListAggFunctionWithDelimiter() {
+    String query = "select \"birth_date\", Listagg(\"first_name\", ',')  from "
+        + "(select \"birth_date\", \"first_name\"  from \"employee\" GROUP BY \"birth_date\", \"first_name\" "
+        + ") GROUP BY \"birth_date\"";
+
+    final String expectedBigQuery = "SELECT birth_date, LISTAGG(first_name, ',')"
+        + "\nFROM (SELECT birth_date, first_name, ',' AS `$f2`"
+        + "\nFROM foodmart.employee"
+        + "\nGROUP BY birth_date, first_name) AS t1"
+        + "\nGROUP BY birth_date";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testToLocalTimestampFunction() {
     final RelBuilder builder = relBuilder();
     RelDataType relDataType =
