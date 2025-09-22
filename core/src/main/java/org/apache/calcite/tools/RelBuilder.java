@@ -3674,7 +3674,7 @@ public class RelBuilder {
    * @param offset Number of rows to skip; non-positive means don't skip any
    * @param fetch Maximum number of rows to fetch; negative means no limit
    */
-  public RelBuilder limit(Number offset, Number fetch) {
+  public RelBuilder limit(int offset, int fetch) {
     return sortLimit(offset, fetch, ImmutableList.of());
   }
 
@@ -3720,7 +3720,7 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Sort} by expressions, with limit and offset. */
-  public RelBuilder sortLimit(Number offset, Number fetch, RexNode... nodes) {
+  public RelBuilder sortLimit(long offset, long fetch, RexNode... nodes) {
     return sortLimit(offset, fetch, ImmutableList.copyOf(nodes));
   }
 
