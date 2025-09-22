@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -7846,6 +7847,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
         .fails("Param 'DEPTNO' not found in lambda expression "
             + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `DEPTNO`'");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7193">[CALCITE-7193]
+   * In an aggregation validator treats lambda variable names as column names</a>. */
+  @Test void testGroupByLambda() {
+    SqlOperatorTable chain =
+        SqlOperatorTables.chain(
+            SqlOperatorTables.of(
+                SqlLibraryOperators.ARRAY_AGG,
+                SqlLibraryOperators.EXISTS),
+            SqlStdOperatorTable.instance());
+    final String sql = "SELECT \"EXISTS\"(ARRAY_AGG(empno), x -> x > 1) FROM emp GROUP BY deptno";
+    sql(sql)
+        .withOperatorTable(chain)
+        .ok();
   }
 
   @Test void testPercentileFunctionsBigQuery() {

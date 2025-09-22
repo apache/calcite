@@ -52,6 +52,11 @@ public class SqlLambdaScope extends ListScope {
     lambdaExpr.getParameters().forEach(param -> parameterTypes.put(param.toString(), any));
   }
 
+  /** True if the identifier matches one of the parameter names. */
+  public boolean isParameter(SqlIdentifier id) {
+    return this.parameterTypes.containsKey(id.toString());
+  }
+
   @Override public SqlNode getNode() {
     return lambdaExpr;
   }
