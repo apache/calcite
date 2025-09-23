@@ -3597,6 +3597,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7189">[CALCITE-7189]
+   * Support MySQL-style non-standard GROUP BY</a>. */
+  @Test void testNonStrictGroupByAnyValue() {
+    sql("select deptno, ename from emp group by deptno")
+        .withConformance(SqlConformanceEnum.BABEL)
+        .ok();
+    sql("select deptno, ename, job from emp group by deptno")
+        .withConformance(SqlConformanceEnum.BABEL)
+        .ok();
+    sql("select deptno, max(sal) from emp group by deptno")
+        .withConformance(SqlConformanceEnum.BABEL)
+        .ok();
+    sql("select deptno, ^ename^ from emp group by deptno")
+        .fails("Expression 'ENAME' is not being grouped");
+  }
+
   @Test void testInvalidWindowFunctionWithGroupBy() {
     sql("select max(^empno^) over () from emp\n"
         + "group by deptno")
