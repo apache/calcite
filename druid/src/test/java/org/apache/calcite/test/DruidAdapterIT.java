@@ -2188,8 +2188,9 @@ public class DruidAdapterIT {
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
-        + "filter=[AND(=($2, 'Bird Call'), OR(=(EXTRACT(FLAG(WEEK), $0), 10), "
-        + "=(EXTRACT(FLAG(WEEK), $0), 11)))], projects=[[$63, $90, $91]], "
+        + "filter=[AND(=($2, 'Bird Call'), "
+        + "SEARCH(EXTRACT(FLAG(WEEK), $0), Sarg[10L:BIGINT, 11L:BIGINT]:BIGINT))], "
+        + "projects=[[$63, $90, $91]], "
         + "groups=[{0}], aggs=[[SUM($1), SUM($2)]], post_projects=[[$0, 'Bird Call', -($1, $2)]])";
     sql(sql, FOODMART)
         .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.3646",
@@ -3696,7 +3697,8 @@ public class DruidAdapterIT {
             + " CAST('1997-01-01' as DATE) GROUP BY  floor(\"timestamp\" to DAY) order by d limit 3";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
-        + "intervals=[[1997-01-01T00:00:00.000Z/1997-02-01T00:00:00.000Z]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[=(FLOOR(CAST($0):DATE NOT NULL, FLAG(MONTH)), 1997-01-01)], "
         + "projects=[[FLOOR($0, FLAG(DAY))]], groups=[{0}], aggs=[[]], "
         + "post_projects=[[CAST($0):TIMESTAMP(0) NOT NULL]], sort0=[0], dir0=[ASC], fetch=[3])";
     sql(sql, FOODMART)
