@@ -3175,6 +3175,13 @@ public class RexSimplify {
       this.negate = negate;
     }
 
+    /**
+     * Accepts an expression and converts it to a Sarg if possible.
+     *
+     * @param term the expression to convert
+     * @param newTerms the list holding the result of the conversion or the
+     *                 original term if it cannot be converted
+     */
     private void accept(RexNode term, List<RexNode> newTerms) {
       if (!accept_(term, newTerms)) {
         newTerms.add(term);
@@ -3182,6 +3189,14 @@ public class RexSimplify {
       newTermsCount = newTerms.size();
     }
 
+    /**
+     * Accepts an expression and converts it to a Sarg if possible.
+     * Only certain kinds of expressions can be converted to Sargs.
+     *
+     * @param e the expression to convert
+     * @param newTerms the list to which the Sarg will be added if the expression is accepted
+     * @return true if the expression can be converted to a Sarg, false otherwise
+     */
     private boolean accept_(RexNode e, List<RexNode> newTerms) {
       switch (e.getKind()) {
       case LESS_THAN:
@@ -3204,31 +3219,25 @@ public class RexSimplify {
       }
     }
 
+    /**
+     * Accepts two operands from a binary comparison operator and converts them to a Sarg if
+     * possible. Only comparisons between a literal and a deterministic expression can be converted.
+     * Simplifications with non-deterministic expressions are generally avoided to ensure consistent
+     * results.
+     *
+     * @param left the left operand of the comparison
+     * @param right the right operand of the comparison
+     * @param kind the kind of comparison operator
+     * @param newTerms the list to which the Sarg will be added if accepted
+     * @return true if the operands can be converted to a Sarg, false otherwise
+     */
     private boolean accept2(RexNode left, RexNode right, SqlKind kind,
         List<RexNode> newTerms) {
-      switch (left.getKind()) {
-      case INPUT_REF:
-      case FIELD_ACCESS:
-      case CAST:
-        switch (right.getKind()) {
-        case LITERAL:
-          return accept2b(left, kind, (RexLiteral) right, newTerms);
-        default:
-          break;
-        }
-        return false;
-      case LITERAL:
-        switch (right.getKind()) {
-        case INPUT_REF:
-        case FIELD_ACCESS:
-        case CAST:
-          return accept2b(right, kind.reverse(), (RexLiteral) left, newTerms);
-        default:
-          break;
-        }
-        return false;
-      default:
-        break;
+      if (right.isA(SqlKind.LITERAL) && RexUtil.isDeterministic(left)) {
+        return accept2b(left, kind, (RexLiteral) right, newTerms);
+      }
+      if (left.isA(SqlKind.LITERAL) && RexUtil.isDeterministic(right)) {
+        return accept2b(right, kind.reverse(), (RexLiteral) left, newTerms);
       }
       return false;
     }
@@ -3238,7 +3247,14 @@ public class RexSimplify {
       return e;
     }
 
-    // always returns true
+    /**
+     * Accepts an operand from a null predicate and converts it to a Sarg.
+     *
+     * @param e the operand of the null predicate
+     * @param kind the kind of the null predicate
+     * @param newTerms the list to which the Sarg is added
+     * @return true since the operand is always converted to a Sarg
+     */
     private boolean accept1(RexNode e, SqlKind kind, List<RexNode> newTerms) {
       final RexSargBuilder b =
           map.computeIfAbsent(e, e2 ->
@@ -3256,6 +3272,17 @@ public class RexSimplify {
       }
     }
 
+    /**
+     * Accepts two operands from a binary comparison operator and converts them to a Sarg when the
+     * literal is not null. The conversion depends on the kind of comparison operator and only
+     * certain operators are supported.
+     *
+     * @param e any kind of deterministic expression
+     * @param kind the kind of comparison operator
+     * @param literal the literal operand of the comparison
+     * @param newTerms the list to which the Sarg is added if accepted
+     * @return false if the literal operand is null, true otherwise
+     */
     private boolean accept2b(RexNode e, SqlKind kind,
         RexLiteral literal, List<RexNode> newTerms) {
       if (literal.getValue() == null) {
