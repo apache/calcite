@@ -37,11 +37,15 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 /**
  * Default implementation of {@link BuiltInMetadata.FunctionalDependency} metadata handler
@@ -192,13 +196,45 @@ public class RelMdFunctionalDependency
     // Map input functional dependencies to project dependencies
     mapInputFDs(inputFdSet, inputToOutputMap, projectionFdSet);
 
+    final boolean[] isDeterministic = new boolean[fieldCount];
+    final ImmutableBitSet[] inputBits = new ImmutableBitSet[fieldCount];
     for (int i = 0; i < fieldCount; i++) {
+      RexNode expr = projections.get(i);
+      isDeterministic[i] = RexUtil.isDeterministic(expr);
+      if (!(expr instanceof RexInputRef) && !(expr instanceof RexLiteral)) {
+        inputBits[i] = RelOptUtil.InputFinder.bits(expr);
+      } else {
+        inputBits[i] = ImmutableBitSet.of();
+      }
+    }
+
+    Map<List<ImmutableBitSet>, Boolean> impliesCache = new HashMap<>();
+    BiFunction<ImmutableBitSet, ImmutableBitSet, Boolean> cachedImplies = (det, dep) -> {
+      List<ImmutableBitSet> key = ImmutableList.of(det, dep);
+      Boolean v = impliesCache.get(key);
+      if (v != null) {
+        return v;
+      }
+      boolean result = inputFdSet.implies(det, dep);
+      impliesCache.put(key, result);
+      return result;
+    };
+
+    for (int i = 0; i < fieldCount; i++) {
+      if (!isDeterministic[i]) {
+        continue;
+      }
+      RexNode expr1 = projections.get(i);
+      boolean isRef1 = expr1 instanceof RexInputRef;
       for (int j = i + 1; j < fieldCount; j++) {
-        RexNode expr1 = projections.get(i);
+        if (!isDeterministic[j]) {
+          continue;
+        }
         RexNode expr2 = projections.get(j);
+        boolean isRef2 = expr2 instanceof RexInputRef;
 
         // Handle identical expressions, they determine each other
-        if (expr1.equals(expr2) && RexUtil.isDeterministic(expr1)) {
+        if (expr1.equals(expr2)) {
           projectionFdSet.addFD(i, j);
           projectionFdSet.addFD(j, i);
           continue;
@@ -214,34 +250,26 @@ public class RelMdFunctionalDependency
 
         // For complex expressions, only allow FD if one side is RexInputRef
         // and the other is a deterministic expression
-        if (RexUtil.isDeterministic(expr1) && RexUtil.isDeterministic(expr2)) {
-          boolean expr1IsInputRef = expr1 instanceof RexInputRef;
-          boolean expr2IsInputRef = expr2 instanceof RexInputRef;
-          if (expr1IsInputRef && expr2IsInputRef) {
-            // Both are input refs, check FD between them
-            int idx1 = ((RexInputRef) expr1).getIndex();
-            int idx2 = ((RexInputRef) expr2).getIndex();
-            if (inputFdSet.implies(ImmutableBitSet.of(idx1), ImmutableBitSet.of(idx2))) {
-              projectionFdSet.addFD(i, j);
-            }
-            if (inputFdSet.implies(ImmutableBitSet.of(idx2), ImmutableBitSet.of(idx1))) {
-              projectionFdSet.addFD(j, i);
-            }
-          } else {
-            // Only one side is input ref, the other is a deterministic expr
-            if (expr1IsInputRef) {
-              int idx1 = ((RexInputRef) expr1).getIndex();
-              ImmutableBitSet inputs2 = RelOptUtil.InputFinder.bits(expr2);
-              if (!inputs2.isEmpty() && inputFdSet.implies(ImmutableBitSet.of(idx1), inputs2)) {
-                projectionFdSet.addFD(i, j);
-              }
-            } else if (expr2IsInputRef) {
-              ImmutableBitSet inputs1 = RelOptUtil.InputFinder.bits(expr1);
-              int idx2 = ((RexInputRef) expr2).getIndex();
-              if (!inputs1.isEmpty() && inputFdSet.implies(ImmutableBitSet.of(idx2), inputs1)) {
-                projectionFdSet.addFD(j, i);
-              }
-            }
+        if (isRef1 && isRef2) {
+          int idx1 = ((RexInputRef) expr1).getIndex();
+          int idx2 = ((RexInputRef) expr2).getIndex();
+          if (cachedImplies.apply(ImmutableBitSet.of(idx1), ImmutableBitSet.of(idx2))) {
+            projectionFdSet.addFD(i, j);
+          }
+          if (cachedImplies.apply(ImmutableBitSet.of(idx2), ImmutableBitSet.of(idx1))) {
+            projectionFdSet.addFD(j, i);
+          }
+        } else if (isRef1) {
+          int idx1 = ((RexInputRef) expr1).getIndex();
+          ImmutableBitSet inputs2 = inputBits[j];
+          if (!inputs2.isEmpty() && cachedImplies.apply(ImmutableBitSet.of(idx1), inputs2)) {
+            projectionFdSet.addFD(i, j);
+          }
+        } else if (isRef2) {
+          ImmutableBitSet inputs1 = inputBits[i];
+          int idx2 = ((RexInputRef) expr2).getIndex();
+          if (!inputs1.isEmpty() && cachedImplies.apply(ImmutableBitSet.of(idx2), inputs1)) {
+            projectionFdSet.addFD(j, i);
           }
         }
       }
@@ -319,13 +347,15 @@ public class RelMdFunctionalDependency
     ImmutableBitSet groupSet = rel.getGroupSet();
 
     // 1. Preserve input FDs that only involve group columns
-    for (FunctionalDependency inputFd : inputFdSet.getFDs()) {
-      ImmutableBitSet determinants = inputFd.getDeterminants();
-      ImmutableBitSet dependents = inputFd.getDependents();
+    if (Aggregate.isSimple(rel)) {
+      for (FunctionalDependency inputFd : inputFdSet.getFDs()) {
+        ImmutableBitSet determinants = inputFd.getDeterminants();
+        ImmutableBitSet dependents = inputFd.getDependents();
 
-      // Only preserve if both determinants and dependents are within group columns
-      if (groupSet.contains(determinants) && groupSet.contains(dependents)) {
-        fdSet.addFD(determinants, dependents);
+        // Only preserve if both determinants and dependents are within group columns
+        if (groupSet.contains(determinants) && groupSet.contains(dependents)) {
+          fdSet.addFD(determinants, dependents);
+        }
       }
     }
 
@@ -340,9 +370,10 @@ public class RelMdFunctionalDependency
   }
 
   private static FunctionalDependencySet getFilterFD(Filter rel, RelMetadataQuery mq) {
-    FunctionalDependencySet fdSet = mq.getFunctionalDependencies(rel.getInput());
-    deriveTransitiveFDsFromEquiCondition(rel.getCondition(), fdSet);
-    return fdSet;
+    FunctionalDependencySet inputSet = mq.getFunctionalDependencies(rel.getInput());
+    FunctionalDependencySet filterFdSet = new FunctionalDependencySet(inputSet.getFDs());
+    addFDsFromEquiCondition(rel.getCondition(), filterFdSet);
+    return filterFdSet;
   }
 
   private static FunctionalDependencySet getJoinFD(Join rel, RelMetadataQuery mq) {
@@ -357,14 +388,18 @@ public class RelMdFunctionalDependency
       // Inner join: preserve all FDs and derive cross-table dependencies
       FunctionalDependencySet innerJoinFdSet
           = leftFdSet.union(shiftFdSet(rightFdSet, leftFieldCount));
-      deriveTransitiveFDs(rel, innerJoinFdSet);
-      return innerJoinFdSet;
+      addFDsFromEquiCondition(rel.getCondition(), innerJoinFdSet);
+      return innerJoinFdSet.computeTransitiveClosure();
     case LEFT:
       // Left join: preserve left FDs, right FDs may be invalidated by NULLs
-      return new FunctionalDependencySet(leftFdSet.getFDs());
+      FunctionalDependencySet leftJoinFdSet = new FunctionalDependencySet(leftFdSet.getFDs());
+      addFDsFromEquiCondition(rel.getCondition(), leftJoinFdSet);
+      return leftJoinFdSet.computeTransitiveClosure();
     case RIGHT:
       // Right join: preserve right FDs, left FDs may be invalidated by NULLs
-      return shiftFdSet(rightFdSet, leftFieldCount);
+      FunctionalDependencySet rightJoinFdSet = shiftFdSet(rightFdSet, leftFieldCount);
+      addFDsFromEquiCondition(rel.getCondition(), rightJoinFdSet);
+      return rightJoinFdSet.computeTransitiveClosure();
     case FULL:
       // Full join: both sides may have NULLs, very conservative approach
       return new FunctionalDependencySet();
@@ -396,46 +431,9 @@ public class RelMdFunctionalDependency
   }
 
   /**
-   * Derives cross-table functional dependencies through join conditions.
+   * Extracts FDs from equality and AND conditions.
    */
-  private static void deriveTransitiveFDs(Join rel, FunctionalDependencySet result) {
-    deriveTransitiveFDsFromEquiCondition(rel.getCondition(), result);
-    deriveAdditionalTransitiveFDs(result);
-  }
-
-  /**
-   * Iteratively derives additional transitive dependencies until closure.
-   */
-  private static void deriveAdditionalTransitiveFDs(FunctionalDependencySet result) {
-    boolean changed = true;
-    // Limit iterations to avoid infinite loops
-    int iteration = 10;
-
-    while (changed && iteration > 0) {
-      changed = false;
-      iteration--;
-      List<FunctionalDependency> currentFDs = new ArrayList<>(result.getFunctionalDependencies());
-
-      for (FunctionalDependency fd1 : currentFDs) {
-        for (FunctionalDependency fd2 : currentFDs) {
-          // Only apply transitivity when fd1's dependents completely contain fd2's determinants
-          // This ensures: if X → Y and Y → Z, then X → Z
-          if (fd1.getDependents().contains(fd2.getDeterminants())) {
-            ImmutableBitSet newDeterminants = fd1.getDeterminants();
-            ImmutableBitSet newDependents = fd2.getDependents();
-            result.addFD(newDeterminants, newDependents);
-            changed = true;
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Processes join conditions to derive cross-table dependencies.
-   */
-  private static void deriveTransitiveFDsFromEquiCondition(
-      RexNode condition, FunctionalDependencySet result) {
+  private static void addFDsFromEquiCondition(RexNode condition, FunctionalDependencySet result) {
     if (!(condition instanceof RexCall)) {
       return;
     }
@@ -460,7 +458,7 @@ public class RelMdFunctionalDependency
     } else if (call.getOperator().getKind() == SqlKind.AND) {
       // Handle compound AND conditions
       for (RexNode operand : call.getOperands()) {
-        deriveTransitiveFDsFromEquiCondition(operand, result);
+        addFDsFromEquiCondition(operand, result);
       }
     }
   }

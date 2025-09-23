@@ -94,7 +94,7 @@ public class FunctionalDependencySet {
    */
   public ImmutableBitSet closure(ImmutableBitSet attributes) {
     if (attributes.isEmpty()) {
-      return attributes;
+      return ImmutableBitSet.of();
     }
 
     if (attributes.cardinality() > MAX_CLOSURE_ATTRS) {
@@ -306,6 +306,34 @@ public class FunctionalDependencySet {
     }
     ImmutableBitSet dependentsAttrs = dependentsBuilder.build();
     return attributes.except(dependentsAttrs);
+  }
+
+  /**
+   * Computes the transitive closure of this FD set by repeatedly applying transitivity.
+   * For all X->Y, Y->Z, add X->Z until no new FDs are produced.
+   */
+  public FunctionalDependencySet computeTransitiveClosure() {
+    Set<FunctionalDependency> fdSet = getFunctionalDependencies();
+    boolean changed = true;
+    while (changed) {
+      changed = false;
+      List<FunctionalDependency> currentFDs = new ArrayList<>(fdSet);
+      for (FunctionalDependency fd1 : currentFDs) {
+        for (FunctionalDependency fd2 : currentFDs) {
+          // Only apply transitivity when fd1's dependents completely contain fd2's determinants
+          if (fd1.getDependents().contains(fd2.getDeterminants())) {
+            ImmutableBitSet newDeterminants = fd1.getDeterminants();
+            ImmutableBitSet newDependents = fd2.getDependents();
+            FunctionalDependency newFd = FunctionalDependency.of(newDeterminants, newDependents);
+            if (!getFunctionalDependencies().contains(newFd)) {
+              addFD(newFd);
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+    return new FunctionalDependencySet(fdSet);
   }
 
   /**
