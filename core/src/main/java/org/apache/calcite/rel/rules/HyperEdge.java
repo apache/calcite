@@ -155,7 +155,7 @@ public class HyperEdge {
     RexShuttle shiftNodeIndexShuttle = new RexShuttle() {
       @Override public RexNode visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
         return new RexNodeAndFieldIndex(
-            nodeAndFieldIndex.getNodeIndex() << nodeOffset,
+            nodeAndFieldIndex.getNodeIndex() + nodeOffset,
             nodeAndFieldIndex.getFieldIndex(),
             nodeAndFieldIndex.getName(),
             nodeAndFieldIndex.getType());

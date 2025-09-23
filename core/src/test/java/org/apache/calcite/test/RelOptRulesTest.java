@@ -277,6 +277,67 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  private HepProgram createHypergraphProgram() {
+    return new HepProgramBuilder().addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE)
+        .addRuleInstance(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE)
+        .addRuleInstance(CoreRules.PROJECT_MERGE)
+        .addRuleInstance(CoreRules.PROJECT_REMOVE)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7191">[CALCITE-7191]
+   * Hypergraph creation with incorrect hyperedges</a>. */
+  @Test void testHypergraph0() {
+    HepProgram program = createHypergraphProgram();
+    String innerJoinSql = "select a.ename, bc.name from bonus a inner join "
+        + "(select b.empno, b.ename, c.name from emp b inner join dept c on b.deptno = c.deptno) bc "
+        + "on a.ename = bc.ename";
+
+    sql(innerJoinSql).withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7191">[CALCITE-7191]
+   * Hypergraph creation with incorrect hyperedges</a>. */
+  @Test void testHypergraph1() {
+    HepProgram program = createHypergraphProgram();
+    String innerJoinSql = "select a.ename, bcde.name "
+        + "from bonus a "
+        + "inner join ("
+        + "  select b.empno, b.ename, c.name "
+        + "  from emp b "
+        + "  inner join dept c on b.deptno = c.deptno "
+        + "  inner join emp_address d on d.empno = b.empno "
+        + "  inner join salgrade e on b.sal = e.hisal"
+        + ") bcde on a.ename = bcde.ename";
+
+    sql(innerJoinSql).withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7191">[CALCITE-7191]
+   * Hypergraph creation with incorrect hyperedges</a>. */
+  @Test void testHypergraph2() {
+    HepProgram program = createHypergraphProgram();
+    String innerJoinSql = "select ab.ename, cdef.name "
+        + "from (select a.ename from bonus a inner join emp b on a.ename = b.ename) ab "
+        + "inner join ("
+        + "  select c.empno, c.ename, d.name "
+        + "  from emp c "
+        + "  inner join dept d on c.deptno = d.deptno "
+        + "  inner join emp_address e on e.empno = c.empno "
+        + "  inner join salgrade f on c.sal = f.hisal"
+        + ") cdef on ab.ename = cdef.ename";
+
+    sql(innerJoinSql).withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
