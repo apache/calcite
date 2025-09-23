@@ -518,4 +518,13 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean isNonStrictGroupBy() {
+    switch (this) {
+    case BABEL:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

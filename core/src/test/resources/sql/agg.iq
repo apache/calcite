@@ -4126,4 +4126,41 @@ GROUP BY DEPTNO, JOB;
 
 !ok
 
+# [CALCITE-7189] Support MySQL-style non-standard GROUP BY
+# In Calcite, ANY_VALUE is implemented based on MAX, which ensures test stability.
+!use scott-babel
+select deptno,
+       ename,
+       sal as sal_col,
+       emp.JOB as full_identifier,
+       sal+comm as two_cols_only_one_in_group_by,
+       sal+1 as sal_plus_constant,
+       3 as constant_3,
+       max(sal) as agg_func
+from emp group by deptno, sal_col;
++--------+--------+---------+-----------------+-------------------------------+-------------------+------------+----------+
+| DEPTNO | ENAME  | SAL_COL | FULL_IDENTIFIER | TWO_COLS_ONLY_ONE_IN_GROUP_BY | SAL_PLUS_CONSTANT | CONSTANT_3 | AGG_FUNC |
++--------+--------+---------+-----------------+-------------------------------+-------------------+------------+----------+
+|     10 | CLARK  | 2450.00 | MANAGER         |                               |           2451.00 |          3 |  2450.00 |
+|     10 | KING   | 5000.00 | PRESIDENT       |                               |           5001.00 |          3 |  5000.00 |
+|     10 | MILLER | 1300.00 | CLERK           |                               |           1301.00 |          3 |  1300.00 |
+|     20 | ADAMS  | 1100.00 | CLERK           |                               |           1101.00 |          3 |  1100.00 |
+|     20 | JONES  | 2975.00 | MANAGER         |                               |           2976.00 |          3 |  2975.00 |
+|     20 | SCOTT  | 3000.00 | ANALYST         |                               |           3001.00 |          3 |  3000.00 |
+|     20 | SMITH  |  800.00 | CLERK           |                               |            801.00 |          3 |   800.00 |
+|     30 | ALLEN  | 1600.00 | SALESMAN        |                       1900.00 |           1601.00 |          3 |  1600.00 |
+|     30 | BLAKE  | 2850.00 | MANAGER         |                               |           2851.00 |          3 |  2850.00 |
+|     30 | JAMES  |  950.00 | CLERK           |                               |            951.00 |          3 |   950.00 |
+|     30 | TURNER | 1500.00 | SALESMAN        |                       1500.00 |           1501.00 |          3 |  1500.00 |
+|     30 | WARD   | 1250.00 | SALESMAN        |                       2650.00 |           1251.00 |          3 |  1250.00 |
++--------+--------+---------+-----------------+-------------------------------+-------------------+------------+----------+
+(12 rows)
+
+!ok
+EnumerableCalc(expr#0..8=[{inputs}], DEPTNO=[$t0], ENAME=[$t2], SAL_COL=[$t3], FULL_IDENTIFIER=[$t4], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[$t5], SAL_PLUS_CONSTANT=[$t6], CONSTANT_3=[$t7], AGG_FUNC=[$t8])
+  EnumerableAggregate(group=[{0, 1}], ENAME=[ANY_VALUE($2)], SAL_COL=[ANY_VALUE($1)], FULL_IDENTIFIER=[ANY_VALUE($3)], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[ANY_VALUE($4)], SAL_PLUS_CONSTANT=[ANY_VALUE($5)], CONSTANT_3=[ANY_VALUE($6)], AGG_FUNC=[MAX($1)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[+($t5, $t6)], expr#9=[1], expr#10=[+($t5, $t9)], expr#11=[3], DEPTNO=[$t7], SAL=[$t5], ENAME=[$t1], JOB=[$t2], $f4=[$t8], $f5=[$t10], $f6=[$t11])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq

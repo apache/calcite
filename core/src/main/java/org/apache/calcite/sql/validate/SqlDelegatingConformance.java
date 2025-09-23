@@ -51,6 +51,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.isSelectAlias();
   }
 
+  @Override public boolean isNonStrictGroupBy() {
+    return delegate.isNonStrictGroupBy();
+  }
+
   @Override public boolean isGroupByOrdinal() {
     return delegate.isGroupByOrdinal();
   }

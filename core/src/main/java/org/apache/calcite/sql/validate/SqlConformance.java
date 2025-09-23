@@ -131,6 +131,11 @@ public interface SqlConformance {
   SelectAliasLookup isSelectAlias();
 
   /**
+   * Allow non-GROUP BY columns in SELECT (MySQL loose mode).
+   */
+  boolean isNonStrictGroupBy();
+
+  /**
    * Whether {@code GROUP BY 2} is interpreted to mean 'group by the 2nd column
    * in the select list'.
    *

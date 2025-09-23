@@ -45,6 +45,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isSelectAlias();
   }
 
+  @Override public boolean isNonStrictGroupBy() {
+    return SqlConformanceEnum.DEFAULT.isNonStrictGroupBy();
+  }
+
   @Override public boolean isGroupByOrdinal() {
     return SqlConformanceEnum.DEFAULT.isGroupByOrdinal();
   }
