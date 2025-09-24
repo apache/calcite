@@ -37,6 +37,8 @@ import java.util.Set;
  * This class implements standard algorithms for functional dependency reasoning.
  */
 public class FunctionalDependencySet {
+  // Maximum number of transitive closure iterations to prevent infinite loops
+  public static final int MAX_TRANSITIVE_CLOSURE_LOOPS = 10;
   // Maximum number of attributes supported in closure computation
   private static final int MAX_CLOSURE_ATTRS = 10000;
 
@@ -58,8 +60,18 @@ public class FunctionalDependencySet {
     addFD(FunctionalDependency.of(determinants, dependents));
   }
 
+  public void addBidirectionalFD(ImmutableBitSet determinants, ImmutableBitSet dependents) {
+    addFD(determinants, dependents);
+    addFD(dependents, determinants);
+  }
+
   public void addFD(int determinant, int dependent) {
     addFD(ImmutableBitSet.of(determinant), ImmutableBitSet.of(dependent));
+  }
+
+  public void addBidirectionalFD(int determinant, int dependent) {
+    addFD(ImmutableBitSet.of(determinant), ImmutableBitSet.of(dependent));
+    addFD(ImmutableBitSet.of(dependent), ImmutableBitSet.of(determinant));
   }
 
   public void removeFD(FunctionalDependency fd) {
@@ -120,13 +132,20 @@ public class FunctionalDependencySet {
     }
 
     while (!queue.isEmpty()) {
-      int attr = queue.poll();
+      Integer attr = queue.poll();
+      if (attr == null) {
+        continue;
+      }
       List<FunctionalDependency> fds = attrToFDs.get(attr);
       if (fds == null) {
         continue;
       }
       for (FunctionalDependency fd : fds) {
-        int missing = fdMissingCount.get(fd) - 1;
+        Integer missing = fdMissingCount.get(fd);
+        if (missing == null) {
+          continue;
+        }
+        missing = missing - 1;
         fdMissingCount.put(fd, missing);
         if (missing == 0) {
           for (int dep : fd.getDependents()) {
@@ -315,7 +334,8 @@ public class FunctionalDependencySet {
   public FunctionalDependencySet computeTransitiveClosure() {
     Set<FunctionalDependency> fdSet = getFunctionalDependencies();
     boolean changed = true;
-    while (changed) {
+    int loops = 0;
+    while (changed && loops++ < MAX_TRANSITIVE_CLOSURE_LOOPS) {
       changed = false;
       List<FunctionalDependency> currentFDs = new ArrayList<>(fdSet);
       for (FunctionalDependency fd1 : currentFDs) {

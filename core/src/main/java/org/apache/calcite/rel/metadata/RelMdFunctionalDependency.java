@@ -37,15 +37,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.ImmutableList;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 /**
  * Default implementation of {@link BuiltInMetadata.FunctionalDependency} metadata handler
@@ -187,7 +184,6 @@ public class RelMdFunctionalDependency
       RelNode input, List<RexNode> projections, RelMetadataQuery mq) {
     FunctionalDependencySet inputFdSet = mq.getFunctionalDependencies(input);
     FunctionalDependencySet projectionFdSet = new FunctionalDependencySet();
-    int fieldCount = projections.size();
 
     // Create mapping from input column indices to project column indices
     Mappings.TargetMapping inputToOutputMap =
@@ -196,83 +192,60 @@ public class RelMdFunctionalDependency
     // Map input functional dependencies to project dependencies
     mapInputFDs(inputFdSet, inputToOutputMap, projectionFdSet);
 
-    final boolean[] isDeterministic = new boolean[fieldCount];
+    int fieldCount = projections.size();
     final ImmutableBitSet[] inputBits = new ImmutableBitSet[fieldCount];
+    final Map<RexNode, Integer> uniqueExprToIndex = new HashMap<>();
+    final Map<RexLiteral, Integer> literalToIndex = new HashMap<>();
+    final Map<RexInputRef, Integer> refToIndex = new HashMap<>();
     for (int i = 0; i < fieldCount; i++) {
       RexNode expr = projections.get(i);
-      isDeterministic[i] = RexUtil.isDeterministic(expr);
-      if (!(expr instanceof RexInputRef) && !(expr instanceof RexLiteral)) {
-        inputBits[i] = RelOptUtil.InputFinder.bits(expr);
-      } else {
-        inputBits[i] = ImmutableBitSet.of();
-      }
-    }
 
-    Map<List<ImmutableBitSet>, Boolean> impliesCache = new HashMap<>();
-    BiFunction<ImmutableBitSet, ImmutableBitSet, Boolean> cachedImplies = (det, dep) -> {
-      List<ImmutableBitSet> key = ImmutableList.of(det, dep);
-      Boolean v = impliesCache.get(key);
-      if (v != null) {
-        return v;
-      }
-      boolean result = inputFdSet.implies(det, dep);
-      impliesCache.put(key, result);
-      return result;
-    };
-
-    for (int i = 0; i < fieldCount; i++) {
-      if (!isDeterministic[i]) {
+      // Skip non-deterministic expressions
+      if (!RexUtil.isDeterministic(expr)) {
         continue;
       }
-      RexNode expr1 = projections.get(i);
-      boolean isRef1 = expr1 instanceof RexInputRef;
-      for (int j = i + 1; j < fieldCount; j++) {
-        if (!isDeterministic[j]) {
-          continue;
-        }
-        RexNode expr2 = projections.get(j);
-        boolean isRef2 = expr2 instanceof RexInputRef;
 
-        // Handle identical expressions, they determine each other
-        if (expr1.equals(expr2)) {
-          projectionFdSet.addFD(i, j);
-          projectionFdSet.addFD(j, i);
-          continue;
-        }
-
-        // Handle literal constants, all columns determine literals
-        if (expr1 instanceof RexLiteral) {
-          projectionFdSet.addFD(j, i);
-        }
-        if (expr2 instanceof RexLiteral) {
-          projectionFdSet.addFD(i, j);
-        }
-
-        // For complex expressions, only allow FD if one side is RexInputRef
-        // and the other is a deterministic expression
-        if (isRef1 && isRef2) {
-          int idx1 = ((RexInputRef) expr1).getIndex();
-          int idx2 = ((RexInputRef) expr2).getIndex();
-          if (cachedImplies.apply(ImmutableBitSet.of(idx1), ImmutableBitSet.of(idx2))) {
-            projectionFdSet.addFD(i, j);
-          }
-          if (cachedImplies.apply(ImmutableBitSet.of(idx2), ImmutableBitSet.of(idx1))) {
-            projectionFdSet.addFD(j, i);
-          }
-        } else if (isRef1) {
-          int idx1 = ((RexInputRef) expr1).getIndex();
-          ImmutableBitSet inputs2 = inputBits[j];
-          if (!inputs2.isEmpty() && cachedImplies.apply(ImmutableBitSet.of(idx1), inputs2)) {
-            projectionFdSet.addFD(i, j);
-          }
-        } else if (isRef2) {
-          ImmutableBitSet inputs1 = inputBits[i];
-          int idx2 = ((RexInputRef) expr2).getIndex();
-          if (!inputs1.isEmpty() && cachedImplies.apply(ImmutableBitSet.of(idx2), inputs1)) {
-            projectionFdSet.addFD(j, i);
-          }
-        }
+      // Handle identical expressions in the projection list
+      Integer prev = uniqueExprToIndex.putIfAbsent(expr, i);
+      if (prev != null) {
+        projectionFdSet.addBidirectionalFD(prev, i);
       }
+
+      // Track literal constants to handle them specially
+      if (expr instanceof RexLiteral) {
+        literalToIndex.put((RexLiteral) expr, i);
+        continue;
+      }
+
+      if (expr instanceof RexInputRef) {
+        refToIndex.put((RexInputRef) expr, i);
+        inputBits[i] = ImmutableBitSet.of(((RexInputRef) expr).getIndex());
+      }
+
+      inputBits[i] = RelOptUtil.InputFinder.bits(expr);
+    }
+
+    // Remove literals from uniqueExprToIndex to avoid redundant processing
+    uniqueExprToIndex.keySet().removeIf(key -> key instanceof RexLiteral);
+
+    for (Map.Entry<RexNode, Integer> entry : uniqueExprToIndex.entrySet()) {
+      RexNode expr = entry.getKey();
+      Integer i = entry.getValue();
+
+      // All columns determine literals
+      literalToIndex.values()
+          .forEach(l -> projectionFdSet.addFD(ImmutableBitSet.of(i), ImmutableBitSet.of(l)));
+
+      // Input columns determine identical expressions
+      refToIndex.forEach((k, v) -> {
+        ImmutableBitSet refIndex = ImmutableBitSet.of(k.getIndex());
+        ImmutableBitSet bits = expr instanceof RexInputRef
+            ? ImmutableBitSet.of(((RexInputRef) expr).getIndex())
+            : inputBits[i];
+        if (inputFdSet.implies(refIndex, bits)) {
+          projectionFdSet.addFD(v, i);
+        }
+      });
     }
 
     return projectionFdSet;
