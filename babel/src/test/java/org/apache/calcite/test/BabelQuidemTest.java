@@ -119,6 +119,20 @@ class BabelQuidemTest extends QuidemTest {
                       typeFactory.createSqlType(
                           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)))
               .connect();
+        case "scott-mysql":
+          return CalciteAssert.that()
+              .with(CalciteAssert.SchemaSpec.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,mysql")
+              .with(CalciteConnectionProperty.LEX, Lex.MYSQL)
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  BabelDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .with(
+                  ConnectionFactories.addType("DATETIME", typeFactory ->
+                      typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))
+              .connect();
         case "scott-postgresql":
           return CalciteAssert.that()
               .with(CalciteAssert.SchemaSpec.SCOTT)
