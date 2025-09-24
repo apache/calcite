@@ -12405,6 +12405,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(maxError);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7197">[CALCITE-7197]</a>
+   * UnsupportedOperationException when using dynamic parameters inside ROW expression. */
+  @Test void testSelectWithRowExpressionPredicate() {
+    // test single row expression values
+    sql("select empno, ename from emp where row(empno, ename) in ((?, ?))")
+        .ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
+
+    // test multiple row expression values
+    sql("select empno, ename from emp where row(empno, ename) in ((?, ?), (7782, ?), (?, 'CLARK'))")
+        .ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(20) ?2, INTEGER ?3)"));
+
+    // test single row expression values with expression
+    sql("select empno, ename from emp where row(empno, ename) in ((? + 1, ?))")
+        .ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
+  }
+
   @Test void testRolledUpColumnInWhere() {
     final String error = "Rolled up column 'SLACKINGMIN' is not allowed in GREATER_THAN";
 

@@ -9013,6 +9013,31 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7197">[CALCITE-7197]</a>
+   * UnsupportedOperationException when using dynamic parameters inside ROW expression. */
+  @Test void testSelectWithPlaceholdersInRowExpression() {
+    CalciteAssert.that()
+        .with(Lex.MYSQL)
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select empno, ename from emp\n"
+            + "where row(empno, ename) in ((?, ?))")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 7782);
+          p.setString(2, "CLARK");
+        })
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertThat(resultSet.getInt(1), is(7782));
+            assertThat(resultSet.getString(2), is("CLARK"));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
    * Convert between standard Gregorian and proleptic Gregorian calendars for
    * literal timestamps in local time zone. */
