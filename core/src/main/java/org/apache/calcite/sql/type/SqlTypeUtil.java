@@ -1577,6 +1577,15 @@ public abstract class SqlTypeUtil {
       return false;
     }
 
+    final RelDataTypeFamily family1 = family(type1);
+    final RelDataTypeFamily family2 = family(type2);
+
+    // If one of the arguments is of type 'NULL', return true.
+    if (family1 == SqlTypeFamily.NULL
+        || family2 == SqlTypeFamily.NULL) {
+      return true;
+    }
+
     if (type1.isStruct()) {
       int n = type1.getFieldCount();
       if (n != type2.getFieldCount()) {
@@ -1613,8 +1622,6 @@ public abstract class SqlTypeUtil {
       return isComparable(keyType1, keyType2) && isComparable(valueType1, valueType2);
     }
 
-    final RelDataTypeFamily family1 = family(type1);
-    final RelDataTypeFamily family2 = family(type2);
     if (family1 == family2) {
       return true;
     }
@@ -1622,12 +1629,6 @@ public abstract class SqlTypeUtil {
     // If one of the arguments is of type 'ANY', return true.
     if (family1 == SqlTypeFamily.ANY
         || family2 == SqlTypeFamily.ANY) {
-      return true;
-    }
-
-    // If one of the arguments is of type 'NULL', return true.
-    if (family1 == SqlTypeFamily.NULL
-        || family2 == SqlTypeFamily.NULL) {
       return true;
     }
 

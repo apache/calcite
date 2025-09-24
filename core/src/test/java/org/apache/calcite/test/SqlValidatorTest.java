@@ -9468,6 +9468,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected1)
         .withValidatorIdentifierExpansion(false)
         .rewritesTo(expected2);
+
+    // Test case for [CALCITE-7195] COALESCE type inference rejects legal arguments
+    final String sql2 = "select coalesce(NULL, ARRAY[1])";
+    sql(sql2)
+        .withValidatorCallRewrite(false)
+        .ok();
   }
 
   @Test void testCoalesceWithRewrite() {
