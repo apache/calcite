@@ -329,7 +329,7 @@ public class FunctionalDependencySet {
 
   /**
    * Computes the transitive closure of this FD set by repeatedly applying transitivity.
-   * For all X->Y, Y->Z, add X->Z until no new FDs are produced.
+   * For all {@code X->Y}, {@code Y->Z}, add {@code X->Z} until no new FDs are produced.
    */
   public FunctionalDependencySet computeTransitiveClosure() {
     Set<FunctionalDependency> fdSet = getFunctionalDependencies();

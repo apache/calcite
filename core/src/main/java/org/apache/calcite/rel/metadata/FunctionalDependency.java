@@ -32,8 +32,6 @@ import static java.util.Objects.requireNonNull;
  * <p>X, Y are sets of column indexes.
  *
  * <p>If t1[X]=t2[X], then t1[Y]=t2[Y] for any tuples t1, t2.
- *
- * <p>If X determines Y, X also determines any superset of Y.
  */
 public class FunctionalDependency {
   private final ImmutableBitSet determinants;
