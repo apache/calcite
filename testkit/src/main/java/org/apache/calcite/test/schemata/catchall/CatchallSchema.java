@@ -56,13 +56,13 @@ public class CatchallSchema {
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
           new java.sql.Date(0), new Time(0), new Timestamp(0),
-          new Date(0), "1", BigDecimal.ZERO, Collections.emptyList()),
+          new Date(0), "1", BigDecimal.ZERO, Collections.emptyList(), new byte[] { 00 }),
       new EveryType(
           true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
           Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
           Double.MAX_VALUE,
           null, null, null, null, null, null, null, null,
-          null, null, null, null, null, null, null),
+          null, null, null, null, null, null, null, null),
   };
 
   public final AllPrivate[] allPrivates =
@@ -130,6 +130,7 @@ public class CatchallSchema {
     public final @Nullable String string;
     public final @Nullable BigDecimal bigDecimal;
     public final @Nullable @Array(component = String.class) List<String> list;
+    public final @Nullable byte[] bytes;
 
     public EveryType(
         boolean primitiveBoolean,
@@ -154,7 +155,8 @@ public class CatchallSchema {
         @Nullable Date utilDate,
         @Nullable String string,
         @Nullable BigDecimal bigDecimal,
-        @Nullable List<String> list) {
+        @Nullable List<String> list,
+        @Nullable byte[] bytes) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -178,6 +180,7 @@ public class CatchallSchema {
       this.string = string;
       this.bigDecimal = bigDecimal;
       this.list = list;
+      this.bytes = bytes;
     }
 
     public static Enumerable<Field> fields() {
