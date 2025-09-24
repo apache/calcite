@@ -94,7 +94,6 @@ class RuleMatchVisualizerTest extends RelOptTestBase {
     RuleMatchVisualizer viz = new RuleMatchVisualizer();
     viz.attachTo(planner);
 
-
     final RelOptFixture fixture = sql(sql)
         .withPlanner(planner)
         .withFactory(t ->
@@ -116,6 +115,7 @@ class RuleMatchVisualizerTest extends RelOptTestBase {
             Pattern.compile("\"([0-9]+)\"|"
                 + "\"label\" *: *\"#([0-9]+)-|"
                 + "\"label\" *: *\"subset#([0-9]+)-|"
+                + "\"best\" *: *\"([0-9]+)\"|"
                 + "\"explanation\" *: *\"\\{subset=rel#([0-9]+):"),
             1000);
     // rename rule call ids
