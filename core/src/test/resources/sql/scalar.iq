@@ -164,20 +164,18 @@ select deptno, (select sum(cast(empno as bigint)) from "scott".emp where deptno 
 !ok
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
 select deptno, (select sum(empno) from "scott".emp where deptno = dept.deptno limit 0) as x from "scott".dept;
-+--------+-------+
-| DEPTNO | X     |
-+--------+-------+
-|     10 | 23555 |
-|     20 | 38501 |
-|     30 | 46116 |
-|     40 |       |
-+--------+-------+
++--------+---+
+| DEPTNO | X |
++--------+---+
+|     10 |   |
+|     20 |   |
+|     30 |   |
+|     40 |   |
++--------+---+
 (4 rows)
 
 !ok
-!}
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
 select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
@@ -207,20 +205,18 @@ select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 
 !ok
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
 select deptno, (select empno from "scott".emp where deptno = dept.deptno order by empno limit 1) as x from "scott".dept;
-+--------+--------+
-| DEPTNO |   X    |
-+--------+--------+
-| 10     | 7369   |
-| 20     | 7369   |
-| 30     | 7369   |
-| 40     | 7369   |
-+--------+--------+
++--------+------+
+| DEPTNO | X    |
++--------+------+
+|     10 | 7782 |
+|     20 | 7369 |
+|     30 | 7499 |
+|     40 |      |
++--------+------+
 (4 rows)
 
 !ok
-!}
 
 select deptno, (select empno from "scott".emp order by empno limit 1) as x from "scott".dept;
 +--------+------+
