@@ -334,7 +334,7 @@ public class RelMdColumnUniqueness
     }
 
     // If the original column mask contains columns from both the left and
-    // right hand side, then the columns are unique if and only if they're
+    // right hand side, then the columns are unique if (but not only if) they're
     // unique for their respective join inputs
     Boolean leftUnique = mq.areColumnsUnique(left, leftColumns, ignoreNulls);
     Boolean rightUnique = mq.areColumnsUnique(right, rightColumns, ignoreNulls);
@@ -342,37 +342,48 @@ public class RelMdColumnUniqueness
         && (rightColumns.cardinality() > 0)) {
       if ((leftUnique == null) || (rightUnique == null)) {
         return null;
-      } else {
-        return leftUnique && rightUnique;
+      } else if (leftUnique && rightUnique) {
+        return true;
       }
     }
 
-    // If we're only trying to determine uniqueness for columns that
-    // originate from one join input, then determine if the equijoin
-    // columns from the other join input are unique.  If they are, then
-    // the columns are unique for the entire join if they're unique for
-    // the corresponding join input, provided that input is not null
-    // generating.
+    // Determine if the equijoin columns from the other join input are unique.
+    // If they are, then the columns are unique for the entire join if they're unique for
+    // the corresponding join input, provided that input is not null generating.
     if (leftColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnLeft()) {
         return false;
       }
-      Boolean rightJoinColsUnique =
-          mq.areColumnsUnique(right, joinInfo.rightSet(), ignoreNulls);
-      if ((rightJoinColsUnique == null) || (leftUnique == null)) {
+      if (leftUnique == null) {
         return null;
       }
-      return rightJoinColsUnique && leftUnique;
-    } else if (rightColumns.cardinality() > 0) {
+      if (leftUnique) {
+        Boolean joinRightKeyUnique = mq.areColumnsUnique(right, joinInfo.rightSet(), ignoreNulls);
+        if (joinRightKeyUnique == null) {
+          return null;
+        }
+        if (joinRightKeyUnique) {
+          return true;
+        }
+      }
+    }
+    // Similarly, if the columns originate from the right input
+    if (rightColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnRight()) {
         return false;
       }
-      Boolean leftJoinColsUnique =
-          mq.areColumnsUnique(left, joinInfo.leftSet(), ignoreNulls);
-      if ((leftJoinColsUnique == null) || (rightUnique == null)) {
+      if (rightUnique == null) {
         return null;
       }
-      return leftJoinColsUnique && rightUnique;
+      if (rightUnique) {
+        Boolean joinLeftKeyUnique = mq.areColumnsUnique(left, joinInfo.leftSet(), ignoreNulls);
+        if (joinLeftKeyUnique == null) {
+          return null;
+        }
+        if (joinLeftKeyUnique) {
+          return true;
+        }
+      }
     }
 
     return false;
