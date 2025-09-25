@@ -88,6 +88,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
@@ -217,6 +218,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -1112,6 +1114,16 @@ public class SqlToRelConverter {
     return e;
   }
 
+  private RexNode simplifyPredicate(RexNode predicate) {
+    final RexNode convertedWhere2 =
+        RexUtil.removeNullabilityCast(typeFactory, predicate);
+    List<RexNode> conjuncts = RelOptUtil.conjunctions(convertedWhere2);
+    List<RexNode> simplified = conjuncts.stream()
+        .map(e -> RexSimplify.simplifyComparisonWithNull(e, rexBuilder))
+        .collect(Collectors.toList());
+    return RexUtil.composeConjunction(rexBuilder, simplified);
+  }
+
   /**
    * Converts a WHERE clause.
    *
@@ -1127,8 +1139,7 @@ public class SqlToRelConverter {
     SqlNode newWhere = pushDownNotForIn(bb.scope, where);
     replaceSubQueries(bb, newWhere, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
     final RexNode convertedWhere = bb.convertExpression(newWhere);
-    final RexNode convertedWhere2 =
-        RexUtil.removeNullabilityCast(typeFactory, convertedWhere);
+    final RexNode convertedWhere2 = simplifyPredicate(convertedWhere);
 
     // only allocate filter if the condition is not TRUE
     if (convertedWhere2.isAlwaysTrue()) {

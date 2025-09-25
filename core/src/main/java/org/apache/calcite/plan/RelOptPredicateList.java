@@ -95,6 +95,8 @@ public class RelOptPredicateList {
    * {@link #pulledUpPredicates}. */
   public final ImmutableMap<RexNode, RexNode> constantMap;
 
+  // Please keep this constructor private; if you add additional constructors,
+  // please check the invariants similar to this constructor.
   private RelOptPredicateList(ImmutableList<RexNode> pulledUpPredicates,
       ImmutableList<RexNode> leftInferredPredicates,
       ImmutableList<RexNode> rightInferredPredicates,

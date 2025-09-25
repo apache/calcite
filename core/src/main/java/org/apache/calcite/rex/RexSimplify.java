@@ -772,6 +772,27 @@ public class RexSimplify {
     return simplifyUsingPredicates(e2, clazz);
   }
 
+
+  /**
+   * If this RexNode is a comparison against NULL, return FALSE, otherwise return it unchanged.
+   * This is a static simplified version of the function below.
+   */
+  public static RexNode simplifyComparisonWithNull(RexNode e, RexBuilder rexBuilder) {
+    final RexSimplify.Comparison comparison = RexSimplify.Comparison.of(e);
+    if (comparison != null) {
+      boolean againstNull = comparison.literal.isNull();
+      // There is another possibility to check: in a comparison like 1 = null,
+      // the "non-literal" side of the Comparison can be null
+      if (comparison.ref instanceof RexLiteral) {
+        againstNull = againstNull || ((RexLiteral) comparison.ref).isNull();
+      }
+      if (againstNull) {
+        return rexBuilder.makeLiteral(false);
+      }
+    }
+    return e;
+  }
+
   /**
    * If this RexNode is a comparison against NULL, return a simplified form,
    * otherwise return it unchanged.
