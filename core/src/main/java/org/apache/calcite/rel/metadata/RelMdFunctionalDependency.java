@@ -239,10 +239,10 @@ public class RelMdFunctionalDependency
       // Input columns determine identical expressions
       refToIndex.forEach((k, v) -> {
         ImmutableBitSet refIndex = ImmutableBitSet.of(k.getIndex());
-        ImmutableBitSet bits = expr instanceof RexInputRef
+        ImmutableBitSet bitSet = expr instanceof RexInputRef
             ? ImmutableBitSet.of(((RexInputRef) expr).getIndex())
             : inputBits[i];
-        if (inputFdSet.implies(refIndex, bits)) {
+        if (inputFdSet.implies(refIndex, bitSet)) {
           projectionFdSet.addFD(v, i);
         }
       });
