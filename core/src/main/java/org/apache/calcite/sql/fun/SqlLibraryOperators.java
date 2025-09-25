@@ -4503,4 +4503,14 @@ public abstract class SqlLibraryOperators {
               // Allow 2 or 3 arguments
               number -> number == 2),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlBoolOrAggFunction BOOLOR_AGG =
+      new SqlBoolOrAggFunction(
+          "BOOLOR_AGG",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          null,
+          OperandTypes.BOOLEAN,
+          SqlFunctionCategory.SYSTEM);
 }
