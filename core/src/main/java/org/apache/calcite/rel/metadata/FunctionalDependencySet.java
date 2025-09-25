@@ -109,10 +109,10 @@ public class FunctionalDependencySet {
       return ImmutableBitSet.of();
     }
 
+    // For large attribute sets, skip detailed closure computation to avoid performance issues
+    // The result may be an over-approximation
     if (attributes.cardinality() > MAX_CLOSURE_ATTRS) {
-      throw new IllegalArgumentException(
-          "closure only supports up to " + MAX_CLOSURE_ATTRS
-              + " attributes, but got " + attributes.cardinality());
+      return ImmutableBitSet.of(attributes);
     }
 
     Set<Integer> closureSet = new HashSet<>();

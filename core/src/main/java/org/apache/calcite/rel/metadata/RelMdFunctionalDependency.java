@@ -260,13 +260,6 @@ public class RelMdFunctionalDependency
       ImmutableBitSet determinants = inputFd.getDeterminants();
       ImmutableBitSet dependents = inputFd.getDependents();
 
-      // Skip this FD if any determinant column is unmappable
-      boolean allMappable =
-          determinants.stream().allMatch(col -> mapping.getTargetOpt(col) >= 0);
-      if (!allMappable) {
-        continue;
-      }
-
       // Map all determinant columns
       ImmutableBitSet mappedDeterminants = mapAllCols(determinants, mapping);
       if (mappedDeterminants.isEmpty()) {
@@ -424,8 +417,7 @@ public class RelMdFunctionalDependency
           int leftRef = ((RexInputRef) left).getIndex();
           int rightRef = ((RexInputRef) right).getIndex();
 
-          result.addFD(ImmutableBitSet.of(leftRef), ImmutableBitSet.of(rightRef));
-          result.addFD(ImmutableBitSet.of(rightRef), ImmutableBitSet.of(leftRef));
+          result.addBidirectionalFD(leftRef, rightRef);
         }
       }
     } else if (call.getOperator().getKind() == SqlKind.AND) {
