@@ -1565,6 +1565,8 @@ public abstract class SqlImplementor {
       return SqlLiteral.createUuid(castNonNull(literal.getValueAs(UUID.class)), POS);
     case BINARY:
       return SqlLiteral.createBinaryString(castNonNull(literal.getValueAs(byte[].class)), POS);
+    case GEO:
+      return SqlLiteral.createCharString(castNonNull(literal.getValue()).toString(), POS);
     case ANY:
     case NULL:
       switch (typeName) {
@@ -1573,7 +1575,7 @@ public abstract class SqlImplementor {
       default:
         break;
       }
-      // fall through
+    // fall through
     default:
       throw new AssertionError(literal + ": " + typeName);
     }

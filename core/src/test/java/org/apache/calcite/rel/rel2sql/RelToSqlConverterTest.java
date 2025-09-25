@@ -9499,6 +9499,64 @@ class RelToSqlConverterTest {
     sql(sql6).ok(expected6);
   }
 
+  /** Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7131">[CALCITE-7131]
+   * SqlImplementor.toSql does not handle GEOMETRY literals</a>. */
+  @Test void testGeometry() {
+    final String sql = "SELECT ST_AsWKB('POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))')";
+    final String expected = "SELECT \"ST_ASWKB\"('POLYGON ((0 0, 0 1, 1 1, 1 0, 0 0))')\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected);
+
+    final String sql1 = "SELECT ST_MakePoint(1, 2, 3)";
+    final String expected1 = "SELECT \"ST_MAKEPOINT\"(1, 2, 3)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql1)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected1);
+
+    final String sql2 =
+        "SELECT ST_MakePolygon('LINESTRING(100 250, 100 350, 200 350, 200 250, 100 250)')";
+    final String expected2 =
+        "SELECT \"ST_MAKEPOLYGON\"('LINESTRING (100 250, 100 350, 200 350, 200 250, 100 250)')\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql2)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected2);
+
+    final String sql3 = "SELECT ST_MakeLine(ST_Point(1, 2), ST_Point(3, 4))";
+    final String expected3 =
+        "SELECT \"ST_MAKELINE\"(\"ST_POINT\"(1, 2), \"ST_POINT\"(3, 4))\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql3)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected3);
+
+    final String sql4 = "SELECT ST_AsBinary('LINESTRING (1 2, 3 4)')";
+    final String expected4 =
+        "SELECT \"ST_ASBINARY\"('LINESTRING (1 2, 3 4)')\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql4)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected4);
+
+    final String sql5 = "SELECT ST_AsEWKT(ST_PointFromText('POINT(-71.064544 42.28787)', 4326))";
+    final String expected5 =
+        "SELECT \"ST_ASEWKT\"(\"ST_POINTFROMTEXT\"('POINT(-71.064544 42.28787)', 4326))\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql5)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected5);
+
+    final String sql6 = "SELECT ST_MakePoint(NULL, 2)";
+    final String expected6 = "SELECT \"ST_MAKEPOINT\"(NULL, 2)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql6)
+        .withLibrary(SqlLibrary.SPATIAL)
+        .ok(expected6);
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7128">[CALCITE-7128]
    * SqlImplementor.toSql does not handle UUID literals</a>. */
   @Test void testUuid() {
