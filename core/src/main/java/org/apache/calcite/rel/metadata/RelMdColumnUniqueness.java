@@ -334,7 +334,7 @@ public class RelMdColumnUniqueness
     }
 
     // If the original column mask contains columns from both the left and
-    // right hand side, then the columns are unique if and only if they're
+    // right hand side, then the columns are unique if (but not only if) they're
     // unique for their respective join inputs
     Boolean leftUnique = mq.areColumnsUnique(left, leftColumns, ignoreNulls);
     Boolean rightUnique = mq.areColumnsUnique(right, rightColumns, ignoreNulls);
@@ -342,8 +342,8 @@ public class RelMdColumnUniqueness
         && (rightColumns.cardinality() > 0)) {
       if ((leftUnique == null) || (rightUnique == null)) {
         return null;
-      } else {
-        return leftUnique && rightUnique;
+      } else if (leftUnique && rightUnique) {
+        return true;
       }
     }
 
@@ -362,8 +362,12 @@ public class RelMdColumnUniqueness
       if ((rightJoinColsUnique == null) || (leftUnique == null)) {
         return null;
       }
-      return rightJoinColsUnique && leftUnique;
-    } else if (rightColumns.cardinality() > 0) {
+      if (rightJoinColsUnique && leftUnique) {
+        return true;
+      }
+    }
+    // Similarly, if the columns originate from the right input
+    if (rightColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnRight()) {
         return false;
       }
@@ -372,7 +376,9 @@ public class RelMdColumnUniqueness
       if ((leftJoinColsUnique == null) || (rightUnique == null)) {
         return null;
       }
-      return leftJoinColsUnique && rightUnique;
+      if (leftJoinColsUnique && rightUnique) {
+        return true;
+      }
     }
 
     return false;
