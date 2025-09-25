@@ -51,6 +51,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
@@ -554,6 +555,96 @@ public abstract class SqlTypeUtil {
     default:
       return false;
     }
+  }
+
+  /**
+   * Returns whether {@code container} can represent every value produced by
+   * {@code content} without loss of information.
+   *
+   * <p>The {@code container} type must be one of the integer types (signed or
+   * unsigned). The {@code content} type can be integer, or a DECIMAL with
+   * scale {@code 0}. For all other types this method returns {@code false}.
+   *
+   * @throws IllegalArgumentException if {@code container} is not an integer type
+   */
+  @API(since = "1.40", status = API.Status.EXPERIMENTAL)
+  public static boolean integerRangeContains(RelDataType container,
+      RelDataType content) {
+    checkArgument(isIntType(container),
+        "container must be an integer type: %s", container);
+
+    final SqlTypeName contentType = content.getSqlTypeName();
+    if (contentType == null) {
+      return false;
+    }
+    final boolean contentIsDecimal = contentType == SqlTypeName.DECIMAL;
+    if (!isIntType(content)) {
+      if (!contentIsDecimal || content.getScale() != 0) {
+        return false;
+      }
+    }
+
+    final BigInteger containerMin = integerBound(container, false);
+    final BigInteger containerMax = integerBound(container, true);
+    if (containerMin == null || containerMax == null) {
+      return false;
+    }
+
+    final BigInteger contentMin = integerBound(content, false);
+    final BigInteger contentMax = integerBound(content, true);
+    if (contentMin == null || contentMax == null) {
+      return false;
+    }
+
+    return containerMin.compareTo(contentMin) <= 0
+        && containerMax.compareTo(contentMax) >= 0;
+  }
+
+  /**
+   * Returns the numeric bound for an integer or zero-scale decimal type.
+   *
+   * @param type  Type whose bounds should be computed
+   * @param upper If {@code true}, returns the maximum inclusive bound;
+   *              otherwise returns the minimum bound
+   * @return Bound as {@link BigInteger}, or {@code null} if the bound cannot be
+   *         determined (for example, type is not integer or has non-zero scale)
+   */
+  @API(since = "1.40", status = API.Status.EXPERIMENTAL)
+  public static @Nullable BigInteger integerBound(RelDataType type,
+      boolean upper) {
+    final SqlTypeName typeName = type.getSqlTypeName();
+    if (typeName == null) {
+      return null;
+    }
+    final boolean isDecimal = typeName == SqlTypeName.DECIMAL;
+    if (!isDecimal && !isIntType(type)) {
+      return null;
+    }
+    if (isDecimal && type.getScale() != 0) {
+      return null;
+    }
+
+    final int precision = isDecimal ? type.getPrecision() : -1;
+    final int scale = isDecimal ? type.getScale() : -1;
+    final Object limit =
+        typeName.getLimit(upper, SqlTypeName.Limit.OVERFLOW,
+        false,
+        precision,
+        scale);
+    if (limit == null) {
+      return null;
+    }
+    if (limit instanceof BigDecimal) {
+      try {
+        return ((BigDecimal) limit).toBigIntegerExact();
+      } catch (ArithmeticException ignored) {
+        return null;
+      }
+    }
+    if (limit instanceof Number) {
+      return BigInteger.valueOf(((Number) limit).longValue());
+    }
+    return null;
   }
 
   /** Returns whether a type's scale is set. */
