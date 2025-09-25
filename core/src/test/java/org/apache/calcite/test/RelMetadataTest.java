@@ -1425,6 +1425,30 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7199">[CALCITE-7199]
+   * Improve column uniqueness computation for Join</a>. */
+  @Test void testColumnUniquenessForJoin() {
+    final String sql1 = ""
+        + "select A.empno, B.ename\n"
+        + "from emp A join emp B\n"
+        + "on A.empno = B.empno";
+    final String sql2 = ""
+        + "select B.empno, A.ename\n"
+        + "from emp A join emp B\n"
+        + "on A.empno = B.empno";
+    checkColumnUniquenessForJoin(sql1);
+    checkColumnUniquenessForJoin(sql2);
+  }
+
+  private void checkColumnUniquenessForJoin(String sql) {
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+  }
+
   @Test void testColumnUniquenessForJoinOnLimit1() {
     final String sql = ""
         + "select *\n"
