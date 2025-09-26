@@ -799,8 +799,9 @@ public abstract class SqlTypeUtil {
 
   /** Returns the minimum unscaled value of a numeric type.
    *
-   * @param type a numeric type
+   * @deprecated Use {@link #integerBound(RelDataType, boolean)} with {@code upper = false}
    */
+  @Deprecated // to be removed before 2.0
   public static long getMinValue(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     switch (typeName) {
@@ -826,8 +827,9 @@ public abstract class SqlTypeUtil {
   /** Returns the maximum unscaled value of a numeric type.
    * DOES NOT WORK CORRECTLY FOR U/BIGINT and many DECIMAL types.
    *
-   * @param type a numeric type
+   * @deprecated Use {@link #integerBound(RelDataType, boolean)} with {@code upper = true}
    */
+  @Deprecated // to be removed before 2.0
   public static long getMaxValue(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     switch (typeName) {
