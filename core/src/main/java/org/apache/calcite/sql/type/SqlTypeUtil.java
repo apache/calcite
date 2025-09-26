@@ -568,20 +568,14 @@ public abstract class SqlTypeUtil {
    * @throws IllegalArgumentException if {@code container} is not an integer type
    */
   @API(since = "1.40", status = API.Status.EXPERIMENTAL)
-  public static boolean integerRangeContains(RelDataType container,
-      RelDataType content) {
+  public static boolean integerRangeContains(RelDataType container, RelDataType content) {
     checkArgument(isIntType(container),
         "container must be an integer type: %s", container);
 
     final SqlTypeName contentType = content.getSqlTypeName();
-    if (contentType == null) {
-      return false;
-    }
     final boolean contentIsDecimal = contentType == SqlTypeName.DECIMAL;
-    if (!isIntType(content)) {
-      if (!contentIsDecimal || content.getScale() != 0) {
-        return false;
-      }
+    if (!isIntType(content) && (!contentIsDecimal || content.getScale() != 0)) {
+      return false;
     }
 
     final BigInteger containerMin = integerBound(container, false);
@@ -603,19 +597,16 @@ public abstract class SqlTypeUtil {
   /**
    * Returns the numeric bound for an integer or zero-scale decimal type.
    *
-   * @param type  Type whose bounds should be computed
+   * @param type Type whose bounds should be computed
    * @param upper If {@code true}, returns the maximum inclusive bound;
    *              otherwise returns the minimum bound
    * @return Bound as {@link BigInteger}, or {@code null} if the bound cannot be
    *         determined (for example, type is not integer or has non-zero scale)
    */
   @API(since = "1.40", status = API.Status.EXPERIMENTAL)
-  public static @Nullable BigInteger integerBound(RelDataType type,
-      boolean upper) {
+  public static @Nullable BigInteger integerBound(RelDataType type, boolean upper) {
     final SqlTypeName typeName = type.getSqlTypeName();
-    if (typeName == null) {
-      return null;
-    }
+
     final boolean isDecimal = typeName == SqlTypeName.DECIMAL;
     if (!isDecimal && !isIntType(type)) {
       return null;

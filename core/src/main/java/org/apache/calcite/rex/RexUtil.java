@@ -1697,18 +1697,13 @@ public class RexUtil {
     final SqlTypeName sourceSqlTypeName = source.getSqlTypeName();
     final SqlTypeName targetSqlTypeName = target.getSqlTypeName();
 
-    // 1) Both integer types (signed or unsigned)
+    // 1) Both INT types (signed or unsigned)
     if (SqlTypeUtil.isIntType(source) && SqlTypeUtil.isIntType(target)) {
       final boolean sourceIsUnsigned =
           SqlTypeFamily.UNSIGNED_NUMERIC.getTypeNames().contains(sourceSqlTypeName);
       final boolean targetIsUnsigned =
           SqlTypeFamily.UNSIGNED_NUMERIC.getTypeNames().contains(targetSqlTypeName);
       if (!sourceIsUnsigned && targetIsUnsigned) {
-        return false;
-      }
-      if (sourceIsUnsigned
-          && SqlTypeFamily.INTEGER.getTypeNames().contains(targetSqlTypeName)
-          && !SqlTypeUtil.integerRangeContains(target, source)) {
         return false;
       }
       return SqlTypeUtil.integerRangeContains(target, source);
@@ -1746,21 +1741,17 @@ public class RexUtil {
           && (targetPrecision - targetScale) >= (sourcePrecision - sourceScale);
     }
 
-    // 5) integer family (signed or unsigned) -> DECIMAL
+    // 5) INT family (signed or unsigned) -> DECIMAL
     if (SqlTypeUtil.isIntType(source)
         && targetSqlTypeName == SqlTypeName.DECIMAL) {
       int targetPrecision = target.getPrecision();
       int targetScale = Math.max(target.getScale(), 0);
       int sourcePrecision = source.getPrecision();
-      if (sourcePrecision <= 0) {
-        return false;
-      }
-      return (targetPrecision - targetScale) >= sourcePrecision;
+      return sourcePrecision > 0 && (targetPrecision - targetScale) >= sourcePrecision;
     }
 
-    // 6) DECIMAL -> integer family (signed or unsigned)
-    if (sourceSqlTypeName == SqlTypeName.DECIMAL
-        && SqlTypeUtil.isIntType(target)) {
+    // 6) DECIMAL -> INT family (signed or unsigned)
+    if (sourceSqlTypeName == SqlTypeName.DECIMAL && SqlTypeUtil.isIntType(target)) {
       if (source.getScale() != 0) {
         return false;
       }
@@ -1791,7 +1782,7 @@ public class RexUtil {
         return sourcePrecision <= targetPrecision;
       }
 
-      // Case B: integer family (signed or unsigned) -> APPROXIMATE NUMERIC
+      // Case B: INT family (signed or unsigned) -> APPROXIMATE NUMERIC
       int sourcePrecision = source.getPrecision();
       return sourcePrecision > 0 && sourcePrecision <= targetPrecision;
     }
