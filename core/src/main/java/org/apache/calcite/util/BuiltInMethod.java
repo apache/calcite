@@ -977,7 +977,7 @@ public enum BuiltInMethod {
   FUNCTIONAL_DEPENDENCY_CLOSURE(FunctionalDependency.class, "closure",
       ImmutableBitSet.class),
   FUNCTIONAL_DEPENDENCY_CANDIDATE_KEYS(FunctionalDependency.class, "candidateKeys",
-      ImmutableBitSet.class),
+      ImmutableBitSet.class, boolean.class),
   FUNCTIONAL_DEPENDENCY_GET_ALL(FunctionalDependency.class, "getFunctionalDependencies");
 
   @SuppressWarnings("ImmutableEnumChecker")

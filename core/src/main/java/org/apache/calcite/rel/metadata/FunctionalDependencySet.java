@@ -32,6 +32,8 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A set of functional dependencies with closure and minimal cover operations.
  * This class implements standard algorithms for functional dependency reasoning.
@@ -132,19 +134,15 @@ public class FunctionalDependencySet {
     }
 
     while (!queue.isEmpty()) {
-      Integer attr = queue.poll();
-      if (attr == null) {
-        continue;
-      }
+      Integer attr =
+          requireNonNull(queue.poll(), "Queue returned null while computing closure");
       List<FunctionalDependency> fds = attrToFDs.get(attr);
       if (fds == null) {
         continue;
       }
       for (FunctionalDependency fd : fds) {
-        Integer missing = fdMissingCount.get(fd);
-        if (missing == null) {
-          continue;
-        }
+        int missing =
+            requireNonNull(fdMissingCount.get(fd), "fdMissingCount returned null for FD " + fd);
         missing = missing - 1;
         fdMissingCount.put(fd, missing);
         if (missing == 0) {
@@ -164,6 +162,13 @@ public class FunctionalDependencySet {
    * Check if X determined Y is implied by this FD set.
    */
   public boolean implies(ImmutableBitSet determinants, ImmutableBitSet dependents) {
+    // Check if there is a direct FD match
+    for (FunctionalDependency fd : fdSet) {
+      if (fd.getDeterminants().equals(determinants)
+          && fd.getDependents().contains(dependents)) {
+        return true;
+      }
+    }
     return closure(determinants).contains(dependents);
   }
 
@@ -171,7 +176,15 @@ public class FunctionalDependencySet {
    * Check if a single column is functionally determined by another column.
    */
   public boolean determines(int determinant, int dependent) {
-    return closure(ImmutableBitSet.of(determinant)).get(dependent);
+    // Check if there is a direct FD match
+    ImmutableBitSet detSet = ImmutableBitSet.of(determinant);
+    for (FunctionalDependency fd : fdSet) {
+      if (fd.getDeterminants().equals(detSet)
+          && fd.getDependents().get(dependent)) {
+        return true;
+      }
+    }
+    return closure(detSet).get(dependent);
   }
 
   /**
@@ -189,9 +202,13 @@ public class FunctionalDependencySet {
     // Remove redundant attributes from left sides
     Set<FunctionalDependency> reducedFDs = new HashSet<>();
     for (FunctionalDependency fd : splitFDs) {
-      FunctionalDependencySet tempSet = new FunctionalDependencySet(splitFDs);
-      tempSet.removeFD(fd);
-      reducedFDs.add(reduceLeft(fd, tempSet));
+      if (fd.getDeterminants().cardinality() <= 1) {
+        reducedFDs.add(fd);
+      } else {
+        FunctionalDependencySet tempSet = new FunctionalDependencySet(splitFDs);
+        tempSet.removeFD(fd);
+        reducedFDs.add(reduceLeft(fd, tempSet));
+      }
     }
 
     // Remove redundant functional dependencies
@@ -243,14 +260,15 @@ public class FunctionalDependencySet {
   }
 
   /**
-   * Find all candidate keys within the given attribute set.
-   * A candidate key is a minimal subset of the given attributes such that
-   * its closure contains all the given attributes.
+   * Find candidate keys within the given attribute set.
    *
    * @param attributes the set of attributes to search for candidate keys within
-   * @return a set of minimal attribute subsets that can determine all given attributes
+   * @param onlyMinimalKeys if true, only return minimal candidate keys (shortest length);
+   *                        if false, return all minimal candidate keys
+   * @return a set of attribute subsets that can determine all given attributes
    */
-  public Set<ImmutableBitSet> findCandidateKeys(ImmutableBitSet attributes) {
+  public Set<ImmutableBitSet> findCandidateKeys(
+      ImmutableBitSet attributes, boolean onlyMinimalKeys) {
     // Branch and bound algorithm for minimal candidate key search
     if (fdSet.isEmpty()) {
       return ImmutableSet.of(attributes);
@@ -270,22 +288,20 @@ public class FunctionalDependencySet {
     queue.add(essentialAttrs);
 
     while (!queue.isEmpty()) {
-      ImmutableBitSet cand = queue.poll();
-      if (cand == null) {
-        continue;
-      }
+      ImmutableBitSet cand =
+          requireNonNull(queue.poll(), "Queue returned null while searching candidate keys");
       if (visited.contains(cand)) {
         continue;
       }
       visited.add(cand);
-      if (cand.cardinality() > minKeySize) {
+      if (onlyMinimalKeys && cand.cardinality() > minKeySize) {
         break;
       }
 
-      // Branch and bound pruning: skip if cand is covered by any known key
+      // If a candidate key is a superset of key, It is a redundant set
       boolean covered = false;
       for (ImmutableBitSet key : result) {
-        if (key.contains(cand)) {
+        if (cand.contains(key)) {
           covered = true;
           break;
         }
@@ -298,7 +314,9 @@ public class FunctionalDependencySet {
       ImmutableBitSet candClosure = closure(cand);
       if (candClosure.contains(attributes)) {
         result.add(cand);
-        minKeySize = cand.cardinality();
+        if (onlyMinimalKeys) {
+          minKeySize = cand.cardinality();
+        }
         continue;
       }
 
@@ -332,7 +350,6 @@ public class FunctionalDependencySet {
    * For all {@code X->Y}, {@code Y->Z}, add {@code X->Z} until no new FDs are produced.
    */
   public FunctionalDependencySet computeTransitiveClosure() {
-    Set<FunctionalDependency> fdSet = getFunctionalDependencies();
     boolean changed = true;
     int loops = 0;
     while (changed && loops++ < MAX_TRANSITIVE_CLOSURE_LOOPS) {
@@ -345,7 +362,7 @@ public class FunctionalDependencySet {
             ImmutableBitSet newDeterminants = fd1.getDeterminants();
             ImmutableBitSet newDependents = fd2.getDependents();
             FunctionalDependency newFd = FunctionalDependency.of(newDeterminants, newDependents);
-            if (!getFunctionalDependencies().contains(newFd)) {
+            if (!fdSet.contains(newFd)) {
               addFD(newFd);
               changed = true;
             }
@@ -353,7 +370,7 @@ public class FunctionalDependencySet {
         }
       }
     }
-    return new FunctionalDependencySet(fdSet);
+    return this;
   }
 
   /**

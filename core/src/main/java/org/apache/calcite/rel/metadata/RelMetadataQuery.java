@@ -1035,10 +1035,11 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   /**
    * Returns candidate keys for the relation within the specified set of attributes.
    */
-  public Set<ImmutableBitSet> candidateKeys(RelNode rel, ImmutableBitSet attributes) {
+  public Set<ImmutableBitSet> candidateKeys(RelNode rel, ImmutableBitSet attributes,
+      boolean onlyMinimalKeys) {
     for (;;) {
       try {
-        return functionalDependencyHandler.candidateKeys(rel, this, attributes);
+        return functionalDependencyHandler.candidateKeys(rel, this, attributes, onlyMinimalKeys);
       } catch (MetadataHandlerProvider.NoHandler e) {
         functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
       }

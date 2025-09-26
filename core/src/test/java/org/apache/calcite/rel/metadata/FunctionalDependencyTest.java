@@ -97,7 +97,7 @@ public class FunctionalDependencyTest {
     fdSet.addFD(ImmutableBitSet.of(1, 2), ImmutableBitSet.of(3));
 
     ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFDs(fdSet);
-    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(allAttributes);
+    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(allAttributes, true);
 
     // {0,2} should be a key: 0 -> 1, and {1,2} -> 3, so {0,2} -> {0,1,2,3}
     assertThat(keys, containsInAnyOrder(ImmutableBitSet.of(0, 2)));
@@ -171,7 +171,7 @@ public class FunctionalDependencyTest {
     fdSet.addFD(bitSet12, bitSet3);
 
     ImmutableBitSet allAttributes = FunctionalDependencySet.allAttributesFromFDs(fdSet);
-    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(allAttributes);
+    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(allAttributes, true);
 
     // Should have two candidate keys
     assertThat(keys, hasSize(2));
@@ -206,7 +206,7 @@ public class FunctionalDependencyTest {
     assertThat(closure, equalTo(ImmutableBitSet.of(0, 1, 2)));
 
     // Test key finding
-    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(ImmutableBitSet.of(0, 1, 2));
+    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(ImmutableBitSet.of(0, 1, 2), true);
     assertThat(keys, hasSize(1));
     assertThat(keys, containsInAnyOrder(ImmutableBitSet.of(0)));
   }
@@ -285,7 +285,7 @@ public class FunctionalDependencyTest {
       fdSet.addFD(i, i + 1);
     }
     // Expect: {0} is the only candidate key
-    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(attributes);
+    Set<ImmutableBitSet> keys = fdSet.findCandidateKeys(attributes, true);
     assertThat(keys, hasSize(1));
     assertThat(keys.iterator().next(), equalTo(ImmutableBitSet.of(0)));
   }

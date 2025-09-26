@@ -939,7 +939,7 @@ public abstract class BuiltInMetadata {
      * @param attributes the set of attributes to consider when finding keys
      * @return a set of minimal attribute sets that determine all attributes
      */
-    Set<ImmutableBitSet> candidateKeys(ImmutableBitSet attributes);
+    Set<ImmutableBitSet> candidateKeys(ImmutableBitSet attributes, boolean onlyMinimalKeys);
 
     /**
      * Returns all functional dependencies in the relation.
@@ -958,7 +958,7 @@ public abstract class BuiltInMetadata {
       ImmutableBitSet closure(RelNode r, RelMetadataQuery mq, ImmutableBitSet attrs);
 
       Set<ImmutableBitSet> candidateKeys(RelNode r, RelMetadataQuery mq,
-          ImmutableBitSet attributes);
+          ImmutableBitSet attributes, boolean onlyMinimalKeys);
 
       FunctionalDependencySet getFunctionalDependencies(RelNode r, RelMetadataQuery mq);
 

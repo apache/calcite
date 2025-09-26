@@ -107,9 +107,9 @@ public class RelMdFunctionalDependency
    * Returns candidate keys for the relation within the specified set of attributes.
    */
   public Set<ImmutableBitSet> candidateKeys(
-      RelNode rel, RelMetadataQuery mq, ImmutableBitSet attributes) {
+      RelNode rel, RelMetadataQuery mq, ImmutableBitSet attributes, boolean onlyMinimalKeys) {
     FunctionalDependencySet fdSet = mq.getFunctionalDependencies(rel);
-    return fdSet.findCandidateKeys(attributes);
+    return fdSet.findCandidateKeys(attributes, onlyMinimalKeys);
   }
 
   /**
