@@ -63,7 +63,7 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullVarchar;
   protected RexLiteral nullDecimal;
   protected RexLiteral nullReal;
-  protected RexLiteral nullFloat;
+  protected RexLiteral nullDouble;
   protected RexLiteral nullVarbinary;
 
   private RelDataType nullableBool;
@@ -84,8 +84,8 @@ public abstract class RexProgramBuilderBase {
   private RelDataType nullableReal;
   private RelDataType nonNullableReal;
 
-  private RelDataType nullableFloat;
-  private RelDataType nonNullableFloat;
+  private RelDataType nullableDouble;
+  private RelDataType nonNullableDouble;
 
   private RelDataType nullableVarbinary;
   private RelDataType nonNullableVarbinary;
@@ -135,9 +135,9 @@ public abstract class RexProgramBuilderBase {
     nullableReal = typeFactory.createTypeWithNullability(nonNullableReal, true);
     nullReal = rexBuilder.makeNullLiteral(nullableReal);
 
-    nonNullableFloat = typeFactory.createSqlType(SqlTypeName.FLOAT);
-    nullableFloat = typeFactory.createTypeWithNullability(nonNullableFloat, true);
-    nullFloat = rexBuilder.makeNullLiteral(nullableFloat);
+    nonNullableDouble = typeFactory.createSqlType(SqlTypeName.DOUBLE);
+    nullableDouble = typeFactory.createTypeWithNullability(nonNullableDouble, true);
+    nullDouble = rexBuilder.makeNullLiteral(nullableDouble);
 
     nonNullableVarbinary = typeFactory.createSqlType(SqlTypeName.VARBINARY);
     nullableVarbinary = typeFactory.createTypeWithNullability(nonNullableVarbinary, true);
@@ -456,12 +456,12 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableReal : nonNullableReal;
   }
 
-  protected RelDataType tFloat() {
-    return tFloat(false);
+  protected RelDataType tDouble() {
+    return tDouble(false);
   }
 
-  protected RelDataType tFloat(boolean nullable) {
-    return nullable ? nullableFloat : nonNullableFloat;
+  protected RelDataType tDouble(boolean nullable) {
+    return nullable ? nullableDouble : nonNullableDouble;
   }
 
   protected RelDataType tBigInt() {
