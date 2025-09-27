@@ -66,20 +66,22 @@ import java.util.List;
  *
  * <p>Plan after conversion:
  * <pre>{@code
- * LogicalProject(ENAME=[CAST($0):VARCHAR])
- *   LogicalAggregate(group=[{0}])
- *     LogicalJoin(condition=[<=>(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[semi])
- *       LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[semi])
+ * LogicalAggregate(group=[{0}])
+ *   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+ *     LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+ *       LogicalProject(ENAME=[CAST($0):VARCHAR])
  *         LogicalProject(ENAME=[$1])
  *           LogicalFilter(condition=[=($7, 10)])
  *             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *       LogicalProject(ENAME=[CAST($0):VARCHAR])
  *         LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
  *           LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
  *             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *     LogicalProject(ENAME=[CAST($0):VARCHAR])
  *       LogicalProject(ENAME=[$1])
  *         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
  * }</pre>
- */
+*/
 @Value.Enclosing
 public class IntersectToSemiJoinRule
     extends RelRule<IntersectToSemiJoinRule.Config>
@@ -108,35 +110,48 @@ public class IntersectToSemiJoinRule
 
     final RelDataType leastRowType = intersect.getRowType();
     RelNode current = inputs.get(0);
-    builder.push(current);
 
     for (int i = 1; i < inputs.size(); i++) {
       RelNode next = inputs.get(i);
-      List<RexNode> conditions = new ArrayList<>();
-      int fieldCount = current.getRowType().getFieldCount();
 
+      // cast columns of the join inputs to the least types (global)
+      final RelNode leftCasted = projectJoinInput(builder, leastRowType, current);
+      final RelNode rightCasted = projectJoinInput(builder, leastRowType, next);
+      builder.push(leftCasted).push(rightCasted);
+
+      // compute the join condition over plain fields from the projections of left/right inputs
+      final int fieldCount = leastRowType.getFieldCount();
+      final List<RexNode> joinPredicates = new ArrayList<>(fieldCount);
       for (int j = 0; j < fieldCount; j++) {
-        RelDataType leftFieldType = current.getRowType().getFieldList().get(j).getType();
-        RelDataType rightFieldType = next.getRowType().getFieldList().get(j).getType();
-        RelDataType leastFieldType = leastRowType.getFieldList().get(j).getType();
-
-        conditions.add(
+        joinPredicates.add(
             builder.isNotDistinctFrom(
-                rexBuilder.makeCast(leastFieldType,
-                    rexBuilder.makeInputRef(leftFieldType, j)),
-                rexBuilder.makeCast(leastFieldType,
-                    rexBuilder.makeInputRef(rightFieldType, j + fieldCount))));
+            builder.field(2, 0, j),
+            builder.field(2, 1, j)));
       }
-      RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
 
-      builder.push(next)
-          .join(JoinRelType.SEMI, condition);
+      final RexNode condition = RexUtil.composeConjunction(rexBuilder, joinPredicates);
+      builder.join(JoinRelType.SEMI, condition);
       current = builder.peek();
     }
 
-    builder.distinct()
-        .convert(leastRowType, true);
+    builder.distinct().convert(leastRowType, true);
     call.transformTo(builder.build());
+  }
+
+  private RelNode projectJoinInput(
+      RelBuilder builder, RelDataType leastRowType, RelNode joinInput) {
+    builder.push(joinInput);
+
+    final int fieldCount = joinInput.getRowType().getFieldCount();
+    final List<String> names = leastRowType.getFieldNames();
+    final List<RexNode> joinKeys = new ArrayList<>(fieldCount);
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    for (int j = 0; j < fieldCount; j++) {
+      final RelDataType leastType = leastRowType.getFieldList().get(j).getType();
+      joinKeys.add(rexBuilder.makeCast(leastType, builder.field(j)));
+    }
+
+    return builder.project(joinKeys, names).build();
   }
 
   /** Rule configuration. */
