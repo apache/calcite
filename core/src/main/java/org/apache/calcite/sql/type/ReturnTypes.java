@@ -752,7 +752,7 @@ public abstract class ReturnTypes {
         }
 
         // All non-null arguments are binary
-        if (allArgsBinary && largestIntegerType != null) {
+        if (allArgsBinary && largestBinaryType != null) {
           return typeFactory.createTypeWithNullability(largestBinaryType, nullable);
         }
 
