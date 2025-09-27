@@ -1697,7 +1697,7 @@ public class RexUtil {
     final SqlTypeName sourceSqlTypeName = source.getSqlTypeName();
     final SqlTypeName targetSqlTypeName = target.getSqlTypeName();
 
-    // 1) Both INT types (signed or unsigned)
+    // INT -> INT: use range containment (signed/unsigned)
     if (SqlTypeUtil.isIntType(source) && SqlTypeUtil.isIntType(target)) {
       final boolean sourceIsUnsigned =
           SqlTypeFamily.UNSIGNED_NUMERIC.getTypeNames().contains(sourceSqlTypeName);
@@ -1709,14 +1709,14 @@ public class RexUtil {
       return SqlTypeUtil.integerRangeContains(target, source);
     }
 
-    // 2) Both CHARACTER types: it depends on the precision (length)
+    // CHARACTER -> CHARACTER: valid if target order >= source and length grows
     if (SqlTypeFamily.CHARACTER.getTypeNames().contains(sourceSqlTypeName)
         && SqlTypeFamily.CHARACTER.getTypeNames().contains(targetSqlTypeName)) {
       return targetSqlTypeName.compareTo(sourceSqlTypeName) >= 0
           && source.getPrecision() <= target.getPrecision();
     }
 
-    // 3) From NUMERIC family to CHARACTER family: it depends on the precision/scale
+    // NUMERIC -> CHARACTER: allow when target length accommodates sign/scale
     if (sourceSqlTypeName.getFamily() == SqlTypeFamily.NUMERIC
         && targetSqlTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
       int sourceLength = source.getPrecision() + 1; // include sign
@@ -1727,7 +1727,7 @@ public class RexUtil {
       return targetPrecision == PRECISION_NOT_SPECIFIED || targetPrecision >= sourceLength;
     }
 
-    // 4) DECIMAL -> DECIMAL
+    // DECIMAL -> DECIMAL: allow when precision/scale can only expand
     if (sourceSqlTypeName == SqlTypeName.DECIMAL
         && targetSqlTypeName == SqlTypeName.DECIMAL) {
       int sourcePrecision = source.getPrecision();
@@ -1741,7 +1741,7 @@ public class RexUtil {
           && (targetPrecision - targetScale) >= (sourcePrecision - sourceScale);
     }
 
-    // 5) INT family (signed or unsigned) -> DECIMAL
+    // INT (signed/unsigned) -> DECIMAL: valid if integer digits fit within target precision
     if (SqlTypeUtil.isIntType(source)
         && targetSqlTypeName == SqlTypeName.DECIMAL) {
       int targetPrecision = target.getPrecision();
@@ -1750,7 +1750,7 @@ public class RexUtil {
       return sourcePrecision > 0 && (targetPrecision - targetScale) >= sourcePrecision;
     }
 
-    // 6) DECIMAL -> INT family (signed or unsigned)
+    // DECIMAL -> INT: only when scale = 0 and range fits target integer type
     if (sourceSqlTypeName == SqlTypeName.DECIMAL && SqlTypeUtil.isIntType(target)) {
       if (source.getScale() != 0) {
         return false;
@@ -1758,7 +1758,7 @@ public class RexUtil {
       return SqlTypeUtil.integerRangeContains(target, source);
     }
 
-    // 7) APPROXIMATE NUMERIC -> APPROXIMATE NUMERIC
+    // APPROXIMATE NUMERIC -> APPROXIMATE NUMERIC: allow when target precision >= source precision
     if (SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(sourceSqlTypeName)
         && SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(targetSqlTypeName)) {
       // Lossless if target has at least as many significant digits as source
@@ -1767,12 +1767,12 @@ public class RexUtil {
       return targetPrecision >= sourcePrecision;
     }
 
-    // 8) EXACT NUMERIC -> APPROXIMATE NUMERIC
+    // EXACT NUMERIC -> APPROXIMATE NUMERIC: allow only for scale=0 values within target digits
     if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(sourceSqlTypeName)
         && SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(targetSqlTypeName)) {
       final int targetPrecision = target.getPrecision();
 
-      // Case A: DECIMAL -> APPROXIMATE NUMERIC
+      // DECIMAL -> APPROXIMATE NUMERIC
       if (sourceSqlTypeName == SqlTypeName.DECIMAL) {
         final int sourcePrecision = source.getPrecision();
         if (sourcePrecision <= 0 || source.getScale() != 0) {
@@ -1782,7 +1782,7 @@ public class RexUtil {
         return sourcePrecision <= targetPrecision;
       }
 
-      // Case B: INT family (signed or unsigned) -> APPROXIMATE NUMERIC
+      // INT (signed/unsigned) -> APPROXIMATE NUMERIC
       int sourcePrecision = source.getPrecision();
       return sourcePrecision > 0 && sourcePrecision <= targetPrecision;
     }
