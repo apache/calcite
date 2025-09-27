@@ -567,7 +567,6 @@ public abstract class SqlTypeUtil {
    *
    * @throws IllegalArgumentException if {@code container} is not an integer type
    */
-  @API(since = "1.40", status = API.Status.EXPERIMENTAL)
   public static boolean integerRangeContains(RelDataType container, RelDataType content) {
     checkArgument(isIntType(container),
         "container must be an integer type: %s", container);
@@ -603,7 +602,6 @@ public abstract class SqlTypeUtil {
    * @return Bound as {@link BigInteger}, or {@code null} if the bound cannot be
    *         determined (for example, type is not integer or has non-zero scale)
    */
-  @API(since = "1.40", status = API.Status.EXPERIMENTAL)
   public static @Nullable BigInteger integerBound(RelDataType type, boolean upper) {
     final SqlTypeName typeName = type.getSqlTypeName();
 
