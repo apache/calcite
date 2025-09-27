@@ -16909,26 +16909,147 @@ public class SqlOperatorTest {
   @Test void testBitAndScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITAND, VmName.EXPAND);
-    f.checkFails("bitand(^*^)", "Unknown identifier '\\*'", false);
+
+    // Basic test cases
     f.checkScalar("bitand(2, 3)", "2", "INTEGER NOT NULL");
+    f.checkScalar("bitand(5, 3)", "1", "INTEGER NOT NULL");
+    f.checkScalar("bitand(-5, -3)", "-7", "INTEGER NOT NULL");
+    f.checkScalar("bitand(8, 7)", "0", "INTEGER NOT NULL");
+    f.checkScalar("bitand(-1, 255)", "255", "INTEGER NOT NULL");
+
+    // Tests with different integer types and type coercion
     f.checkScalar("bitand(CAST(2 AS INTEGER), CAST(3 AS BIGINT))", "2", "BIGINT NOT NULL");
     f.checkScalar("bitand(-5, 7)", "3", "INTEGER NOT NULL");
     f.checkScalar("bitand(-5, -31)", "-31", "INTEGER NOT NULL");
     f.checkScalar("bitand(CAST(-5 AS TINYINT), CAST(7 AS TINYINT))", "3", "TINYINT NOT NULL");
-    f.checkScalar("bitand(CAST(-5 AS TINYINT), CAST(-31 AS TINYINT))", "-31", "TINYINT NOT NULL");
-    f.checkType("bitand(CAST(2 AS TINYINT), CAST(6 AS TINYINT))", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("bitand(CAST(2 AS TINYINT), CAST(3 AS TINYINT))", "TINYINT NOT NULL");
     f.checkType("bitand(CAST(2 AS SMALLINT), CAST(6 AS SMALLINT))", "SMALLINT NOT NULL");
     f.checkType("bitand(CAST(2 AS BIGINT), CAST(6 AS BIGINT))", "BIGINT NOT NULL");
+
+    // Mixed cases: negative signed integer with unsigned integer.
+    f.checkScalar("bitand(CAST(1 AS INTEGER UNSIGNED), CAST(255 AS INTEGER UNSIGNED))",
+        "1", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(5 AS INTEGER UNSIGNED), CAST(3 AS INTEGER UNSIGNED))",
+        "1", "INTEGER UNSIGNED NOT NULL");
+
+    // Pure unsigned cases: bitwise AND across unsigned integer families.
+    f.checkScalar("bitand(CAST(255 AS INTEGER UNSIGNED), CAST(65535 AS INTEGER UNSIGNED))",
+        "255", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(4294967295 AS BIGINT UNSIGNED), CAST(255 AS BIGINT UNSIGNED))",
+        "255", "BIGINT UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(15 AS INTEGER UNSIGNED), CAST(7 AS INTEGER))",
+        "7", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(255 AS INTEGER UNSIGNED), CAST(-1 AS INTEGER))",
+        "255", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(128 AS INTEGER UNSIGNED), CAST(127 AS INTEGER))",
+        "0", "INTEGER UNSIGNED NOT NULL");
+
+    // Test cases for ULong & Integer -> ULong
+    f.checkScalar("bitand(CAST(4294967295 AS BIGINT UNSIGNED), CAST(255 AS INTEGER))",
+        "255", "BIGINT UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(1099511627775 AS BIGINT UNSIGNED), CAST(-1 AS INTEGER))",
+        "1099511627775", "BIGINT UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(0 AS BIGINT UNSIGNED), CAST(255 AS INTEGER))",
+        "0", "BIGINT UNSIGNED NOT NULL");
+
+    // Test cases for Integer & ULong -> ULong
+    f.checkScalar("bitand(CAST(-1 AS INTEGER), CAST(4294967295 AS BIGINT UNSIGNED))",
+        "4294967295", "BIGINT UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(127 AS INTEGER), CAST(255 AS BIGINT UNSIGNED))",
+        "127", "BIGINT UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(0 AS INTEGER), CAST(1099511627775 AS BIGINT UNSIGNED))",
+        "0", "BIGINT UNSIGNED NOT NULL");
+
+    // Test cases for UShort & Integer -> Integer
+    f.checkScalar("bitand(CAST(255 AS SMALLINT UNSIGNED), CAST(15 AS INTEGER))",
+        "15", "INTEGER NOT NULL");
+    f.checkScalar("bitand(CAST(65535 AS SMALLINT UNSIGNED), CAST(-1 AS INTEGER))",
+        "65535", "INTEGER NOT NULL");
+    f.checkScalar("bitand(CAST(0 AS SMALLINT UNSIGNED), CAST(255 AS INTEGER))",
+        "0", "INTEGER NOT NULL");
+
+    // Test cases for Integer & UShort -> Integer
+    f.checkScalar("bitand(CAST(-1 AS INTEGER), CAST(255 AS SMALLINT UNSIGNED))",
+        "255", "INTEGER NOT NULL");
+    f.checkScalar("bitand(CAST(127 AS INTEGER), CAST(128 AS SMALLINT UNSIGNED))",
+        "0", "INTEGER NOT NULL");
+    f.checkScalar("bitand(CAST(65535 AS INTEGER), CAST(255 AS SMALLINT UNSIGNED))",
+        "255", "INTEGER NOT NULL");
+
+    // Edge cases with powers of 2
+    f.checkScalar("bitand(CAST(1024 AS INTEGER UNSIGNED), CAST(512 AS INTEGER))",
+        "0", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(1023 AS INTEGER UNSIGNED), CAST(512 AS INTEGER))",
+        "512", "INTEGER UNSIGNED NOT NULL");
+
+    // Mixed operations with zero
+    f.checkScalar("bitand(CAST(0 AS INTEGER UNSIGNED), CAST(-1 AS INTEGER))",
+        "0", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("bitand(CAST(4294967295 AS BIGINT UNSIGNED), CAST(0 AS INTEGER))",
+        "0", "BIGINT UNSIGNED NOT NULL");
+
+    // UInteger & Long -> Long
+    f.checkScalar("bitand(CAST(255 AS INTEGER UNSIGNED), CAST(127 AS BIGINT))",
+        "127", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(4294967295 AS INTEGER UNSIGNED), CAST(-1 AS BIGINT))",
+        "-1", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(1024 AS INTEGER UNSIGNED), CAST(512 AS BIGINT))",
+        "0", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(0 AS INTEGER UNSIGNED), CAST(9223372036854775807 AS BIGINT))",
+        "0", "BIGINT NOT NULL");
+
+    // Long & UInteger -> Long
+    f.checkScalar("bitand(CAST(-1 AS BIGINT), CAST(255 AS INTEGER UNSIGNED))",
+        "255", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(127 AS BIGINT), CAST(128 AS INTEGER UNSIGNED))",
+        "0", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(9223372036854775807 AS BIGINT), CAST(1 AS INTEGER UNSIGNED))",
+        "1", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(0 AS BIGINT), CAST(4294967295 AS INTEGER UNSIGNED))",
+        "0", "BIGINT NOT NULL");
+
+    // Edge cases with negative Long values
+    f.checkScalar("bitand(CAST(-128 AS BIGINT), CAST(255 AS INTEGER UNSIGNED))",
+        "128", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(-256 AS BIGINT), CAST(255 AS INTEGER UNSIGNED))",
+        "0", "BIGINT NOT NULL");
+
+    // Powers of 2 tests
+    f.checkScalar("bitand(CAST(65536 AS INTEGER UNSIGNED), CAST(32768 AS BIGINT))",
+        "0", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(65535 AS INTEGER UNSIGNED), CAST(32768 AS BIGINT))",
+        "32768", "BIGINT NOT NULL");
+
+    // Large number tests
+    f.checkScalar("bitand(CAST(4294967295 AS INTEGER UNSIGNED), CAST(4294967296 AS BIGINT))",
+        "4294967296", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(4294967295 AS INTEGER UNSIGNED), CAST(4294967295 AS BIGINT))",
+        "4294967295", "BIGINT NOT NULL");
+
+    // Mixed sign tests
+    f.checkScalar("bitand(CAST(4294967295 AS INTEGER UNSIGNED), CAST(-4294967296 AS BIGINT))",
+        "-4294967296", "BIGINT NOT NULL");
+
+    // Binary type tests
     f.checkScalar("bitand(CAST(x'0201' AS BINARY(2)), CAST(x'07f9' AS BINARY(2)))", "0201",
         "BINARY(2) NOT NULL");
     f.checkScalar("bitand(CAST(x'0201' AS VARBINARY(2)), CAST(x'07f9' AS VARBINARY(2)))", "0201",
         "VARBINARY(2) NOT NULL");
+
+    // Test invalid argument types
     f.checkFails("^bitand(1.2, 1.3)^",
         "Cannot apply 'BITAND' to arguments of type '"
             + "BITAND\\(<DECIMAL\\(2, 1\\)>, <DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): '"
             + "BITAND\\(<INTEGER>, <INTEGER>\\)'\n"
-            + "'BITAND\\(<BINARY>, <BINARY>\\)'",
+            + "'BITAND\\(<BINARY>, <BINARY>\\)'\n"
+            + "'BITAND\\(<UNSIGNED_NUMERIC>, <UNSIGNED_NUMERIC>\\)'\n"
+            + "'BITAND\\(<UNSIGNED_NUMERIC>, <INTEGER>\\)'\n"
+            + "'BITAND\\(<INTEGER>, <UNSIGNED_NUMERIC>\\)'",
         false);
+
+    // Function argument count validation
     f.checkFails("^bitand()^",
         "Invalid number of arguments to function 'BITAND'. Was expecting 2 arguments",
         false);
@@ -16938,14 +17059,24 @@ public class SqlOperatorTest {
     f.checkFails("^bitand(1, 2, 3)^",
         "Invalid number of arguments to function 'BITAND'. Was expecting 2 arguments",
         false);
-    f.checkNull("bitand(NULL, 1)");
-    f.checkNull("bitand(1, NULL)");
+
+    // NULL value tests
+    f.checkNull("bitand(CAST(NULL AS INTEGER), 5)");
+    f.checkNull("bitand(10, CAST(NULL AS INTEGER))");
     f.checkFails("^bitand(NULL, NULL)^",
         "At least one argument to function 'BITAND' must not be NULL",
         false);
+
+    // Test binary operands with different lengths
     f.checkFails("bitand(CAST(x'0201' AS VARBINARY), CAST(x'02' AS VARBINARY))",
         "Different length for bitwise operands: the first: 2, the second: 1",
         true);
+
+    // Boundary cases for bitwise operations
+    f.checkScalar("bitand(0, 0)", "0", "INTEGER NOT NULL");
+    f.checkScalar("bitand(-1, -1)", "-1", "INTEGER NOT NULL");
+    f.checkScalar("bitand(2147483647, 0)", "0", "INTEGER NOT NULL");  // MAX_INT & 0
+    f.checkScalar("bitand(-2147483648, -1)", "-2147483648", "INTEGER NOT NULL");  // MIN_INT & -1
   }
 
   @Test void testBitOrScalarFunc() {

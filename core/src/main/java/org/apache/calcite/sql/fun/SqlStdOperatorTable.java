@@ -1280,8 +1280,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction BITAND =
       SqlBasicFunction.create("BITAND", SqlKind.BITAND,
-          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
-          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+          ReturnTypes.LARGEST_INT_BINARY_OR_LEAST_RESTRICTIVE,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY)
+              .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC)
+              .or(OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER)
+                  .or(OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.UNSIGNED_NUMERIC))));
 
   /**
    * <code>BITOR</code> scalar function.
@@ -1323,7 +1326,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.BITAND,
           50,        // Higher precedence than XOR but lower than multiplication
           true,
-          ReturnTypes.LEAST_RESTRICTIVE,
+          ReturnTypes.LARGEST_INT_BINARY_OR_LEAST_RESTRICTIVE,
           InferTypes.FIRST_KNOWN,
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY)
               .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC)

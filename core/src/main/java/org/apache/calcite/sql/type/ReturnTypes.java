@@ -689,6 +689,77 @@ public abstract class ReturnTypes {
       };
 
   /**
+   * Chooses a type to return for bitwise operations. If all arguments are null, throws validation
+   * error. If all arguments are integer types, choose the largest integer type. If all arguments
+   * are binary types, choose the largest binary type. As a fallback, choose the least restrictive
+   * type among non-null arguments. Nullable if any argument is nullable.
+   */
+  public static final SqlReturnTypeInference LARGEST_INT_BINARY_OR_LEAST_RESTRICTIVE =
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+
+        RelDataType largestIntegerType = null;
+        RelDataType largestBinaryType = null;
+        RelDataType firstNonNullType = null;
+        boolean allArgsInteger = true;
+        boolean allArgsBinary = true;
+        boolean nullable = false;
+
+        for (RelDataType opType : operandTypes) {
+          if (SqlTypeName.NULL == opType.getSqlTypeName()) {
+            allArgsInteger = false;
+            allArgsBinary = false;
+            nullable = true;
+            continue;
+          }
+
+          if (firstNonNullType == null) {
+            firstNonNullType = opType;
+          }
+
+          nullable |= opType.isNullable();
+
+          // Check integer types
+          if (SqlTypeName.INT_TYPES.contains(opType.getSqlTypeName())) {
+            if (largestIntegerType == null
+                || largestIntegerType.getPrecision() < opType.getPrecision()) {
+              largestIntegerType = opType;
+            }
+            allArgsBinary = false;
+          } else if (SqlTypeName.BINARY_TYPES.contains(opType.getSqlTypeName())) {
+            if (largestBinaryType == null
+                || largestBinaryType.getPrecision() < opType.getPrecision()) {
+              largestBinaryType = opType;
+            }
+            allArgsInteger = false;
+          } else { // Other types
+            allArgsInteger = false;
+            allArgsBinary = false;
+          }
+        }
+
+        // All arguments are null
+        if (firstNonNullType == null) {
+          throw opBinding.newError(
+              RESOURCE.atLeastOneArgumentMustNotBeNull(
+                  opBinding.getOperator().getName()));
+        }
+
+        // All non-null arguments are integers
+        if (allArgsInteger) {
+          return typeFactory.createTypeWithNullability(largestIntegerType, nullable);
+        }
+
+        // All non-null arguments are binary
+        if (allArgsBinary) {
+          return typeFactory.createTypeWithNullability(largestBinaryType, nullable);
+        }
+
+        // Fallback: use least restrictive among all types
+        return ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding);
+      };
+  /**
    * Returns the same type as the multiset carries. The multiset type returned
    * is the least restrictive of the call's multiset operands
    */
