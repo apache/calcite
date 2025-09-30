@@ -290,6 +290,18 @@ public enum SqlTypeName {
           .build();
 
   /**
+   * Mapping between JDBC type codes and their corresponding
+   * {@link org.apache.calcite.sql.type.SqlTypeName} for unsigned types.
+   */
+  private static final Map<Integer, SqlTypeName> UNSIGNED_JDBC_TYPE_TO_NAME =
+      ImmutableMap.<Integer, SqlTypeName>builder()
+          .put(Types.TINYINT, UTINYINT)
+          .put(Types.SMALLINT, USMALLINT)
+          .put(Types.INTEGER, UINTEGER)
+          .put(Types.BIGINT, UBIGINT)
+          .build();
+
+  /**
    * Bitwise-or of flags indicating allowable precision/scale combinations.
    */
   private final int signatures;
@@ -445,6 +457,16 @@ public enum SqlTypeName {
    */
   public static @Nullable SqlTypeName getNameForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_NAME.get(jdbcType);
+  }
+
+  /**
+   * Gets the SqlTypeName corresponding to an unsigned JDBC type.
+   *
+   * @param jdbcType the unsigned JDBC type of interest
+   * @return corresponding SqlTypeName, or null if the type is not known
+   */
+  public static @Nullable SqlTypeName getNameForUnsignedJdbcType(int jdbcType) {
+    return UNSIGNED_JDBC_TYPE_TO_NAME.get(jdbcType);
   }
 
   /**
