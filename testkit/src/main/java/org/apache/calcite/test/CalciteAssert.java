@@ -30,6 +30,8 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.model.ModelHandler;
@@ -47,6 +49,7 @@ import org.apache.calcite.runtime.CollectOperation;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.runtime.UnionOperation;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -90,6 +93,7 @@ import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -105,6 +109,7 @@ import org.hamcrest.Matcher;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -865,7 +870,8 @@ public class CalciteAssert {
 
     case MY_DB:
       return rootSchema.add(schema.schemaName, MY_DB_SCHEMA);
-
+    case UNSIGNED_TYPE:
+      return rootSchema.add(schema.schemaName, UNSIGNED_TYPE_SCHEMA);
     case SCOTT:
       jdbcScott = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_SCOTT);
       return rootSchema.add(schema.schemaName, new CloneSchema(jdbcScott));
@@ -2077,6 +2083,7 @@ public class CalciteAssert {
     GEO("GEO"),
     HR("hr"),
     MY_DB("myDb"),
+    UNSIGNED_TYPE("UNSIGNED_TYPE"),
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
     SCOTT_WITH_TEMPORAL("scott_temporal"),
@@ -2355,4 +2362,44 @@ public class CalciteAssert {
       throw new UnsupportedOperationException("snapshot");
     }
   };
+
+  /** Schema instance for {@link SchemaSpec#UNSIGNED_TYPE}. */
+  private static final Schema UNSIGNED_TYPE_SCHEMA = new AbstractSchema() {
+
+    @Override protected Map<String, Table> getTableMap() {
+      return ImmutableMap.of("test_unsigned", new UnsingedScannableTable());
+    }
+  };
+
+  /** Scannable table for unsigned types test. */
+  private static class UnsingedScannableTable extends AbstractTable implements ScannableTable {
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Table schema is as follows:
+     *
+     * <pre>{@code
+     * test_unsigned(
+     *      utiny_value: TINYINT UNSIGNED,
+     *      usmall_value: SMALLINT UNSIGNED,
+     *      uint_value: INT UNSIGNED,
+     *      ubig_value: BIGINT UNSIGNED)
+     * }</pre>
+     */
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder()
+          .add("utiny_value", typeFactory.createSqlType(SqlTypeName.UTINYINT))
+          .add("usmall_value", typeFactory.createSqlType(SqlTypeName.USMALLINT))
+          .add("uint_value", typeFactory.createSqlType(SqlTypeName.UINTEGER))
+          .add("ubig_value", typeFactory.createSqlType(SqlTypeName.UBIGINT))
+          .build();
+    }
+
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(new Object[][] {
+          {255, 65535, 4294967295L, new BigDecimal("18446744073709551615")}
+      });
+    }
+  }
 }

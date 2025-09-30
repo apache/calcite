@@ -9077,6 +9077,39 @@ public class JdbcTest {
         });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5094">[CALCITE-5094]
+   * Calcite JDBC Adapter and Avatica should support
+   * MySQL UNSIGNED types of TINYINT, SMALLINT, INT, BIGINT</a>. */
+  @Test void testMySQLUnsignedType() {
+    CalciteAssert.that()
+        .with(CalciteAssert.SchemaSpec.UNSIGNED_TYPE)
+        .with(Lex.MYSQL)
+        .query("SELECT * FROM test_unsigned WHERE utiny_value = ? "
+            + "AND usmall_value = ? AND uint_value = ? AND ubig_value = ?")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 255);
+          p.setInt(2, 65535);
+          p.setLong(3, 4294967295L);
+          p.setBigDecimal(4, new BigDecimal("18446744073709551615"));
+        })
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            final Integer uTinyInt = resultSet.getInt(1);
+            final Integer uSmallInt = resultSet.getInt(2);
+            final Long uInteger = resultSet.getLong(3);
+            final BigDecimal uBigInt = resultSet.getBigDecimal(4);
+            assertThat(uTinyInt, is(255));
+            assertThat(uSmallInt, is(65535));
+            assertThat(uInteger, is(4294967295L));
+            assertThat(uBigInt, is(new BigDecimal("18446744073709551615")));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
   @Test void bindByteParameter() {
     for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
       final String sql =

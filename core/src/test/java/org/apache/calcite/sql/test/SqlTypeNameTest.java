@@ -40,6 +40,10 @@ import static org.apache.calcite.sql.type.SqlTypeName.STRUCTURED;
 import static org.apache.calcite.sql.type.SqlTypeName.TIME;
 import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
 import static org.apache.calcite.sql.type.SqlTypeName.TINYINT;
+import static org.apache.calcite.sql.type.SqlTypeName.UBIGINT;
+import static org.apache.calcite.sql.type.SqlTypeName.UINTEGER;
+import static org.apache.calcite.sql.type.SqlTypeName.USMALLINT;
+import static org.apache.calcite.sql.type.SqlTypeName.UTINYINT;
 import static org.apache.calcite.sql.type.SqlTypeName.VARBINARY;
 import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
 
@@ -79,6 +83,30 @@ class SqlTypeNameTest {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.BIGINT);
     assertThat("BIGINT did not map to BIGINT", tn, is(BIGINT));
+  }
+
+  @Test void testUnsignedTinyint() {
+    SqlTypeName tn =
+        SqlTypeName.getNameForUnsignedJdbcType(Types.TINYINT);
+    assertThat("TINYINT did not map to UTINYINT", tn, is(UTINYINT));
+  }
+
+  @Test void testUnsignedSmallint() {
+    SqlTypeName tn =
+        SqlTypeName.getNameForUnsignedJdbcType(Types.SMALLINT);
+    assertThat("SMALLINT did not map to USMALLINT", tn, is(USMALLINT));
+  }
+
+  @Test void testUnsignedInteger() {
+    SqlTypeName tn =
+        SqlTypeName.getNameForUnsignedJdbcType(Types.INTEGER);
+    assertThat("INTEGER did not map to UINTEGER", tn, is(UINTEGER));
+  }
+
+  @Test void testUnsignedBigint() {
+    SqlTypeName tn =
+        SqlTypeName.getNameForUnsignedJdbcType(Types.BIGINT);
+    assertThat("BIGINT did not map to UBIGINT", tn, is(UBIGINT));
   }
 
   @Test void testFloat() {

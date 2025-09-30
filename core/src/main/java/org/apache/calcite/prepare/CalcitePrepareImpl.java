@@ -793,7 +793,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         type.isNullable()
             ? DatabaseMetaData.columnNullable
             : DatabaseMetaData.columnNoNulls,
-        true,
+        !SqlTypeName.UNSIGNED_TYPES.contains(type.getSqlTypeName()),
         type.getPrecision(),
         fieldName,
         origin(origins, 0),
