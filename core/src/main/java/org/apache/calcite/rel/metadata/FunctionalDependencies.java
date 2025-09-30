@@ -31,20 +31,30 @@ import java.util.stream.Collectors;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Models a set of functional dependencies and provides methods for closure computation,
- * candidate key search, and related reasoning.
+ * Represents a collection of functional dependency relationships in a relational schema.
+ *
+ * <p>Each element in this collection is a mapping from a set of determinant columns to
+ * a set of dependent columns, capturing how the values of the determinants uniquely
+ * determine the values of the dependents. This class provides convenient methods to
+ * manage, query, and analyze multiple functional dependencies associated with a table
+ * or relational expression.
+ *
+ * <p>This structure can represent one-to-one, one-to-many, many-to-one, and many-to-many functional
+ * dependencies, and supports efficient dependency analysis and closure computation.
  */
 public class FunctionalDependencies {
   // Maximum number of attributes supported in closure computation
   private static final int MAX_CLOSURE_ATTRS = 1000000;
 
-  // determinant set -> dependents
+  // Maps each determinant set to the set of dependent columns it functionally determines.
   private final Map<Set<Integer>, Set<Integer>> dependencyGraph = new HashMap<>();
-  // attribute -> determinant sets containing this attribute
+
+  // Maps each attribute (column index) to all determinant sets containing this attribute,
+  // for efficient reverse lookups and dependency analysis.
   private final Map<Integer, Set<Set<Integer>>> reverseIndex = new HashMap<>();
 
-  public FunctionalDependencies(Set<FunctionalDependency> fds) {
-    for (FunctionalDependency fd : fds) {
+  public FunctionalDependencies(Set<FunctionalDependence> fds) {
+    for (FunctionalDependence fd : fds) {
       Set<Integer> determinants = new HashSet<>(fd.getDeterminants());
       Set<Integer> dependents = new HashSet<>(fd.getDependents());
       // Build dependency graph (merge dependents for same determinants)
@@ -69,6 +79,21 @@ public class FunctionalDependencies {
 
   //~ Methods ----------------------------------------------------------------
 
+  /**
+   * Computes the closure of a set of attributes with respect to the current collection
+   * of functional dependencies.
+   *
+   * <p>The closure of a set of attributes is the set of all attributes that can be
+   * functionally determined from the given set via zero or more applications of the
+   * functional dependencies in this collection.
+   *
+   * <p>Example:
+   * If the dependencies are {0} determines {1}, {1} determines {2},
+   * then the closure of {0} is {0, 1, 2}.
+   *
+   * @param attributes the set of attribute indices whose closure is to be computed
+   * @return the closure of {@code attributes} under the current set of functional dependencies
+   */
   public Set<Integer> computeClosure(Set<Integer> attributes) {
     if (attributes.size() > MAX_CLOSURE_ATTRS) {
       throw new IllegalArgumentException(
@@ -118,12 +143,20 @@ public class FunctionalDependencies {
   }
 
   /**
-   * Find candidate keys within the given attribute set.
+   * Finds all candidate keys (or superkeys) for a relation given a set of attributes and
+   * the current functional dependencies.
    *
-   * @param attributes the set of attributes to search for candidate keys within
-   * @param onlyMinimalKeys if true, only return minimal candidate keys (shortest length);
-   *                        if false, return all minimal candidate keys
-   * @return a set of attribute subsets that can determine all given attributes
+   * <p>A candidate key is a minimal set of attributes that can uniquely determine all attributes
+   * in the relation (i.e., its closure contains all attributes), and no proper subset of it has
+   * this property. If {@code onlyMinimalKeys} is false，the method may return all superkeys (not
+   * necessarily minimal).
+   *
+   * <p>Note: This method may be computationally expensive for large attribute sets.
+   *
+   * @param attributes the set of all attribute indices in the relation
+   * @param onlyMinimalKeys if true, only minimal candidate keys are returned;
+   *                        if false, all superkeys may be returned
+   * @return a set of candidate keys (or superkeys), each represented as a set of attribute indices
    */
   public Set<Set<Integer>> findCandidateKeys(Set<Integer> attributes, boolean onlyMinimalKeys) {
     if (dependencyGraph.isEmpty()) {
@@ -201,16 +234,16 @@ public class FunctionalDependencies {
    * Returns a new FunctionalDependencies that is the union of this and another FD set.
    */
   public FunctionalDependencies union(FunctionalDependencies other) {
-    Set<FunctionalDependency> unionSet = new HashSet<>();
+    Set<FunctionalDependence> unionSet = new HashSet<>();
     unionSet.addAll(this.getAllFDs());
     unionSet.addAll(other.getAllFDs());
     return new FunctionalDependencies(unionSet);
   }
 
-  public Set<FunctionalDependency> getAllFDs() {
-    Set<FunctionalDependency> result = new HashSet<>();
+  public Set<FunctionalDependence> getAllFDs() {
+    Set<FunctionalDependence> result = new HashSet<>();
     for (Map.Entry<Set<Integer>, Set<Integer>> entry : dependencyGraph.entrySet()) {
-      result.add(FunctionalDependency.of(entry.getKey(), entry.getValue()));
+      result.add(FunctionalDependence.of(entry.getKey(), entry.getValue()));
     }
     return result;
   }
@@ -233,7 +266,7 @@ public class FunctionalDependencies {
     StringBuilder sb = new StringBuilder();
     sb.append("FunctionalDependencies{");
     boolean first = true;
-    for (FunctionalDependency fd : getAllFDs()) {
+    for (FunctionalDependence fd : getAllFDs()) {
       if (!first) {
         sb.append(", ");
       }
@@ -261,13 +294,13 @@ public class FunctionalDependencies {
    * Supports fluent FD addition and builds the dependency graph.
    */
   public static class Builder {
-    private final Set<FunctionalDependency> fdSet = new HashSet<>();
+    private final Set<FunctionalDependence> fdSet = new HashSet<>();
 
     /**
      * Add a functional dependency from determinant set to dependent set.
      */
     public Builder addFD(Set<Integer> determinants, Set<Integer> dependents) {
-      fdSet.add(FunctionalDependency.of(determinants, dependents));
+      fdSet.add(FunctionalDependence.of(determinants, dependents));
       return this;
     }
 
@@ -275,7 +308,7 @@ public class FunctionalDependencies {
      * Add a functional dependency from a single determinant to a single dependent.
      */
     public Builder addFD(int determinant, int dependent) {
-      fdSet.add(FunctionalDependency.of(determinant, dependent));
+      fdSet.add(FunctionalDependence.of(determinant, dependent));
       return this;
     }
 
@@ -283,7 +316,7 @@ public class FunctionalDependencies {
      * Add a functional dependency from a single determinant to multiple dependents.
      */
     public Builder addFD(int determinant, Set<Integer> dependents) {
-      fdSet.add(FunctionalDependency.of(ImmutableSet.of(determinant), dependents));
+      fdSet.add(FunctionalDependence.of(ImmutableSet.of(determinant), dependents));
       return this;
     }
 
@@ -291,7 +324,7 @@ public class FunctionalDependencies {
      * Add a functional dependency from multiple determinants to a single dependent.
      */
     public Builder addFD(Set<Integer> determinants, int dependent) {
-      fdSet.add(FunctionalDependency.of(determinants, ImmutableSet.of(dependent)));
+      fdSet.add(FunctionalDependence.of(determinants, ImmutableSet.of(dependent)));
       return this;
     }
 

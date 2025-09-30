@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.rel.metadata.FunctionalDependence;
 import org.apache.calcite.rel.metadata.FunctionalDependencies;
-import org.apache.calcite.rel.metadata.FunctionalDependency;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -120,9 +120,9 @@ public class FunctionalDependenciesTest {
 
   @Test void testComputeClosureWithLargeRelation() {
     int numAttrs = 10000;
-    Set<FunctionalDependency> fdSet = new HashSet<>();
+    Set<FunctionalDependence> fdSet = new HashSet<>();
     for (int i = 0; i < numAttrs; i++) {
-      fdSet.add(FunctionalDependency.of(i, i + 1));
+      fdSet.add(FunctionalDependence.of(i, i + 1));
     }
     FunctionalDependencies dfs = new FunctionalDependencies(fdSet);
     Set<Integer> closure = dfs.computeClosure(ImmutableSet.of(0));

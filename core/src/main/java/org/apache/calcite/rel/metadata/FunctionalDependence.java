@@ -24,13 +24,33 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Represents a single functional dependency (FD) between two sets of attributes.
+ * Represents a functional dependency between two sets of columns (by their indices)
+ * in a relational schema.
+ *
+ * <p>A functional dependency specifies that the values of the {@code determinants} uniquely
+ * determine the values of the {@code dependents}。In other words, for any two rows in the
+ * relation, if the values of the determinant columns are equal, then the values of the
+ * dependent columns must also be equal.
+ *
+ * <p>Notation: {@code determinants} &rarr; {@code dependents}
+ *
+ * <p>Example:
+ * Given a table with columns [emp_id, name, dept]
+ * If determinants = {0} (emp_id) and dependents = {1, 2} (name, dept),
+ * this means: emp_id &rarr; {name, dept}
+ * That is, each emp_id uniquely determines both name and dept.
+ *
+ * <p>Both determinants and dependents are sets of column indices, allowing this class to represent
+ * one-to-one, one-to-many, many-to-one, and many-to-many relationships.
  */
-public class FunctionalDependency {
+public class FunctionalDependence {
+  // The set of column indices that are the determinants in the functional dependency.
   private final ImmutableSet<Integer> determinants;
+
+  // The set of column indices that are functionally determined by the {@link #determinants}.
   private final ImmutableSet<Integer> dependents;
 
-  private FunctionalDependency(Set<Integer> determinants, Set<Integer> dependents) {
+  private FunctionalDependence(Set<Integer> determinants, Set<Integer> dependents) {
     this.determinants = ImmutableSet.copyOf(determinants);
     this.dependents = ImmutableSet.copyOf(dependents);
   }
@@ -38,15 +58,15 @@ public class FunctionalDependency {
   /**
    * Create FD from determinant set to dependent set.
    */
-  public static FunctionalDependency of(Set<Integer> determinants, Set<Integer> dependents) {
-    return new FunctionalDependency(determinants, dependents);
+  public static FunctionalDependence of(Set<Integer> determinants, Set<Integer> dependents) {
+    return new FunctionalDependence(determinants, dependents);
   }
 
   /**
    * Create FD from single determinant to single dependent.
    */
-  public static FunctionalDependency of(int determinant, int dependent) {
-    return FunctionalDependency.of(ImmutableSet.of(determinant), ImmutableSet.of(dependent));
+  public static FunctionalDependence of(int determinant, int dependent) {
+    return FunctionalDependence.of(ImmutableSet.of(determinant), ImmutableSet.of(dependent));
   }
 
   public Set<Integer> getDeterminants() {
@@ -68,10 +88,10 @@ public class FunctionalDependency {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof FunctionalDependency)) {
+    if (!(o instanceof FunctionalDependence)) {
       return false;
     }
-    FunctionalDependency that = (FunctionalDependency) o;
+    FunctionalDependence that = (FunctionalDependence) o;
     return determinants.equals(that.determinants)
         && dependents.equals(that.dependents);
   }
