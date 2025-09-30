@@ -2068,7 +2068,7 @@ FROM dept d1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(NAME=[$1], EXPR$1=[+($0, $SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor2]], NAME=[$1], EXPR$1=[+($0, $SCALAR_QUERY({
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[=($5, $SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
@@ -19457,7 +19457,7 @@ FROM dept d1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(NAME=[$1], EXPR$1=[+($0, $SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], NAME=[$1], EXPR$1=[+($0, $SCALAR_QUERY({
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[AND(=($cor0.DEPTNO, $7), =($5, $SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])

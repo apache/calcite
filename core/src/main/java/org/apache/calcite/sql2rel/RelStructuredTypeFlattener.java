@@ -565,7 +565,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newInput = getNewForOldRel(rel.getInput());
     final RelNode newRel = relBuilder.push(newInput)
         .projectNamed(flattenedExpList.leftList(), flattenedExpList.rightList(),
-            true)
+            true, rel.getVariablesSet())
         .hints(rel.getHints())
         .build();
     setNewForOldRel(rel, newRel);

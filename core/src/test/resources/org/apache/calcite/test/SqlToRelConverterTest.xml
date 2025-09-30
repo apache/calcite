@@ -923,7 +923,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[ARRAY({
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], NAME=[$1], EMPSET=[ARRAY({
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -980,7 +980,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], JOBMAP=[MAP({
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], NAME=[$1], JOBMAP=[MAP({
 LogicalProject(EMPNO=[$0], JOB=[$2])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1039,7 +1039,7 @@ FROM emp]]>
     <Resource name="plan">
       <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalProject($f0=[$SCALAR_QUERY({
+  LogicalProject(variablesSet=[[$cor0]], $f0=[$SCALAR_QUERY({
 LogicalProject(EXPR$0=[CHAR_LENGTH($1)])
   LogicalFilter(condition=[=($0, $cor0.EMPNO)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -1399,7 +1399,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[MULTISET({
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], NAME=[$1], EMPSET=[MULTISET({
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -5218,7 +5218,7 @@ LogicalProject(ENAME=[$cor0.ENAME])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EMP_NAME=[$SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], EMP_NAME=[$SCALAR_QUERY({
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[=($0, $cor0.EMPNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -9211,7 +9211,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(NAME=[$1], EMP_ARRAY=[ARRAY({
+LogicalProject(variablesSet=[[$cor0]], NAME=[$1], EMP_ARRAY=[ARRAY({
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
