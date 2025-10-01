@@ -4244,4 +4244,18 @@ class RexProgramTest extends RexProgramTestBase {
     RexNode cast = rexBuilder.makeCast(nullableDateType, dateStr);
     checkSimplify(cast, "2020-10-30");
   }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7215">[CALCITE-7215]
+   * RexSimplify should simplify SEARCH with complex operand</a>. */
+  @Test void testSimplifySearch() {
+    final RexNode ref = input(tInt(), 0);
+    RexNode operand =
+        div(ref, case_(case_(eq(ref, literal(1)), trueLiteral, trueLiteral), literal(5), nullInt));
+
+    // SEARCH(/($0, CASE(CASE(=($0, 1), true, true), 5, null:INTEGER)), Sarg[1, 2, 3])
+    RexNode search = in(operand, literal(1), literal(2), literal(3));
+
+    checkSimplify(search, "SEARCH(/($0, 5), Sarg[1, 2, 3])");
+  }
 }

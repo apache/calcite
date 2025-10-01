@@ -2331,17 +2331,20 @@ public class RexSimplify {
 
   private RexNode simplifySearch(RexCall call, RexUnknownAs unknownAs) {
     assert call.getKind() == SqlKind.SEARCH;
-    final RexNode a = call.getOperands().get(0);
+    final RexNode operand = call.getOperands().get(0);
+    final RexNode simplifiedOperand = simplify(operand, unknownAs);
+    final boolean operandUnchanged = operand.equals(simplifiedOperand);
+    final RexNode searchOperand = operandUnchanged ? operand : simplifiedOperand;
     if (call.getOperands().get(1) instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) call.getOperands().get(1);
       final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
       if (sarg.isAll() || sarg.isNone()) {
-        RexNode rexNode = RexUtil.simpleSarg(rexBuilder, a, sarg, unknownAs);
+        RexNode rexNode = RexUtil.simpleSarg(rexBuilder, searchOperand, sarg, unknownAs);
         return simplify(rexNode, unknownAs);
       }
       // Remove null from sarg if the left-hand side is never null
       if (sarg.nullAs != UNKNOWN) {
-        final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, a, unknownAs);
+        final RexNode simplified = simplifyIs1(SqlKind.IS_NULL, searchOperand, unknownAs);
         if (simplified != null
             && simplified.isAlwaysFalse()) {
           final Sarg sarg2 = Sarg.of(UNKNOWN, sarg.rangeSet);
@@ -2350,7 +2353,7 @@ public class RexSimplify {
                   literal.getTypeName());
           // Now we've strengthened the Sarg, try to simplify again
           return simplifySearch(
-              call.clone(call.type, ImmutableList.of(a, literal2)),
+              call.clone(call.type, ImmutableList.of(searchOperand, literal2)),
               unknownAs);
         }
       } else if (sarg.isPoints() && sarg.pointCount <= 1) {
@@ -2359,7 +2362,9 @@ public class RexSimplify {
         return RexUtil.expandSearch(rexBuilder, null, call);
       }
     }
-    return call;
+    return operandUnchanged
+        ? call
+        : call.clone(call.type, ImmutableList.of(simplifiedOperand, call.getOperands().get(1)));
   }
 
   private RexNode simplifyCast(RexCall e) {
