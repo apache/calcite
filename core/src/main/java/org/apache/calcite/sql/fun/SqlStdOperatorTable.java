@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -86,6 +87,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -273,9 +275,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                 typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
                     ? ReturnTypes.LEAST_RESTRICTIVE
                     : ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE;
-
-            return requireNonNull(returnType.inferReturnType(opBinding),
-                "inferred CONCAT element type");
+            RelDataType type = returnType.inferReturnType(opBinding);
+            if (type == null) {
+              throw opBinding.newError(
+                  RESOURCE.cannotInferReturnType(
+                      opBinding.getOperator().toString(),
+                      opBinding.collectOperandTypes().toString()));
+            }
+            return type;
           }),
           null,
           OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);

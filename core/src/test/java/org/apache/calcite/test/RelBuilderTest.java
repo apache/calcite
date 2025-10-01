@@ -774,9 +774,9 @@ public class RelBuilderTest {
           builder.call(SqlStdOperatorTable.PLUS, builder.field(1),
               builder.field(3));
       fail("expected error, got " + call);
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(),
-          is("Cannot infer return type for +; "
+          containsString("Cannot infer return type for +; "
               + "operand types: [VARCHAR(10), SMALLINT]"));
     }
   }
@@ -4389,7 +4389,7 @@ public class RelBuilderTest {
     try {
       builder.call(SqlStdOperatorTable.PLUS, Lists.newArrayList(arg0, arg1));
       fail("Invalid combination of parameter types");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(), containsString("Cannot infer return type"));
     }
 
@@ -4397,7 +4397,7 @@ public class RelBuilderTest {
     try {
       builder.call(SqlStdOperatorTable.PLUS, arg0, arg1);
       fail("Invalid combination of parameter types");
-    } catch (IllegalArgumentException e) {
+    } catch (CalciteException e) {
       assertThat(e.getMessage(), containsString("Cannot infer return type"));
     }
   }

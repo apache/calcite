@@ -5789,6 +5789,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type(type1);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7216">[CALCITE-7216]
+   * SqlOperator.inferReturnType throws the wrong exception on error</a>. */
+  @Test void testWrongException() {
+    sql("select ^least(DATE '2020-01-01', 'x')^")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .fails("Cannot infer return type for LEAST; operand types: \\[DATE, CHAR\\(1\\)\\]");
+  }
+
   @Test void testNaturalJoinIncompatibleDatatype() {
     sql("select *\n"
         + "from (select ename as name, hiredate as deptno from emp)\n"

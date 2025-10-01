@@ -12165,6 +12165,16 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7216">[CALCITE-7216]
+   * SqlOperator.inferReturnType throws the wrong exception on error</a>. */
+  @Test void testLeastMismatch() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.LEAST, VmName.EXPAND)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkFails("^least(DATE '2020-01-01', 'x')^",
+        "Cannot infer return type for LEAST; operand types: \\[DATE, CHAR\\(1\\)\\]", false);
+  }
+
   @Test void testIfNullFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.IFNULL, VmName.EXPAND);
