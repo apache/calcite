@@ -875,12 +875,12 @@ EXPR$0
 
 select greatest(deptno, empno, sal) from emp where deptno = 30;
 EXPR$0
-7499
-7521
-7654
-7698
-7844
-7900
+7499.00
+7521.00
+7654.00
+7698.00
+7844.00
+7900.00
 !ok
 
 select least(deptno, empno) from emp where deptno = 30;

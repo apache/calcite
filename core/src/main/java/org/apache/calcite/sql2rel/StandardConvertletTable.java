@@ -1991,7 +1991,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         throw new AssertionError();
       }
       final List<RexNode> exprs =
-          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.LEAST_RESTRICTIVE);
       final List<RexNode> list = new ArrayList<>();
       final List<RexNode> orList = new ArrayList<>();
       for (RexNode expr : exprs) {
@@ -2048,7 +2048,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         throw new AssertionError();
       }
       final List<RexNode> exprs =
-          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.LEAST_RESTRICTIVE);
       final List<RexNode> list = new ArrayList<>();
       for (int i = 0; i < exprs.size(); i++) {
         RexNode expr = exprs.get(i);
