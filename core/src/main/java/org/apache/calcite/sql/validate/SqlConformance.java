@@ -532,6 +532,7 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#PRESTO},
    * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * {@link SqlConformanceEnum#BIG_QUERY}
    * false otherwise.
    */
   boolean shouldConvertRaggedUnionTypesToVarying();

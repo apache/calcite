@@ -12086,6 +12086,22 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7210">[CALCITE-7210]
+   * BINARY literal values may not match their type</a>. */
+  @Test void testLeastBinary() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.LEAST, VmName.EXPAND)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("least(x'01', x'0202')", "0100", "BINARY(2) NOT NULL");
+
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.LEAST, VmName.EXPAND)
+        // for shouldConvertRaggedUnionTypesToVarying
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f0.checkScalar("least(x'01', x'0202')", "01", "VARBINARY(2) NOT NULL");
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6939">
    * [CALCITE-6939] Add support for Lateral Column Alias</a>. */
   @Test void testAliasInSelect() {
