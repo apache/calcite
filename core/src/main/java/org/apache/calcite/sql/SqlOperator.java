@@ -561,9 +561,10 @@ public abstract class SqlOperator {
     if (returnTypeInference != null) {
       RelDataType returnType = returnTypeInference.inferReturnType(opBinding);
       if (returnType == null) {
-        throw new IllegalArgumentException("Cannot infer return type for "
-            + opBinding.getOperator() + "; operand types: "
-            + opBinding.collectOperandTypes());
+        throw opBinding.newError(
+            RESOURCE.cannotInferReturnType(
+                opBinding.getOperator().toString(),
+                opBinding.collectOperandTypes().toString()));
       }
 
       if (operandTypeInference != null
