@@ -234,6 +234,13 @@ Here is the relevant code from <code>CsvSchema</code>, overriding the
 method in the <code>AbstractSchema</code> base class.
 
 {% highlight java %}
+@Override protected Map<String, Table> getTableMap() {
+  if (tableMap == null) {
+    tableMap = createTableMap();
+  }
+  return tableMap;
+}
+
 private Map<String, Table> createTableMap() {
   // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
   // ".json.gz".
