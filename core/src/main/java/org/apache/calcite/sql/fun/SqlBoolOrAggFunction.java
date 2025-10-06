@@ -40,14 +40,14 @@ public class SqlBoolOrAggFunction extends SqlAggFunction {
       @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     super(name,
-        null,                   // sqlIdentifier = null → means built-in
+        null,
         kind,
         returnTypeInference,
         operandTypeInference,
         operandTypeChecker,
         category,
-        false,                  // requiresOrder → BOOLOR_AGG doesn’t need ORDER BY
-        false,                  // requiresOver → not only usable with OVER()
-        Optionality.FORBIDDEN); // requiresGroupOrder → not applicable
+        false,
+        false,
+        Optionality.FORBIDDEN);
   }
 }
