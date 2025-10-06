@@ -13827,7 +13827,7 @@ class RelToSqlConverterDMTest {
   @Test public void testBoolOrAggFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode boolOrAgg =
-        builder.call(SqlLibraryOperators.BOOLOR_AGG,  builder.literal("EMPNO"));
+         builder.call(SqlLibraryOperators.BOOLOR_AGG,  builder.literal("EMPNO"));
 
     final RelNode root = builder
         .scan("EMP")
