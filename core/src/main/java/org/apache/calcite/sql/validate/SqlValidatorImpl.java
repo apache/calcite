@@ -1363,6 +1363,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       // fall through
     case TABLE_REF:
+    case LATERAL:
     case SNAPSHOT:
     case OVER:
     case COLLECTION_TABLE:
@@ -2621,8 +2622,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return newNode;
 
     case LATERAL:
-      return registerFrom(
-          parentScope,
+      SqlBasicCall sbc = (SqlBasicCall) node;
+      registerFrom(parentScope,
           usingScope,
           register,
           ((SqlCall) node).operand(0),
@@ -2631,6 +2632,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           extendList,
           forceNullable,
           true);
+      // Put the usingScope which is a JoinScope,
+      // in order to make visible the left items
+      // of the JOIN tree.
+      scopes.put(node, usingScope);
+      return sbc;
 
     case COLLECTION_TABLE:
       call = (SqlCall) node;

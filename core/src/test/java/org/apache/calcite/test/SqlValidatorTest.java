@@ -9107,6 +9107,57 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Duplicate relation name 'EMP' in FROM clause");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7217">[CALCITE-7217]
+   * LATERAL is lost after validation</a>. */
+  @Test void testCollectionTableWithLateralRewrite() {
+    sql("select * from emp, lateral table(ramp(emp.deptno)), dept")
+        .rewritesTo("SELECT *\n"
+            + "FROM `EMP`,\n"
+            + "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)),\n"
+            + "`DEPT`");
+    // As above, with alias
+    sql("select * from emp, lateral table(ramp(emp.deptno)) as t(a), dept")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `EMP`,\n"
+            +  "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)) AS `T` (`A`),\n"
+            +  "`DEPT`");
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  cross join (values ('A'), ('B'))")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `DEPT`,\n"
+            +  "LATERAL TABLE(RAMP(`DEPTNO`))\n"
+            +  "CROSS JOIN (VALUES ROW('A'),\n"
+            +  "ROW('B'))");
+    // As above, using NATURAL JOIN
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  natural join emp")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `DEPT`,\n"
+            +  "LATERAL TABLE(RAMP(`DEPTNO`))\n"
+            +  "NATURAL INNER JOIN `EMP`");
+    // As above, using comma
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  emp as e2")
+        .rewritesTo("SELECT *\n"
+            +  "FROM `EMP`,\n"
+            +  "LATERAL (SELECT *\n"
+            +  "FROM `DEPT`\n"
+            +  "WHERE `DEPT`.`DEPTNO` = `EMP`.`DEPTNO`),\n"
+            +  "`EMP` AS `E2`");
+    // LATERAL in left part of join
+    sql("select * from lateral table(ramp(1234)), emp")
+        .rewritesTo("SELECT *\n"
+            +  "FROM LATERAL TABLE(RAMP(1234)),\n"
+            +  "`EMP`");
+  }
+
   @Test void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emp),'ename'))")
         .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
