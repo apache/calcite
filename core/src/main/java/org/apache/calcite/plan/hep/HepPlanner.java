@@ -565,7 +565,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param vertex the vertex
    * @return the list of parents for the vertex
    */
-  private List<HepRelVertex> getVertexParents(HepRelVertex vertex) {
+  protected List<HepRelVertex> getVertexParents(HepRelVertex vertex) {
     final List<HepRelVertex> parents = new ArrayList<>();
     final List<HepRelVertex> parentVertices =
         Graphs.predecessorListOf(graph, vertex);
