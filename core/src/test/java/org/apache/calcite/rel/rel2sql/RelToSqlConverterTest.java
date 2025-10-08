@@ -9566,6 +9566,102 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testUpdate() {
+    final String sql0 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = 'calcite'";
+    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = "
+        + "'calcite'";
+    sql(sql0).ok(expected0);
+
+    final String sql1 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = 'calcite'\n"
+        + "where \"product_id\" = 1";
+    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = "
+        + "'calcite'\nWHERE \"product_id\" = 1";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = 'calcite', \"product_id\" = 10\n"
+        + "where \"product_id\" = 1";
+    final String expected2 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = 'calcite', "
+        + "\"product_id\" = 10\nWHERE \"product_id\" = 1";
+    sql(sql2).ok(expected2);
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7220">[CALCITE-7220]
+   * RelToSqlConverter throws exception for UPDATE with self-referencing column in SET</a>.
+   */
+  @Test void testUpdateSetWithColumnReference() {
+    final String sql0 = "update \"foodmart\".\"product\" "
+        + "set \"product_name\" = \"product_name\" || '_'\n"
+        + "where \"product_id\" > 10";
+    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = CAST"
+        + "(\"product_name\" || '_' AS VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nWHERE "
+        + "\"product_id\" > 10";
+    sql(sql0).ok(expected0);
+
+    final String sql1 = "update \"foodmart\".\"product\""
+        + "set \"product_id\" = \"product_id\" + char_length(\"product_name\")"
+        + "where \"product_id\" > 10";
+    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = \"product_id\""
+        + " + CHAR_LENGTH(\"product_name\")\nWHERE \"product_id\" > 10";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "update \"foodmart\".\"product\""
+        + "set\n"
+        + "   \"product_id\" = \"product_id\" + char_length(\"product_name\"),\n"
+        + "   \"product_name\" = \"product_name\" || '_' \n"
+        + "where \"product_id\" > 10";
+    final String expected2 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = \"product_id\""
+        + " + CHAR_LENGTH(\"product_name\"), \"product_name\" = CAST(\"product_name\" || '_' AS "
+        + "VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nWHERE \"product_id\" > 10";
+    sql(sql2).ok(expected2);
+
+    final String sql3 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = 'calcite'\n"
+        + "where \"product_id\" in (\n"
+        + "   select \"product_id\" from \"foodmart\".\"product\" where \"product_id\" < 10"
+        + ")";
+    final String expected3 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = "
+        + "'calcite'\nWHERE \"product_id\" IN (SELECT \"product_id\"\nFROM \"foodmart\""
+        + ".\"product\"\nWHERE \"product_id\" < 10)";
+    sql(sql3).ok(expected3);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5122">[CALCITE-5122]
+   * Update query with correlated throws AssertionError "field ordinal 0 out of range"</a>.
+   */
+  @Test void testUpdateWithCorrelatedInSet() {
+    final String sql0 = "update \"foodmart\".\"product\" a set \"product_id\" = "
+        + "(select \"product_class_id\" from \"foodmart\".\"product_class\" b "
+        + "where a.\"product_class_id\" = b.\"product_class_id\")";
+    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = (((SELECT "
+        + "\"product_class_id\"\nFROM \"foodmart\".\"product_class\"\nWHERE \"product\""
+        + ".\"product_class_id\" = \"product_class_id\")))";
+    sql(sql0).ok(expected0);
+
+    final String sql1 = "update \"foodmart\".\"product\" a set \"brand_name\" = "
+        + "(select cast(\"product_category\" as varchar(60)) from \"foodmart\".\"product_class\" b "
+        + "where a.\"product_class_id\" = b.\"product_class_id\")";
+    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"brand_name\" = (((SELECT CAST"
+        + "(\"product_category\" AS VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nFROM \"foodmart\""
+        + ".\"product_class\"\nWHERE \"product\".\"product_class_id\" = \"product_class_id\")))";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = 'calcite'\n"
+        + "where \"product_id\" in (\n"
+        + "   select \"product_id\" from \"foodmart\".\"product\" where \"product_id\" < 10"
+        + ")";
+    final String expected2 = "UPDATE \"foodmart\".\"product\" SET \"product_name\" = "
+        + "'calcite'\nWHERE \"product_id\" IN (SELECT \"product_id\"\nFROM \"foodmart\""
+        + ".\"product\"\nWHERE \"product_id\" < 10)";
+    sql(sql2).ok(expected2);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6116">[CALCITE-6116]
    * Add EXISTS function (enabled in Spark library)</a>. */
