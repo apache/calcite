@@ -1121,9 +1121,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a TableModify; called by {@link #dispatch} via reflection. */
   public Result visit(TableModify modify) {
-    final Map<String, RelDataType> pairs = ImmutableMap.of();
-    final Context context = aliasContext(pairs, false);
-
     // Target Table Name
     final SqlIdentifier sqlTargetTable = getSqlTargetTable(modify);
 
@@ -1142,6 +1139,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
     case UPDATE: {
       final Result input = visitInput(modify, 0);
+      final SqlSelect select = input.asSelect();
+      final Context context = selectListContext(select.getSelectList(), false);
 
       final SqlUpdate sqlUpdate =
           new SqlUpdate(POS, sqlTargetTable,
@@ -1151,8 +1150,7 @@ public class RelToSqlConverter extends SqlImplementor
               exprList(context,
                   requireNonNull(modify.getSourceExpressionList(),
                       () -> "modify.getSourceExpressionList() is null for " + modify)),
-              ((SqlSelect) input.node).getWhere(), input.asSelect(),
-              null);
+              select.getWhere(), select, null);
 
       return result(sqlUpdate, input.clauses, modify, null);
     }
