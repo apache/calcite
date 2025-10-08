@@ -127,11 +127,13 @@ public class SqlDelete extends SqlCall {
   }
 
   /**
-   * Gets the source SELECT expression for the data to be deleted. This
-   * returns null before the condition has been expanded by
-   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
+   * Gets the source SELECT expression for the data to be deleted. The SELECT contains target
+   * table columns, for example <code>SELECT * FROM target</code>.
+   * Returns null before the statement has been expanded by
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)} or
+   * {@link SqlValidatorImpl#createSourceSelectForDelete(SqlDelete)}.
    *
-   * @return the source SELECT for the data to be inserted
+   * @return the source SELECT for the data to be deleted.
    */
   public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;

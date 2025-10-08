@@ -4466,19 +4466,26 @@ public class SqlToRelConverter {
       targetColumnNameList.add(field.getName());
     }
 
-    RelNode sourceRel = convertSelect(sourceSelect, false);
-
-    bb.setRoot(sourceRel, false);
-    ImmutableList.Builder<RexNode> rexNodeSourceExpressionListBuilder =
-        ImmutableList.builder();
-    for (SqlNode n : call.getSourceExpressionList()) {
-      RexNode rn = bb.convertExpression(n);
-      rexNodeSourceExpressionListBuilder.add(rn);
+    // `sourceSelect` should contain target columns values plus source expressions
+    if (sourceSelect.getSelectList().size()
+        != targetTable.getRowType().getFieldCount() + call.getSourceExpressionList().size()) {
+      throw new AssertionError(
+          "Unexpected select list size. Select list should contain both target table columns and "
+              + "set expressions");
     }
 
+    RelNode sourceRel = convertSelect(sourceSelect, false);
+    bb.setRoot(sourceRel, false);
+
+    // sourceRel already contains all source expressions. Only create references to those fields.
+    List<RexNode> rexExpressionList =
+        Util.transform(
+            Util.last(sourceRel.getRowType().getFieldList(), targetColumnNameList.size()),
+            expressionField -> new RexInputRef(expressionField.getIndex(),
+                expressionField.getType()));
+
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
-        LogicalTableModify.Operation.UPDATE, targetColumnNameList,
-        rexNodeSourceExpressionListBuilder.build(), false);
+        LogicalTableModify.Operation.UPDATE, targetColumnNameList, rexExpressionList, false);
   }
 
   private RelNode convertMerge(SqlMerge call) {

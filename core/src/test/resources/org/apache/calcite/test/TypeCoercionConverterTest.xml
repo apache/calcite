@@ -281,8 +281,8 @@ LogicalUnion(all=[false])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20, t1_date, t1_int]], sourceExpressionList=[[CAST(123):VARCHAR(20) NOT NULL, CAST(2020-01-03 10:14:34):DATE NOT NULL, CAST(12.3:DECIMAL(3, 1)):INTEGER NOT NULL]], flattened=[false])
-  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=[123], EXPR$1=[2020-01-03 10:14:34], EXPR$2=[12.3:DECIMAL(3, 1)])
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20, t1_date, t1_int]], sourceExpressionList=[[$11, $12, $13]], flattened=[false])
+  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=['123':VARCHAR(20)], EXPR$1=[2020-01-03], EXPR$2=[12])
     LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
     </Resource>

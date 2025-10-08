@@ -55,7 +55,18 @@ import static java.util.Objects.requireNonNull;
  * <ul>
  * <li>For {@code INSERT}, those rows are the new values;
  * <li>for {@code DELETE}, the old values;
- * <li>for {@code UPDATE}, all old values plus updated new values.
+ * <li>for {@code UPDATE}, all old values plus updated new values;
+ * <li>for {@code MERGE}, the rows may contain fields for both {@code INSERT} and {@code UPDATE}
+ *     operations, depending on the clauses specified:
+ *     <ul>
+ *       <li>If only `WHEN MATCHED THEN UPDATE` is specified, the row contains all old values plus
+ *       updated new values (like {@code UPDATE}).</li>
+ *       <li>If only `WHEN NOT MATCHED THEN INSERT` is specified, the row contains new values to be
+ *       inserted (like {@code INSERT}).</li>
+ *       <li>If both `WHEN MATCHED THEN UPDATE` and `WHEN NOT MATCHED THEN INSERT` are specified,
+ *       the row contains: new values to be inserted, all old values, updated new values.
+ *     </ul>
+ *   </li>
  * </ul>
  */
 public abstract class TableModify extends SingleRel {

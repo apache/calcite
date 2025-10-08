@@ -159,9 +159,13 @@ public class SqlUpdate extends SqlCall {
   }
 
   /**
-   * Gets the source SELECT expression for the data to be updated. Returns
-   * null before the statement has been expanded by
-   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
+   * Gets the source SELECT expression for the data to be updated. The SELECT contains the target
+   * table columns followed by the source expressions. For example, for <code>UPDATE target SET
+   * column1 = source_expr1, column5 = source_expr2</code> the source select is
+   * <code>SELECT *, source_expr1, source_expr2</code>.
+   * Returns null before the statement has been expanded by
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)} and
+   * {@link SqlValidatorImpl#createSourceSelectForUpdate(SqlUpdate)}.
    *
    * @return the source SELECT for the data to be updated
    */
