@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ArrowSet;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -901,20 +902,93 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** Metadata about the functional dependency of columns. */
+  /** Metadata about the functional dependencies among columns. */
   public interface FunctionalDependency extends Metadata {
     MetadataDef<FunctionalDependency> DEF =
         MetadataDef.of(FunctionalDependency.class, FunctionalDependency.Handler.class,
-            BuiltInMethod.FUNCTIONAL_DEPENDENCY.method);
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_SET.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_DEPENDENTS.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_DETERMINANTS.method,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY_GET_FDS.method);
 
     /**
-     * Returns whether column is functionally dependent on column.
+     * Returns whether one column functionally determines another.
+     *
+     * <p>For example,
+     * {@code empno} functionally determines {@code sal},
+     * because {@code empno} is the primary key.
+     *
+     * @param determinant 0-based ordinal of determinant column
+     * @param dependent 0-based ordinal of dependent column
+     * @return {@code true} if determinant uniquely determines dependent;
+     *         {@code false} if not;
+     *         {@code null} if unknown
      */
-    @Nullable Boolean determines(int key, int column);
+    @Nullable Boolean determines(int determinant, int dependent);
+
+    /**
+     * Returns whether a set of columns functionally determines another set of columns.
+     *
+     * <p>For example,
+     * {{@code empno}, {@code deptno}} functionally determines {{@code sal}, {@code job}},
+     * because the determinant ({@code empno}, {@code deptno}) is a superset of a key.
+     * If we know that {{@code deptno}, {@code job}} functionally determines {{@code sal}}
+     * then we cannot deduce that {@code deptno} alone determines {@code sal}.
+     *
+     * @param determinants 0-based ordinals of determinant columns
+     * @param dependents 0-based ordinals of dependent columns
+     * @return true if determinants uniquely determine dependents
+     */
+    Boolean determinesSet(ImmutableBitSet determinants, ImmutableBitSet dependents);
+
+    /**
+     * Returns the closure of {@code ordinals} under the functional dependency set.
+     * The closure is the set of column ordinals uniquely determined by {@code ordinals}.
+     *
+     * <p>For example,
+     * if input is {{@code empno}, {@code deptno}},
+     * and functional dependencies contains
+     * {{@code empno}, {@code deptno}} determines {{@code sal}, {@code job}},
+     * then returns {{@code empno}, {@code deptno}, {@code sal}, {@code job}}.
+     *
+     * @param ordinals 0-based ordinals of determinant columns
+     * @return closure: columns functionally determined by {@code ordinals}
+     */
+    ImmutableBitSet dependents(ImmutableBitSet ordinals);
+
+    /**
+     * Finds minimal determinant sets for the given dependent columns
+     * under the functional dependency set.
+     *
+     * <p>For example,
+     * if input is {{@code empno}, {@code deptno}, {@code sal}, {@code job}},
+     * and functional dependencies contains
+     * {{@code empno} determines {@code deptno}},
+     * {{@code empno} determines {{@code sal},
+     * {{@code empno} determines {@code job}},
+     * then returns {{@code empno}}.
+     *
+     * @param ordinals 0-based ordinals of dependent columns
+     * @return sets of minimal determinant columns
+     */
+    Set<ImmutableBitSet> determinants(ImmutableBitSet ordinals);
+
+    /** Returns the full set of functional dependencies. */
+    ArrowSet getFDs();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<FunctionalDependency> {
       @Nullable Boolean determines(RelNode r, RelMetadataQuery mq, int key, int column);
+
+      Boolean determinesSet(RelNode r, RelMetadataQuery mq,
+          ImmutableBitSet determinants, ImmutableBitSet dependents);
+
+      ImmutableBitSet dependents(RelNode r, RelMetadataQuery mq, ImmutableBitSet ordinals);
+
+      Set<ImmutableBitSet> determinants(RelNode r, RelMetadataQuery mq, ImmutableBitSet ordinals);
+
+      ArrowSet getFDs(RelNode r, RelMetadataQuery mq);
 
       @Override default MetadataDef<FunctionalDependency> getDef() {
         return DEF;
