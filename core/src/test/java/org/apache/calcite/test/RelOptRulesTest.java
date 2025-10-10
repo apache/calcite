@@ -9152,10 +9152,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /**
-   * Test case that SubQueryRemoveRule works with correlated Filter without varibles.
-   */
-  @Test void testCorrelatedFilterWithoutVariable() {
+  @Test void testCorrelatedFilterWithVariable() {
     // select *
     // from dept
     // where exists (select deptno
@@ -9167,6 +9164,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .scan("DEPT")
         .variable(v::set)
         .filter(
+            ImmutableSet.of(v.get().id),
             b.exists(b1 -> b1
             .scan("EMP")
             .filter(
