@@ -4470,6 +4470,44 @@ FROM dept d1;
 
 !ok
 
+# [CALCITE-5716] Two level nested correlated subquery translates to incorrect ON condition
+SELECT deptno FROM dept d1 WHERE EXISTS (
+ SELECT 1 FROM dept d2 WHERE d2.deptno = d1.deptno and EXISTS (
+  SELECT 1 FROM dept d3 WHERE d3.dname = d1.dname));
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
+
+# [CALCITE-5716] Two level nested correlated subquery translates to incorrect ON condition
+SELECT dept.deptno, (
+  SELECT max(emp.empno)
+  FROM emp
+  WHERE empno = (SELECT max(empno) AS maxDept
+                 FROM emp e2
+                 WHERE e2.deptno = dept.deptno)
+        AND emp.deptno = dept.deptno),
+  dept.dname
+FROM dept;
++--------+--------+------------+
+| DEPTNO | EXPR$1 | DNAME      |
++--------+--------+------------+
+|     10 |   7934 | ACCOUNTING |
+|     20 |   7902 | RESEARCH   |
+|     30 |   7900 | SALES      |
+|     40 |        | OPERATIONS |
++--------+--------+------------+
+(4 rows)
+
+!ok
+
 # [CALCITE-6041] MAP sub-query gives NullPointerException
 # map size > 1
 SELECT map(SELECT empno, deptno from emp where deptno < 20);

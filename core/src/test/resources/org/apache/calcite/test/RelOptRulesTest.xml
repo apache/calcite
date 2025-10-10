@@ -2031,14 +2031,14 @@ EnumerableValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCorrelatedFilterWithoutVariable">
+  <TestCase name="testCorrelatedFilterWithVariable">
     <Resource name="planBefore">
       <![CDATA[
 LogicalFilter(condition=[EXISTS({
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[AND(=($cor0.DEPTNO, $7), >($5, 100))])
     LogicalTableScan(table=[[scott, EMP]])
-})])
+})], variablesSet=[[$cor0]])
   LogicalTableScan(table=[[scott, DEPT]])
 ]]>
     </Resource>
