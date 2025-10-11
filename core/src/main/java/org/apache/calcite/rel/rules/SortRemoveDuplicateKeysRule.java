@@ -78,7 +78,7 @@ public class SortRemoveDuplicateKeysRule
       boolean dup = false;
       for (RelFieldCollation existed : newCollations) {
         if (Boolean.TRUE.equals(
-            mq.determines(sort, field.getFieldIndex(), existed.getFieldIndex()))) {
+            mq.determines(sort, existed.getFieldIndex(), field.getFieldIndex()))) {
           dup = true;
           break;
         }
@@ -93,7 +93,7 @@ public class SortRemoveDuplicateKeysRule
     }
 
     relBuilder.push(sort.getInput())
-        .sort(RelCollations.of(newCollations));
+        .sortLimit(sort.offset, sort.fetch, RelCollations.of(newCollations));
     call.transformTo(relBuilder.build());
   }
 
