@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
 /**
  * As {@link RelMetadataTest} but uses a proxying metadata provider.
  *
@@ -25,5 +28,10 @@ public class ProxyingRelMetadataTest extends RelMetadataTest {
   @Override protected RelMetadataFixture fixture() {
     return super.fixture()
         .withMetadataConfig(RelMetadataFixture.MetadataConfig.PROXYING);
+  }
+
+  @Disabled("ProxyingMetadataHandlerProvider does not implement caching")
+  @Test @Override void testFunctionalDependencyCaching() {
+    // Skip this test
   }
 }
