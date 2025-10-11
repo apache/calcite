@@ -68,6 +68,8 @@ public final class GeneratedMetadata_RowCountHandler
       return provider0.getRowCount((org.apache.calcite.rel.core.Aggregate) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Calc) {
       return provider0.getRowCount((org.apache.calcite.rel.core.Calc) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Combine) {
+      return provider0.getRowCount((org.apache.calcite.rel.core.Combine) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Exchange) {
       return provider0.getRowCount((org.apache.calcite.rel.core.Exchange) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Filter) {
