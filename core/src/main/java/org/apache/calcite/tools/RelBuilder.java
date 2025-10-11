@@ -3727,8 +3727,14 @@ public class RelBuilder {
   /** Creates a {@link Sort} by specifying collations.
    */
   public RelBuilder sort(RelCollation collation) {
+    return sortLimit(null, null, collation);
+  }
+
+  /** Creates a {@link Sort} by specifying collations, with offset node and fetch node. */
+  public RelBuilder sortLimit(@Nullable RexNode offsetNode, @Nullable RexNode fetchNode,
+      RelCollation collation) {
     final RelNode sort =
-        struct.sortFactory.createSort(peek(), collation, null, null);
+        struct.sortFactory.createSort(peek(), collation, offsetNode, fetchNode);
     replaceTop(sort);
     return this;
   }

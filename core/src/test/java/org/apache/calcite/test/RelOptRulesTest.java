@@ -11337,6 +11337,28 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7222">[CALCITE-7222]
+   * SortRemoveDuplicateKeysRule miss fetch and offset infomation</a>. */
+  @Test void testSortRemoveDuplicateKeysWithPK() {
+    final String query = "select * from (select empno as a, deptno as b from emp) t"
+        + " order by a, b limit 1 offset 2";
+    sql(query)
+        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7222">[CALCITE-7222]
+   * SortRemoveDuplicateKeysRule miss fetch and offset infomation</a>. */
+  @Test void testSortRemoveDuplicateKeysWithLimit() {
+    final String query = "select * from (select empno as a, empno as b from emp) t"
+        + " order by a, b limit 1 offset 2";
+    sql(query)
+        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
+        .check();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
    * Optimize queries with GROUPING SETS by converting them
    * into equivalent UNION ALL of GROUP BY operations</a>. */

@@ -994,12 +994,12 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   }
 
   /**
-   * Determines whether key is functionally dependent on column.
+   * Determines whether one column functionally determines another.
    */
-  public @Nullable Boolean determines(RelNode rel, int key, int column) {
+  public @Nullable Boolean determines(RelNode rel, int determinant, int dependent) {
     for (;;) {
       try {
-        return functionalDependencyHandler.determines(rel, this, key, column);
+        return functionalDependencyHandler.determines(rel, this, determinant, dependent);
       } catch (MetadataHandlerProvider.NoHandler e) {
         functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
       }
