@@ -757,6 +757,11 @@ public class RexSimplify {
       }
     }
 
+    RexNode node = simplifyComparisonWithNull(e, unknownAs);
+    if (node instanceof RexLiteral) {
+      return node;
+    }
+
     // If none of the arguments were simplified, return the call unchanged.
     final RexNode e2;
     if (operands.equals(e.operands)) {
@@ -765,6 +770,41 @@ public class RexSimplify {
       e2 = rexBuilder.makeCall(e.getParserPosition(), e.op, operands);
     }
     return simplifyUsingPredicates(e2, clazz);
+  }
+
+
+  /**
+   * If this RexNode is a comparison against NULL, return FALSE, otherwise return it unchanged.
+   */
+  static RexNode simplifyComparisonWithNull(
+      RexNode e, RexBuilder rexBuilder, RexUnknownAs unknownAs) {
+    final RexSimplify.Comparison comparison = RexSimplify.Comparison.of(e);
+    if (comparison != null) {
+      boolean againstNull = comparison.literal.isNull();
+      // There is another possibility to check: in a comparison like 1 = null,
+      // the "non-literal" side of the Comparison can be null
+      if (comparison.ref instanceof RexLiteral) {
+        againstNull = againstNull || ((RexLiteral) comparison.ref).isNull();
+      }
+      if (againstNull) {
+        return unknownAs == FALSE
+            ? rexBuilder.makeLiteral(false)
+            : rexBuilder.makeNullLiteral(e.getType());
+      }
+    }
+    return e;
+  }
+
+  public static RexNode simplifyComparisonWithNull(RexNode e, RexBuilder rexBuilder) {
+    return RexSimplify.simplifyComparisonWithNull(e, rexBuilder, FALSE);
+  }
+
+  /**
+   * If this RexNode is a comparison against NULL, return a simplified form,
+   * otherwise return it unchanged.
+   */
+  public RexNode simplifyComparisonWithNull(RexNode e, RexUnknownAs unknownAs) {
+    return simplifyComparisonWithNull(e, this.rexBuilder, unknownAs);
   }
 
   /**
@@ -2081,7 +2121,8 @@ public class RexSimplify {
         if (comparison != null && comparison.ref.equals(ref)) {
           final C c1 = comparison.literal.getValueAs(clazz);
           if (c1 == null) {
-            continue;
+            throw new AssertionError("value must not be null in "
+                + comparison.literal);
           }
           switch (predicate.getKind()) {
           case NOT_EQUALS:
