@@ -101,7 +101,7 @@ public class RelMdFunctionalDependency
    */
   public Boolean determinesSet(RelNode rel, RelMetadataQuery mq,
       ImmutableBitSet determinants, ImmutableBitSet dependents) {
-    ArrowSet fdSet = getFDs(rel, mq);
+    ArrowSet fdSet = mq.getFDs(rel);
     return fdSet.implies(determinants, dependents);
   }
 
@@ -115,7 +115,7 @@ public class RelMdFunctionalDependency
    */
   public ImmutableBitSet dependents(RelNode rel, RelMetadataQuery mq,
       ImmutableBitSet ordinals) {
-    ArrowSet fdSet = getFDs(rel, mq);
+    ArrowSet fdSet = mq.getFDs(rel);
     return fdSet.dependents(ordinals);
   }
 
@@ -129,7 +129,7 @@ public class RelMdFunctionalDependency
    */
   public Set<ImmutableBitSet> determinants(
       RelNode rel, RelMetadataQuery mq, ImmutableBitSet ordinals) {
-    ArrowSet fdSet = getFDs(rel, mq);
+    ArrowSet fdSet = mq.getFDs(rel);
     return fdSet.determinants(ordinals);
   }
 
@@ -169,7 +169,7 @@ public class RelMdFunctionalDependency
       // Conservative approach for multi-input nodes without specific logic
       return ArrowSet.EMPTY;
     }
-    return getFDs(inputs.get(0), mq);
+    return mq.getFDs(inputs.get(0));
   }
 
   /**
@@ -212,7 +212,7 @@ public class RelMdFunctionalDependency
    */
   private ArrowSet getProjectionFD(
       RelNode input, List<RexNode> projections, RelMetadataQuery mq) {
-    ArrowSet inputFdSet = getFDs(input, mq);
+    ArrowSet inputFdSet = mq.getFDs(input);
     ArrowSet.Builder fdBuilder = new ArrowSet.Builder();
 
     // Create mapping from input column indices to project column indices
@@ -342,7 +342,7 @@ public class RelMdFunctionalDependency
    */
   private ArrowSet getAggregateFD(Aggregate rel, RelMetadataQuery mq) {
     ArrowSet.Builder fdBuilder = new ArrowSet.Builder();
-    ArrowSet inputFdSet = getFDs(rel.getInput(), mq);
+    ArrowSet inputFdSet = mq.getFDs(rel.getInput());
 
     ImmutableBitSet groupSet = rel.getGroupSet();
 
@@ -373,7 +373,7 @@ public class RelMdFunctionalDependency
    * Returns functional dependencies for Filter.
    */
   private ArrowSet getFilterFD(Filter rel, RelMetadataQuery mq) {
-    ArrowSet inputSet = getFDs(rel.getInput(), mq);
+    ArrowSet inputSet = mq.getFDs(rel.getInput());
     ArrowSet.Builder fdBuilder = new ArrowSet.Builder();
 
     // Adds equality dependencies from filter conditions.
@@ -387,8 +387,8 @@ public class RelMdFunctionalDependency
    * Preserves and combines dependencies based on join type.
    */
   private ArrowSet getJoinFD(Join rel, RelMetadataQuery mq) {
-    ArrowSet leftFdSet = getFDs(rel.getLeft(), mq);
-    ArrowSet rightFdSet = getFDs(rel.getRight(), mq);
+    ArrowSet leftFdSet = mq.getFDs(rel.getLeft());
+    ArrowSet rightFdSet = mq.getFDs(rel.getRight());
 
     int leftFieldCount = rel.getLeft().getRowType().getFieldCount();
     JoinRelType joinType = rel.getJoinType();

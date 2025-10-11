@@ -111,6 +111,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ArrowSet;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -156,6 +157,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
@@ -909,6 +911,23 @@ public class RelMetadataTest {
     assertThat(
         mq.determinesSet(aggregate, ImmutableBitSet.of(deptNoGroupByKey, jobGroupByKey),
         ImmutableBitSet.of(sal2SumAggCall)), is(Boolean.TRUE));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7219">[CALCITE-7219]
+   * Enhance functional dependency computation performance
+   * using the existing caching mechanisms</a>. */
+  @Test void testFunctionalDependencyCaching() {
+    final String sql = "select empno, ename from emp";
+    final RelNode relNode = sql(sql).toRel();
+
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    ArrowSet fd1 = mq.getFDs(relNode);
+    ArrowSet fd2 = mq.getFDs(relNode);
+
+    assertThat(mq.determines(relNode, 0, 1), is(Boolean.TRUE));
+    assertThat(fd2, sameInstance(fd1));
   }
 
   // ----------------------------------------------------------------------
