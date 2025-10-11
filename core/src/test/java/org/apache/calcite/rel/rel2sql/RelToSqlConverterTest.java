@@ -9598,6 +9598,17 @@ class RelToSqlConverterTest {
         + "'calcite'\nWHERE \"product_id\" IN (SELECT \"product_id\"\nFROM \"foodmart\""
         + ".\"product\"\nWHERE \"product_id\" < 10)";
     sql(sql0).ok(expected0);
+
+    final String sql1 = "update \"foodmart\".\"product\"\n"
+        + "set \"product_name\" = ("
+        + "  SELECT \"product_name\" FROM \"foodmart\".\"product\" p "
+        + "  WHERE p.\"product_id\" = \"product\".\"product_id\" "
+        + "  LIMIT 1"
+        + ")";
+    // at the moment it produces UPDATE \"foodmart\".\"product\" SET \"product_name\" =
+    // \"product_class_id\"
+    final String expected1 = "";
+    sql(sql1).ok(expected1);
   }
 
   /**
