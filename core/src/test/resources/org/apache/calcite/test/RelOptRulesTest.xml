@@ -18262,6 +18262,44 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveDuplicateKeysWithLimit">
+    <Resource name="sql">
+      <![CDATA[select * from (select empno as a, empno as b from emp) t order by a, b limit 1 offset 2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortRemoveDuplicateKeysWithPK">
+    <Resource name="sql">
+      <![CDATA[select * from (select empno as a, deptno as b from emp) t order by a, b limit 1 offset 2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveWhenAggregateMaxRowCntIsOne">
     <Resource name="sql">
       <![CDATA[select count(*) as c
