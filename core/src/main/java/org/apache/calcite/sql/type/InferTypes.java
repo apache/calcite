@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
  * Strategies for inferring operand types.
  *
@@ -66,10 +68,15 @@ public abstract class InferTypes {
   public static final SqlOperandTypeInference RETURN_TYPE =
       (callBinding, returnType, operandTypes) -> {
         for (int i = 0; i < operandTypes.length; ++i) {
-          operandTypes[i] =
-              returnType.isStruct()
-                  ? returnType.getFieldList().get(i).getType()
-                  : returnType;
+          if (returnType.isStruct()) {
+            if (returnType.getFieldCount() > i) {
+              operandTypes[i] = returnType.getFieldList().get(i).getType();
+            } else {
+              throw callBinding.newError(RESOURCE.unequalRowSizes());
+            }
+          } else {
+            operandTypes[i] = returnType;
+          }
         }
       };
 

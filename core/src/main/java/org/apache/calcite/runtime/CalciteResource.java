@@ -1157,6 +1157,9 @@ public interface CalciteResource {
   @BaseMessage("Index in ROW type does not have a constant integer or string value")
   ExInst<SqlValidatorException> illegalRowIndex();
 
+  @BaseMessage("Unequal number of entries in ROW expressions")
+  ExInst<SqlValidatorException> unequalRowSizes();
+
   @BaseMessage("Cannot infer return type for {0}; operand types: {1}")
   ExInst<SqlValidatorException> cannotInferReturnType(String operator, String types);
 }
