@@ -5770,6 +5770,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot specify NATURAL keyword with ON or USING clause");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7225">[CALCITE-7225]
+   * Comparing ROW values with different lengths causes an IndexOutOfBoudsException</a>. */
+  @Test void testUnequalRows() {
+    sql("select ROW(1) = ROW^(1, 2)^").fails("Unequal number of entries in ROW expressions");
+  }
+
   @Test void testNaturalJoinCaseSensitive() {
     // With case-insensitive match, more columns are recognized as join columns
     // and therefore "*" expands to fewer columns.
