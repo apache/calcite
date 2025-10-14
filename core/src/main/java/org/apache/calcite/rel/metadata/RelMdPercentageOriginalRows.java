@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Combine;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -123,6 +124,32 @@ public class RelMdPercentageOriginalRows {
     return left * right;
   }
 
+  public @Nullable Double getPercentageOriginalRows(Combine rel, RelMetadataQuery mq) {
+    // For Combine, we return the weighted average of the percentage
+    // original rows across all inputs, weighted by row count
+    double totalRows = 0;
+    double weightedPercentage = 0;
+
+    for (RelNode input : rel.getInputs()) {
+      Double rowCount = mq.getRowCount(input);
+      if (rowCount == null) {
+        return null;
+      }
+      Double percentage = mq.getPercentageOriginalRows(input);
+      if (percentage == null) {
+        return null;
+      }
+      totalRows += rowCount;
+      weightedPercentage += rowCount * percentage;
+    }
+
+    if (totalRows == 0) {
+      return 1.0; // No rows, so 100% original
+    }
+
+    return weightedPercentage / totalRows;
+  }
+
   // Catch-all rule when none of the others apply.
   public @Nullable Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
     if (rel.getInputs().size() > 1) {
@@ -180,6 +207,27 @@ public class RelMdPercentageOriginalRows {
   public @Nullable RelOptCost getCumulativeCost(EnumerableInterpreter rel,
       RelMetadataQuery mq) {
     return mq.getNonCumulativeCost(rel);
+  }
+
+  public @Nullable RelOptCost getCumulativeCost(Combine rel, RelMetadataQuery mq) {
+    // For Combine, the cumulative cost is the sum of all input costs
+    // since all inputs need to be executed (unlike Union where rows flow through)
+    RelOptCost cost = mq.getNonCumulativeCost(rel);
+    if (cost == null) {
+      return null;
+    }
+
+    // Add the cumulative cost of each input
+    // All inputs contribute to the total cost since they all must be executed
+    for (RelNode input : rel.getInputs()) {
+      RelOptCost inputCost = mq.getCumulativeCost(input);
+      if (inputCost == null) {
+        return null;
+      }
+      cost = cost.plus(inputCost);
+    }
+
+    return cost;
   }
 
   // Ditto for getNonCumulativeCost
