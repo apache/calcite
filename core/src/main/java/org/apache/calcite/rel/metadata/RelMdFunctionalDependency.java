@@ -357,6 +357,16 @@ public class RelMdFunctionalDependency
           fdBuilder.addArrow(determinants, dependents);
         }
       }
+
+      // Add transitive dependencies within group columns
+      for (int groupCol : groupSet) {
+        ImmutableBitSet singleton = ImmutableBitSet.of(groupCol);
+        ImmutableBitSet closure = inputFdSet.dependents(singleton);
+        ImmutableBitSet groupDependents = closure.intersect(groupSet).except(singleton);
+        if (!groupDependents.isEmpty()) {
+          fdBuilder.addArrow(singleton, groupDependents);
+        }
+      }
     }
 
     // Group keys determine all aggregate columns
