@@ -279,6 +279,11 @@ public class RexSimplify {
       }
       return rexBuilder.makeNullLiteral(e.getType());
     }
+
+    if (e instanceof RexCall) {
+      e = simplifyIdempotentUnaryFunction((RexCall) e);
+    }
+
     switch (e.getKind()) {
     case AND:
       return simplifyAnd((RexCall) e, unknownAs);
@@ -340,6 +345,33 @@ public class RexSimplify {
         return e;
       }
     }
+  }
+
+  /**
+   * Runs simplification unary function by eliminating idempotent.
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>{@code abs(abs(abs(n))} returns {@code abs(n)}
+   * </ul>
+   */
+  private RexNode simplifyIdempotentUnaryFunction(RexCall rexCall) {
+    while (true) {
+      if (!rexCall.getOperator().isIdempotent()) {
+        break;
+      }
+      if (!(rexCall.getOperands().get(0) instanceof RexCall)) {
+        break;
+      }
+      RexCall subRexCall = (RexCall) rexCall.getOperands().get(0);
+      if (rexCall.getOperator() == subRexCall.getOperator()
+          && rexCall.operands.size() == subRexCall.operands.size()) {
+        rexCall = subRexCall;
+      } else {
+        break;
+      }
+    }
+    return rexCall;
   }
 
   /** Applies NOT to an expression. */

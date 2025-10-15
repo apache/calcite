@@ -8940,6 +8940,29 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7122">[CALCITE-7122]
+   * Eliminate nested calls for idempotent unary functions UPPER/LOWER/ABS/INITCAP</a>. */
+  @Test void testSimplifyIdempotentUnaryFunctions() {
+    Map<String, String> sqls = ImmutableMap.<String, String>builder()
+            .put("select abs(abs(5))",
+                "SELECT ABS(5)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")")
+            .put("select upper(upper('Abc'))",
+                "SELECT UPPER('Abc')\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")")
+            .put("select lower(lower('Abc'))",
+                "SELECT LOWER('Abc')\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")")
+            .put("select initcap(initcap('Abc'))",
+                "SELECT INITCAP('Abc')\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")")
+            .put("select max(abs(abs(5)))",
+                "SELECT MAX(ABS(5))\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")")
+            .put("select upper(lower('Abc'))",
+                "SELECT UPPER(LOWER('Abc'))\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")")
+            .build();
+
+    sqls.forEach((sql, expected) ->
+        sql(sql).withCalcite().ok(expected));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5723">[CALCITE-5723]
    * Oracle dialect generates SQL that cannot be recognized by lower version
    * Oracle Server(<12) when unparsing OffsetFetch</a>. */
