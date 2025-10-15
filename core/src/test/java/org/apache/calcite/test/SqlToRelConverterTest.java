@@ -5915,4 +5915,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withExpand(false)
         .ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5421">[CALCITE-5421]
+   * SqlToRelConverter should populate correlateId for join with correlated query
+   * in HAVING condition</a>.
+   */
+  @Test void testInCorrelatedSubQueryInHavingRex() {
+    final String sql = "select sum(sal) as s\n"
+        + "from emp e1\n"
+        + "group by deptno\n"
+        + "having count(*) > 2\n"
+        + "and exists(\n"
+        + "  select true\n"
+        + "  from emp e2\n"
+        + "  where e1.deptno = e2.deptno)";
+    sql(sql).withExpand(false).ok();
+  }
 }
