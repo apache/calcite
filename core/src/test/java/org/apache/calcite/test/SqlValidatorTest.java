@@ -3494,6 +3494,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(query3).type(type);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7230">[CALCITE-7230]
+   * Compiler rejects comparisons between NULL and a ROW value</a>. */
+  @Test void coalesceRowNull() {
+    sql("SELECT COALESCE(NULL, ROW(1))")
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .type("RecordType(RecordType(INTEGER EXPR$0) NOT NULL EXPR$0) NOT NULL");
+  }
+
   @Test void testAsOfJoin() {
     final String type0 = "RecordType(INTEGER NOT NULL EMPNO, INTEGER NOT NULL DEPTNO) NOT NULL";
     final String sql0 = "select emp.empno, dept.deptno from emp asof join dept\n"
