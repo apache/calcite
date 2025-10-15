@@ -3085,6 +3085,30 @@ FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
 )]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInCorrelatedSubQueryInHavingRex">
+    <Resource name="sql">
+      <![CDATA[select sum(sal) as s
+from emp e1
+group by deptno
+having count(*) > 2
+and exists(
+  select true
+  from emp e2
+  where e1.deptno = e2.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(S=[$1])
+  LogicalFilter(condition=[AND(>($2, 2), EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalAggregate(group=[{0}], S=[SUM($1)], agg#1=[COUNT()])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInSubQueryWithTypeCast">
     <Resource name="sql">
       <![CDATA[select *

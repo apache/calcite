@@ -36,6 +36,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
@@ -3159,6 +3160,8 @@ public class SqlToRelConverter {
     }
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     final List<CorrelationId> correlNames = new ArrayList<>();
+    // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex for aggregation
+    final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping = new HashMap<>();
 
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
@@ -3203,8 +3206,9 @@ public class SqlToRelConverter {
       while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
         topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
       }
+      final int originalFieldIndex = topLevelFieldAccess.getField().getIndex();
       final RelDataTypeField field = rowType.getFieldList()
-          .get(topLevelFieldAccess.getField().getIndex() - namespaceOffset);
+          .get(originalFieldIndex - namespaceOffset);
       int pos = namespaceOffset + field.getIndex();
 
       assert field.getType()
@@ -3221,6 +3225,7 @@ public class SqlToRelConverter {
         // the root of the outer relation.
         Integer projection = exprProjection.get(pos);
         if (projection != null) {
+          fieldMapping.put(Pair.of(correlName, originalFieldIndex), projection);
           pos = projection;
         } else {
           // correl not grouped
@@ -3248,6 +3253,16 @@ public class SqlToRelConverter {
       // Add new node to leaves.
       leaves.put(r, r.getRowType().getFieldCount());
     }
+
+    // If there are field mappings (due to aggregation), rewrite the RelNode tree
+    // to update correlation variable row type and field indices
+    if (!fieldMapping.isEmpty()) {
+      r =
+          r.accept(
+              new CorrelationFieldMappingShuttle(rexBuilder, correlNames.get(0),
+                  bb.root().getRowType(), fieldMapping));
+    }
+
     return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
   }
 
@@ -6036,6 +6051,46 @@ public class SqlToRelConverter {
     RexFieldAccess getFieldAccess(CorrelationId name) {
       return requireNonNull(bb.mapCorrelateToRex.get(name),
           () -> "Correlation " + name + " is not found");
+    }
+  }
+
+  /**
+   * Shuttle that rewrites correlation field accesses to use projected field indices
+   * when correlation references aggregated relations.
+   */
+  private static class CorrelationFieldMappingShuttle extends RelHomogeneousShuttle {
+    private final RexBuilder rexBuilder;
+    private final CorrelationId targetCorrelId;
+    private final RelDataType newCorrelRowType;
+    private final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping;
+
+    CorrelationFieldMappingShuttle(RexBuilder rexBuilder,
+        CorrelationId targetCorrelId,
+        RelDataType newCorrelRowType,
+        Map<Pair<CorrelationId, Integer>, Integer> fieldMapping) {
+      this.rexBuilder = rexBuilder;
+      this.targetCorrelId = targetCorrelId;
+      this.newCorrelRowType = newCorrelRowType;
+      this.fieldMapping = fieldMapping;
+    }
+
+    @Override public RelNode visit(RelNode other) {
+      return super.visit(other).accept(new RexShuttle() {
+        @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+          if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+            RexCorrelVariable correlVar = (RexCorrelVariable) fieldAccess.getReferenceExpr();
+            if (correlVar.id.equals(targetCorrelId)) {
+              Integer newIndex =
+                  fieldMapping.get(Pair.of(correlVar.id, fieldAccess.getField().getIndex()));
+              if (newIndex != null) {
+                return rexBuilder.makeFieldAccess(
+                    rexBuilder.makeCorrel(newCorrelRowType, correlVar.id), newIndex);
+              }
+            }
+          }
+          return super.visitFieldAccess(fieldAccess);
+        }
+      });
     }
   }
 
