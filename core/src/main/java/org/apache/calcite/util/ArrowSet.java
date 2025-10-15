@@ -58,10 +58,11 @@ public class ArrowSet {
   private final ImmutableMap<Integer, ImmutableSet<Arrow>> ordinalToArrows;
 
   public ArrowSet(Set<Arrow> arrows) {
-    arrowSet = ImmutableList.copyOf(arrows);
+    Set<Arrow> minimalArrows = computeMinimalDependencySet(arrows);
+    arrowSet = ImmutableList.copyOf(minimalArrows);
     Map<ImmutableBitSet, ImmutableBitSet> detToDep = new HashMap<>();
     Map<Integer, Set<Arrow>> ordToArrows = new HashMap<>();
-    for (Arrow arrow : arrows) {
+    for (Arrow arrow : minimalArrows) {
       ImmutableBitSet determinants = arrow.getDeterminants();
       ImmutableBitSet dependents = arrow.getDependents();
       detToDep.merge(determinants, dependents, ImmutableBitSet::union);
@@ -335,5 +336,70 @@ public class ArrowSet {
     public ArrowSet build() {
       return new ArrowSet(arrowSet);
     }
+  }
+
+  /**
+   * Computes a minimal ArrowSet by removing obvious redundant Arrow.
+   *
+   * <p>This method removes three obvious types of redundancy:
+   * <ul>
+   *   <li>Right-side consolidation: If {0} → {1} and {0} → {2}, merge to {0} → {1, 2}</li>
+   *   <li>Left-side redundancy: If {0} → {1} exists, then {0, 2} → {1} is redundant</li>
+   *   <li>Trivial dependencies: Remove dependents that are already in determinants,
+   *   If {0, 1, 2} → {0, 1, 3, 4}, simplify to {0, 1, 2} → {3, 4}</li>
+   * </ul>
+   */
+  private static Set<Arrow> computeMinimalDependencySet(Set<Arrow> arrows) {
+    if (arrows.isEmpty()) {
+      return new HashSet<>();
+    }
+
+    // right-side consolidation and remove trivial dependencies
+    Map<ImmutableBitSet, ImmutableBitSet> consolidated = new HashMap<>();
+    for (Arrow arrow : arrows) {
+      ImmutableBitSet determinants = arrow.getDeterminants();
+      ImmutableBitSet dependents = arrow.getDependents();
+
+      ImmutableBitSet nonTrivialDependents = dependents.except(determinants);
+      if (nonTrivialDependents.isEmpty()) {
+        continue;
+      }
+
+      consolidated.merge(determinants, nonTrivialDependents, ImmutableBitSet::union);
+    }
+
+    // left-side redundancy
+    // If {0} → N exists, remove any {0, 1, ...} → N' where N' ⊆ N
+    Set<ImmutableBitSet> toRemove = new HashSet<>();
+    for (Map.Entry<ImmutableBitSet, ImmutableBitSet> entry : consolidated.entrySet()) {
+      ImmutableBitSet determinants = entry.getKey();
+      ImmutableBitSet dependents = entry.getValue();
+
+      for (Map.Entry<ImmutableBitSet, ImmutableBitSet> other : consolidated.entrySet()) {
+        if (entry.equals(other)) {
+          continue;
+        }
+        ImmutableBitSet otherDeterminants = other.getKey();
+        ImmutableBitSet otherDependents = other.getValue();
+
+        // If otherDeterminants is a proper subset of determinants
+        // and otherDependents contains all of dependents, then this entry is redundant
+        if (determinants.contains(otherDeterminants)
+            && determinants.cardinality() > otherDeterminants.cardinality()
+            && otherDependents.contains(dependents)) {
+          toRemove.add(determinants);
+          break;
+        }
+      }
+    }
+
+    Set<Arrow> minimal = new HashSet<>();
+    for (Map.Entry<ImmutableBitSet, ImmutableBitSet> entry : consolidated.entrySet()) {
+      if (!toRemove.contains(entry.getKey())) {
+        minimal.add(Arrow.of(entry.getKey(), entry.getValue()));
+      }
+    }
+
+    return minimal;
   }
 }

@@ -164,4 +164,91 @@ public class ArrowSetTest {
     assertThat(fds.implies(ae, c), is(false));
     assertThat(fds.implies(b, c), is(false));
   }
+
+  @Test void testMinimalArrowSet() {
+    // Test left-side: {0} → {2} and {0, 1} → {2} should become {0} → {2}
+    ArrowSet fds1 = new ArrowSet.Builder()
+        .addArrow(0, 2)
+        .addArrow(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(2))
+        .build();
+
+    // Should only contain {0} → {2}
+    assertThat(fds1.getArrows(), hasSize(1));
+    assertThat(fds1.implies(ImmutableBitSet.of(0), ImmutableBitSet.of(2)), is(true));
+    assertThat(fds1.implies(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(2)), is(true));
+
+    // Test right-side: {0} → {1} and {0} → {2} should become {0} → {1, 2}
+    ArrowSet fds2 = new ArrowSet.Builder()
+        .addArrow(0, 1)
+        .addArrow(0, 2)
+        .build();
+
+    // Should contain one arrow: {0} → {1,2}
+    assertThat(fds2.getArrows(), hasSize(1));
+    Arrow consolidated = fds2.getArrows().get(0);
+    assertThat(consolidated.getDeterminants(), equalTo(ImmutableBitSet.of(0)));
+    assertThat(consolidated.getDependents(), equalTo(ImmutableBitSet.of(1, 2)));
+
+    // Test right-side consolidation: {0} → {1}, {0} → {2} get merged to {0} → {1, 2}
+    ArrowSet fds3 = new ArrowSet.Builder()
+        .addArrow(0, 1)
+        .addArrow(1, 2)
+        .addArrow(0, 2)
+        .build();
+
+    // Should contain exactly: {0} → {1, 2} and {1} → {2}
+    assertThat(fds3.getArrows(), hasSize(2));
+    assertThat(
+        fds3.getArrows().stream()
+            .anyMatch(a -> a.getDeterminants().equals(ImmutableBitSet.of(0))
+                && a.getDependents().equals(ImmutableBitSet.of(1, 2))),
+        is(true));
+    assertThat(
+        fds3.getArrows().stream()
+            .anyMatch(a -> a.getDeterminants().equals(ImmutableBitSet.of(1))
+                && a.getDependents().equals(ImmutableBitSet.of(2))),
+        is(true));
+
+    // Test complex case with multiple types of redundancy
+    // Input: {0} → {1}, {0} → {3}, {0} → {4}, {1} → {2}, {0, 1} → {2}，{0} → {2}
+    ArrowSet fds4 = new ArrowSet.Builder()
+        .addArrow(0, 1)
+        .addArrow(0, 3)
+        .addArrow(0, 4)
+        .addArrow(1, 2)
+        .addArrow(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(2))
+        .addArrow(0, 2)
+        .build();
+
+    // Should be minimal: {0} → {1, 2, 3, 4}, {1} → {2}
+    assertThat(fds4.getArrows(), hasSize(2));
+    assertThat(
+        fds4.getArrows().stream()
+            .anyMatch(a -> a.getDeterminants().equals(ImmutableBitSet.of(0))
+                && a.getDependents().equals(ImmutableBitSet.of(1, 2, 3, 4))),
+        is(true));
+    assertThat(
+        fds4.getArrows().stream()
+            .anyMatch(a -> a.getDeterminants().equals(ImmutableBitSet.of(1))
+                && a.getDependents().equals(ImmutableBitSet.of(2))),
+        is(true));
+
+    // Test remove dependents that are already in determinants
+    // {0, 1, 2} → {0, 1, 3, 4} should become {0, 1, 2} → {3, 4}
+    ArrowSet fds5 = new ArrowSet.Builder()
+        .addArrow(ImmutableBitSet.of(0, 1, 2), ImmutableBitSet.of(0, 1, 3, 4))
+        .build();
+
+    assertThat(fds5.getArrows(), hasSize(1));
+    Arrow arrow2 = fds5.getArrows().get(0);
+    assertThat(arrow2.getDeterminants(), equalTo(ImmutableBitSet.of(0, 1, 2)));
+    assertThat(arrow2.getDependents(), equalTo(ImmutableBitSet.of(3, 4)));
+
+    // {0} → {0} should be removed (completely trivial)
+    ArrowSet fds6 = new ArrowSet.Builder()
+        .addArrow(ImmutableBitSet.of(0), ImmutableBitSet.of(0))
+        .build();
+
+    assertThat(fds6.getArrows(), hasSize(0));
+  }
 }
