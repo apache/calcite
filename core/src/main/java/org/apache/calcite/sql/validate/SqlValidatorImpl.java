@@ -2209,8 +2209,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private boolean isRowSqlNodeList(final RelDataType inferredType, final SqlNodeList nodeList) {
-    return inferredType.isStruct() && !nodeList.isEmpty()
-        && SqlKind.ROW == nodeList.get(0).getKind();
+    if (!inferredType.isStruct()) {
+      return false;
+    }
+    for (SqlNode sqlNode : nodeList) {
+      if (SqlKind.ROW == sqlNode.getKind()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void inferRowSqlNodeList(final RelDataType inferredType,
