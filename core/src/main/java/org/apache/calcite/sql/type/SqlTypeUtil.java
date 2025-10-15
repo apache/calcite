@@ -1655,10 +1655,6 @@ public abstract class SqlTypeUtil {
    * @return Whether types are comparable
    */
   public static boolean isComparable(RelDataType type1, RelDataType type2) {
-    if (type1.isStruct() != type2.isStruct()) {
-      return false;
-    }
-
     final RelDataTypeFamily family1 = family(type1);
     final RelDataTypeFamily family2 = family(type2);
 
@@ -1666,6 +1662,10 @@ public abstract class SqlTypeUtil {
     if (family1 == SqlTypeFamily.NULL
         || family2 == SqlTypeFamily.NULL) {
       return true;
+    }
+
+    if (type1.isStruct() != type2.isStruct()) {
+      return false;
     }
 
     if (type1.isStruct()) {
