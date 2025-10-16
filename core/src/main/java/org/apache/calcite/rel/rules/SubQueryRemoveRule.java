@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Correlate;
@@ -30,6 +31,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -47,6 +49,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.immutables.value.Value;
 
@@ -913,9 +916,6 @@ public class SubQueryRemoveRule
     final RelBuilder builder = call.builder();
     final RexSubQuery e =
         requireNonNull(RexUtil.SubQueryFinder.find(join.getCondition()));
-    final RelOptUtil.Logic logic =
-        LogicVisitor.find(RelOptUtil.Logic.TRUE,
-            ImmutableList.of(join.getCondition()), e);
 
     ImmutableBitSet inputSet = RelOptUtil.InputFinder.bits(e.getOperands(), null);
     int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
@@ -954,6 +954,11 @@ public class SubQueryRemoveRule
     if (inputIntersectsLeftSide) {
       builder.push(join.getLeft());
 
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(join.getJoinType().generatesNullsOnRight()
+                  ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+              ImmutableList.of(join.getCondition()), e);
+
       final RexNode target =
           rule.apply(e, variablesSet, logic, builder, 1, nFieldsLeft, 0);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
@@ -971,13 +976,78 @@ public class SubQueryRemoveRule
               .union(ImmutableBitSet.range(nFields - nFieldsRight, nFields)));
       builder.project(fields);
     } else {
-      builder.push(join.getLeft());
       builder.push(join.getRight());
+
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(join.getJoinType().generatesNullsOnLeft()
+                  ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+              ImmutableList.of(join.getCondition()), e);
+
+      RexSubQuery subQuery = e;
+
+      if (!variablesSet.isEmpty()) {
+        // Original correlates reference joint row type, but we are about to create
+        // new join of original right side and correlated sub-query. Therefore we have
+        // to adjust correlated variables in following way:
+        //   1) new correlation variable must reference row type of right side only
+        //   2) field index must be shifted on the size of the left side
+        // Example:
+        // SELECT e1.*
+        // FROM emp e1
+        // JOIN dept d
+        //   ON e1.deptno = d.deptno
+        //   AND d.deptno IN (
+        //     SELECT e3.empno
+        //     FROM emp e3
+        //     WHERE d.deptno > e3.comm
+        //   )
+        // ORDER BY e1.empno, e1.deptno;
+        //
+        // LogicalJoin(condition=[AND(=($7, $8), IN(CAST($8):SMALLINT NOT NULL, {
+        // LogicalProject(EMPNO=[$0])
+        //   LogicalFilter(condition=[>(CAST($cor0.DEPTNO0):DECIMAL(7, 2) NOT NULL, $6)])
+        //     LogicalTableScan(table=[[scott, EMP]])
+        // }))], joinType=[inner])
+        //   LogicalTableScan(table=[[scott, EMP]])
+        //   LogicalProject(DEPTNO=[$0])
+        //     LogicalTableScan(table=[[scott, DEPT]])
+        //
+        // Rewrite to:
+        //
+        // LogicalProject(EMPNO=[$0], ENAME=[$1], ..., COMM=[$6], DEPTNO=[$7], DEPTNO0=[$8])
+        //   LogicalJoin(condition=[=($7, $8)], joinType=[inner])
+        //     LogicalTableScan(table=[[scott, EMP]])
+        //     LogicalFilter(condition=[=(CAST($0):SMALLINT NOT NULL, $1)])
+        //       LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        //         LogicalProject(DEPTNO=[$0])
+        //           LogicalTableScan(table=[[scott, DEPT]])
+        //         LogicalProject(EMPNO=[$0])
+        //           LogicalFilter(condition=[>(CAST($cor0.DEPTNO):DECIMAL(7, 2) NOT NULL, $6)])
+        //             LogicalTableScan(table=[[scott, EMP]])
+        CorrelationId id = Iterables.getOnlyElement(variablesSet);
+        RexBuilder rexBuilder = builder.getRexBuilder();
+
+        RelNode newSubQueryRel = e.rel.accept(new RelHomogeneousShuttle() {
+          @Override public RelNode visit(RelNode other) {
+            RelNode node =
+                RexUtil.shiftFieldAccess(rexBuilder, other, id, join.getRight(), -nFieldsLeft);
+            return super.visit(node);
+          }
+        });
+        subQuery = e.clone(newSubQueryRel);
+      }
+
+      subQuery =
+          subQuery.clone(subQuery.getType(), RexUtil.shift(subQuery.getOperands(), -nFieldsLeft));
 
       final int nFields = join.getRowType().getFieldCount();
       final RexNode target =
-          rule.apply(e, variablesSet, logic, builder, 2, nFields, 0);
-      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+          rule.apply(subQuery, variablesSet, logic, builder, 1, nFieldsRight, 0);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, RexUtil.shift(target, nFieldsLeft));
+
+      RelNode newRight = builder.build();
+      builder.push(join.getLeft());
+      builder.push(newRight);
 
       builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
       builder.project(fields(builder, nFields));
