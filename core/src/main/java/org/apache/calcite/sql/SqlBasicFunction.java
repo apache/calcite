@@ -49,6 +49,7 @@ public final class SqlBasicFunction extends SqlFunction {
   private final int callValidator;
   private final Function<SqlOperatorBinding, SqlMonotonicity> monotonicityInference;
   private final boolean dynamic;
+  private final boolean idempotent;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -75,7 +76,8 @@ public final class SqlBasicFunction extends SqlFunction {
       Integer callValidator,
       SqlFunctionCategory category,
       Function<SqlOperatorBinding, SqlMonotonicity> monotonicityInference,
-      boolean dynamic) {
+      boolean dynamic,
+      boolean idempotent) {
     super(name, kind,
         requireNonNull(returnTypeInference, "returnTypeInference"),
         operandTypeInference,
@@ -87,6 +89,35 @@ public final class SqlBasicFunction extends SqlFunction {
     this.monotonicityInference =
         requireNonNull(monotonicityInference, "monotonicityInference");
     this.dynamic = dynamic;
+    this.idempotent = idempotent;
+  }
+
+  /** Creates a new SqlFunction for a call to a built-in function. */
+  private SqlBasicFunction(String name, SqlKind kind, SqlSyntax syntax,
+      boolean deterministic, SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      SqlOperandHandler operandHandler,
+      SqlOperandTypeChecker operandTypeChecker,
+      Integer callValidator,
+      SqlFunctionCategory category,
+      Function<SqlOperatorBinding, SqlMonotonicity> monotonicityInference,
+      boolean dynamic) {
+    this(name, kind, syntax, deterministic,
+        returnTypeInference, operandTypeInference, operandHandler,
+        operandTypeChecker, callValidator, category, monotonicityInference,
+        dynamic, false);
+  }
+
+  /** Creates a {@code SqlBasicFunction} with idempotent property. */
+  public static SqlBasicFunction create(String name,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory category,
+      boolean idempotent) {
+    return new SqlBasicFunction(name, SqlKind.OTHER_FUNCTION,
+        SqlSyntax.FUNCTION, true, returnTypeInference, null,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
+        category, call -> SqlMonotonicity.NOT_MONOTONIC, false, idempotent);
   }
 
   /**
@@ -180,12 +211,16 @@ public final class SqlBasicFunction extends SqlFunction {
     return dynamic;
   }
 
+  @Override public boolean isIdempotent() {
+    return idempotent;
+  }
+
   /** Returns a copy of this function with a given name. */
   public SqlBasicFunction withName(String name) {
     return new SqlBasicFunction(name, kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given kind. */
@@ -193,14 +228,15 @@ public final class SqlBasicFunction extends SqlFunction {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given category. */
   public SqlBasicFunction withFunctionType(SqlFunctionCategory category) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), callValidator, category, monotonicityInference, dynamic);
+        getOperandTypeChecker(), callValidator, category, monotonicityInference,
+        dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given syntax. */
@@ -208,7 +244,7 @@ public final class SqlBasicFunction extends SqlFunction {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given strategy for inferring
@@ -218,7 +254,7 @@ public final class SqlBasicFunction extends SqlFunction {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         returnTypeInference, getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given strategy for inferring
@@ -228,7 +264,7 @@ public final class SqlBasicFunction extends SqlFunction {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), operandTypeInference, operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given strategy for handling
@@ -237,14 +273,14 @@ public final class SqlBasicFunction extends SqlFunction {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
   /** Returns a copy of this function with a given determinism. */
   public SqlBasicFunction withDeterministic(boolean deterministic) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   /** Returns a copy of this function with a given strategy for inferring
@@ -254,27 +290,27 @@ public final class SqlBasicFunction extends SqlFunction {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   public SqlBasicFunction withValidation(int callValidator) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   public SqlBasicFunction withDynamic(boolean dynamic) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         getOperandTypeChecker(), callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 
   public SqlBasicFunction withOperandTypeChecker(SqlOperandTypeChecker operandTypeChecker) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
         operandTypeChecker, callValidator,
-        getFunctionType(), monotonicityInference, dynamic);
+        getFunctionType(), monotonicityInference, dynamic, idempotent);
   }
 }

@@ -1137,4 +1137,8 @@ public abstract class SqlOperator {
   public boolean argumentMustBeScalar(int ordinal) {
     return true;
   }
+
+  public boolean isIdempotent() {
+    return false;
+  }
 }

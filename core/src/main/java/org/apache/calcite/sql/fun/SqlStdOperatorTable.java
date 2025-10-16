@@ -1824,19 +1824,22 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicFunction.create("UPPER",
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.CHARACTER,
-          SqlFunctionCategory.STRING);
+          SqlFunctionCategory.STRING,
+          true);
 
   public static final SqlFunction LOWER =
       SqlBasicFunction.create("LOWER",
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.CHARACTER,
-          SqlFunctionCategory.STRING);
+          SqlFunctionCategory.STRING,
+          true);
 
   public static final SqlFunction INITCAP =
       SqlBasicFunction.create("INITCAP",
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.CHARACTER,
-          SqlFunctionCategory.STRING);
+          SqlFunctionCategory.STRING,
+          true);
 
   public static final SqlFunction ASCII =
       SqlBasicFunction.create("ASCII",
@@ -1895,7 +1898,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicFunction.create("ABS",
           ReturnTypes.ARG0,
           OperandTypes.NUMERIC_OR_INTERVAL,
-          SqlFunctionCategory.NUMERIC);
+          SqlFunctionCategory.NUMERIC,
+          true);
 
   /** The {@code ACOS(numeric)} function. */
   public static final SqlFunction ACOS =

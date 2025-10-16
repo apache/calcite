@@ -24,6 +24,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -34,6 +35,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.apache.calcite.test.RexImplicationCheckerFixtures.Fixture;
 
@@ -359,6 +362,53 @@ public class RexImplicationCheckerTest {
     assertThat(
         f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, false),
         hasToString("2014"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7122">[CALCITE-7122]
+   * Eliminate nested calls for idempotent unary functions UPPER/LOWER/ABS/INITCAP</a>. */
+  @Test void testSimplifyIdempotentUnaryFunctions() {
+    // Test that:
+    // upper(upper(x)) is simplified to upper(x)
+    // lower(lower(x)) is simplified to lower(x)
+    // initcap(initcap(x)) is simplified to initcap(x)
+    final Fixture f = new Fixture();
+    List<SqlOperator> testOeratorList =
+        ImmutableList.of(SqlStdOperatorTable.UPPER,
+        SqlStdOperatorTable.LOWER,
+        SqlStdOperatorTable.INITCAP);
+    for (SqlOperator operator : testOeratorList) {
+      RexNode innerCall = f.rexBuilder.makeCall(operator, f.rexBuilder.makeLiteral("Calcite"));
+      RexNode outerCall = f.rexBuilder.makeCall(operator, innerCall);
+      RexNode simplifiedCall =
+          f.simplify.simplifyPreservingType(outerCall, RexUnknownAs.UNKNOWN, true);
+      assertThat(innerCall.equals(simplifiedCall), is(true));
+    }
+
+    // Test that:
+    // abs(abs(x)) is simplified to abs(x)
+    RelDataType intType = f.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    RexNode abs =
+        f.rexBuilder.makeCall(SqlStdOperatorTable.ABS, f.rexBuilder.makeLiteral(12, intType));
+    RexNode absAbs = f.rexBuilder.makeCall(SqlStdOperatorTable.ABS, abs);
+    RexNode simplifiedAbs =
+        f.simplify.simplifyPreservingType(absAbs, RexUnknownAs.UNKNOWN, true);
+    assertThat(abs, is(simplifiedAbs));
+
+    // Test that max(abs(abs(x))) is simplified to max(abs(x))
+    RexNode maxAbs = f.rexBuilder.makeCall(SqlStdOperatorTable.MAX, abs);
+    RexNode maxAbsAbs = f.rexBuilder.makeCall(SqlStdOperatorTable.MAX, absAbs);
+    RexNode simplifiedMaxAbsAbs =
+        f.simplify.simplifyPreservingType(maxAbsAbs, RexUnknownAs.UNKNOWN, true);
+    assertThat(maxAbs.equals(simplifiedMaxAbsAbs), is(true));
+
+    // lower(upper(x)) is not simplified
+    RexNode upper = f.rexBuilder
+        .makeCall(SqlStdOperatorTable.UPPER, f.rexBuilder.makeLiteral("Calcite"));
+    RexNode lowerUpper = f.rexBuilder.makeCall(SqlStdOperatorTable.LOWER, upper);
+    RexNode simplifiedLowerUpper =
+        f.simplify.simplifyPreservingType(lowerUpper, RexUnknownAs.UNKNOWN, true);
+    assertThat(lowerUpper.equals(simplifiedLowerUpper), is(true));
   }
 
   /** Test case for
