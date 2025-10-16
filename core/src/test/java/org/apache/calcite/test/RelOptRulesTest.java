@@ -100,6 +100,7 @@ import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -8936,7 +8937,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinIn() {
     final String sql = "select empno\n"
         + "from sales.emp left join sales.dept\n"
@@ -8966,6 +8966,38 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  select * from emp e where emp.deptno = e.deptno)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
+
+  @Test void testConvertExistsToSemiJoin() {
+    final String sql = "select * from sales.emp\n"
+                       + "where EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
+  }
+
+  @Test void testConvertNotExistsToAntiJoin() {
+    final String sql = "select * from sales.emp\n"
+                       + "where NOT EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
+  }
+
+  @Test void testConvertExistsWithUnsupportedCondition() {
+    final String sql = "select * from sales.emp\n"
+                       + "where emp.empno > 0 OR EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
+  }
+
+  @Test void testConvertExistsWithUnsupportedCorrelate() {
+    final String sql = "select * from sales.emp\n"
+                       + "where EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)\n"
+                       + " and sal > (select avg(e2.sal) from emp e2 where emp.empno = e2.empno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule())
+            .withLateDecorrelate(true).check();
+  }
+
+  // TODO test hasCorrelatedExpressions
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1511">[CALCITE-1511]
