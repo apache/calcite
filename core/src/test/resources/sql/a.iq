@@ -1,0 +1,292 @@
+# a.iq
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use post
+!set outputformat mysql
+
+WITH
+store_sales (
+  ss_item_sk, ss_ticket_number, ss_customer_sk, ss_sold_date_sk, ss_store_sk,
+  ss_promo_sk, ss_ext_sales_price, ss_net_profit
+) AS (
+  VALUES (1, 10, 100, 1, 1, 1, 100.00, 50.00),
+         (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+),
+store_returns (
+  sr_item_sk, sr_ticket_number, sr_customer_sk, sr_return_amt, sr_net_loss
+) AS (
+  VALUES (1, 10, 100, 10.00, 5.00),
+         (NULL, NULL, NULL, NULL, NULL)
+),
+date_dim (
+  d_date_sk, d_date
+) AS (
+  VALUES (1, DATE '2002-08-23'),
+         (NULL, NULL)
+),
+store (
+  s_store_sk, s_store_id
+) AS (
+  VALUES (1, 1),
+         (NULL, NULL)
+),
+item (
+  i_item_sk, i_current_price
+) AS (
+  VALUES (1, 100.00),
+         (NULL, NULL)
+),
+promotion (
+  p_promo_sk, p_channel_tv
+) AS (
+  VALUES (1, 'N'),
+         (NULL, NULL)
+),
+catalog_sales (
+  cs_item_sk, cs_order_number, cs_customer_sk, cs_sold_date_sk, cs_catalog_page_sk,
+  cs_promo_sk, cs_ext_sales_price, cs_net_profit
+) AS (
+  VALUES (1, 20, 200, 1, 1, 1, 200.00, 100.00),
+         (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+),
+catalog_returns (
+  cr_item_sk, cr_order_number, cr_customer_sk, cr_return_amount, cr_net_loss
+) AS (
+  VALUES (1, 20, 200, 20.00, 10.00),
+         (NULL, NULL, NULL, NULL, NULL)
+),
+catalog_page (
+  cp_catalog_page_sk, cp_catalog_page_id
+) AS (
+  VALUES (1, 1),
+         (NULL, NULL)
+),
+web_sales (
+  ws_item_sk, ws_order_number, ws_web_page_sk, ws_customer_sk, ws_sold_date_sk,
+  ws_web_site_sk, ws_promo_sk, ws_ext_sales_price, ws_net_profit
+) AS (
+  VALUES (1, 30, 300, 300, 1, 1, 1, 300.00, 150.00),
+         (NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+),
+web_returns (
+  wr_item_sk, wr_order_number, wr_web_page_sk, wr_customer_sk, wr_return_amt, wr_net_loss
+) AS (
+  VALUES (1, 30, 300, 300, 30.00, 15.00),
+         (NULL, NULL, NULL, NULL, NULL, NULL)
+),
+web_site (
+  web_site_sk, web_site_id
+) AS (
+  VALUES (1, 1),
+         (NULL, NULL)
+)
+-- original TPC-DS 80 sql
+,
+ssr AS (
+  SELECT
+    s_store_id AS store_id,
+    SUM(ss_ext_sales_price) AS sales,
+    SUM(COALESCE(sr_return_amt, 0)) AS returns0,
+    SUM(ss_net_profit - COALESCE(sr_net_loss, 0)) AS profit
+  FROM
+    store_sales
+    LEFT OUTER JOIN store_returns ON (
+      ss_item_sk = sr_item_sk
+      AND ss_ticket_number = sr_ticket_number
+      AND ss_customer_sk = sr_customer_sk
+    ),
+    date_dim,
+    store,
+    item,
+    promotion
+  WHERE
+    ss_sold_date_sk = d_date_sk
+    AND d_date BETWEEN cast('2000-08-23' AS DATE)
+  AND (cast('2000-08-23' AS DATE) + INTERVAL 30 days)
+    AND ss_store_sk = s_store_sk
+    AND ss_item_sk = i_item_sk
+    AND i_current_price > 50
+    AND ss_promo_sk = p_promo_sk
+    AND p_channel_tv = 'N'
+  GROUP BY
+    s_store_id
+),
+csr AS (
+  SELECT
+    cp_catalog_page_id AS catalog_page_id,
+    SUM(cs_ext_sales_price) AS sales,
+    SUM(COALESCE(cr_return_amount, 0)) AS returns0,
+    SUM(cs_net_profit - COALESCE(cr_net_loss, 0)) AS profit
+  FROM
+    catalog_sales
+    LEFT OUTER JOIN catalog_returns ON (
+      cs_item_sk = cr_item_sk
+      AND cs_order_number = cr_order_number
+      AND cs_customer_sk = cr_customer_sk
+    ),
+    date_dim,
+    catalog_page,
+    item,
+    promotion
+  WHERE
+    cs_sold_date_sk = d_date_sk
+    AND d_date BETWEEN cast('2000-08-23' AS DATE)
+  AND (cast('2000-08-23' AS DATE) + INTERVAL 30 days)
+    AND cs_catalog_page_sk = cp_catalog_page_sk
+    AND cs_item_sk = i_item_sk
+    AND i_current_price > 50
+    AND cs_promo_sk = p_promo_sk
+    AND p_channel_tv = 'N'
+  GROUP BY
+    cp_catalog_page_id
+),
+wsr AS (
+  SELECT
+    web_site_id,
+    SUM(ws_ext_sales_price) AS sales,
+    SUM(COALESCE(wr_return_amt, 0)) AS returns0,
+    SUM(ws_net_profit - COALESCE(wr_net_loss, 0)) AS profit
+  FROM
+    web_sales
+    LEFT OUTER JOIN web_returns ON (
+      ws_item_sk = wr_item_sk
+      AND ws_order_number = wr_order_number
+      AND ws_web_page_sk = wr_web_page_sk
+      AND ws_customer_sk = wr_customer_sk
+    ),
+    date_dim,
+    web_site,
+    item,
+    promotion
+  WHERE
+    ws_sold_date_sk = d_date_sk
+    AND d_date BETWEEN cast('2000-08-23' AS DATE)
+  AND (cast('2000-08-23' AS DATE) + INTERVAL 30 days)
+    AND ws_web_site_sk = web_site_sk
+    AND ws_item_sk = i_item_sk
+    AND i_current_price > 50
+    AND ws_promo_sk = p_promo_sk
+    AND p_channel_tv = 'N'
+  GROUP BY
+    web_site_id
+)
+SELECT
+  channel,
+  id,
+  SUM(sales) AS sales,
+  SUM(returns0) AS returns0,
+  SUM(profit) AS profit
+FROM
+  (
+    SELECT
+      'store channel' AS channel,
+      'store_' || store_id AS id,
+      sales,
+      returns0,
+      profit
+    FROM
+      ssr
+    UNION ALL
+    SELECT
+      'catalog channel' AS channel,
+      'catalog_page_' || catalog_page_id AS id,
+      sales,
+      returns0,
+      profit
+    FROM
+      csr
+    UNION ALL
+    SELECT
+      'web channel' AS channel,
+      'web_site_' || web_site_id AS id,
+      sales,
+      returns0,
+      profit
+    FROM
+      wsr
+  ) x
+GROUP BY
+  ROLLUP(channel, id)
+ORDER BY
+  channel,
+  id
+LIMIT 100;
++---------+----+-------+----------+--------+
+| CHANNEL | ID | SALES | RETURNS0 | PROFIT |
++---------+----+-------+----------+--------+
++---------+----+-------+----------+--------+
+(0 rows)
+
+!ok
+EnumerableLimit(fetch=[100])
+  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+    EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], SALES=[SUM($2)], RETURNS0=[SUM($3)], PROFIT=[SUM($4)])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=['store channel  '], expr#5=['store_'], expr#6=[CAST($t0):VARCHAR], expr#7=[||($t5, $t6)], CHANNEL=[$t4], ID=[$t7], SALES=[$t1], RETURNS0=[$t2], PROFIT=[$t3])
+          EnumerableAggregate(group=[{0}], SALES=[SUM($1)], RETURNS0=[SUM($2)], PROFIT=[SUM($3)])
+            EnumerableCalc(expr#0..18=[{inputs}], expr#19=[IS NOT NULL($t11)], expr#20=[CAST($t11):DECIMAL(12, 2) NOT NULL], expr#21=[0.00:DECIMAL(12, 2)], expr#22=[CASE($t19, $t20, $t21)], expr#23=[IS NOT NULL($t12)], expr#24=[CAST($t12):DECIMAL(12, 2) NOT NULL], expr#25=[CASE($t23, $t24, $t21)], expr#26=[-($t7, $t25)], STORE_ID=[$t16], EXPR$6=[$t6], $f2=[$t22], $f3=[$t26])
+              EnumerableHashJoin(condition=[=($5, $19)], joinType=[semi])
+                EnumerableHashJoin(condition=[=($0, $17)], joinType=[inner])
+                  EnumerableHashJoin(condition=[=($4, $15)], joinType=[inner])
+                    EnumerableHashJoin(condition=[=($3, $13)], joinType=[inner])
+                      EnumerableHashJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10))], joinType=[left])
+                        EnumerableValues(tuples=[[{ 1, 10, 100, 1, 1, 1, 100.00, 50.00 }, { null, null, null, null, null, null, null, null }]])
+                        EnumerableValues(tuples=[[{ 1, 10, 100, 10.00, 5.00 }, { null, null, null, null, null }]])
+                      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[2000-08-23..2000-09-22]]], expr#3=[SEARCH($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+                        EnumerableValues(tuples=[[{ 1, 2002-08-23 }, { null, null }]])
+                    EnumerableValues(tuples=[[{ 1, 1 }, { null, null }]])
+                  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):DECIMAL(12, 2)], expr#3=[50.00:DECIMAL(12, 2)], expr#4=[>($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
+                    EnumerableValues(tuples=[[{ 1, 100.00 }, { null, null }]])
+                EnumerableCalc(expr#0..1=[{inputs}], expr#2=['N'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+                  EnumerableValues(tuples=[[{ 1, 'N' }, { null, null }]])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=['catalog channel'], expr#5=['catalog_page_'], expr#6=[CAST($t0):VARCHAR], expr#7=[||($t5, $t6)], CHANNEL=[$t4], ID=[$t7], SALES=[$t1], RETURNS0=[$t2], PROFIT=[$t3])
+          EnumerableAggregate(group=[{0}], SALES=[SUM($1)], RETURNS0=[SUM($2)], PROFIT=[SUM($3)])
+            EnumerableCalc(expr#0..18=[{inputs}], expr#19=[IS NOT NULL($t11)], expr#20=[CAST($t11):DECIMAL(12, 2) NOT NULL], expr#21=[0.00:DECIMAL(12, 2)], expr#22=[CASE($t19, $t20, $t21)], expr#23=[IS NOT NULL($t12)], expr#24=[CAST($t12):DECIMAL(12, 2) NOT NULL], expr#25=[CASE($t23, $t24, $t21)], expr#26=[-($t7, $t25)], CATALOG_PAGE_ID=[$t16], EXPR$6=[$t6], $f2=[$t22], $f3=[$t26])
+              EnumerableHashJoin(condition=[=($5, $19)], joinType=[semi])
+                EnumerableHashJoin(condition=[=($0, $17)], joinType=[inner])
+                  EnumerableHashJoin(condition=[=($4, $15)], joinType=[inner])
+                    EnumerableHashJoin(condition=[=($3, $13)], joinType=[inner])
+                      EnumerableHashJoin(condition=[AND(=($0, $8), =($1, $9), =($2, $10))], joinType=[left])
+                        EnumerableValues(tuples=[[{ 1, 20, 200, 1, 1, 1, 200.00, 100.00 }, { null, null, null, null, null, null, null, null }]])
+                        EnumerableValues(tuples=[[{ 1, 20, 200, 20.00, 10.00 }, { null, null, null, null, null }]])
+                      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[2000-08-23..2000-09-22]]], expr#3=[SEARCH($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+                        EnumerableValues(tuples=[[{ 1, 2002-08-23 }, { null, null }]])
+                    EnumerableValues(tuples=[[{ 1, 1 }, { null, null }]])
+                  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):DECIMAL(12, 2)], expr#3=[50.00:DECIMAL(12, 2)], expr#4=[>($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
+                    EnumerableValues(tuples=[[{ 1, 100.00 }, { null, null }]])
+                EnumerableCalc(expr#0..1=[{inputs}], expr#2=['N'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+                  EnumerableValues(tuples=[[{ 1, 'N' }, { null, null }]])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=['web channel    '], expr#5=['web_site_'], expr#6=[CAST($t0):VARCHAR], expr#7=[||($t5, $t6)], CHANNEL=[$t4], ID=[$t7], SALES=[$t1], RETURNS0=[$t2], PROFIT=[$t3])
+          EnumerableAggregate(group=[{0}], SALES=[SUM($1)], RETURNS0=[SUM($2)], PROFIT=[SUM($3)])
+            EnumerableCalc(expr#0..20=[{inputs}], expr#21=[IS NOT NULL($t13)], expr#22=[CAST($t13):DECIMAL(12, 2) NOT NULL], expr#23=[0.00:DECIMAL(12, 2)], expr#24=[CASE($t21, $t22, $t23)], expr#25=[IS NOT NULL($t14)], expr#26=[CAST($t14):DECIMAL(12, 2) NOT NULL], expr#27=[CASE($t25, $t26, $t23)], expr#28=[-($t8, $t27)], WEB_SITE_ID=[$t18], EXPR$7=[$t7], $f2=[$t24], $f3=[$t28])
+              EnumerableHashJoin(condition=[=($6, $21)], joinType=[semi])
+                EnumerableHashJoin(condition=[=($0, $19)], joinType=[inner])
+                  EnumerableHashJoin(condition=[=($5, $17)], joinType=[inner])
+                    EnumerableHashJoin(condition=[=($4, $15)], joinType=[inner])
+                      EnumerableHashJoin(condition=[AND(=($0, $9), =($1, $10), =($2, $11), =($3, $12))], joinType=[left])
+                        EnumerableValues(tuples=[[{ 1, 30, 300, 300, 1, 1, 1, 300.00, 150.00 }, { null, null, null, null, null, null, null, null, null }]])
+                        EnumerableValues(tuples=[[{ 1, 30, 300, 300, 30.00, 15.00 }, { null, null, null, null, null, null }]])
+                      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[2000-08-23..2000-09-22]]], expr#3=[SEARCH($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+                        EnumerableValues(tuples=[[{ 1, 2002-08-23 }, { null, null }]])
+                    EnumerableValues(tuples=[[{ 1, 1 }, { null, null }]])
+                  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):DECIMAL(12, 2)], expr#3=[50.00:DECIMAL(12, 2)], expr#4=[>($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
+                    EnumerableValues(tuples=[[{ 1, 100.00 }, { null, null }]])
+                EnumerableCalc(expr#0..1=[{inputs}], expr#2=['N'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+                  EnumerableValues(tuples=[[{ 1, 'N' }, { null, null }]])
+!plan
+
+# End a.iq
