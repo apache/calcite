@@ -552,4 +552,26 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 !plan
 !set planner-rules original
 
+#
+!use scott
+!set planner-rules "
++SORT_REMOVE_DUPLICATE_KEYS"
+
+select * from (select deptno as a, deptno as b from emp) t order by a, b limit 1 offset 2;
++----+----+
+| A  | B  |
++----+----+
+| 10 | 10 |
++----+----+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], A=[$t7], B=[$t7])
+  EnumerableLimit(offset=[2], fetch=[1])
+    EnumerableSort(sort0=[$7], dir0=[ASC])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+!set planner-rules "original"
+
 # End planner.iq

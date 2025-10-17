@@ -39,6 +39,7 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.PhysicalNode;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -373,10 +374,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public boolean addRelTraitDef(RelTraitDef relTraitDef) {
+    if (relTraitDef instanceof RelCollationTraitDef) {
+      RelCollationTraitDef.setPlannerContext(this);
+    }
     return !traitDefs.contains(relTraitDef) && traitDefs.add(relTraitDef);
   }
 
   @Override public void clearRelTraitDefs() {
+    if (traitDefs.contains(RelCollationTraitDef.INSTANCE)) {
+      RelCollationTraitDef.clearPlannerContext(this);
+    }
     traitDefs.clear();
   }
 
