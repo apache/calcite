@@ -10335,7 +10335,7 @@ on emp.deptno=dept.deptno and emp.ename is not null]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EXPR$0=[1])
-  LogicalJoin(condition=[AND(=($7, $9), IS NOT NULL($1))], joinType=[inner])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
