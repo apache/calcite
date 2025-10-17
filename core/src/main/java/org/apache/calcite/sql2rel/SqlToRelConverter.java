@@ -1115,9 +1115,9 @@ public class SqlToRelConverter {
   }
 
   private RexNode simplifyPredicate(RexNode predicate) {
-    final RexNode convertedWhere2 =
+    final RexNode converted =
         RexUtil.removeNullabilityCast(typeFactory, predicate);
-    List<RexNode> conjuncts = RelOptUtil.conjunctions(convertedWhere2);
+    List<RexNode> conjuncts = RelOptUtil.conjunctions(converted);
     List<RexNode> simplified = conjuncts.stream()
         .map(e -> RexSimplify.simplifyComparisonWithNull(e, rexBuilder))
         .collect(Collectors.toList());
@@ -3295,7 +3295,7 @@ public class SqlToRelConverter {
     final RelNode tempRightRel = requireNonNull(rightBlackboard.root, "rightBlackboard.root");
 
     final JoinConditionType conditionType = join.getConditionType();
-    final RexNode condition;
+    RexNode condition;
     RelNode rightRel;
     if (join.isNatural()) {
       condition =
@@ -3326,6 +3326,8 @@ public class SqlToRelConverter {
         throw Util.unexpected(conditionType);
       }
     }
+    condition = simplifyPredicate(condition);
+
     final RelNode joinRel;
     if (joinType == JoinType.ASOF || joinType == JoinType.LEFT_ASOF) {
       SqlNode sqlMatchCondition =
@@ -3334,6 +3336,7 @@ public class SqlToRelConverter {
       Pair<RexNode, RelNode> conditionAndRightNode =
           convertOnCondition(fromBlackboard, sqlMatchCondition, leftRel, tempRightRel);
       RexNode matchCondition = conditionAndRightNode.left;
+      matchCondition = simplifyPredicate(matchCondition);
       rightRel = conditionAndRightNode.right;
       joinRel =
           createAsofJoin(join.getParserPosition(), fromBlackboard,
