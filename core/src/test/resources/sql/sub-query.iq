@@ -5367,4 +5367,25 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):BIGINT], expr#6=[IS NULL(
         EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
 
+# [CALCITE-5421] SqlToRelConverter should populate correlateId for join with correlated query in HAVING condition
+!use scott
+select sum(sal) as s
+from emp e1
+group by deptno
+having count(*) > 2
+and exists(
+  select true
+  from emp e2
+  where e1.deptno = e2.deptno);
++----------+
+| S        |
++----------+
+| 10875.00 |
+|  8750.00 |
+|  9400.00 |
++----------+
+(3 rows)
+
+!ok
+
 # End sub-query.iq
