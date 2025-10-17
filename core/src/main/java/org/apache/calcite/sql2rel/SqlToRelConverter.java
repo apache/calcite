@@ -3130,7 +3130,11 @@ public class SqlToRelConverter {
     }
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     final List<CorrelationId> correlNames = new ArrayList<>();
-    // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex for aggregation
+    
+    // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex.
+    // When the outer query has an aggregate (e.g., GROUP BY), the correlation variable's
+    // fields map to different indices in the aggregated result. This mapping tracks the
+    // projection to update the correlation variable's row type and field indices.
     final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping = new HashMap<>();
 
     for (CorrelationId correlName : correlatedVariables) {
