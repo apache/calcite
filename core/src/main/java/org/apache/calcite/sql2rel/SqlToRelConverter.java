@@ -3130,12 +3130,12 @@ public class SqlToRelConverter {
     }
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     final List<CorrelationId> correlNames = new ArrayList<>();
-    
-    // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex.
+
+    // Mapping from correlId to (originalFieldIndex, projectedFieldIndex) pairs.
     // When the outer query has an aggregate (e.g., GROUP BY), the correlation variable's
     // fields map to different indices in the aggregated result. This mapping tracks the
     // projection to update the correlation variable's row type and field indices.
-    final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping = new HashMap<>();
+    final Map<CorrelationId, Pair<Integer, Integer>> fieldMapping = new HashMap<>();
 
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
@@ -3199,7 +3199,7 @@ public class SqlToRelConverter {
         // the root of the outer relation.
         Integer projection = exprProjection.get(pos);
         if (projection != null) {
-          fieldMapping.put(Pair.of(correlName, originalFieldIndex), projection);
+          fieldMapping.put(correlName, Pair.of(originalFieldIndex, projection));
           pos = projection;
         } else {
           // correl not grouped
@@ -6033,12 +6033,12 @@ public class SqlToRelConverter {
     private final RexBuilder rexBuilder;
     private final CorrelationId targetCorrelId;
     private final RelDataType newCorrelRowType;
-    private final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping;
+    private final Map<CorrelationId, Pair<Integer, Integer>> fieldMapping;
 
     CorrelationFieldMappingShuttle(RexBuilder rexBuilder,
         CorrelationId targetCorrelId,
         RelDataType newCorrelRowType,
-        Map<Pair<CorrelationId, Integer>, Integer> fieldMapping) {
+        Map<CorrelationId, Pair<Integer, Integer>> fieldMapping) {
       this.rexBuilder = rexBuilder;
       this.targetCorrelId = targetCorrelId;
       this.newCorrelRowType = newCorrelRowType;
@@ -6051,11 +6051,13 @@ public class SqlToRelConverter {
           if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
             RexCorrelVariable correlVar = (RexCorrelVariable) fieldAccess.getReferenceExpr();
             if (correlVar.id.equals(targetCorrelId)) {
-              Integer newIndex =
-                  fieldMapping.get(Pair.of(correlVar.id, fieldAccess.getField().getIndex()));
-              if (newIndex != null) {
+              Pair<Integer, Integer> fieldIndexMapping =
+                  fieldMapping.get(correlVar.id);
+              if (fieldIndexMapping != null
+                  && fieldIndexMapping.left.equals(fieldAccess.getField().getIndex())) {
                 return rexBuilder.makeFieldAccess(
-                    rexBuilder.makeCorrel(newCorrelRowType, correlVar.id), newIndex);
+                    rexBuilder.makeCorrel(newCorrelRowType, correlVar.id),
+                    fieldIndexMapping.right);
               }
             }
           }
