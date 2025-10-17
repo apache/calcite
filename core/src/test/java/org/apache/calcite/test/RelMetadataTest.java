@@ -105,6 +105,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -4338,6 +4339,18 @@ public class RelMetadataTest {
     assertThat(r, hasSize(1));
     final String resultString = r.iterator().next().toString();
     assertThat(resultString, is("+([CATALOG, SALES, EMP].#0.$5, 1)"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7070">[CALCITE-7070]
+   * FILTER_REDUCE_EXPRESSIONS crashes on expression BETWEEN ( NULL) AND X</a>. */
+  @Test void testJoinCrash() {
+    String sql = "SELECT DISTINCT * FROM emp AS cor0 JOIN dept cor1 ON "
+        + "NULL < - - ( + + CAST ( + 47 AS INTEGER ) ) - - - 47";
+    SqlTestFactory factory = SqlTestFactory.INSTANCE
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .withSqlToRelConfig(
+            c -> c.withRelBuilderConfigTransform(t -> t.withSimplify(false)));
+    SqlValidatorTester.DEFAULT.convertSqlToRel(factory, sql, false, false);
   }
 
   @Test void testAllPredicates() {
