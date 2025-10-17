@@ -89,8 +89,12 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     boolean isDistinct = Util.isDistinct(joinInfo.leftKeys)
         && Util.isDistinct(joinInfo.rightKeys);
 
-    if (!RelCollations.collationsContainKeysOrderless(leftCollations, joinInfo.leftKeys)
-        || !RelCollations.collationsContainKeysOrderless(rightCollations, joinInfo.rightKeys)) {
+    // Check if collations match join keys, considering both current and original collations
+    // (to handle optimized collations with functional dependencies)
+    if (!collationsContainKeysIncludingOriginal(
+            cluster.getPlanner(), leftCollations, joinInfo.leftKeys)
+        || !collationsContainKeysIncludingOriginal(
+            cluster.getPlanner(), rightCollations, joinInfo.rightKeys)) {
       if (isDistinct) {
         throw new RuntimeException("wrong collation in left or right input");
       }
@@ -534,5 +538,34 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                     Util.first(
                         leftKeyPhysType.comparer(),
                         Expressions.constant(null))))).toBlock());
+  }
+
+  /**
+   * Checks if collations contain join keys, considering both current
+   * and original collations. Handles optimized collations (e.g., with
+   * duplicate keys removed via functional dependencies).
+   */
+  private static boolean collationsContainKeysIncludingOriginal(
+      RelOptPlanner planner,
+      List<RelCollation> collations, ImmutableIntList keys) {
+    // First check with standard method
+    if (RelCollations.collationsContainKeysOrderless(collations, keys)) {
+      return true;
+    }
+
+    // If not found, check original collations stored in the map
+    for (RelCollation collation : collations) {
+      List<RelFieldCollation> originalCollation =
+          RelCollationTraitDef.getOriginalCollation(planner, collation);
+      if (originalCollation != null) {
+        RelCollation tempCollation = RelCollations.of(originalCollation);
+        if (RelCollations.collationsContainKeysOrderless(
+            ImmutableList.of(tempCollation), keys)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 }

@@ -143,10 +143,32 @@ public class RelCollationImpl implements RelCollation {
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    return this == trait
-        || trait instanceof RelCollationImpl
-        && Util.startsWith(fieldCollations,
-            ((RelCollationImpl) trait).fieldCollations);
+    if (this == trait) {
+      return true;
+    }
+    if (!(trait instanceof RelCollationImpl)) {
+      return false;
+    }
+
+    final RelCollationImpl that = (RelCollationImpl) trait;
+    // First, try the simple prefix matching (the original logic)
+    if (Util.startsWith(fieldCollations, that.fieldCollations)) {
+      return true;
+    }
+
+    // If simple prefix matching fails, check if we have an original collation stored
+    // in the external map (from optimization). This handles cases where duplicate keys
+    // were removed based on functional dependencies.
+    // For example: original [0, 1] optimized to [0], and we need to satisfy [0, 1].
+    // The original [0, 1] prefix-matches [0, 1], so this returns true.
+    final List<RelFieldCollation> storedOriginal =
+        RelCollationTraitDef.getOriginalCollationFromContext(this);
+    if (storedOriginal != null
+        && Util.startsWith(storedOriginal, that.fieldCollations)) {
+      return true;
+    }
+
+    return false;
   }
 
   /** Returns a string representation of this collation, suitably terse given

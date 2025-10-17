@@ -18,6 +18,8 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Sort;
@@ -92,8 +94,16 @@ public class SortRemoveDuplicateKeysRule
       return;
     }
 
+    final RelCollation newCollation = RelCollations.of(newCollations);
+
+    // Store the original collation for trait satisfaction checking
+    // This allows [0] to satisfy [0,1] when column 1 is functionally determined by 0
+    // Scoped to this planner's lifecycle
+    RelCollationTraitDef.registerCollationMapping(
+        call.getPlanner(), newCollation, collations);
+
     relBuilder.push(sort.getInput())
-        .sortLimit(sort.offset, sort.fetch, RelCollations.of(newCollations));
+        .sortLimit(sort.offset, sort.fetch, newCollation);
     call.transformTo(relBuilder.build());
   }
 

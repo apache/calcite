@@ -24,6 +24,12 @@ import org.apache.calcite.rel.logical.LogicalSort;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
  * Definition of the ordering trait.
  *
@@ -41,6 +47,35 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
   public static final RelCollationTraitDef INSTANCE =
       new RelCollationTraitDef();
+
+  /** ThreadLocal to store the current planner during optimization. */
+  private static final ThreadLocal<@Nullable RelOptPlanner> CURRENT_PLANNER =
+      new ThreadLocal<>();
+
+  /** Maps planners to their original collation maps using weak references.
+   * Each planner gets its own map to store optimization history. */
+  private static final Map<RelOptPlanner, Map<RelCollation, List<RelFieldCollation>>>
+      PLANNER_COLLATIONS_MAP = Collections.synchronizedMap(new WeakHashMap<>());
+
+  /** Sets the current planner for optimization. */
+  public static void setPlannerContext(RelOptPlanner planner) {
+    CURRENT_PLANNER.set(planner);
+  }
+
+  /** Clears the planner context. */
+  public static void clearPlannerContext(RelOptPlanner planner) {
+    PLANNER_COLLATIONS_MAP.remove(planner);
+    if (CURRENT_PLANNER.get() == planner) {
+      CURRENT_PLANNER.remove();
+    }
+  }
+
+  /** Gets the original collations map for the given planner. */
+  private static Map<RelCollation, List<RelFieldCollation>>
+      getOriginalCollationsMap(RelOptPlanner planner) {
+    return PLANNER_COLLATIONS_MAP.computeIfAbsent(planner,
+        k -> Collections.synchronizedMap(new IdentityHashMap<>()));
+  }
 
   private RelCollationTraitDef() {
   }
@@ -86,5 +121,26 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
   @Override public boolean canConvert(
       RelOptPlanner planner, RelCollation fromTrait, RelCollation toTrait) {
     return true;
+  }
+
+  /** Associates an optimized collation with its original collation. */
+  public static void registerCollationMapping(
+      RelOptPlanner planner, RelCollation optimized, List<RelFieldCollation> original) {
+    getOriginalCollationsMap(planner).put(optimized, original);
+  }
+
+  /** Gets the original collation associated with an optimized collation, if any. */
+  public static @Nullable List<RelFieldCollation> getOriginalCollation(
+      @Nullable RelOptPlanner planner, RelCollation collation) {
+    if (planner == null) {
+      return null;
+    }
+    return getOriginalCollationsMap(planner).get(collation);
+  }
+
+  /** Gets the original collation using the current planner context. */
+  public static @Nullable List<RelFieldCollation> getOriginalCollationFromContext(
+      RelCollation collation) {
+    return getOriginalCollation(CURRENT_PLANNER.get(), collation);
   }
 }
