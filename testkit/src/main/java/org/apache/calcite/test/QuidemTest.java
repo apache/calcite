@@ -24,6 +24,7 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -41,8 +42,12 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
@@ -261,6 +266,39 @@ public abstract class QuidemTest {
                         }));
               }
             }
+
+            if (propertyName.equals("hep-rules")) {
+              closer.add(
+                  Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
+                      holder -> {
+                        List<RelOptRule> hepRulesAdd = new ArrayList<>();
+                        List<RelOptRule> hepRulesRemove = new ArrayList<>();
+                        List<RelOptRule> volcanoRulesAdd = new ArrayList<>();
+                        List<RelOptRule> volcanoRulesRemove = new ArrayList<>();
+                        parseRulesForProgram((String) value, hepRulesAdd, hepRulesRemove,
+                            volcanoRulesAdd, volcanoRulesRemove);
+
+                        // Build hep rules: start empty, add as specified
+                        Program hepProgram =
+                            Programs.hep(RuleSets.ofList(hepRulesAdd), false,
+                                DefaultRelMetadataProvider.INSTANCE);
+                        Program calcProgram =
+                            Programs.calc(DefaultRelMetadataProvider.INSTANCE);
+
+                        // Build volcano rules: start from EnumerableRules,
+                        // remove and add as specified
+                        List<RelOptRule> volcanoRules =
+                            new ArrayList<>(EnumerableRules.ENUMERABLE_RULES);
+                        volcanoRules.removeAll(volcanoRulesRemove);
+                        volcanoRules.addAll(volcanoRulesAdd);
+                        Program volcanoProgram =
+                            Programs.of(RuleSets.ofList(volcanoRules));
+
+                        Program combinedProgram =
+                            Programs.sequence(hepProgram, volcanoProgram, calcProgram);
+                        holder.set(combinedProgram);
+                      }));
+            }
           })
           .withEnv(QuidemTest::getEnv)
           .build();
@@ -317,6 +355,37 @@ public abstract class QuidemTest {
     }
   }
 
+  private static void parseRulesForProgram(String value,
+      List<RelOptRule> hepRulesAdd, List<RelOptRule> hepRulesRemove,
+      List<RelOptRule> volcanoRulesAdd, List<RelOptRule> volcanoRulesRemove) {
+    Pattern pattern = Pattern.compile("([+-])((CoreRules|EnumerableRules)\\.)?(\\w+)");
+    Matcher matcher = pattern.matcher(value);
+
+    while (matcher.find()) {
+      char operation = matcher.group(1).charAt(0);
+      String ruleSource = matcher.group(3);
+      String ruleName = matcher.group(4);
+
+      try {
+        RelOptRule rule;
+        if (ruleSource == null || ruleSource.equals("CoreRules")) {
+          rule = getCoreRule(ruleName);
+          // CoreRules or no prefix go to hep program
+          setRules(operation, rule, hepRulesAdd, hepRulesRemove);
+        } else if (ruleSource.equals("EnumerableRules")) {
+          Object ruleObj = EnumerableRules.class.getField(ruleName).get(null);
+          rule = (RelOptRule) ruleObj;
+          // EnumerableRules go to volcano program
+          setRules(operation, rule, volcanoRulesAdd, volcanoRulesRemove);
+        } else {
+          throw new RuntimeException("Unknown rule: " + ruleName);
+        }
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new RuntimeException("set rules failed: " + e.getMessage(), e);
+      }
+    }
+  }
+
   public static RelOptRule getCoreRule(String ruleName) {
     try {
       Field ruleField = CoreRules.class.getField(ruleName);
@@ -334,9 +403,17 @@ public abstract class QuidemTest {
   private static void setRules(char operation, RelOptRule rule,
       List<RelOptRule> rulesAdd, List<RelOptRule> rulesRemove) {
     if (operation == '+') {
-      rulesAdd.add(rule);
+      // Remove from remove list if present, then add to add list
+      rulesRemove.remove(rule);
+      if (!rulesAdd.contains(rule)) {
+        rulesAdd.add(rule);
+      }
     } else if (operation == '-') {
-      rulesRemove.add(rule);
+      // Remove from add list if present, then add to remove list
+      rulesAdd.remove(rule);
+      if (!rulesRemove.contains(rule)) {
+        rulesRemove.add(rule);
+      }
     } else {
       throw new RuntimeException("unknown operation '" + operation + "'");
     }
