@@ -3699,6 +3699,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  /** Get the number of scopes referenced by the specified node; the node
+   * represents a computation that will be converted to a Rel node eventually. */
+  private int getScopeCount(SqlNode node) {
+    SqlValidatorScope scope = scopes.get(node);
+    if (scope == null) {
+      // Not all nodes have an associated scope; count these as "1".
+      // For example, a VALUES node.
+      return 1;
+    }
+    if (scope instanceof ListScope) {
+      ListScope join = (ListScope) scope;
+      return join.children.size();
+    }
+    return 1;
+  }
+
   protected void validateJoin(SqlJoin join, SqlValidatorScope scope) {
     final SqlNode left = join.getLeft();
     final SqlNode right = join.getRight();
@@ -3798,8 +3814,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(condition, RESOURCE.asofConditionMustBeComparison());
       }
 
+      int leftScopeCount = getScopeCount(left);
       CompareFromBothSides validateCompare =
-          new CompareFromBothSides(joinScope,
+          new CompareFromBothSides(joinScope, leftScopeCount,
               catalogReader, RESOURCE.asofConditionMustBeComparison());
       condition.accept(validateCompare);
 
@@ -3815,7 +3832,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // Change the exception in validateCompare when we validate the match condition
       validateCompare =
-          new CompareFromBothSides(joinScope,
+          new CompareFromBothSides(joinScope, leftScopeCount,
               catalogReader, RESOURCE.asofMatchMustBeComparison());
       matchCondition.accept(validateCompare);
       break;
@@ -3833,16 +3850,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   private class CompareFromBothSides extends SqlShuttle {
     final SqlValidatorScope scope;
+    // Number of children scopes on the left side of the join.
+    // Used to determine whether an identifier is from the left input or the right input.
+    final int leftScopeCount;
     final SqlValidatorCatalogReader catalogReader;
     final Resources.ExInst<SqlValidatorException> exception;
 
     private CompareFromBothSides(
         SqlValidatorScope scope,
+        int leftScopeCount,
         SqlValidatorCatalogReader catalogReader,
         Resources.ExInst<SqlValidatorException> exception) {
       this.scope = scope;
       this.catalogReader = catalogReader;
       this.exception = exception;
+      this.leftScopeCount = leftScopeCount;
     }
 
     @Override public @Nullable SqlNode visit(final SqlCall call) {
@@ -3873,15 +3895,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           scope.resolve(id.names.subList(0, id.names.size() - 1), nameMatcher, false, resolved);
           SqlValidatorScope.Resolve resolve = resolved.only();
           int index = resolve.path.steps().get(0).i;
-          if (index == 0) {
+          if (index < leftScopeCount) {
             leftFound = true;
-          }
-          if (index == 1) {
+          } else {
             rightFound = true;
-          }
-
-          if (!leftFound && !rightFound) {
-            throw newValidationError(call, this.exception);
           }
         }
         if (!leftFound || !rightFound) {
