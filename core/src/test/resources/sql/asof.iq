@@ -219,4 +219,53 @@ ON t1.k = t2.k;
 
 !ok
 
+!use blank
+# The following 3 tables and ASOF JOIN comprise the test case for [CALCITE-7228]
+# https://issues.apache.org/jira/browse/CALCITE-7228 Validator rejects legal ASOF JOIN program
+CREATE TABLE source_stream_a (
+    common_join_attribute SMALLINT,
+    join_key_a2 VARCHAR,
+    join_key_a1 VARCHAR,
+    event_timestamp TIMESTAMP
+);
+(0 rows modified)
+
+!update
+
+CREATE TABLE reference_table_b (
+    join_key_b1 VARCHAR NOT NULL,
+    common_join_attribute SMALLINT,
+    event_timestamp TIMESTAMP
+);
+(0 rows modified)
+
+!update
+
+CREATE TABLE source_stream_c (
+    join_key_b1 VARCHAR NOT NULL,
+    join_key_c2 VARCHAR NOT NULL,
+    common_join_attribute SMALLINT,
+    epoch_ts_c BIGINT,
+    timestamp_c TIMESTAMP,
+    event_timestamp TIMESTAMP
+);
+(0 rows modified)
+
+!update
+
+SELECT t1.* FROM source_stream_a AS t1
+LEFT JOIN reference_table_b AS t2
+ON t1.common_join_attribute = t2.common_join_attribute AND t1.join_key_a1 = t2.join_key_b1
+LEFT ASOF JOIN source_stream_c AS t3
+MATCH_CONDITION ( t1.event_timestamp >= t3.event_timestamp )
+ON t1.common_join_attribute = t3.common_join_attribute AND t1.join_key_a2 = t3.join_key_c2
+ AND t1.join_key_a1 = t3.join_key_b1;
++-----------------------+-------------+-------------+-----------------+
+| COMMON_JOIN_ATTRIBUTE | JOIN_KEY_A2 | JOIN_KEY_A1 | EVENT_TIMESTAMP |
++-----------------------+-------------+-------------+-----------------+
++-----------------------+-------------+-------------+-----------------+
+(0 rows)
+
+!ok
+
 # End asof.iq
