@@ -539,6 +539,9 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeLiteral(value, nonNullableVarchar);
   }
 
+  protected RexLiteral literal(double value) {
+    return rexBuilder.makeApproxLiteral(value, nonNullableDouble);
+  }
   // Variables
 
   /**

@@ -304,7 +304,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static Comparable search(SqlTypeName typeName, List<Comparable> values) {
-    final Comparable value = values.get(0);
+    Comparable value = values.get(0);
     final Sarg sarg = (Sarg) values.get(1);
     if (value == N) {
       switch (sarg.nullAs) {
@@ -315,6 +315,9 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       default:
         return N;
       }
+    }
+    if (SqlTypeName.NUMERIC_TYPES.contains(typeName)) {
+      value = number(value);
     }
     return translate(sarg.rangeSet, typeName).contains(value);
   }
@@ -332,6 +335,9 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case TIMESTAMP:
       return RangeSets.copy(rangeSet, TimestampString::getMillisSinceEpoch);
     default:
+      if (SqlTypeName.NUMERIC_TYPES.contains(typeName)) {
+        return RangeSets.copy(rangeSet, RexInterpreter::number);
+      }
       return rangeSet;
     }
   }
