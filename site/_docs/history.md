@@ -48,6 +48,9 @@ other software versions as specified in gradle.properties.
 
 #### Breaking Changes
 {: #breaking-1-41-0}
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6239">CALCITE-6239</a>]
+The GEOMETRY extra sql type is now mapped to the OTHER type instead of the VARCHAR type.
+This change was made to better align with the java.sql.Types specification and to align with other databases such as postgresql.
 
 #### New features
 {: #new-features-1-41-0}
