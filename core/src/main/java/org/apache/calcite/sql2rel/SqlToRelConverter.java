@@ -1246,20 +1246,7 @@ public class SqlToRelConverter {
 
       if (!config.isExpand()) {
         if (query instanceof SqlNodeList) {
-          // convert
-          // select * from "scott".emp where sal > some (4000, 2000)
-          // to
-          // select * from "scott".emp where sal > some (VALUES (4000), (2000))
-          // The SqlNodeList become a RexSubQuery then optimized by SubQueryRemoveRule.
-          RelNode relNode = convertRowValues(bb, query,  (SqlNodeList) query, false, targetRowType);
-          final ImmutableList.Builder<RexNode> builder =
-              ImmutableList.builder();
-          for (SqlNode node : leftSqlKeys) {
-            builder.add(bb.convertExpression(node));
-          }
-          final ImmutableList<RexNode> list = builder.build();
-          assert relNode != null;
-          subQuery.expr = createSubquery(subQuery.node.getKind(), relNode, list, call);
+          convertNodeListToSubQuery(bb, subQuery, query, leftSqlKeys, targetRowType, call);
           return;
         }
         return;
@@ -1299,7 +1286,11 @@ public class SqlToRelConverter {
       //
       // In such case, when converting SqlUpdate#condition, bb.root is null
       // and it makes no sense to do the sub-query substitution.
+      // Instead, we convert to a RexSubQuery which can be optimized later.
       if (bb.root == null) {
+        if (query instanceof SqlNodeList) {
+          convertNodeListToSubQuery(bb, subQuery, query, leftSqlKeys, targetRowType, call);
+        }
         return;
       }
 
@@ -1815,6 +1806,45 @@ public class SqlToRelConverter {
     default:
       throw new AssertionError();
     }
+  }
+
+  /**
+   * Converts a {@link SqlNodeList} (for example an IN-list or VALUES list)
+   * into a relational expression and produces a Rex-level sub-query that
+   * references that relational expression.
+   *
+   * <p>For example, converts:
+   * <pre>{@code
+   *   select * from "scott".emp where sal > some (4000, 2000)
+   * }</pre>
+   * to:
+   * <pre>{@code
+   *   select * from "scott".emp where sal > some (VALUES (4000), (2000))
+   * }</pre>
+   * The SqlNodeList becomes a RexSubQuery then optimized by SubQueryRemoveRule.
+   *
+   * @param bb              Blackboard containing the context
+   * @param subQuery        The SubQuery to populate with the converted expression
+   * @param query           The query node (expected to be a SqlNodeList)
+   * @param leftSqlKeys     Left-hand key expressions for IN/SOME/ALL
+   * @param targetRowType   The target row type for the conversion
+   * @param call            The original SQL call
+   */
+  private void convertNodeListToSubQuery(
+      Blackboard bb,
+      SubQuery subQuery,
+      SqlNode query,
+      List<SqlNode> leftSqlKeys,
+      RelDataType targetRowType,
+      SqlCall call) {
+    RelNode relNode = convertRowValues(bb, query, (SqlNodeList) query, false, targetRowType);
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (SqlNode node : leftSqlKeys) {
+      builder.add(bb.convertExpression(node));
+    }
+    final ImmutableList<RexNode> list = builder.build();
+    assert relNode != null;
+    subQuery.expr = createSubquery(subQuery.node.getKind(), relNode, list, call);
   }
 
   /**
