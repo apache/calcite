@@ -239,7 +239,9 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_MULTISET_QUERY =
       (opBinding, typeToTransform) ->
           TO_MULTISET.transformType(opBinding,
-              SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET,
+              SqlTypeUtil.deriveCollectionQueryComponentType(
+                  opBinding.getTypeFactory(),
+                  SqlTypeName.MULTISET,
                   typeToTransform));
 
   /**
@@ -296,7 +298,8 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_ARRAY_QUERY =
       (opBinding, typeToTransform) ->
         TO_ARRAY.transformType(opBinding,
-            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, typeToTransform));
+            SqlTypeUtil.deriveCollectionQueryComponentType(
+                opBinding.getTypeFactory(), SqlTypeName.ARRAY, typeToTransform));
 
   /**
    * Parameter type-inference transform strategy that converts a two-field
@@ -318,7 +321,8 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_MAP_QUERY =
       (opBinding, typeToTransform) ->
           TO_MAP.transformType(opBinding,
-              SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MAP, typeToTransform));
+              SqlTypeUtil.deriveCollectionQueryComponentType(
+                  opBinding.getTypeFactory(), SqlTypeName.MAP, typeToTransform));
 
   /**
    * Parameter type-inference transform strategy that converts a type to a MAP type,

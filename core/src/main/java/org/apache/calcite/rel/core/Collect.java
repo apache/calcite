@@ -153,7 +153,9 @@ public class Collect extends SingleRel {
       rowType =
           deriveRowType(input.getCluster().getTypeFactory(), collectionType,
               fieldName,
-              SqlTypeUtil.deriveCollectionQueryComponentType(collectionType,
+              SqlTypeUtil.deriveCollectionQueryComponentType(
+                  input.getCluster().getTypeFactory(),
+                  collectionType,
                   input.getRowType()));
       break;
     default:

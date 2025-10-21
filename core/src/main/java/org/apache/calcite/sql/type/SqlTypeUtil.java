@@ -39,6 +39,7 @@ import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -178,12 +179,59 @@ public abstract class SqlTypeUtil {
     return true;
   }
 
+  /** A namespace may contain multiple fields with the same name.
+   * However, a proper ROW type cannot; this function will assign
+   * unique names to fields when they are used to build a concrete ROW type.
+   *
+   * @param type A type for which type.isStruct() is true.
+   * @return A new version of this type where all fields have unique names.
+   *
+   * <p>Note: the same rule to rename fields is used by the {@link SqlToRelConverter} later,
+   * in convertNonAggregateSelectList (a private method).  This ensures that
+   * the generated field names there will match with the inferred field names here.
+   */
+  private static RelDataType uniquify(RelDataTypeFactory factory, RelDataType type) {
+    List<String> unique = SqlValidatorUtil.uniquify(type.getFieldNames(), true);
+    List<RelDataType> types = type.getFieldList()
+        .stream()
+        .map(RelDataTypeField::getType)
+        .collect(Collectors.toList());
+    return factory.createStructType(type.getStructKind(), types, unique);
+  }
+
+  /**
+   * Derives component type for ARRAY, MULTISET, MAP when input is sub-query.
+   *
+   * @param factory Type factory used to generate new types if necessary
+   * @param origin original component type
+   * @return component type
+   */
+  public static RelDataType deriveCollectionQueryComponentType(
+      RelDataTypeFactory factory,
+      SqlTypeName collectionType,
+      RelDataType origin) {
+    switch (collectionType) {
+    case ARRAY:
+    case MULTISET:
+      return origin.isStruct() && origin.getFieldCount() == 1
+          ? origin.getFieldList().get(0).getType() : uniquify(factory, origin);
+    case MAP:
+      return origin;
+    default:
+      throw new AssertionError(
+          "Impossible to derive component type for " + collectionType);
+    }
+  }
+
   /**
    * Derives component type for ARRAY, MULTISET, MAP when input is sub-query.
    *
    * @param origin original component type
    * @return component type
+   * @deprecated Use
+   * {@link SqlTypeUtil#deriveCollectionQueryComponentType(RelDataTypeFactory, SqlTypeName, RelDataType)}
    */
+  @Deprecated
   public static RelDataType deriveCollectionQueryComponentType(
       SqlTypeName collectionType,
       RelDataType origin) {

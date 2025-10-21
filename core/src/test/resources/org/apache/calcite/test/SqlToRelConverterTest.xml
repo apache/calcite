@@ -524,6 +524,22 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayRow">
+    <Resource name="sql">
+      <![CDATA[WITH tbl(r) AS (VALUES(1)) SELECT
+ARRAY(SELECT r, r FROM tbl)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 0 }]])
+    Collect(field=[EXPR$0])
+      LogicalProject(R=[$0], R0=[$0])
+        LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArraySubquery">
     <Resource name="sql">
       <![CDATA[SELECT ARRAY(SELECT empno FROM emp)]]>
