@@ -126,7 +126,8 @@ public class RexSubQuery extends RexCall {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
         typeFactory.createArrayType(
-            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, rel.getRowType()),
+            SqlTypeUtil.deriveCollectionQueryComponentType(
+                rel.getCluster().getTypeFactory(), SqlTypeName.ARRAY, rel.getRowType()),
             -1L);
     return new RexSubQuery(type, SqlStdOperatorTable.ARRAY_QUERY,
         ImmutableList.of(), rel);
@@ -137,7 +138,8 @@ public class RexSubQuery extends RexCall {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
         typeFactory.createMultisetType(
-            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET, rel.getRowType()),
+            SqlTypeUtil.deriveCollectionQueryComponentType(
+                rel.getCluster().getTypeFactory(), SqlTypeName.MULTISET, rel.getRowType()),
             -1L);
     return new RexSubQuery(type, SqlStdOperatorTable.MULTISET_QUERY,
         ImmutableList.of(), rel);

@@ -5430,6 +5430,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7238">[CALCITE-7238]
+   * Query that creates a ROW value triggers an assertion failure in SqlToRelConverter</a>. */
+  @Test void testArrayRow() {
+    sql("WITH tbl(r) AS (VALUES(1)) SELECT\n"
+        + "ARRAY(SELECT r, r FROM tbl)").ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4145">[CALCITE-4145]
