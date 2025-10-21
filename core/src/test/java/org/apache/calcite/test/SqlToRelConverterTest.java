@@ -5889,4 +5889,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6028">[CALCITE-6028]
+   * Join on with more than 20 in conditions will report a null pointer error</a>. */
+  @Test void testJoinOnConditionWithInMoreThan20() {
+    final String sql = "select t1.x from (values (1, 'a'), (2, 'b')) as t1(x, y)"
+        + " left join (values (1, 'a'), (2, 'b')) as t2(x, y)"
+        + " on t1.x = t2.x"
+        + " and t1.x in (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)";
+    sql(sql)
+        .withExpand(true)
+        .ok();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6028">[CALCITE-6028]
+   * Join on with more than 20 in conditions will report a null pointer error</a>. */
+  @Test void testJoinOnConditionWithInMoreThan20ExpandFalse() {
+    final String sql = "select t1.x from (values (1, 'a'), (2, 'b')) as t1(x, y)"
+        + " left join (values (1, 'a'), (2, 'b')) as t2(x, y)"
+        + " on t1.x = t2.x"
+        + " and t1.x in (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)";
+    sql(sql)
+        .withExpand(false)
+        .ok();
+  }
 }

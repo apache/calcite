@@ -3891,6 +3891,36 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinOnConditionWithInMoreThan20">
+    <Resource name="sql">
+      <![CDATA[select t1.x from (values (1, 'a'), (2, 'b')) as t1(x, y) left join (values (1, 'a'), (2, 'b')) as t2(x, y) on t1.x = t2.x and t1.x in (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[AND(=($0, $2), IN($0, {
+LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }, { 9 }, { 10 }, { 11 }, { 12 }, { 13 }, { 14 }, { 15 }, { 16 }, { 17 }, { 18 }, { 19 }, { 20 }, { 21 }]])
+}))], joinType=[left])
+    LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
+    LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinOnConditionWithInMoreThan20ExpandFalse">
+    <Resource name="sql">
+      <![CDATA[select t1.x from (values (1, 'a'), (2, 'b')) as t1(x, y) left join (values (1, 'a'), (2, 'b')) as t2(x, y) on t1.x = t2.x and t1.x in (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[AND(=($0, $2), IN($0, {
+LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }, { 9 }, { 10 }, { 11 }, { 12 }, { 13 }, { 14 }, { 15 }, { 16 }, { 17 }, { 18 }, { 19 }, { 20 }, { 21 }]])
+}))], joinType=[left])
+    LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
+    LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinOnExists">
     <Resource name="sql">
       <![CDATA[select * from emp left join dept
