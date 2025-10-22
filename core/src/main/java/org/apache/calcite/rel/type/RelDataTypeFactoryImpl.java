@@ -237,7 +237,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
 
     // recursively compute column-wise least restrictive
-    final Builder builder = builder();
+    // preserve the struct kind from type0
+    final Builder builder = builder().kind(type0.getStructKind());
     for (int j = 0; j < fieldCount; ++j) {
       // REVIEW jvs 22-Jan-2004:  Always use the field name from the
       // first type?
