@@ -149,6 +149,7 @@ public abstract class DateRangeRules {
   @VisibleForTesting
   public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e,
       String timeZone) {
+    e = RexUtil.expandSearch(rexBuilder, null, e);
     ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
     if (!timeUnits.contains(TimeUnitRange.YEAR)) {
       // Case when we have FLOOR or CEIL but no extract on YEAR.
