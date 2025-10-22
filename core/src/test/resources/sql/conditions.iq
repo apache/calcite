@@ -18,6 +18,37 @@
 !use catchall
 !set outputformat mysql
 
+# Test case for [CALCITE-7231] Validator crashes with AssertionFailure on query with ROW and IN
+WITH t(x) AS (VALUES(ROW(ROW(1)))) SELECT x IN (x) AS e FROM t;
++------+
+| E    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+WITH t(x) AS (VALUES(ROW(ROW(1)))) SELECT x NOT IN (x) AS e FROM t;
++-------+
+| E     |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+WITH t(x) as (VALUES(ROW(ROW(4, 'cat')))) SELECT x IN (ROW(4, 'cat')) AS e FROM t;
++------+
+| E    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
 # OR test
 
 with tmp(a, b) as (
