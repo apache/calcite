@@ -437,24 +437,35 @@ jobs:
         docker compose up -d
     - name: 'Check Druid containers startup progress'
       run: |
-        echo "=== Waiting 10 seconds for containers to initialize ==="
-        sleep 10
+        echo "=== Waiting 15 seconds for containers to initialize ==="
+        sleep 15
         echo ""
-        echo "=== Container Status ==="
+        echo "=== ALL Container Status ==="
         docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
         echo ""
+        echo "=== Container Network Info ==="
+        docker network ls
+        echo ""
+        echo "=== Container Networks (druid-dataset) ==="
+        docker network inspect druid-dataset_default 2>/dev/null || docker network inspect bridge || true
+        echo ""
+        echo "=== Checking DNS Resolution ==="
+        docker run --rm --network druid-dataset_default alpine nslookup postgres 2>&1 || echo "DNS resolution attempt failed"
+        echo ""
         echo "=== Container Logs Sample ==="
-        for container in coordinator router historical middlemanager broker; do
-          echo ""
-          echo "--- $container ---"
-          docker logs "$container" 2>&1 | tail -10 || echo "No logs yet"
+        for container in coordinator router historical middlemanager broker postgres zookeeper; do
+          if docker inspect "$container" &>/dev/null; then
+            echo ""
+            echo "--- $container ---"
+            docker logs "$container" 2>&1 | tail -15 || echo "No logs yet"
+          fi
         done
     - name: 'Wait Druid nodes to startup'
       run: |
         set -e
         
         CONTAINERS=("coordinator" "router" "historical" "middlemanager" "broker")
-        TIMEOUT=300
+        TIMEOUT=600 
         
         wait_for_container() {
           local container=$1
@@ -469,14 +480,14 @@ jobs:
             
             counter=$((counter + 1))
             
-            # Every 15 seconds, show what the container is doing
-            if [ $((counter % 15)) -eq 0 ]; then
+            # Every 20 seconds, show what the container is doing
+            if [ $((counter % 20)) -eq 0 ]; then
               echo ""
               echo "⏳ Still waiting for $container... ($counter seconds elapsed)"
               echo "--- Container status ---"
               docker inspect "$container" --format='Status: {{.State.Status}} | Exit Code: {{.State.ExitCode}}' 2>/dev/null || echo "Container not found"
-              echo "--- Last 20 lines of logs ---"
-              docker logs "$container" 2>&1 | tail -20 || echo "No logs available"
+              echo "--- Last 25 lines of logs ---"
+              docker logs "$container" 2>&1 | tail -25 || echo "No logs available"
               echo "---"
               echo ""
             fi
@@ -487,11 +498,18 @@ jobs:
           echo ""
           echo "❌ [$(date +'%Y-%m-%d %H:%M:%S')] $container failed to start within $TIMEOUT seconds!"
           echo ""
-          echo "=== Container full details ==="
+          echo "=== Container Status ==="
           docker inspect "$container" 2>&1 || true
           echo ""
           echo "=== COMPLETE LOGS ==="
-          docker logs "$container" 2>&1 || true
+          docker logs "$container" 2>&1 | tail -100 || true
+          echo ""
+          echo "=== Network Diagnostics ==="
+          echo "Available containers:"
+          docker ps -a --format "table {{.Names}}\t{{.Status}}"
+          echo ""
+          echo "Network info:"
+          docker network ls
           echo ""
           return 1
         }
