@@ -435,9 +435,23 @@ jobs:
       run: |
         chmod -R 777 storage
         docker compose up -d
+    - name: 'Check Druid containers startup progress'
+      run: |
+        echo "=== Waiting 10 seconds for containers to initialize ==="
+        sleep 10
+        echo ""
+        echo "=== Container Status ==="
+        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+        echo ""
+        echo "=== Container Logs Sample ==="
+        for container in coordinator router historical middlemanager broker; do
+          echo ""
+          echo "--- $container ---"
+          docker logs "$container" 2>&1 | tail -10 || echo "No logs yet"
+        done
     - name: 'Wait Druid nodes to startup'
       run: |
-        set -ex
+        set -e
         
         CONTAINERS=("coordinator" "router" "historical" "middlemanager" "broker")
         TIMEOUT=300
@@ -448,38 +462,51 @@ jobs:
           echo "⏳ [$(date +'%Y-%m-%d %H:%M:%S')] Waiting for $container to start..."
           
           while [ $counter -lt $TIMEOUT ]; do
-            echo "[DEBUG] Checking $container... (attempt $counter/$TIMEOUT)"
             if docker logs "$container" 2>/dev/null | grep -q "Successfully started lifecycle \[module\]"; then
               echo "✅ [$(date +'%Y-%m-%d %H:%M:%S')] $container started successfully"
               return 0
             fi
-            sleep 1
+            
             counter=$((counter + 1))
             
-            if [ $((counter % 30)) -eq 0 ]; then
-              echo "  ⏳ Still waiting for $container... ($counter seconds elapsed)"
-              echo "[DEBUG] Current container status:"
-              docker inspect "$container" --format='{{.State.Status}}' 2>/dev/null || echo "Container not found"
+            # Every 15 seconds, show what the container is doing
+            if [ $((counter % 15)) -eq 0 ]; then
+              echo ""
+              echo "⏳ Still waiting for $container... ($counter seconds elapsed)"
+              echo "--- Container status ---"
+              docker inspect "$container" --format='Status: {{.State.Status}} | Exit Code: {{.State.ExitCode}}' 2>/dev/null || echo "Container not found"
+              echo "--- Last 20 lines of logs ---"
+              docker logs "$container" 2>&1 | tail -20 || echo "No logs available"
+              echo "---"
+              echo ""
             fi
+            
+            sleep 1
           done
           
+          echo ""
           echo "❌ [$(date +'%Y-%m-%d %H:%M:%S')] $container failed to start within $TIMEOUT seconds!"
-          echo "=== [DEBUG] Container inspect output ==="
+          echo ""
+          echo "=== Container full details ==="
           docker inspect "$container" 2>&1 || true
-          echo "=== [DEBUG] $container logs (last 100 lines) ==="
-          docker logs "$container" 2>&1 | tail -100 || true
+          echo ""
+          echo "=== COMPLETE LOGS ==="
+          docker logs "$container" 2>&1 || true
+          echo ""
           return 1
         }
         
-        echo "[DEBUG] Starting Druid startup verification..."
-        echo "[DEBUG] Available containers:"
-        docker ps -a --format "table {{.Names}}\t{{.Status}}" || true
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] Starting Druid startup verification..."
+        echo "Available containers:"
+        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+        echo ""
         
         for container in "${CONTAINERS[@]}"; do
-          echo "[DEBUG] Processing container: $container"
+          echo "[$(date +'%Y-%m-%d %H:%M:%S')] Processing container: $container"
           wait_for_container "$container" || { echo "[ERROR] Failed at container: $container"; exit 1; }
         done
         
+        echo ""
         echo "✅ [$(date +'%Y-%m-%d %H:%M:%S')] All Druid containers started successfully"
     - name: 'Index Foodmart/Wikipedia datasets'
       working-directory: ./druid-dataset
