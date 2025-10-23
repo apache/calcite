@@ -441,15 +441,16 @@ jobs:
         sleep 15
         echo ""
         echo "=== Container Status ==="
-        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.ExitCode}}"
+        docker ps -a --format "table {{.Names}}\t{{.Status}}"
         echo ""
         echo "=== Checking Failed Containers ==="
         FAILED=$(docker ps -a --filter "status=exited" --format "{{.Names}}")
         if [ -n "$FAILED" ]; then
           echo "❌ Failed containers detected:"
           for container in $FAILED; do
+            EXIT_CODE=$(docker inspect "$container" --format='{{.State.ExitCode}}' 2>/dev/null || echo "unknown")
             echo ""
-            echo "--- $container (Exit Code: $(docker inspect $container --format='{{.State.ExitCode}}')) ---"
+            echo "--- $container (Exit Code: $EXIT_CODE) ---"
             docker logs "$container" 2>&1 | tail -30
           done
         else
@@ -467,8 +468,10 @@ jobs:
           local counter=0
           
           while [ $counter -lt $TIMEOUT ]; do
-            if [ "$(docker inspect $container --format='{{.State.Status}}')" = "exited" ]; then
-              echo "❌ $container exited with code $(docker inspect $container --format='{{.State.ExitCode}}')"
+            STATUS=$(docker inspect "$container" --format='{{.State.Status}}' 2>/dev/null || echo "notfound")
+            if [ "$STATUS" = "exited" ]; then
+              EXIT_CODE=$(docker inspect "$container" --format='{{.State.ExitCode}}')
+              echo "❌ $container exited with code $EXIT_CODE"
               echo "=== $container logs (last 50 lines) ==="
               docker logs "$container" 2>&1 | tail -50
               return 1
