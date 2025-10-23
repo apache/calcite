@@ -5081,6 +5081,39 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6469">[CALCITE-6469]
+   * Join on condition generates wrong plan when the condition is IN sub-query</a>. */
+  @Test void testJoinOnInSubQuery1() {
+    final String sql = "SELECT b.* FROM bonus b\n"
+        + "LEFT JOIN emp e ON e.deptno IN (SELECT deptno FROM dept)";
+    final String expected = "SELECT \"BONUS\".\"ENAME\","
+        + " \"BONUS\".\"JOB\", \"BONUS\".\"SAL\", \"BONUS\".\"COMM\"\n"
+        + "FROM \"SCOTT\".\"BONUS\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\""
+        + " ON \"EMP\".\"DEPTNO\" IN (SELECT \"DEPTNO\"\nFROM \"SCOTT\".\"DEPT\")";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6469">[CALCITE-6469]
+   * Join on condition generates wrong plan when the condition is IN sub-query</a>. */
+  @Test void testJoinOnInSubQuery2() {
+    final String sql = "SELECT e.* FROM emp e\n"
+        + "LEFT JOIN bonus b ON e.deptno IN (SELECT deptno FROM dept)";
+    final String expected = "SELECT \"EMP\".\"EMPNO\","
+        + " \"EMP\".\"ENAME\", \"EMP\".\"JOB\", \"EMP\".\"MGR\", \"EMP\".\"HIREDATE\","
+        + " \"EMP\".\"SAL\", \"EMP\".\"COMM\", \"EMP\".\"DEPTNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "LEFT JOIN \"SCOTT\".\"BONUS\""
+        + " ON \"EMP\".\"DEPTNO\" IN (SELECT \"DEPTNO\"\nFROM \"SCOTT\".\"DEPT\")";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]
    * JDBC adapter generates wrong SQL if UNION has more than two inputs</a>. */
   @Test void testThreeQueryUnion() {
