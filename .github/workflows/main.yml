@@ -437,33 +437,50 @@ jobs:
         docker compose up -d
     - name: 'Wait Druid nodes to startup'
       run: |
-        CONTAINERS=("coordinator" "router" "historical" "middlemanager" "broker")
-        TIMEOUT=3000  # 50 minutes timeout
+        set -ex
         
-        for container in "${CONTAINERS[@]}"; do
-          echo "⏳ Waiting for $container to start..."
-          counter=0
+        CONTAINERS=("coordinator" "router" "historical" "middlemanager" "broker")
+        TIMEOUT=300
+        
+        wait_for_container() {
+          local container=$1
+          local counter=0
+          echo "⏳ [$(date +'%Y-%m-%d %H:%M:%S')] Waiting for $container to start..."
           
-          until docker logs "$container" 2>/dev/null | grep -q "Successfully started lifecycle \[module\]"; do
-            if [ $counter -ge $TIMEOUT ]; then
-              echo "❌ $container failed to start within $TIMEOUT seconds!"
-              echo "=== $container logs (last 50 lines) ==="
-              docker logs "$container" 2>&1 | tail -50
-              exit 1
+          while [ $counter -lt $TIMEOUT ]; do
+            echo "[DEBUG] Checking $container... (attempt $counter/$TIMEOUT)"
+            if docker logs "$container" 2>/dev/null | grep -q "Successfully started lifecycle \[module\]"; then
+              echo "✅ [$(date +'%Y-%m-%d %H:%M:%S')] $container started successfully"
+              return 0
             fi
             sleep 1
-            ((counter++))
+            counter=$((counter + 1))
             
-            # Print progress every 10 seconds
-            if [ $((counter % 10)) -eq 0 ]; then
-              echo "  Still waiting... ($counter seconds elapsed)"
+            if [ $((counter % 30)) -eq 0 ]; then
+              echo "  ⏳ Still waiting for $container... ($counter seconds elapsed)"
+              echo "[DEBUG] Current container status:"
+              docker inspect "$container" --format='{{.State.Status}}' 2>/dev/null || echo "Container not found"
             fi
           done
           
-          echo "✅ $container started successfully"
+          echo "❌ [$(date +'%Y-%m-%d %H:%M:%S')] $container failed to start within $TIMEOUT seconds!"
+          echo "=== [DEBUG] Container inspect output ==="
+          docker inspect "$container" 2>&1 || true
+          echo "=== [DEBUG] $container logs (last 100 lines) ==="
+          docker logs "$container" 2>&1 | tail -100 || true
+          return 1
+        }
+        
+        echo "[DEBUG] Starting Druid startup verification..."
+        echo "[DEBUG] Available containers:"
+        docker ps -a --format "table {{.Names}}\t{{.Status}}" || true
+        
+        for container in "${CONTAINERS[@]}"; do
+          echo "[DEBUG] Processing container: $container"
+          wait_for_container "$container" || { echo "[ERROR] Failed at container: $container"; exit 1; }
         done
         
-        echo "✅ All Druid containers started successfully"
+        echo "✅ [$(date +'%Y-%m-%d %H:%M:%S')] All Druid containers started successfully"
     - name: 'Index Foodmart/Wikipedia datasets'
       working-directory: ./druid-dataset
       run: ./index.sh 30s
