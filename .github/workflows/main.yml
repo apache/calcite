@@ -437,11 +437,33 @@ jobs:
         docker compose up -d
     - name: 'Wait Druid nodes to startup'
       run: |
-        until docker logs coordinator | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs router | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs historical | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs middlemanager | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
-        until docker logs broker | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done
+        CONTAINERS=("coordinator" "router" "historical" "middlemanager" "broker")
+        TIMEOUT=3000  # 50 minutes timeout
+        
+        for container in "${CONTAINERS[@]}"; do
+          echo "⏳ Waiting for $container to start..."
+          counter=0
+          
+          until docker logs "$container" 2>/dev/null | grep -q "Successfully started lifecycle \[module\]"; do
+            if [ $counter -ge $TIMEOUT ]; then
+              echo "❌ $container failed to start within $TIMEOUT seconds!"
+              echo "=== $container logs (last 50 lines) ==="
+              docker logs "$container" 2>&1 | tail -50
+              exit 1
+            fi
+            sleep 1
+            ((counter++))
+            
+            # Print progress every 10 seconds
+            if [ $((counter % 10)) -eq 0 ]; then
+              echo "  Still waiting... ($counter seconds elapsed)"
+            fi
+          done
+          
+          echo "✅ $container started successfully"
+        done
+        
+        echo "✅ All Druid containers started successfully"
     - name: 'Index Foodmart/Wikipedia datasets'
       working-directory: ./druid-dataset
       run: ./index.sh 30s
