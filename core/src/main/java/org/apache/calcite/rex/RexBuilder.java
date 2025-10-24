@@ -1892,6 +1892,7 @@ public class RexBuilder {
 
     case ROW:
     case ARRAY_VALUE_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
       final RexCall call = (RexCall) point;
       final ImmutableList.Builder<Comparable> b = ImmutableList.builder();
       for (RexNode operand : call.operands) {
@@ -2173,17 +2174,10 @@ public class RexBuilder {
       final MultisetSqlType multisetType = (MultisetSqlType) type;
       operands = new ArrayList<>();
       for (Object entry : (List) value) {
-        final RexNode e = entry instanceof RexLiteral
-            ? (RexNode) entry
-            : makeLiteral(entry, multisetType.getComponentType(), allowCast);
-        operands.add(e);
+        operands.add(
+            makeLiteral(entry, multisetType.getComponentType(), allowCast));
       }
-      if (allowCast) {
-        return makeCall(SqlStdOperatorTable.MULTISET_VALUE, operands);
-      } else {
-        return new RexLiteral((Comparable) FlatLists.of(operands), type,
-            sqlTypeName);
-      }
+      return makeCall(SqlStdOperatorTable.MULTISET_VALUE, operands);
     case ROW:
       operands = new ArrayList<>();
       for (int i = 0; i < type.getFieldList().size(); i++) {
