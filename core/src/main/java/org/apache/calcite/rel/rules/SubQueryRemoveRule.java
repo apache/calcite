@@ -79,7 +79,7 @@ import static java.util.Objects.requireNonNull;
 @Value.Enclosing
 public class SubQueryRemoveRule
     extends RelRule<SubQueryRemoveRule.Config>
-    implements TransformationRule {
+    implements SubstitutionRule {
 
   /** Creates a SubQueryRemoveRule. */
   protected SubQueryRemoveRule(Config config) {
@@ -1072,6 +1072,11 @@ public class SubQueryRemoveRule
       return subQuery.equals(this.subQuery) ? replacement : subQuery;
     }
   }
+
+  @Override public boolean autoReplaceOld() {
+    return true;
+  }
+
   /** Rule configuration. */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
