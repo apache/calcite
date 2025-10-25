@@ -7814,9 +7814,30 @@ class RelToSqlConverterTest {
     final String expectedHsqldb = "SELECT *\n"
         + "FROM UNNEST((SELECT ARRAY[1, 2, 3]\n"
         + "FROM (VALUES (0)) AS t (ZERO))) AS t0 (col_0)";
+    final String expectedSpark = "SELECT *\n"
+        + "FROM EXPLODE((SELECT ARRAY (1, 2, 3)\n"
+        + "FROM (VALUES (0)) `t` (`ZERO`))) `t0` (`col_0`)";
     sql(sql).ok(expected).
         withPostgresql().ok(expectedPostgresql).
-        withHsqldb().ok(expectedHsqldb);
+        withHsqldb().ok(expectedHsqldb).
+        withSpark().ok(expectedSpark);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7246">[CALCITE-7246]
+   * UNNEST in spark should convert to EXPLODE/POSEXPLODE </a>.
+   */
+  @Test void testUnnestArrayWithOrdinality() {
+    final String query = "SELECT * FROM UNNEST(ARRAY[1,2,3]) WITH ORDINALITY";
+    final String expected = "SELECT *\n"
+        + "FROM UNNEST((SELECT ARRAY[1, 2, 3]\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) WITH ORDINALITY AS \"t0\" (\"col_0\", \"ORDINALITY\")";
+    final String expectedSpark = "SELECT *\n"
+        + "FROM POSEXPLODE((SELECT ARRAY (1, 2, 3)\n"
+        + "FROM (VALUES (0)) `t` (`ZERO`))) `t0` (`col_0`, `ORDINALITY`)";
+    sql(query)
+        .ok(expected)
+        .withSpark().ok(expectedSpark);
   }
 
   @Test void testWithinGroup1() {
