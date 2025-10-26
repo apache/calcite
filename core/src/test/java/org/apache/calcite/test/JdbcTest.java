@@ -2479,6 +2479,40 @@ public class JdbcTest {
         .returnsUnordered("A=[10, 20, 10, 10]");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3557">[CALCITE-3557]
+   * ClassCastException for using nested multiset or array inside multiset</a>.
+   */
+  @Test public void testCollectionOrMapInMultiset() {
+    if (!Bug.CALCITE_3557_FIXED) {
+      return;
+    }
+    CalciteAssert.that()
+        .query("select multiset[array[1, 2], array[3, 4]]")
+        .returns("EXPR$0=[[1, 2], [3, 4]]\n");
+
+    CalciteAssert.that()
+        .query("select multiset[map[1, 2], map[3, 4]]")
+        .returns("EXPR$0=[{1=2}, {3=4}]\n");
+
+    CalciteAssert.that()
+        .query("select multiset[multiset[1, 2], multiset[3, 4]]")
+        .returns("EXPR$0=[[1, 2], [3, 4]]\n");
+
+    CalciteAssert.that()
+        .query("select multiset[multiset[array[1, 2]]]")
+        .returns("EXPR$0=[[[1, 2]]]\n");
+
+    CalciteAssert.that()
+        .query("select multiset[multiset[multiset[1, 2]]]")
+        .returns("EXPR$0=[[[1, 2]]]\n");
+
+    CalciteAssert.that()
+        .query("select multiset[multiset[multiset[multiset[1, 2]]]]")
+        .returns("EXPR$0=[[[[1, 2]]]]\n");
+  }
+
   @Test void testUnnestArray() {
     CalciteAssert.that()
         .query("select*from unnest(array[1,2])")
