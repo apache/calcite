@@ -109,7 +109,6 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
 
@@ -137,7 +136,6 @@ public class RelMdColumnUniqueness
 
   public Boolean areColumnsUnique(SetOp rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     // If not ALL then the rows are distinct.
     // Therefore the set of all columns is a key.
     return !rel.all
@@ -146,7 +144,6 @@ public class RelMdColumnUniqueness
 
   public Boolean areColumnsUnique(Intersect rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     if (areColumnsUnique((SetOp) rel, mq, columns, ignoreNulls)) {
       return true;
     }
@@ -161,7 +158,6 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Minus rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     if (areColumnsUnique((SetOp) rel, mq, columns, ignoreNulls)) {
       return true;
     }
@@ -174,25 +170,21 @@ public class RelMdColumnUniqueness
     if (maxRowCount != null && maxRowCount <= 1.0d) {
       return true;
     }
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
 
   public @Nullable Boolean areColumnsUnique(TableModify rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
 
   public @Nullable Boolean areColumnsUnique(Exchange rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
 
   public @Nullable Boolean areColumnsUnique(Correlate rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     switch (rel.getJoinType()) {
     case ANTI:
     case SEMI:
@@ -229,7 +221,6 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Project rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
     // preserves uniqueness), it is only safe to derive uniqueness
@@ -243,7 +234,6 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Calc rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     RexProgram program = rel.getProgram();
 
     return areProjectColumnsUnique(rel, mq, columns, ignoreNulls,
@@ -295,8 +285,6 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Join rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
 
@@ -396,7 +384,6 @@ public class RelMdColumnUniqueness
       return true;
     }
     if (Aggregate.isSimple(rel) || ignoreNulls) {
-      columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
       // group by keys form a unique key
       final ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
       final boolean contained = columns.contains(groupKey);
@@ -441,7 +428,6 @@ public class RelMdColumnUniqueness
     if (rel.tuples.size() < 2) {
       return true;
     }
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     final Set<List<Comparable>> set = new HashSet<>();
     final List<Comparable> values = new ArrayList<>(columns.cardinality());
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
@@ -460,13 +446,11 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Converter rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
 
   public @Nullable Boolean areColumnsUnique(RelSubset rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     for (RelNode rel2 : rel.getRels()) {
       if (rel2 instanceof Aggregate
           || rel2 instanceof Filter
@@ -511,7 +495,7 @@ public class RelMdColumnUniqueness
    * Deduce constant columns from predicates of rel and return the union
    * bitsets of checkingColumns and the constant columns.
    */
-  private static ImmutableBitSet decorateWithConstantColumnsFromPredicates(
+  static ImmutableBitSet decorateWithConstantColumnsFromPredicates(
       ImmutableBitSet checkingColumns, RelNode rel, RelMetadataQuery mq) {
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
     if (!RelOptPredicateList.isEmpty(predicates)) {
