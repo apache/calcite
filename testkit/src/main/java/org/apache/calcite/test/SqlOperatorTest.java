@@ -15683,9 +15683,9 @@ public class SqlOperatorTest {
                 + "'AVG\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("avg(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("AVG(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("AVG(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("AVG(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
-    f.checkAggType("avg(1)", "INTEGER NOT NULL");
+    f.checkAggType("avg(1)", "DOUBLE NOT NULL");
     f.checkAggType("avg(1.2)", "DECIMAL(2, 1) NOT NULL");
     f.checkAggType("avg(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     if (!f.brokenTestsEnabled()) {
@@ -15805,7 +15805,7 @@ public class SqlOperatorTest {
                 + "Supported form\\(s\\): 'STDDEV_POP\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("stddev_pop(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("stddev_pop(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("stddev_pop(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("stddev_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (f.brokenTestsEnabled()) {
@@ -15836,7 +15836,7 @@ public class SqlOperatorTest {
                 + "Supported form\\(s\\): 'STDDEV_SAMP\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("stddev_samp(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("stddev_samp(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("stddev_samp(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("stddev_samp(DISTINCT 1.5)", "DECIMAL(2, 1)");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (f.brokenTestsEnabled()) {
@@ -15868,7 +15868,7 @@ public class SqlOperatorTest {
                 + "Supported form\\(s\\): 'STDDEV\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("stddev(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("stddev(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("stddev(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("stddev(DISTINCT 1.5)", "DECIMAL(2, 1)");
     // with one value
     f.checkAgg("stddev(x)", new String[]{"5"}, isNullValue());
@@ -15890,7 +15890,7 @@ public class SqlOperatorTest {
                 + "Supported form\\(s\\): 'VAR_POP\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("var_pop(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("var_pop(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("var_pop(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("var_pop(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!f.brokenTestsEnabled()) {
@@ -15918,7 +15918,7 @@ public class SqlOperatorTest {
                 + "'VAR_SAMP\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("var_samp(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("var_samp(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("var_samp(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("var_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!f.brokenTestsEnabled()) {
@@ -15946,7 +15946,7 @@ public class SqlOperatorTest {
                 + "'VARIANCE\\(<NUMERIC>\\)'.*",
             false);
     f.checkType("variance(cast(null as varchar(2)))", "DECIMAL(19, 9)");
-    f.checkType("variance(CAST(NULL AS INTEGER))", "INTEGER");
+    f.checkType("variance(CAST(NULL AS INTEGER))", "DOUBLE");
     f.checkAggType("variance(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
 
     final String[] values2 = {"cast(64.34 as double)", "64.34", "64.34"};
