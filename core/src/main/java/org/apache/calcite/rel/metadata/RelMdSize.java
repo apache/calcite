@@ -297,10 +297,13 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     switch (type.getSqlTypeName()) {
     case BOOLEAN:
     case TINYINT:
+    case UTINYINT:
       return 1d;
     case SMALLINT:
+    case USMALLINT:
       return 2d;
     case INTEGER:
+    case UINTEGER:
     case REAL:
     case DECIMAL:
     case DATE:
@@ -312,6 +315,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INTERVAL_MONTH:
       return 4d;
     case BIGINT:
+    case UBIGINT:
     case DOUBLE:
     case FLOAT: // sic
     case TIMESTAMP:
@@ -362,10 +366,13 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     switch (type.getSqlTypeName()) {
     case BOOLEAN:
     case TINYINT:
+    case UTINYINT:
       return 1d;
     case SMALLINT:
+    case USMALLINT:
       return 2d;
     case INTEGER:
+    case UINTEGER:
     case REAL:
     case DATE:
     case TIME:
@@ -376,6 +383,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INTERVAL_MONTH:
       return 4d;
     case BIGINT:
+    case UBIGINT:
     case FLOAT:  // sic
     case DOUBLE:
     case TIMESTAMP:
