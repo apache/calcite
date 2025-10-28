@@ -13654,7 +13654,7 @@ public class SqlOperatorTest {
         + "where x > 1 order by x asc limit 1)",
         "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");
     f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) order by x desc)",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{1=2, 3=4}");
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4, 1=2}");
     f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) "
             + "where x > 1 order by x desc)",
         "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");

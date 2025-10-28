@@ -4354,12 +4354,25 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testArraySubqueryOrderByProjectedFieldWithoutExpand() {
+    final String sql = "SELECT ARRAY(SELECT empno FROM emp ORDER BY empno)";
+    fixture().withFactory(f -> f.withSqlToRelConfig(c -> c.withExpand(false))).withSql(sql).ok();
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7135">[CALCITE-7135]
    * SqlToRelConverter throws AssertionError on ARRAY subquery order by a field that
    * is not present on the final projection</a>. */
   @Test void testArraySubqueryOrderByNonProjectedField() {
     final String sql = "SELECT ARRAY(SELECT empno FROM emp ORDER BY ename)";
     sql(sql).ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7135">[CALCITE-7135]
+   * SqlToRelConverter throws AssertionError on ARRAY subquery order by a field that
+   * is not present on the final projection</a>. */
+  @Test void testArraySubqueryOrderByNonProjectedFieldWithoutExpand() {
+    final String sql = "SELECT ARRAY(SELECT empno FROM emp ORDER BY ename)";
+    fixture().withFactory(f -> f.withSqlToRelConfig(c -> c.withExpand(false))).withSql(sql).ok();
   }
 
   /**
