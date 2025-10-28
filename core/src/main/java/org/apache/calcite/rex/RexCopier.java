@@ -50,7 +50,7 @@ class RexCopier extends RexShuttle {
 
   @Override public RexNode visitOver(RexOver over) {
     final boolean[] update = null;
-    return new RexOver(copy(over.getType()), over.getAggOperator(),
+    return new RexOver(over.getParserPosition(), copy(over.getType()), over.getAggOperator(),
         visitList(over.getOperands(), update), visitWindow(over.getWindow()),
         over.isDistinct(), over.ignoreNulls());
   }

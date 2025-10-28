@@ -298,6 +298,15 @@ public class RelJson {
     throw new RuntimeException("input field " + input + " is out of range");
   }
 
+  public Object toJson(SqlParserPos pos) {
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    map.put("line", pos.getLineNum());
+    map.put("column", pos.getColumnNum());
+    map.put("end_line", pos.getEndLineNum());
+    map.put("end_column", pos.getEndColumnNum());
+    return map;
+  }
+
   public Object toJson(RelCollationImpl node) {
     final List<Object> list = new ArrayList<>();
     for (RelFieldCollation fieldCollation : node.getFieldCollations()) {
@@ -455,6 +464,8 @@ public class RelJson {
         || value instanceof String
         || value instanceof Boolean) {
       return value;
+    } else if (value instanceof SqlParserPos) {
+      return toJson((SqlParserPos) value);
     } else if (value instanceof RexNode) {
       return toJson((RexNode) value);
     } else if (value instanceof RexWindow) {
@@ -641,6 +652,9 @@ public class RelJson {
       if (node instanceof RexCall) {
         final RexCall call = (RexCall) node;
         map = jsonBuilder().map();
+        if (call.getParserPosition() != SqlParserPos.ZERO) {
+          map.put("pos", toJson(call.getParserPosition()));
+        }
         map.put("op", toJson(call.getOperator()));
         final List<@Nullable Object> list = jsonBuilder().list();
         for (RexNode operand : call.getOperands()) {
@@ -797,7 +811,7 @@ public class RelJson {
             exclude = RexWindowExclusion.EXCLUDE_NO_OTHER;
           }
           final boolean distinct = get((Map<String, Object>) map, "distinct");
-          return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
+          return rexBuilder.makeOver(SqlParserPos.ZERO, type, operator, rexOperands, partitionKeys,
               ImmutableList.copyOf(orderKeys),
               requireNonNull(lowerBound, "lowerBound"),
               requireNonNull(upperBound, "upperBound"),

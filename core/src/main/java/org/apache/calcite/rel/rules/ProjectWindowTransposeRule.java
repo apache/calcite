@@ -121,7 +121,7 @@ public class ProjectWindowTransposeRule
           boolean[] update = {false};
           final List<RexNode> clonedOperands = visitList(call.operands, update);
           if (update[0]) {
-            return new Window.RexWinAggCall(
+            return new Window.RexWinAggCall(call.getParserPosition(),
                 (SqlAggFunction) call.getOperator(), call.getType(),
                 clonedOperands, aggCall.ordinal, aggCall.distinct,
                 aggCall.ignoreNulls);

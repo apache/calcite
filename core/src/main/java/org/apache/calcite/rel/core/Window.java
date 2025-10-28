@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
@@ -425,7 +426,27 @@ public abstract class Window extends SingleRel implements Hintable {
         List<RexNode> operands,
         int ordinal,
         boolean distinct) {
-      this(aggFun, type, operands, ordinal, distinct, false);
+      this(SqlParserPos.ZERO, aggFun, type, operands, ordinal, distinct, false);
+    }
+
+    /**
+     * Creates a RexWinAggCall.
+     *
+     * @param aggFun   Aggregate function
+     * @param type     Result type
+     * @param operands Operands to call
+     * @param ordinal  Ordinal within its partition
+     * @param distinct Eliminate duplicates before applying aggregate function
+     * @deprecated Use {@link RexWinAggCall#RexWinAggCall(SqlParserPos, SqlAggFunction, RelDataType, List, int, boolean, boolean)}
+     */
+    public RexWinAggCall(
+        SqlAggFunction aggFun,
+        RelDataType type,
+        List<RexNode> operands,
+        int ordinal,
+        boolean distinct,
+        boolean ignoreNulls) {
+      this(SqlParserPos.ZERO, aggFun, type, operands, ordinal, distinct, ignoreNulls);
     }
 
     /**
@@ -438,13 +459,14 @@ public abstract class Window extends SingleRel implements Hintable {
      * @param distinct Eliminate duplicates before applying aggregate function
      */
     public RexWinAggCall(
+        SqlParserPos pos,
         SqlAggFunction aggFun,
         RelDataType type,
         List<RexNode> operands,
         int ordinal,
         boolean distinct,
         boolean ignoreNulls) {
-      super(type, aggFun, operands);
+      super(pos, type, aggFun, operands);
       this.ordinal = ordinal;
       this.distinct = distinct;
       this.ignoreNulls = ignoreNulls;
