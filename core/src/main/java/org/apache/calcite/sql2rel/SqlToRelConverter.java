@@ -5708,20 +5708,20 @@ public class SqlToRelConverter {
           query = Iterables.getOnlyElement(call.getOperandList());
           // let top=true to make the query be top-level query,
           // then ORDER BY will be reserved.
-          root = convertQueryRecursive(query, true, null);
-          return RexSubQuery.array(root.rel);
+          root = convertQuery(query, false, true);
+          return RexSubQuery.array(root.project());
 
         case MAP_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.map(root.rel);
+          root = convertQuery(query, false, true);
+          return RexSubQuery.map(root.project());
 
         case MULTISET_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.multiset(root.rel);
+          root = convertQuery(query, false, true);
+          return RexSubQuery.multiset(root.project());
 
         default:
           break;

@@ -572,6 +572,22 @@ LogicalProject(EXPR$0=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArraySubqueryOrderByNonProjectedFieldWithoutExpand">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY ename)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY({
+LogicalProject(EMPNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArraySubqueryOrderByProjectedField">
     <Resource name="sql">
       <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY empno)]]>
@@ -585,6 +601,21 @@ LogicalProject(EXPR$0=[$1])
       LogicalSort(sort0=[$0], dir0=[ASC])
         LogicalProject(EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArraySubqueryOrderByProjectedFieldWithoutExpand">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT empno FROM emp ORDER BY empno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY({
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
