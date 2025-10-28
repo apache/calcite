@@ -27,15 +27,21 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepMatchOrder;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -276,6 +282,50 @@ public class PlannerImpl implements Planner, ViewExpander {
         root.withRel(RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
     state = State.STATE_5_CONVERTED;
     return root;
+  }
+
+  @Override public RelRoot relWithSubQueryRemoved(SqlNode sql) {
+    ensure(State.STATE_4_VALIDATED);
+    SqlNode validatedSqlNode =
+        requireNonNull(this.validatedSqlNode,
+            "validatedSqlNode is null. Need to call #validate() first");
+    final RexBuilder rexBuilder = createRexBuilder();
+    final RelOptCluster cluster =
+        RelOptCluster.create(requireNonNull(planner, "planner"), rexBuilder);
+    final SqlToRelConverter.Config config =
+        sqlToRelConverterConfig.withTrimUnusedFields(false);
+    final SqlToRelConverter sqlToRelConverter =
+        new SqlToRelConverter(this, validator,
+            createCatalogReader(), cluster, convertletTable, config);
+    RelRoot root = sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
+    root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
+    RelNode relNode = root.project();
+
+    RelNode subQueryRemovedPlan =
+        runProgram(
+            ImmutableList.of(
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE),
+            relNode);
+
+    final RelBuilder relBuilder = config.getRelBuilderFactory().create(cluster, null);
+    root = root.withRel(RelDecorrelator.decorrelateQuery(subQueryRemovedPlan, relBuilder));
+    state = State.STATE_5_CONVERTED;
+    return root;
+  }
+
+  private RelNode runProgram(List<RelOptRule> rules, RelNode currentNode) {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleCollection(rules);
+    builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
+
+    // Creates a new HepPlanner with the option to keep the graph a tree (noDag = true)
+    HepPlanner planner =
+        new HepPlanner(builder.build(), currentNode.getCluster().getPlanner().getContext(),
+        true, null, RelOptCostImpl.FACTORY);
+    planner.setRoot(currentNode);
+    return planner.findBestExp();
   }
 
   // CHECKSTYLE: IGNORE 2

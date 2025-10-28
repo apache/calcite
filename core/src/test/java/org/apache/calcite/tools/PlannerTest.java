@@ -78,6 +78,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.test.schemata.tpch.TpchSchema;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
@@ -1556,6 +1557,40 @@ class PlannerTest {
     final SqlNode validate = planner.validate(parse);
     final RelRoot root = planner.rel(validate);
     assertThat(toString(root.rel), planMatcher);
+  }
+
+  @Test void test7239() throws Exception {
+    final String sql = "SELECT e1.*, d.deptno\n"
+        + "FROM emp e1 LEFT JOIN dept d\n"
+        + "ON e1.deptno = d.deptno\n"
+        + "AND d.deptno IN (\n"
+        + " SELECT e3.deptno FROM emp e3 WHERE d.deptno > e3.comm)\n"
+        + "ORDER BY e1.empno";
+    assertValidPlan2(sql, new VaryingTypeSystem(DelegatingTypeSystem.DEFAULT));
+  }
+
+  /** Asserts that a Planner generates the correct plan using the
+   * provided type system. */
+  private void assertValidPlan2(String sql, RelDataTypeSystem typeSystem)
+      throws SqlParseException, ValidationException, RelConversionException {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT))
+        .typeSystem(typeSystem).build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse(sql);
+    final SqlNode validate = planner.validate(parse);
+    final RelRoot root = planner.relWithSubQueryRemoved(validate);
+
+    // check join
+    final RelNode topJoin = root.rel.getInput(0).getInput(0);
+    assert topJoin.isValid(Litmus.THROW, null);
+    // if set HepPlanner noDag property to be false, will throw
+    // java.lang.AssertionError: type mismatch:
+    // ref:
+    // TINYINT NOT NULL
+    // input:
+    // VARCHAR(14)
   }
 
   /**
