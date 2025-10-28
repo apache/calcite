@@ -182,6 +182,7 @@ public final class LogicalWindow extends Window {
       for (RexOver over : entry.getValue()) {
         final RexWinAggCall aggCall =
             new RexWinAggCall(
+                over.getParserPosition(),
                 over.getAggOperator(),
                 over.getType(),
                 toInputRefs(over.operands),

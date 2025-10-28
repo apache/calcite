@@ -104,6 +104,12 @@ public class RelJsonTest {
         + "                }\n"
         + "              ],\n"
         + "              \"expression\": {\n"
+        + "                \"pos\": {\n"
+        + "                  \"line\": 1,\n"
+        + "                  \"column\": 32,\n"
+        + "                  \"end_line\": 1,\n"
+        + "                  \"end_column\": 36\n"
+        + "                },\n"
         + "                \"op\": {\n"
         + "                  \"name\": \">\",\n"
         + "                  \"kind\": \"GREATER_THAN\",\n"
@@ -128,5 +134,44 @@ public class RelJsonTest {
         + "                ]\n"
         + "              }\n"
         + "            }"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7251">[CALCITE-7251]
+   * SEARCH and WINDOW operations should carry source position information</a>. */
+  @Test void testSearchPosition()
+      throws SqlParseException, ValidationException, RelConversionException {
+    final String query = "SELECT val IN (1, 2, 3, 4)\n"
+        + "FROM (\n"
+        + "  VALUES (10), (30), (20), (40)\n"
+        + ") AS t(val)";
+    SqlOperatorTable opTab = SqlLibraryOperatorTableFactory.INSTANCE
+        .getOperatorTable(EnumSet.of(SqlLibrary.STANDARD, SqlLibrary.SPARK));
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .operatorTable(opTab)
+        .defaultSchema(rootSchema)
+        .build();
+    Planner planner = Frameworks.getPlanner(config);
+    SqlNode n = planner.parse(query);
+    n = planner.validate(n);
+    RelNode root = planner.rel(n).project();
+    String plan =
+        RelOptUtil.dumpPlan("-- Plan", root,
+            SqlExplainFormat.JSON, SqlExplainLevel.DIGEST_ATTRIBUTES);
+    assertThat(
+        plan, containsString("\"exprs\": [\n"
+            + "        {\n"
+            + "          \"pos\": {\n"
+            + "            \"line\": 1,\n"
+            + "            \"column\": 8,\n"
+            + "            \"end_line\": 1,\n"
+            + "            \"end_column\": 25\n"
+            + "          },\n"
+            + "          \"op\": {\n"
+            + "            \"name\": \"SEARCH\",\n"
+            + "            \"kind\": \"SEARCH\",\n"
+            + "            \"syntax\": \"INTERNAL\"\n"
+            + "          },"));
   }
 }

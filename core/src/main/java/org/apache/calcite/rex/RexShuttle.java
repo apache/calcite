@@ -50,6 +50,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
       // watch out for special operators like CAST and NEW where
       // the type is embedded in the original call.
       return new RexOver(
+          over.getParserPosition(),
           over.getType(),
           overAggregator,
           clonedOperands,
