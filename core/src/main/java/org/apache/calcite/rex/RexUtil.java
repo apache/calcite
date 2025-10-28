@@ -39,6 +39,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -624,51 +625,70 @@ public class RexUtil {
     return new SearchExpandingShuttle(program, rexBuilder, maxComplexity);
   }
 
-  public static <C extends Comparable<C>> RexNode sargRef(RexBuilder rexBuilder,
+  public static <C extends Comparable<C>> RexNode sargRef(SqlParserPos pos, RexBuilder rexBuilder,
       RexNode ref, Sarg<C> sarg, RelDataType type, RexUnknownAs unknownAs) {
     if (sarg.isAll() || sarg.isNone()) {
-      return simpleSarg(rexBuilder, ref, sarg, unknownAs);
+      return simpleSarg(pos, rexBuilder, ref, sarg, unknownAs);
     }
     final List<RexNode> orList = new ArrayList<>();
     if (sarg.nullAs == RexUnknownAs.TRUE
         && unknownAs == RexUnknownAs.UNKNOWN) {
-      orList.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref));
+      orList.add(rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NULL, ref));
     }
     if (sarg.isPoints()) {
       // Generate 'ref = value1 OR ... OR ref = valueN'
       sarg.rangeSet.asRanges().forEach(range ->
           orList.add(
-              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ref,
+              rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
                       type, true, true))));
     } else if (sarg.isComplementedPoints()) {
       // Generate 'ref <> value1 AND ... AND ref <> valueN'
       final List<RexNode> list = sarg.rangeSet.complement().asRanges().stream()
           .map(range ->
-              rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref,
+              rexBuilder.makeCall(pos, SqlStdOperatorTable.NOT_EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
                       type, true, true)))
           .collect(toImmutableList());
       orList.add(composeConjunction(rexBuilder, list));
     } else {
       final RangeSets.Consumer<C> consumer =
-          new RangeToRex<>(ref, orList, rexBuilder, type);
+          new RangeToRex<>(pos, ref, orList, rexBuilder, type);
       RangeSets.forEach(sarg.rangeSet, consumer);
     }
     RexNode node = composeDisjunction(rexBuilder, orList);
     if (sarg.nullAs == RexUnknownAs.FALSE
         && unknownAs == RexUnknownAs.UNKNOWN) {
       node =
-          rexBuilder.makeCall(SqlStdOperatorTable.AND,
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref),
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.AND,
+              rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, ref),
               node);
     }
     return node;
   }
 
-  /** Expands an 'all' or 'none' sarg. */
+  /**
+   * Create a sargRef object.
+   *
+   * @deprecated Use
+   * {@link RexUtil#sargRef(SqlParserPos, RexBuilder, RexNode, Sarg, RelDataType, RexUnknownAs)}. */
+  public static <C extends Comparable<C>> RexNode sargRef(RexBuilder rexBuilder,
+      RexNode ref, Sarg<C> sarg, RelDataType type, RexUnknownAs unknownAs) {
+    return sargRef(SqlParserPos.ZERO, rexBuilder, ref, sarg, type, unknownAs);
+  }
+
+  /** Expands an 'all' or 'none' sarg.
+   *
+   * @deprecated Use
+   * {@link RexUtil#simpleSarg(SqlParserPos, RexBuilder, RexNode, Sarg, RexUnknownAs)} */
   public static <C extends Comparable<C>> RexNode simpleSarg(RexBuilder rexBuilder,
       RexNode ref, Sarg<C> sarg, RexUnknownAs unknownAs) {
+    return simpleSarg(SqlParserPos.ZERO, rexBuilder, ref, sarg, unknownAs);
+  }
+
+  /** Expands an 'all' or 'none' sarg. */
+  public static <C extends Comparable<C>> RexNode simpleSarg(SqlParserPos pos,
+      RexBuilder rexBuilder, RexNode ref, Sarg<C> sarg, RexUnknownAs unknownAs) {
     assert sarg.isAll() || sarg.isNone();
     final RexUnknownAs nullAs =
         sarg.nullAs == RexUnknownAs.UNKNOWN ? unknownAs
@@ -678,11 +698,11 @@ public class RexUtil {
       case TRUE:
         return rexBuilder.makeLiteral(true);
       case FALSE:
-        return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref);
+        return rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, ref);
       case UNKNOWN:
         // "x IS NOT NULL OR UNKNOWN"
-        return rexBuilder.makeCall(SqlStdOperatorTable.OR,
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, ref),
+        return rexBuilder.makeCall(pos, SqlStdOperatorTable.OR,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, ref),
             rexBuilder.makeNullLiteral(
                 rexBuilder.typeFactory.createSqlType(SqlTypeName.BOOLEAN)));
       }
@@ -690,12 +710,12 @@ public class RexUtil {
     if (sarg.isNone()) {
       switch (nullAs) {
       case TRUE:
-        return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref);
+        return rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NULL, ref);
       case FALSE:
         return rexBuilder.makeLiteral(false);
       case UNKNOWN:
         // "CASE WHEN x IS NULL THEN UNKNOWN ELSE FALSE END", or "x <> x"
-        return rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref, ref);
+        return rexBuilder.makeCall(pos, SqlStdOperatorTable.NOT_EQUALS, ref, ref);
       }
     }
     throw new AssertionError();
@@ -1288,6 +1308,20 @@ public class RexUtil {
     return requireNonNull(e, "e");
   }
 
+  /** Summarize the position of all the nodes as the sum of all the positions. */
+  static SqlParserPos summarizePosition(Iterable<? extends @Nullable RexNode> nodes) {
+    List<SqlParserPos> validPositions = new ArrayList<>();
+    for (RexNode node : nodes) {
+      if (node instanceof RexCall) {
+        SqlParserPos position = ((RexCall) node).getParserPosition();
+        if (!position.equals(SqlParserPos.ZERO)) {
+          validPositions.add(position);
+        }
+      }
+    }
+    return SqlParserPos.sum(validPositions);
+  }
+
   /**
    * Converts a collection of expressions into an AND.
    * If there are zero expressions, returns TRUE.
@@ -1310,7 +1344,8 @@ public class RexUtil {
       if (containsFalse(list)) {
         return rexBuilder.makeLiteral(false);
       }
-      return rexBuilder.makeCall(SqlStdOperatorTable.AND, list);
+      final SqlParserPos pos = summarizePosition(nodes);
+      return rexBuilder.makeCall(pos, SqlStdOperatorTable.AND, list);
     }
   }
 
@@ -1380,7 +1415,8 @@ public class RexUtil {
       if (containsTrue(list)) {
         return rexBuilder.makeLiteral(true);
       }
-      return rexBuilder.makeCall(SqlStdOperatorTable.OR, list);
+      final SqlParserPos pos = summarizePosition(nodes);
+      return rexBuilder.makeCall(pos, SqlStdOperatorTable.OR, list);
     }
   }
 
@@ -3376,13 +3412,15 @@ public class RexUtil {
    * @param <C> Value type */
   private static class RangeToRex<C extends Comparable<C>>
       implements RangeSets.Consumer<C> {
+    private final SqlParserPos pos;
     private final List<RexNode> list;
     private final RexBuilder rexBuilder;
     private final RelDataType type;
     private final RexNode ref;
 
-    RangeToRex(RexNode ref, List<RexNode> list, RexBuilder rexBuilder,
+    RangeToRex(SqlParserPos pos, RexNode ref, List<RexNode> list, RexBuilder rexBuilder,
         RelDataType type) {
+      this.pos = requireNonNull(pos, "pos");
       this.ref = requireNonNull(ref, "ref");
       this.list = requireNonNull(list, "list");
       this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
@@ -3390,11 +3428,11 @@ public class RexUtil {
     }
 
     private void addAnd(RexNode... nodes) {
-      list.add(rexBuilder.makeCall(SqlStdOperatorTable.AND, nodes));
+      list.add(rexBuilder.makeCall(pos, SqlStdOperatorTable.AND, nodes));
     }
 
     private RexNode op(SqlOperator op, C value) {
-      return rexBuilder.makeCall(op, ref,
+      return rexBuilder.makeCall(pos, op, ref,
           rexBuilder.makeLiteral(value, type, true, true));
     }
 
@@ -3485,7 +3523,7 @@ public class RexUtil {
             (RexLiteral) deref(program, call.operands.get(1));
         final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
         if (maxComplexity < 0 || sarg.complexity() < maxComplexity) {
-          return sargRef(rexBuilder, ref, sarg, literal.getType(),
+          return sargRef(call.pos, rexBuilder, ref, sarg, literal.getType(),
               RexUnknownAs.UNKNOWN);
         }
         // Sarg is complex (therefore useful); fall through

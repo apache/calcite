@@ -2574,7 +2574,7 @@ public class SqlToRelConverter {
     Ord.forEach(nodes, (node, i) -> {
       final RexNode e = bb.convertExpression(node);
       final String alias = SqlValidatorUtil.alias(node, i);
-      exprs.add(relBuilder.alias(e, alias));
+      exprs.add(relBuilder.alias(node.getParserPosition(), e, alias));
     });
     RelNode child =
         (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster);
@@ -5780,6 +5780,7 @@ public class SqlToRelConverter {
             && kind == SqlKind.EXISTS) {
           fieldAccess =
               rexBuilder.makeCall(
+                  expr.getParserPosition(),
                   SqlStdOperatorTable.IS_NOT_NULL,
                   fieldAccess);
         }

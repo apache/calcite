@@ -742,6 +742,11 @@ public class RelBuilder {
   }
 
   /** Creates a call to a scalar operator. */
+  public RexNode call(SqlParserPos pos, SqlOperator operator, RexNode... operands) {
+    return call(pos, operator, ImmutableList.copyOf(operands));
+  }
+
+  /** Creates a call to a scalar operator. */
   private RexCall call(SqlParserPos pos, SqlOperator operator, List<RexNode> operandList) {
     switch (operator.getKind()) {
     case LIKE:
@@ -1219,7 +1224,7 @@ public class RelBuilder {
    *
    * @see #project
    */
-  public RexNode alias(RexNode expr, String alias) {
+  public RexNode alias(SqlParserPos pos, RexNode expr, String alias) {
     final RexNode aliasLiteral = literal(alias);
     switch (expr.getKind()) {
     case AS:
@@ -1231,8 +1236,12 @@ public class RelBuilder {
       expr = call.operands.get(0);
       // strip current (incorrect) alias, and fall through
     default:
-      return call(SqlStdOperatorTable.AS, expr, aliasLiteral);
+      return call(pos, SqlStdOperatorTable.AS, expr, aliasLiteral);
     }
+  }
+
+  public RexNode alias(RexNode expr, String alias) {
+    return alias(SqlParserPos.ZERO, expr, alias);
   }
 
   private RexNode aliasMaybe(RexNode node, @Nullable String name) {
@@ -4628,7 +4637,7 @@ public class RelBuilder {
     }
 
     @Override public OverCall over() {
-      return new OverCallImpl(aggFunction, distinct, operands, ignoreNulls,
+      return new OverCallImpl(pos, aggFunction, distinct, operands, ignoreNulls,
           alias);
     }
 
@@ -4702,7 +4711,7 @@ public class RelBuilder {
     }
 
     @Override public OverCall over() {
-      return new OverCallImpl(aggregateCall.getAggregation(),
+      return new OverCallImpl(aggregateCall.getParserPosition(), aggregateCall.getAggregation(),
           aggregateCall.isDistinct(), operands, aggregateCall.ignoreNulls(),
           aggregateCall.name);
     }
@@ -4803,6 +4812,8 @@ public class RelBuilder {
    * does the same but also assigns an column alias.
    */
   public interface OverCall {
+    SqlParserPos getPosition();
+
     /** Performs an action on this OverCall. */
     default <R> R let(Function<OverCall, R> consumer) {
       return consumer.apply(this);
@@ -4894,6 +4905,7 @@ public class RelBuilder {
 
   /** Implementation of {@link OverCall}. */
   private class OverCallImpl implements OverCall {
+    private final SqlParserPos pos;
     private final ImmutableList<RexNode> operands;
     private final boolean ignoreNulls;
     private final @Nullable String alias;
@@ -4908,12 +4920,13 @@ public class RelBuilder {
     private final SqlAggFunction op;
     private final boolean distinct;
 
-    private OverCallImpl(SqlAggFunction op, boolean distinct,
+    private OverCallImpl(SqlParserPos pos, SqlAggFunction op, boolean distinct,
         ImmutableList<RexNode> operands, boolean ignoreNulls,
         @Nullable String alias, ImmutableList<RexNode> partitionKeys,
         ImmutableList<RexFieldCollation> sortKeys, boolean rows,
         RexWindowBound lowerBound, RexWindowBound upperBound,
         boolean nullWhenCountZero, boolean allowPartial, RexWindowExclusion exclude) {
+      this.pos = pos;
       this.op = op;
       this.distinct = distinct;
       this.operands = operands;
@@ -4930,12 +4943,16 @@ public class RelBuilder {
     }
 
     /** Creates an OverCallImpl with default settings. */
-    OverCallImpl(SqlAggFunction op, boolean distinct,
+    OverCallImpl(SqlParserPos pos, SqlAggFunction op, boolean distinct,
         ImmutableList<RexNode> operands, boolean ignoreNulls,
         @Nullable String alias) {
-      this(op, distinct, operands, ignoreNulls, alias, ImmutableList.of(),
+      this(pos, op, distinct, operands, ignoreNulls, alias, ImmutableList.of(),
           ImmutableList.of(), true, RexWindowBounds.UNBOUNDED_PRECEDING,
           RexWindowBounds.UNBOUNDED_FOLLOWING, false, true, RexWindowExclusion.EXCLUDE_NO_OTHER);
+    }
+
+    @Override public SqlParserPos getPosition() {
+      return pos;
     }
 
     @Override public OverCall partitionBy(
@@ -4948,13 +4965,13 @@ public class RelBuilder {
     }
 
     private OverCall partitionBy_(ImmutableList<RexNode> partitionKeys) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, rows, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
 
     private OverCall orderBy_(ImmutableList<RexFieldCollation> sortKeys) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, rows, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
@@ -4975,38 +4992,38 @@ public class RelBuilder {
 
     @Override public OverCall rowsBetween(RexWindowBound lowerBound,
         RexWindowBound upperBound) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, true, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
 
     @Override public OverCall rangeBetween(RexWindowBound lowerBound,
         RexWindowBound upperBound) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, false, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
 
     @Override public OverCall exclude(RexWindowExclusion exclude) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, rows, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
 
     @Override public OverCall allowPartial(boolean allowPartial) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, rows, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
 
     @Override public OverCall nullWhenCountZero(boolean nullWhenCountZero) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, rows, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude);
     }
 
     @Override public RexNode as(String alias) {
-      return new OverCallImpl(op, distinct, operands, ignoreNulls, alias,
+      return new OverCallImpl(pos, op, distinct, operands, ignoreNulls, alias,
           partitionKeys, sortKeys, rows, lowerBound, upperBound,
           nullWhenCountZero, allowPartial, exclude).toRex();
     }
@@ -5021,7 +5038,7 @@ public class RelBuilder {
           };
       final RelDataType type = op.inferReturnType(bind);
       final RexNode over = getRexBuilder()
-          .makeOver(type, op, operands, partitionKeys, sortKeys,
+          .makeOver(pos, type, op, operands, partitionKeys, sortKeys,
               lowerBound, upperBound, exclude, rows, allowPartial, nullWhenCountZero,
               distinct, ignoreNulls);
       return aliasMaybe(over, alias);

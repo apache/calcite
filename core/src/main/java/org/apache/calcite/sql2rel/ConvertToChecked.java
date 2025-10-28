@@ -101,7 +101,7 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
         } else {
           result = call;
         }
-        return builder.makeCast(call.getType(), result);
+        return builder.makeCast(call.getParserPosition(), call.getType(), result);
       } else if (!SqlTypeName.EXACT_TYPES.contains(resultType)) {
         // Do not rewrite operator if the type is e.g., DOUBLE or DATE
         operator = call.getOperator();

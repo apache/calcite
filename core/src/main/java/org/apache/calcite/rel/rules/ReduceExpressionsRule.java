@@ -579,7 +579,8 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
           final List<RexNode> expList = new ArrayList<>(aggCall.getOperands());
           if (reduceExpressions(window, expList, predicates)) {
             aggCall =
-                new Window.RexWinAggCall((SqlAggFunction) aggCall.getOperator(),
+                new Window.RexWinAggCall(aggCall.getParserPosition(),
+                    (SqlAggFunction) aggCall.getOperator(),
                     aggCall.type, expList,
                     aggCall.ordinal, aggCall.distinct, aggCall.ignoreNulls);
             reduced = true;

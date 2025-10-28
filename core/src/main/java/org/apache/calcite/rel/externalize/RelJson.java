@@ -797,7 +797,7 @@ public class RelJson {
             exclude = RexWindowExclusion.EXCLUDE_NO_OTHER;
           }
           final boolean distinct = get((Map<String, Object>) map, "distinct");
-          return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
+          return rexBuilder.makeOver(SqlParserPos.ZERO, type, operator, rexOperands, partitionKeys,
               ImmutableList.copyOf(orderKeys),
               requireNonNull(lowerBound, "lowerBound"),
               requireNonNull(upperBound, "upperBound"),
