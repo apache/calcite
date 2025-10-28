@@ -235,6 +235,14 @@ public class Programs {
     };
   }
 
+  public static Program decorrelate() {
+    return new DecorrelateProgram();
+  }
+
+  public static Program trim() {
+    return new TrimFieldsProgram();
+  }
+
   public static Program calc(RelMetadataProvider metadataProvider) {
     return hep(RelOptRules.CALC_RULES, true, metadataProvider);
   }

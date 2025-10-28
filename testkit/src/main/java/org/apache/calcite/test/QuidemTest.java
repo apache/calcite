@@ -268,27 +268,38 @@ public abstract class QuidemTest {
             }
 
             if (propertyName.equals("hep-rules")) {
-              closer.add(
-                  Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
-                      holder -> {
-                        List<RelOptRule> hepRules = new ArrayList<>();
-                        List<RelOptRule> volcanoRules =
-                            new ArrayList<>(EnumerableRules.ENUMERABLE_RULES);
+              if (value.equals("original")) {
+                closer.add(
+                    Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
+                        holder -> holder.set(null)));
+              } else {
+                closer.add(
+                    Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
+                        holder -> {
+                          List<RelOptRule> hepRules = new ArrayList<>();
+                          List<RelOptRule> volcanoRules =
+                              new ArrayList<>(EnumerableRules.ENUMERABLE_RULES);
 
-                        applyRulesInOrder((String) value, hepRules, volcanoRules);
+                          applyRulesInOrder((String) value, hepRules, volcanoRules);
 
-                        Program hepProgram =
-                            Programs.hep(RuleSets.ofList(hepRules), false,
-                                DefaultRelMetadataProvider.INSTANCE);
-                        Program calcProgram =
-                            Programs.calc(DefaultRelMetadataProvider.INSTANCE);
-                        Program volcanoProgram =
-                            Programs.of(RuleSets.ofList(volcanoRules));
+                          Program subQueryProgram =
+                              Programs.subQuery(DefaultRelMetadataProvider.INSTANCE);
+                          Program decorrelateProgram = Programs.decorrelate();
+                          Program trimProgram = Programs.trim();
+                          Program hepProgram =
+                              Programs.hep(RuleSets.ofList(hepRules), false,
+                                  DefaultRelMetadataProvider.INSTANCE);
+                          Program calcProgram =
+                              Programs.calc(DefaultRelMetadataProvider.INSTANCE);
+                          Program volcanoProgram =
+                              Programs.of(RuleSets.ofList(volcanoRules));
 
-                        Program combinedProgram =
-                            Programs.sequence(hepProgram, volcanoProgram, calcProgram);
-                        holder.set(combinedProgram);
-                      }));
+                          Program combinedProgram =
+                              Programs.sequence(subQueryProgram, decorrelateProgram, trimProgram,
+                                  hepProgram, volcanoProgram, calcProgram);
+                          holder.set(combinedProgram);
+                        }));
+              }
             }
           })
           .withEnv(QuidemTest::getEnv)

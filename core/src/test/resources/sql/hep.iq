@@ -42,9 +42,12 @@
 #    Example: "+Rule1,+Rule1,-Rule1" results in rule being removed
 # 3. Optimizer execution pipeline:
 #    The optimizer uses a multi-program architecture with the following execution order:
+#    - SubQuery program — executed to handle subqueries
+#    - Decorrelate program — executed to remove correlated subqueries
+#    - Trim program — executed to remove unused columns
 #    - HEP program — executed by HepPlanner; initial rules set by CoreRules.*
 #    - Volcano program — executed by VolcanoPlanner; initial rules set by EnumerableRules.ENUMERABLE_RULES
-#      and modified by configurable EnumerableRules.* rule sets.
+#      and modified by configurable EnumerableRules.* rule sets
 #    - Calc program — executed by HepPlanner; initial rules set by RelOptRules.CALC_RULES (non-configurable)
 
 !use scott
@@ -112,6 +115,40 @@ UNION
 SELECT mgr, comm FROM emp WHERE comm > 5;
 Missing conversion is LogicalAggregate[convention: NONE -> ENUMERABLE]
 !error
+!set hep-rules original
+
+# This hep-rules test query with correlated subquery can be executed.
+!set hep-rules "
++CoreRules.PROJECT_FILTER_TRANSPOSE"
+
+SELECT e1.mgr, e1.comm
+FROM emp e1
+WHERE e1.mgr > 12
+  AND EXISTS (
+    SELECT 1
+    FROM emp e2
+    WHERE e2.mgr = e1.mgr
+      AND e2.comm > 5);
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
++------+---------+
+(5 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], MGR=[$t1], COMM=[$t2])
+  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[>($t8, $t9)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t3)], expr#12=[AND($t10, $t11)], MGR=[$t3], $condition=[$t12])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
 !set hep-rules original
 
 # End hep.iq
