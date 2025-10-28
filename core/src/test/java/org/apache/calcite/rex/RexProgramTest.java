@@ -2696,7 +2696,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(divideNode4);
   }
 
-  @Test void testSimplifyIsNullDivideByZero() {
+  @Test void testSimplifyIsNullDivide() {
     simplify = simplify.withParanoid(false);
 
     RelDataType intType =
@@ -2707,9 +2707,19 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(isNull(div(vIntNotNull(), cast(literal(0), intType))));
     checkSimplify(isNull(div(vIntNotNull(), cast(literal(2), intType))), "false");
 
+    checkSimplifyUnchanged(isNull(div(cast(literal(2), intType), vIntNotNull())));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), vIntNotNull())));
+    checkSimplify(isNull(div(nullInt, literal(0))), "true");
+    checkSimplify(isNull(div(literal(0), nullInt)), "true");
+
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), literal(0))));
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), cast(literal(0), intType))));
     checkSimplify(isNotNull(div(vIntNotNull(), cast(literal(2), intType))), "true");
+
+    checkSimplifyUnchanged(isNotNull(div(cast(literal(2), intType), vIntNotNull())));
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), vIntNotNull())));
+    checkSimplify(isNotNull(div(nullInt, literal(0))), "false");
+    checkSimplify(isNotNull(div(literal(0), nullInt)), "false");
   }
 
   @Test void testPushNotIntoCase() {
@@ -4149,6 +4159,8 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(div(one, one), "1");
     checkSimplify(div(nullInt, one), "null:INTEGER");
     checkSimplify(div(a, nullInt), "null:INTEGER");
+    checkSimplify(div(zero, nullInt), "null:INTEGER");
+    checkSimplify(div(nullInt, zero), "null:INTEGER");
 
     checkSimplify(add(b, half), "?0.notNullDecimal2");
 

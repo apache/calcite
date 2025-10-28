@@ -442,7 +442,7 @@ public class RexSimplify {
     assert e.getOperands().size() == 2;
 
     switch (e.getKind()) {
-      // These simplifications are safe for both checked and unchecked arithemtic.
+      // These simplifications are safe for both checked and unchecked arithmetic.
     case PLUS:
     case CHECKED_PLUS:
       return simplifyPlus(e);
@@ -456,7 +456,7 @@ public class RexSimplify {
     case CHECKED_DIVIDE:
       return simplifyDivide(e);
     default:
-      throw new IllegalArgumentException("Unsupported arithmeitc operation " + e.getKind());
+      throw new IllegalArgumentException("Unsupported arithmetic operation " + e.getKind());
     }
   }
 
@@ -493,8 +493,13 @@ public class RexSimplify {
   }
 
   private RexNode simplifyDivide(RexCall e) {
-    if (checkLiteralValue(e.getOperands().get(1), BigDecimal.ONE)) {
-      RexNode leftOperand = e.getOperands().get(0);
+    RexNode leftOperand = e.getOperands().get(0);
+    RexNode rightOperand = e.getOperands().get(1);
+    if ((isSafeExpression(leftOperand) && STRONG.isNull(leftOperand))
+        || (isSafeExpression(rightOperand) && STRONG.isNull(rightOperand))) {
+      return rexBuilder.makeLiteral(null, e.getType());
+    }
+    if (checkLiteralValue(rightOperand, BigDecimal.ONE)) {
       return leftOperand.getType().equals(e.getType())
           ? leftOperand : rexBuilder.makeCast(e.getParserPosition(), e.getType(), leftOperand);
     }
@@ -1033,19 +1038,24 @@ public class RexSimplify {
       case LITERAL:
         return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
       case DIVIDE: {
+        RexNode op0 = ((RexCall) a).getOperands().get(0);
         RexNode op1 = ((RexCall) a).getOperands().get(1);
+        if (RexUtil.isNull(op0) || RexUtil.isNull(op1)) {
+          return rexBuilder.makeLiteral(false);
+        }
         if (!op1.isA(SqlKind.LITERAL)) {
-          return null;
+          return rexBuilder.makeCall(
+              SqlStdOperatorTable.IS_NOT_NULL, simplifyGenericNode((RexCall) a));
         }
         if (checkLiteralValue(op1, BigDecimal.ZERO)) {
-          return null;
+          return rexBuilder.makeCall(
+              SqlStdOperatorTable.IS_NOT_NULL, simplifyGenericNode((RexCall) a));
         }
-        RexNode op0 = ((RexCall) a).getOperands().get(0);
+        // op1 is a non-null and non-zero literal, so simplify op0
         return simplifyIsNotNull(op0);
       }
       default:
-        throw new AssertionError("every CUSTOM policy needs a handler, "
-            + a.getKind());
+        return null;
       }
     case AS_IS:
     default:
@@ -1093,22 +1103,22 @@ public class RexSimplify {
       }
       return RexUtil.composeDisjunction(rexBuilder, operands, false);
     case CUSTOM:
-      switch (a.getKind()) {
-      case DIVIDE: {
+      if (a.getKind() == SqlKind.DIVIDE) {
+        RexNode op0 = ((RexCall) a).getOperands().get(0);
         RexNode op1 = ((RexCall) a).getOperands().get(1);
+        if (RexUtil.isNull(op0) || RexUtil.isNull(op1)) {
+          return rexBuilder.makeLiteral(true);
+        }
         if (!op1.isA(SqlKind.LITERAL)) {
-          return null;
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, simplifyGenericNode((RexCall) a));
         }
         if (checkLiteralValue(op1, BigDecimal.ZERO)) {
-          return null;
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, simplifyGenericNode((RexCall) a));
         }
-        RexNode op0 = ((RexCall) a).getOperands().get(1);
+        // op1 is a non-null and non-zero literal, so simplify op0
         return simplifyIsNull(op0);
       }
-      default:
-        throw new AssertionError("every CUSTOM policy needs a handler, "
-            + a.getKind());
-      }
+      return null;
     case AS_IS:
     default:
       return null;
