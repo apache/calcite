@@ -5984,6 +5984,54 @@ LogicalSort(offset=[?0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testOptimizeOrderByIsFalse">
+    <Resource name="sql">
+      <![CDATA[select * from (select deptno as a, deptno as b from emp) t order by a, b limit 1 offset 2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$7], B=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOptimizeOrderByIsFalsePrimaryKey">
+    <Resource name="sql">
+      <![CDATA[select empno, sal from emp order by empno, sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+  LogicalProject(EMPNO=[$0], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOptimizeOrderByIsTrue">
+    <Resource name="sql">
+      <![CDATA[select * from (select deptno as a, deptno as b from emp) t order by a, b limit 1 offset 2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$7], B=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOptimizeOrderByIsTruePrimaryKey">
+    <Resource name="sql">
+      <![CDATA[select empno, sal from emp order by empno, sal]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOrder">
     <Resource name="sql">
       <![CDATA[select empno from emp order by empno, empno desc]]>

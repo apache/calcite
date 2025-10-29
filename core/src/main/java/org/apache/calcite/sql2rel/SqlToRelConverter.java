@@ -63,7 +63,6 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
@@ -373,10 +372,14 @@ public class SqlToRelConverter {
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
     this.config = requireNonNull(config, "config");
+
+    final UnaryOperator<RelBuilder.Config> transform =
+        c -> config.getRelBuilderConfigTransform().apply(c)
+            .withOptimizeOrderBy(config.isOptimizeOrderBy());
     this.relBuilder =
             config.getRelBuilderFactory().create(cluster,
              validator != null ? validator.getCatalogReader().unwrap(RelOptSchema.class) : null)
-        .transform(config.getRelBuilderConfigTransform());
+        .transform(transform);
     this.hintStrategies = config.getHintStrategyTable();
 
     cluster.setHintStrategies(this.hintStrategies);
@@ -965,9 +968,10 @@ public class SqlToRelConverter {
 
     // Create a sorter using the previously constructed collations.
     bb.setRoot(
-        LogicalSort.create(bb.root(), collation,
-            offset == null ? null : convertExpression(offset),
-            fetch == null ? null : convertExpression(fetch)),
+        relBuilder.push(bb.root())
+            .sortLimit(offset == null ? null : convertExpression(offset),
+                fetch == null ? null : convertExpression(fetch), collation)
+            .build(),
         false);
 
     // If extra expressions were added to the project list for sorting,
@@ -6533,6 +6537,17 @@ public class SqlToRelConverter {
      * <p>Expansion is deprecated. We recommend that you do not call this
      * method, and use the default value of {@link #isExpand()}, false. */
     Config withExpand(boolean expand);
+
+    /** Returns the {@code optimizeOrderBy} option. Controls whether to optimize
+     * ORDER BY clauses using functional dependencies. If true (default is false),
+     * redundant ORDER BY items that are determined by earlier items will be
+     * removed based on metadata about functional dependencies. */
+    @Value.Default default boolean isOptimizeOrderBy() {
+      return false;
+    }
+
+    /** Sets {@link #isOptimizeOrderBy()}. */
+    Config withOptimizeOrderBy(boolean optimizeOrderBy);
 
     /** Returns the {@code inSubQueryThreshold} option,
      * default {@link #DEFAULT_IN_SUB_QUERY_THRESHOLD}. Controls the list size

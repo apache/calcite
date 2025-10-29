@@ -250,6 +250,10 @@ public class RelOptFixture {
     return withConfig(c -> c.withExpand(expand));
   }
 
+  public RelOptFixture withOptimizeOrderBy(final boolean optimizeOrderBy) {
+    return withConfig(c -> c.withOptimizeOrderBy(optimizeOrderBy));
+  }
+
   public RelOptFixture withInSubQueryThreshold(final int inSubQueryThreshold) {
     return withConfig(c -> c.withInSubQueryThreshold(inSubQueryThreshold));
   }

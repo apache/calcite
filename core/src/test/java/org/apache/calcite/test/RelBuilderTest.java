@@ -6007,4 +6007,78 @@ public class RelBuilderTest {
       };
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testSortLimitWithOptimizeOrderBy() {
+    final RelBuilder builder = createBuilder(c -> c.withOptimizeOrderBy(true));
+
+    // Create a simple projection where column b is the same as column a
+    RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(builder.field("DEPTNO"), "a"),
+            builder.alias(builder.field("DEPTNO"), "b"))
+        .sortLimit(builder.literal(2), builder.literal(1),
+            RelCollations.of(
+                new RelFieldCollation(0, RelFieldCollation.Direction.ASCENDING),
+                new RelFieldCollation(1, RelFieldCollation.Direction.ASCENDING)))
+        .build();
+
+    assertThat(root, instanceOf(Sort.class));
+    Sort sortNode = (Sort) root;
+    // With optimization, column b should be removed since it's determined by column a
+    assertThat(sortNode.getCollation().getFieldCollations(), hasSize(1));
+    assertThat(sortNode.getCollation().getFieldCollations().get(0).getFieldIndex(), is(0));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testSortLimitWithoutOptimizeOrderBy() {
+    final RelBuilder builder = createBuilder(c -> c.withOptimizeOrderBy(false));
+
+    // Create a simple projection where column b is the same as column a
+    RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(builder.field("DEPTNO"), "a"),
+            builder.alias(builder.field("DEPTNO"), "b"))
+        .sortLimit(builder.literal(2), builder.literal(1),
+            RelCollations.of(
+                new RelFieldCollation(0, RelFieldCollation.Direction.ASCENDING),
+                new RelFieldCollation(1, RelFieldCollation.Direction.ASCENDING)))
+        .build();
+
+    assertThat(root, instanceOf(Sort.class));
+    Sort sortNode = (Sort) root;
+    // Without optimization, both columns should remain
+    assertThat(sortNode.getCollation().getFieldCollations(), hasSize(2));
+    assertThat(sortNode.getCollation().getFieldCollations().get(0).getFieldIndex(), is(0));
+    assertThat(sortNode.getCollation().getFieldCollations().get(1).getFieldIndex(), is(1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testSortLimitWithOptimizeOrderByPrimaryKey() {
+    final RelBuilder builder = createBuilder(c -> c.withOptimizeOrderBy(true));
+
+    // Order by primary key and another column - the second column should be optimized out
+    RelNode root = builder
+        .scan("EMP")
+        .project(builder.field("EMPNO"), builder.field("SAL"))
+        .sortLimit(null, null,
+            RelCollations.of(
+                new RelFieldCollation(0, RelFieldCollation.Direction.ASCENDING),
+                new RelFieldCollation(1, RelFieldCollation.Direction.ASCENDING)))
+        .build();
+
+    assertThat(root, instanceOf(Sort.class));
+    Sort sortNode = (Sort) root;
+    // With optimization, EMPNO is primary key, so SAL should be removed
+    assertThat(sortNode.getCollation().getFieldCollations().get(0).getFieldIndex(), is(0));
+  }
 }

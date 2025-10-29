@@ -135,6 +135,10 @@ public class SqlToRelFixture {
     return withConfig(b -> b.withExpand(expand));
   }
 
+  public SqlToRelFixture withOptimizeOrderBy(boolean optimizeOrderBy) {
+    return withConfig(b -> b.withOptimizeOrderBy(optimizeOrderBy));
+  }
+
   public SqlToRelFixture withDecorrelate(boolean decorrelate) {
     return new SqlToRelFixture(sql, decorrelate, tester, factory, trim,
         expression, diffRepos);

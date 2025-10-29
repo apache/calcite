@@ -5933,4 +5933,50 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  where e1.deptno = e2.deptno)";
     sql(sql).withExpand(false).ok();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testOptimizeOrderByIsTrue() {
+    final String sql = "select * from (select deptno as a, deptno as b from emp) t"
+        + " order by a, b limit 1 offset 2";
+    sql(sql)
+        .withOptimizeOrderBy(true)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testOptimizeOrderByIsFalse() {
+    final String sql = "select * from (select deptno as a, deptno as b from emp) t"
+        + " order by a, b limit 1 offset 2";
+    sql(sql)
+        .withOptimizeOrderBy(false)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testOptimizeOrderByIsTruePrimaryKey() {
+    final String sql = "select empno, sal from emp order by empno, sal";
+    sql(sql)
+        .withOptimizeOrderBy(true)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7252">[CALCITE-7252]
+   * Implement ORDER BY Optimization Using Functional Dependencies
+   * at SQL-to-Rel Conversion Phase</a>. */
+  @Test void testOptimizeOrderByIsFalsePrimaryKey() {
+    final String sql = "select empno, sal from emp order by empno, sal";
+    sql(sql)
+        .withOptimizeOrderBy(false)
+        .ok();
+  }
 }
