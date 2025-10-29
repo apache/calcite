@@ -21,8 +21,6 @@ limitations under the License.
 <meta charset="utf-8">
 <title>Calcite Rule Match Visualization</title>
 
-<script src="https://unpkg.com/d3@7.2.1/dist/d3.min.js" charset="utf-8"></script>
-<script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
 <script src="https://unpkg.com/tippy.js@3/dist/tippy.all.min.js"></script>
 <script src="planner-viz-data.js"></script>
 
@@ -37,8 +35,28 @@ limitations under the License.
     }
 
     li a {
+        padding: 0.1em 20px 0.1em 2px;
+        text-decoration: none;
+    }
+
+    ul#node-list {
+        list-style-type: none;
+        padding: 0px 20px;
+        margin: 0px;
+    }
+
+    #step-list {
+        margin: 0px;
+    }
+
+    #step-list li a {
         display: block;
-        padding: 5px 20px;
+    }
+
+    .side-section {
+        font-size: 1.2em;
+        font-weight: bold;
+        padding: 4px;
     }
 
     section {
@@ -58,7 +76,7 @@ limitations under the License.
         border: 1px solid #ccc;
     }
 
-    #step-list-column {
+    #side-column {
         border-left: 1px solid #ccc;
     }
 
@@ -107,37 +125,78 @@ limitations under the License.
         word-wrap: break-word;
     }
 
-    button {
+    .node-link,.step-link {
+        text-decoration: underline;
+	cursor: pointer;
+    }
+
+    #toolbar button {
         padding: 0.1em;
         display: inline-block;
         font-size: 2em;
         min-width: 1.5em;
+    }
+
+    details {
+        overflow-y: auto;
+        min-height: 2em;
+        flex: 0 1 auto;
+    }
+
+    details summary {
+      /* always show the summary */
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 1;
     }
 </style>
 
 <div class="container">
     <div class="column2">
         <div id="toolbar">
-            <button id="left-button" style="display:inline-block">⤿</button>
-            <button id="right-button" style="display:inline-block">⤾</button>
-            <button id="fit-content-button" style="display:inline-block">⇿</button>
+            <button id="left-button" title="Rotate left" style="display:inline-block">⤿</button>
+            <button id="right-button" title="Rotate right" style="display:inline-block">⤾</button>
+            <button id="fit-content-button" title="Fit content" style="display:inline-block">⇿</button>
             <span>&nbsp;</span>
-            <button id="toggle-list-button">≡</button>
-            <button id="prev-button" disabled>◀</button>
-            <button id="next-button" disabled>▶</button>
-            <div id="current-step" style="display: inline-block"></div>
+            <button id="toggle-list-button" title="Toggle sidebar">≡</button>
+            <button id="prev-button" title="Previous step" disabled>◀</button>
+            <button id="next-button" title="Next step" disabled>▶</button>
+            <div id="current-step-info" style="display: inline-block"></div>
         </div>
         <svg id="svg-canvas" width="100%" height="100%" ></svg>
     </div>
-    <div id="step-list-column" class="column1">
-        <div style="width: 100%; text-align: center">
-        </div>
-        <ol id="step-list" style="overflow: auto" start="0">
-        </ol>
+    <div id="side-column" class="column1">
+        <details style="/*do not shrink*/flex-shrink:0;" open><summary class="side-section">Options:</summary>
+        <label><input id="apply-node-selection" type="checkbox" checked>apply node selection</label><br/>
+        <label><input id="show-hidden-node-paths" type="checkbox" checked>show paths through hidden nodes</label><br/>
+        <label><input id="show-sets-without-rels" type="checkbox">show sets without RelNodes</label><br/>
+        <label><input id="show-best" type="checkbox">show best of a subset</label>
+        <label><input id="show-cost" type="checkbox">show cost if available</label>
+        </details>
+        <details open><summary class="side-section">Nodes:
+            <button id="export-selection" title="Export selection to clipboard">[x]→📋</button>
+            <button id="import-selection" title="Import selection from clipboard">📋→[x];</button><br/>
+            <button id="select-all" title="Select everything">[x] all</button>
+            <button id="deselect-all" title="Deselect everything">[ ] all</button>
+            <button id="select-all-sets" title="Select all sets">[x] all sets</button>
+            <button id="deselect-all-sets" title="Deselect all sets">[ ] all sets</button>
+            <br/>
+            <button id="select-network" title="Select the nodes and the nodes on the paths between them">[x] network:</button>
+            <button id="deselect-network" title="Deselect the nodes and the nodes on the paths between them">[ ] network:</button>
+            <input id="select-network-args" type="text" value="node1 node2 ..."/>
+            </summary>
+            <ul id="node-list"/>
+        </details>
+        <details id="step-list-container" open><summary class="side-section">Steps:</summary>
+            <ol id="step-list" start="0"/>
+        </details>
     </div>
 </div>
 
-<script id="js">
+<script id="js" type="module">
+import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import * as dagreD3 from "https://cdn.jsdelivr.net/npm/dagre-d3-es@7.0.11/+esm";
 
     var rankDirs = ["BT", "RL", "TB", "LR"];
 
@@ -178,12 +237,33 @@ limitations under the License.
         }
     };
 
+    var panToNode = (nodeId) => {
+        var graphNode = g.node(nodeId);
+        zoom.translateTo(svg, graphNode.x, graphNode.y);
+    };
+
     /*
      * Global State
      */
 
     var currentStepIndex = 0;
     var currentRankDirIdx = 0;
+
+    /*
+     * Helper methods
+     */
+
+     var makeElement = (tag, map) => {
+        return Object.assign(document.createElement(tag), map);
+     }
+
+    var makeLinkButton = (name, onclick) => {
+        return makeElement("a", {
+            textContent: name,
+            href: "#",
+            onclick: onclick,
+        });
+     };
 
     /*
      * Event Handler functions
@@ -210,18 +290,61 @@ limitations under the License.
         }
     };
 
+    var updateStepInfo = () => {
+        var lastNodeAddedStep = -Infinity;
+        var prevCostChangeStep = -Infinity;
+        var state = getCurrentState();
+        for(var nodeId of state.visibleNodeIds) {
+            var node = state.nodes[nodeId];
+            // the last node that was added BEFORE the current step
+            if (node.addedInStep < currentStepIndex) {
+                lastNodeAddedStep = Math.max(lastNodeAddedStep ?? -Infinity, node.addedInStep);
+            }
+            // the last cost/best change that was made BEFORE the current step
+            var refCostChangeStep = (!!node.lastCostChangeStep && node.lastCostChangeStep < currentStepIndex)
+                ? node.lastCostChangeStep
+                : node.prevCostChangeStep;
+            prevCostChangeStep = Math.max(prevCostChangeStep ?? -Infinity, refCostChangeStep ?? -Infinity);
+        }
+        var currentStepID = data.steps[currentStepIndex]["id"];
+        var lastChangeInfo = [];
+        var el = document.getElementById('current-step-info');
+        el.innerHTML = "Step " + currentStepIndex + ": " + currentStepID;
+        if (lastNodeAddedStep !== -Infinity || prevCostChangeStep !== -Infinity) {
+            el.innerHTML += "<br/>Most recent changes to the selected nodes: "
+        }
+        var delimiter = "";
+        if (lastNodeAddedStep !== -Infinity) {
+            el.append("node added in ");
+            el.appendChild(makeLinkButton(
+                `step ${lastNodeAddedStep}`,
+                () => {setCurrentStep(lastNodeAddedStep)},
+            ));
+            delimiter = ", ";
+        }
+        if (prevCostChangeStep !== -Infinity) {
+            el.append(delimiter + "cost/best change in ");
+            el.appendChild(makeLinkButton(
+                `step ${prevCostChangeStep}`,
+                () => {setCurrentStep(prevCostChangeStep)},
+            ));
+        }
+    };
+
     var setCurrentStep = (stepIndex) => {
         // un-highlight previous entry
-        var prevStepIndex = currentStepIndex;
+        var prevStepIndex = Math.min(data.steps.length-1, currentStepIndex);
         if (prevStepIndex !== undefined) {
-            var prevStepElement = document.getElementById(data.steps[prevStepIndex]["id"]);
-            prevStepElement.style.backgroundColor = "#FFFFFF";
+            if (prevStepIndex < data.steps.length) {
+                var prevStep = data.steps[prevStepIndex];
+                var prevStepElement = document.getElementById(prevStep["id"]);
+                prevStepElement.style.backgroundColor = "#FFFFFF";
+            }
         }
 
-        currentStepIndex = stepIndex;
-        var currentStepID = data.steps[stepIndex]["id"];
-        document.getElementById('current-step').innerText = currentStepIndex + ": " + currentStepID;
-
+        currentStepIndex = Math.min(data.steps.length-1, stepIndex);
+        document.title="Calcite Rule Match Visualization: step " + currentStepIndex;
+        var currentStepID = data.steps[currentStepIndex]["id"];
         var currentStepElement = document.getElementById(currentStepID);
         currentStepElement.style.backgroundColor = "#D3D3D3";
 
@@ -235,12 +358,12 @@ limitations under the License.
             document.getElementById("next-button").disabled = true;
         }
 
-        updateGraph();
+        updateUI();
     }
 
-    var getCurrentState = () => {
+    var getStateOfStep = (stepIdx) => {
         var nodes = {};
-        for(var i=0; i<=currentStepIndex; i++) {
+        for(var i=0; i<=stepIdx; i++) {
             // recreate state by merging all updates
             var updates = data.steps[i]["updates"];
             Object.entries(updates).forEach(e => {
@@ -248,13 +371,93 @@ limitations under the License.
                 var nodeInfo = nodes[key] ??= {
                     id: key,
                     addedInStep: i,
+                    inputs: [],
+                    parents: []
                 };
+                var lastCost = nodeInfo.cost;
+                var lastBest = nodeInfo.best;
                 Object.assign(nodeInfo, value);
+                if(lastCost !== nodeInfo.cost || lastBest !== nodeInfo.best) {
+                    nodeInfo.prevCostChangeStep = nodeInfo.lastCostChangeStep;
+                    nodeInfo.lastCostChangeStep = i;
+                }
             });
         }
-        //var newNodes = Object.values(nodes).filter(n => n.addedInStep === currentStepIndex);
-        var matchedRels = data.steps[currentStepIndex]["matchedRels"] ?? [];
-        return { nodes, matchedRels };
+        // parents relation
+        Object.values(nodes).forEach(n => {
+            if(n.inputs) {
+                for(var i of n.inputs) {
+                    nodes[i].parents = (nodes[i].parents || [])
+                    nodes[i].parents.push(n.id);
+                }
+            }
+        });
+        var matchedRels = data.steps[stepIdx]["matchedRels"] ?? [];
+
+        // determine which nodes are visible
+        var applyVisibility = document.getElementById("apply-node-selection").checked;
+        var visibleNodeIds = [];
+        for (var checkbox of document.getElementsByClassName("node-visibility-checkbox")) {
+            if (applyVisibility && !checkbox.checked) continue;
+            var id = checkbox.id.replace(/^visibility-/, "");
+            visibleNodeIds.push(id);
+        }
+        // filter the sets without RelNodes
+        if(!document.getElementById("show-sets-without-rels").checked) {
+            var nonEmptySets = new Set();
+            visibleNodeIds.forEach(nodeId => {
+                    var n = nodes[nodeId];
+                    if(!!n && n.kind !== "set" && n.kind !== "subset") nonEmptySets.add(n.set);
+            });
+            visibleNodeIds = visibleNodeIds.filter(nodeId => !nodeId.startsWith("set") || nonEmptySets.has(nodeId));
+        }
+
+        var tmpVisibleNodes = new Set(visibleNodeIds);
+        // hide nodes whose parent set is hidden
+        visibleNodeIds = visibleNodeIds.filter(nodeId => {
+            var n = nodes[nodeId];
+            if (n === undefined) return false;
+            return n.kind == "set" || tmpVisibleNodes.has(n.set);
+        });
+
+        visibleNodeIds = new Set(visibleNodeIds);
+        return { nodes, matchedRels, visibleNodeIds };
+    };
+
+    var getCurrentState = () => {
+        return getStateOfStep(currentStepIndex);
+    };
+
+    // visit a node or a collection of nodes recursively
+    // nextNodesFn maps a node to its to-be-visited neighbors
+    // acceptFn if mapping a node to false, do not visit and do not include it in the result
+    var walkNodes = (nodeIDs, state, nextNodesFn, acceptFn=(node=>true)) => {
+        var result = [];
+        var visited = new Set();
+        var fn = (nodeID) => {
+            if (visited.has(nodeID)) return;
+            visited.add(nodeID);
+            var node = state.nodes[nodeID];
+            if(!node) return;
+            if(!acceptFn(node)) return;
+
+            result.push(nodeID);
+            var nextNodes = nextNodesFn(node);
+            if (nextNodes)
+            for(var inputID of nextNodes) {
+                fn(inputID);
+            }
+        };
+        if(!nodeIDs.forEach) fn(nodeIDs)
+        else for(var id of nodeIDs) {
+            fn(id);
+        }
+        return result;
+    };
+
+    var updateUI = () => {
+        updateGraph();
+        updateStepInfo();
     };
 
     var updateGraph = () => {
@@ -267,8 +470,14 @@ limitations under the License.
         d3.select("svg g").selectAll("*").remove();
         g.nodes().slice().forEach(nodeID => g.removeNode(nodeID));
 
+        // options
+        var showHiddenNodePaths = document.getElementById("show-hidden-node-paths").checked;
+        var showBest = document.getElementById("show-best").checked;
+        var showCost = document.getElementById("show-cost").checked;
+
         for(var n of Object.values(state.nodes)) {
             var nodeID = n.id;
+            if (!state.visibleNodeIds.has(nodeID)) continue;
             if(n.kind === "set") {
                 // add set
                 var setLabel = n.Label;
@@ -281,12 +490,9 @@ limitations under the License.
                 });
             }
             else {
-                var nodeLabel;
-                if (stepID === "FINAL") {
-                    nodeLabel = n.label + "\n" + n.cost;
-                } else {
-                    nodeLabel = n.label;
-                }
+                var nodeLabel = n.label;
+                if (n.kind === "subset" && showBest) nodeLabel += "\nbest: " + n.best;
+                if (showCost) nodeLabel += "\n" + n.cost;
                 var nodeStyle;
                 if (stepID === "FINAL" && n.inFinalPlan === true) {
                     if(n.kind === "subset")
@@ -311,6 +517,22 @@ limitations under the License.
                 // create links
                 if(n.inputs)
                 for(var inputID of n.inputs) {
+                    // add edges to the closest visible descendants
+                    if (!state.visibleNodeIds.has(inputID)) {
+                        var walkUntilVisibleNodes = walkNodes(inputID, state, node => state.visibleNodeIds.has(node.id) ? undefined : node.inputs);
+                        var visibleDescendants = walkUntilVisibleNodes.filter(nodeId => state.visibleNodeIds.has(nodeId));
+                        for(var descendantID of visibleDescendants) {
+                            if(showHiddenNodePaths) {
+                                edgeOptions = { style: "stroke-dasharray: 5, 5; fill: none;" };
+                            }
+                            else {
+                                // always add the edges, to keep the same layout
+                                edgeOptions = { style: "visibility: hidden;" };
+                            }
+                            g.setEdge(descendantID, nodeID, edgeOptions);
+                        }
+                        continue;
+                    }
                     var input = state.nodes[inputID];
                     var edgeOptions = { arrowheadStyle: "normal" };
                     if (n.kind === "subset" && input.kind === "subset") {
@@ -337,43 +559,158 @@ limitations under the License.
             interactive: true,
         });
 
+        var makeBr = () => document.createElement("br");
+        var addNodeLinks = (toolTipArray, description, nodeIds) => {
+            var nodeIds = Array.isArray(nodeIds) ? nodeIds : [nodeIds];
+            toolTipArray.push(description);
+
+            var delimiter = "";
+            for(let nodeId of nodeIds) {
+                toolTipArray.push(delimiter);
+                var el = makeElement("span", {
+                    textContent: nodeId,
+                    className: "node-link",
+                    onclick: () => {panToNode(nodeId)}
+                });
+                toolTipArray.push(el);
+                delimiter = ", ";
+            }
+            toolTipArray.push(makeBr());
+        };
+
+        var createStepLink = (stepId, nodeId) => {
+            var stepName = (stepId != undefined) ? data.steps[stepId].id : "";
+            return makeElement("span", {
+                textContent: `step ${stepId}`,
+                className: "step-link",
+                onclick: () => {setCurrentStep(stepId); panToNode("" + nodeId);}
+            });
+        };
+
         var i = 0;
         allD3Nodes.each(nodeID => {
-            var nodeElement = allD3NodeElements[i];
+            var nodeElement = allD3NodeElements[i++];
             var node = state.nodes[nodeID];
-            var stepName = data.steps[node.addedInStep].id;
-            var popupContent;
-            if(node.kind === "subset")
-                popupContent = "inputs: " + node.inputs;
-            else
-                popupContent = node.explanation;
-            popupContent += "<br>Added in Step '"  + stepName + "'";
+            var tt = []; // tooltip
 
-            tippy(nodeElement, { content: popupContent })
-            i++;
+            var description = node.kind !== "subset" ? node.explanation: "";
+            if (description !== "") {
+                tt=tt.concat([description, makeBr()]);
+            }
+
+            addNodeLinks(tt, "Node: ", nodeID);
+            addNodeLinks(tt, "Parents: ", node.parents);
+            addNodeLinks(tt, "Inputs: ", node.inputs);
+
+            if (node.kind === "subset") {
+                addNodeLinks(tt, "Best: ", node.best);
+            }
+            tt=tt.concat([
+                "Added in ", createStepLink(node.addedInStep, nodeID), makeBr(),
+                "Last cost/best change in ", createStepLink(node.lastCostChangeStep, nodeID),
+                ]);
+            var el = document.createElement("span");
+            el.append(...tt);
+
+            tippy(nodeElement, { content: el })
         });
     }
 
+    var setVisibilityByIds = (nodeIds,visible) => {
+        for(var nodeId of nodeIds) {
+            document.getElementById("visibility-" + nodeId).checked = visible;
+        }
+    };
+
+    var propagateVisibility = event => {
+        var buttonId = event.srcElement.id;
+        var nodeId = buttonId.replace(/^propagate-visibility-[a-z]*-/, "");
+        var affectContainees = buttonId.indexOf("containees") >= 0;
+        var affectContainers = buttonId.indexOf("containers") >= 0;
+        var state = getCurrentState();
+        var node = state.nodes[nodeId];
+        var value = document.getElementById("visibility-" + nodeId).checked;
+        if(node.kind === "set") {
+            if(affectContainees) {
+                var nodesInSet = Object.values(state.nodes).filter(n => n.set === nodeId);
+                for(var n of nodesInSet) {
+                    document.getElementById("visibility-" + n.id).checked = value;
+                }
+            }
+        }
+        else {
+            if(affectContainers) {
+                document.getElementById("visibility-" + node.set).checked = value;
+                var sameSetAncestors = walkNodes(node.id, state, n=>n.parents, n=>n.set === node.set);
+                setVisibilityByIds(sameSetAncestors, value);
+            }
+            if(node.kind === "subset" && affectContainees) {
+                var sameSetDescendants = walkNodes(node.id, state, n=>n.inputs, n=>n.set === node.set);
+                setVisibilityByIds(sameSetDescendants, value);
+            }
+        }
+        updateUI();
+    };
+
     /*
-     * render HTML Element and add event hanlders
+     * render HTML Element and add event handlers
      */
 
-    // populate UI list
-    var stepListElement = document.getElementById("step-list");
-    data.steps.forEach((step, index) => {
-        var stepID = step["id"];
-        var listItem = document.createElement("li");
-        var textItem = document.createElement("a");
-        textItem.innerText = stepID;
-        textItem.id = stepID;
-        textItem.setAttribute("href", "#");
-
-        listItem.appendChild(textItem);
-        stepListElement.appendChild(listItem);
-        listItem.addEventListener("click", event => {
-            setCurrentStep(index);
+    // populate step list
+    var populateStepList = () => {
+        var stepListElement = document.getElementById("step-list");
+        data.steps.forEach((step, index) => {
+            var stepID = step["id"];
+            var listItem = document.createElement("li");
+            listItem.innerHTML = `<a id="${stepID}" href="#">${stepID}</a>`;
+            stepListElement.appendChild(listItem);
+            listItem.addEventListener("click", event => {
+                setCurrentStep(index);
+            })
         })
-    })
+    };
+    populateStepList();
+
+    // populate node list
+    var populateNodeList = () => {
+        // get the last state
+        var state = getStateOfStep(data.steps.length-1);
+        var nodeListElement = document.getElementById("node-list");
+        // sort numerically, but put sets first
+        const setNodes = Object.keys(state.nodes).filter(item => /^set/.test(item));
+        const relNodes = Object.keys(state.nodes).filter(item => !/^set/.test(item));
+        setNodes.sort((a, b) => Number(a) - Number(b));
+        relNodes.sort((a, b) => Number(a) - Number(b));
+        var nodeIds = [...setNodes, ...relNodes];
+        // add node list with settings
+        nodeIds.forEach(nodeId => {
+            var listItem = document.createElement("li");
+            var buttons = "";
+            var node = state.nodes[nodeId];
+            var properties = node.kind !== "set"
+                ? `class="propagate-visibility" id="propagate-visibility-containers-${nodeId}" title="Propagate visibility to containers"`
+                : `style="visibility: hidden;"`;
+            buttons += `<button ${properties}>∈</button>`;
+
+            properties = node.kind === "set" || node.kind === "subset"
+                ? `class="propagate-visibility" id="propagate-visibility-containees-${nodeId}" title="Propagate visibility to containees"`
+                : `style="visibility: hidden;"`;
+            buttons += `<button ${properties}>{}</button>`;
+
+            listItem.innerHTML = `<div><label>
+                <input id="visibility-${nodeId}" type="checkbox" class="node-visibility-checkbox" checked/>
+                ${buttons}
+                ${node.label}
+                &nbsp;
+                </label>
+                </div>
+                `;
+            nodeListElement.appendChild(listItem);
+        });
+        document.querySelectorAll(".node-visibility-checkbox").forEach(element => element.addEventListener("click", updateUI));
+        document.querySelectorAll(".propagate-visibility").forEach(element => element.addEventListener("click", propagateVisibility));
+    }
+    populateNodeList();
 
     document.getElementById("prev-button").addEventListener("click", event => {
         if (currentStepIndex !== 0) {
@@ -391,25 +728,102 @@ limitations under the License.
         currentRankDirIdx += 1;
         if (currentRankDirIdx >= rankDirs.length)
             currentRankDirIdx = 0;
-        updateGraph();
+        updateUI();
     });
 
     document.getElementById("right-button").addEventListener("click", event => {
         currentRankDirIdx -= 1;
         if (currentRankDirIdx < 0)
             currentRankDirIdx = 3;
-        updateGraph();
+        updateUI();
     });
 
     document.getElementById("fit-content-button").addEventListener("click", fitContent);
 
     document.getElementById("toggle-list-button").addEventListener("click", () => {
-        var col1 = document.getElementById("step-list-column");
+        var col1 = document.getElementById("side-column");
         if (col1.style.display === "none")
             col1.style.display = "";
         else
             col1.style.display = "none";
     });
+
+    // creates a function that applies the visibilityFn to the selection
+    // for all nodes where the fn returns a bool
+    function visibilitySelector(visibilityFn) {
+        return e => {
+            var lastStep = data.steps.length-1;
+            var state = getStateOfStep(lastStep);
+            for (var checkbox of document.getElementsByClassName("node-visibility-checkbox")) {
+                var nodeId = checkbox.id.replace(/^visibility-/, "");
+                var node = state.nodes[nodeId];
+                var visibility = visibilityFn(node);
+                if(typeof visibility !== "boolean") continue;
+                checkbox.checked = visibility;
+            }
+            updateUI();
+        }
+    }
+
+    document.getElementById("select-all").addEventListener("click", visibilitySelector(node => true));
+    document.getElementById("deselect-all").addEventListener("click", visibilitySelector(node => false));
+    document.getElementById("select-all-sets").addEventListener("click", visibilitySelector(node => node.kind === "set" ? true : undefined));
+    document.getElementById("deselect-all-sets").addEventListener("click", visibilitySelector(node => node.kind === "set" ? false : undefined));
+
+    document.getElementById("export-selection").addEventListener("click", async event => {
+        selection = "";
+        for (var checkbox of document.getElementsByClassName("node-visibility-checkbox")) {
+            if(checkbox.checked)
+                selection += checkbox.id.replace(/^visibility-/, "") + "\n";
+        }
+        try {
+            await navigator.clipboard.writeText(selection);
+        } catch (err) {
+            alert('Failed to export selection to clipboard!');
+            console.error('Failed to write to clipboard: ', err);
+        }
+    });
+
+    document.getElementById("import-selection").addEventListener("click", async event => {
+        try {
+            const clipboardText = await navigator.clipboard.readText();
+            const selectedValues = new Set(clipboardText.split('\n'));
+            for (var checkbox of document.getElementsByClassName("node-visibility-checkbox")) {
+                nodeId = checkbox.id.replace(/^visibility-/, "");
+                checkbox.checked = selectedValues.has(nodeId);
+            }
+            updateUI();
+        } catch (err) {
+            alert('Failed to import selection from clipboard!');
+            console.error('Failed to read from clipboard: ', err);
+        }
+    });
+
+    var selectNetwork = (visibility) => {
+        var args = document.getElementById("select-network-args").value.split(" ");
+        var state = getCurrentState();
+        // could be done more efficiently, but let's keep it simple
+        var node1Descendants = new Set(walkNodes(args, state, n=>n.inputs));
+        var network = walkNodes(args, state, n=>n.parents, n=>node1Descendants.has(n.id));
+        for(var nodeId of network) {
+            var node = state.nodes[nodeId];
+            document.getElementById("visibility-" + nodeId).checked = visibility;
+            // ensure that the set is visible
+            if(visibility) document.getElementById("visibility-" + node.set).checked = visibility;
+        }
+        updateUI();
+
+    };
+
+    document.getElementById("select-network").addEventListener("click", event => { selectNetwork(true); });
+    document.getElementById("deselect-network").addEventListener("click", event => { selectNetwork(false); });
+
+
+    document.getElementById("apply-node-selection").addEventListener("click", updateUI);
+    document.getElementById("show-hidden-node-paths").addEventListener("click", updateUI);
+    document.getElementById("show-sets-without-rels").addEventListener("click", updateUI);
+    document.getElementById("show-best").addEventListener("click", updateGraph);
+    document.getElementById("show-cost").addEventListener("click", updateGraph);
 
     // render initial state
 
