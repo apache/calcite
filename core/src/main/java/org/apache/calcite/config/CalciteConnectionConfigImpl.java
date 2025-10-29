@@ -215,6 +215,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Override public @Nullable String ruleVisualizerDir() {
+    return CalciteConnectionProperty.RULE_VISUALIZER_DIR.wrap(properties)
+        .getString();
+  }
+
   @Override public <T> @PolyNull T metaTableFactory(
       Class<T> metaTableFactoryClass,
       @PolyNull T defaultMetaTableFactory) {
