@@ -5969,6 +5969,20 @@ public class RelBuilderTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6448">[CALCITE-6448]
+   * FilterReduceExpressionsRule returns empty RelNode for RexLiterals</a>. */
+  @Test void testFilterWithNonBooleanLiteralCondition() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    try {
+      builder.scan("EMP")
+          .filter(builder.literal("foo"))
+          .build();
+    } catch (Error e) {
+      assertTrue(e.getMessage().contains("Filter condition must have type BOOLEAN"));
+    }
+  }
+
   /** Operand to a user-defined function. */
   private interface Arg {
     String name();
