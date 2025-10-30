@@ -36,8 +36,15 @@ public class SqlTableRef extends SqlCall {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlIdentifier tableName;
-  private final SqlNodeList hints;
+  /**
+   * Table name identifier.
+   */
+  public final SqlIdentifier tableName;
+
+  /**
+   * List of SQL hints associated with the table.
+   */
+  public final SqlNodeList hints;
 
   //~ Static fields/initializers ---------------------------------------------
 
