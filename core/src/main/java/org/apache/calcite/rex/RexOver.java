@@ -19,6 +19,7 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
@@ -58,6 +59,41 @@ public class RexOver extends RexCall {
    * <li>window = {@link SqlWindow}(ROWS 3 PRECEDING)
    * </ul>
    *
+   * @param pos      Parser position
+   * @param type     Result type
+   * @param op       Aggregate operator
+   * @param operands Operands list
+   * @param window   Window specification
+   * @param distinct Aggregate operator is applied on distinct elements
+   */
+  RexOver(
+      SqlParserPos pos,
+      RelDataType type,
+      SqlAggFunction op,
+      List<RexNode> operands,
+      RexWindow window,
+      boolean distinct,
+      boolean ignoreNulls) {
+    super(pos, type, op, operands);
+    checkArgument(op.isAggregator());
+    this.window = requireNonNull(window, "window");
+    this.distinct = distinct;
+    this.ignoreNulls = ignoreNulls;
+  }
+
+  /**
+   * Creates a RexOver.
+   *
+   * <p>For example, "SUM(DISTINCT x) OVER (ROWS 3 PRECEDING)" is represented
+   * as:
+   *
+   * <ul>
+   * <li>type = Integer,
+   * <li>op = {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#SUM},
+   * <li>operands = { {@link RexFieldAccess}("x") }
+   * <li>window = {@link SqlWindow}(ROWS 3 PRECEDING)
+   * </ul>
+   *
    * @param type     Result type
    * @param op       Aggregate operator
    * @param operands Operands list
@@ -71,11 +107,7 @@ public class RexOver extends RexCall {
       RexWindow window,
       boolean distinct,
       boolean ignoreNulls) {
-    super(type, op, operands);
-    checkArgument(op.isAggregator());
-    this.window = requireNonNull(window, "window");
-    this.distinct = distinct;
-    this.ignoreNulls = ignoreNulls;
+    this(SqlParserPos.ZERO, type, op, operands, window, distinct, ignoreNulls);
   }
 
   //~ Methods ----------------------------------------------------------------
