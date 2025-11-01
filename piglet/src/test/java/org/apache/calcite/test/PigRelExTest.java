@@ -173,15 +173,16 @@ class PigRelExTest extends PigRelTestBase {
   }
 
   @Test void testTupleDereference() {
-    checkTranslation("k2.k21", inTree("[$11.k21]"));
-    checkTranslation("k2.(k21, k22)", inTree("[ROW($11.k21, $11.k22)]"));
+    checkTranslation("k2.k21", inTree("[<>($11.k21, 0)]"));
+    checkTranslation("k2.(k21, k22)", inTree("[CAST(ROW($11.k21, $11.k22)):BOOLEAN NOT NULL]"));
     checkTranslation("k2.k22.(k221,k222)",
-        inTree("[ROW($11.k22.k221, $11.k22.k222)]"));
+        inTree("[CAST(ROW($11.k22.k221, $11.k22.k222)):BOOLEAN NOT NULL]"));
   }
 
   @Test void testBagDereference() {
-    checkTranslation("l2.l22", inTree("[MULTISET_PROJECTION($13, 1)]"));
-    checkTranslation("l2.(l21, l22)", inTree("[MULTISET_PROJECTION($13, 0, 1)]"));
+    checkTranslation("l2.l22", inTree("[CAST(MULTISET_PROJECTION($13, 1)):BOOLEAN NOT NULL]"));
+    checkTranslation("l2.(l21, l22)",
+        inTree("[CAST(MULTISET_PROJECTION($13, 0, 1)):BOOLEAN NOT NULL]"));
   }
 
   @Test void testMapLookup() {
