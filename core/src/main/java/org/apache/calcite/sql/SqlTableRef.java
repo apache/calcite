@@ -76,4 +76,12 @@ public class SqlTableRef extends SqlCall {
       writer.getDialect().unparseTableScanHints(writer, this.hints, leftPrec, rightPrec);
     }
   }
+
+  public SqlIdentifier getTableName() {
+    return tableName;
+  }
+
+  public SqlNodeList getHints() {
+    return hints;
+  }
 }
