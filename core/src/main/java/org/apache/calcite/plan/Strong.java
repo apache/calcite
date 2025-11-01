@@ -265,6 +265,8 @@ public class Strong {
         return anyNull(rexCall.getOperands());
       }
       return false;
+    case DIVIDE:
+      return anyNull(((RexCall) node).getOperands());
     default:
       return false;
     }
@@ -356,7 +358,8 @@ public class Strong {
     map.put(SqlKind.CHECKED_TIMES, Policy.ANY);
     map.put(SqlKind.CHECKED_DIVIDE, Policy.ANY);
 
-    map.put(SqlKind.DIVIDE, Policy.ANY);
+    // DIVIDE behaves like ANY. However, (x/0) IS (NOT) NULL may not be simplified.
+    map.put(SqlKind.DIVIDE, Policy.CUSTOM);
     map.put(SqlKind.CAST, Policy.ANY);
     map.put(SqlKind.REINTERPRET, Policy.ANY);
     map.put(SqlKind.TRIM, Policy.ANY);
