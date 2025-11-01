@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -169,7 +170,11 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   }
 
   @Override public void visit(LOFilter filter) throws FrontendException {
-    final RexNode relExFilter = PigRelExVisitor.translatePigEx(builder, filter.getFilterPlan());
+    RexNode relExFilter = PigRelExVisitor.translatePigEx(builder, filter.getFilterPlan());
+    if (relExFilter.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      RelDataType boolType = builder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+      relExFilter = builder.getRexBuilder().makeCast(boolType, relExFilter);
+    }
     builder.filter(relExFilter);
     builder.register(filter);
   }

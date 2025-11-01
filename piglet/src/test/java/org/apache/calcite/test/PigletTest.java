@@ -172,7 +172,7 @@ class PigletTest {
   @Test void testFilter() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "B = FILTER A BY DEPTNO;";
-    final String expected = "LogicalFilter(condition=[$0])\n"
+    final String expected = "LogicalFilter(condition=[<>($0, 0)])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     pig(s).explainContains(expected);
   }
