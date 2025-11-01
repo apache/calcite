@@ -107,7 +107,11 @@ public class Handler {
       builder.clear();
       input = map.get(filter.source.value);
       builder.push(input);
-      final RexNode rexNode = toRex(filter.condition);
+      RexNode rexNode = toRex(filter.condition);
+      if (rexNode.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+        RelDataType boolType = builder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+        rexNode = builder.getRexBuilder().makeCast(boolType, rexNode);
+      }
       builder.filter(rexNode);
       register(filter.target.value);
       return this;
