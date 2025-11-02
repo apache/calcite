@@ -586,7 +586,7 @@ public class DiffRepository {
     int i = 0;
     final List<String> names = Pair.left(map);
     for (String s : names) {
-      if (s.compareToIgnoreCase(testCaseName) <= 0) {
+      if (s.compareTo(testCaseName) <= 0) {
         ++i;
       }
     }
@@ -598,13 +598,13 @@ public class DiffRepository {
     // will end up in exactly the right position, and if the list is not sorted,
     // the new item will end up in approximately the right position.
     while (i < map.size()
-        && names.get(i).compareToIgnoreCase(testCaseName) < 0) {
+        && names.get(i).compareTo(testCaseName) < 0) {
       ++i;
     }
-    if (i >= map.size() - 1) {
+    if (i > map.size() - 1) {
       return null;
     }
-    while (i >= 0 && names.get(i).compareToIgnoreCase(testCaseName) > 0) {
+    while (i >= 0 && names.get(i).compareTo(testCaseName) > 0) {
       --i;
     }
     return map.get(i + 1).right;
