@@ -5388,4 +5388,43 @@ and exists(
 
 !ok
 
+
+!use scott
+# [CALCITE-5223] AdjustProjectForCountAggregateRule throws ArrayIndexOutOfBoundsException
+SELECT deptno, ename, job, sal,
+    sal / (SELECT SUM(sal) FROM Emp WHERE deptno = e.deptno) AS pct_dept
+FROM Emp AS e
+WHERE job = 'CLERK'
+ORDER BY deptno;
++--------+--------+-------+---------+---------------------+
+| DEPTNO | ENAME  | JOB   | SAL     | PCT_DEPT            |
++--------+--------+-------+---------+---------------------+
+|     10 | MILLER | CLERK | 1300.00 |  0.1485714285714286 |
+|     20 | SMITH  | CLERK |  800.00 | 0.07356321839080460 |
+|     20 | ADAMS  | CLERK | 1100.00 |  0.1011494252873563 |
+|     30 | JAMES  | CLERK |  950.00 |  0.1010638297872340 |
++--------+--------+-------+---------+---------------------+
+(4 rows)
+
+!ok
+
+# [CALCITE-5223] AdjustProjectForCountAggregateRule throws ArrayIndexOutOfBoundsException
+SELECT deptno, ename, job, sal,
+    sal / (SELECT SUM(sal) FROM Emp WHERE deptno = e.deptno) AS pct_dept,
+    sal / (SELECT SUM(sal) FROM Emp) AS pct_total
+FROM Emp AS e
+WHERE job = 'CLERK'
+ORDER BY deptno;
++--------+--------+-------+---------+---------------------+---------------------+
+| DEPTNO | ENAME  | JOB   | SAL     | PCT_DEPT            | PCT_TOTAL           |
++--------+--------+-------+---------+---------------------+---------------------+
+|     10 | MILLER | CLERK | 1300.00 |  0.1485714285714286 | 0.04478897502153316 |
+|     20 | SMITH  | CLERK |  800.00 | 0.07356321839080460 | 0.02756244616709733 |
+|     20 | ADAMS  | CLERK | 1100.00 |  0.1011494252873563 | 0.03789836347975883 |
+|     30 | JAMES  | CLERK |  950.00 |  0.1010638297872340 | 0.03273040482342808 |
++--------+--------+-------+---------+---------------------+---------------------+
+(4 rows)
+
+!ok
+
 # End sub-query.iq
