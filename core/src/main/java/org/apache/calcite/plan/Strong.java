@@ -356,10 +356,12 @@ public class Strong {
     map.put(SqlKind.CHECKED_MINUS, Policy.ANY);
     map.put(SqlKind.CHECKED_MINUS_PREFIX, Policy.ANY);
     map.put(SqlKind.CHECKED_TIMES, Policy.ANY);
-    map.put(SqlKind.CHECKED_DIVIDE, Policy.ANY);
 
-    // DIVIDE behaves like ANY. However, (x/0) IS (NOT) NULL may not be simplified.
+    // DIVIDE behaves like ANY. Consider (x/0) IS (NOT) NULL, though:
+    // It may not be simplified, otherwise we would hide a division-by-zero exception.
     map.put(SqlKind.DIVIDE, Policy.CUSTOM);
+    map.put(SqlKind.CHECKED_DIVIDE, Policy.CUSTOM);
+
     map.put(SqlKind.CAST, Policy.ANY);
     map.put(SqlKind.REINTERPRET, Policy.ANY);
     map.put(SqlKind.TRIM, Policy.ANY);

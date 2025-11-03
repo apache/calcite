@@ -320,6 +320,10 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, n1, n2);
   }
 
+  protected RexNode checkedDiv(RexNode n1, RexNode n2) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.CHECKED_DIVIDE, n1, n2);
+  }
+
   protected RexNode sub(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.MINUS, n1, n2);
   }

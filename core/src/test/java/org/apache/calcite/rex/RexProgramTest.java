@@ -2735,6 +2735,18 @@ class RexProgramTest extends RexProgramTestBase {
         isNotNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
         "true");
     checkSimplify(isNotNull(div(nullDecimal, literal(BigDecimal.ZERO))), "false");
+
+    checkSimplifyUnchanged(isNull(checkedDiv(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNull(checkedDiv(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "false");
+    checkSimplify(isNull(checkedDiv(nullDecimal, literal(BigDecimal.ZERO))), "true");
+
+    checkSimplifyUnchanged(isNotNull(checkedDiv(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNotNull(checkedDiv(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "true");
+    checkSimplify(isNotNull(checkedDiv(nullDecimal, literal(BigDecimal.ZERO))), "false");
   }
 
   @Test void testPushNotIntoCase() {
