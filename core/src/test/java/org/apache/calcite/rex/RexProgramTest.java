@@ -2696,6 +2696,9 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(divideNode4);
   }
 
+  /** Test cases for IS NULL(x/y).
+   * See <a href="https://issues.apache.org/jira/browse/CALCITE-7145">[CALCITE-7145]
+   * RexSimplify should not simplify IS NULL(10/0)</a>. */
   @Test void testSimplifyIsNullDivide() {
     simplify = simplify.withParanoid(false);
 
@@ -2720,6 +2723,18 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), vIntNotNull())));
     checkSimplify(isNotNull(div(nullInt, literal(0))), "false");
     checkSimplify(isNotNull(div(literal(0), nullInt)), "false");
+
+    checkSimplifyUnchanged(isNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "false");
+    checkSimplify(isNull(div(nullDecimal, literal(BigDecimal.ZERO))), "true");
+
+    checkSimplifyUnchanged(isNotNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNotNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "true");
+    checkSimplify(isNotNull(div(nullDecimal, literal(BigDecimal.ZERO))), "false");
   }
 
   @Test void testPushNotIntoCase() {

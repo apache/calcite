@@ -422,7 +422,7 @@ public class RexSimplify {
     return -1;
   }
 
-  /** Check whether the operand is a literal of the specified value. */
+  /** Check whether the operand is a BigDecimal literal of the specified value. */
   private static boolean checkLiteralValue(RexNode operand, BigDecimal value) {
     if (!operand.isA(SqlKind.LITERAL)) {
       return false;
@@ -1044,12 +1044,10 @@ public class RexSimplify {
           return rexBuilder.makeLiteral(false);
         }
         if (!op1.isA(SqlKind.LITERAL)) {
-          return rexBuilder.makeCall(
-              SqlStdOperatorTable.IS_NOT_NULL, simplifyGenericNode((RexCall) a));
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
         }
         if (checkLiteralValue(op1, BigDecimal.ZERO)) {
-          return rexBuilder.makeCall(
-              SqlStdOperatorTable.IS_NOT_NULL, simplifyGenericNode((RexCall) a));
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
         }
         // op1 is a non-null and non-zero literal, so simplify op0
         return simplifyIsNotNull(op0);
@@ -1110,10 +1108,10 @@ public class RexSimplify {
           return rexBuilder.makeLiteral(true);
         }
         if (!op1.isA(SqlKind.LITERAL)) {
-          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, simplifyGenericNode((RexCall) a));
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
         }
         if (checkLiteralValue(op1, BigDecimal.ZERO)) {
-          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, simplifyGenericNode((RexCall) a));
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
         }
         // op1 is a non-null and non-zero literal, so simplify op0
         return simplifyIsNull(op0);
