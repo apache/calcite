@@ -2100,6 +2100,9 @@ public class SqlToRelConverter {
     }
     final SqlKind kind = node.getKind();
     switch (kind) {
+    // A lambda has its own scope, which is not part of the blackboard.
+    case LAMBDA:
+      return;
     case EXISTS:
     case UNIQUE:
     case SELECT:
@@ -2282,6 +2285,7 @@ public class SqlToRelConverter {
 
     final Blackboard lambdaBb = createBlackboard(scope, nameToNodeMap, false);
     lambdaBb.setRoot(castNonNull(bb.inputs));
+    replaceSubQueries(lambdaBb, call.getExpression(), RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
     final RexNode expr = lambdaBb.convertExpression(call.getExpression());
     return rexBuilder.makeLambdaCall(expr, parameters);
   }
