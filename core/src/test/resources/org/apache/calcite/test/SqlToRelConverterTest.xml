@@ -4697,6 +4697,17 @@ LogicalProject(EXPR$0=[HIGHER_ORDER_FUNCTION($7, (X, DEPTNO) -> +(DEPTNO, 1))])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLambdaExpressionContainsIn">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(ARRAY[1,2,3,4], (n) -> n IN (1,3))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2, 3, 4), (N) -> OR(=(N, 1), =(N, 3)))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLateral">
     <Resource name="plan">
       <![CDATA[
