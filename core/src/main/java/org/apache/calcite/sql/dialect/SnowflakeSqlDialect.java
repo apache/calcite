@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -62,9 +63,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       super.unparseCall(writer, bitOrCall, leftPrec, rightPrec);
       break;
     case CHAR_LENGTH:
-      SqlCall lengthCall = SqlLibraryOperators.LENGTH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      RelToSqlConverterUtil.convertCharLengthToLength(writer, call, leftPrec, rightPrec);
       break;
     case ENDS_WITH:
       SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
