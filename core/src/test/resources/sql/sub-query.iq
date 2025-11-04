@@ -4396,6 +4396,22 @@ WHERE 'Regular' IN (
 
 !ok
 
+SELECT deptno, (SELECT CASE WHEN SUM(sal) > 10 then 'VIP' else 'Regular' END expr
+                   FROM emp e
+                   WHERE d.deptno = e.deptno) a
+FROM dept d;
++--------+---------+
+| DEPTNO | A       |
++--------+---------+
+|     10 | VIP     |
+|     20 | VIP     |
+|     30 | VIP     |
+|     40 | Regular |
++--------+---------+
+(4 rows)
+
+!ok
+
 # Test case for [CALCITE-5789]
 select deptno from dept d1 where exists (
  select 1 from dept d2 where d2.deptno = d1.deptno and exists (

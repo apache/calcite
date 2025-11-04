@@ -221,14 +221,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return decorrelateQuery(rootRel, relBuilder, null);
   }
 
+  public static RelNode decorrelateQuery(RelNode rootRel,
+      RelBuilder relBuilder, @Nullable RuleSet decorrelationRules) {
+    return decorrelateQuery(rootRel, relBuilder, decorrelationRules, null);
+  }
+
   /**
    * Decorrelates a query specifying a set of rules to be used in the
    * "remove correlation via rules" pre-processing.
    *
    * @param rootRel           Root node of the query
    * @param relBuilder        Builder for relational expressions
-   * @param decorrelationRules  Rules to be used in the decorrelation, if <code>null</code>
-   *                            a default rule set will be used
+   * @param decorrelationRules  Rules to attempt some initial rule-based-decorrelation conversions,
+   *                            if <code>null</code> a default rule set will be used
+   * @param preDecorrelateRules Pre-process rules to be used before the main decorrelation
+   *                            procedure, if <code>null</code> a default rule set will be used
    *
    * @return Equivalent query with all
    * {@link org.apache.calcite.rel.core.Correlate} instances removed
@@ -236,7 +243,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * @see #removeCorrelationViaRule(RelNode, RuleSet)
    */
   public static RelNode decorrelateQuery(RelNode rootRel,
-      RelBuilder relBuilder, @Nullable RuleSet decorrelationRules) {
+      RelBuilder relBuilder, @Nullable RuleSet decorrelationRules,
+      @Nullable RuleSet preDecorrelateRules) {
     final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
     if (!corelMap.hasCorrelation()) {
       return rootRel;
@@ -258,7 +266,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     if (!decorrelator.cm.mapCorToCorRel.isEmpty()) {
-      newRootRel = decorrelator.decorrelate(newRootRel);
+      newRootRel = decorrelator.decorrelate(newRootRel, preDecorrelateRules);
     }
     Litmus.THROW.check(
         rootRel.getRowType().equalsSansFieldNames(newRootRel.getRowType()),
@@ -282,49 +290,56 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   protected RelNode decorrelate(RelNode root) {
-    // first adjust count() expression if any
+    return decorrelate(root, null);
+  }
+
+  protected RelNode decorrelate(RelNode root, @Nullable RuleSet preDecorrelateRules) {
     final RelBuilderFactory f = relBuilderFactory();
-    HepProgram program = HepProgram.builder()
-        .addRuleInstance(
-            AdjustProjectForCountAggregateRule.DEFAULT_WITHOUT_FAVLOR
-                .withRelBuilderFactory(f).toRule())
-        .addRuleInstance(
-            AdjustProjectForCountAggregateRule.DEFAULT_WITH_FAVLOR
-                .withRelBuilderFactory(f).toRule())
-        .addRuleInstance(
-            FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.DEFAULT
-                .withRelBuilderFactory(f)
-                .withOperandSupplier(b0 ->
-                    b0.operand(Filter.class).oneInput(b1 ->
-                        b1.operand(Join.class).anyInputs()))
-                .withDescription("FilterJoinRule:filter")
-                .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
-                .withSmart(true)
-                .withPredicate((join, joinType, exp) -> true)
-                .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
-                .toRule())
-        .addRuleInstance(
-            CoreRules.FILTER_PROJECT_TRANSPOSE.config
-                .withRelBuilderFactory(f)
-                .as(FilterProjectTransposeRule.Config.class)
-                .withOperandFor(Filter.class, filter ->
-                        !RexUtil.containsCorrelation(filter.getCondition()),
-                    Project.class, project -> true)
-                .withCopyFilter(true)
-                .withCopyProject(true)
-                .toRule())
-        .addRuleInstance(FilterCorrelateRule.Config.DEFAULT
-            .withRelBuilderFactory(f)
-            .toRule())
-        .addRuleInstance(FilterFlattenCorrelatedConditionRule.Config.DEFAULT
-            .withRelBuilderFactory(f)
-            .toRule())
-        .build();
+    final HepProgram program;
+    if (preDecorrelateRules != null) {
+      program = ruleSetToHepProgram(preDecorrelateRules);
+    } else {
+      // Use a default set of pre-decorrelate rules:
+      // adjust count() expression if any, and do some filter-related transformations
+      program = HepProgram.builder()
+          .addRuleInstance(
+              AdjustProjectForCountAggregateRule.DEFAULT_WITHOUT_FAVLOR
+                  .withRelBuilderFactory(f).toRule())
+          .addRuleInstance(
+              AdjustProjectForCountAggregateRule.DEFAULT_WITH_FAVLOR
+                  .withRelBuilderFactory(f).toRule())
+          .addRuleInstance(
+              FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.DEFAULT
+                  .withRelBuilderFactory(f)
+                  .withOperandSupplier(b0 ->
+                      b0.operand(Filter.class).oneInput(b1 ->
+                          b1.operand(Join.class).anyInputs()))
+                  .withDescription("FilterJoinRule:filter")
+                  .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
+                  .withSmart(true)
+                  .withPredicate((join, joinType, exp) -> true)
+                  .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
+                  .toRule())
+          .addRuleInstance(
+              CoreRules.FILTER_PROJECT_TRANSPOSE.config
+                  .withRelBuilderFactory(f)
+                  .as(FilterProjectTransposeRule.Config.class)
+                  .withOperandFor(Filter.class, filter ->
+                          !RexUtil.containsCorrelation(filter.getCondition()),
+                      Project.class, project -> true)
+                  .withCopyFilter(true)
+                  .withCopyProject(true)
+                  .toRule())
+          .addRuleInstance(FilterCorrelateRule.Config.DEFAULT
+              .withRelBuilderFactory(f)
+              .toRule())
+          .addRuleInstance(FilterFlattenCorrelatedConditionRule.Config.DEFAULT
+              .withRelBuilderFactory(f)
+              .toRule())
+          .build();
+    }
 
-    HepPlanner planner = createPlanner(program);
-
-    planner.setRoot(root);
-    root = planner.findBestExp();
+    root = applyHepProgram(root, program);
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug("Plan before extracting correlated computations:\n"
           + RelOptUtil.toString(root));
@@ -374,11 +389,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         builder.addRuleCollection(getPostDecorrelateRules());
       }
       final HepProgram program2 = builder.build();
-
-      final HepPlanner planner2 = createPlanner(program2);
-      final RelNode newRoot = result;
-      planner2.setRoot(newRoot);
-      return planner2.findBestExp();
+      return applyHepProgram(result, program2);
     }
 
     return root;
@@ -434,7 +445,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .addRuleInstance(
             RemoveCorrelationForScalarAggregateRule.DEFAULT.withRelBuilderFactory(f).toRule())
         .build();
-    return removeCorrelationViaRule(root, program);
+    return applyHepProgram(root, program);
   }
 
   /**
@@ -443,6 +454,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * {@link org.apache.calcite.rel.core.Correlate}s might be removable in such way).
    */
   public RelNode removeCorrelationViaRule(RelNode root, RuleSet ruleSet) {
+    return applyHepProgram(root, ruleSetToHepProgram(ruleSet));
+  }
+
+  private HepProgram ruleSetToHepProgram(RuleSet ruleSet) {
     final RelBuilderFactory f = relBuilderFactory();
     final HepProgramBuilder builder = HepProgram.builder();
     for (RelOptRule rule : ruleSet) {
@@ -451,11 +466,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
       builder.addRuleInstance(rule);
     }
-    final HepProgram program = builder.build();
-    return removeCorrelationViaRule(root, program);
+    return builder.build();
   }
 
-  private RelNode removeCorrelationViaRule(RelNode root, HepProgram program) {
+  private RelNode applyHepProgram(RelNode root, HepProgram program) {
     HepPlanner planner = createPlanner(program);
     planner.setRoot(root);
     return planner.findBestExp();
@@ -1637,7 +1651,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     frameStack.push(Pair.of(rel.getCorrelationId(), leftFrame));
-    final Frame rightFrame = getInvoke(oldRight, true, rel, parentPropagatesNullValues);
+    final Frame rightFrame =
+        getInvoke(oldRight, true, rel,
+            rel.getJoinType() == JoinRelType.LEFT || parentPropagatesNullValues);
     frameStack.pop();
 
     if (rightFrame == null || rightFrame.corDefOutputs.isEmpty()) {

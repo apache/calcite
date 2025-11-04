@@ -208,6 +208,70 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  @Test void testDecorrelateCountBug() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "SELECT deptno, "
+        + "(SELECT CASE WHEN SUM(sal) > 10 then 'VIP' else 'Regular' END expr "
+        + " FROM emp e WHERE d.deptno = e.deptno) a "
+        + "FROM dept d";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], A=[$3])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(EXPR=[CASE(>($0, 10.00), 'VIP    ', 'Regular')])\n"
+        + "      LogicalAggregate(group=[{}], agg#0=[SUM($0)])\n"
+        + "        LogicalProject(SAL=[$5])\n"
+        + "          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], A=[$3])\n"
+        + "  LogicalJoin(condition=[=($0, $4)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(EXPR=[CASE(>($2, 10.00), 'VIP    ', 'Regular')], DEPTNO=[$0])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
+        + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6468">[CALCITE-6468] RelDecorrelator
@@ -269,23 +333,17 @@ public class RelDecorrelatorTest {
     // Verify plan
     final String planAfter = ""
         + "LogicalProject(EXPR$0=[1])\n"
-        + "  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), >($1, $3))], joinType=[inner])\n"
+        + "  LogicalJoin(condition=[AND(=($0, $2), >($1, $3))], joinType=[inner])\n"
         + "    LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
         + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n"
-        + "    LogicalProject(DEPTNO=[$0], EXPR$0=[$2])\n"
-        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
-        + "        LogicalProject(DEPTNO=[$0])\n"
-        + "          LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
-        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-        + "              LogicalTableScan(table=[[scott, EMP]])\n"
-        + "        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])\n"
-        + "          LogicalProject(DEPTNO=[$0], TOTAL=[$1])\n"
-        + "            LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
-        + "              LogicalProject(DEPTNO=[$0], SAL=[$1])\n"
-        + "                LogicalFilter(condition=[IS NOT NULL($0)])\n"
-        + "                  LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-        + "                    LogicalTableScan(table=[[scott, EMP]])\n";
+        + "    LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])\n"
+        + "      LogicalProject(DEPTNO=[$0], TOTAL=[$1])\n"
+        + "        LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "          LogicalProject(DEPTNO=[$0], SAL=[$1])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
   }
 
@@ -366,15 +424,11 @@ public class RelDecorrelatorTest {
         RelDecorrelator.decorrelateQuery(original, builder, noRules);
     final String planDecorrelatedNoRules = ""
         + "LogicalProject(EXPR$0=[ROW($9, $1)])\n"
-        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $8)], joinType=[left])\n"
+        + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
-        + "    LogicalProject(DEPTNO1=[$0], $f1=[$2])\n"
-        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
-        + "        LogicalAggregate(group=[{7}])\n"
-        + "          LogicalTableScan(table=[[scott, EMP]])\n"
-        + "        LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
-        + "          LogicalProject(DEPTNO1=[$0], DEPTNO=[$0])\n"
-        + "            LogicalTableScan(table=[[scott, DEPT]])\n";
+        + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "      LogicalProject(DEPTNO1=[$0], DEPTNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(decorrelatedNoRules, hasTree(planDecorrelatedNoRules));
   }
 }
