@@ -41,6 +41,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
@@ -1056,6 +1057,101 @@ public class SubQueryRemoveRule
     call.transformTo(builder.build());
   }
 
+  private static void matchFilterEnableMarkJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
+    final Filter filter = call.rel(0);
+    final Set<CorrelationId> variablesSet = filter.getVariablesSet();
+    final RelBuilder builder = call.builder();
+    builder.push(filter.getInput());
+    List<RexNode> newCondition
+        = rule.applyEnableMarkJoin(variablesSet, ImmutableList.of(filter.getCondition()), builder);
+    assert newCondition.size() == 1;
+    builder.filter(newCondition.get(0));
+    builder.project(fields(builder, filter.getRowType().getFieldCount()));
+    call.transformTo(builder.build());
+  }
+
+  private static void matchProjectEnableMarkJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
+    final Project project = call.rel(0);
+    final Set<CorrelationId> variablesSet = project.getVariablesSet();
+    final RelBuilder builder = call.builder();
+    builder.push(project.getInput());
+    List<RexNode> newProjects
+        = rule.applyEnableMarkJoin(variablesSet, project.getProjects(), builder);
+    builder.project(newProjects, project.getRowType().getFieldNames());
+    call.transformTo(builder.build());
+  }
+
+  private List<RexNode> applyEnableMarkJoin(Set<CorrelationId> variablesSetOfRelNode,
+      List<RexNode> expressions, RelBuilder builder) {
+    List<RexNode> newExpressions = new ArrayList<>(expressions);
+    int count = 0;
+    while (true) {
+      final RexSubQuery e = RexUtil.SubQueryFinder.find(newExpressions);
+      if (e == null) {
+        assert count > 0;
+        break;
+      }
+      ++count;
+      final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
+      variablesSet.retainAll(variablesSetOfRelNode);
+
+      RexNode target;
+      switch (e.getKind()) {
+      case EXISTS:
+      case IN:
+      case SOME:
+        target =
+            rewriteToMarkJoin(e, variablesSet, builder,
+                builder.peek().getRowType().getFieldCount());
+        break;
+      case SCALAR_QUERY:
+        target =
+            rewriteScalarQuery(e, variablesSet, builder, 1,
+                builder.peek().getRowType().getFieldCount());
+        break;
+      case ARRAY_QUERY_CONSTRUCTOR:
+      case MAP_QUERY_CONSTRUCTOR:
+      case MULTISET_QUERY_CONSTRUCTOR:
+        target =
+            rewriteCollection(e, variablesSet, builder, 1,
+                builder.peek().getRowType().getFieldCount());
+        break;
+      case UNIQUE:
+        target = rewriteUnique(e, builder);
+        break;
+      default:
+        throw new AssertionError(e.getKind());
+      }
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+      newExpressions = shuttle.apply(newExpressions);
+    }
+    return newExpressions;
+  }
+
+  private static RexNode rewriteToMarkJoin(RexSubQuery e, Set<CorrelationId> variablesSet,
+      RelBuilder builder, int offset) {
+    builder.push(e.rel);
+
+    final List<RexNode> rightShiftRef = RexUtil.shift(builder.fields(), offset);
+    final List<RexNode> externalPredicate = new ArrayList<>();
+    final SqlOperator externalOperator;
+    if (e.getKind() == SqlKind.SOME) {
+      SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
+      externalOperator = RelOptUtil.op(op.comparisonKind, SqlStdOperatorTable.EQUALS);
+    } else {
+      externalOperator = SqlStdOperatorTable.EQUALS;
+    }
+    Pair.zip(e.getOperands(), rightShiftRef, false).stream()
+        .map(pair -> builder.call(externalOperator, pair.left, pair.right))
+        .forEach(externalPredicate::add);
+
+    builder.join(
+        JoinRelType.MARK,
+        RexUtil.composeConjunction(builder.getRexBuilder(), externalPredicate),
+        variablesSet);
+    return last(builder.fields());
+  }
+
   /** Shuttle that replaces occurrences of a given
    * {@link org.apache.calcite.rex.RexSubQuery} with a replacement
    * expression. */
@@ -1099,6 +1195,22 @@ public class SubQueryRemoveRule
                 .predicate(RexUtil.SubQueryFinder::containsSubQuery)
                 .anyInputs())
         .withDescription("SubQueryRemoveRule:Join");
+
+    Config PROJECT_ENABLE_MARK_JOIN = ImmutableSubQueryRemoveRule.Config.builder()
+        .withMatchHandler(SubQueryRemoveRule::matchProjectEnableMarkJoin)
+        .build()
+        .withOperandSupplier(b ->
+            b.operand(Project.class)
+                .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
+        .withDescription("SubQueryRemoveRule:ProjectEnableMarkJoin");
+
+    Config FILTER_ENABLE_MARK_JOIN = ImmutableSubQueryRemoveRule.Config.builder()
+        .withMatchHandler(SubQueryRemoveRule::matchFilterEnableMarkJoin)
+        .build()
+        .withOperandSupplier(b ->
+            b.operand(Filter.class)
+                .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
+        .withDescription("SubQueryRemoveRule:FilterEnableMarkJoin");
 
     @Override default SubQueryRemoveRule toRule() {
       return new SubQueryRemoveRule(this);

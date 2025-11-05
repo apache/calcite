@@ -31,6 +31,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -54,6 +55,14 @@ public class EnumerableCorrelate extends Correlate
       ImmutableBitSet requiredColumns, JoinRelType joinType) {
     super(cluster, traits, ImmutableList.of(), left, right, correlationId, requiredColumns,
         joinType);
+  }
+
+  public EnumerableCorrelate(RelOptCluster cluster, RelTraitSet traits,
+      RelNode left, RelNode right,
+      CorrelationId correlationId,
+      ImmutableBitSet requiredColumns, JoinRelType joinType, RexNode condition) {
+    super(cluster, traits, ImmutableList.of(), left, right, correlationId, requiredColumns,
+        joinType, condition);
   }
 
   /** Creates an EnumerableCorrelate. */
@@ -84,6 +93,13 @@ public class EnumerableCorrelate extends Correlate
       ImmutableBitSet requiredColumns, JoinRelType joinType) {
     return new EnumerableCorrelate(getCluster(),
         traitSet, left, right, correlationId, requiredColumns, joinType);
+  }
+
+  @Override public EnumerableCorrelate copy(RelTraitSet traitSet,
+      RelNode left, RelNode right, CorrelationId correlationId,
+      ImmutableBitSet requiredColumns, JoinRelType joinType, RexNode condition) {
+    return new EnumerableCorrelate(getCluster(),
+        traitSet, left, right, correlationId, requiredColumns, joinType, condition);
   }
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
