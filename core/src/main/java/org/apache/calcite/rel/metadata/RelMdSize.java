@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -45,6 +46,7 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -206,14 +208,24 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     return averageJoinColumnSizes(rel, mq);
   }
 
-  private static @Nullable List<@Nullable Double> averageJoinColumnSizes(Join rel,
+  private @Nullable List<@Nullable Double> averageJoinColumnSizes(Join rel,
       RelMetadataQuery mq) {
     boolean semiOrAntijoin = !rel.getJoinType().projectsRight();
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
     final @Nullable List<@Nullable Double> lefts = mq.getAverageColumnSizes(left);
-    final @Nullable List<@Nullable Double> rights =
-        semiOrAntijoin ? null : mq.getAverageColumnSizes(right);
+    final @Nullable List<@Nullable Double> rights;
+    if (semiOrAntijoin) {
+      if (rel.getJoinType() == JoinRelType.LEFT_MARK) {
+        RelDataTypeField markColType =
+            rel.getRowType().getFieldList().get(rel.getRowType().getFieldCount() - 1);
+        rights = Lists.newArrayList(averageFieldValueSize(markColType));
+      } else {
+        rights = null;
+      }
+    } else {
+      rights = mq.getAverageColumnSizes(right);
+    }
     if (lefts == null && rights == null) {
       return null;
     }

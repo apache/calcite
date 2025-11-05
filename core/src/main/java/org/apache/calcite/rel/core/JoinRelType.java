@@ -91,7 +91,32 @@ public enum JoinRelType {
   /**
    * The left version of an ASOF join, where each row from the left table is part of the output.
    */
-  LEFT_ASOF;
+  LEFT_ASOF,
+
+  /**
+   * An LEFT MARK JOIN will keep all rows from the left side and creates a new attribute to mark a
+   * tuple as having join partners from right side or not. Refer to
+   * <a href="https://dl.gi.de/items/c5f7c49f-1572-490e-976a-cc4292519bdd">
+   *   The Complete Story of Joins (in HyPer)</a>.
+   *
+   * <p>Example:
+   * <blockquote><pre>
+   * SELECT EMPNO FROM EMP
+   * WHERE EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)
+   *     OR EMPNO &gt; 1
+   *
+   * LogicalProject(EMPNO=[$0])
+   *   LogicalFilter(condition=[OR($9, &gt;($0, 1))])
+   *     LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $9)], joinType=[left_mark])
+   *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+   *       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+   * </pre></blockquote>
+   *
+   * <p> If the marker is used on only conjunctive predicates the optimizer will try to translate
+   * the mark join into semi or anti join.
+   */
+  LEFT_MARK;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
@@ -173,7 +198,7 @@ public enum JoinRelType {
   }
 
   public boolean projectsRight() {
-    return this != SEMI && this != ANTI;
+    return this != SEMI && this != ANTI && this != LEFT_MARK;
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its predicate. */
@@ -185,7 +210,8 @@ public enum JoinRelType {
   /** Returns whether this join type accepts pushing predicates from above into its left input. */
   @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushLeftFromAbove() {
-    return (this == INNER) || (this == LEFT) || (this == SEMI) || (this == ANTI);
+    return (this == INNER) || (this == LEFT) || (this == SEMI)
+        || (this == ANTI) || (this == LEFT_MARK);
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its right input. */

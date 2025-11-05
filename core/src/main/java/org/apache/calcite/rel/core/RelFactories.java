@@ -29,6 +29,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalAsofJoin;
+import org.apache.calcite.rel.logical.LogicalConditionalCorrelate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -91,6 +92,9 @@ public class RelFactories {
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
 
+  public static final ConditionalCorrelateFactory DEFAULT_CORRELATE_PLUS_FACTORY =
+      new ConditionalCorrelateFactoryImpl();
+
   public static final SortFactory DEFAULT_SORT_FACTORY =
       new SortFactoryImpl();
 
@@ -144,6 +148,7 @@ public class RelFactories {
           DEFAULT_JOIN_FACTORY,
           DEFAULT_ASOFJOIN_FACTORY,
           DEFAULT_CORRELATE_FACTORY,
+          DEFAULT_CORRELATE_PLUS_FACTORY,
           DEFAULT_VALUES_FACTORY,
           DEFAULT_TABLE_SCAN_FACTORY,
           DEFAULT_TABLE_FUNCTION_SCAN_FACTORY,
@@ -486,6 +491,44 @@ public class RelFactories {
   }
 
   /**
+   * Can create a ConditionalCorrelate of the appropriate type for a rule's calling
+   * convention.
+   *
+   * <p>The result is typically a {@link ConditionalCorrelate}.
+   */
+  public interface ConditionalCorrelateFactory {
+
+    /**
+     * Creates a ConditionalCorrelate.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param hints            Hints
+     * @param correlationId    Variable name for the row of left input
+     * @param requiredColumns  Required columns
+     * @param joinType         Join type
+     * @param condition        Join condition
+     */
+    RelNode createConditionalCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        JoinRelType joinType, RexNode condition);
+  }
+
+  /**
+   * Implementation of {@link ConditionalCorrelateFactory} that returns a vanilla
+   * {@link LogicalConditionalCorrelate}.
+   */
+  private static class ConditionalCorrelateFactoryImpl implements ConditionalCorrelateFactory {
+
+    @Override public RelNode createConditionalCorrelate(RelNode left, RelNode right,
+        List<RelHint> hints, CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        JoinRelType joinType, RexNode condition) {
+      return LogicalConditionalCorrelate.create(left, right, hints, correlationId,
+          requiredColumns, joinType, condition);
+    }
+  }
+
+  /**
    * Can create a semi-join of the appropriate type for a rule's calling
    * convention.
    *
@@ -739,6 +782,7 @@ public class RelFactories {
     public final JoinFactory joinFactory;
     public final AsofJoinFactory asofJoinFactory;
     public final CorrelateFactory correlateFactory;
+    public final ConditionalCorrelateFactory conditionalCorrelateFactory;
     public final ValuesFactory valuesFactory;
     public final TableScanFactory scanFactory;
     public final TableFunctionScanFactory tableFunctionScanFactory;
@@ -759,6 +803,7 @@ public class RelFactories {
         JoinFactory joinFactory,
         AsofJoinFactory asofJoinFactory,
         CorrelateFactory correlateFactory,
+        ConditionalCorrelateFactory conditionalCorrelateFactory,
         ValuesFactory valuesFactory,
         TableScanFactory scanFactory,
         TableFunctionScanFactory tableFunctionScanFactory,
@@ -778,6 +823,8 @@ public class RelFactories {
       this.joinFactory = requireNonNull(joinFactory, "joinFactory");
       this.asofJoinFactory = requireNonNull(asofJoinFactory, "asofJoinFactory");
       this.correlateFactory = requireNonNull(correlateFactory, "correlateFactory");
+      this.conditionalCorrelateFactory =
+          requireNonNull(conditionalCorrelateFactory, "conditionalCorrelateFactory");
       this.valuesFactory = requireNonNull(valuesFactory, "valuesFactory");
       this.scanFactory = requireNonNull(scanFactory, "scanFactory");
       this.tableFunctionScanFactory =
@@ -816,6 +863,8 @@ public class RelFactories {
               .orElse(DEFAULT_ASOFJOIN_FACTORY),
           context.maybeUnwrap(CorrelateFactory.class)
               .orElse(DEFAULT_CORRELATE_FACTORY),
+          context.maybeUnwrap(ConditionalCorrelateFactory.class)
+                  .orElse(DEFAULT_CORRELATE_PLUS_FACTORY),
           context.maybeUnwrap(ValuesFactory.class)
               .orElse(DEFAULT_VALUES_FACTORY),
           context.maybeUnwrap(TableScanFactory.class)
