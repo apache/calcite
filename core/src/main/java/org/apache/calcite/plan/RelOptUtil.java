@@ -3960,12 +3960,25 @@ public abstract class RelOptUtil {
               joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
     }
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
-      final int totalFields = joinType.projectsRight()
-          ? leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size()
-          : leftCount + extraLeftExprs.size();
-      final int[] mappingRanges = joinType.projectsRight()
-          ? new int[] { 0, 0, leftCount, leftCount, leftCount + extraLeftExprs.size(), rightCount }
-          : new int[] { 0, 0, leftCount };
+      final int totalFields;
+      final int[] mappingRanges;
+      switch (joinType) {
+      case SEMI:
+      case ANTI:
+        totalFields = leftCount + extraLeftExprs.size();
+        mappingRanges = new int[] { 0, 0, leftCount };
+        break;
+      case LEFT_MARK:
+        totalFields = leftCount + extraLeftExprs.size() + 1;
+        mappingRanges
+            = new int[] { 0, 0, leftCount, leftCount, leftCount + extraLeftExprs.size(), 1 };
+        break;
+      default:
+        totalFields = leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size();
+        mappingRanges =
+            new int[] { 0, 0, leftCount, leftCount, leftCount + extraLeftExprs.size(), rightCount };
+        break;
+      }
       Mappings.TargetMapping mapping =
           Mappings.createShiftMapping(
               totalFields,

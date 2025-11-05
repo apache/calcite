@@ -498,6 +498,20 @@ public class CoreRules {
   public static final SubQueryRemoveRule JOIN_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.JOIN.toRule();
 
+  /** Rule that converts sub-queries from filter expressions into
+   * {@link Correlate} instances. It will rewrite SOME/EXISTS/IN to a LEFT MARK type Correlate. */
+  public static final SubQueryRemoveRule FILTER_SUB_QUERY_TO_MARK_CORRELATE =
+      SubQueryRemoveRule.Config.FILTER_ENABLE_MARK_JOIN.toRule();
+
+  /** Rule that converts sub-queries from project expressions into
+   * {@link Correlate} instances. It will rewrite SOME/EXISTS/IN to a LEFT MARK type Correlate. */
+  public static final SubQueryRemoveRule PROJECT_SUB_QUERY_TO_MARK_CORRELATE =
+      SubQueryRemoveRule.Config.PROJECT_ENABLE_MARK_JOIN.toRule();
+
+  /** Rule that converts mark join to semi/anti join. */
+  public static final MarkToSemiOrAntiJoinRule MARK_TO_SEMI_OR_ANTI_JOIN_RULE =
+      MarkToSemiOrAntiJoinRule.Config.DEFAULT.toRule();
+
   /** Rule that converts SUM to SUM0 in OVER clauses in a project list. */
   public static final ProjectOverSumToSum0Rule PROJECT_OVER_SUM_TO_SUM0_RULE =
       ProjectOverSumToSum0Rule.Config.DEFAULT.toRule();

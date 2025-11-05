@@ -29,6 +29,7 @@ import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -169,6 +170,7 @@ public abstract class Correlate extends BiRel implements Hintable {
     switch (joinType) {
     case LEFT:
     case INNER:
+    case LEFT_MARK:
       return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
           right.getRowType(), joinType,
           getCluster().getTypeFactory(), null,
@@ -211,6 +213,10 @@ public abstract class Correlate extends BiRel implements Hintable {
     return requiredColumns;
   }
 
+  public RexNode getCondition() {
+    return getCluster().getRexBuilder().makeLiteral(true);
+  }
+
   @Override public Set<CorrelationId> getVariablesSet() {
     return ImmutableSet.of(correlationId);
   }
@@ -220,6 +226,7 @@ public abstract class Correlate extends BiRel implements Hintable {
     switch (joinType) {
     case SEMI:
     case ANTI:
+    case LEFT_MARK:
       return leftRowCount;
     default:
       return leftRowCount * mq.getRowCount(right);

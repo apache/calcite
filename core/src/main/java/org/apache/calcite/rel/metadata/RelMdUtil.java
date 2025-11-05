@@ -813,6 +813,9 @@ public class RelMdUtil {
   public static @Nullable Double getJoinRowCount(RelMetadataQuery mq, Join join,
       RexNode condition) {
     if (!join.getJoinType().projectsRight()) {
+      if (join.getJoinType() == JoinRelType.LEFT_MARK) {
+        return mq.getRowCount(join.getLeft());
+      }
       // Create a RexNode representing the selectivity of the
       // semijoin filter and pass it to getSelectivity
       RexNode semiJoinSelectivity =
