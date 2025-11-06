@@ -42,6 +42,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -76,6 +77,12 @@ class TpcdsSqlToRelTest {
   @MethodSource("testCases")
   void testQuery(int query) throws IOException, SqlParseException {
     String sql = getResourceAsString(inputSqlFile(query));
+    List<SqlNode> sqlNodes = parseSqlStatements(sql);
+    convertSqlToRel(sqlNodes);
+  }
+
+  @Test void testUpdate() throws SqlParseException {
+    String sql = "UPDATE customer SET c_first_name = 'Alice' WHERE c_customer_sk = 'some_key'";
     List<SqlNode> sqlNodes = parseSqlStatements(sql);
     convertSqlToRel(sqlNodes);
   }
