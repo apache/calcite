@@ -1230,7 +1230,6 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
-      // TODO: handle safety here?!?
       // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
       // to "operand0 IS NULL OR operand1 IS NULL"
       final List<RexNode> operands = new ArrayList<>();
