@@ -42,7 +42,6 @@ on orders.productid = products_temporal.productid and orders.orderId is not null
     <Resource name="hints">
       <![CDATA[
 Project:[[USE_HASH_JOIN inheritPath:[] options:[ORDERS, PRODUCTS_TEMPORAL]]]
-Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
@@ -54,7 +53,6 @@ from orders, products_temporal for system_time as of orders.rowtime]]>
     <Resource name="hints">
       <![CDATA[
 Project:[[USE_HASH_JOIN inheritPath:[] options:[ORDERS, PRODUCTS_TEMPORAL]]]
-Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
@@ -373,7 +371,6 @@ TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [PROPERTIES inher
     <Resource name="hints">
       <![CDATA[
 Project:[[FAST_SNAPSHOT inheritPath:[] options:[PRODUCTS_TEMPORAL]]]
-Snapshot:[[FAST_SNAPSHOT inheritPath:[0, 1] options:[PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
