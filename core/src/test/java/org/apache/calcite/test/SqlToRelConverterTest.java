@@ -41,6 +41,7 @@ import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -3084,6 +3085,26 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     calc.accept(visitor);
     assertThat(rels, hasSize(1));
     assertThat(rels.get(0), instanceOf(LogicalCalc.class));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6947">[CALCITE-6947]
+   * Support LogicalSnapshot in RelShuttle</a>. */
+  @Test void testRelShuttleForLogicalSnapshot() {
+    final String sql = "select * from products_temporal "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    final RelNode rel = sql(sql).toRel();
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalSnapshot modify) {
+        RelNode visitedRel = super.visit(modify);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    rel.accept(visitor);
+    assertThat(rels, hasSize(1));
+    assertThat(rels.get(0), instanceOf(LogicalSnapshot.class));
   }
 
   @Test void testRelShuttleForLogicalTableModify() {

@@ -54,6 +54,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -917,6 +918,13 @@ class SqlHintsConverterTest {
           this.hintsCollect.add("Sort:" + sort.getHints());
         }
         return super.visit(sort);
+      }
+
+      @Override public RelNode visit(LogicalSnapshot snapshot) {
+        if (!snapshot.getHints().isEmpty()) {
+          this.hintsCollect.add("Snapshot:" + snapshot.getHints());
+        }
+        return super.visit(snapshot);
       }
 
       @Override public RelNode visit(LogicalValues values) {
