@@ -1589,6 +1589,30 @@ LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAsofOptJoin">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM (VALUES (NULL, ROW(0, 1)), (1, ROW(0, 2))) AS t1(k, t)
+ASOF JOIN (VALUES (2, ROW(0, 3))) AS t2(k, t)
+MATCH_CONDITION t2.t < t1.t
+ON t1.k = t2.k
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
+    LogicalProject(K=[$0], T=[$1])
+      LogicalUnion(all=[true])
+        LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[ROW(0, 1)])
+          LogicalValues(tuples=[[{ 0 }]])
+        LogicalProject(EXPR$0=[1], EXPR$1=[ROW(0, 2)])
+          LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(K=[2], T=[ROW(0, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testBitAndReuseDistinctAttrWithMixedOptionality">
     <Resource name="sql">
       <![CDATA[select sum(distinct deptno), count(distinct deptno), bit_and(deptno) from emp]]>
