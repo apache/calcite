@@ -3404,6 +3404,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7276">[CALCITE-7276]
+   * SqlToRelConverter throws exception for UPDATE if identifier expansion disabled</a>.
+   */
+  @Test void testUpdateWithIdentifierExpansionDisabled() {
+    final String sql = "update emp set empno = empno + 1";
+    sql(sql)
+        .withFactory(f ->
+            f.withValidator((opTab, catalogReader, typeFactory, config)
+                -> SqlValidatorUtil.newValidator(opTab, catalogReader,
+                typeFactory, config.withIdentifierExpansion(false))))
+        .withTrim(false)
+        .ok();
+  }
+
+
   @Test void testUpdateSubQuery() {
     final String sql = "update emp\n"
         + "set empno = (\n"
