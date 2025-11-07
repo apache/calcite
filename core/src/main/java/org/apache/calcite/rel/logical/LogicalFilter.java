@@ -148,10 +148,10 @@ public final class LogicalFilter extends Filter {
   }
 
   @Override public LogicalFilter copy(RelTraitSet traitSet, RelNode input,
-      RexNode condition) {
+      RexNode condition, Set<CorrelationId> variablesSet) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalFilter(getCluster(), traitSet, hints, input, condition,
-        variablesSet);
+        ImmutableSet.copyOf(variablesSet));
   }
 
   @Override public RelNode accept(RelShuttle shuttle) {

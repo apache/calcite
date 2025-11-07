@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -79,7 +80,9 @@ public class GeodeFilter extends Filter implements GeodeRel {
     return cost.multiplyBy(0.1);
   }
 
-  @Override public GeodeFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+  @Override public GeodeFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition,
+      Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new GeodeFilter(getCluster(), traitSet, input, condition);
   }
 

@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -45,6 +46,9 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -67,7 +71,8 @@ public class MongoFilter extends Filter implements MongoRel {
   }
 
   @Override public MongoFilter copy(RelTraitSet traitSet, RelNode input,
-      RexNode condition) {
+      RexNode condition, Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new MongoFilter(getCluster(), traitSet, input, condition);
   }
 

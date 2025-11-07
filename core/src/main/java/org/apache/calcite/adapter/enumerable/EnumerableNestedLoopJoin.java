@@ -64,8 +64,8 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   }
 
   @Override public EnumerableNestedLoopJoin copy(RelTraitSet traitSet,
-      RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
-      boolean semiJoinDone) {
+      RexNode condition, RelNode left, RelNode right, Set<CorrelationId> variablesSet,
+      JoinRelType joinType, boolean semiJoinDone) {
     return new EnumerableNestedLoopJoin(getCluster(), traitSet, left, right,
         condition, variablesSet, joinType);
   }
