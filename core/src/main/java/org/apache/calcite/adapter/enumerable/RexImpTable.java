@@ -716,8 +716,8 @@ public class RexImpTable {
       defineMethod(SHA512, BuiltInMethod.SHA512.method, NullPolicy.STRICT);
       defineMethod(SUBSTRING, BuiltInMethod.SUBSTRING.method, NullPolicy.STRICT);
       defineMethod(FORMAT_NUMBER, BuiltInMethod.FORMAT_NUMBER.method, NullPolicy.STRICT);
-      defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.ANY);
-      defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
+      defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.SEMI_STRICT);
+      defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.SEMI_STRICT);
       defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.STRICT);
       defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.STRICT);
       defineMethod(STARTS_WITH, BuiltInMethod.STARTS_WITH.method, NullPolicy.STRICT);
@@ -803,7 +803,7 @@ public class RexImpTable {
       defineReflective(REGEXP_INSTR, BuiltInMethod.REGEXP_INSTR2.method,
           BuiltInMethod.REGEXP_INSTR3.method, BuiltInMethod.REGEXP_INSTR4.method,
           BuiltInMethod.REGEXP_INSTR5.method);
-      defineMethod(FIND_IN_SET, BuiltInMethod.FIND_IN_SET.method, NullPolicy.ANY);
+      defineMethod(FIND_IN_SET, BuiltInMethod.FIND_IN_SET.method, NullPolicy.SEMI_STRICT);
 
       define(TRIM, new TrimImplementor());
 
@@ -1073,23 +1073,23 @@ public class RexImpTable {
           NullPolicy.STRICT);
       defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.STRICT);
       defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
-      defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
+      defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.SEMI_STRICT);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_APPEND, BuiltInMethod.ARRAY_APPEND.method, NullPolicy.ARG0);
       defineMethod(ARRAY_COMPACT, BuiltInMethod.ARRAY_COMPACT.method, NullPolicy.STRICT);
-      defineMethod(ARRAY_CONTAINS, BuiltInMethod.LIST_CONTAINS.method, NullPolicy.ANY);
+      defineMethod(ARRAY_CONTAINS, BuiltInMethod.LIST_CONTAINS.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
-      defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
+      defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_JOIN, BuiltInMethod.ARRAY_TO_STRING.method,
           NullPolicy.STRICT);
       defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.ARG0);
-      defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);
+      defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MAX, BuiltInMethod.ARRAY_MAX.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MIN, BuiltInMethod.ARRAY_MIN.method, NullPolicy.STRICT);
       defineMethod(ARRAY_PREPEND, BuiltInMethod.ARRAY_PREPEND.method, NullPolicy.ARG0);
-      defineMethod(ARRAY_POSITION, BuiltInMethod.ARRAY_POSITION.method, NullPolicy.ANY);
-      defineMethod(ARRAY_REMOVE, BuiltInMethod.ARRAY_REMOVE.method, NullPolicy.ANY);
+      defineMethod(ARRAY_POSITION, BuiltInMethod.ARRAY_POSITION.method, NullPolicy.SEMI_STRICT);
+      defineMethod(ARRAY_REMOVE, BuiltInMethod.ARRAY_REMOVE.method, NullPolicy.SEMI_STRICT);
       defineMethod(ARRAY_REPEAT, BuiltInMethod.ARRAY_REPEAT.method, NullPolicy.NONE);
       defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_SIZE, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
@@ -1097,16 +1097,16 @@ public class RexImpTable {
       defineMethod(ARRAY_TO_STRING, BuiltInMethod.ARRAY_TO_STRING.method,
           NullPolicy.STRICT);
       defineMethod(STRING_TO_ARRAY, BuiltInMethod.STRING_TO_ARRAY.method, NullPolicy.ARG0);
-      defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
-      defineMethod(ARRAYS_OVERLAP, BuiltInMethod.ARRAYS_OVERLAP.method, NullPolicy.ANY);
-      defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.ANY);
-      defineMethod(EXISTS, BuiltInMethod.EXISTS.method, NullPolicy.ANY);
-      defineMethod(MAP_CONCAT, BuiltInMethod.MAP_CONCAT.method, NullPolicy.ANY);
-      defineMethod(MAP_CONTAINS_KEY, BuiltInMethod.MAP_CONTAINS_KEY.method, NullPolicy.ANY);
+      defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.SEMI_STRICT);
+      defineMethod(ARRAYS_OVERLAP, BuiltInMethod.ARRAYS_OVERLAP.method, NullPolicy.SEMI_STRICT);
+      defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.SEMI_STRICT);
+      defineMethod(EXISTS, BuiltInMethod.EXISTS.method, NullPolicy.SEMI_STRICT);
+      defineMethod(MAP_CONCAT, BuiltInMethod.MAP_CONCAT.method, NullPolicy.SEMI_STRICT);
+      defineMethod(MAP_CONTAINS_KEY, BuiltInMethod.MAP_CONTAINS_KEY.method, NullPolicy.SEMI_STRICT);
       defineMethod(MAP_ENTRIES, BuiltInMethod.MAP_ENTRIES.method, NullPolicy.STRICT);
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);
-      defineMethod(MAP_FROM_ARRAYS, BuiltInMethod.MAP_FROM_ARRAYS.method, NullPolicy.ANY);
+      defineMethod(MAP_FROM_ARRAYS, BuiltInMethod.MAP_FROM_ARRAYS.method, NullPolicy.SEMI_STRICT);
       defineMethod(MAP_FROM_ENTRIES, BuiltInMethod.MAP_FROM_ENTRIES.method, NullPolicy.STRICT);
       define(STR_TO_MAP, new StringToMapImplementor());
       defineMethod(SUBSTRING_INDEX, BuiltInMethod.SUBSTRING_INDEX.method, NullPolicy.STRICT);
@@ -4391,7 +4391,6 @@ public class RexImpTable {
     private List<Expression> unboxIfNecessary(final List<Expression> argValueList) {
       switch (nullPolicy) {
       case STRICT:
-      case ANY:
       case SEMI_STRICT:
         return Util.transform(argValueList,
             AbstractRexCallImplementor::unboxExpression);
@@ -4943,7 +4942,7 @@ public class RexImpTable {
 
     QuantifyCollectionImplementor(SqlBinaryOperator binaryOperator,
         RexCallImplementor binaryImplementor) {
-      super("quantify", NullPolicy.ANY, false);
+      super("quantify", NullPolicy.SEMI_STRICT, false);
       this.binaryOperator = binaryOperator;
       this.binaryImplementor = binaryImplementor;
     }

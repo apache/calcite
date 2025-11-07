@@ -32,7 +32,9 @@ public enum NullPolicy {
   STRICT,
   /** Returns null if one of the arguments is null, and possibly other times. */
   SEMI_STRICT,
-  /** If any of the arguments are null, return null. */
+  /** If any of the arguments are null, return null.
+   * @deprecated {@link #SEMI_STRICT} has identical semantics so use this instead. */
+  @Deprecated
   ANY,
   /** If the first argument is null, return null. */
   ARG0,

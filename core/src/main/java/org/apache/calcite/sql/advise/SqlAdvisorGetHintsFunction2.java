@@ -67,7 +67,7 @@ public class SqlAdvisorGetHintsFunction2
           (translator, call, operands) ->
               Expressions.call(GET_COMPLETION_HINTS,
                   Iterables.concat(Collections.singleton(ADVISOR), operands)),
-          NullPolicy.ANY, false);
+          NullPolicy.SEMI_STRICT, false);
 
   private static final List<FunctionParameter> PARAMETERS =
       ReflectiveFunctionBase.builder()
