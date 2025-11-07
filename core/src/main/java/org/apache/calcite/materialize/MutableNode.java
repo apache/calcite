@@ -88,7 +88,7 @@ class MutableNode {
     }
   }
 
-  /** Returns whether this node is cylic, in an undirected sense; that is,
+  /** Returns whether this node is cyclic, in an undirected sense; that is,
    * whether the same descendant can be reached by more than one route. */
   boolean isCyclic() {
     final Set<MutableNode> descendants = new HashSet<>();
