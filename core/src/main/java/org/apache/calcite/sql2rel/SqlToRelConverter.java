@@ -4470,16 +4470,16 @@ public class SqlToRelConverter {
       targetColumnNameList.add(field.getName());
     }
 
-    // `sourceSelect` should contain target columns values plus source expressions
-    if (sourceSelect.getSelectList().size()
-        != targetTable.getRowType().getFieldCount() + call.getSourceExpressionList().size()) {
-      throw new AssertionError(
-          "Unexpected select list size. Select list should contain both target table columns and "
-              + "set expressions");
-    }
-
     RelNode sourceRel = convertSelect(sourceSelect, false);
     bb.setRoot(sourceRel, false);
+
+    // `sourceRel` should contain target columns values plus source expressions
+    if (sourceRel.getRowType().getFieldCount()
+        != targetTable.getRowType().getFieldCount() + call.getSourceExpressionList().size()) {
+      throw new AssertionError(
+          "Unexpected source select row type. Select row type should contain both target table "
+              + "columns and set expressions");
+    }
 
     // sourceRel already contains all source expressions. Only create references to those fields.
     List<RexNode> rexExpressionList =

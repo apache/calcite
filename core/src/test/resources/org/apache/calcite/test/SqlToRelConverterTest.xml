@@ -9728,6 +9728,18 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColum
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUpdateWithIdentifierExpansionDisabled">
+    <Resource name="sql">
+      <![CDATA[update emp set empno = empno + 1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[$9]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($0, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUserDefinedOrderByOverFirst">
     <Resource name="sql">
       <![CDATA[select deptno,
