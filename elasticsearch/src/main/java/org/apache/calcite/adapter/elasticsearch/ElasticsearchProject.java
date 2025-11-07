@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -35,7 +36,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -52,7 +56,8 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
   }
 
   @Override public Project copy(RelTraitSet relTraitSet, RelNode input, List<RexNode> projects,
-      RelDataType relDataType) {
+      RelDataType relDataType, Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new ElasticsearchProject(getCluster(), traitSet, input, projects, relDataType);
   }
 

@@ -416,8 +416,8 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   }
 
   @Override public EnumerableMergeJoin copy(RelTraitSet traitSet,
-      RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
-      boolean semiJoinDone) {
+      RexNode condition, RelNode left, RelNode right, Set<CorrelationId> variablesSet,
+      JoinRelType joinType, boolean semiJoinDone) {
     return new EnumerableMergeJoin(getCluster(), traitSet, left, right,
         condition, variablesSet, joinType);
   }

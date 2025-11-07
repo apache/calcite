@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
@@ -32,6 +33,9 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link PigRel#CONVENTION Pig calling convention}. */
@@ -45,8 +49,10 @@ public class PigJoin extends Join implements PigRel {
     assert getConvention() == PigRel.CONVENTION;
   }
 
-  @Override public Join copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left,
-      RelNode right, JoinRelType joinType, boolean semiJoinDone) {
+  @Override public PigJoin copy(RelTraitSet traitSet,
+      RexNode conditionExpr, RelNode left, RelNode right, Set<CorrelationId> variablesSet,
+      JoinRelType joinType, boolean semiJoinDone) {
+    checkArgument(variablesSet.isEmpty());
     return new PigJoin(getCluster(), traitSet, left, right, conditionExpr, joinType);
   }
 
