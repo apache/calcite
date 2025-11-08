@@ -108,6 +108,7 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -4897,6 +4898,127 @@ public abstract class RelOptUtil {
       this.r = r;
       this.indicator = indicator;
       this.outerJoin = outerJoin;
+    }
+  }
+
+  /**
+   * Normalizes correlation variables across a relational plan to ensure unique identifiers.
+   * By default, multiple nodes can define identical correlation IDs, making it difficult to
+   * track variable scoping. For example:
+   *
+   * <pre>
+   *  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])
+   *     LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])
+   *        LogicalTableScan(table=[[scott, EMP]])
+   *        LogicalFilter(condition=[=($2, $cor0.JOB)])
+   *          LogicalTableScan(table=[[scott, EMP]])
+   * </pre>
+   *
+   * <p>In such cases, finding which node introduces a correlation ID adds complexity. For
+   * a simple case when walking across a tree to check which node introduces a correlation ID
+   * that is used inside the current rel node, we need to maintain a scope or find the
+   * nearest ancestor that introduces this correlation ID.
+   *
+   * <p>This class simplifies correlation handling by ensuring each correlation ID is unique
+   * across the entire plan. This makes it easier to find where each correlation is defined.
+   */
+  public static class CorrelVarNormalizer extends RelHomogeneousShuttle {
+    public static RelNode normalize(RelNode relNode) {
+      return relNode.accept(
+          new CorrelVarNormalizer(relNode.getCluster().getRexBuilder(), new HashSet<>(),
+              ImmutableMap.of()));
+    }
+
+    private final RexBuilder rexBuilder;
+
+    /** Global for all nodes being visited. */
+    private final Set<CorrelationId> usedVariables;
+
+    /** Mapping from original correlation IDs to their normalized replacements. */
+    // it would be good to have something like BiRexVisitor to not reassign variable
+    private ImmutableMap<CorrelationId, CorrelationId> correlIdReplacements;
+
+    private CorrelVarNormalizer(final RexBuilder rexBuilder, final Set<CorrelationId> usedVariables,
+        final ImmutableMap<CorrelationId, CorrelationId> scope) {
+      this.rexBuilder = rexBuilder;
+      this.usedVariables = usedVariables;
+      this.correlIdReplacements = scope;
+    }
+
+    @Override public RelNode visit(RelNode rel) {
+      Set<CorrelationId> variableSet = rel.getVariablesSet();
+
+      if (!variableSet.isEmpty()) {
+        boolean changed = false;
+        ImmutableMap.Builder<CorrelationId, CorrelationId> replacementsBuilder =
+            ImmutableMap.builder();
+        replacementsBuilder.putAll(correlIdReplacements);
+        for (CorrelationId id : variableSet) {
+          if (usedVariables.contains(id)) {
+            // the current correlation id has already been used. So, we need to
+            // replace it with a new one for current node children.
+            CorrelationId replacement = rel.getCluster().createCorrel();
+            replacementsBuilder.put(id, replacement);
+            usedVariables.add(replacement);
+            changed = true;
+          } else {
+            replacementsBuilder.put(id, id);
+            usedVariables.add(id);
+          }
+        }
+        correlIdReplacements = replacementsBuilder.buildKeepingLast();
+        if (changed) {
+          Set<CorrelationId> newCorrelationIds =
+              ImmutableSet.copyOf(Util.transform(variableSet, correlIdReplacements::get));
+          rel = rel.copy(rel.getTraitSet(), rel.getInputs(), newCorrelationIds);
+        }
+      }
+
+      return super.visit(
+          rel.accept(new CorrelVarReplacer(rexBuilder, usedVariables, correlIdReplacements)));
+    }
+
+    @Override protected RelNode visitChild(final RelNode parent, final int i, final RelNode child) {
+      ImmutableMap<CorrelationId, CorrelationId> previousReplacements = correlIdReplacements;
+      RelNode result = super.visitChild(parent, i, child);
+      correlIdReplacements = previousReplacements;
+      return result;
+    }
+  }
+
+  /** Shuttle that replaces correlation variables in RexNode expressions. It calls
+   * CorrelVarNormalizer for sub-queries. */
+  private static class CorrelVarReplacer extends RexShuttle {
+    private final RexBuilder rexBuilder;
+    private final Set<CorrelationId> usedVariables;
+    private final ImmutableMap<CorrelationId, CorrelationId> correlIdReplacements;
+
+    private CorrelVarReplacer(final RexBuilder rexBuilder,
+        final Set<CorrelationId> usedVariables,
+        final ImmutableMap<CorrelationId, CorrelationId> correlIdReplacements) {
+      this.rexBuilder = rexBuilder;
+      this.usedVariables = usedVariables;
+      this.correlIdReplacements = correlIdReplacements;
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      RexSubQuery visitedSubQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+      RelNode rel =
+          visitedSubQuery.rel.accept(
+              new RelOptUtil.CorrelVarNormalizer(rexBuilder, usedVariables,
+              correlIdReplacements));
+      if (rel != visitedSubQuery.rel) {
+        return visitedSubQuery.clone(rel);
+      }
+      return visitedSubQuery;
+    }
+
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+      CorrelationId replacement = requireNonNull(correlIdReplacements.get(variable.id));
+      if (!replacement.equals(variable.id)) {
+        return rexBuilder.makeCorrel(variable.getType(), replacement);
+      }
+      return variable;
     }
   }
 }

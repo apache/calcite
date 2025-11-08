@@ -237,6 +237,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   public static RelNode decorrelateQuery(RelNode rootRel,
       RelBuilder relBuilder, @Nullable RuleSet decorrelationRules) {
+    rootRel = RelOptUtil.CorrelVarNormalizer.normalize(rootRel);
+
     final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
     if (!corelMap.hasCorrelation()) {
       return rootRel;
