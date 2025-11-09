@@ -186,7 +186,12 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LENIENT_OPERATOR_LOOKUP("lenientOperatorLookup", Type.BOOLEAN, false, false),
 
   /** Whether to enable top-down optimization in Volcano planner. */
-  TOPDOWN_OPT("topDownOpt", Type.BOOLEAN, CalciteSystemProperty.TOPDOWN_OPT.value(), false);
+  TOPDOWN_OPT("topDownOpt", Type.BOOLEAN, CalciteSystemProperty.TOPDOWN_OPT.value(), false),
+
+  /** Directory path for RuleMatchVisualizer output.
+   * If set, enables visualization of the rule matching process during query optimization.
+   * The visualizer will create HTML and JSON files in the specified directory. */
+  RULE_VISUALIZER_DIR("ruleVisualizerDir", Type.STRING, null, false);
 
   private final String camelName;
   private final Type type;
