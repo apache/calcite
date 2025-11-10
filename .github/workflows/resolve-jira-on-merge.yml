@@ -1,0 +1,94 @@
+name: Resolve JIRA on merged PR
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  transition-jira:
+    name: Transition Jira when PR merged
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    env:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+    steps:
+      - name: Extract CALCITE tickets from PR body
+        id: extract-tickets
+        run: |
+          set -euo pipefail
+          BODY="${{ github.event.pull_request.body || '' }}"
+          echo "PR body:"
+          echo "$BODY"
+
+          # Extract all CALCITE-<num> entries, remove duplicates,
+          # and concatenate them into a single line by spaces.
+          TICKETS=$(printf '%s\n' "$BODY" \
+          | grep -ioE '(Fixes|Closes|Resolves):.*' \
+          | grep -oE 'CALCITE-[0-9]+' \
+          | awk '!seen[$0]++' \
+          | tr '\n' ' ' \
+          | sed 's/ $//')
+
+          # Always write the output key; leave empty when no tickets
+          echo "extracted_tickets=$TICKETS" >> "$GITHUB_OUTPUT"
+
+      - name: Transition Jira issues to Resolve status for each CALCITE ticket
+        if: steps.extract-tickets.outputs.extracted_tickets != ''
+        run: |
+          set -euo pipefail
+          TICKETS="${{ steps.extract-tickets.outputs.extracted_tickets }}"
+          echo "Found CALCITE tickets: $TICKETS"
+
+          PR_NUM="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+          MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          TRANSITION_ID="5"
+          STATUS="Fixed"
+          echo "merge_commit_sha: $MERGE_SHA"
+          COMMIT_URL="https://github.com/${REPO}/commit/${MERGE_SHA}"
+          echo "Commit URL: $COMMIT_URL"
+
+          ERROR=0
+          FAILED_KEYS=""
+
+          for TICKET in $TICKETS; do
+            echo "Processing $TICKET"
+            PAYLOAD=$(jq -n \
+              --arg id "$TRANSITION_ID" \
+              --arg res "$STATUS" \
+              --arg pr_num "$PR_NUM" \
+              --arg commit_url "$COMMIT_URL" \
+              '{
+                transition: { id: $id },
+                fields: { resolution: { name: $res } },
+                update: { comment: [ { add: { body: "Resolved via PR #\($pr_num) (commit: \($commit_url))" } } ] }
+              }')
+            POST_URL="${JIRA_BASE_URL}/rest/api/2/issue/${TICKET}/transitions"
+            echo "POST $POST_URL for $TICKET"
+            HTTP_CODE=$(curl -s -o /tmp/jresp -w "%{http_code}" -H "Authorization: Bearer ${JIRA_API_TOKEN}" -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$POST_URL")
+            BODY=$(cat /tmp/jresp || true)
+            echo "HTTP code: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "Successfully transitioned $TICKET"
+            else
+              echo "Failed to transition $TICKET. HTTP $HTTP_CODE"
+              echo "Response body:"
+              echo "$BODY"
+              ERROR=1
+              FAILED_KEYS="${FAILED_KEYS} ${TICKET}"
+            fi
+          done
+
+          if [ "$ERROR" -ne 0 ]; then
+            echo "One or more transitions failed for keys:$FAILED_KEYS"
+            exit 1
+          fi
+
+      - name: Skip (no CALCITE key)
+        if: steps.extract-tickets.outputs.extracted_tickets == ''
+        run: echo "PR body contains no CALCITE-<num>; nothing to do."
