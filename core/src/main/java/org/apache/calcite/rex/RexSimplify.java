@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -1158,10 +1159,10 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(a.getKind())) {
       return null;
     }
-    switch (Strong.policy(a)) {
-    case NOT_NULL:
+    switch (policy(a)) {
+    case NEVER:
       return rexBuilder.makeLiteral(true);
-    case ANY:
+    case STRICT:
       // "f" is a strong operator, so "f(operand0, operand1) IS NOT NULL"
       // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL"
       final List<RexNode> operands = new ArrayList<>();
@@ -1177,16 +1178,11 @@ public class RexSimplify {
         }
       }
       return RexUtil.composeConjunction(rexBuilder, operands);
-    case CUSTOM:
+    default:
       switch (a.getKind()) {
       case LITERAL:
         return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
-      default:
-        throw new AssertionError("every CUSTOM policy needs a handler, "
-            + a.getKind());
       }
-    case AS_IS:
-    default:
       return null;
     }
   }
@@ -1213,10 +1209,10 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(a.getKind())) {
       return null;
     }
-    switch (Strong.policy(a)) {
-    case NOT_NULL:
+    switch (policy(a)) {
+    case NEVER:
       return rexBuilder.makeLiteral(false);
-    case ANY:
+    case STRICT:
       // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
       // to "operand0 IS NULL OR operand1 IS NULL"
       final List<RexNode> operands = new ArrayList<>();
@@ -1230,7 +1226,6 @@ public class RexSimplify {
         }
       }
       return RexUtil.composeDisjunction(rexBuilder, operands, false);
-    case AS_IS:
     default:
       return null;
     }
@@ -1246,11 +1241,11 @@ public class RexSimplify {
     if (hasCustomNullabilityRules(rexNode.getKind())) {
       return;
     }
-    switch (Strong.policy(rexNode)) {
-    case NOT_NULL:
+    switch (policy(rexNode)) {
+    case NEVER:
       assert !rexNode.getType().isNullable();
       break;
-    case ANY:
+    case STRICT:
       List<RexNode> operands = ((RexCall) rexNode).getOperands();
       if (rexNode.getType().isNullable()) {
         assert operands.stream()
@@ -1265,6 +1260,13 @@ public class RexSimplify {
     default:
       break;
     }
+  }
+
+  private static NullPolicy policy(RexNode node) {
+    if (node instanceof RexCall) {
+      return ((RexCall) node).getOperator().getNullPolicy();
+    }
+    return NullPolicy.NONE;
   }
 
   /**
