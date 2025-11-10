@@ -371,9 +371,30 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return Copy of this relational expression, substituting traits and
    * inputs
    */
+  default RelNode copy(
+      RelTraitSet traitSet,
+      List<RelNode> inputs) {
+    return copy(traitSet, inputs, getVariablesSet());
+  }
+
+  /**
+   * Creates a copy of this relational expression, perhaps changing traits and
+   * inputs and variable set.
+   *
+   * <p>Sub-classes with other important attributes are encouraged to create
+   * variants of this method with more parameters.
+   *
+   * @param traitSet     Trait set
+   * @param inputs       Inputs
+   * @param variablesSet the variables that are set in this relational
+   *                     expression
+   * @return Copy of this relational expression, substituting traits and
+   * inputs
+   */
   RelNode copy(
       RelTraitSet traitSet,
-      List<RelNode> inputs);
+      List<RelNode> inputs,
+      Set<CorrelationId> variablesSet);
 
   /**
    * Registers any special rules specific to this kind of relational

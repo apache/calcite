@@ -358,7 +358,8 @@ public class Bindables {
     }
 
     @Override public BindableFilter copy(RelTraitSet traitSet, RelNode input,
-        RexNode condition) {
+        RexNode condition, Set<CorrelationId> variablesSet) {
+      checkArgument(variablesSet.isEmpty());
       return new BindableFilter(getCluster(), traitSet, input, condition);
     }
 
@@ -421,7 +422,8 @@ public class Bindables {
     }
 
     @Override public BindableProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType) {
+        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
+      checkArgument(variablesSet.isEmpty());
       return new BindableProject(getCluster(), traitSet, input,
           projects, rowType);
     }
@@ -550,7 +552,7 @@ public class Bindables {
     }
 
     @Override public BindableJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
-        RelNode left, RelNode right, JoinRelType joinType,
+        RelNode left, RelNode right, Set<CorrelationId> variablesSet, JoinRelType joinType,
         boolean semiJoinDone) {
       return new BindableJoin(getCluster(), traitSet, left, right,
           conditionExpr, variablesSet, joinType);

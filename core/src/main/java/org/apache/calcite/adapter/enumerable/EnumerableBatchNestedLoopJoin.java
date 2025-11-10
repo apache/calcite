@@ -113,8 +113,8 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
   }
 
   @Override public EnumerableBatchNestedLoopJoin copy(RelTraitSet traitSet,
-      RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
-      boolean semiJoinDone) {
+      RexNode condition, RelNode left, RelNode right, Set<CorrelationId> variablesSet,
+      JoinRelType joinType, boolean semiJoinDone) {
     return new EnumerableBatchNestedLoopJoin(getCluster(), traitSet,
         left, right, condition, variablesSet, requiredColumns, joinType);
   }

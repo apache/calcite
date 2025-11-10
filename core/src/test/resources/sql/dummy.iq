@@ -15,10 +15,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use post
-values 1;
-EXPR$0
-1
+!use scott
+SELECT
+  (SELECT 1 FROM emp d WHERE d.job = a.job LIMIT 1) AS t1,
+  (SELECT a.job = 'PRESIDENT' FROM emp s LIMIT 1) as t2
+FROM emp a
+ORDER BY a.empno
+LIMIT 1;
+T1, T2
+1, false
 !ok
+EnumerableCalc(expr#0..4=[{inputs}], T1=[$t1], T2=[$t3], EMPNO=[$t0])
+  EnumerableLimit(fetch=[1])
+    EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($2, $4)], joinType=[left])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=['PRESIDENT':VARCHAR(9)], expr#5=[=($t1, $t4)], EMPNO=[$t0], EXPR$0=[$t2], $f3=[$t5])
+        EnumerableLimit(fetch=[1])
+          EnumerableHashJoin(condition=[=($1, $3)], joinType=[left])
+            EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2])
+              EnumerableLimit(fetch=[1])
+                EnumerableTableScan(table=[[scott, EMP]])
+            EnumerableCalc(expr#0..1=[{inputs}], w0$o0=[$t1], JOB=[$t0])
+              EnumerableAggregate(group=[{0, 1}])
+                EnumerableWindow(window#0=[window(partition {0} aggs [FIRST_VALUE($1)])], constants=[[1]])
+                  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t2)], JOB=[$t2], $condition=[$t8])
+                    EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..1=[{inputs}], w0$o0=[$t1], $f3=[$t0])
+        EnumerableAggregate(group=[{1, 2}])
+          EnumerableWindow(window#0=[window(partition {1} aggs [FIRST_VALUE($1)])])
+            EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+              EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+                EnumerableTableScan(table=[[scott, EMP]])
+              EnumerableAggregate(group=[{0}])
+                EnumerableCalc(expr#0..3=[{inputs}], expr#4=['PRESIDENT':VARCHAR(9)], expr#5=[=($t1, $t4)], $f3=[$t5])
+                  EnumerableMergeJoin(condition=[=($1, $3)], joinType=[left])
+                    EnumerableSort(sort0=[$1], dir0=[ASC])
+                      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2])
+                        EnumerableTableScan(table=[[scott, EMP]])
+                    EnumerableSort(sort0=[$1], dir0=[ASC])
+                      EnumerableCalc(expr#0..1=[{inputs}], w0$o0=[$t1], JOB=[$t0])
+                        EnumerableAggregate(group=[{0, 1}])
+                          EnumerableWindow(window#0=[window(partition {0} aggs [FIRST_VALUE($1)])], constants=[[1]])
+                            EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t2)], JOB=[$t2], $condition=[$t8])
+                              EnumerableTableScan(table=[[scott, EMP]])
+!plan
 # do not modify this file, this is intended only for temporary debugging code
 # End dummy.iq

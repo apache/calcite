@@ -43,6 +43,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -83,6 +84,9 @@ import java.sql.DriverManager;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -391,7 +395,8 @@ class TraitPropagationTest {
     }
 
     public PhysProj copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> exps, RelDataType rowType) {
+        List<RexNode> exps, RelDataType rowType, Set<CorrelationId> variablesSet) {
+      checkArgument(variablesSet.isEmpty());
       return new PhysProj(getCluster(), traitSet, input, exps, rowType);
     }
 

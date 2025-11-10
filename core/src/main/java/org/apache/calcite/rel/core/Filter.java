@@ -46,6 +46,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -120,12 +121,21 @@ public abstract class Filter extends SingleRel implements Hintable {
   //~ Methods ----------------------------------------------------------------
 
   @Override public final RelNode copy(RelTraitSet traitSet,
-      List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), getCondition());
+      List<RelNode> inputs, Set<CorrelationId> variablesSet) {
+    return copy(traitSet, sole(inputs), getCondition(), variablesSet);
   }
 
-  public abstract Filter copy(RelTraitSet traitSet, RelNode input,
-      RexNode condition);
+  public Filter copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition) {
+    return copy(traitSet, input, condition, getVariablesSet());
+  }
+
+  public Filter copy(RelTraitSet traitSet, RelNode input,
+      RexNode condition, Set<CorrelationId> variablesSet) {
+    // This method cannot be abstract because it would break compatibility
+    throw new UnsupportedOperationException(
+        "Must implement copy in " + getClass().getName());
+  }
 
   @Override public RelNode accept(RexShuttle shuttle) {
     RexNode condition = shuttle.apply(this.condition);

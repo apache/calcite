@@ -150,7 +150,7 @@ public abstract class Project extends SingleRel implements Hintable {
   //~ Methods ----------------------------------------------------------------
 
   @Override public final RelNode copy(RelTraitSet traitSet,
-      List<RelNode> inputs) {
+      List<RelNode> inputs, Set<CorrelationId> variablesSet) {
     return copy(traitSet, sole(inputs), exps, getRowType());
   }
 
@@ -167,8 +167,32 @@ public abstract class Project extends SingleRel implements Hintable {
    *
    * @see #copy(RelTraitSet, List)
    */
-  public abstract Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType);
+  public final Project copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> projects, RelDataType rowType) {
+    return copy(traitSet, input, projects, rowType, variablesSet);
+  }
+
+  /**
+   * Copies a project.
+   *
+   * @param traitSet Traits
+   * @param input Input
+   * @param projects Project expressions
+   * @param rowType Output row type
+   * @param variablesSet the variables that are set in this relational
+   *                     expression
+   * @return New {@code Project} if any parameter differs from the value of this
+   *   {@code Project}, or just {@code this} if all the parameters are
+   *   the same
+   *
+   * @see #copy(RelTraitSet, List, Set)
+   */
+  public Project copy(RelTraitSet traitSet, RelNode input,
+      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
+    // This method cannot be abstract because it would break compatibility
+    throw new UnsupportedOperationException(
+        "Must implement copy in " + getClass().getName());
+  }
 
   @Deprecated // to be removed before 2.0
   public Project copy(RelTraitSet traitSet, RelNode input,
