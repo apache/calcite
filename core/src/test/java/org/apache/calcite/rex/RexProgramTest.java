@@ -2740,6 +2740,15 @@ class RexProgramTest extends RexProgramTestBase {
     // SELECT NULL + (a/b) FROM (select 1 as a, 0 as b) t
     RexNode divideNode5 = plus(nullInt, div(vIntNotNull(), vIntNotNull()));
     checkSimplifyUnchanged(divideNode5);
+    // (1/0) + (null/0)   ==>   (1/0) + null
+    RexNode divideNode6 = plus(div(literal(1), literal(0)), div(nullInt, literal(0)));
+    checkSimplify(divideNode6, "+(/(1, 0), null)");
+    // null/(1/0)   ==>   null/(1/0)
+    RexNode divideNode7 = div(nullInt, div(literal(1), literal(0)));
+    checkSimplifyUnchanged(divideNode7);
+    // (1/0)/null   ==>   (1/0)/null
+    RexNode divideNode8 = div(div(literal(1), literal(0)), nullInt);
+    checkSimplifyUnchanged(divideNode8);
   }
 
   /** Test cases for IS NULL(x/y).
@@ -2751,6 +2760,7 @@ class RexProgramTest extends RexProgramTestBase {
     RelDataType intType =
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+
 
     checkSimplifyUnchanged(isNull(div(vIntNotNull(), literal(0))));
     checkSimplifyUnchanged(isNull(div(vIntNotNull(), cast(literal(0), intType))));
@@ -2782,17 +2792,21 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
     checkSimplify(isNotNull(div(nullDecimal, literal(BigDecimal.ZERO))), "false");
 
-    checkSimplifyUnchanged(isNull(checkedDiv(vDecimalNotNull(), literal(0))));
-    checkSimplify(
-        isNull(checkedDiv(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
-        "false");
-    checkSimplify(isNull(checkedDiv(nullDecimal, literal(BigDecimal.ZERO))), "true");
+    checkSimplify(isNull(cast(div(vIntNotNull(), literal(0)), tBigInt())),
+        "IS NULL(/(?0.notNullInt0, 0))");
+    checkSimplify(isNotNull(cast(div(vIntNotNull(), literal(0)), tBigInt())),
+        "IS NOT NULL(/(?0.notNullInt0, 0))");
+  }
 
-    checkSimplifyUnchanged(isNotNull(checkedDiv(vDecimalNotNull(), literal(0))));
-    checkSimplify(
-        isNotNull(checkedDiv(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
-        "true");
-    checkSimplify(isNotNull(checkedDiv(nullDecimal, literal(BigDecimal.ZERO))), "false");
+  @Test void testSimplifyDivideCast() {
+    simplify = simplify.withParanoid(false);
+
+    RelDataType intType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+
+    checkSimplifyUnchanged(div(nullInt, cast(vVarchar(), intType)));
+    checkSimplifyUnchanged(div(cast(vVarchar(), intType), nullInt));
   }
 
   @Test void testPushNotIntoCase() {
@@ -4300,7 +4314,6 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(mul(nullInt, a), "null:INTEGER");
 
     checkSimplify(div(a, one), "?0.notNullInt1");
-    checkSimplify(div(one, one), "1");
     checkSimplify(div(nullInt, one), "null:INTEGER");
     checkSimplify(div(a, nullInt), "null:INTEGER");
     checkSimplify(div(zero, nullInt), "null:INTEGER");

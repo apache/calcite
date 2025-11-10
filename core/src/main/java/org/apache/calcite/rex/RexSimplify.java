@@ -495,13 +495,9 @@ public class RexSimplify {
   }
 
   private RexNode simplifyDivide(RexCall e) {
-    RexNode leftOperand = e.getOperands().get(0);
     RexNode rightOperand = e.getOperands().get(1);
-    if ((isSafeExpression(leftOperand) && STRONG.isNull(leftOperand))
-        || (isSafeExpression(rightOperand) && STRONG.isNull(rightOperand))) {
-      return rexBuilder.makeLiteral(null, e.getType());
-    }
     if (checkLiteralValue(rightOperand, BigDecimal.ONE)) {
+      RexNode leftOperand = e.getOperands().get(0);
       return leftOperand.getType().equals(e.getType())
           ? leftOperand : rexBuilder.makeCast(e.getParserPosition(), e.getType(), leftOperand);
     }
@@ -1151,23 +1147,17 @@ public class RexSimplify {
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NOT NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NOT NULL" to "TRUE".
     a = simplify(a, UNKNOWN);
-    if (!isSafeExpression(a)) {
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
-    }
-    if (!a.getType().isNullable() && isSafeExpression(a)) {
-      return rexBuilder.makeLiteral(true);
-    }
-    if (RexUtil.isLosslessCast(a)) {
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(true);
-      }
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, RexUtil.removeCast(a));
-    }
     if (predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
     }
-    if (hasCustomNullabilityRules(a.getKind())) {
-      return null;
+    if (RexUtil.isLosslessCast(a)) {
+      a = RexUtil.removeCast(a);
+    }
+    if (hasCustomNullabilityRules(a.getKind()) || !isSafeExpression(a)) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
+    }
+    if (!a.getType().isNullable()) {
+      return rexBuilder.makeLiteral(true);
     }
     switch (Strong.policy(a)) {
     case NOT_NULL:
@@ -1193,11 +1183,12 @@ public class RexSimplify {
       case LITERAL:
         return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
       default:
-        return null;
+        throw new AssertionError("every CUSTOM policy needs a handler, "
+            + a.getKind());
       }
     case AS_IS:
     default:
-      return null;
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
     }
   }
 
@@ -1208,23 +1199,17 @@ public class RexSimplify {
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
     a = simplify(a, UNKNOWN);
-    if (!isSafeExpression(a)) {
+    if (RexUtil.isLosslessCast(a)) {
+      a = RexUtil.removeCast(a);
+    }
+    if (hasCustomNullabilityRules(a.getKind()) || !isSafeExpression(a)) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
     }
-    if (!a.getType().isNullable() && isSafeExpression(a)) {
+    if (!a.getType().isNullable()) {
       return rexBuilder.makeLiteral(false);
-    }
-    if (RexUtil.isLosslessCast(a)) {
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(false);
-      }
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, RexUtil.removeCast(a));
     }
     if (RexUtil.isNull(a)) {
       return rexBuilder.makeLiteral(true);
-    }
-    if (hasCustomNullabilityRules(a.getKind())) {
-      return null;
     }
     switch (Strong.policy(a)) {
     case NOT_NULL:
@@ -1245,7 +1230,7 @@ public class RexSimplify {
       return RexUtil.composeDisjunction(rexBuilder, operands, false);
     case AS_IS:
     default:
-      return null;
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
     }
   }
 
@@ -1563,18 +1548,17 @@ public class RexSimplify {
       SqlOperator sqlOperator = call.getOperator();
 
       switch (sqlKind) {
-      case CHECKED_DIVIDE:
       case DIVIDE:
       case MOD:
         List<RexNode> operands = call.getOperands();
+        boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+        if (!areOperandsSafe) {
+          return false;
+        }
         boolean hasNullOperand = RexUtil.isNullLiteral(operands.get(0), true)
             || RexUtil.isNullLiteral(operands.get(1), true);
         if (hasNullOperand) {
           return true;
-        }
-        boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
-        if (!areOperandsSafe) {
-          return false;
         }
         if (operands.get(1) instanceof RexLiteral) {
           return !checkLiteralValue(operands.get(1), BigDecimal.ZERO);
