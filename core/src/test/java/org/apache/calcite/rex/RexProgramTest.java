@@ -4092,6 +4092,13 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(or(isNull(ref), like(ref, literal("%"), literal("#"))),
         "true");
     checkSimplifyUnchanged(like(ref, literal("%A")));
+
+    RexCall simplifyLike = (RexCall) simplify.simplify(like(ref, literalVarchar("%%A")));
+    assertThat(simplifyLike.getOperands().get(1).getType().getSqlTypeName().name(), is("VARCHAR"));
+
+    simplifyLike = (RexCall) simplify.simplify(like(ref, literal("%%A")));
+    assertThat(simplifyLike.getOperands().get(1).getType().getSqlTypeName().name(), is("CHAR"));
+
     checkSimplify(like(ref, literal("%%A")), "LIKE($0, '%A')");
     checkSimplify(like(ref, literal("%%%_A%%B%%")), "LIKE($0, '_%A%B%')");
     checkSimplify(like(ref, literal("%%A%%%")), "LIKE($0, '%A%')");

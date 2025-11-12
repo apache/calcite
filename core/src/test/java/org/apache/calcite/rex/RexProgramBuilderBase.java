@@ -539,6 +539,13 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeLiteral(value, nonNullableVarchar);
   }
 
+  protected RexLiteral literalVarchar(String value) {
+    if (value == null) {
+      return rexBuilder.makeNullLiteral(nullableVarchar);
+    }
+    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableVarchar, true, true);
+  }
+
   protected RexLiteral literal(double value) {
     return rexBuilder.makeApproxLiteral(value, nonNullableDouble);
   }
