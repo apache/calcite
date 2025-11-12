@@ -373,6 +373,7 @@ TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [PROPERTIES inher
     <Resource name="hints">
       <![CDATA[
 Project:[[FAST_SNAPSHOT inheritPath:[] options:[PRODUCTS_TEMPORAL]]]
+Snapshot:[[FAST_SNAPSHOT inheritPath:[0, 1] options:[PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
