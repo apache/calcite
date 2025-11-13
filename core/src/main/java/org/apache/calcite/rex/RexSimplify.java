@@ -418,15 +418,20 @@ public class RexSimplify {
    */
   private static int findLiteralIndex(List<RexNode> operands, BigDecimal value) {
     for (int i = 0; i < operands.size(); i++) {
-      if (operands.get(i).isA(SqlKind.LITERAL)) {
-        Comparable comparable = ((RexLiteral) operands.get(i)).getValue();
-        if (comparable instanceof BigDecimal
-            && value.compareTo((BigDecimal) comparable) == 0) {
-          return i;
-        }
+      if (checkLiteralValue(operands.get(i), value)) {
+        return i;
       }
     }
     return -1;
+  }
+
+  /** Check whether the operand is a BigDecimal literal of the specified value. */
+  private static boolean checkLiteralValue(RexNode operand, BigDecimal value) {
+    if (!operand.isA(SqlKind.LITERAL)) {
+      return false;
+    }
+    Comparable<?> comparable = ((RexLiteral) operand).getValue();
+    return comparable instanceof BigDecimal && value.compareTo((BigDecimal) comparable) == 0;
   }
 
   private RexNode simplifyArithmetic(RexCall e) {
@@ -440,7 +445,7 @@ public class RexSimplify {
     assert e.getOperands().size() == 2;
 
     switch (e.getKind()) {
-      // These simplifications are safe for both checked and unchecked arithemtic.
+      // These simplifications are safe for both checked and unchecked arithmetic.
     case PLUS:
     case CHECKED_PLUS:
       return simplifyPlus(e);
@@ -454,7 +459,7 @@ public class RexSimplify {
     case CHECKED_DIVIDE:
       return simplifyDivide(e);
     default:
-      throw new IllegalArgumentException("Unsupported arithmeitc operation " + e.getKind());
+      throw new IllegalArgumentException("Unsupported arithmetic operation " + e.getKind());
     }
   }
 
@@ -491,9 +496,13 @@ public class RexSimplify {
   }
 
   private RexNode simplifyDivide(RexCall e) {
-    final int oneIndex = findLiteralIndex(e.operands, BigDecimal.ONE);
-    if (oneIndex == 1) {
-      RexNode leftOperand = e.getOperands().get(0);
+    RexNode leftOperand = e.getOperands().get(0);
+    RexNode rightOperand = e.getOperands().get(1);
+    if ((isSafeExpression(leftOperand) && STRONG.isNull(leftOperand))
+        || (isSafeExpression(rightOperand) && STRONG.isNull(rightOperand))) {
+      return rexBuilder.makeLiteral(null, e.getType());
+    }
+    if (checkLiteralValue(rightOperand, BigDecimal.ONE)) {
       return leftOperand.getType().equals(e.getType())
           ? leftOperand : rexBuilder.makeCast(e.getParserPosition(), e.getType(), leftOperand);
     }
@@ -1181,9 +1190,21 @@ public class RexSimplify {
       switch (a.getKind()) {
       case LITERAL:
         return rexBuilder.makeLiteral(!((RexLiteral) a).isNull());
+      case CHECKED_DIVIDE:
+      case DIVIDE: {
+        RexNode op1 = ((RexCall) a).getOperands().get(1);
+        if (!op1.isA(SqlKind.LITERAL)) {
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
+        }
+        if (checkLiteralValue(op1, BigDecimal.ZERO)) {
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
+        }
+        // op1 is a non-null and non-zero literal, so simplify op0
+        RexNode op0 = ((RexCall) a).getOperands().get(0);
+        return simplifyIsNotNull(op0);
+      }
       default:
-        throw new AssertionError("every CUSTOM policy needs a handler, "
-            + a.getKind());
+        return null;
       }
     case AS_IS:
     default:
@@ -1230,6 +1251,24 @@ public class RexSimplify {
         }
       }
       return RexUtil.composeDisjunction(rexBuilder, operands, false);
+    case CUSTOM:
+      switch (a.getKind()) {
+      case CHECKED_DIVIDE:
+      case DIVIDE: {
+        RexNode op1 = ((RexCall) a).getOperands().get(1);
+        if (!op1.isA(SqlKind.LITERAL)) {
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
+        }
+        if (checkLiteralValue(op1, BigDecimal.ZERO)) {
+          return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
+        }
+        // op1 is a non-null and non-zero literal, so simplify op0
+        RexNode op0 = ((RexCall) a).getOperands().get(0);
+        return simplifyIsNull(op0);
+      }
+      default:
+        return null;
+      }
     case AS_IS:
     default:
       return null;

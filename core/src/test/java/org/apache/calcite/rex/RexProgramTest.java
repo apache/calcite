@@ -2743,6 +2743,59 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(divideNode4);
   }
 
+  /** Test cases for IS NULL(x/y).
+   * See <a href="https://issues.apache.org/jira/browse/CALCITE-7145">[CALCITE-7145]
+   * RexSimplify should not simplify IS NULL(10/0)</a>. */
+  @Test void testSimplifyIsNullDivide() {
+    simplify = simplify.withParanoid(false);
+
+    RelDataType intType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), literal(0))));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), cast(literal(0), intType))));
+    checkSimplify(isNull(div(vIntNotNull(), cast(literal(2), intType))), "false");
+
+    checkSimplifyUnchanged(isNull(div(cast(literal(2), intType), vIntNotNull())));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(), vIntNotNull())));
+    checkSimplify(isNull(div(nullInt, literal(0))), "true");
+    checkSimplify(isNull(div(literal(0), nullInt)), "true");
+
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), literal(0))));
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), cast(literal(0), intType))));
+    checkSimplify(isNotNull(div(vIntNotNull(), cast(literal(2), intType))), "true");
+
+    checkSimplifyUnchanged(isNotNull(div(cast(literal(2), intType), vIntNotNull())));
+    checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), vIntNotNull())));
+    checkSimplify(isNotNull(div(nullInt, literal(0))), "false");
+    checkSimplify(isNotNull(div(literal(0), nullInt)), "false");
+
+    checkSimplifyUnchanged(isNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "false");
+    checkSimplify(isNull(div(nullDecimal, literal(BigDecimal.ZERO))), "true");
+
+    checkSimplifyUnchanged(isNotNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNotNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "true");
+    checkSimplify(isNotNull(div(nullDecimal, literal(BigDecimal.ZERO))), "false");
+
+    checkSimplifyUnchanged(isNull(checkedDiv(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNull(checkedDiv(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "false");
+    checkSimplify(isNull(checkedDiv(nullDecimal, literal(BigDecimal.ZERO))), "true");
+
+    checkSimplifyUnchanged(isNotNull(checkedDiv(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNotNull(checkedDiv(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "true");
+    checkSimplify(isNotNull(checkedDiv(nullDecimal, literal(BigDecimal.ZERO))), "false");
+  }
+
   @Test void testPushNotIntoCase() {
     checkSimplify(
         not(
@@ -4248,7 +4301,11 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(mul(nullInt, a), "null:INTEGER");
 
     checkSimplify(div(a, one), "?0.notNullInt1");
+    checkSimplify(div(one, one), "1");
+    checkSimplify(div(nullInt, one), "null:INTEGER");
     checkSimplify(div(a, nullInt), "null:INTEGER");
+    checkSimplify(div(zero, nullInt), "null:INTEGER");
+    checkSimplify(div(nullInt, zero), "null:INTEGER");
 
     checkSimplify(add(b, half), "?0.notNullDecimal2");
 
