@@ -8491,7 +8491,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testExpandProjectInNullable() {
     final String sql = "with e2 as (\n"
-        + "  select empno, case when true then deptno else null end as deptno\n"
+        + "  select empno, case when deptno > 0 then deptno else null end as deptno\n"
         + "  from sales.emp)\n"
         + "select empno,\n"
         + "  deptno in (select deptno from e2 where empno < 20) as d\n"
@@ -8613,7 +8613,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select empno\n"
         + "from sales.emp\n"
         + "where empno\n"
-        + " < case deptno in (select case when true then deptno else null end\n"
+        + " < case deptno in (select case when deptno > 0 then deptno else null end\n"
         + "                   from sales.emp where empno < 20)\n"
         + "   when true then 10\n"
         + "   when false then 20\n"

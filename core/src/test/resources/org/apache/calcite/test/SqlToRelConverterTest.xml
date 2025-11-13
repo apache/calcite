@@ -3171,13 +3171,13 @@ from emp
 group by deptno
 having count(*) > 2
 and deptno in (
-  select case when true then deptno else null end from emp)]]>
+  select case when deptno > 0 then deptno else null end from emp)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(S=[$1])
   LogicalFilter(condition=[AND(>($2, 2), IN($0, {
-LogicalProject(EXPR$0=[CAST($7):INTEGER])
+LogicalProject(EXPR$0=[CASE(>($7, 0), $7, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
     LogicalAggregate(group=[{0}], S=[SUM($1)], agg#1=[COUNT()])
@@ -3189,7 +3189,7 @@ LogicalProject(EXPR$0=[CAST($7):INTEGER])
   <TestCase name="testInUncorrelatedSubQueryInSelect">
     <Resource name="sql">
       <![CDATA[select name, deptno in (
-  select case when true then deptno else null end from emp)
+  select case when deptno > 0 then deptno else null end from emp)
 from dept]]>
     </Resource>
     <Resource name="plan">
@@ -3200,10 +3200,10 @@ LogicalProject(NAME=[$1], EXPR$1=[OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, 
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
-          LogicalProject(EXPR$0=[CAST($7):INTEGER], $f1=[true])
+          LogicalProject(EXPR$0=[CASE(>($7, 0), $7, null:INTEGER)], $f1=[true])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
-      LogicalProject(EXPR$0=[CAST($7):INTEGER], $f1=[true])
+      LogicalProject(EXPR$0=[CASE(>($7, 0), $7, null:INTEGER)], $f1=[true])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -3211,13 +3211,13 @@ LogicalProject(NAME=[$1], EXPR$1=[OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, 
   <TestCase name="testInUncorrelatedSubQueryInSelectRex">
     <Resource name="sql">
       <![CDATA[select name, deptno in (
-  select case when true then deptno else null end from emp)
+  select case when deptno > 0 then deptno else null end from emp)
 from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(NAME=[$1], EXPR$1=[IN($0, {
-LogicalProject(EXPR$0=[CAST($7):INTEGER])
+LogicalProject(EXPR$0=[CASE(>($7, 0), $7, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -5607,7 +5607,7 @@ LogicalProject(EMPNO=[$0])
   <TestCase name="testNotInUncorrelatedSubQueryInSelect">
     <Resource name="sql">
       <![CDATA[select empno, deptno not in (
-  select case when true then deptno else null end from dept)
+  select case when deptno > 0 then deptno else null end from dept)
 from emp]]>
     </Resource>
     <Resource name="plan">
@@ -5618,10 +5618,10 @@ LogicalProject(EMPNO=[$0], EXPR$1=[OR(=($9, 0), AND(<($10, $9), null, IS NULL($1
       LogicalJoin(condition=[true], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
-          LogicalProject(EXPR$0=[CAST($0):INTEGER], $f1=[true])
+          LogicalProject(EXPR$0=[CASE(>($0, 0), $0, null:INTEGER)], $f1=[true])
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
-      LogicalProject(EXPR$0=[CAST($0):INTEGER], $f1=[true])
+      LogicalProject(EXPR$0=[CASE(>($0, 0), $0, null:INTEGER)], $f1=[true])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -5747,13 +5747,13 @@ LogicalProject(DEPTNO=[$0])
   <TestCase name="testNotInUncorrelatedSubQueryInSelectRex">
     <Resource name="sql">
       <![CDATA[select empno, deptno not in (
-  select case when true then deptno else null end from dept)
+  select case when deptno > 0 then deptno else null end from dept)
 from emp]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], EXPR$1=[NOT(IN($7, {
-LogicalProject(EXPR$0=[CAST($0):INTEGER])
+LogicalProject(EXPR$0=[CASE(>($0, 0), $0, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8952,7 +8952,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
       <![CDATA[select sum(sal) as s
 from emp
 group by deptno
-order by (select case when true then deptno else null end from emp) desc,
+order by (select case when deptno > 0 then deptno else null end from emp) desc,
   count(*)]]>
     </Resource>
     <Resource name="plan">
@@ -8960,7 +8960,7 @@ order by (select case when true then deptno else null end from emp) desc,
 LogicalProject(S=[$0])
   LogicalSort(sort0=[$1], sort1=[$2], dir0=[DESC], dir1=[ASC])
     LogicalProject(S=[$1], EXPR$1=[$SCALAR_QUERY({
-LogicalProject(EXPR$0=[CAST($7):INTEGER])
+LogicalProject(EXPR$0=[CASE(>($7, 0), $7, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })], EXPR$2=[$2])
       LogicalAggregate(group=[{0}], S=[SUM($1)], agg#1=[COUNT()])
@@ -8973,7 +8973,7 @@ LogicalProject(EXPR$0=[CAST($7):INTEGER])
     <Resource name="sql">
       <![CDATA[select ename
 from emp
-order by (select case when true then deptno else null end from emp) desc,
+order by (select case when deptno > 0 then deptno else null end from emp) desc,
   ename]]>
     </Resource>
     <Resource name="plan">
@@ -8981,7 +8981,7 @@ order by (select case when true then deptno else null end from emp) desc,
 LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[$SCALAR_QUERY({
-LogicalProject(EXPR$0=[CAST($7):INTEGER])
+LogicalProject(EXPR$0=[CASE(>($7, 0), $7, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
