@@ -440,7 +440,7 @@ public class RexSimplify {
     assert e.getOperands().size() == 2;
 
     switch (e.getKind()) {
-      // These simplifications are safe for both checked and unchecked arithemtic.
+      // These simplifications are safe for both checked and unchecked arithmetic.
     case PLUS:
     case CHECKED_PLUS:
       return simplifyPlus(e);
@@ -454,7 +454,7 @@ public class RexSimplify {
     case CHECKED_DIVIDE:
       return simplifyDivide(e);
     default:
-      throw new IllegalArgumentException("Unsupported arithmeitc operation " + e.getKind());
+      throw new IllegalArgumentException("Unsupported arithmetic operation " + e.getKind());
     }
   }
 
@@ -2309,6 +2309,20 @@ public class RexSimplify {
     return RexUtil.composeDisjunction(rexBuilder, terms);
   }
 
+  private Pair<Comparable, RuntimeException> evaluate(RexNode e, Map<RexNode, Comparable> map) {
+    Comparable c = null;
+    RuntimeException ex = null;
+    try {
+      c = RexInterpreter.evaluate(e, map);
+    } catch (RuntimeException exception) {
+      ex = exception;
+    }
+    if (c == null && ex == null) {
+      throw new AssertionError("interpreter returned null for " + e);
+    }
+    return Pair.of(c, ex);
+  }
+
   private void verify(RexNode before, RexNode simplified, RexUnknownAs unknownAs) {
     if (simplified.isAlwaysFalse()
         && before.isAlwaysTrue()) {
@@ -2339,14 +2353,28 @@ public class RexSimplify {
           continue assignment_loop;
         }
       }
-      Comparable v0 = RexInterpreter.evaluate(foo0.e, map);
-      if (v0 == null) {
-        throw new AssertionError("interpreter returned null for " + foo0.e);
+      Pair<Comparable, RuntimeException> p0 = evaluate(foo0.e, map);
+      Pair<Comparable, RuntimeException> p1 = evaluate(foo1.e, map);
+      if (p0.right != null || p1.right != null) {
+        if (p0.right == null || p1.right == null) {
+          throw Util.first(p0.right, p1.right);
+        }
+        if (!p0.right.getClass().equals(p1.right.getClass())) {
+          AssertionError error = new AssertionError("exception class does not match");
+          error.addSuppressed(p0.right);
+          error.addSuppressed(p1.right);
+          throw error;
+        }
+        if (!java.util.Objects.equals(p0.right.getMessage(), p1.right.getMessage())) {
+          AssertionError error = new AssertionError("exception message does not match");
+          error.addSuppressed(p0.right);
+          error.addSuppressed(p1.right);
+          throw error;
+        }
+        continue;
       }
-      Comparable v1 = RexInterpreter.evaluate(foo1.e, map);
-      if (v1 == null) {
-        throw new AssertionError("interpreter returned null for " + foo1.e);
-      }
+      Comparable v0 = p0.left;
+      Comparable v1 = p1.left;
       if (before.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
         switch (unknownAs) {
         case FALSE:
