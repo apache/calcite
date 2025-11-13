@@ -2673,7 +2673,6 @@ class RexProgramTest extends RexProgramTestBase {
 
   @Test void testSimplifyCaseCompactionDiv() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
-    simplify = simplify.withParanoid(false);
     RexNode caseNode =
         case_(vBool(0), vInt(0),
             eq(div(literal(3), vIntNotNull()), literal(11)), vInt(0),
@@ -2685,7 +2684,6 @@ class RexProgramTest extends RexProgramTestBase {
   /** Tests a CASE value branch that contains division. */
   @Test void testSimplifyCaseDiv1() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
-    simplify = simplify.withParanoid(false);
     RexNode caseNode =
         case_(ne(vIntNotNull(), literal(0)),
             eq(div(literal(3), vIntNotNull()), literal(11)),
@@ -2696,7 +2694,6 @@ class RexProgramTest extends RexProgramTestBase {
   /** Tests a CASE condition that contains division. */
   @Test void testSimplifyCaseDiv2() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
-    simplify = simplify.withParanoid(false);
     RexNode caseNode =
         case_(eq(vIntNotNull(), literal(0)), trueLiteral,
             gt(div(literal(3), vIntNotNull()), literal(1)), trueLiteral,
@@ -2718,7 +2715,6 @@ class RexProgramTest extends RexProgramTestBase {
     // null + (a/0)/4
     // ==>
     // null + (a/0)/4
-    simplify = simplify.withParanoid(false);
     RexNode divideNode0 = plus(nullInt, div(div(vIntNotNull(), literal(0)), literal(4)));
     checkSimplifyUnchanged(divideNode0);
     // null + a/4
