@@ -2210,7 +2210,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
     // WHERE clause -- so the translation is more complicated.
     final String sql = "select name, deptno in (\n"
-        + "  select case when true then deptno else null end from emp)\n"
+        + "  select case when deptno > 0 then deptno else null end from emp)\n"
         + "from dept";
     sql(sql).ok();
   }
@@ -2220,7 +2220,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
     // WHERE clause -- so the translation is more complicated.
     final String sql = "select name, deptno in (\n"
-        + "  select case when true then deptno else null end from emp)\n"
+        + "  select case when deptno > 0 then deptno else null end from emp)\n"
         + "from dept";
     sql(sql).withExpand(false).ok();
   }
@@ -2231,14 +2231,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "group by deptno\n"
         + "having count(*) > 2\n"
         + "and deptno in (\n"
-        + "  select case when true then deptno else null end from emp)";
+        + "  select case when deptno > 0 then deptno else null end from emp)";
     sql(sql).withExpand(false).ok();
   }
 
   @Test void testUncorrelatedScalarSubQueryInOrderRex() {
     final String sql = "select ename\n"
         + "from emp\n"
-        + "order by (select case when true then deptno else null end from emp) desc,\n"
+        + "order by (select case when deptno > 0 then deptno else null end from emp) desc,\n"
         + "  ename";
     sql(sql).withExpand(false).ok();
   }
@@ -2247,7 +2247,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select sum(sal) as s\n"
         + "from emp\n"
         + "group by deptno\n"
-        + "order by (select case when true then deptno else null end from emp) desc,\n"
+        + "order by (select case when deptno > 0 then deptno else null end from emp) desc,\n"
         + "  count(*)";
     sql(sql).withExpand(false).ok();
   }
@@ -2263,14 +2263,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * an extra NOT. Both queries require 3-valued logic. */
   @Test void testNotInUncorrelatedSubQueryInSelect() {
     final String sql = "select empno, deptno not in (\n"
-        + "  select case when true then deptno else null end from dept)\n"
+        + "  select case when deptno > 0 then deptno else null end from dept)\n"
         + "from emp";
     sql(sql).ok();
   }
 
   @Test void testNotInUncorrelatedSubQueryInSelectRex() {
     final String sql = "select empno, deptno not in (\n"
-        + "  select case when true then deptno else null end from dept)\n"
+        + "  select case when deptno > 0 then deptno else null end from dept)\n"
         + "from emp";
     sql(sql).withExpand(false).ok();
   }

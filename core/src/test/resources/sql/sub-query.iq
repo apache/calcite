@@ -1472,7 +1472,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
 # Test project null IN nullable
 select sal,
   cast(null as int) IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
  SAL     | EXPR$1
@@ -1501,7 +1501,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], cs=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1542,7 +1542,7 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], SAL=[$t1], EXPR$
 # Test project literal IN nullable
 select sal,
   10 IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
  SAL     | EXPR$1
@@ -1571,7 +1571,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEA
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t0)], expr#4=[CAST($t0):INTEGER], expr#5=[10], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], cs=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1722,7 +1722,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
 # Test project null NOT IN nullable
 select sal,
   cast(null as int) NOT IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
  SAL     | EXPR$1
@@ -1751,7 +1751,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], cs=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1792,7 +1792,7 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NULL($t2)], SAL=[$t1], EXPR$1=[$
 # Test project literal NOT IN nullable
 select sal,
   10 NOT IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
  SAL     | EXPR$1
@@ -1821,7 +1821,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t0)], expr#4=[CAST($t0):INTEGER], expr#5=[10], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], cs=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -1916,7 +1916,7 @@ EnumerableValues(tuples=[[]])
 # Test filter null IN nullable
 select sal from "scott".emp
   where cast(null as int) IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept);
  SAL
 -----
@@ -1962,7 +1962,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
 # Test filter literal IN nullable
 select sal from "scott".emp
   where 10 IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept);
  SAL
 ---------
@@ -1988,7 +1988,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[0], expr#7=[>($t5, $t6)], expr#8=[null:TINYINT], expr#9=[CASE($t7, $t0, $t8)], expr#10=[CAST($t9):INTEGER], expr#11=[=($t4, $t10)], cs=[$t3], $condition=[$t11])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -2079,7 +2079,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
 # Test filter null NOT IN nullable
 select sal from "scott".emp
   where cast(null as int) NOT IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept);
  SAL
 -----
@@ -2093,7 +2093,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], cs=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -2121,7 +2121,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], e
 # Test filter literal NOT IN nullable
 select sal from "scott".emp
   where 10 NOT IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept);
  SAL
 -----
@@ -2135,7 +2135,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], e
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
         EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t0)], expr#4=[CAST($t0):INTEGER], expr#5=[10], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], cs=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -2253,7 +2253,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[RAND()], expr#6=[CAST($t5):INTEGER 
 # Test filter null IN nullable correlated
 select sal from "scott".emp e
   where cast(null as int) IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
  SAL
 -----
@@ -2287,7 +2287,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
 # Test filter literal IN nullable correlated
 select sal from "scott".emp e
   where 10 IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
  SAL
 ---------
@@ -2301,7 +2301,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
   EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER NOT NULL], expr#5=[0], expr#6=[>($t4, $t5)], expr#7=[null:TINYINT], expr#8=[CASE($t6, $t0, $t7)], expr#9=[CAST($t8):INTEGER], expr#10=[=($t3, $t9)], DEPTNO=[$t0], $condition=[$t10])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
@@ -2369,7 +2369,7 @@ EnumerableValues(tuples=[[]])
 # Test filter null NOT IN nullable correlated
 select sal from "scott".emp e
   where cast(null as int) NOT IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
  SAL
 -----
@@ -2415,7 +2415,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t3)], expr#6=[IS NOT NULL($t3)
 # Test filter literal NOT IN nullable correlated
 select sal from "scott".emp e
   where 10 NOT IN (
-    select case when true then deptno else null end
+    select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
  SAL
 ---------
@@ -2439,9 +2439,9 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t3)], expr#6=[IS NOT NULL($t3)
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
     EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..1=[{inputs}], cs=[$t1], DEPTNO=[$t0])
-        EnumerableWindow(window#0=[window(partition {0} aggs [FIRST_VALUE($1)])], constants=[[true]])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER], expr#4=[10], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+      EnumerableCalc(expr#0..2=[{inputs}], cs=[$t2], DEPTNO=[$t0])
+        EnumerableWindow(window#0=[window(partition {0} order by [1 DESC] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($1)])])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], DEPTNO=[$t0], $1=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 

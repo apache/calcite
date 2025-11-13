@@ -4632,7 +4632,7 @@ LogicalProject(EMPNO=[$0])
       <![CDATA[select empno
 from sales.emp
 where empno
- < case deptno in (select case when true then deptno else null end
+ < case deptno in (select case when deptno > 0 then deptno else null end
                    from sales.emp where empno < 20)
    when true then 10
    when false then 20
@@ -4643,11 +4643,11 @@ where empno
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[<($0, CASE(=(IN($7, {
-LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
   LogicalFilter(condition=[<($0, 20)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), true), 10, =(IN($7, {
-LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
   LogicalFilter(condition=[<($0, 20)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), false), 20, 30))])
@@ -4663,11 +4663,11 @@ LogicalProject(EMPNO=[$0])
         LogicalJoin(condition=[true], joinType=[inner])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
           LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
-            LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+            LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
               LogicalFilter(condition=[<($0, 20)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
-          LogicalProject(EXPR$0=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+          LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
             LogicalFilter(condition=[<($0, 20)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5138,7 +5138,7 @@ LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($11), true, false)])
   <TestCase name="testExpandProjectInNullable">
     <Resource name="sql">
       <![CDATA[with e2 as (
-  select empno, case when true then deptno else null end as deptno
+  select empno, case when deptno > 0 then deptno else null end as deptno
   from sales.emp)
 select empno,
   deptno in (select deptno from e2 where empno < 20) as d
@@ -5146,10 +5146,10 @@ from e2]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EMPNO=[$0], D=[IN(CASE(true, CAST($7):INTEGER, null:INTEGER), {
+LogicalProject(EMPNO=[$0], D=[IN(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER), {
 LogicalProject(DEPTNO=[$1])
   LogicalFilter(condition=[<($0, 20)])
-    LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -5157,19 +5157,19 @@ LogicalProject(DEPTNO=[$1])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(true, CAST($7):INTEGER, null:INTEGER)), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false)])
-  LogicalJoin(condition=[=(CASE(true, CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
+LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false)])
+  LogicalJoin(condition=[=(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
         LogicalProject(DEPTNO=[$1])
           LogicalFilter(condition=[<($0, 20)])
-            LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+            LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
       LogicalProject(DEPTNO=[$1])
         LogicalFilter(condition=[<($0, 20)])
-          LogicalProject(EMPNO=[$0], DEPTNO=[CASE(true, CAST($7):INTEGER, null:INTEGER)])
+          LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
