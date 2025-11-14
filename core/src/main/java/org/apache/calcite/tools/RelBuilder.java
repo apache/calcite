@@ -1930,8 +1930,13 @@ public class RelBuilder {
     if (config.simplify()) {
       conjunctionPredicates = simplifier.simplifyFilterPredicates(predicates);
     } else {
+      List<RexNode> simplified = new ArrayList<>();
+      for (RexNode predicate : predicates) {
+        RexNode simple = RexSimplify.simplifyComparisonWithNull(predicate, getRexBuilder());
+        simplified.add(simple);
+      }
       conjunctionPredicates =
-          RexUtil.composeConjunction(simplifier.rexBuilder, predicates);
+          RexUtil.composeConjunction(simplifier.rexBuilder, simplified);
     }
 
     if (conjunctionPredicates == null || conjunctionPredicates.isAlwaysFalse()) {
