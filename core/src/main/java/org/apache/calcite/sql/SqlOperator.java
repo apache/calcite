@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1033,8 +1035,28 @@ public abstract class SqlOperator {
    * @see Strong
    */
   @Pure
+  @Deprecated
   public @Nullable Supplier<Strong.Policy> getStrongPolicyInference() {
     return null;
+  }
+
+  /**
+   * Returns the null policy for this operator.
+   *
+   * @return the null policy for this operator
+   */
+  public NullPolicy getNullPolicy() {
+    NullPolicy p = RexImpTable.INSTANCE.getPolicy(this);
+    if (p != null) {
+      return p;
+    }
+    p = Strong.nullPolicy(getKind());
+    if (p != null) {
+      assert p == NullPolicy.NONE
+          : p + " policy is only defined via SqlKind for " + this.getName();
+      return p;
+    }
+    return NullPolicy.NONE;
   }
 
   /**

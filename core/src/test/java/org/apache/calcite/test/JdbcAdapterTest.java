@@ -1479,25 +1479,25 @@ class JdbcAdapterTest {
           + "WHERE\n"
           + "    \"content-owner\" IN (?)")
         .planHasSql("SELECT "
-            + "\"t2\".\"DNAME\" AS \"content-format-owner\", "
-            + "\"t2\".\"DNAME0\" || ' ' AS \"content-owner\"\n"
-            + "FROM (SELECT \"t\".\"DEPTNO\" AS \"DEPTNO\", "
+            + "\"t3\".\"DNAME\" AS \"content-format-owner\", "
+            + "\"t3\".\"DNAME0\" || ' ' AS \"content-owner\"\n"
+            + "FROM (SELECT \"t\".\"DEPTNO\", "
             + "\"t0\".\"DEPTNO\" AS \"DEPTNO0\", "
-            + "\"t0\".\"DNAME\" AS \"DNAME\", "
-            + "\"t1\".\"DEPTNO\" AS \"DEPTNO1\", "
-            + "\"t1\".\"DNAME\" AS \"DNAME0\"\n"
+            + "\"t0\".\"DNAME\", "
+            + "CAST(\"t2\".\"DEPTNO\" AS TINYINT) AS \"DEPTNO1\", "
+            + "\"t2\".\"DNAME\" AS \"DNAME0\"\n"
             + "FROM (SELECT \"DEPTNO\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "LEFT JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
             + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"\n"
-            + "LEFT JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
-            + "FROM \"SCOTT\".\"DEPT\") AS \"t1\" "
-            + "ON \"t\".\"DEPTNO\" = \"t1\".\"DEPTNO\"\n"
-            + "WHERE \"t1\".\"DNAME\" || ' ' = ?) AS \"t2\"\n"
+            + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\"\n"
+            + "WHERE \"DNAME\" || ' ' = ?) AS \"t2\" "
+            + "ON \"t\".\"DEPTNO\" = \"t2\".\"DEPTNO\") AS \"t3\"\n"
             + "LEFT JOIN (SELECT \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t3\" "
-            + "ON \"t2\".\"DEPTNO\" = \"t3\".\"DEPTNO\"\n"
-            + "GROUP BY \"t2\".\"DNAME\", \"t2\".\"DNAME0\"")
+            + "FROM \"SCOTT\".\"EMP\") AS \"t4\" "
+            + "ON \"t3\".\"DEPTNO\" = \"t4\".\"DEPTNO\"\n"
+            + "GROUP BY \"t3\".\"DNAME\", \"t3\".\"DNAME0\"")
         .runs();
   }
 

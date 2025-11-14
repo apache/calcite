@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -415,7 +416,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
           ReturnTypes.BOOLEAN,
           InferTypes.FIRST_KNOWN,
-          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED) {
+        @Override public NullPolicy getNullPolicy() {
+          // Missing in RexImpTable mapping but present in Strong.Policy
+          // Override here till we decide where the mapping will leave.
+          return NullPolicy.NEVER;
+        }
+      };
 
   /**
    * <code>IS NOT DISTINCT FROM</code> operator. Is equivalent to <code>NOT(x
@@ -832,7 +839,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
-          OperandTypes.BOOLEAN);
+          OperandTypes.BOOLEAN) {
+        @Override public NullPolicy getNullPolicy() {
+          // Missing in RexImpTable mapping but present in Strong.Policy
+          // Override here till we decide where the mapping will leave.
+          return NullPolicy.NEVER;
+        }
+      };
 
   public static final SqlPostfixOperator IS_UNKNOWN =
       new SqlPostfixOperator(
@@ -841,7 +854,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           28,
           ReturnTypes.BOOLEAN_NOT_NULL,
           InferTypes.BOOLEAN,
-          OperandTypes.BOOLEAN);
+          OperandTypes.BOOLEAN) {
+        @Override public NullPolicy getNullPolicy() {
+          // Missing in RexImpTable mapping but present in Strong.Policy
+          // Override here till we decide where the mapping will leave.
+          return NullPolicy.NEVER;
+        }
+      };
 
   public static final SqlPostfixOperator IS_A_SET =
       new SqlPostfixOperator(

@@ -1138,9 +1138,9 @@ public class RexImpTable {
       define(NOT_SUBMULTISET_OF, NotImplementor.of(subMultisetImplementor));
 
       define(COALESCE, new CoalesceImplementor());
-      define(CAST, new CastImplementor());
-      define(SAFE_CAST, new CastImplementor());
-      define(TRY_CAST, new CastImplementor());
+      define(CAST, new CastImplementor(NullPolicy.STRICT));
+      define(SAFE_CAST, new CastImplementor(NullPolicy.SEMI_STRICT));
+      define(TRY_CAST, new CastImplementor(NullPolicy.SEMI_STRICT));
 
       define(REINTERPRET, new ReinterpretImplementor());
       define(CONVERT, new ConvertImplementor());
@@ -1537,6 +1537,20 @@ public class RexImpTable {
     } else {
       throw new IllegalStateException("Supplier should not be null");
     }
+  }
+
+  /**
+   * Returns the NullPolicy for the specified operator.
+   *
+   * @param operator the operator
+   * @return the NullPolicy for the specified operator, or null if a policy is undefined.
+   */
+  public @Nullable NullPolicy getPolicy(SqlOperator operator) {
+    final RexCallImplementor implementor = get(operator);
+    if (implementor instanceof AbstractRexCallImplementor) {
+      return ((AbstractRexCallImplementor) implementor).nullPolicy;
+    }
+    return null;
   }
 
   static Expression optimize(Expression expression) {
@@ -3644,8 +3658,8 @@ public class RexImpTable {
 
   /** Implementor for the SQL {@code CAST} operator. */
   private static class CastImplementor extends AbstractRexCallImplementor {
-    CastImplementor() {
-      super("cast", NullPolicy.STRICT, false);
+    CastImplementor(NullPolicy nullPolicy) {
+      super("cast", nullPolicy, false);
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
@@ -4392,6 +4406,7 @@ public class RexImpTable {
       switch (nullPolicy) {
       case STRICT:
       case SEMI_STRICT:
+      case NEVER:
         return Util.transform(argValueList,
             AbstractRexCallImplementor::unboxExpression);
       case ARG0:
@@ -4544,7 +4559,7 @@ public class RexImpTable {
    */
   private static class LogicalNotImplementor extends AbstractRexCallImplementor {
     LogicalNotImplementor() {
-      super("logical_not", NullPolicy.NONE, true);
+      super("logical_not", NullPolicy.STRICT, true);
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
@@ -4714,7 +4729,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS FALSE} SQL operator. */
   private static class IsFalseImplementor extends AbstractRexCallImplementor {
     IsFalseImplementor() {
-      super("is_false", NullPolicy.STRICT, false);
+      super("is_false", NullPolicy.NEVER, false);
     }
 
     @Override Expression getIfTrue(Type type, final List<Expression> argValueList) {
@@ -4730,7 +4745,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS NOT FALSE} SQL operator. */
   private static class IsNotFalseImplementor extends AbstractRexCallImplementor {
     IsNotFalseImplementor() {
-      super("is_not_false", NullPolicy.STRICT, false);
+      super("is_not_false", NullPolicy.NEVER, false);
     }
 
     @Override Expression getIfTrue(Type type, final List<Expression> argValueList) {
@@ -4746,7 +4761,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS NOT NULL} SQL operator. */
   private static class IsNotNullImplementor extends AbstractRexCallImplementor {
     IsNotNullImplementor() {
-      super("is_not_null", NullPolicy.STRICT, false);
+      super("is_not_null", NullPolicy.NEVER, false);
     }
 
     @Override Expression getIfTrue(Type type, final List<Expression> argValueList) {
@@ -4762,7 +4777,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS NOT TRUE} SQL operator. */
   private static class IsNotTrueImplementor extends AbstractRexCallImplementor {
     IsNotTrueImplementor() {
-      super("is_not_true", NullPolicy.STRICT, false);
+      super("is_not_true", NullPolicy.NEVER, false);
     }
 
     @Override Expression getIfTrue(Type type, final List<Expression> argValueList) {
@@ -4778,7 +4793,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS NULL} SQL operator. */
   private static class IsNullImplementor extends AbstractRexCallImplementor {
     IsNullImplementor() {
-      super("is_null", NullPolicy.STRICT, false);
+      super("is_null", NullPolicy.NEVER, false);
     }
 
     @Override Expression getIfTrue(Type type, final List<Expression> argValueList) {
@@ -4794,7 +4809,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS NOT DISTINCT FROM} SQL operator. */
   private static class IsNotDistinctFromImplementor extends AbstractRexCallImplementor {
     IsNotDistinctFromImplementor() {
-      super("is_not_distinct_from", NullPolicy.NONE, false);
+      super("is_not_distinct_from", NullPolicy.NEVER, false);
     }
 
     @Override public RexToLixTranslator.Result implement(final RexToLixTranslator translator,
@@ -4840,7 +4855,7 @@ public class RexImpTable {
   /** Implementor for the {@code IS TRUE} SQL operator. */
   private static class IsTrueImplementor extends AbstractRexCallImplementor {
     IsTrueImplementor() {
-      super("is_true", NullPolicy.STRICT, false);
+      super("is_true", NullPolicy.NEVER, false);
     }
 
     @Override Expression getIfTrue(Type type, final List<Expression> argValueList) {

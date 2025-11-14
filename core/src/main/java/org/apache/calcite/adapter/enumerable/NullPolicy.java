@@ -38,5 +38,9 @@ public enum NullPolicy {
   ANY,
   /** If the first argument is null, return null. */
   ARG0,
+  /** Never returns null no matter the values of the arguments. */
+  NEVER,
+  /** Returns null under certain conditions that depend entirely on the operator/function.
+   *  Operators using this policy have custom rules for when to return null.*/
   NONE
 }

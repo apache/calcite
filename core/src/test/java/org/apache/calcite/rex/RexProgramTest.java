@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
@@ -67,7 +68,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Supplier;
 
 import static org.apache.calcite.test.Matchers.isRangeSet;
 
@@ -4166,16 +4166,16 @@ class RexProgramTest extends RexProgramTestBase {
   /** An operator that overrides the {@link #getStrongPolicyInference}
    * method. */
   private static class SqlSpecialOperatorWithPolicy extends SqlSpecialOperator {
-    private final Strong.Policy policy;
+    private final NullPolicy policy;
     private SqlSpecialOperatorWithPolicy(String name, SqlKind kind, int prec, boolean leftAssoc,
         SqlReturnTypeInference returnTypeInference, SqlOperandTypeInference operandTypeInference,
-        SqlOperandTypeChecker operandTypeChecker, Strong.Policy policy) {
+        SqlOperandTypeChecker operandTypeChecker, NullPolicy policy) {
       super(name, kind, prec, leftAssoc, returnTypeInference, operandTypeInference,
           operandTypeChecker);
       this.policy = policy;
     }
-    @Override public Supplier<Strong.Policy> getStrongPolicyInference() {
-      return () -> policy;
+    @Override public NullPolicy getNullPolicy() {
+      return policy;
     }
   }
 
@@ -4193,7 +4193,7 @@ class RexProgramTest extends RexProgramTestBase {
 
     final SqlOperator opPolicyAsIs =
         new SqlSpecialOperatorWithPolicy("OP2", SqlKind.OTHER_FUNCTION, 0,
-            false, ReturnTypes.BOOLEAN, null, null, Strong.Policy.AS_IS) {
+            false, ReturnTypes.BOOLEAN, null, null, NullPolicy.NONE) {
         };
     // Operator with Strong.Policy.AS_IS but not safe: no simplification can be made
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, vInt()));
@@ -4202,7 +4202,7 @@ class RexProgramTest extends RexProgramTestBase {
 
     final SqlOperator opPolicyAny =
         new SqlSpecialOperatorWithPolicy("OP3", SqlKind.OTHER_FUNCTION, 0,
-            false, ReturnTypes.BOOLEAN, null, null, Strong.Policy.ANY) {
+            false, ReturnTypes.BOOLEAN, null, null, NullPolicy.STRICT) {
           @Override public Boolean isSafeOperator() {
             return true;
           }

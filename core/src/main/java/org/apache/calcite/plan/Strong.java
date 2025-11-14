@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
@@ -34,6 +35,8 @@ import org.apache.calcite.util.Sarg;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -116,6 +119,7 @@ public class Strong {
    * Returns how to deduce whether a particular {@link RexNode} expression is null,
    * given whether its arguments are null.
    */
+  @Deprecated
   public static Policy policy(RexNode rexNode) {
     if (rexNode instanceof RexCall) {
       return policy(((RexCall) rexNode).getOperator());
@@ -127,11 +131,26 @@ public class Strong {
    * Returns how to deduce whether a particular {@link SqlOperator} expression is null,
    * given whether its arguments are null.
    */
+  @Deprecated
   public static Policy policy(SqlOperator operator) {
     if (operator.getStrongPolicyInference() != null) {
       return operator.getStrongPolicyInference().get();
     }
     return MAP.getOrDefault(operator.getKind(), Policy.AS_IS);
+  }
+
+  /**
+   * Returns the {@link NullPolicy} for a given {@link SqlKind}.
+   *
+   * @param kind SqlKind
+   * @return NullPolicy or null if not defined
+   */
+  public static @Nullable NullPolicy nullPolicy(SqlKind kind) {
+    Policy p = MAP.get(kind);
+    if (p != null) {
+      return p.nullPolicy();
+    }
+    return null;
   }
 
   /**
@@ -207,14 +226,17 @@ public class Strong {
    * expressions, and you may override methods to test hypotheses such as
    * "if {@code x} is null, is {@code x + y} null? */
   public boolean isNull(RexNode node) {
-    final Policy policy = policy(node);
-    switch (policy) {
-    case NOT_NULL:
-      return false;
-    case ANY:
-      return anyNull(((RexCall) node).getOperands());
-    default:
-      break;
+    if (node instanceof RexCall) {
+      RexCall call = (RexCall) node;
+      final NullPolicy policy = call.getOperator().getNullPolicy();
+      switch (policy) {
+      case NEVER:
+        return false;
+      case STRICT:
+        return anyNull(call.getOperands());
+      default:
+        break;
+      }
     }
 
     switch (node.getKind()) {
@@ -383,6 +405,7 @@ public class Strong {
 
   /** How whether an operator's operands are null affects whether a call to
    * that operator evaluates to null. */
+  @Deprecated
   public enum Policy {
     /** This kind of expression is never null. No need to look at its arguments,
      * if it has any. */
@@ -397,6 +420,24 @@ public class Strong {
     ANY,
 
     /** This kind of expression may be null. There is no way to rewrite. */
-    AS_IS,
+    AS_IS;
+
+    /**
+     * Returns the corresponding {@link NullPolicy}.
+     *
+     * @return the corresponding NullPolicy
+     */
+    NullPolicy nullPolicy() {
+      switch (this) {
+      case NOT_NULL:
+        return NullPolicy.NEVER;
+      case ANY:
+        return NullPolicy.STRICT;
+      case CUSTOM:
+      case AS_IS:
+      default:
+        return NullPolicy.NONE;
+      }
+    }
   }
 }
