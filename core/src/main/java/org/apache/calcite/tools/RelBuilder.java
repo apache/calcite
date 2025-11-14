@@ -3317,6 +3317,8 @@ public class RelBuilder {
         filter(condition.accept(new Shifter(left.rel, id, right.rel)));
         right = stack.pop();
         break;
+      case MARK:
+        break;
       case INNER:
         // For INNER, we can defer.
         postCondition = condition;
@@ -3325,9 +3327,15 @@ public class RelBuilder {
         throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
       }
       final ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, right.rel);
-      join =
-          struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
-              requiredColumns, joinType);
+      if (joinType == JoinRelType.MARK) {
+        join =
+            struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
+                requiredColumns, joinType, condition);
+      } else {
+        join =
+            struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
+                requiredColumns, joinType);
+      }
     } else {
       RelNode join0 =
           struct.joinFactory.createJoin(left.rel, right.rel,

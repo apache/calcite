@@ -91,7 +91,9 @@ public enum JoinRelType {
   /**
    * The left version of an ASOF join, where each row from the left table is part of the output.
    */
-  LEFT_ASOF;
+  LEFT_ASOF,
+
+  MARK;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
@@ -173,7 +175,7 @@ public enum JoinRelType {
   }
 
   public boolean projectsRight() {
-    return this != SEMI && this != ANTI;
+    return this != SEMI && this != ANTI && this != MARK;
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its predicate. */
@@ -185,7 +187,7 @@ public enum JoinRelType {
   /** Returns whether this join type accepts pushing predicates from above into its left input. */
   @API(since = "1.28", status = API.Status.EXPERIMENTAL)
   public boolean canPushLeftFromAbove() {
-    return (this == INNER) || (this == LEFT) || (this == SEMI) || (this == ANTI);
+    return (this == INNER) || (this == LEFT) || (this == SEMI) || (this == ANTI) || (this == MARK);
   }
 
   /** Returns whether this join type accepts pushing predicates from above into its right input. */

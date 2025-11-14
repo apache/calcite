@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.test.catalog.MockCatalogReader;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -84,6 +85,13 @@ public abstract class SqlToRelTestBase {
         JoinRelType joinType) {
       super(cluster, traits, hints, left, right, correlationId, requiredColumns,
           joinType);
+    }
+
+    @Override public Correlate copy(RelTraitSet traitSet,
+        RelNode left, RelNode right, CorrelationId correlationId,
+        ImmutableBitSet requiredColumns, JoinRelType joinType, RexNode condition) {
+      return new CustomCorrelate(getCluster(), traitSet, hints, left, right,
+          correlationId, requiredColumns, joinType);
     }
 
     @Override public Correlate copy(RelTraitSet traitSet,

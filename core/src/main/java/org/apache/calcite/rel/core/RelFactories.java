@@ -470,6 +470,10 @@ public class RelFactories {
     RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
         JoinRelType joinType);
+
+    RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        JoinRelType joinType, RexNode condition);
   }
 
   /**
@@ -482,6 +486,13 @@ public class RelFactories {
         CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType) {
       return LogicalCorrelate.create(left, right, hints, correlationId,
           requiredColumns, joinType);
+    }
+
+    @Override public RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType,
+        RexNode condition) {
+      return LogicalCorrelate.create(left, right, hints, correlationId,
+          requiredColumns, joinType, condition);
     }
   }
 

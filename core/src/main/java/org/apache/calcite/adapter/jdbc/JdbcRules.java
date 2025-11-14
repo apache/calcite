@@ -49,6 +49,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
@@ -131,9 +132,18 @@ public class JdbcRules {
       };
 
   static final RelFactories.CorrelateFactory CORRELATE_FACTORY =
-      (left, right, hints, correlationId, requiredColumns, joinType) -> {
-        throw new UnsupportedOperationException("JdbcCorrelate");
-      };
+      new RelFactories.CorrelateFactory() {
+    @Override public RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType) {
+      throw new UnsupportedOperationException("JdbcCorrelate");
+    }
+
+    @Override public RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType,
+        RexNode condition) {
+      throw new UnsupportedOperationException("JdbcCorrelate");
+    }
+  };
 
   public static final RelFactories.SortFactory SORT_FACTORY =
       (input, collation, offset, fetch) -> {
