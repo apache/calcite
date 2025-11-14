@@ -194,11 +194,11 @@ GROUP BY job;
 +-----------+-----------+
 | JOB       | AVG_EMPNO |
 +-----------+-----------+
-| ANALYST   |      7845 |
-| CLERK     |      7769 |
-| MANAGER   |      7682 |
-| PRESIDENT |      7839 |
-| SALESMAN  |      7629 |
+| ANALYST   |    7845.0 |
+| CLERK     |   7769.75 |
+| MANAGER   |    7682.0 |
+| PRESIDENT |    7839.0 |
+| SALESMAN  |    7629.5 |
 +-----------+-----------+
 (5 rows)
 
