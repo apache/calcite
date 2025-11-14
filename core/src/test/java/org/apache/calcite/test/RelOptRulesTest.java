@@ -100,6 +100,7 @@ import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -9280,6 +9281,17 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
         .withLateDecorrelate(true)
         .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7289">[CALCITE-7289]
+   * Select NULL subquery throwing exception</a>. */
+  @Test void testNullSelect() {
+    final String sql = "SELECT 1 from emp WHERE NULL IN (SELECT null)";
+    RelBuilder.Config config =
+        RelBuilder.Config.DEFAULT.withSimplifyValues(false).withSimplify(false);
+    RelOptRule subQueryFilterRule =
+        SubQueryRemoveRule.Config.FILTER.withRelBuilderFactory(RelBuilder.proto(config)).toRule();
+    sql(sql).withRule(subQueryFilterRule).withLateDecorrelate(true).check();
   }
 
   /** Test case for
