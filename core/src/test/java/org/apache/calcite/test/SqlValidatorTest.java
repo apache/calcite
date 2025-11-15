@@ -1516,6 +1516,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARIANT NOT NULL ARRAY NOT NULL");
     expr("cast(MAP['a','b','c','d'] AS MAP<VARCHAR, VARIANT>)")
         .columnType("(VARCHAR NOT NULL, VARIANT) MAP NOT NULL");
+    // Test case for [CALCITE-7293] https://issues.apache.org/jira/browse/CALCITE-7293
+    // MAP constructor cannot handle VARIANT values that need casts
+    expr("MAP['a', CAST('x' AS VARIANT), 'b', CAST(NULL AS VARIANT)]")
+        .columnType("(CHAR(1) NOT NULL, VARIANT) MAP NOT NULL");
   }
 
   @Test void testAccessVariant() {
