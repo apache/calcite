@@ -38,6 +38,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -195,6 +196,9 @@ public class OracleSqlDialect extends SqlDialect {
         call.operand(3).unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(frame);
+      break;
+    case CHAR_LENGTH:
+      RelToSqlConverterUtil.convertCharLengthToLength(writer, call, leftPrec, rightPrec);
       break;
     case FLOOR:
       if (call.operandCount() != 2) {
