@@ -49,6 +49,11 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-42-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6947">CALCITE-6947</a>]
+The feature support LogicalSnapshot in RelShuttle. please note that If there’s a class X that extends LogicalSnapshot
+and a class Y extends Snapshot, but not LogicalSnapshot, then X will call RelShuttle.visit(LogicalSnapshot)
+and Y will call RelShuttle.visit(RelNode other)
+
 #### New features
 {: #new-features-1-42-0}
 
