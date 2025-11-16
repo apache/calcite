@@ -10479,6 +10479,40 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNullSelect">
+    <Resource name="sql">
+      <![CDATA[SELECT 1 from emp WHERE NULL IN (SELECT null)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[IN(null:NULL, {
+LogicalValues(tuples=[[{ null }]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(EXPR$0=[1])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(cs=[true])
+        LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[1])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(cs=[true])
+        LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOrAlwaysTrue">
     <Resource name="sql">
       <![CDATA[select * from EMPNULLABLES_20
