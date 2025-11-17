@@ -10039,6 +10039,66 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
+   * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
+  @Test void testJoinSubQueryRemoveRuleWithNotExists() {
+    final String sql = "select *\n"
+        + "from (select 1 id) t1\n"
+        + "left join (select 2 id) t2\n"
+        + "on not exists(select *\n"
+        + "               from (select 3 id) p\n"
+        + "               where p.id = t2.id)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
+   * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
+  @Test void testJoinSubQueryRemoveRuleWithOrExists() {
+    final String sql = "select *\n"
+        + "from (select 1 id) t1\n"
+        + "left join (select 2 id) t2\n"
+        + "on t1.id = t2.id or exists(select *\n"
+        + "                           from (select 3 id) p\n"
+        + "                           where p.id = t2.id)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
+   * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
+  @Test void testJoinSubQueryRemoveRuleWithOrNotExists() {
+    final String sql = "select *\n"
+        + "from (select 1 id) t1\n"
+        + "left join (select 2 id) t2\n"
+        + "on t1.id = t2.id or not exists(select *\n"
+        + "                               from (select 3 id) p\n"
+        + "                               where p.id = t2.id)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
+   * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
+  @Test void testJoinSubQueryRemoveRuleWithAndNotExists() {
+    final String sql = "select *\n"
+        + "from (select 1 id union all select 2) t1\n"
+        + "left join (select 2 id) t2\n"
+        + "on t1.id = t2.id and not exists(select *\n"
+        + "                                from (select 3 id) p\n"
+        + "                                where p.id = t1.id)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2295">[CALCITE-2295]
    * Correlated SubQuery with Project will generate error plan</a>. */
   @Test public void testDecorrelationWithProject() throws Exception {

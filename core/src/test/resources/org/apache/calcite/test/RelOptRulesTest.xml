@@ -8296,6 +8296,74 @@ LogicalProject(SAL=[$5])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinSubQueryRemoveRuleWithAndNotExists">
+    <Resource name="sql">
+      <![CDATA[select *
+from (select 1 id union all select 2) t1
+left join (select 2 id) t2
+on t1.id = t2.id and not exists(select *
+                                from (select 3 id) p
+                                where p.id = t1.id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[AND(=($0, $1), NOT(EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID)])
+  LogicalValues(tuples=[[{ 3 }]])
+})))], joinType=[left])
+    LogicalValues(tuples=[[{ 1 }, { 2 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$2])
+    LogicalJoin(condition=[AND(=($0, $2), IS NULL($1))], joinType=[left])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 1 }, { 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+      LogicalValues(tuples=[[{ 2 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinSubQueryRemoveRuleWithNotExists">
+    <Resource name="sql">
+      <![CDATA[select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on not exists(select *
+               from (select 3 id) p
+               where p.id = t2.id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID0)])
+  LogicalValues(tuples=[[{ 3 }]])
+}))], joinType=[left])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$1])
+    LogicalJoin(condition=[IS NULL($2)], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }]])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinSubQueryRemoveRuleWithNotIn">
     <Resource name="sql">
       <![CDATA[SELECT empno FROM emp JOIN dept on emp.deptno not in (SELECT deptno FROM dept)]]>
@@ -8325,6 +8393,74 @@ LogicalProject(EMPNO=[$0])
         LogicalProject(DEPTNO=[$0], i=[true])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinSubQueryRemoveRuleWithOrExists">
+    <Resource name="sql">
+      <![CDATA[select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on t1.id = t2.id or exists(select *
+                           from (select 3 id) p
+                           where p.id = t2.id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[OR(=($0, $1), EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID0)])
+  LogicalValues(tuples=[[{ 3 }]])
+}))], joinType=[left])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$1])
+    LogicalJoin(condition=[OR(=($0, $1), IS NOT NULL($2))], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }]])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinSubQueryRemoveRuleWithOrNotExists">
+    <Resource name="sql">
+      <![CDATA[select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on t1.id = t2.id or not exists(select *
+                               from (select 3 id) p
+                               where p.id = t2.id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[OR(=($0, $1), NOT(EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID0)])
+  LogicalValues(tuples=[[{ 3 }]])
+})))], joinType=[left])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$1])
+    LogicalJoin(condition=[OR(=($0, $1), IS NULL($2))], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }]])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
 ]]>
     </Resource>
   </TestCase>
