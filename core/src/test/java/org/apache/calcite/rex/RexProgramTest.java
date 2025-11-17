@@ -2712,48 +2712,37 @@ class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
    * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
   @Test void testSimplifyDivideSafe() {
-    // null + (a/0)/4
-    // ==>
-    // null + (a/0)/4
+    // null + (a/0)/4   ==>   null + (a/0)/4
     // a/0 throws an exception so it may not be simplified
     RexNode divideNode0 = plus(nullInt, div(div(vIntNotNull(), literal(0)), literal(4)));
     checkSimplifyUnchanged(divideNode0);
-    // null + a/4
-    // ==>
-    // null + a/4
+    // null + a/4    ==>    null
     RexNode divideNode1 = plus(nullInt, div(vIntNotNull(), literal(4)));
-    checkSimplifyUnchanged(divideNode1);
-    // null + a/null
-    // ==>
-    // null
+    checkSimplify(divideNode1, "null:INTEGER");
+    // null + a/null    ==>    null
     RexNode divideNode2 = plus(nullInt, div(vIntNotNull(), nullInt));
     checkSimplify(divideNode2, "null:INTEGER");
-    // null + null/0
-    // ==>
-    // null + null/0
+    // null + null/0    ==>    null
+    // The SQL standard gives NULL a higher priority than division by 0.
+    // This is the same behavior as PostgreSQL, Oracle, SQLite, MariaDB, and MySQL.
     RexNode divideNode3 = plus(nullInt, div(nullInt, literal(0)));
-    checkSimplifyUnchanged(divideNode3);
-    // null + a/0
-    // ==>
-    // null + a/0
+    checkSimplify(divideNode3, "null:INTEGER");
+    // null + a/0   ==>   null + a/0
     RexNode divideNode4 = plus(nullInt, div(vIntNotNull(), literal(0)));
     checkSimplifyUnchanged(divideNode4);
-    // null + a/b
-    // ==>
-    // null + a/b
+    // null + a/b    ==>    null + a/b
     // b might be 0 and throw an exception, so a/b cannot be simplified.
     // E.g., PostgreSQL throws a division-by-zero error for the following query:
     // SELECT NULL + (a/b) FROM (select 1 as a, 0 as b) t
     RexNode divideNode5 = plus(nullInt, div(vIntNotNull(), vIntNotNull()));
     checkSimplifyUnchanged(divideNode5);
-    // null/(1/0)
-    // ==>
-    // null/(1/0)
+    // (1/0) + (null/0)   ==>   (1/0) + null
+    RexNode divideNode6 = plus(div(literal(1), literal(0)), div(nullInt, literal(0)));
+    checkSimplify(divideNode6, "+(/(1, 0), null)");
+    // null/(1/0)   ==>   null/(1/0)
     RexNode divideNode7 = div(nullInt, div(literal(1), literal(0)));
     checkSimplifyUnchanged(divideNode7);
-    // (1/0)/null
-    // ==>
-    // (1/0)/null
+    // (1/0)/null   ==>   (1/0)/null
     RexNode divideNode8 = div(div(literal(1), literal(0)), nullInt);
     checkSimplifyUnchanged(divideNode8);
   }
@@ -2762,25 +2751,50 @@ class RexProgramTest extends RexProgramTestBase {
    * See <a href="https://issues.apache.org/jira/browse/CALCITE-7145">[CALCITE-7145]
    * RexSimplify should not simplify IS NULL(10/0)</a>. */
   @Test void testSimplifyIsNullDivide() {
-    RelDataType intType =
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.INTEGER), false);
+    RelDataType intType = tInt(false);
 
     checkSimplifyUnchanged(isNull(div(vIntNotNull(), literal(0))));
     checkSimplifyUnchanged(isNull(div(vIntNotNull(), cast(literal(0), intType))));
+    checkSimplify(isNull(div(vIntNotNull(), cast(literal(2), intType))), "false");
 
     checkSimplifyUnchanged(isNull(div(cast(literal(2), intType), vIntNotNull())));
     checkSimplifyUnchanged(isNull(div(vIntNotNull(), vIntNotNull())));
 
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), literal(0))));
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), cast(literal(0), intType))));
+    checkSimplify(isNotNull(div(vIntNotNull(), cast(literal(2), intType))), "true");
 
     checkSimplifyUnchanged(isNotNull(div(cast(literal(2), intType), vIntNotNull())));
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(), vIntNotNull())));
 
     checkSimplifyUnchanged(isNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "false");
 
     checkSimplifyUnchanged(isNotNull(div(vDecimalNotNull(), literal(0))));
+    checkSimplify(
+        isNotNull(div(vDecimalNotNull(), cast(literal(BigDecimal.valueOf(2.5)), intType))),
+        "true");
+  }
+
+  /**
+   * Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7295">[CALCITE-7295]
+   * RexSimplify should simplify a division with a NULL argument</a>.
+   */
+  @Test void testSimplifyIsNullDivideWithNullArgument() {
+    checkSimplify(isNull(div(nullInt, literal(0))), "true");
+    checkSimplify(isNull(div(literal(0), nullInt)), "true");
+
+    checkSimplify(isNotNull(div(nullInt, literal(0))), "false");
+    checkSimplify(isNotNull(div(literal(0), nullInt)), "false");
+
+    checkSimplify(isNull(div(nullDecimal, literal(BigDecimal.ZERO))), "true");
+    checkSimplify(isNotNull(div(nullDecimal, literal(BigDecimal.ZERO))), "false");
+
+    // do not simplify if one of the operands may throw an exception
+    checkSimplifyUnchanged(div(nullInt, cast(vVarchar(), tInt(false))));
+    checkSimplifyUnchanged(div(cast(vVarchar(), tInt(false)), nullInt));
   }
 
   @Test void testPushNotIntoCase() {
@@ -2995,7 +3009,6 @@ class RexProgramTest extends RexProgramTestBase {
     // "(cast A as varbinary) IS NOT NULL"
     checkSimplifyUnchanged(isNotNull(cast(vVarchar(), tVarbinary(true))));
   }
-
 
   @Test void checkSimplifyDynamicParam() {
     checkSimplify(isNotNull(lt(vInt(0), vInt(1))),
@@ -4291,6 +4304,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(div(nullInt, one), "null:INTEGER");
     checkSimplify(div(a, nullInt), "null:INTEGER");
     checkSimplify(div(zero, nullInt), "null:INTEGER");
+    checkSimplify(div(nullInt, zero), "null:INTEGER");
 
     checkSimplify(add(b, half), "?0.notNullDecimal2");
 
