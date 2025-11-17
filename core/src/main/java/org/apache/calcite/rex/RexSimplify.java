@@ -418,15 +418,20 @@ public class RexSimplify {
    */
   private static int findLiteralIndex(List<RexNode> operands, BigDecimal value) {
     for (int i = 0; i < operands.size(); i++) {
-      if (operands.get(i).isA(SqlKind.LITERAL)) {
-        Comparable comparable = ((RexLiteral) operands.get(i)).getValue();
-        if (comparable instanceof BigDecimal
-            && value.compareTo((BigDecimal) comparable) == 0) {
-          return i;
-        }
+      if (checkLiteralValue(operands.get(i), value)) {
+        return i;
       }
     }
     return -1;
+  }
+
+  /** Check whether the operand is a BigDecimal literal of the specified value. */
+  private static boolean checkLiteralValue(RexNode operand, BigDecimal value) {
+    if (!operand.isA(SqlKind.LITERAL)) {
+      return false;
+    }
+    Comparable<?> comparable = ((RexLiteral) operand).getValue();
+    return comparable instanceof BigDecimal && value.compareTo((BigDecimal) comparable) == 0;
   }
 
   private RexNode simplifyArithmetic(RexCall e) {
@@ -491,8 +496,8 @@ public class RexSimplify {
   }
 
   private RexNode simplifyDivide(RexCall e) {
-    final int oneIndex = findLiteralIndex(e.operands, BigDecimal.ONE);
-    if (oneIndex == 1) {
+    RexNode rightOperand = e.getOperands().get(1);
+    if (checkLiteralValue(rightOperand, BigDecimal.ONE)) {
       RexNode leftOperand = e.getOperands().get(0);
       return leftOperand.getType().equals(e.getType())
           ? leftOperand : rexBuilder.makeCast(e.getParserPosition(), e.getType(), leftOperand);
@@ -1561,14 +1566,19 @@ public class RexSimplify {
       case DIVIDE:
       case MOD:
         List<RexNode> operands = call.getOperands();
-        boolean isSafe = RexVisitorImpl.visitArrayAnd(this, ImmutableList.of(operands.get(0)));
-        if (!isSafe) {
+        boolean areOperandsSafe = RexVisitorImpl.visitArrayAnd(this, call.operands);
+        if (!areOperandsSafe) {
           return false;
         }
-        if (operands.get(1) instanceof RexLiteral) {
-          RexLiteral literal = (RexLiteral) operands.get(1);
-          return RexUtil.isNullLiteral(literal, true);
+        boolean hasNullOperand = RexUtil.isNullLiteral(operands.get(0), true)
+            || RexUtil.isNullLiteral(operands.get(1), true);
+        if (hasNullOperand) {
+          return true;
         }
+        if (operands.get(1) instanceof RexLiteral) {
+          return !checkLiteralValue(operands.get(1), BigDecimal.ZERO);
+        }
+        // the safety of division could not be deduced, so assume it is unsafe
         return false;
       default:
         break;
