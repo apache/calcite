@@ -1030,4 +1030,66 @@ natural join "scott".dept order by empno;
 
 !ok
 
+# [CALCITE-6176] JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause
+select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on not exists(select *
+               from (select 3 id) p
+               where p.id = t2.id);
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |   2 |
++----+-----+
+(1 row)
+
+!ok
+
+select *
+from (select 1 id union all select 2) t1
+left join (select 2 id) t2
+on t1.id = t2.id and not exists(select *
+                                from (select 3 id) p
+                                where p.id = t1.id);
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |     |
+|  2 |   2 |
++----+-----+
+(2 rows)
+
+!ok
+
+select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on t1.id = t2.id or exists(select *
+                           from (select 3 id) p
+                           where p.id = t2.id);
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |     |
++----+-----+
+(1 row)
+
+!ok
+
+select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on t1.id = t2.id or not exists(select *
+                               from (select 3 id) p
+                               where p.id = t2.id);
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |   2 |
++----+-----+
+(1 row)
+
+!ok
+
 # End join.iq
