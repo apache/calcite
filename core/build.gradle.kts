@@ -93,6 +93,7 @@ dependencies {
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")
     testImplementation("org.apache.calcite.avatica:avatica-server")
+    testImplementation("io.github.classgraph:classgraph:4.8.173")
     testImplementation("org.apache.commons:commons-pool2")
     testImplementation("org.hsqldb:hsqldb::jdk8")
     testImplementation("sqlline:sqlline")
