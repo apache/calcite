@@ -3095,14 +3095,24 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
     final RelNode rel = sql(sql).toRel();
     final List<RelNode> rels = new ArrayList<>();
+    final List<RelNode> otherRels = new ArrayList<>();
     final RelShuttleImpl visitor = new RelShuttleImpl() {
       @Override public RelNode visit(LogicalSnapshot modify) {
         RelNode visitedRel = super.visit(modify);
         rels.add(visitedRel);
         return visitedRel;
       }
+
+      @Override public RelNode visit(RelNode other) {
+        if (other instanceof LogicalSnapshot) {
+          otherRels.add(other);
+        }
+        RelNode visitedRel = super.visit(other);
+        return visitedRel;
+      }
     };
     rel.accept(visitor);
+    assertThat(otherRels, hasSize(0));
     assertThat(rels, hasSize(1));
     assertThat(rels.get(0), instanceOf(LogicalSnapshot.class));
   }
