@@ -93,6 +93,23 @@ public enum JoinRelType {
    */
   LEFT_ASOF,
 
+  /**
+   * An MARK JOIN will keep all rows from the left side and creates a new attribute to mark a
+   * tuple as having join partners from right side or not. Refer to
+   * <a href="https://dl.gi.de/items/c5f7c49f-1572-490e-976a-cc4292519bdd">
+   *   The Complete Story of Joins (in HyPer)</a>.
+   *
+   * <p>Example:
+   * <blockquote><pre>
+   * SELECT * FROM EMP
+   * WHERE EXISTS (SELECT 1 FROM DEPT
+   *     WHERE DEPT.DEPTNO = EMP.DEPTNO)
+   *     OR EMPNO > 1</pre>
+   * </blockquote>
+   *
+   * <p> If the marker is used on only conjunctive predicates the optimizer will try to translate
+   * the mark join into semi or anti join.
+   */
   MARK;
 
   /** Lower-case name. */

@@ -11420,7 +11420,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11434,7 +11434,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11448,7 +11448,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
             .withRule(
-                    CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+                    CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
                     CoreRules.PROJECT_MERGE,
                     CoreRules.PROJECT_REMOVE)
             .withLateDecorrelate(true)
@@ -11462,7 +11462,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
             .withRule(
-                    CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+                    CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
                     CoreRules.PROJECT_MERGE,
                     CoreRules.PROJECT_REMOVE)
             .withLateDecorrelate(true)
@@ -11476,7 +11476,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11492,7 +11492,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11507,7 +11507,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11521,7 +11521,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
             .withRule(
-                    CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+                    CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
                     CoreRules.PROJECT_MERGE,
                     CoreRules.PROJECT_REMOVE)
             .withLateDecorrelate(true)
@@ -11536,7 +11536,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11565,7 +11565,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)
@@ -11580,7 +11580,36 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(
-            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN,
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForCannotRemoveD() {
+    final String sql = "select empno from emp where "
+        + "exists(select * from empnullables where emp.deptno > empnullables.deptno)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForSubqueryWithSort() {
+    final String sql = "select empno from emp where "
+        + "sal > SOME(select sal from emp_b where emp.deptno = emp_b.deptno "
+        + "order by emp_b.sal limit 5)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_REMOVE)
         .withLateDecorrelate(true)

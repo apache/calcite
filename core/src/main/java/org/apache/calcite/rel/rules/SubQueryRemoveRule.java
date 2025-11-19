@@ -1093,9 +1093,12 @@ public class SubQueryRemoveRule
       }
       ++count;
       final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
+      // Only keep the correlation that are defined in the current RelNode level, to avoid creating
+      // wrong Correlate node.
       variablesSet.retainAll(variablesSetOfRelNode);
 
       RexNode target;
+      // rewrite EXISTS/IN/SOME to mark join/correlate
       switch (e.getKind()) {
       case EXISTS:
       case IN:
@@ -1128,18 +1131,37 @@ public class SubQueryRemoveRule
     return newExpressions;
   }
 
+  /**
+   * Rewrites a IN/SOME/EXISTS RexSubQuery into a {@link Join} of MARK type.
+   *
+   * @param e             IN/SOME/EXISTS Sub-query to rewrite
+   * @param variablesSet  A set of variables used by a relational
+   *                      expression of the specified RexSubQuery
+   * @param builder       Builder
+   * @param offset        Offset to shift {@link RexInputRef}
+   * @return  Expression that may be used to replace the RexSubQuery
+   */
   private static RexNode rewriteToMarkJoin(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int offset) {
     builder.push(e.rel);
-
     final List<RexNode> rightShiftRef = RexUtil.shift(builder.fields(), offset);
     final List<RexNode> externalPredicate = new ArrayList<>();
     final SqlOperator externalOperator;
-    if (e.getKind() == SqlKind.SOME) {
+    switch (e.getKind()) {
+    case SOME:
       SqlQuantifyOperator op = (SqlQuantifyOperator) e.op;
       externalOperator = RelOptUtil.op(op.comparisonKind, SqlStdOperatorTable.EQUALS);
-    } else {
+      break;
+    case IN:
       externalOperator = SqlStdOperatorTable.EQUALS;
+      break;
+    case EXISTS:
+      externalOperator = SqlStdOperatorTable.EQUALS;
+      assert e.getOperands().isEmpty();
+      break;
+    default:
+      throw new IllegalArgumentException("Only IN/SOME/EXISTS sub-query can be rewritten to "
+          + "mark join, but got: " + e.getKind());
     }
     Pair.zip(e.getOperands(), rightShiftRef, false).stream()
         .map(pair -> builder.call(externalOperator, pair.left, pair.right))

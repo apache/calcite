@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -61,44 +62,44 @@ public class MarkToSemiOrAntiJoinRule
     int markIndex = join.getRowType().getFieldCount() - 1;
     ImmutableBitSet projectColumns = RelOptUtil.InputFinder.bits(project.getProjects(), null);
     ImmutableBitSet filterColumns = RelOptUtil.InputFinder.bits(filter.getCondition());
-    // Proj       <- does not project marker
-    //  Filter    <- use marker in condition
-    //    Join    <- mark join
+    // Proj        <- no result of the project depends on marker
+    //   Filter    <- condition depends on marker
+    //     Join    <- mark join
     if (projectColumns.get(markIndex) || !filterColumns.get(markIndex)) {
       return;
     }
 
-    // After decompose the filter condition by AND, there are only two cases to simplify:
+    // After expressing the filter condition as a conjunction, there are only two cases to simplify:
     // 1. only reference the marker, simplify to semi join
-    // 2. NOT(marker), and the join condition only contains IS [NOT] DISTINCT FROM,
-    //    simplify to anti join
+    // 2. NOT(marker), and the join condition will only return TRUE/FALSE
+    //    (will not return NULL values), simplify to anti join
     boolean toSemi = false;
     boolean toAnti = false;
     List<RexNode> filterConditions = RelOptUtil.conjunctions(filter.getCondition());
     List<RexNode> newFilterConditions = new ArrayList<>();
     for (RexNode condition : filterConditions) {
       final ImmutableBitSet inputBits = RelOptUtil.InputFinder.bits(condition);
-      // marker not referenced
+      // marker is not referenced
       if (!inputBits.get(markIndex)) {
         newFilterConditions.add(condition);
         continue;
       }
 
-      // only marker referenced, to semi join
+      // only reference the marker, to semi join
       if (condition instanceof RexInputRef && !toAnti) {
         toSemi = true;
         continue;
       }
-      // NOT(marker), and the join condition only contains IS [NOT] DISTINCT FROM, to anti join
+      // NOT(marker), and the join condition will only return TRUE/FALSE, to anti join
       if (condition instanceof RexCall
           && condition.isA(SqlKind.NOT)
           && ((RexCall) condition).getOperands().get(0) instanceof RexInputRef
-          && onlyContainsDistinctFrom(join.getCondition())
+          && isJoinConditionNotStrong(join.getCondition())
           && !toSemi) {
         toAnti = true;
         continue;
       }
-      // other forms cannot be eliminated
+      // other forms cannot be simplified, for example, disjunction
       return;
     }
     JoinRelType newJoinType = toSemi ? JoinRelType.SEMI : JoinRelType.ANTI;
@@ -111,10 +112,10 @@ public class MarkToSemiOrAntiJoinRule
     call.transformTo(result);
   }
 
-  private static boolean onlyContainsDistinctFrom(RexNode condition) {
+  private static boolean isJoinConditionNotStrong(RexNode condition) {
     List<RexNode> conjunctions = conjunctions(condition);
     for (RexNode expr : conjunctions) {
-      if (!expr.isA(SqlKind.IS_DISTINCT_FROM) && !expr.isA(SqlKind.IS_NOT_DISTINCT_FROM)) {
+      if (Strong.isStrong(expr)) {
         return false;
       }
     }

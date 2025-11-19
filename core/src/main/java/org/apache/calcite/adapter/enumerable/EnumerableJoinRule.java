@@ -21,10 +21,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Bug;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +52,12 @@ class EnumerableJoinRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     Join join = (Join) rel;
+    if (!Bug.TODO_FIXED) {
+      // TODO implement MARK join
+      if (join.getJoinType() == JoinRelType.MARK) {
+        return null;
+      }
+    }
     List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       if (!(input.getConvention() instanceof EnumerableConvention)) {

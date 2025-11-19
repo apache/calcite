@@ -30,6 +30,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalCorrelatePlus;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -91,6 +92,9 @@ public class RelFactories {
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
 
+  public static final CorrelatePlusFactory DEFAULT_CORRELATE_PLUS_FACTORY =
+      new CorrelatePlusFactoryImpl();
+
   public static final SortFactory DEFAULT_SORT_FACTORY =
       new SortFactoryImpl();
 
@@ -144,6 +148,7 @@ public class RelFactories {
           DEFAULT_JOIN_FACTORY,
           DEFAULT_ASOFJOIN_FACTORY,
           DEFAULT_CORRELATE_FACTORY,
+          DEFAULT_CORRELATE_PLUS_FACTORY,
           DEFAULT_VALUES_FACTORY,
           DEFAULT_TABLE_SCAN_FACTORY,
           DEFAULT_TABLE_FUNCTION_SCAN_FACTORY,
@@ -470,10 +475,6 @@ public class RelFactories {
     RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
         JoinRelType joinType);
-
-    RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
-        CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        JoinRelType joinType, RexNode condition);
   }
 
   /**
@@ -487,11 +488,42 @@ public class RelFactories {
       return LogicalCorrelate.create(left, right, hints, correlationId,
           requiredColumns, joinType);
     }
+  }
 
-    @Override public RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+  /**
+   * Can create a CorrelatePlus of the appropriate type for a rule's calling
+   * convention.
+   *
+   * <p>The result is typically a {@link CorrelatePlus}.
+   */
+  public interface CorrelatePlusFactory {
+
+    /**
+     * Creates a CorrelatePlus.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param hints            Hints
+     * @param correlationId    Variable name for the row of left input
+     * @param requiredColumns  Required columns
+     * @param joinType         Join type
+     * @param condition        Join condition
+     */
+    RelNode createCorrelatePlus(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns,
+        JoinRelType joinType, RexNode condition);
+  }
+
+  /**
+   * Implementation of {@link CorrelatePlusFactory} that returns a vanilla
+   * {@link org.apache.calcite.rel.logical.LogicalCorrelatePlus}.
+   */
+  private static class CorrelatePlusFactoryImpl implements CorrelatePlusFactory {
+
+    @Override public RelNode createCorrelatePlus(RelNode left, RelNode right, List<RelHint> hints,
         CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType,
         RexNode condition) {
-      return LogicalCorrelate.create(left, right, hints, correlationId,
+      return LogicalCorrelatePlus.create(left, right, hints, correlationId,
           requiredColumns, joinType, condition);
     }
   }
@@ -750,6 +782,7 @@ public class RelFactories {
     public final JoinFactory joinFactory;
     public final AsofJoinFactory asofJoinFactory;
     public final CorrelateFactory correlateFactory;
+    public final CorrelatePlusFactory correlatePlusFactory;
     public final ValuesFactory valuesFactory;
     public final TableScanFactory scanFactory;
     public final TableFunctionScanFactory tableFunctionScanFactory;
@@ -770,6 +803,7 @@ public class RelFactories {
         JoinFactory joinFactory,
         AsofJoinFactory asofJoinFactory,
         CorrelateFactory correlateFactory,
+        CorrelatePlusFactory correlatePlusFactory,
         ValuesFactory valuesFactory,
         TableScanFactory scanFactory,
         TableFunctionScanFactory tableFunctionScanFactory,
@@ -789,6 +823,7 @@ public class RelFactories {
       this.joinFactory = requireNonNull(joinFactory, "joinFactory");
       this.asofJoinFactory = requireNonNull(asofJoinFactory, "asofJoinFactory");
       this.correlateFactory = requireNonNull(correlateFactory, "correlateFactory");
+      this.correlatePlusFactory = requireNonNull(correlatePlusFactory, "correlatePlusFactory");
       this.valuesFactory = requireNonNull(valuesFactory, "valuesFactory");
       this.scanFactory = requireNonNull(scanFactory, "scanFactory");
       this.tableFunctionScanFactory =
@@ -827,6 +862,8 @@ public class RelFactories {
               .orElse(DEFAULT_ASOFJOIN_FACTORY),
           context.maybeUnwrap(CorrelateFactory.class)
               .orElse(DEFAULT_CORRELATE_FACTORY),
+          context.maybeUnwrap(CorrelatePlusFactory.class)
+                  .orElse(DEFAULT_CORRELATE_PLUS_FACTORY),
           context.maybeUnwrap(ValuesFactory.class)
               .orElse(DEFAULT_VALUES_FACTORY),
           context.maybeUnwrap(TableScanFactory.class)

@@ -1413,8 +1413,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                 newRight,
                 correlate.getCorrelationId(),
                 correlate.getRequiredColumns().permute(mapping),
-                correlate.getJoinType(),
-                correlate.getCondition());
+                correlate.getJoinType());
 
     return result(newCorrelate, mapping);
   }

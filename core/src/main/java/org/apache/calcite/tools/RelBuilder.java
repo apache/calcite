@@ -3320,8 +3320,8 @@ public class RelBuilder {
       final ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, right.rel);
       if (joinType == JoinRelType.MARK) {
         join =
-            struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
-                requiredColumns, joinType, condition);
+            struct.correlatePlusFactory.createCorrelatePlus(left.rel, right.rel, ImmutableList.of(),
+                id, requiredColumns, joinType, condition);
       } else {
         join =
             struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
