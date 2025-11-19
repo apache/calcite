@@ -6576,24 +6576,6 @@ public class SqlParserTest {
     assertThat(str1, is(toLinux(sqlNodeVisited1.toString())));
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7301">[CALCITE-7301]
-   * Support unparse special syntax when operator is LAMBDA</a>. */
-  @Test void testDeepCopySqlWithLambda() {
-    final String sql = "select higher_order_func(1, (x, y) -> (x + y)) from t";
-    final String expected = "SELECT `HIGHER_ORDER_FUNC`(1, (`X`, `Y`) -> `X` + `Y`)\nFROM `T`";
-    final SqlNode sqlNode = sql(sql).node();
-    final SqlNode shuttled = sqlNode.accept(new SqlShuttle() {
-      @Override public @Nullable SqlNode visit(final SqlCall call) {
-        // Handler always creates a new copy of 'call'
-        CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
-        call.getOperator().acceptCall(this, call, false, argHandler);
-        return argHandler.result();
-      }
-    });
-    assertThat(toLinux(shuttled.toString()), is(expected));
-  }
-
   @Test void testVisitSqlUpdateWithSqlShuttle() {
     final String sql = "UPDATE emps AS e SET e.sal = 0 WHERE e.sal < 0";
     final SqlNode sqlNode = sql(sql).node();
@@ -9904,6 +9886,17 @@ public class SqlParserTest {
       }
     }
 
+    static SqlNode deepCopy(SqlNode sqlNode) {
+      return sqlNode.accept(new SqlShuttle() {
+        @Override public @Nullable SqlNode visit(final SqlCall call) {
+          // Handler always creates a new copy of 'call'
+          CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
+          call.getOperator().acceptCall(this, call, false, argHandler);
+          return argHandler.result();
+        }
+      });
+    }
+
     @Override public void checkList(SqlTestFactory factory, StringAndPos sap,
         @Nullable SqlDialect dialect, UnaryOperator<String> converter,
         List<String> expected) {
@@ -9933,6 +9926,12 @@ public class SqlParserTest {
       final Random random = new Random();
       final String sql3 = toSqlString(sqlNodeList, randomize(random));
       assertThat(sql3, notNullValue());
+
+      // Make a deep copy of the SqlNodeList, unparse it.
+      final SqlNodeList sqlNodeList3 = (SqlNodeList) deepCopy(sqlNodeList);
+      final String sql4 = toSqlString(sqlNodeList3, simple());
+      // Should be the same as we started with.
+      assertThat(sql4, is(sql1));
     }
 
     @Override public void check(SqlTestFactory factory, StringAndPos sap,
@@ -9977,6 +9976,11 @@ public class SqlParserTest {
           parseStmtAndHandleEx(factory2, sql1, parser -> { });
       final String sql4 = sqlNode4.toSqlString(simple()).getSql();
       assertThat(sql4, is(sql1));
+
+      // Make a deep copy of the original SqlNode, unparse it.
+      final SqlNode sqlNode5 = deepCopy(sqlNode);
+      final String actual5 = sqlNode5.toSqlString(writerTransform).getSql();
+      assertThat(converter.apply(actual5), is(expected));
     }
 
     @Override public void checkExp(SqlTestFactory factory, StringAndPos sap,
