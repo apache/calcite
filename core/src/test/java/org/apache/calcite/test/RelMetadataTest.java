@@ -310,7 +310,7 @@ public class RelMetadataTest {
 
     // Plan is:
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], DEPTNOPLUS1=[+($7, 1)], RAND=[RAND()])\n"
             + "  LogicalFilter(condition=[<($7, 20)])\n"
@@ -349,7 +349,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalAggregate(group=[{0}], count=[COUNT()], SUMSAL=[SUM($1)])\n"
             + "  LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
@@ -380,7 +380,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(DEPTNO=[$7], DEPTNO2=[$7], DEPTNO3=[+($7, 1)])\n"
             + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
@@ -407,7 +407,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], NAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[inner])\n"
@@ -445,7 +445,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
             + "  LogicalFilter(condition=[>($5, 1000)])\n"
@@ -474,7 +474,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], SAL=[$5], RAISED_SAL=[*($5, 1.1:DECIMAL(2, 1))],"
             + " SAL_CATEGORY=[CASE(>($5, 2000), 'high', 'low ')])\n"
@@ -505,7 +505,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalUnion(all=[true])\n"
             + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
@@ -534,7 +534,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], COMPOSITE=[+(*($0, 100), $7)])\n"
             + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
@@ -559,7 +559,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], CONSTANT_COL=[100], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
@@ -586,7 +586,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], RANDOM1=[RAND()], RANDOM2=[RAND()])\n"
             + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
@@ -614,7 +614,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[inner])\n"
@@ -639,7 +639,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[left])\n"
@@ -664,7 +664,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$2], DEPTNO=[$9], NAME=[$1])\n"
             + "  LogicalJoin(condition=[=($9, $0)], joinType=[right])\n"
@@ -689,7 +689,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[full])\n"
@@ -716,7 +716,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])\n"
             + "  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], SAL=[$5])\n"
@@ -755,7 +755,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
             + "  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5],"
@@ -796,7 +796,7 @@ public class RelMetadataTest {
     final RelNode relNode = sql(sql).toRel();
 
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalProject(EMPNO=[$0], SAL=[$5], MGR=[$12], DEPTNO=[$16])\n"
             + "  LogicalFilter(condition=[=($0, $5)])\n"
@@ -826,7 +826,7 @@ public class RelMetadataTest {
 
     final RelNode relNode = sql(sql).toRel();
     assertThat(
-        RelOptUtil.toString(relNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
             + "LogicalAggregate(group=[{0, 1}], Z=[SUM($2)])\n"
             + "  LogicalProject(ID1=[$0], ID2=[$1], AGE=[$3])\n"
@@ -869,7 +869,7 @@ public class RelMetadataTest {
     planner.setRoot(relNode);
     final RelNode plannedNode = planner.findBestExp();
     assertThat(
-        RelOptUtil.toString(plannedNode).replace("\r\n", "\n"),
+        Util.toLinux(RelOptUtil.toString(plannedNode)),
         is(""
             + "LogicalSort(sort0=[$1], sort1=[$3], sort2=[$4], dir0=[ASC], dir1=[ASC],"
             + " dir2=[ASC])\n"
