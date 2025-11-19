@@ -28,13 +28,24 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlMerge</code> is a node of a parse tree which represents a MERGE
  * statement.
  */
 public class SqlMerge extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("MERGE", SqlKind.MERGE);
+      new SqlSpecialOperator("MERGE", SqlKind.MERGE) {
+        @Override public SqlCall createCall(final @Nullable SqlLiteral functionQualifier,
+            final SqlParserPos pos,
+            final @Nullable SqlNode... operands) {
+          return new SqlMerge(pos, requireNonNull(operands[0]), requireNonNull(operands[1]),
+              requireNonNull(operands[2]),
+              (SqlUpdate) operands[3], (SqlInsert) operands[4],
+              (SqlSelect) operands[5], (SqlIdentifier) operands[6]);
+        }
+      };
 
   SqlNode targetTable;
   SqlNode condition;

@@ -50,8 +50,8 @@ public class SqlCreateView extends SqlCreate {
           return new SqlCreateView(pos,
               ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
               (SqlIdentifier) requireNonNull(operands[1], "name"),
-              (SqlNodeList) operands[3],
-              requireNonNull(operands[4], "query"));
+              (SqlNodeList) operands[2],
+              requireNonNull(operands[3], "query"));
         }
       };
 

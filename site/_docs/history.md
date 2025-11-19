@@ -49,6 +49,12 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-42-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7301">CALCITE-7301</a>]
+Prior to this change, most `SqlNode`s in the `org.apache.calcite.sql.ddl` package could not be unparsed
+when created with `SqlOperator#createCall`. To fix this, those `SqlNode`s now implement their own `SqlOperator`.
+`SqlNode#getOperandList()` now returns all operands required by these operators; the number and order may differ from before.
+The same applies to `SqlBabelCreateTable` and `SqlUnpivot`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6942">CALCITE-6942</a>]
 Rename the method `decorrelateFetchOneSort` to `decorrelateSortWithRowNumber`.
 

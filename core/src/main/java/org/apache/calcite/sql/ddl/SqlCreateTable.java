@@ -47,22 +47,28 @@ public class SqlCreateTable extends SqlCreate {
       new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE) {
         @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
             SqlParserPos pos, @Nullable SqlNode... operands) {
-          return new SqlCreateTable(pos,
+          return new SqlCreateTable(OPERATOR, pos,
               ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
               ((SqlLiteral) requireNonNull(operands[1], "ifNotExists")).booleanValue(),
               (SqlIdentifier) requireNonNull(operands[2], "name"),
-              (SqlNodeList) requireNonNull(operands[3], "columnList"),
-              operands[4]);
+              (SqlNodeList) operands[3], operands[4]);
         }
       };
 
   /** Creates a SqlCreateTable. */
-  protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
-      SqlIdentifier name, @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
-    super(OPERATOR, pos, replace, ifNotExists);
+  protected SqlCreateTable(SqlOperator operator, SqlParserPos pos, boolean replace,
+      boolean ifNotExists, SqlIdentifier name, @Nullable SqlNodeList columnList,
+      @Nullable SqlNode query) {
+    super(operator, pos, replace, ifNotExists);
     this.name = requireNonNull(name, "name");
     this.columnList = columnList; // may be null
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
+  }
+
+  /** Creates a SqlCreateTable. */
+  protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
+      SqlIdentifier name, @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
+    this(OPERATOR, pos, replace, ifNotExists, name, columnList, query);
   }
 
   @SuppressWarnings("nullness")
