@@ -255,6 +255,13 @@ public class RelBuilder {
             new RelBuilder(config.getContext(), cluster, relOptSchema));
   }
 
+  /** Creates a RelBuilder with a given RelOptCluster. */
+  public static RelBuilder create(FrameworkConfig config, RelOptCluster existingCluster) {
+    return Frameworks.withPrepare(config,
+        (cluster, relOptSchema, rootSchema, statement) ->
+            new RelBuilder(config.getContext(), existingCluster, relOptSchema));
+  }
+
   /** Creates a copy of this RelBuilder, with the same state as this, applying
    * a transform to the config. */
   public RelBuilder transform(UnaryOperator<Config> transform) {

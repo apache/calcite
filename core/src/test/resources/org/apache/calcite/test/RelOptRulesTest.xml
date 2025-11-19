@@ -16513,6 +16513,20 @@ LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRelFnWithVolcanoPlanner">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[>($5, 2000)])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableFilter(condition=[>($5, 2000)])
+  EnumerableTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testRemoveDistinctOnAgg">
     <Resource name="sql">
       <![CDATA[SELECT empno, SUM(distinct sal), MIN(sal), MIN(distinct sal), MAX(distinct sal), bit_and(distinct sal), bit_or(sal), count(distinct sal) from sales.emp group by empno, deptno
