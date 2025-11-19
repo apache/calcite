@@ -6576,6 +6576,24 @@ public class SqlParserTest {
     assertThat(str1, is(toLinux(sqlNodeVisited1.toString())));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7301">[CALCITE-7301]
+   * Support unparse special syntax when operator is LAMBDA</a>. */
+  @Test void testDeepCopySqlWithLambda() {
+    final String sql = "select higher_order_func(1, (x, y) -> (x + y)) from t";
+    final String expected = "SELECT `HIGHER_ORDER_FUNC`(1, (`X`, `Y`) -> `X` + `Y`)\nFROM `T`";
+    final SqlNode sqlNode = sql(sql).node();
+    final SqlNode shuttled = sqlNode.accept(new SqlShuttle() {
+      @Override public @Nullable SqlNode visit(final SqlCall call) {
+        // Handler always creates a new copy of 'call'
+        CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, true);
+        call.getOperator().acceptCall(this, call, false, argHandler);
+        return argHandler.result();
+      }
+    });
+    assertThat(toLinux(shuttled.toString()), is(expected));
+  }
+
   @Test void testVisitSqlUpdateWithSqlShuttle() {
     final String sql = "UPDATE emps AS e SET e.sal = 0 WHERE e.sal < 0";
     final SqlNode sqlNode = sql(sql).node();
