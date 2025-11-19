@@ -1888,10 +1888,28 @@ public class RexBuilder {
     switch (point.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) point;
+      if (literal.getType().getSqlTypeName() == SqlTypeName.MULTISET) {
+        // Multiset literals store comparisons as lists, so unwrap each value
+        // to build a comparable list before creating a Sarg.
+        @SuppressWarnings("unchecked")
+        final List<RexLiteral> literals =
+            requireNonNull((List<RexLiteral>) literal.getValue(),
+                () -> "literal.getValue() returned null for " + literal);
+        final ImmutableList.Builder<C> comparableBuilder = ImmutableList.builder();
+        for (RexLiteral literalValue : literals) {
+          final C comparableValue = toComparable(clazz, literalValue);
+          if (comparableValue == null) {
+            return null;
+          }
+          comparableBuilder.add(comparableValue);
+        }
+        return clazz.cast(FlatLists.of(comparableBuilder.build()));
+      }
       return literal.getValueAs(clazz);
 
     case ROW:
     case ARRAY_VALUE_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
       final RexCall call = (RexCall) point;
       final ImmutableList.Builder<Comparable> b = ImmutableList.builder();
       for (RexNode operand : call.operands) {
