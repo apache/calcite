@@ -29,6 +29,7 @@ import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -77,6 +78,7 @@ public abstract class Correlate extends BiRel implements Hintable {
   protected final ImmutableBitSet requiredColumns;
   protected final JoinRelType joinType;
   protected final ImmutableList<RelHint> hints;
+  protected final RexNode condition;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -99,14 +101,40 @@ public abstract class Correlate extends BiRel implements Hintable {
       RelNode right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      RexNode condition) {
     super(cluster, traitSet, left, right);
     assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
     this.joinType = requireNonNull(joinType, "joinType");
     this.correlationId = requireNonNull(correlationId, "correlationId");
     this.requiredColumns = requireNonNull(requiredColumns, "requiredColumns");
     this.hints = ImmutableList.copyOf(hints);
+    this.condition = requireNonNull(condition, "condition");
     assert isValid(Litmus.THROW, null);
+  }
+
+  /**
+   * Creates a Correlate.
+   *
+   * @param cluster      Cluster this relational expression belongs to
+   * @param left         Left input relational expression
+   * @param right        Right input relational expression
+   * @param correlationId Variable name for the row of left input
+   * @param requiredColumns Set of columns that are used by correlation
+   * @param joinType Join type
+   */
+  @SuppressWarnings("method.invocation.invalid")
+  protected Correlate(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelNode left,
+      RelNode right,
+      CorrelationId correlationId,
+      ImmutableBitSet requiredColumns,
+      JoinRelType joinType) {
+    this(cluster, traitSet, hints, left, right, correlationId, requiredColumns, joinType,
+        cluster.getRexBuilder().makeLiteral(true));
   }
 
   @Deprecated // to be removed before 2.0
@@ -144,7 +172,9 @@ public abstract class Correlate extends BiRel implements Hintable {
     return super.isValid(litmus, context)
         && litmus.check(leftColumns.contains(requiredColumns),
         "Required columns {} not subset of left columns {}", requiredColumns, leftColumns)
-        && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
+        && RelOptUtil.notContainsCorrelation(left, correlationId, litmus)
+        && litmus.check(condition.isAlwaysTrue() || joinType == JoinRelType.MARK,
+        "If the condition is not always true, the joinType must be MARK");
   }
 
   @Override public Correlate copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -154,8 +184,13 @@ public abstract class Correlate extends BiRel implements Hintable {
         inputs.get(1),
         correlationId,
         requiredColumns,
-        joinType);
+        joinType,
+        condition);
   }
+
+  public abstract Correlate copy(RelTraitSet traitSet,
+      RelNode left, RelNode right, CorrelationId correlationId,
+      ImmutableBitSet requiredColumns, JoinRelType joinType, RexNode condition);
 
   public abstract Correlate copy(RelTraitSet traitSet,
       RelNode left, RelNode right, CorrelationId correlationId,
@@ -169,6 +204,7 @@ public abstract class Correlate extends BiRel implements Hintable {
     switch (joinType) {
     case LEFT:
     case INNER:
+    case MARK:
       return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
           right.getRowType(), joinType,
           getCluster().getTypeFactory(), null,
@@ -185,7 +221,8 @@ public abstract class Correlate extends BiRel implements Hintable {
     return super.explainTerms(pw)
         .item("correlation", correlationId)
         .item("joinType", joinType.lowerName)
-        .item("requiredColumns", requiredColumns);
+        .item("requiredColumns", requiredColumns)
+        .itemIf("condition", condition, !condition.isAlwaysTrue());
   }
 
   /**
@@ -211,6 +248,10 @@ public abstract class Correlate extends BiRel implements Hintable {
     return requiredColumns;
   }
 
+  public RexNode getCondition() {
+    return condition;
+  }
+
   @Override public Set<CorrelationId> getVariablesSet() {
     return ImmutableSet.of(correlationId);
   }
@@ -220,6 +261,7 @@ public abstract class Correlate extends BiRel implements Hintable {
     switch (joinType) {
     case SEMI:
     case ANTI:
+    case MARK:
       return leftRowCount;
     default:
       return leftRowCount * mq.getRowCount(right);

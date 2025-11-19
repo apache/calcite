@@ -945,4 +945,13 @@ public class CoreRules {
    *  into equivalent {@link Union} ALL of GROUP BY operations. */
   public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
       AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
+
+  public static final SubQueryRemoveRule FILTER_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN =
+      SubQueryRemoveRule.Config.FILTER_ENABLE_MARK_JOIN.toRule();
+
+  public static final SubQueryRemoveRule PROJECT_SUBQUERY_REMOVE_ENABLE_MAKE_JOIN =
+      SubQueryRemoveRule.Config.PROJECT_ENABLE_MARK_JOIN.toRule();
+
+  public static final MarkToSemiOrAntiJoinRule MARK_TO_SEMI_OR_ANTI_JOIN_RULE =
+      MarkToSemiOrAntiJoinRule.Config.DEFAULT.toRule();
 }
