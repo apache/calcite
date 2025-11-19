@@ -42,7 +42,16 @@ public class SqlCreateView extends SqlCreate {
   public final SqlNode query;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE VIEW", SqlKind.CREATE_VIEW);
+      new SqlSpecialOperator("CREATE VIEW", SqlKind.CREATE_VIEW) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCreateView(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[1], "name"),
+              (SqlNodeList) operands[2],
+              requireNonNull(operands[3], "query"));
+        }
+      };
 
   /** Creates a SqlCreateView. */
   SqlCreateView(SqlParserPos pos, boolean replace, SqlIdentifier name,
