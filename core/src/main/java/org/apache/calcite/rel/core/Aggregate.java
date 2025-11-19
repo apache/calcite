@@ -233,7 +233,8 @@ public abstract class Aggregate extends SingleRel implements Hintable {
   //~ Methods ----------------------------------------------------------------
 
   @Override public final RelNode copy(RelTraitSet traitSet,
-      List<RelNode> inputs) {
+      List<RelNode> inputs, Set<CorrelationId> variableSet) {
+    assert variableSet.isEmpty();
     return copy(traitSet, sole(inputs), groupSet, groupSets, aggCalls);
   }
 
