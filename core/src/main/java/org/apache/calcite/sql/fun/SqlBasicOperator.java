@@ -40,24 +40,29 @@ public final class SqlBasicOperator extends SqlOperator {
   }
 
   /** Private constructor. Use {@link #create}. */
-  private SqlBasicOperator(String name, int leftPrecedence, int rightPrecedence,
+  private SqlBasicOperator(String name, SqlKind kind, int leftPrecedence, int rightPrecedence,
       SqlCallFactory callFactory) {
-    super(name, SqlKind.OTHER, leftPrecedence, rightPrecedence,
+    super(name, kind, leftPrecedence, rightPrecedence,
         ReturnTypes.BOOLEAN, InferTypes.RETURN_TYPE, OperandTypes.ANY, callFactory);
   }
 
   public static SqlBasicOperator create(String name) {
-    return new SqlBasicOperator(name, 0, 0,
+    return new SqlBasicOperator(name, SqlKind.OTHER, 0, 0,
+        SqlCallFactories.SQL_BASIC_CALL_FACTORY);
+  }
+
+  public static SqlBasicOperator create(String name, SqlKind kind) {
+    return new SqlBasicOperator(name, kind, 0, 0,
         SqlCallFactories.SQL_BASIC_CALL_FACTORY);
   }
 
   public SqlBasicOperator withPrecedence(int prec, boolean leftAssoc) {
-    return new SqlBasicOperator(getName(), leftPrec(prec, leftAssoc),
+    return new SqlBasicOperator(getName(), getKind(), leftPrec(prec, leftAssoc),
         rightPrec(prec, leftAssoc), getSqlCallFactory());
   }
 
   public SqlBasicOperator withCallFactory(SqlCallFactory sqlCallFactory) {
-    return new SqlBasicOperator(getName(), getLeftPrec(),
+    return new SqlBasicOperator(getName(), getKind(), getLeftPrec(),
         getRightPrec(), sqlCallFactory);
   }
 }

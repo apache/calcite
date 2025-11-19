@@ -40,6 +40,7 @@ import java.util.Objects;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Tests the "Babel" SQL parser, that understands all dialects of SQL.
@@ -415,7 +416,12 @@ class BabelParserTest extends SqlParserTest {
   }
 
   @Test void testPostgresSqlSetOption() {
-    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    // UnparsingTesterImpl has a check where it unparses a SqlNode into a SQL string
+    // using the calcite dialect, and then parses it back into a SqlNode.
+    // But the SQL string produced by the calcite dialect for `SET` cannot always be parsed back.
+    assumeFalse(fixture().tester.isUnparserTest());
+    SqlParserFixture f = fixture()
+        .withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("SET SESSION autovacuum = true")
         .ok("SET \"autovacuum\" = TRUE");
     f.sql("SET SESSION autovacuum = DEFAULT")
