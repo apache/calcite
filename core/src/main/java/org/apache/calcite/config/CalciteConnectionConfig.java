@@ -111,6 +111,9 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
   boolean topDownOpt();
 
+  /** Returns the value of {@link CalciteConnectionProperty#RULE_VISUALIZER_DIR}. */
+  @Nullable String ruleVisualizerDir();
+
   /** Returns the value of {@link CalciteConnectionProperty#META_TABLE_FACTORY},
    * or a default meta table factory if not set. If
    * {@code defaultMetaTableFactory} is not null, the result is never null. */
