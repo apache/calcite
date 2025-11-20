@@ -1153,16 +1153,15 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(true);
     }
     if (RexUtil.isLosslessCast(a)) {
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(true);
-      }
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, RexUtil.removeCast(a));
+      a = RexUtil.removeCast(a);
+      // to keep this simplification, we must return IS NOT NULL(a),
+      // even if we cannot do anything else
     }
     if (predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
     }
     if (hasCustomNullabilityRules(a.getKind())) {
-      return null;
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
     }
     if (!isSafe) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
@@ -1196,7 +1195,7 @@ public class RexSimplify {
       }
     case AS_IS:
     default:
-      return null;
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
     }
   }
 
@@ -1212,16 +1211,15 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(false);
     }
     if (RexUtil.isLosslessCast(a)) {
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(false);
-      }
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, RexUtil.removeCast(a));
+      a = RexUtil.removeCast(a);
+      // to keep this simplification, we must return IS NULL(a),
+      // even if we cannot do anything else
     }
     if (RexUtil.isNull(a)) {
       return rexBuilder.makeLiteral(true);
     }
     if (hasCustomNullabilityRules(a.getKind())) {
-      return null;
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
     }
     if (!isSafe) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
@@ -1245,7 +1243,7 @@ public class RexSimplify {
       return RexUtil.composeDisjunction(rexBuilder, operands, false);
     case AS_IS:
     default:
-      return null;
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
     }
   }
 
