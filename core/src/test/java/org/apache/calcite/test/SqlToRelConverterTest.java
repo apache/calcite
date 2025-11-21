@@ -5976,4 +5976,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  where e1.deptno = e2.deptno)";
     sql(sql).withExpand(false).ok();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6963">[CALCITE-6963]
+   * SqlToRelConverter fails when subquery is in join on clause</a>. */
+  @Test void testSubqueryInJoinOnClause() {
+    final String sql = "select t1.* from emp t1\n"
+        + "left join dept t2 on t1.deptno = t2.deptno\n"
+        + "and t1.ename in (select t3.ename from emp t3 )";
+    sql(sql).ok();
+  }
 }

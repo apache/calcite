@@ -3751,14 +3751,15 @@ from (values (cast(null as int), 1),
     <Resource name="planExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[AND(=($9, $0), <($7, $0))], joinType=[inner])
+  LogicalJoin(condition=[=($9, $0)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
-      LogicalJoin(condition=[=($0, $9)], joinType=[left])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
-          LogicalProject(DEPTNO=[$7], SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[<($5, $0)])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$10])
+        LogicalJoin(condition=[=($0, $9)], joinType=[left])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+            LogicalProject(DEPTNO=[$7], SAL=[$5])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planNotExpanded">
@@ -3953,11 +3954,13 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="plan">
       <![CDATA[
 LogicalProject(X=[$0])
-  LogicalJoin(condition=[AND(=($0, $2), IN($0, {
-LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }, { 9 }, { 10 }, { 11 }, { 12 }, { 13 }, { 14 }, { 15 }, { 16 }, { 17 }, { 18 }, { 19 }, { 20 }, { 21 }]])
-}))], joinType=[left])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
     LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
-    LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalAggregate(group=[{0}])
+          LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }, { 9 }, { 10 }, { 11 }, { 12 }, { 13 }, { 14 }, { 15 }, { 16 }, { 17 }, { 18 }, { 19 }, { 20 }, { 21 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -8251,6 +8254,26 @@ LogicalProject(DEPTNO=[$7])
     LogicalJoin(condition=[true], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalValues(tuples=[[{ 10 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSubqueryInJoinOnClause">
+    <Resource name="sql">
+      <![CDATA[select t1.* from emp t1
+left join dept t2 on t1.deptno = t2.deptno
+and t1.ename in (select t3.ename from emp t3 )]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(ENAME=[$1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
