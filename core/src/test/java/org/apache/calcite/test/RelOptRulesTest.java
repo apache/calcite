@@ -9201,6 +9201,52 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6681">[CALCITE-6681]
+   * NullPointerException in ProjectCorrelateTransposeRule</a>. */
+  @Test void testLateralTransposeWithDecorrelateFalse() {
+    final String sql = "WITH "
+        + "  t1(a, ts) AS (VALUES('a', 1)),"
+        + "  t2(a, ts, x) AS (SELECT ename as a, empno as ts, mgr as x FROM emp)\n"
+        + "SELECT * FROM t1\n"
+        + "LEFT JOIN LATERAL (\n"
+        + "    SELECT x FROM t2\n"
+        + "    WHERE t2.a = t1.a AND t2.ts <= t1.ts\n"
+        + "    LIMIT 1\n"
+        + ") ON true\n"
+        + "LEFT JOIN LATERAL (\n"
+        + "    SELECT x\n"
+        + "    FROM t2\n"
+        + "    WHERE t2.a = t1.a\n"
+        + ") ON true";
+    sql(sql).withDecorrelate(false)
+        .withRule(CoreRules.PROJECT_CORRELATE_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6681">[CALCITE-6681]
+   * NullPointerException in ProjectCorrelateTransposeRule</a>. */
+  @Test void testLateralTransposeWithDecorrelateTrue() {
+    final String sql = "WITH "
+        + "  t1(a, ts) AS (VALUES('a', 1)),"
+        + "  t2(a, ts, x) AS (SELECT ename as a, empno as ts, mgr as x FROM emp)\n"
+        + "SELECT * FROM t1\n"
+        + "LEFT JOIN LATERAL (\n"
+        + "    SELECT x FROM t2\n"
+        + "    WHERE t2.a = t1.a AND t2.ts <= t1.ts\n"
+        + "    LIMIT 1\n"
+        + ") ON true\n"
+        + "LEFT JOIN LATERAL (\n"
+        + "    SELECT x\n"
+        + "    FROM t2\n"
+        + "    WHERE t2.a = t1.a\n"
+        + ") ON true";
+    sql(sql).withDecorrelate(true)
+        .withRule(CoreRules.PROJECT_CORRELATE_TRANSPOSE)
+        .checkUnchanged();
+  }
+
   /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
    * failing during the decorrelation phase. The correlation variable is used at two levels
    * deep. */
