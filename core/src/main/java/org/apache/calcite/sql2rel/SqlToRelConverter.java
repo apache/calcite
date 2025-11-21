@@ -3453,7 +3453,8 @@ public class SqlToRelConverter {
       SqlNode condition,
       RelNode leftRel,
       RelNode rightRel) {
-    bb.setRoot(ImmutableList.of(leftRel, rightRel));
+    bb.setRoot(ImmutableList.of(leftRel, rightRel), leftRel,
+        leftRel instanceof LogicalJoin);
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
     final RelNode newRightRel =
         bb.root == null || bb.registered.isEmpty()
