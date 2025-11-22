@@ -18,17 +18,24 @@ package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code DROP MATERIALIZED VIEW} statement.
  */
 public class SqlDropMaterializedView extends SqlDropObject {
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("DROP MATERIALIZED VIEW",
-          SqlKind.DROP_MATERIALIZED_VIEW);
+      SqlBasicOperator.create("DROP MATERIALIZED VIEW", SqlKind.DROP_MATERIALIZED_VIEW)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlDropMaterializedView(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[1])));
 
   /** Creates a SqlDropMaterializedView. */
   SqlDropMaterializedView(SqlParserPos pos, boolean ifExists,

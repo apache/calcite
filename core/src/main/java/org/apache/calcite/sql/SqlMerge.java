@@ -37,7 +37,7 @@ import static java.util.Objects.requireNonNull;
 public class SqlMerge extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("MERGE", SqlKind.MERGE) {
-        @Override public SqlCall createCall(@Nullable final SqlLiteral functionQualifier,
+        @Override public SqlCall createCall(final @Nullable SqlLiteral functionQualifier,
             final SqlParserPos pos,
             final @Nullable SqlNode... operands) {
           return new SqlMerge(pos, requireNonNull(operands[0]), requireNonNull(operands[1]),

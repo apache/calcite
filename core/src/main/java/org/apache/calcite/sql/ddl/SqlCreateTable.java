@@ -19,11 +19,12 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -42,20 +43,33 @@ public class SqlCreateTable extends SqlCreate {
   public final @Nullable SqlNode query;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
+      SqlBasicOperator.create("CREATE TABLE", SqlKind.CREATE_TABLE).withCallFactory(
+          (operator, functionQualifier, pos, operands) ->
+              new SqlCreateTable(pos, requireNonNull((SqlLiteral) operands[0]).booleanValue(),
+                  requireNonNull((SqlLiteral) operands[1]).booleanValue(),
+                  requireNonNull((SqlIdentifier) operands[2]),
+                  (SqlNodeList) operands[3], operands[4]));
 
   /** Creates a SqlCreateTable. */
-  protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
-      SqlIdentifier name, @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
-    super(OPERATOR, pos, replace, ifNotExists);
+  protected SqlCreateTable(SqlOperator operator, SqlParserPos pos, boolean replace,
+      boolean ifNotExists, SqlIdentifier name, @Nullable SqlNodeList columnList,
+      @Nullable SqlNode query) {
+    super(operator, pos, replace, ifNotExists);
     this.name = requireNonNull(name, "name");
     this.columnList = columnList; // may be null
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
   }
 
+  /** Creates a SqlCreateTable. */
+  protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
+      SqlIdentifier name, @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
+    this(OPERATOR, pos, replace, ifNotExists, name, columnList, query);
+  }
+
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query);
+    return ImmutableNullableList.of(SqlLiteral.createBoolean(getReplace(), pos),
+        SqlLiteral.createBoolean(ifNotExists, pos), name, columnList, query);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

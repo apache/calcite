@@ -179,7 +179,7 @@ public class SqlUnpivot extends SqlCall {
     }
 
     @Override public SqlCall createCall(
-        SqlLiteral functionQualifier,
+        @Nullable SqlLiteral functionQualifier,
         SqlParserPos pos,
         @Nullable SqlNode... operands) {
       return new SqlUnpivot(pos, requireNonNull(operands[0]),
