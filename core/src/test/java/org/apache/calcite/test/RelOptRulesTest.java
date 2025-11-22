@@ -2395,6 +2395,45 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5465">[CALCITE-5465]
+   * Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan
+   * when sql has distinct agg-call with rollup</a>. */
+  @Test void testDistinctNonDistinctAggregatesWithGroupingSets() {
+    final String sql = "SELECT deptno, COUNT(DISTINCT sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY ROLLUP(deptno)";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5465">[CALCITE-5465]
+   * Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan
+   * when sql has distinct agg-call with rollup</a>. */
+  @Test void testDistinctNonDistinctAggregatesWithGroupingSets2() {
+    final String sql = "SELECT deptno, COUNT(DISTINCT sal), SUM(sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((deptno), ())";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5465">[CALCITE-5465]
+   * Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan
+   * when sql has distinct agg-call with rollup</a>. */
+  @Test void testDistinctNonDistinctAggregatesWithGroupingSets3() {
+    final String sql = "SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal), COUNT(*)\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((deptno), ())";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
+        .check();
+  }
+
   @Test void testDistinctNonDistinctAggregates() {
     final String sql = "select emp.empno, count(*), avg(distinct dept.deptno)\n"
         + "from sales.emp emp inner join sales.dept dept\n"
