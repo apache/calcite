@@ -710,30 +710,55 @@ public class RelMdPredicates
         Mappings.TargetMapping leftMapping =
             Mappings.createShiftMapping(nSysFields + nFieldsLeft, nSysFields, 0,
                 nFieldsLeft);
-        leftChildPredicates =
+        RexNode lcp =
             leftPredicates.accept(
                 new RexPermuteInputsShuttle(leftMapping, joinRel.getInput(0)));
+        leftChildPredicates = lcp;
 
-        allExprs.add(leftChildPredicates);
-        for (RexNode r : RelOptUtil.conjunctions(leftChildPredicates)) {
-          exprFields.put(r, RelOptUtil.InputFinder.bits(r));
-          allExprs.add(r);
+        if (lcp != null) {
+          allExprs.add(lcp);
+          for (RexNode r : RelOptUtil.conjunctions(lcp)) {
+            exprFields.put(r, RelOptUtil.InputFinder.bits(r));
+            allExprs.add(r);
+          }
+          RexNode simplified =
+              simplify.simplifyFilterPredicates(RelOptUtil.conjunctions(lcp));
+          if (simplified != null && !simplified.equals(lcp)) {
+            allExprs.add(simplified);
+            for (RexNode r : RelOptUtil.conjunctions(simplified)) {
+              exprFields.put(r, RelOptUtil.InputFinder.bits(r));
+              allExprs.add(r);
+            }
+          }
         }
       }
+
       if (rightPredicates == null) {
         rightChildPredicates = null;
       } else {
         Mappings.TargetMapping rightMapping =
             Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
                 nSysFields + nFieldsLeft, 0, nFieldsRight);
-        rightChildPredicates =
+        RexNode rcp =
             rightPredicates.accept(
                 new RexPermuteInputsShuttle(rightMapping, joinRel.getInput(1)));
+        rightChildPredicates = rcp;
 
-        allExprs.add(rightChildPredicates);
-        for (RexNode r : RelOptUtil.conjunctions(rightChildPredicates)) {
-          exprFields.put(r, RelOptUtil.InputFinder.bits(r));
-          allExprs.add(r);
+        if (rcp != null) {
+          allExprs.add(rcp);
+          for (RexNode r : RelOptUtil.conjunctions(rcp)) {
+            exprFields.put(r, RelOptUtil.InputFinder.bits(r));
+            allExprs.add(r);
+          }
+          RexNode simplified =
+              simplify.simplifyFilterPredicates(RelOptUtil.conjunctions(rcp));
+          if (simplified != null && !simplified.equals(rcp)) {
+            allExprs.add(simplified);
+            for (RexNode r : RelOptUtil.conjunctions(simplified)) {
+              exprFields.put(r, RelOptUtil.InputFinder.bits(r));
+              allExprs.add(r);
+            }
+          }
         }
       }
 
@@ -864,7 +889,20 @@ public class RelMdPredicates
     private void infer(@Nullable RexNode predicates, Set<RexNode> allExprs,
         List<RexNode> inferredPredicates, boolean includeEqualityInference,
         ImmutableBitSet inferringFields) {
-      for (RexNode r : RelOptUtil.conjunctions(predicates)) {
+      if (predicates == null) {
+        return;
+      }
+
+      // Normalize predicates by simplification to ensure consistent deduplication.
+      // Prevents infinite loops when semantically equivalent predicates are simplified
+      // to different forms (e.g., AND(>=, <=) to SEARCH).
+      RexNode normalizedPredicates =
+          simplify.simplifyFilterPredicates(RelOptUtil.conjunctions(predicates));
+      if (normalizedPredicates == null) {
+        return;
+      }
+
+      for (RexNode r : RelOptUtil.conjunctions(normalizedPredicates)) {
         if (!includeEqualityInference
             && equalityPredicates.contains(r)) {
           continue;

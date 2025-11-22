@@ -6420,11 +6420,38 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[=($16, $7)], joinType=[inner])
-    LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
-      LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInfiniteLoopWithBetweenAnd">
+    <Resource name="sql">
+      <![CDATA[With dept_temp as (SELECT deptno, name FROM dept where deptno between 30 and 50),emp_temp as (Select ename, deptno from emp)select * from dept_temp inner join emp_temp on dept_temp.deptno = emp_temp.deptno ]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], DEPTNO0=[$3])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalFilter(condition=[AND(>=($0, 30), <=($0, 50))])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], ENAME=[$2], DEPTNO0=[$3])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalFilter(condition=[AND(>=($0, 30), <=($0, 50))])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[SEARCH($1, Sarg[[30..50]])])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
