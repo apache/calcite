@@ -1838,14 +1838,14 @@ group by deptno;
 select count(distinct deptno) as cd, count(*) as c
 from "scott".emp
 group by cube(deptno);
-+----+---+
-| CD | C |
-+----+---+
-|  1 | 3 |
-|  1 | 5 |
-|  1 | 6 |
-|  3 | 3 |
-+----+---+
++----+----+
+| CD | C  |
++----+----+
+|  1 |  3 |
+|  1 |  5 |
+|  1 |  6 |
+|  3 | 14 |
++----+----+
 (4 rows)
 
 !ok
@@ -2823,7 +2823,7 @@ select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 !ok
 
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
+  EnumerableAggregate(group=[{}], EXPR$0_g0=[COUNT($0) FILTER $4], EXPR$1_g0=[MIN($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $5], EXPR$3_g0=[MIN($3) FILTER $5])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
       EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT($5)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($0)])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2841,7 +2841,7 @@ select count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp;
 !ok
 
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
+  EnumerableAggregate(group=[{}], EXPR$0_g0=[COUNT($0) FILTER $4], EXPR$1_g0=[MIN($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $5], EXPR$3_g0=[MIN($3) FILTER $5])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
       EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], EXPR$1=[COUNT($2)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($7)])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2865,7 +2865,7 @@ select MGR, count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".
 !ok
 
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):BIGINT NOT NULL], proj#0..1=[{exprs}], EXPR$2=[$t5], EXPR$3=[$t3], EXPR$4=[$t4])
-  EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1) FILTER $5], EXPR$2=[MIN($2) FILTER $6], EXPR$3=[MIN($3) FILTER $6], EXPR$4=[MIN($4) FILTER $6])
+  EnumerableAggregate(group=[{0}], EXPR$1_g0=[COUNT($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $6], EXPR$3_g0=[MIN($3) FILTER $6], EXPR$4_g0=[MIN($4) FILTER $6])
     EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])
       EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], EXPR$2=[COUNT($2)], EXPR$3=[MIN($5)], EXPR$4=[MAX($5)], $g=[GROUPING($3, $7)])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2888,7 +2888,7 @@ select MGR, count(distinct DEPTNO, JOB), MIN(SAL), MAX(SAL) from "scott".emp gro
 
 !ok
 
-EnumerableAggregate(group=[{1}], EXPR$1=[COUNT($2, $0) FILTER $5], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
+EnumerableAggregate(group=[{1}], EXPR$1_g0=[COUNT($2, $0) FILTER $5], EXPR$2_g0=[MIN($3) FILTER $6], EXPR$3_g0=[MIN($4) FILTER $6])
   EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[5], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_5=[$t9])
     EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($2, $3, $7)])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -4186,5 +4186,116 @@ EnumerableCalc(expr#0..8=[{inputs}], DEPTNO=[$t0], ENAME=[$t2], SAL_COL=[$t3], F
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[+($t5, $t6)], expr#9=[1], expr#10=[+($t5, $t9)], expr#11=[3], DEPTNO=[$t7], SAL=[$t5], ENAME=[$t1], JOB=[$t2], $f4=[$t8], $f5=[$t10], $f6=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+
+# [CALCITE-5465] Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan when sql has distinct agg-call with rollup
+!use scott
+WITH t1 (id, c1) AS (
+    VALUES
+        ('1', 'A1'),
+        ('2', 'A2'),
+        ('3', 'A3'),
+        ('3', 'A3'),
+        ('3', 'A2'),
+        (NULL, 'A4')
+)
+SELECT id, COUNT(DISTINCT c1)
+FROM t1
+GROUP BY ROLLUP(id);
++----+--------+
+| ID | EXPR$1 |
++----+--------+
+| 1  |      1 |
+| 2  |      1 |
+| 3  |      2 |
+|    |      1 |
+|    |      4 |
++----+--------+
+(5 rows)
+
+!ok
+
+SELECT deptno, job, COUNT(DISTINCT ename)
+FROM "scott".emp
+GROUP BY ROLLUP(deptno, job);
++--------+-----------+--------+
+| DEPTNO | JOB       | EXPR$2 |
++--------+-----------+--------+
+|     10 | CLERK     |      1 |
+|     10 | MANAGER   |      1 |
+|     10 | PRESIDENT |      1 |
+|     10 |           |      3 |
+|     20 | ANALYST   |      2 |
+|     20 | CLERK     |      2 |
+|     20 | MANAGER   |      1 |
+|     20 |           |      5 |
+|     30 | CLERK     |      1 |
+|     30 | MANAGER   |      1 |
+|     30 | SALESMAN  |      4 |
+|     30 |           |      6 |
+|        |           |     14 |
++--------+-----------+--------+
+(13 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal)
+FROM "scott".emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      4 |
+|     30 |      5 |
+|        |     12 |
++--------+--------+
+(4 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal), SUM(sal)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2   |
++--------+--------+----------+
+|     10 |      3 |  8750.00 |
+|     20 |      4 | 10875.00 |
+|     30 |      5 |  9400.00 |
+|        |     12 | 29025.00 |
++--------+--------+----------+
+(4 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal), COUNT(sal)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |      3 |      3 |
+|     20 |      4 |      5 |
+|     30 |      5 |      6 |
+|        |     12 |     14 |
++--------+--------+--------+
+(4 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal), COUNT(*)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+----------+--------+
+| DEPTNO | EXPR$1 | EXPR$2   | EXPR$3 |
++--------+--------+----------+--------+
+|     10 |      3 |  8750.00 |      3 |
+|     20 |      4 |  7875.00 |      5 |
+|     30 |      5 |  8150.00 |      6 |
+|        |     12 | 24775.00 |     14 |
++--------+--------+----------+--------+
+(4 rows)
+
+!ok
 
 # End agg.iq
