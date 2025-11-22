@@ -6483,6 +6483,19 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7302">[CALCITE-7302]
+   * Infinite loop with JoinPushTransitivePredicatesRule</a>. */
+  @Test void testInfiniteLoopWithBetweenAnd() {
+    final String sql = "With dept_temp as"
+        + " (SELECT deptno, name FROM dept where deptno between 30 and 50),"
+        + "emp_temp as"
+        + " (Select ename, deptno from emp)"
+        + "select * from dept_temp inner join emp_temp on dept_temp.deptno = emp_temp.deptno ";
+    sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2110">[CALCITE-2110]
    * ArrayIndexOutOfBoundsException in RexSimplify when using
    * ReduceExpressionsRule.JOIN_INSTANCE</a>. */
