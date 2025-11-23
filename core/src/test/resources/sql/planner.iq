@@ -147,6 +147,54 @@ EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
 !plan
 !set planner-rules original
 
+# Add tests for [CALCITE-6985] to verify AggregateMinMaxToLimitRule handles empty tables correctly
+!use blank
+create table t_empty (id int);
+(0 rows modified)
+
+!update
+
+select min(id), max(id) from t_empty;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|        |        |
++--------+--------+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
+  EnumerableTableScan(table=[[BLANK, T_EMPTY]])
+!plan
+
+!set planner-rules "
++AGGREGATE_MIN_MAX_TO_LIMIT,
+-EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
++PROJECT_SUB_QUERY_TO_CORRELATE"
+select min(id), max(id) from t_empty;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|        |        |
++--------+--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+      EnumerableValues(tuples=[[{ 1 }]])
+      EnumerableLimit(fetch=[1])
+        EnumerableSort(sort0=[$0], dir0=[ASC])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], ID=[$t0], $condition=[$t1])
+            EnumerableTableScan(table=[[BLANK, T_EMPTY]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], ID=[$t0], $condition=[$t1])
+          EnumerableTableScan(table=[[BLANK, T_EMPTY]])
+!plan
+!set planner-rules original
+
 # [CALCITE-7000] Extend IntersectToSemiJoinRule to support n-way inputs
 !set planner-rules "
 -EnumerableRules.ENUMERABLE_INTERSECT_RULE,
