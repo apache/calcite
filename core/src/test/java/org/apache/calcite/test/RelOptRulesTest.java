@@ -11544,6 +11544,34 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testTopDownGeneralDecorrelateForProjectExists() {
+    final String sql = "SELECT dept.deptno, EXISTS ( SELECT 1 FROM emp e "
+        + "WHERE e.deptno = dept.deptno ) AS has_employees FROM dept";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForProjectIn() {
+    final String sql = "SELECT emp.deptno, emp.deptno IN (SELECT dept.deptno FROM dept "
+        + "where dept.deptno < emp.empno ) FROM emp";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
   @Test void testTopDownGeneralDecorrelateForLateralJoin() {
     final String sql = "select empno from emp,\n"
         + " LATERAL (select * from dept where emp.deptno = dept.deptno)";
@@ -11577,6 +11605,20 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select empno from emp where "
         + "exists(select * from emp_b where emp.ename = emp_b.ename and "
         + "exists(select * from empnullables where emp.empno = empnullables.empno))";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUBQUERY_REMOVE_ENABLE_MARK_JOIN,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForTwoLevelCorrelate3() {
+    final String sql = "SELECT deptno FROM emp e WHERE EXISTS (SELECT * FROM dept d WHERE EXISTS "
+        + "(SELECT * FROM bonus ea WHERE ea.ENAME = e.ENAME AND d.deptno = e.deptno))";
 
     sql(sql)
         .withRule(

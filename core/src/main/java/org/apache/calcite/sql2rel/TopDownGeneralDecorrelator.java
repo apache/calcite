@@ -62,6 +62,7 @@ import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,9 +156,11 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
    */
   public static RelNode decorrelateQuery(RelNode rel, RelBuilder builder) {
     HepProgram preProgram = HepProgram.builder()
-        .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
-        .addRuleInstance(CoreRules.FILTER_CORRELATE)
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_PROJECT_TRANSPOSE,
+                CoreRules.FILTER_INTO_JOIN,
+                CoreRules.FILTER_CORRELATE))
         .build();
     HepPlanner prePlanner = new HepPlanner(preProgram);
     prePlanner.setRoot(rel);
@@ -173,11 +176,13 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     }
 
     HepProgram postProgram = HepProgram.builder()
-        .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
-        .addRuleInstance(CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE)
-        .addRuleInstance(CoreRules.PROJECT_MERGE)
-        .addRuleInstance(CoreRules.PROJECT_REMOVE)
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_PROJECT_TRANSPOSE,
+                CoreRules.FILTER_INTO_JOIN,
+                CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+                CoreRules.PROJECT_MERGE,
+                CoreRules.PROJECT_REMOVE))
         .build();
     HepPlanner postPlanner = new HepPlanner(postProgram);
     postPlanner.setRoot(decorrelateNode);
@@ -314,7 +319,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
           .collect(ImmutableSet.toImmutableSet());
       hasCorrelation =
           !variableUsedVisitor.variables.isEmpty()
-              && corrIdSet.containsAll(variableUsedVisitor.variables);
+              && !Collections.disjoint(corrIdSet, variableUsedVisitor.variables);
     }
     hasCorrelatedExpressions.put(rel, hasCorrelation);
     return hasCorrelation;
