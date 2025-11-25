@@ -379,6 +379,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     switch (unit) {
     case YEAR:
     case MONTH:
+    case WEEK:
       switch (call.getKind()) {
       case FLOOR:
         return DateTimeUtils.unixTimestampFloor(unit, v);
@@ -403,7 +404,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case QUARTER:
       return TimeUnitRange.MONTH;
     default:
-      return TimeUnitRange.DAY;
+      return unit;
     }
   }
 
