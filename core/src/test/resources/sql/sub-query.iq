@@ -5443,4 +5443,1121 @@ ORDER BY deptno;
 
 !ok
 
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+SELECT ename,
+    (SELECT sum(c)
+    FROM
+        (SELECT deptno AS c
+        FROM dept
+        WHERE dept.deptno = emp.deptno
+        UNION ALL
+        SELECT 2 AS c
+        FROM bonus
+        WHERE bonus.job = emp.job) AS union_subquery
+    ) AS correlated_sum
+FROM emp
+ORDER BY ename;
++--------+----------------+
+| ENAME  | CORRELATED_SUM |
++--------+----------------+
+| ADAMS  |             20 |
+| ALLEN  |             30 |
+| BLAKE  |             30 |
+| CLARK  |             10 |
+| FORD   |             20 |
+| JAMES  |             30 |
+| JONES  |             20 |
+| KING   |             10 |
+| MARTIN |             30 |
+| MILLER |             10 |
+| SCOTT  |             20 |
+| SMITH  |             20 |
+| TURNER |             30 |
+| WARD   |             30 |
++--------+----------------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+SELECT *,
+  (SELECT COUNT(*)
+   FROM (
+     SELECT * FROM emp WHERE emp.deptno = dept.deptno
+     UNION ALL
+     SELECT * FROM emp) AS sub
+   GROUP BY deptno) AS num_dept_groups
+FROM dept;
+more than one value in agg SINGLE_VALUE
+!error
+
+EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}], $f0=[$t4])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
+    EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], agg#0=[SINGLE_VALUE($2)])
+      EnumerableAggregate(group=[{0, 1}], EXPR$0=[COUNT()])
+        EnumerableUnion(all=[true])
+          EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t3], DEPTNO0=[$t1])
+            EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($3, $2)], joinType=[inner])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], EMPNO=[$t0], DEPTNO=[$t7], DEPTNO8=[$t7], $condition=[$t8])
+                EnumerableTableScan(table=[[scott, EMP]])
+              EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+                EnumerableTableScan(table=[[scott, DEPT]])
+          EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t2], DEPTNO0=[$t1])
+            EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+              EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+                EnumerableTableScan(table=[[scott, EMP]])
+              EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+                EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      8 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   1 |   1 |
++-----+-----+
+(1 row)
+
+!ok
+
+EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3), <($0, $4))], joinType=[semi])
+  EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+    EnumerableAggregate(group=[{0, 1}], EXPR$0=[$SUM0($2)])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[3], expr#3=[1], expr#4=[IS NOT DISTINCT FROM($t0, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+          EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+        EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
+          EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+            EnumerableCalc(expr#0..2=[{inputs}], C=[$t2], EXPR$1=[$t1])
+              EnumerableValues(tuples=[[{ 1, 1, 5 }, { 2, 2, 7 }]])
+!plan
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2a = t0a) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      8 |
+|   2 |      7 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a > t0a
+  UNION ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b <= t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      5 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION ALL
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      8 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT count(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION ALL
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      2 |
+|   2 |      0 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(d) FROM
+  (SELECT t1a - t0a as d
+  FROM   t1
+  UNION ALL
+  SELECT t2a - t0a as d
+  FROM   t2) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      1 |
+|   2 |     -2 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      8 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   1 |   1 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2a = t0a) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      8 |
+|   2 |      7 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a > t0a
+  UNION DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b <= t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      5 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION DISTINCT
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      8 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+EnumerableCalc(expr#0..4=[{inputs}], T0A=[$t0], EXPR$1=[$t4])
+  EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+    EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+    EnumerableAggregate(group=[{0, 1}], EXPR$0=[$SUM0($2)])
+      EnumerableUnion(all=[false])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[3], expr#3=[1], expr#4=[IS NOT DISTINCT FROM($t0, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+          EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+        EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
+          EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+            EnumerableCalc(expr#0..2=[{inputs}], T2C=[$t2], EXPR$1=[$t1])
+              EnumerableValues(tuples=[[{ 1, 1, 5 }, { 2, 2, 7 }]])
+!plan
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT count(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  UNION DISTINCT
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      2 |
+|   2 |      0 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(d) FROM
+  (SELECT t1a - t0a as d
+  FROM   t1
+  UNION DISTINCT
+  SELECT t2a - t0a as d
+  FROM   t2) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      1 |
+|   2 |     -1 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
++-----+-----+
+(0 rows)
+
+!ok
+
+EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3), <($0, $4))], joinType=[semi])
+  EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+    EnumerableAggregate(group=[{0, 1}], EXPR$0=[$SUM0($2)])
+      EnumerableIntersect(all=[true])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[3], expr#3=[1], expr#4=[IS NOT DISTINCT FROM($t0, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+          EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+        EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
+          EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+            EnumerableCalc(expr#0..2=[{inputs}], C=[$t2], EXPR$1=[$t1])
+              EnumerableValues(tuples=[[{ 1, 1, 5 }, { 2, 2, 7 }]])
+!plan
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2a = t0a) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a > t0a
+  INTERSECT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b <= t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+EnumerableCalc(expr#0..4=[{inputs}], T0A=[$t0], EXPR$1=[$t4])
+  EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+    EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+    EnumerableAggregate(group=[{0, 1}], EXPR$0=[$SUM0($2)])
+      EnumerableIntersect(all=[true])
+        EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
+          EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+            EnumerableCalc(expr#0..1=[{inputs}], expr#2=[3], expr#3=[1], expr#4=[>($t3, $t0)], C=[$t2], EXPR$00=[$t0], $condition=[$t4])
+              EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+        EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
+          EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
+            EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+            EnumerableCalc(expr#0..3=[{inputs}], C=[$t2], EXPR$10=[$t3])
+              EnumerableNestedLoopJoin(condition=[<=($1, $3)], joinType=[inner])
+                EnumerableValues(tuples=[[{ 1, 1, 5 }, { 2, 2, 7 }]])
+                EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1])
+                  EnumerableValues(tuples=[[{ 1, 1 }, { 2, 0 }]])
+!plan
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT ALL
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT count(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT ALL
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      0 |
+|   2 |      0 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(d) FROM
+  (SELECT t1a - t0a as d
+  FROM   t1
+  INTERSECT ALL
+  SELECT t2a - t0a as d
+  FROM   t2) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      0 |
+|   2 |     -1 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
++-----+-----+
+(0 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2a = t0a) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a > t0a
+  INTERSECT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b <= t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT DISTINCT
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT count(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  INTERSECT DISTINCT
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      0 |
+|   2 |      0 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(d) FROM
+  (SELECT t1a - t0a as d
+  FROM   t1
+  INTERSECT DISTINCT
+  SELECT t2a - t0a as d
+  FROM   t2) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      0 |
+|   2 |     -1 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      3 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   1 |   1 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2a = t0a) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      3 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a > t0a
+  EXCEPT ALL
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b <= t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT ALL
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      3 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT count(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT ALL
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      1 |
+|   2 |      0 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(d) FROM
+  (SELECT t1a - t0a as d
+  FROM   t1
+  EXCEPT ALL
+  SELECT t2a - t0a as d
+  FROM   t2) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      3 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   1 |   1 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2a = t0a) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      3 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(c) FROM
+  (SELECT t1c as c
+  FROM   t1
+  WHERE  t1a > t0a
+  EXCEPT DISTINCT
+  SELECT t2c as c
+  FROM   t2
+  WHERE  t2b <= t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT DISTINCT
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      3 |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT count(t1c) FROM
+  (SELECT t1c
+  FROM   t1
+  WHERE  t1a = t0a
+  EXCEPT DISTINCT
+  SELECT t2c
+  FROM   t2
+  WHERE  t2b = t0b) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |      1 |
+|   2 |      0 |
++-----+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-7272] Subqueries cannot be decorrelated if have set op
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a, (SELECT sum(d) FROM
+  (SELECT t1a - t0a as d
+  FROM   t1
+  EXCEPT DISTINCT
+  SELECT t2a - t0a as d
+  FROM   t2) as tmp
+)
+FROM t0;
++-----+--------+
+| T0A | EXPR$1 |
++-----+--------+
+|   1 |        |
+|   2 |        |
++-----+--------+
+(2 rows)
+
+!ok
 # End sub-query.iq
