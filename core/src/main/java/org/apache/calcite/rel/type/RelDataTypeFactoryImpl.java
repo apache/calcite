@@ -125,13 +125,23 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return typeSystem;
   }
 
-  // implement RelDataTypeFactory
-  @Override public RelDataType createJavaType(Class clazz) {
-    final JavaType javaType =
-        clazz == String.class
-            ? new JavaType(clazz, true, getDefaultCharset(),
-                SqlCollation.IMPLICIT)
-            : new JavaType(clazz);
+  @Override public RelDataType createJavaType(
+      Class clazz,
+      @Nullable RelDataTypeFamily family) {
+    final JavaType javaType;
+    if (family == null) {
+      // Infer family if not provided
+      javaType = clazz == String.class
+          ? new JavaType(clazz, true, getDefaultCharset(),
+              SqlCollation.IMPLICIT, CLASS_FAMILIES.get(clazz))
+          : new JavaType(clazz, CLASS_FAMILIES.get(clazz));
+    } else {
+      // Use provided family
+      javaType = clazz == String.class
+          ? new JavaType(clazz, true, getDefaultCharset(),
+              SqlCollation.IMPLICIT, family)
+          : new JavaType(clazz, family);
+    }
     return canonize(javaType);
   }
 
@@ -645,15 +655,27 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     private final boolean nullable;
     private final @Nullable SqlCollation collation;
     private final @Nullable Charset charset;
+    private final @Nullable RelDataTypeFamily family;
 
     public JavaType(Class clazz) {
-      this(clazz, !clazz.isPrimitive());
+      this(clazz, !clazz.isPrimitive(), null, null, CLASS_FAMILIES.get(clazz));
+    }
+
+    public JavaType(Class clazz, @Nullable RelDataTypeFamily family) {
+      this(clazz, !clazz.isPrimitive(), null, null, family);
     }
 
     public JavaType(
         Class clazz,
         boolean nullable) {
-      this(clazz, nullable, null, null);
+      this(clazz, nullable, null, null, CLASS_FAMILIES.get(clazz));
+    }
+
+    public JavaType(
+        Class clazz,
+        boolean nullable,
+        @Nullable RelDataTypeFamily family) {
+      this(clazz, nullable, null, null, family);
     }
 
     @SuppressWarnings("argument.type.incompatible")
@@ -662,6 +684,16 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         boolean nullable,
         @Nullable Charset charset,
         @Nullable SqlCollation collation) {
+      this(clazz, nullable, charset, collation, CLASS_FAMILIES.get(clazz));
+    }
+
+    @SuppressWarnings("argument.type.incompatible")
+    public JavaType(
+        Class clazz,
+        boolean nullable,
+        @Nullable Charset charset,
+        @Nullable SqlCollation collation,
+        @Nullable RelDataTypeFamily family) {
       super(fieldsOf(clazz));
       this.clazz = clazz;
       this.nullable = nullable;
@@ -669,6 +701,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           "Need to be a chartype");
       this.charset = charset;
       this.collation = collation;
+      this.family = family;
       computeDigest();
     }
 
@@ -681,6 +714,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
 
     @Override public RelDataTypeFamily getFamily() {
+      if (this.family != null) {
+        return this.family;
+      }
       RelDataTypeFamily family = CLASS_FAMILIES.get(clazz);
       return family != null ? family : this;
     }
