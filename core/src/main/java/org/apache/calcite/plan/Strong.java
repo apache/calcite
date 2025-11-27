@@ -355,6 +355,8 @@ public class Strong {
     map.put(SqlKind.CHECKED_MINUS_PREFIX, Policy.ANY);
     map.put(SqlKind.CHECKED_TIMES, Policy.ANY);
     map.put(SqlKind.CHECKED_DIVIDE, Policy.ANY);
+    map.put(SqlKind.DIVIDE_0_NULL, Policy.AS_IS);
+    map.put(SqlKind.MOD_0_NULL, Policy.AS_IS);
 
     map.put(SqlKind.DIVIDE, Policy.ANY);
     map.put(SqlKind.CAST, Policy.ANY);

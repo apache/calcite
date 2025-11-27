@@ -170,6 +170,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.checkedArithmetic();
   }
 
+  @Override public boolean nullableDivide() {
+    return delegate.nullableDivide();
+  }
+
   @Override public boolean supportsUnsignedTypes() {
     return delegate.supportsUnsignedTypes();
   }

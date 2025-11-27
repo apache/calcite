@@ -67,6 +67,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -311,6 +312,34 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           60,
           true,
           ReturnTypes.QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
+  /**
+   * Nullable division operator, which produces NULL on division by 0, '<code>/</code>'.
+   * Unlike CHECKED_DIVIDE, this is defined for all integer and decimal types.
+   */
+  public static final SqlBinaryOperator DIVIDE_0_NULL =
+      new SqlBinaryOperator(
+          "/",
+          SqlKind.DIVIDE_0_NULL,
+          60,
+          true,
+          ReturnTypes.QUOTIENT_NULLABLE.andThen(SqlTypeTransforms.FORCE_NULLABLE_NON_FP),
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
+  /**
+   * Checked nullable division operator, which produces NULL on division by 0,
+   * but still fails on overflow, '<code>/</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_DIVIDE_0_NULL =
+      new SqlBinaryOperator(
+          "/",
+          SqlKind.CHECKED_DIVIDE_0_NULL,
+          60,
+          true,
+          ReturnTypes.QUOTIENT_NULLABLE.andThen(SqlTypeTransforms.FORCE_NULLABLE_NON_FP),
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
 
@@ -1872,8 +1901,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       // Return type is same as divisor (2nd operand)
       // SQL2003 Part2 Section 6.27, Syntax Rules 9
       SqlBasicFunction.create(SqlKind.MOD,
+          // A rather unfortunate name for this return type strategy
           ReturnTypes.NULLABLE_MOD,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  /**
+   * Variant of arithmetic remainder function {@code MOD} which returns NULL when
+   * the denominator is 0.
+   */
+  public static final SqlFunction MOD_0_NULL =
+      // Return type is same as divisor (2nd operand)
+      // SQL2003 Part2 Section 6.27, Syntax Rules 9
+      // Unfortunately there cannot exist two functions in the standard operator
+      // table with the same exact name, so we need to use a different name,
+      // although in SQL this would be shown just as MOD
+      SqlBasicFunction.create("NULLABLE_MOD", SqlKind.MOD_0_NULL,
+              ReturnTypes.NULLABLE_MOD.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
 
   /** The {@code LN(numeric)} function. */

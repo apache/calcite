@@ -165,6 +165,7 @@ import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.MeasureScope;
 import org.apache.calcite.sql.validate.ParameterScope;
 import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
@@ -624,6 +625,7 @@ public class SqlToRelConverter {
       final boolean needsValidation,
       final boolean top) {
     final boolean unwrapMeasures = !validator().config().embeddedQuery();
+    query = implementArithmetic(validator().config().conformance(), query);
     if (needsValidation) {
       query = validator().validate(query);
     }
@@ -686,6 +688,19 @@ public class SqlToRelConverter {
           .build();
     }
     return r;
+  }
+
+  /** Choose implementations for the arithmetic operations according to the
+   * conformance.  For example, DIVIDE may be implemented either as DIVIDE or as DIVIDE_0_NULL.
+   * This step has to be done before validation, because the type signature
+   * is different for DIVIDE and DIVIDE_0_NULL. */
+  private SqlNode implementArithmetic(SqlConformance conformance, SqlNode node) {
+    SqlNode converted = node;
+    if (conformance.nullableDivide()) {
+      ConvertDivideToNullable convert = new ConvertDivideToNullable();
+      converted = convert.visitNode(node);
+    }
+    return requireNonNull(converted, "converted");
   }
 
   private RexNode measureToValue(RexNode e) {

@@ -428,6 +428,7 @@ public enum BuiltInMethod {
   CONVERT_ORACLE(SqlFunctions.class, "convertOracle", String.class, String[].class),
   EXP(SqlFunctions.class, "exp", double.class),
   MOD(SqlFunctions.class, "mod", long.class, long.class),
+  MOD_0_NULL(SqlFunctions.class, "mod0Null", long.class, long.class),
   POWER(SqlFunctions.class, "power", double.class, double.class),
   POWER_PG(SqlFunctions.class, "power", BigDecimal.class, BigDecimal.class),
   REPEAT(SqlFunctions.class, "repeat", String.class, int.class),

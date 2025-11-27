@@ -327,6 +327,8 @@ public class RexSimplify {
     case MINUS:
     case TIMES:
     case DIVIDE:
+    case DIVIDE_0_NULL:
+    case CHECKED_DIVIDE_0_NULL:
     case CHECKED_PLUS:
     case CHECKED_MINUS:
     case CHECKED_TIMES:
@@ -457,6 +459,8 @@ public class RexSimplify {
       return simplifyMultiply(e);
     case DIVIDE:
     case CHECKED_DIVIDE:
+    case DIVIDE_0_NULL:
+    case CHECKED_DIVIDE_0_NULL:
       return simplifyDivide(e);
     default:
       throw new IllegalArgumentException("Unsupported arithmetic operation " + e.getKind());
