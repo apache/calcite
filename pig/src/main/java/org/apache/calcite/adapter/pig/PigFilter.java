@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -29,7 +30,9 @@ import org.apache.calcite.rex.RexNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import static org.apache.calcite.sql.SqlKind.INPUT_REF;
@@ -45,7 +48,9 @@ public class PigFilter extends Filter implements PigRel {
     assert getConvention() == PigRel.CONVENTION;
   }
 
-  @Override public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+  @Override public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition,
+      Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new PigFilter(getCluster(), traitSet, input, condition);
   }
 
