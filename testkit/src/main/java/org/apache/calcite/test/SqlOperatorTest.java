@@ -398,6 +398,9 @@ public class SqlOperatorTest {
         // e.g. PLUS and CHECKED_PLUS
         assertTrue(SqlKind.CHECKED_ARITHMETIC.contains(routines.get(0).kind)
                 || SqlKind.CHECKED_ARITHMETIC.contains(routines.get(1).kind));
+      } else if (routines.size() == 4) {
+        // There are many division operators
+        assertThat(routines.get(0).getName(), is("/"));
       } else {
         assertThat(routines, hasSize(1));
         assertThat(sqlOperator, equalTo(routines.get(0)));
@@ -2753,7 +2756,10 @@ public class SqlOperatorTest {
     f0.forEachConformance(conformances, this::checkModOperator);
     f0.forEachConformance(conformances, this::checkModPrecedence);
     f0.forEachConformance(conformances, this::checkModOperatorNull);
-    f0.forEachConformance(conformances, this::checkModOperatorDivByZero);
+    f0.forEachConformance(list(SqlConformanceEnum.BIG_QUERY), this::checkModOperatorDivByZero);
+    f0.forEachConformance(list(SqlConformanceEnum.MYSQL_5),
+        // In mysql a % 0 is NULL
+        this::checkNullableModOperatorDivByZero);
   }
 
   void checkModOperator(SqlOperatorFixture f) {
@@ -2792,6 +2798,17 @@ public class SqlOperatorTest {
     // error position information and the framework is unhappy with that.
     f.checkFails("3 % case 'a' when 'a' then 0 end",
         DIVISION_BY_ZERO_MESSAGE, true);
+  }
+
+  // Test for conformances where a % 0 returns NULL
+  void checkNullableModOperatorDivByZero(SqlOperatorFixture f) {
+    // The extra CASE expression is to fool Janino.  It does constant
+    // reduction and will throw the divide by zero exception while
+    // compiling the expression.  The test framework would then issue
+    // unexpected exception occurred during "validation".  You cannot
+    // submit as non-runtime because the janino exception does not have
+    // error position information and the framework is unhappy with that.
+    f.checkNull("3 % case 'a' when 'a' then 0 end");
   }
 
   @Test void testDivideOperator() {
