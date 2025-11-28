@@ -19,11 +19,12 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -42,7 +43,14 @@ public class SqlCreateView extends SqlCreate {
   public final SqlNode query;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE VIEW", SqlKind.CREATE_VIEW);
+      SqlBasicOperator.create("CREATE VIEW", SqlKind.CREATE_VIEW)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlCreateView(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[1]),
+                  (SqlNodeList) operands[2],
+                  requireNonNull(operands[3])));
 
   /** Creates a SqlCreateView. */
   SqlCreateView(SqlParserPos pos, boolean replace, SqlIdentifier name,
@@ -55,7 +63,8 @@ public class SqlCreateView extends SqlCreate {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query);
+    return ImmutableNullableList.of(SqlLiteral.createBoolean(getReplace(), pos), name, columnList,
+        query);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

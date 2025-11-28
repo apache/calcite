@@ -21,17 +21,19 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-
-import com.google.common.collect.ImmutableList;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.
@@ -39,8 +41,17 @@ import java.util.List;
  * <p>And {@code FOREIGN KEY}, when we support it.
  */
 public class SqlColumnDeclaration extends SqlCall {
-  private static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("COLUMN_DECL", SqlKind.COLUMN_DECL);
+  private static final SqlOperator OPERATOR =
+      SqlBasicOperator.create("COLUMN_DECL", SqlKind.COLUMN_DECL)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlColumnDeclaration(
+                  pos,
+                  (SqlIdentifier) requireNonNull(operands[0]),
+                  (SqlDataTypeSpec) requireNonNull(operands[1]),
+                  operands[2],
+                  requireNonNull(
+                      ((SqlLiteral) requireNonNull(operands[3])).symbolValue(
+                          ColumnStrategy.class))));
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
@@ -62,8 +73,10 @@ public class SqlColumnDeclaration extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name, dataType);
+    return ImmutableNullableList.of(name, dataType, expression,
+        SqlLiteral.createSymbol(strategy, pos));
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

@@ -122,5 +122,13 @@ public class SqlLambda extends SqlCall {
       final RelDataType returnType = validator.getValidatedNodeType(lambdaExpr.getExpression());
       return validator.getTypeFactory().createFunctionSqlType(paramRowType, returnType);
     }
+
+    @Override public SqlCall createCall(
+        @Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos,
+        @Nullable SqlNode... operands) {
+      return new SqlLambda(pos, requireNonNull((SqlNodeList) operands[0]),
+          requireNonNull(operands[1]));
+    }
   }
 }
