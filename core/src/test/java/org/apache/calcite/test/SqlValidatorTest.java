@@ -3507,6 +3507,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testAsOfJoin() {
+    sql("WITH "
+        + "   T2(id, intt) AS (VALUES(1, 0)),\n"
+        + "   T1(id, intt) as (VALUES(1, 0)),\n"
+        + "   T3(id) AS (VALUES(1))\n"
+        + "SELECT t1.id, t2.intt\n"
+        + "FROM T1 LEFT ASOF JOIN T2\n"
+        + "    MATCH_CONDITION t2.intt < t1.intt\n"
+        + "    ON t1.id = t2.id")
+        .ok();
+
+    // Test case for [CALCITE-7305]
+    // Subqueries in ASOF JOIN MATCH_CONDITION cause an assertion failure
+    sql("WITH T1(id, intt) as (VALUES(1, 0)),\n"
+        + "   T2(id, intt) AS (VALUES(1, 0)),\n"
+        + "   T3(id) AS (VALUES(1))\n"
+        + "SELECT t1.id, t2.intt\n"
+        + "FROM T1 LEFT ASOF JOIN T2\n"
+        + "    MATCH_CONDITION ^(t2.intt IN (SELECT id FROM T3))^\n"
+        + "    ON t1.id = t2.id")
+        .fails("ASOF JOIN MATCH_CONDITION must be a comparison between columns "
+            + "from the two inputs");
+
     final String type0 = "RecordType(INTEGER NOT NULL EMPNO, INTEGER NOT NULL DEPTNO) NOT NULL";
     final String sql0 = "select emp.empno, dept.deptno from emp asof join dept\n"
         + "match_condition emp.deptno <= dept.deptno\n"

@@ -69,6 +69,7 @@ public class IdentifierNamespace extends AbstractNamespace {
    * @param extendList    Extension columns, or null
    * @param enclosingNode Enclosing node
    * @param parentScope   Parent scope which this namespace turns to in order to
+   *                      resolve objects
    */
   IdentifierNamespace(SqlValidatorImpl validator, SqlIdentifier id,
       @Nullable SqlNodeList extendList, @Nullable SqlNode enclosingNode,
