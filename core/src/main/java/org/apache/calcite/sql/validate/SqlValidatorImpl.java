@@ -2600,6 +2600,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       scopes.putIfAbsent(stripAs(join.getRight()), parentScope);
       scopes.putIfAbsent(stripAs(join.getLeft()), parentScope);
       registerSubQueries(joinScope, join.getCondition());
+      if (join.getJoinType() == JoinType.ASOF || join.getJoinType() == JoinType.LEFT_ASOF) {
+        registerSubQueries(joinScope, ((SqlAsofJoin) join).getMatchCondition());
+      }
       final JoinNamespace joinNamespace = new JoinNamespace(this, join);
       registerNamespace(null, null, joinNamespace, forceNullable);
       return join;
@@ -3701,17 +3704,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /** Get the number of scopes referenced by the specified node; the node
    * represents a computation that will be converted to a Rel node eventually. */
-  private int getScopeCount(SqlNode node) {
-    SqlValidatorScope scope = scopes.get(node);
+  private int getScopeCount(@Nullable SqlValidatorScope scope) {
     if (scope == null) {
       // Not all nodes have an associated scope; count these as "1".
       // For example, a VALUES node.
       return 1;
-    }
-    if (scope instanceof ListScope) {
-      ListScope join = (ListScope) scope;
+    } else if (scope instanceof JoinScope) {
+      JoinScope join = (JoinScope) scope;
       return join.children.size();
+    } else if (scope instanceof WithScope) {
+      return getScopeCount(((WithScope) scope).getParent());
     }
+    // We don't need to handle arbitrary scopes here, because the argument scope
+    // is always from the left side of a join, and the SQL syntax constrains the
+    // kinds of subqueries that can appear in the left side of a join.
     return 1;
   }
 
@@ -3814,7 +3820,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(condition, RESOURCE.asofConditionMustBeComparison());
       }
 
-      int leftScopeCount = getScopeCount(left);
+      int leftScopeCount = getScopeCount(scopes.get(left));
       CompareFromBothSides validateCompare =
           new CompareFromBothSides(joinScope, leftScopeCount,
               catalogReader, RESOURCE.asofConditionMustBeComparison());
