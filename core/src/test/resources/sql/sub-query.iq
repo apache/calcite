@@ -5443,4 +5443,66 @@ ORDER BY deptno;
 
 !ok
 
+# [CALCITE-7303] Subqueries cannot be decorrelated if filter condition have multi CorrelationId
+SELECT deptno
+FROM emp e
+WHERE EXISTS
+    (SELECT *
+    FROM dept d
+    WHERE EXISTS
+        (SELECT *
+        FROM bonus b
+        WHERE b.ename = e.ename
+        AND d.deptno = e.deptno));
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7303] Subqueries cannot be decorrelated if filter condition have multi CorrelationId
+SELECT deptno
+FROM emp e
+WHERE EXISTS (
+  SELECT *
+  FROM dept d
+  WHERE EXISTS(
+    SELECT *
+    FROM bonus b
+    WHERE b.ename = e.ename
+    AND b.job = d.dname
+    AND d.deptno = e.deptno));
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7303] Subqueries cannot be decorrelated if filter condition have multi CorrelationId
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (1, 2), (2, 1), (2, 2), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT t0a
+FROM t0 e
+WHERE EXISTS
+    (SELECT *
+    FROM t1 d
+    WHERE EXISTS
+        (SELECT *
+        FROM t2 b
+        WHERE b.t2b = e.t0b
+        AND d.t1a = e.t0a));
++-----+
+| T0A |
++-----+
+|   1 |
+|   1 |
++-----+
+(2 rows)
+
+!ok
 # End sub-query.iq

@@ -1495,17 +1495,25 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /** Finds a {@link RexInputRef} that is equivalent to a {@link CorRef},
-   * and if found, throws a {@link org.apache.calcite.util.Util.FoundOne}. */
+   * and if found, throws a {@link org.apache.calcite.util.Util.FoundOne}.
+   *
+   * <p>The equivalent expression must not contain any {@link RexFieldAccess},
+   * ensuring that we only map the correlation variable to a local field or
+   * expression from the current relational expression (e.g., a {@link RexInputRef}),
+   * rather than to another correlation variable.
+   */
   private static void findCorrelationEquivalent(CorRef correlation, RexNode e)
       throws Util.FoundOne {
     switch (e.getKind()) {
     case EQUALS:
       final RexCall call = (RexCall) e;
       final List<RexNode> operands = call.getOperands();
-      if (references(operands.get(0), correlation)) {
+      if (!RexUtil.containsFieldAccess(operands.get(1))
+          && references(operands.get(0), correlation)) {
         throw new Util.FoundOne(operands.get(1));
       }
-      if (references(operands.get(1), correlation)) {
+      if (!RexUtil.containsFieldAccess(operands.get(0))
+          && references(operands.get(1), correlation)) {
         throw new Util.FoundOne(operands.get(0));
       }
       break;
