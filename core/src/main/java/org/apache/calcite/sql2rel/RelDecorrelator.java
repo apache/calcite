@@ -1502,10 +1502,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     case EQUALS:
       final RexCall call = (RexCall) e;
       final List<RexNode> operands = call.getOperands();
-      if (references(operands.get(0), correlation)) {
+      if (!RexUtil.containsFieldAccess(operands.get(1))
+          && references(operands.get(0), correlation)) {
         throw new Util.FoundOne(operands.get(1));
       }
-      if (references(operands.get(1), correlation)) {
+      if (!RexUtil.containsFieldAccess(operands.get(0))
+          && references(operands.get(1), correlation)) {
         throw new Util.FoundOne(operands.get(0));
       }
       break;
