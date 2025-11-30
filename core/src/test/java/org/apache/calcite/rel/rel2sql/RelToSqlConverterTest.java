@@ -2052,6 +2052,67 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7207">[CALCITE-7207]
+   * Semi Join RelNode cannot be translated into correct MySQL SQL</a>. */
+  @Test void testSemiJoinMysqlNoExtraAlias() {
+    final RelBuilder builder = relBuilder();
+    // Create the left side
+    RelNode leftSubBase = builder
+        .scan("EMP")
+        .project(builder.field("EMPNO"))
+        .build();
+    RelNode leftJoin = builder
+        .push(leftSubBase)
+        .scan("EMP")
+        .join(
+            JoinRelType.INNER, builder.equals(
+            builder.field(2, 0, "EMPNO"),
+            builder.field(2, 1, "EMPNO")))
+        .project(builder.field(0), builder.field(1))
+        .build();
+
+    // Create the right side
+    RelNode rightSubBase = builder
+        .scan("EMP")
+        .project(builder.field("EMPNO"))
+        .build();
+    RelNode rightJoin = builder
+        .push(rightSubBase)
+        .scan("EMP")
+        .join(
+            JoinRelType.INNER, builder.equals(
+            builder.field(2, 0, "EMPNO"),
+            builder.field(2, 1, "EMPNO")))
+        .project(builder.field(0), builder.field(1))
+        .build();
+
+    // Top-level SEMI join
+    final RelNode root = builder
+        .push(leftJoin)
+        .push(rightJoin)
+        .join(
+            JoinRelType.SEMI,
+            builder.and(
+                builder.equals(builder.field(2, 1, "EMPNO"), builder.field(2, 0, "EMPNO")),
+                builder.call(SqlStdOperatorTable.LESS_THAN,
+                    builder.field(2, 1, "EMPNO"), builder.field(2, 0, "EMPNO"))))
+        .project(builder.field(0), builder.field(1))
+        .build();
+
+    final String expected = "SELECT \"t\".\"EMPNO\", \"EMP0\".\"EMPNO\" AS \"EMPNO0\"\n"
+        + "FROM (SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "INNER JOIN \"scott\".\"EMP\" AS \"EMP0\" ON \"t\".\"EMPNO\" = \"EMP0\".\"EMPNO\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"t1\".\"EMPNO\", \"EMP2\".\"EMPNO\" AS \"EMPNO0\"\n"
+        + "FROM (SELECT \"EMPNO\"\nFROM \"scott\".\"EMP\") AS \"t1\"\n"
+        + "INNER JOIN \"scott\".\"EMP\" AS \"EMP2\""
+        + " ON \"t1\".\"EMPNO\" = \"EMP2\".\"EMPNO\") AS \"t2\"\n"
+        + "WHERE \"t\".\"EMPNO\" = \"t2\".\"EMPNO\" AND \"t\".\"EMPNO\" > \"t2\".\"EMPNO\")";
+    assertThat(toSql(root), isLinux(expected));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
    * StackOverflowError while evaluating filter with large number of OR
    * conditions</a>. */
