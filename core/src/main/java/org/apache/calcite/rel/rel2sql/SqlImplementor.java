@@ -194,6 +194,10 @@ public abstract class SqlImplementor {
       rules.add(FullToLeftAndRightJoinRule.Config.DEFAULT.toRule());
     }
 
+    if (!this.dialect.supportsJoinType(JoinRelType.RIGHT)) {
+      rules.add(CoreRules.JOIN_COMMUTE_RIGHT_TO_LEFT);
+    }
+
     if (!this.dialect.supportsOrderByLiteral()) {
       rules.add(CoreRules.SORT_REMOVE_CONSTANT_KEYS);
     }
