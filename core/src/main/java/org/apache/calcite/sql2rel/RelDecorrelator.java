@@ -522,6 +522,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
   /** Fallback if none of the other {@code decorrelateRel} methods match. */
   public @Nullable Frame decorrelateRel(RelNode rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
+    return decorrelateRelHelper(rel, isCorVarDefined, parentPropagatesNullValues);
+  }
+
+  private @Nullable Frame decorrelateRelHelper(RelNode rel, boolean isCorVarDefined,
+      boolean parentPropagatesNullValues) {
     RelNode newRel = rel.copy(rel.getTraitSet(), rel.getInputs());
 
     if (!rel.getInputs().isEmpty()) {
@@ -1201,44 +1206,34 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * FROM emp;
    *
    * <p>from:
-   * LogicalProject(ENAME=[$1], CORRELATED_SUM=[$8])
-   *  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2, 7}])
-   *    LogicalTableScan(table=[[scott, EMP]])
-   *    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-   *      LogicalUnion(all=[true])
-   *        LogicalProject(C=[CAST($0):INTEGER NOT NULL])
-   *          LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
-   *            LogicalTableScan(table=[[scott, DEPT]])
-   *        LogicalProject(C=[2])
-   *          LogicalFilter(condition=[=($1, $cor0.JOB)])
-   *            LogicalTableScan(table=[[scott, BONUS]])
+   * LogicalUnion(all=[true])
+   *   LogicalProject(C=[CAST($0):INTEGER NOT NULL])
+   *     LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+   *       LogicalTableScan(table=[[scott, DEPT]])
+   *   LogicalProject(C=[2])
+   *     LogicalFilter(condition=[=($1, $cor0.JOB)])
+   *       LogicalTableScan(table=[[scott, BONUS]])
    *
    * <p>to:
-   * LogicalProject(ENAME=[$1], CORRELATED_SUM=[$10])
-   *  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($2, $8),
-   *                             IS NOT DISTINCT FROM($7, $9))], joinType=[left])
-   *    LogicalTableScan(table=[[scott, EMP]])
-   *    LogicalAggregate(group=[{0, 1}], EXPR$0=[SUM($2)])
-   *      LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
-   *        LogicalUnion(all=[true])
-   *          LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
-   *            LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
-   *              LogicalAggregate(group=[{2, 7}])
-   *                LogicalTableScan(table=[[scott, EMP]])
-   *              LogicalProject(C=[CAST($0):INTEGER NOT NULL], DEPTNO=[$0])
-   *                LogicalTableScan(table=[[scott, DEPT]])
-   *          LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
-   *            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[inner])
-   *              LogicalAggregate(group=[{2, 7}])
-   *                LogicalTableScan(table=[[scott, EMP]])
-   *              LogicalProject(C=[2], JOB=[$1])
-   *                LogicalFilter(condition=[IS NOT NULL($1)])
-   *                  LogicalTableScan(table=[[scott, BONUS]])
+   * LogicalUnion(all=[true])
+   *   LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
+   *     LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
+   *       LogicalAggregate(group=[{2, 7}])
+   *         LogicalTableScan(table=[[scott, EMP]])
+   *       LogicalProject(C=[CAST($0):INTEGER NOT NULL], DEPTNO=[$0])
+   *         LogicalTableScan(table=[[scott, DEPT]])
+   *   LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
+   *     LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[inner])
+   *       LogicalAggregate(group=[{2, 7}])
+   *         LogicalTableScan(table=[[scott, EMP]])
+   *       LogicalProject(C=[2], JOB=[$1])
+   *         LogicalFilter(condition=[IS NOT NULL($1)])
+   *           LogicalTableScan(table=[[scott, BONUS]])
    */
   public @Nullable Frame decorrelateRel(SetOp rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
-    if (this.frameStack.peek() == null) {
-      return null;
+    if (!isCorVarDefined) {
+      return decorrelateRelHelper(rel, false, parentPropagatesNullValues);
     }
 
     final Pair<CorrelationId, Frame> outerFramePair = requireNonNull(this.frameStack.peek());
@@ -1249,10 +1244,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     ImmutableBitSet.Builder corFieldBuilder = ImmutableBitSet.builder();
     List<Frame> frames = new ArrayList<>();
     for (RelNode oldInput : rel.getInputs()) {
-      if (!(oldInput instanceof Project)) {
-        return null;
-      }
-      Frame frame = getInvoke(oldInput, isCorVarDefined, rel, parentPropagatesNullValues);
+      Frame frame = getInvoke(oldInput, true, rel, parentPropagatesNullValues);
       if (frame == null) {
         // If input has not been rewritten, do not rewrite this rel.
         return null;
@@ -1300,7 +1292,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final List<RelDataTypeField> joinOutput = join.getRowType().getFieldList();
 
       final PairList<RexNode, String> projects = PairList.of();
-      Project oldProj = (Project) rel.getInputs().get(i);
+      Project oldProj = (Project) rel.getInputs().get(0);
       final List<RexNode> oldProjects = oldProj.getProjects();
       int newPos = 0;
       for (int index : ImmutableBitSet.range(0, groupKeySize)) {
