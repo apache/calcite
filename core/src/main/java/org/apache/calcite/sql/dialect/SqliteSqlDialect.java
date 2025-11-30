@@ -52,19 +52,16 @@ public class SqliteSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsJoinType(JoinRelType joinType) {
-    // Unknown version means we conservatively assume support for all join types
+    // Unknown version means we conservatively assume support for no join types
     if (majorVersion < 0) {
-      return true;
+      return false;
     }
 
-    // For other join types, SQLite (all versions) supports them.
-    if (joinType != JoinRelType.RIGHT && joinType != JoinRelType.FULL) {
-      return true;
-    }
-
-    // For RIGHT/FULL joins, check version >= 3.39.0
-    // Link: https://www.sqlite.org/releaselog/3_39_0.html
-    return majorVersion > 3 || (majorVersion == 3 && minorVersion >= 39);
+    // For non-RIGHT/FULL join types, SQLite supports them in any version
+    // For RIGHT/FULL joins, SQLite added support in 3.39.0
+    // See: https://www.sqlite.org/releaselog/3_39_0.html
+    return (joinType != JoinRelType.RIGHT && joinType != JoinRelType.FULL)
+        || (majorVersion > 3 || (majorVersion == 3 && minorVersion >= 39));
   }
 
   @Override public boolean supportsAliasedValues() {
