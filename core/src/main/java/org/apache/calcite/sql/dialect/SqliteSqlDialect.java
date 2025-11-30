@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
@@ -40,9 +41,30 @@ public class SqliteSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new SqliteSqlDialect(DEFAULT_CONTEXT);
 
+  private final int majorVersion;
+  private final int minorVersion;
+
   /** Creates a SqliteSqlDialect. */
   public SqliteSqlDialect(SqlDialect.Context context) {
     super(context);
+    this.majorVersion = context.databaseMajorVersion();
+    this.minorVersion = context.databaseMinorVersion();
+  }
+
+  @Override public boolean supportsJoinType(JoinRelType joinType) {
+    // Unknown version means we conservatively assume support for all join types
+    if (majorVersion < 0) {
+      return true;
+    }
+
+    // For other join types, SQLite (all versions) supports them.
+    if (joinType != JoinRelType.RIGHT && joinType != JoinRelType.FULL) {
+      return true;
+    }
+
+    // For RIGHT/FULL joins, check version >= 3.39.0
+    // Link: https://www.sqlite.org/releaselog/3_39_0.html
+    return majorVersion > 3 || (majorVersion == 3 && minorVersion >= 39);
   }
 
   @Override public boolean supportsAliasedValues() {

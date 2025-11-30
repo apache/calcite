@@ -3165,9 +3165,85 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7087">[CALCITE-7087]
+   * SQLite does not support RIGHT/FULL JOIN until version 3.39.0</a>. */
+  @Test void testSqliteRightJoinRewrittenToLeftOnOldVersion() {
+    final String query = "SELECT \"EMP\".\"ENAME\", \"DEPT\".\"DNAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "RIGHT JOIN \"scott\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    final String expected = "SELECT \"EMP\".\"ENAME\", \"DEPT\".\"DNAME\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "LEFT JOIN \"scott\".\"EMP\" ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\"";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.SCOTT)
+        .withSQLite(3, 38)
+        .ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7087">[CALCITE-7087]
+   * SQLite does not support RIGHT/FULL JOIN until version 3.39.0</a>. */
+  @Test void testSqliteRightJoinKeptOnNewerVersion() {
+    final String query = "SELECT \"EMP\".\"ENAME\", \"DEPT\".\"DNAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "RIGHT JOIN \"scott\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.SCOTT)
+        .withSQLite(3, 39)
+        .ok(query);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7087">[CALCITE-7087]
+   * SQLite does not support RIGHT/FULL JOIN until version 3.39.0</a>. */
+  @Test void testSqliteFullJoinThrowsOnOldVersion() {
+    final String query = "SELECT \"EMP\".\"ENAME\", \"DEPT\".\"DNAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "FULL JOIN \"scott\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    final String expected = "SELECT \"ENAME\", \"DNAME\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "LEFT JOIN \"scott\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
+        + "UNION ALL\n"
+        + "SELECT *\n"
+        + "FROM (SELECT \"EMP0\".\"EMPNO\","
+        + " \"EMP0\".\"ENAME\","
+        + " \"EMP0\".\"JOB\","
+        + " \"EMP0\".\"MGR\","
+        + " \"EMP0\".\"HIREDATE\","
+        + " \"EMP0\".\"SAL\","
+        + " \"EMP0\".\"COMM\","
+        + " \"EMP0\".\"DEPTNO\","
+        + " \"DEPT0\".\"DEPTNO\" AS \"DEPTNO0\","
+        + " \"DEPT0\".\"DNAME\","
+        + " \"DEPT0\".\"LOC\"\n"
+        + "FROM \"scott\".\"DEPT\" AS \"DEPT0\"\n"
+        + "LEFT JOIN \"scott\".\"EMP\" AS \"EMP0\""
+        + " ON \"DEPT0\".\"DEPTNO\" = \"EMP0\".\"DEPTNO\") AS \"t\"\n"
+        + "WHERE \"t\".\"DEPTNO\" = \"t\".\"DEPTNO0\" IS NOT TRUE) AS \"t1\"";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.SCOTT)
+        .withSQLite(3, 38)
+        .ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7087">[CALCITE-7087]
+   * SQLite does not support RIGHT/FULL JOIN until version 3.39.0</a>. */
+  @Test void testSqliteFullJoinKeptOnNewerVersion() {
+    final String query = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "FULL JOIN \"scott\".\"DEPT\""
+        + " ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.SCOTT)
+        .withSQLite(3, 39)
+        .ok(query);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3771">[CALCITE-3771]
    * Support of TRIM function for SPARK dialect and improvement in HIVE Dialect</a>. */
-
   @Test void testHiveAndSparkTrimWithLeadingChar() {
     final String query = "SELECT TRIM(LEADING 'a' from 'abcd')\n"
         + "from \"foodmart\".\"reserve_employee\"";
@@ -11025,6 +11101,13 @@ class RelToSqlConverterTest {
 
     Sql withSQLite() {
       return dialect(DatabaseProduct.SQLITE.getDialect());
+    }
+
+    Sql withSQLite(int majorVersion, int minorVersion) {
+      return dialect(
+          new SqliteSqlDialect(SqliteSqlDialect.DEFAULT_CONTEXT
+              .withDatabaseMajorVersion(majorVersion)
+              .withDatabaseMinorVersion(minorVersion)));
     }
 
     Sql withSybase() {
