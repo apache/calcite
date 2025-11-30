@@ -326,7 +326,9 @@ public class RelToSqlConverter extends SqlImplementor
     }
     sqlSelect.setWhere(sqlCondition);
 
-    if (leftResult.neededAlias != null && sqlSelect.getFrom() != null) {
+    if (leftResult.neededAlias != null
+        && sqlSelect.getFrom() != null
+        && sqlSelect.getFrom().getKind() != SqlKind.JOIN) {
       sqlSelect.setFrom(as(sqlSelect.getFrom(), leftResult.neededAlias));
     }
     return result(sqlSelect, ImmutableList.of(Clause.FROM), e, null);
