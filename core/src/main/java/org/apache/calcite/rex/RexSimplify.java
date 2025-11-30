@@ -1153,20 +1153,21 @@ public class RexSimplify {
     if (!a.getType().isNullable() && isSafe) {
       return rexBuilder.makeLiteral(true);
     }
+    RexNode simplifiedResult = null;
     if (RexUtil.isLosslessCast(a)) {
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(true);
-      }
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, RexUtil.removeCast(a));
+      a = RexUtil.removeCast(a);
+      // to keep this simplification, we must return IS NOT NULL(a),
+      // even if we cannot do anything else
+      simplifiedResult = rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
     }
     if (predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
     }
     if (hasCustomNullabilityRules(a.getKind())) {
-      return null;
+      return simplifiedResult;
     }
     if (!isSafe) {
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
+      return simplifiedResult;
     }
     switch (Strong.policy(a)) {
     case NOT_NULL:
@@ -1197,7 +1198,7 @@ public class RexSimplify {
       }
     case AS_IS:
     default:
-      return null;
+      return simplifiedResult;
     }
   }
 
@@ -1212,20 +1213,21 @@ public class RexSimplify {
     if (!a.getType().isNullable() && isSafe) {
       return rexBuilder.makeLiteral(false);
     }
+    RexNode simplifiedResult = null;
     if (RexUtil.isLosslessCast(a)) {
-      if (!a.getType().isNullable()) {
-        return rexBuilder.makeLiteral(false);
-      }
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, RexUtil.removeCast(a));
+      a = RexUtil.removeCast(a);
+      // to keep this simplification, we must return IS NULL(a),
+      // even if we cannot do anything else
+      simplifiedResult = rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
     }
     if (RexUtil.isNull(a)) {
       return rexBuilder.makeLiteral(true);
     }
     if (hasCustomNullabilityRules(a.getKind())) {
-      return null;
+      return simplifiedResult;
     }
     if (!isSafe) {
-      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
+      return simplifiedResult;
     }
     switch (Strong.policy(a)) {
     case NOT_NULL:
@@ -1246,7 +1248,7 @@ public class RexSimplify {
       return RexUtil.composeDisjunction(rexBuilder, operands, false);
     case AS_IS:
     default:
-      return null;
+      return simplifiedResult;
     }
   }
 
