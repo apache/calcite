@@ -6884,6 +6884,43 @@ public class SqlFunctions {
     return map;
   }
 
+  /** Combines multiple query result lists into rows for the Combine operator.
+   *
+   * <p>Each input list contains maps representing rows from a query.
+   * The output is a list of Object arrays, where each array is a row
+   * with one element per query. The number of output rows equals the
+   * maximum size across all input lists. Shorter lists are padded with nulls.
+   *
+   * @param queryLists array of lists, one per query
+   * @return list of Object arrays representing combined rows
+   */
+  public static List<@Nullable Object[]> combineQueryResults(List[] queryLists) {
+    // Find the maximum row count across all queries
+    int maxRows = 0;
+    for (List list : queryLists) {
+      if (list.size() > maxRows) {
+        maxRows = list.size();
+      }
+    }
+
+    // Build the result rows
+    List<@Nullable Object[]> result = new ArrayList<>(maxRows);
+    for (int rowIdx = 0; rowIdx < maxRows; rowIdx++) {
+      @Nullable Object[] row = new Object[queryLists.length];
+      for (int queryIdx = 0; queryIdx < queryLists.length; queryIdx++) {
+        List queryList = queryLists[queryIdx];
+        if (rowIdx < queryList.size()) {
+          row[queryIdx] = queryList.get(rowIdx);
+        } else {
+          row[queryIdx] = null;
+        }
+      }
+      result.add(row);
+    }
+
+    return result;
+  }
+
   /** Support the STR_TO_MAP function. */
   public static Map strToMap(String string, String stringDelimiter, String keyValueDelimiter) {
     final Map map = new LinkedHashMap();
