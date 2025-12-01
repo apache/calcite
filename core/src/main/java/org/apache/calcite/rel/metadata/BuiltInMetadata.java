@@ -77,8 +77,12 @@ public abstract class BuiltInMetadata {
   }
 
   /**
-   * Metadata that identifies, per input, which fields (columns) of each
-   * input are referenced by a relational expression.
+   * Metadata that identifies, per input, which fields of each
+   * input are referenced by a relational expression ({@link RelNode}).
+   * Here, "referenced" means the input field is used by the parent
+   * RelNode. Operators such as Filter, while not inherently consuming
+   * all input fields, must preserve them since parent RelNodes may depend on
+   * these fields. Thus, Filter is regarded as utilizing all fields.
    *
    * <p>For a relational expression with N inputs, this returns an
    * {@link ImmutableList} of length N. Each element is an
