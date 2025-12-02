@@ -2623,8 +2623,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case LATERAL:
       SqlBasicCall sbc = (SqlBasicCall) node;
-      registerFrom(parentScope,
-          usingScope,
+      newOperand =
+          registerFrom(parentScope, usingScope,
           register,
           ((SqlCall) node).operand(0),
           enclosingNode,
@@ -2635,6 +2635,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Put the usingScope which is a JoinScope,
       // in order to make visible the left items
       // of the JOIN tree.
+      sbc.setOperand(0, newOperand);
       scopes.put(node, usingScope);
       return sbc;
 
