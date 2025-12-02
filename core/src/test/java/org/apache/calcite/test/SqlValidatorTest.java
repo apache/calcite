@@ -9127,13 +9127,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7217">[CALCITE-7217]
-   * LATERAL is lost after validation</a>. */
+   * LATERAL is lost after validation</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7312">[CALCITE-7312]
+   * Alias is not auto generated for LATERAL TABLE</a>.
+   * */
   @Test void testCollectionTableWithLateralRewrite() {
     sql("select * from emp, lateral table(ramp(emp.deptno)), dept")
         .rewritesTo("SELECT *\n"
             + "FROM `EMP`,\n"
             + "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)),\n"
             + "`DEPT`");
+    // SELECT 1 to save space since test is verifying alias for the case of LATERAL TABLE
+    sql("select 1 from emp, lateral table(ramp(emp.deptno)), dept")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT 1\n"
+            + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`,\n"
+            + "LATERAL TABLE(RAMP(`EMP`.`DEPTNO`)) AS `EXPR$0`,\n"
+            + "`CATALOG`.`SALES`.`DEPT` AS `DEPT`");
     // As above, with alias
     sql("select * from emp, lateral table(ramp(emp.deptno)) as t(a), dept")
         .rewritesTo("SELECT *\n"
@@ -9174,6 +9184,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo("SELECT *\n"
             +  "FROM LATERAL TABLE(RAMP(1234)),\n"
             +  "`EMP`");
+    // SELECT 1 to save space since test is verifying alias for the case of LATERAL TABLE
+    sql("select 1 from lateral table(ramp(1234)), emp")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT 1\n"
+            + "FROM LATERAL TABLE(RAMP(1234)) AS `EXPR$0`,\n"
+            + "`CATALOG`.`SALES`.`EMP` AS `EMP`");
   }
 
   @Test void testCollectionTableWithCursorParam() {
