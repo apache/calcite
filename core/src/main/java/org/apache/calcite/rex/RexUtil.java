@@ -2001,6 +2001,33 @@ public class RexUtil {
     });
   }
 
+  public static RexNode replaceRexFieldAccessToInputRef(RexNode node,
+      final Map<RexFieldAccess, RexInputRef> replacementMap) {
+    if (replacementMap.isEmpty()) {
+      return node;
+    }
+    return node.accept(new RexFieldAccessToInputRefShuttle(replacementMap));
+  }
+
+  /**
+   * A Shuttle that specifically replaces {@link RexFieldAccess} nodes with {@link RexInputRef}.
+   */
+  public static class RexFieldAccessToInputRefShuttle extends RexShuttle {
+    private final Map<RexFieldAccess, RexInputRef> replacementMap;
+
+    public RexFieldAccessToInputRefShuttle(Map<RexFieldAccess, RexInputRef> replacementMap) {
+      this.replacementMap = replacementMap;
+    }
+
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+      RexInputRef replacement = replacementMap.get(fieldAccess);
+      if (replacement != null) {
+        return replacement;
+      }
+      return fieldAccess;
+    }
+  }
+
   /** Creates an equivalent version of a node where common factors among ORs
    * are pulled up.
    *

@@ -5443,4 +5443,30 @@ ORDER BY deptno;
 
 !ok
 
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE
+  E1.SAL > (SELECT D1.DEPTNO FROM
+      DEPT D1 JOIN EMP E2
+      ON E1.DEPTNO = E2.DEPTNO);
+more than one value in agg SINGLE_VALUE
+!error
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT
+  E1.*
+FROM
+  EMP E1
+WHERE
+  E1.EMPNO = (
+    SELECT D1.DEPTNO FROM DEPT D1
+    WHERE E1.ENAME IN (SELECT B1.ENAME FROM BONUS B1));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 # End sub-query.iq
