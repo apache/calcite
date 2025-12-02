@@ -3434,6 +3434,19 @@ class RelToSqlConverterTest {
         .withDoris().ok(expectedStarRocks);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7309">[CALCITE-7309]
+   * Position is unparsed incorrectly for ClickHouseSqlDialect</a>. */
+  @Test void testPositionForClickHouse() {
+    final String query = "SELECT POSITION('a' IN 'abca')";
+    final String expected = "SELECT POSITION('abca', 'a')";
+    sql(query).withClickHouse().ok(expected);
+
+    final String query1 = "SELECT POSITION('a' IN 'abca' FROM 1)";
+    final String expected1 = "SELECT POSITION('abca', 'a', 1)";
+    sql(query1).withClickHouse().ok(expected1);
+  }
+
   @Test void testPositionFunctionForSqlite() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
     final String expected = "SELECT INSTR('ABC', 'A')\n"
