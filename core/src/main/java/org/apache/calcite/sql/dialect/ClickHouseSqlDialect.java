@@ -245,6 +245,18 @@ public class ClickHouseSqlDialect extends SqlDialect {
       }
       writer.endList(arrayFrame);
       break;
+    case POSITION:
+      final SqlWriter.Frame f = writer.startFunCall("POSITION");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (call.operandCount() == 3) {
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(f);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
