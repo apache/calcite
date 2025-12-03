@@ -2379,6 +2379,15 @@ public class RexUtil {
     return e -> not(rexBuilder, e);
   }
 
+  /** If the RexNode contains position information, return it.
+   * Otherwise, return SqlParserPos.ZERO. */
+  public static SqlParserPos getPos(RexNode e) {
+    if (e instanceof RexCall) {
+      return ((RexCall) e).getParserPosition();
+    }
+    return SqlParserPos.ZERO;
+  }
+
   /** Applies NOT to an expression.
    *
    * <p>Unlike {@link #not}, may strengthen the type from {@code BOOLEAN}
@@ -2390,7 +2399,7 @@ public class RexUtil {
         ? rexBuilder.makeLiteral(true)
         : input.getKind() == SqlKind.NOT
         ? ((RexCall) input).operands.get(0)
-        : rexBuilder.makeCall(SqlStdOperatorTable.NOT, input);
+        : rexBuilder.makeCall(getPos(input), SqlStdOperatorTable.NOT, input);
   }
 
   /** Returns whether an expression contains a {@link RexCorrelVariable}. */
