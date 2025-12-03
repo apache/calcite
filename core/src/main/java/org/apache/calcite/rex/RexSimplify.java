@@ -358,7 +358,7 @@ public class RexSimplify {
         ? isNotTrue(((RexCall) e).operands.get(0))
         : predicates.isEffectivelyNotNull(e)
         ? e // would "CAST(e AS BOOLEAN NOT NULL)" better?
-        : rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_FALSE, e);
+        : rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.IS_NOT_FALSE, e);
   }
 
   /** Applies IS NOT TRUE to an expression. */
@@ -371,7 +371,7 @@ public class RexSimplify {
         ? isNotFalse(((RexCall) e).operands.get(0))
         : predicates.isEffectivelyNotNull(e)
         ? not(e)
-        : rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, e);
+        : rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.IS_NOT_TRUE, e);
   }
 
   /** Applies IS TRUE to an expression. */
@@ -384,7 +384,7 @@ public class RexSimplify {
         ? isFalse(((RexCall) e).operands.get(0))
         : predicates.isEffectivelyNotNull(e)
         ? e // would "CAST(e AS BOOLEAN NOT NULL)" better?
-        : rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, e);
+        : rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.IS_TRUE, e);
   }
 
   /** Applies IS FALSE to an expression. */
@@ -397,7 +397,7 @@ public class RexSimplify {
         ? isTrue(((RexCall) e).operands.get(0))
         : predicates.isEffectivelyNotNull(e)
         ? not(e)
-        : rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, e);
+        : rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.IS_FALSE, e);
   }
 
   /**
@@ -1131,13 +1131,13 @@ public class RexSimplify {
       // because of null values.
       final SqlOperator notKind = RexUtil.op(kind.negateNullSafe());
       final RexNode arg = ((RexCall) a).operands.get(0);
-      return simplify(rexBuilder.makeCall(notKind, arg), UNKNOWN);
+      return simplify(rexBuilder.makeCall(RexUtil.getPos(a), notKind, arg), UNKNOWN);
     default:
       break;
     }
     final RexNode a2 = simplify(a, UNKNOWN);
     if (a != a2) {
-      return rexBuilder.makeCall(RexUtil.op(kind), ImmutableList.of(a2));
+      return rexBuilder.makeCall(RexUtil.getPos(a), RexUtil.op(kind), ImmutableList.of(a2));
     }
     return null; // cannot be simplified
   }
@@ -1154,11 +1154,12 @@ public class RexSimplify {
       return rexBuilder.makeLiteral(true);
     }
     RexNode simplifiedResult = null;
+    SqlParserPos pos = RexUtil.getPos(a);
     if (RexUtil.isLosslessCast(a)) {
       a = RexUtil.removeCast(a);
       // to keep this simplification, we must return IS NOT NULL(a),
       // even if we cannot do anything else
-      simplifiedResult = rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, a);
+      simplifiedResult = rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, a);
     }
     if (predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
@@ -1180,7 +1181,7 @@ public class RexSimplify {
         final RexNode simplified = simplifyIsNotNull(operand);
         if (simplified == null) {
           operands.add(
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operand));
+              rexBuilder.makeCall(RexUtil.getPos(a), SqlStdOperatorTable.IS_NOT_NULL, operand));
         } else if (simplified.isAlwaysFalse()) {
           return rexBuilder.makeLiteral(false);
         } else {
@@ -1208,6 +1209,7 @@ public class RexSimplify {
     // For example, given
     // "(CASE WHEN FALSE THEN 1 ELSE 2) IS NULL" we first simplify the
     // argument to "2", and only then we can simplify "2 IS NULL" to "FALSE".
+    SqlParserPos pos = RexUtil.getPos(a);
     a = simplify(a, UNKNOWN);
     boolean isSafe = isSafeExpression(a);
     if (!a.getType().isNullable() && isSafe) {
@@ -1218,7 +1220,7 @@ public class RexSimplify {
       a = RexUtil.removeCast(a);
       // to keep this simplification, we must return IS NULL(a),
       // even if we cannot do anything else
-      simplifiedResult = rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, a);
+      simplifiedResult = rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NULL, a);
     }
     if (RexUtil.isNull(a)) {
       return rexBuilder.makeLiteral(true);
@@ -1240,7 +1242,7 @@ public class RexSimplify {
         final RexNode simplified = simplifyIsNull(operand);
         if (simplified == null) {
           operands.add(
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, operand));
+              rexBuilder.makeCall(RexUtil.getPos(a), SqlStdOperatorTable.IS_NULL, operand));
         } else {
           operands.add(simplified);
         }
@@ -1359,7 +1361,9 @@ public class RexSimplify {
           // in this case, last branch and new branch have the same conclusion,
           // hence we create a new composite condition and we do not add it to
           // the final branches for the time being
-          newCond = rexBuilder.makeCall(SqlStdOperatorTable.OR, lastBranch.cond, newCond);
+          newCond =
+              rexBuilder.makeCall(call.getParserPosition(), SqlStdOperatorTable.OR,
+                  lastBranch.cond, newCond);
           conditionNeedsSimplify = true;
         } else {
           // if we reach here, the new branch is not mergeable with the last one,
@@ -1811,7 +1815,8 @@ public class RexSimplify {
       for (RexNode notSatisfiableNullable : notSatisfiableNullables) {
         terms.add(
             simplifyIs((RexCall)
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, notSatisfiableNullable), UNKNOWN));
+            rexBuilder.makeCall(RexUtil.getPos(notSatisfiableNullable),
+                SqlStdOperatorTable.IS_NULL, notSatisfiableNullable), UNKNOWN));
       }
     }
     // Add the NOT disjunctions back in.
@@ -2059,7 +2064,7 @@ public class RexSimplify {
     for (RexNode operand : notNullOperands) {
       if (!strongOperands.contains(operand)) {
         terms.add(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operand));
+            rexBuilder.makeCall(RexUtil.getPos(operand), SqlStdOperatorTable.IS_NOT_NULL, operand));
       }
     }
     return RexUtil.composeConjunction(rexBuilder, terms);
@@ -2096,7 +2101,7 @@ public class RexSimplify {
       // Range is always satisfied given these predicates; but nullability might
       // be problematic
       return simplify(
-          rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref),
+          rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.IS_NOT_NULL, comparison.ref),
           RexUnknownAs.UNKNOWN);
     } else if (rangeSet2.asRanges().size() == 1
         && Iterables.getOnlyElement(rangeSet2.asRanges()).hasLowerBound()
@@ -2105,7 +2110,7 @@ public class RexSimplify {
         .equals(Iterables.getOnlyElement(rangeSet2.asRanges()).upperEndpoint())) {
       final Range<C> r = Iterables.getOnlyElement(rangeSet2.asRanges());
       // range is now a point; it's worth simplifying
-      return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, comparison.ref,
+      return rexBuilder.makeCall(RexUtil.getPos(e), SqlStdOperatorTable.EQUALS, comparison.ref,
           rexBuilder.makeLiteral(r.lowerEndpoint(),
               comparison.literal.getType(), comparison.literal.getTypeName()));
     } else {
@@ -2280,13 +2285,13 @@ public class RexSimplify {
                   && comparable1.compareTo(comparable2) != 0) {
                 // X <> A OR X <> B => X IS NOT NULL OR NULL
                 final RexNode isNotNull =
-                    rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                    rexBuilder.makeCall(RexUtil.getPos(term), SqlStdOperatorTable.IS_NOT_NULL,
                         notEqualsComparison.ref);
                 final RexNode constantNull =
                     rexBuilder.makeNullLiteral(trueLiteral.getType());
                 final RexNode newCondition =
                     simplify(
-                        rexBuilder.makeCall(SqlStdOperatorTable.OR, isNotNull,
+                        rexBuilder.makeCall(RexUtil.getPos(term), SqlStdOperatorTable.OR, isNotNull,
                             constantNull),
                         unknownAs);
                 if (newCondition.isAlwaysTrue()) {
@@ -2317,7 +2322,7 @@ public class RexSimplify {
           }
 
           final RexNode isNotNull =
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, x);
+              rexBuilder.makeCall(RexUtil.getPos(term), SqlStdOperatorTable.IS_NOT_NULL, x);
           terms.set(terms.indexOf(x), simplifyIs((RexCall) isNotNull, unknownAs));
           terms.set(i, rexBuilder.makeNullLiteral(x.getType()));
           i--;
@@ -2635,6 +2640,7 @@ public class RexSimplify {
           && trimType.equals(simplify(childNode.operands.get(0)))
           && trimed.equals(simplify(childNode.operands.get(1)))) {
         return simplifyTrim(childNode);
+
       }
     }
 
@@ -2642,8 +2648,7 @@ public class RexSimplify {
     rexNodes.add(trimType);
     rexNodes.add(trimed);
     rexNodes.add(simplify(e.operands.get(2)));
-    RexNode rexNode = rexBuilder.makeCall(e.getType(), e.getOperator(), rexNodes);
-    return rexNode;
+    return rexBuilder.makeCall(e.getParserPosition(), e.getType(), e.getOperator(), rexNodes);
   }
 
   /** Method that returns whether we can rollup from inner time unit
