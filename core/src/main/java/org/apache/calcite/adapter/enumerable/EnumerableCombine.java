@@ -37,7 +37,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Combine} in
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+ *
+ * <p>The output format is a wide table where each column corresponds to a query
+ * (named QUERY_0, QUERY_1, etc.) and each row contains a struct (map) with that
+ * query's column values for that row index. The number of output rows equals the
+ * maximum row count across all input queries. Queries with fewer rows have null
+ * values for the additional rows.
+ *
+ * <p>Example output for two queries:
+ * <pre>
+ * QUERY_0                  | QUERY_1
+ * ------------------------ | ------------------------
+ * {empno=100, name=Bill}   | {deptno=10, name=Sales}
+ * {empno=110, name=Eric}   | {deptno=20, name=HR}
+ * {empno=120, name=Ted}    | null
+ * </pre>
+ */
 public class EnumerableCombine extends Combine implements EnumerableRel {
   public EnumerableCombine(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs) {
@@ -52,9 +68,9 @@ public class EnumerableCombine extends Combine implements EnumerableRel {
     final BlockBuilder builder = new BlockBuilder();
     final RelDataType rowType = getRowType();
 
-    // Build a list of rows, one per input query
-    // Each row is Object[]{queryIdx, resultsList}
-    final List<Expression> rowExpressions = new ArrayList<>();
+    // Collect all query results as lists of maps
+    // Each list corresponds to one query, containing maps for each row
+    final List<Expression> queryLists = new ArrayList<>();
 
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
       EnumerableRel input = (EnumerableRel) ord.e;
@@ -69,8 +85,6 @@ public class EnumerableCombine extends Combine implements EnumerableRel {
       final int fieldCount = fields.size();
 
       // Transform each row to a Map with column names as keys
-      // For single column: value -> {colName: value}
-      // For multi-column: Object[] -> {col1: val1, col2: val2, ...}
       ParameterExpression row = Expressions.parameter(Object.class, "row" + ord.i);
 
       // Build the arguments for SqlFunctions.map(key1, val1, key2, val2, ...)
@@ -104,7 +118,7 @@ public class EnumerableCombine extends Combine implements EnumerableRel {
                   BuiltInMethod.SELECT.method,
                   selectLambda));
 
-      // Convert Enumerable to List for the QUERY array
+      // Convert Enumerable to List
       Expression listExp =
           builder.append(
               "list" + ord.i,
@@ -114,21 +128,29 @@ public class EnumerableCombine extends Combine implements EnumerableRel {
                       Enumerable.class,
                       "toList")));
 
-      // Each row is just the results list (single column)
-      rowExpressions.add(listExp);
+      queryLists.add(listExp);
     }
 
-    // The physical type represents the row structure: single QUERY column
+    // The physical type: each row is Object[] with one element per query
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),
             rowType,
-            pref.prefer(JavaRowFormat.SCALAR));
+            pref.prefer(JavaRowFormat.ARRAY));
 
-    // Create an enumerable from the list of rows (each row is a single List value)
-    Expression rowListExp =
-        Expressions.call(BuiltInMethod.ARRAYS_AS_LIST.method,
-        Expressions.newArrayInit(Object.class, rowExpressions));
+    // Create an array of all query result lists
+    Expression queryListsArray =
+        builder.append("queryLists",
+            Expressions.newArrayInit(List.class, queryLists));
+
+    // Call helper method to combine results into rows
+    // combineQueryResults(List[] queryLists) -> List<Object[]>
+    Expression combinedRows =
+        builder.append("combinedRows",
+            Expressions.call(
+                SqlFunctions.class,
+                "combineQueryResults",
+                queryListsArray));
 
     Expression enumerableExp =
         Expressions.call(
@@ -136,7 +158,7 @@ public class EnumerableCombine extends Combine implements EnumerableRel {
                 Linq4j.class,
                 "asEnumerable",
                 List.class),
-            rowListExp);
+            combinedRows);
 
     builder.add(enumerableExp);
 

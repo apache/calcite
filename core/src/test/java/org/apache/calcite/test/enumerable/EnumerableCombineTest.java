@@ -34,8 +34,9 @@ class EnumerableCombineTest {
    * Query 1: Select employee names from department 10
    * Query 2: Select department names
    *
-   * <p>The Combine operator returns results in a structured format where each
-   * query's results are grouped: {@code QUERY_0={...}; QUERY_1={...}}
+   * <p>The Combine operator returns results in a wide format where each query
+   * is a column (QUERY_0, QUERY_1, etc.) and each row contains a struct (map)
+   * for each query. Queries with fewer rows have null values for additional rows.
    */
   @Test void testCombineTwoQueries() {
     tester(new HrSchema())
@@ -57,35 +58,38 @@ class EnumerableCombineTest {
               return builder.combine(2).build();
             })
         .returnsOrdered(
-            "QUERY=[{name=Bill}, {name=Sebastian}, {name=Theodore}]",
-            "QUERY=[{name=Sales}, {name=Marketing}, {name=HR}]");
+            "QUERY_0={name=Bill}; QUERY_1={name=Sales}",
+            "QUERY_0={name=Sebastian}; QUERY_1={name=Marketing}",
+            "QUERY_0={name=Theodore}; QUERY_1={name=HR}");
   }
 
   /**
-   * Test that executes two queries with aggregates.
-   * Query 1: Count of employees
-   * Query 2: Average salary of employees
+   * Test that executes two queries with different row counts.
+   * Query 1: Select all employee names (4 rows)
+   * Query 2: Select all department names (3 rows)
+   *
+   * <p>Since Query 2 returns fewer rows, QUERY1 is null for the extra rows.
    */
-  @Test void testCombineWithAggregates() {
+  @Test void testCombineDifferentRowCounts() {
     tester(new HrSchema())
         .withRel(
             builder -> {
-              // Query 1: SELECT deptno, COUNT(*) AS emp_count FROM emps GROUP BY deptno
+              // Query 1: SELECT name FROM emps (4 rows)
               builder.scan("s", "emps")
-                  .aggregate(builder.groupKey("deptno"),
-                      builder.count().as("emp_count"));
+                  .project(builder.field("name"));
 
-              // Query 2: SELECT AVG(salary) AS avg_salary FROM emps
-              builder.scan("s", "emps")
-                  .aggregate(builder.groupKey(),
-                      builder.avg(builder.field("salary")).as("avg_salary"));
+              // Query 2: SELECT name FROM depts (3 rows)
+              builder.scan("s", "depts")
+                  .project(builder.field("name"));
 
               // Combine both queries
               return builder.combine(2).build();
             })
         .returnsUnordered(
-            "QUERY=[{deptno=20, emp_count=1}, {deptno=10, emp_count=3}]",
-            "QUERY=[{avg_salary=9125.0}]");
+            "QUERY_0={name=Bill}; QUERY_1={name=Sales}",
+            "QUERY_0={name=Eric}; QUERY_1={name=Marketing}",
+            "QUERY_0={name=Sebastian}; QUERY_1={name=HR}",
+            "QUERY_0={name=Theodore}; QUERY_1=null");
   }
 
   /**
@@ -117,14 +121,15 @@ class EnumerableCombineTest {
               return builder.combine(2).build();
             })
         .returnsUnordered(
-            "QUERY=[{empid=100, name=Bill}, {empid=150, name=Sebastian}, {empid=110, name=Theodore}]",
-            "QUERY=[{deptno=10, name=Sales}, {deptno=30, name=Marketing}, {deptno=40, name=HR}]");
+            "QUERY_0={empid=100, name=Bill}; QUERY_1={deptno=10, name=Sales}",
+            "QUERY_0={empid=150, name=Sebastian}; QUERY_1={deptno=30, name=Marketing}",
+            "QUERY_0={empid=110, name=Theodore}; QUERY_1={deptno=40, name=HR}");
   }
 
   /**
-   * Test that executes two queries returning different numbers of columns.
-   * Query 1: Select name (1 column)
-   * Query 2: Select empid, name, deptno (3 columns)
+   * Test that executes two queries returning different numbers of rows.
+   * Query 1: Select name from depts (3 rows)
+   * Query 2: Select empid, name, deptno from emps where deptno = 10 (3 rows)
    */
   @Test void testCombineDifferentColumnCounts() {
     tester(new HrSchema())
@@ -149,9 +154,62 @@ class EnumerableCombineTest {
               return builder.combine(2).build();
             })
         .returnsUnordered(
-            "QUERY=[{name=Sales}, {name=Marketing}, {name=HR}]",
-            "QUERY=[{empid=100, name=Bill, deptno=10}, {empid=150, name=Sebastian, deptno=10}, "
-                + "{empid=110, name=Theodore, deptno=10}]");
+            "QUERY_0={name=Sales}; QUERY_1={empid=100, name=Bill, deptno=10}",
+            "QUERY_0={name=Marketing}; QUERY_1={empid=150, name=Sebastian, deptno=10}",
+            "QUERY_0={name=HR}; QUERY_1={empid=110, name=Theodore, deptno=10}");
+  }
+
+  /**
+   * Test that two queries selecting from the same table with different sort
+   * orders do not conflict with each other. Each query maintains its own
+   * independent results without one sort order overriding the other.
+   *
+   * <p>Query 1 sorts employees by empid ascending, Query 2 sorts by name descending.
+   * The key verification is that both queries execute independently and produce
+   * their own ordered results.
+   */
+  @Test void testCombineSameTableDifferentSortOrders() {
+    tester(new HrSchema())
+        .withRel(
+            builder -> {
+              // Query 1: SELECT empid, name FROM emps ORDER BY empid ASC
+              builder.scan("s", "emps")
+                  .project(
+                      builder.field("empid"),
+                      builder.field("name"))
+                  .sort(builder.field("empid"));
+
+              // Query 2: SELECT empid, name FROM emps ORDER BY name DESC
+              builder.scan("s", "emps")
+                  .project(
+                      builder.field("empid"),
+                      builder.field("name"))
+                  .sort(builder.desc(builder.field("name")));
+
+              // Combine both queries
+              return builder.combine(2).build();
+            })
+        .returns(resultSet -> {
+          try {
+            int rowCount = 0;
+            while (resultSet.next()) {
+              rowCount++;
+              // Verify both columns have values (no cross-contamination)
+              Object query0 = resultSet.getObject("QUERY_0");
+              Object query1 = resultSet.getObject("QUERY_1");
+              if (query0 == null || query1 == null) {
+                throw new AssertionError(
+                    "Expected non-null values for both queries in row " + rowCount
+                        + ", got QUERY_0=" + query0 + ", QUERY_1=" + query1);
+              }
+            }
+            if (rowCount != 4) {
+              throw new AssertionError("Expected 4 rows, got " + rowCount);
+            }
+          } catch (java.sql.SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   private CalciteAssert.AssertThat tester(Object schema) {

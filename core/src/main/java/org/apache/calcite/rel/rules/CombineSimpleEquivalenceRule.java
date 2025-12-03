@@ -205,20 +205,6 @@ public class CombineSimpleEquivalenceRule extends RelRule<CombineSimpleEquivalen
 
     default Config withOperandFor(Class<? extends Combine> combineClass) {
       return withOperandSupplier(b -> b.operand(combineClass)
-          .predicate(combine -> {
-            // Don't fire if any immediate child is a Spool
-            for (RelNode input : combine.getInputs()) {
-              if (input instanceof Spool) {
-                return false;
-              }
-              // Check if stripped node is a Spool (in case of HepRelVertex wrapper)
-              RelNode stripped = input.stripped();
-              if (stripped instanceof Spool) {
-                return false;
-              }
-            }
-            return true;
-          })
           .anyInputs())
           .as(Config.class);
     }

@@ -35,6 +35,8 @@ import java.util.List;
 /**
  * A relational operator that combines multiple relational expressions into a single root.
  * This is used for multi-root optimization in the VolcanoPlanner.
+ *
+ * @see org.apache.calcite.adapter.enumerable.EnumerableCombine
  */
 public class Combine extends AbstractRelNode {
   protected ImmutableList<RelNode> inputs;
@@ -82,22 +84,19 @@ public class Combine extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
-    // Combine returns one row per input query.
-    // Each row holds an array of maps, where each map represents a
-    // row from that query with column names as keys.
-    //
-    // This allows iterating over queries with resultSet.next() and then
-    // iterating over each query's results via the array.
-
     RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
     RelDataTypeFactory.Builder builder = typeFactory.builder();
 
-    // Single column - array of ANY (since each query may have different structure)
-    // The actual content will be List<Map<String, Object>> at runtime
-    // Column name will be set dynamically at runtime based on query index
+    // One column per input query (QUERY_0, QUERY_1, etc.)
+    // Each cell is a nullable MAP representing a struct with column names as keys
     RelDataType anyType = typeFactory.createJavaType(Object.class);
-    RelDataType arrayType = typeFactory.createArrayType(anyType, -1);
-    builder.add("QUERY", arrayType);
+    RelDataType mapType =
+        typeFactory.createMapType(typeFactory.createJavaType(String.class), anyType);
+    RelDataType nullableMapType = typeFactory.createTypeWithNullability(mapType, true);
+
+    for (int i = 0; i < inputs.size(); i++) {
+      builder.add("QUERY_" + i, nullableMapType);
+    }
 
     return builder.build();
   }
