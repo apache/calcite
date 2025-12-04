@@ -617,6 +617,7 @@ data: {
     includePosixOperators: true
     includeParsingStringLiteralAsArrayLiteral: true
     includeIntervalWithoutQualifier: true
+    includeStarExclude: true
   }
 }
 

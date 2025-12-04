@@ -3080,6 +3080,10 @@ Note:
   * A scalar value has length 1;
   * The length of array or object is the number of elements is contains.
 
+### Babel parser extensions
+
+Babel is currently the only parser that accepts the `SELECT * EXCLUDE (...)` syntax. It sets the generated parser configuration flag `includeStarExclude` to `true` (the standard parser leaves that flag `false`), which allows a `STAR` token followed by `EXCLUDE` and a parenthesized identifier list to be parsed into a `SqlStarExclude` node and ensures validators respect the exclusion list when expanding the projection. Reusing the same parser configuration elsewhere will enable the same syntax for other components that need it.
+
 Dialect-specific aggregate functions.
 
 | C | Operator syntax                                | Description
