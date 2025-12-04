@@ -118,6 +118,16 @@ select * exclude(empno, ename, job, mgr) from emp limit 1;
 
 !ok
 
+select * exclude(empno, ename, job, mgr, mgr) from emp limit 1;
++------------+--------+------+--------+
+| HIREDATE   | SAL    | COMM | DEPTNO |
++------------+--------+------+--------+
+| 1980-12-17 | 800.00 |      |     20 |
++------------+--------+------+--------+
+(1 row)
+
+!ok
+
 select e.*, d.* from emp e join dept d on e.deptno = d.deptno limit 1;
 +-------+-------+---------+------+------------+---------+------+--------+---------+------------+----------+
 | EMPNO | ENAME | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |

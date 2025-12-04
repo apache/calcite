@@ -768,7 +768,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         for (RelDataTypeField field : rowType.getFieldList()) {
           String columnName = field.getName();
 
-          // TODO: do real implicit collation here
           final SqlIdentifier columnId =
               prefixId.plus(columnName, startPosition);
           recordExcludeMatches(excludeIdentifiers, columnId, resolvedNameMatcher,
@@ -776,6 +775,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           if (shouldExcludeField(excludeList, columnId, resolvedNameMatcher)) {
             continue;
           }
+          // TODO: do real implicit collation here
           addOrExpandField(
               selectItems,
               aliases,
@@ -825,9 +825,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return false;
     }
     for (SqlNode node : excludeList) {
-      if (!(node instanceof SqlIdentifier)) {
-        continue;
-      }
+      assert node instanceof SqlIdentifier;
       if (matchesExcludeIdentifier(columnId, (SqlIdentifier) node, nameMatcher)) {
         return true;
       }

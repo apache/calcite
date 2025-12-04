@@ -205,8 +205,8 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
-          { * | projectItem [, projectItem ]* }
+  SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
+  { starWithExclude | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
       [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
@@ -217,6 +217,14 @@ select:
 selectWithoutFrom:
       SELECT [ ALL | DISTINCT ]
           { * | projectItem [, projectItem ]* }
+
+starWithExclude:
+      *
+  |   * EXCLUDE '(' column [, column ]* ')'
+
+Note:
+
+* `SELECT * EXCLUDE (...)` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeStarExclude` to `true` (the standard parser leaves that flag `false`), which allows a `STAR` token followed by `EXCLUDE` and a parenthesized identifier list to be parsed into a `SqlStarExclude` node and ensures validators respect the exclusion list when expanding the projection. Reusing the same parser configuration elsewhere enables the same syntax for other components that need it.
 
 projectItem:
       expression [ [ AS ] columnAlias ]
@@ -3079,10 +3087,6 @@ Note:
 * `JSON_LENGTH` defines a JSON value's length as follows:
   * A scalar value has length 1;
   * The length of array or object is the number of elements is contains.
-
-### Babel parser extensions
-
-Babel is currently the only parser that accepts the `SELECT * EXCLUDE (...)` syntax. It sets the generated parser configuration flag `includeStarExclude` to `true` (the standard parser leaves that flag `false`), which allows a `STAR` token followed by `EXCLUDE` and a parenthesized identifier list to be parsed into a `SqlStarExclude` node and ensures validators respect the exclusion list when expanding the projection. Reusing the same parser configuration elsewhere will enable the same syntax for other components that need it.
 
 Dialect-specific aggregate functions.
 

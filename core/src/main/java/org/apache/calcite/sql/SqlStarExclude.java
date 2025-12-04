@@ -17,8 +17,6 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
 import java.util.List;
@@ -26,7 +24,7 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Represents {@code SELECT * EXCLUDE(...)} when parsed by the Babel parser.
+ * Represents {@code SELECT * EXCLUDE(...)}.
  */
 public class SqlStarExclude extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
@@ -77,9 +75,5 @@ public class SqlStarExclude extends SqlCall {
       excludeList.get(i).unparse(writer, 0, 0);
     }
     writer.print(")");
-  }
-
-  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
-    // Babel already validates the exclude list
   }
 }
