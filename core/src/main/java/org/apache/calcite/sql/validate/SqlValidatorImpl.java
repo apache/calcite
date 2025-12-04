@@ -766,6 +766,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  private List<SqlNode> expandRowStar(SqlIdentifier identifier, SelectScope scope) {
+    final List<SqlNode> expanded = new ArrayList<>();
+    final boolean expandedStar =
+        expandStar(expanded,
+        catalogReader.nameMatcher().createSet(),
+        PairList.of(),
+        false,
+        scope,
+        identifier);
+    if (!expandedStar) {
+      throw new AssertionError("Row star expansion failed for " + identifier);
+    }
+    return expanded;
+  }
+
   private static int calculatePermuteOffset(List<SqlNode> selectItems) {
     for (int i = 0; i < selectItems.size(); i++) {
       SqlNode selectItem = selectItems.get(i);
@@ -7279,9 +7294,43 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       CallCopyingArgHandler argHandler =
           new CallCopyingArgHandler(call, false);
       call.getOperator().acceptCall(this, call, true, argHandler);
-      final SqlNode result = argHandler.result();
+      final SqlNode result = expandRow(argHandler.result());
       validator.setOriginal(result, call);
       return result;
+    }
+
+    private SqlNode expandRow(SqlNode node) {
+      if (!(node instanceof SqlCall)) {
+        return node;
+      }
+      final SqlCall call = (SqlCall) node;
+      if (call.getKind() != SqlKind.ROW) {
+        return node;
+      }
+      final SqlValidatorScope scope = getScope();
+      if (!(scope instanceof SelectScope)) {
+        return node;
+      }
+      final SelectScope selectScope = (SelectScope) scope;
+      final List<SqlNode> expandedOperands = new ArrayList<>();
+      boolean expanded = false;
+      for (SqlNode operand : call.getOperandList()) {
+        if (operand instanceof SqlIdentifier) {
+          final SqlIdentifier identifier = (SqlIdentifier) operand;
+          if (identifier.isStar()) {
+            expandedOperands.addAll(
+                validator.expandRowStar(identifier, selectScope));
+            expanded = true;
+            continue;
+          }
+        }
+        expandedOperands.add(operand);
+      }
+      if (!expanded) {
+        return node;
+      }
+      return SqlStdOperatorTable.ROW.createCall(
+          call.getParserPosition(), expandedOperands);
     }
 
     protected SqlNode expandDynamicStar(SqlIdentifier id, SqlIdentifier fqId) {
