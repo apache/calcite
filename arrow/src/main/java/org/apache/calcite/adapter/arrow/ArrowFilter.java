@@ -21,11 +21,15 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -51,7 +55,9 @@ class ArrowFilter extends Filter implements ArrowRel {
     return requireNonNull(cost, "cost").multiplyBy(0.1);
   }
 
-  @Override public ArrowFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
+  @Override public ArrowFilter copy(RelTraitSet traitSet, RelNode input, RexNode condition,
+      Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new ArrowFilter(getCluster(), traitSet, input, condition);
   }
 

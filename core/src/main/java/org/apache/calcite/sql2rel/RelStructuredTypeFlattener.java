@@ -466,7 +466,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RexNode oldCondition = rel.getCondition();
     RelNode newInput = getNewForOldRel(rel.getInput());
     RexNode newCondition = oldCondition.accept(rewriteRexShuttle);
-    LogicalFilter newRel = rel.copy(traits, newInput, newCondition);
+    LogicalFilter newRel = rel.copy(traits, newInput, newCondition, rel.getVariablesSet());
     setNewForOldRel(rel, newRel);
   }
 
