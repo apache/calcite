@@ -44,6 +44,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
@@ -520,6 +521,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   /** Fallback if none of the other {@code decorrelateRel} methods match. */
   public @Nullable Frame decorrelateRel(RelNode rel, boolean isCorVarDefined,
+      boolean parentPropagatesNullValues) {
+    return decorrelateRelHelper(rel, isCorVarDefined, parentPropagatesNullValues);
+  }
+
+  private @Nullable Frame decorrelateRelHelper(RelNode rel, boolean isCorVarDefined,
       boolean parentPropagatesNullValues) {
     RelNode newRel = rel.copy(rel.getTraitSet(), rel.getInputs());
 
@@ -1182,6 +1188,147 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return register(sort, aggregate, mapOldToNewOutputs, corDefOutputs);
     }
     return null;
+  }
+
+  /**
+   * Given the SQL:
+   * SELECT ename,
+   *    (SELECT sum(c)
+   *    FROM
+   *        (SELECT deptno AS c
+   *        FROM dept
+   *        WHERE dept.deptno = emp.deptno
+   *        UNION ALL
+   *        SELECT 2 AS c
+   *        FROM bonus
+   *        WHERE bonus.job = emp.job) AS union_subquery
+   *    ) AS correlated_sum
+   * FROM emp;
+   *
+   * <p>from:
+   * LogicalUnion(all=[true])
+   *   LogicalProject(C=[CAST($0):INTEGER NOT NULL])
+   *     LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+   *       LogicalTableScan(table=[[scott, DEPT]])
+   *   LogicalProject(C=[2])
+   *     LogicalFilter(condition=[=($1, $cor0.JOB)])
+   *       LogicalTableScan(table=[[scott, BONUS]])
+   *
+   * <p>to:
+   * LogicalUnion(all=[true])
+   *   LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
+   *     LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[inner])
+   *       LogicalAggregate(group=[{2, 7}])
+   *         LogicalTableScan(table=[[scott, EMP]])
+   *       LogicalProject(C=[CAST($0):INTEGER NOT NULL], DEPTNO=[$0])
+   *         LogicalTableScan(table=[[scott, DEPT]])
+   *   LogicalProject(JOB=[$0], DEPTNO=[$1], C=[$2])
+   *     LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[inner])
+   *       LogicalAggregate(group=[{2, 7}])
+   *         LogicalTableScan(table=[[scott, EMP]])
+   *       LogicalProject(C=[2], JOB=[$1])
+   *         LogicalFilter(condition=[IS NOT NULL($1)])
+   *           LogicalTableScan(table=[[scott, BONUS]])
+   */
+  public @Nullable Frame decorrelateRel(SetOp rel, boolean isCorVarDefined,
+      boolean parentPropagatesNullValues) {
+    if (!isCorVarDefined) {
+      return decorrelateRelHelper(rel, false, parentPropagatesNullValues);
+    }
+
+    final Pair<CorrelationId, Frame> outerFramePair = requireNonNull(this.frameStack.peek());
+    final CorrelationId outFrameCorrId = outerFramePair.left;
+    final Frame outFrame = outerFramePair.right;
+
+    // Collect CorDef from all inputs
+    ImmutableBitSet.Builder corFieldBuilder = ImmutableBitSet.builder();
+    List<Frame> frames = new ArrayList<>();
+    for (RelNode oldInput : rel.getInputs()) {
+      Frame frame = getInvoke(oldInput, true, rel, parentPropagatesNullValues);
+      if (frame == null) {
+        // If input has not been rewritten, do not rewrite this rel.
+        return null;
+      }
+      frames.add(frame);
+      for (Map.Entry<CorDef, Integer> corDefOutput : frame.corDefOutputs.entrySet()) {
+        CorDef corDef = corDefOutput.getKey();
+        if (corDef.corr.equals(outFrameCorrId)) {
+          int newIdx = requireNonNull(outFrame.oldToNewOutputs.get(corDef.field));
+          corFieldBuilder.set(newIdx);
+        }
+      }
+    }
+
+    ImmutableBitSet groupSet = corFieldBuilder.build();
+    List<RelNode> newInputs = new ArrayList<>();
+    final Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
+    final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
+    for (int i = 0; i < rel.getInputs().size(); i++) {
+      Frame frame = frames.get(i);
+      final List<RexNode> conditions = new ArrayList<>();
+      int groupKeySize = groupSet.cardinality();
+      for (Map.Entry<CorDef, Integer> corDefOutput : frame.corDefOutputs.entrySet()) {
+        CorDef corDef = corDefOutput.getKey();
+        Integer corIndex = corDefOutput.getValue();
+        if (corDef.corr.equals(outFrameCorrId)) {
+          int newIdx = requireNonNull(outFrame.oldToNewOutputs.get(corDef.field));
+          int pos = groupSet.indexOf(newIdx);
+          RelDataType leftType = outFrame.r.getRowType().getFieldList().get(newIdx).getType();
+          RexNode left = new RexInputRef(pos, leftType);
+          RelDataType rightType = frame.r.getRowType().getFieldList().get(corIndex).getType();
+          RexNode right = new RexInputRef(groupKeySize + corIndex, rightType);
+          conditions.add(relBuilder.isNotDistinctFrom(left, right));
+          corDefOutputs.put(corDef, pos);
+        }
+      }
+
+      // Build LogicalAggregate to obtain the distinct set of corVar from outFrame.
+      relBuilder.push(outFrame.r).aggregate(relBuilder.groupKey(groupSet));
+
+      // Build LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[inner])
+      // to ensure each corVar's aggregate result is output.
+      final RelNode join = relBuilder.push(frame.r)
+          .join(JoinRelType.INNER, conditions).build();
+      final List<RelDataTypeField> joinOutput = join.getRowType().getFieldList();
+
+      final PairList<RexNode, String> projects = PairList.of();
+      Project oldProj = (Project) rel.getInputs().get(0);
+      final List<RexNode> oldProjects = oldProj.getProjects();
+      int newPos = 0;
+      for (int index : ImmutableBitSet.range(0, groupKeySize)) {
+        final RexInputRef ref = RexInputRef.of(index, join.getRowType());
+        projects.add(newPos, ref, joinOutput.get(newPos).getName());
+        newPos++;
+      }
+      for (int j = 0; j < oldProjects.size(); j++) {
+        final RexInputRef ref = RexInputRef.of(newPos, join.getRowType());
+        projects.add(newPos, ref, joinOutput.get(newPos).getName());
+        mapOldToNewOutputs.put(j, newPos);
+        newPos++;
+      }
+
+      RelNode newProj = relBuilder.push(join)
+          .project(projects.leftList(), projects.rightList())
+          .build();
+      newInputs.add(newProj);
+    }
+    relBuilder.pushAll(newInputs);
+
+    switch (rel.kind) {
+    case UNION:
+      relBuilder.union(rel.all, newInputs.size());
+      break;
+    case INTERSECT:
+      relBuilder.intersect(rel.all, newInputs.size());
+      break;
+    case EXCEPT:
+      relBuilder.minus(rel.all, newInputs.size());
+      break;
+    default:
+      return null;
+    }
+    RelNode newSetOp = relBuilder.build();
+    return register(rel, newSetOp, mapOldToNewOutputs, corDefOutputs);
   }
 
   public @Nullable Frame decorrelateRel(LogicalProject rel, boolean isCorVarDefined,
