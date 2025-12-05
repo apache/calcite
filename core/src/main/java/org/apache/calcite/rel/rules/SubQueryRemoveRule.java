@@ -552,28 +552,6 @@ public class SubQueryRemoveRule
     return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode));
   }
 
-  /**
-   * Check if NULL-safety can be skipped for IN subquery.
-   *
-   * <p>Returns true if all operands (needle, left side of IN) are NOT NULL,
-   * allowing us to skip the COUNT aggregate-based NULL-safety checks in rewriteIn().
-   *
-   * <p>When the needle is NOT NULL, NULL values in the haystack (subquery results)
-   * won't match anyway (NULL != anything in SQL), so we can safely use a simpler
-   * anti-join pattern (LEFT JOIN + IS NULL) without complex NULL-safety logic.
-   *
-   * @param subQuery IN sub-query with needle operands
-   * @return true iff NULL-safety checks can be safely skipped
-   */
-  private static boolean canSkipNullSafety(RexSubQuery subQuery) {
-    for (RexNode operand : subQuery.getOperands()) {
-      if (operand.getType().isNullable()) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 
   /**
    * Rewrites an IN RexSubQuery into a {@link Join}.
@@ -745,7 +723,7 @@ public class SubQueryRemoveRule
       needsNullSafety =
           (logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN
            || logic == RelOptUtil.Logic.UNKNOWN_AS_TRUE)
-          && !canSkipNullSafety(e);
+          && !keyIsNulls.isEmpty();
 
       switch (logic) {
       case TRUE:
@@ -869,7 +847,15 @@ public class SubQueryRemoveRule
       }
     }
     operands.add(falseLiteral);
-    return builder.call(SqlStdOperatorTable.CASE, operands.build());
+    RexNode result = builder.call(SqlStdOperatorTable.CASE, operands.build());
+
+    // When we skip NULL-safety checks, the result might be NOT NULL
+    // but the original IN expression was nullable, so we need to preserve that
+    if (e.getType().isNullable() && !result.getType().isNullable()) {
+      result = builder.getRexBuilder().makeCast(e.getType(), result, false, false);
+    }
+
+    return result;
   }
 
   /** Returns a reference to a particular field, by offset, across several
