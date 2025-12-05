@@ -1772,11 +1772,65 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return null;
     }
 
+    RexNode cond = decorrelateExpr(castNonNull(currentRel), map, cm, rel.getCondition());
+    boolean contained = RexUtil.containsFieldAccess(cond);
+    int groupKeySize = 0;
+    RelNode join = null;
+    RexNode replacedCond = null;
+    final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
+
+    if (contained && isCorVarDefined) {
+      final Pair<CorrelationId, Frame> outerFramePair = requireNonNull(this.frameStack.peek());
+      final CorrelationId outerFrameCorrId = outerFramePair.left;
+      final Frame outerFrame = outerFramePair.right;
+
+      // Collect CorDef from decorrelated condition.
+      RexUtil.FieldAccessFinder finder = new RexUtil.FieldAccessFinder();
+      cond.accept(finder);
+      List<RexFieldAccess> correlatedKeyList = finder.getFieldAccessList();
+      ImmutableBitSet.Builder corFieldBuilder = ImmutableBitSet.builder();
+
+      for (RexFieldAccess rfa : correlatedKeyList) {
+        RexCorrelVariable correlVariable = (RexCorrelVariable) rfa.getReferenceExpr();
+        if (correlVariable.id.equals(outerFrameCorrId)) {
+          int idx = rfa.getField().getIndex();
+          int newIdx = requireNonNull(outerFrame.oldToNewOutputs.get(idx));
+          corFieldBuilder.set(newIdx);
+        }
+      }
+
+      ImmutableBitSet groupSet = corFieldBuilder.build();
+      groupKeySize = groupSet.cardinality();
+
+      // Build LogicalAggregate to obtain the distinct set of corVar from outerFrame.
+      relBuilder.push(outerFrame.r).aggregate(relBuilder.groupKey(groupSet));
+      join = relBuilder.push(leftFrame.r)
+          .join(JoinRelType.INNER, relBuilder.literal(true)).build();
+
+      final Map<RexFieldAccess, RexInputRef> replacementMap = new HashMap<>();
+      for (RexFieldAccess rfa : correlatedKeyList) {
+        RexCorrelVariable correlVariable = (RexCorrelVariable) rfa.getReferenceExpr();
+        if (correlVariable.id.equals(outerFrameCorrId)) {
+          int idx = rfa.getField().getIndex();
+          int newIdx = requireNonNull(outerFrame.oldToNewOutputs.get(idx));
+          int pos = groupSet.indexOf(newIdx);
+          corDefOutputs.put(new CorDef(outerFrameCorrId, newIdx), pos);
+
+          RelDataType type = outerFrame.r.getRowType().getFieldList().get(newIdx).getType();
+          RexInputRef replace = new RexInputRef(pos, type);
+          replacementMap.put(rfa, replace);
+        }
+      }
+
+      final RexNode condShifted = RexUtil.shift(cond, groupKeySize);
+      replacedCond = RexUtil.replaceRexFieldAccessToInputRef(condShifted, replacementMap);
+    }
+
     RelNode newJoin = relBuilder
-        .push(leftFrame.r)
+        .push(contained ? requireNonNull(join, "join") : leftFrame.r)
         .push(rightFrame.r)
         .join(rel.getJoinType(),
-            decorrelateExpr(castNonNull(currentRel), map, cm, rel.getCondition()),
+            contained ? requireNonNull(replacedCond, "replacedCond") : cond,
             ImmutableSet.of())
         .build();
 
@@ -1785,25 +1839,27 @@ public class RelDecorrelator implements ReflectiveVisitor {
     Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
 
     int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
-    int newLeftFieldCount = leftFrame.r.getRowType().getFieldCount();
+    int newLeftFieldCount = leftFrame.r.getRowType().getFieldCount() + groupKeySize;
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
     //noinspection AssertWithSideEffects
     assert rel.getRowType().getFieldCount()
         == oldLeftFieldCount + oldRightFieldCount;
 
-    // Left input positions are not changed.
-    mapOldToNewOutputs.putAll(leftFrame.oldToNewOutputs);
-
+    // Left input positions are shifted by groupKeySize.
+    for (Map.Entry<Integer, Integer> entry : leftFrame.oldToNewOutputs.entrySet()) {
+      mapOldToNewOutputs.put(entry.getKey(), groupKeySize + entry.getValue());
+    }
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
           requireNonNull(rightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
     }
 
-    final NavigableMap<CorDef, Integer> corDefOutputs =
-        new TreeMap<>(leftFrame.corDefOutputs);
-
+    // Left input positions are shifted by groupKeySize.
+    for (Map.Entry<CorDef, Integer> entry : leftFrame.corDefOutputs.entrySet()) {
+      corDefOutputs.put(entry.getKey(), groupKeySize + entry.getValue());
+    }
     // Right input positions are shifted by newLeftFieldCount.
     for (Map.Entry<CorDef, Integer> entry
         : rightFrame.corDefOutputs.entrySet()) {
