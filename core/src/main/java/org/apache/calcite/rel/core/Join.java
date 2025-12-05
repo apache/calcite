@@ -152,10 +152,19 @@ public abstract class Join extends BiRel implements Hintable {
     if (!super.isValid(litmus, context)) {
       return false;
     }
-    if (getRowType().getFieldCount()
-        != getSystemFieldList().size()
-        + left.getRowType().getFieldCount()
-        + (joinType.projectsRight() ? right.getRowType().getFieldCount() : 0)) {
+    int expectedFieldCount = left.getRowType().getFieldCount();
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      break;
+    case LEFT_MARK:
+      expectedFieldCount += 1;
+      break;
+    default:
+      expectedFieldCount += right.getRowType().getFieldCount();
+      break;
+    }
+    if (getRowType().getFieldCount() != expectedFieldCount) {
       return litmus.fail("field count mismatch");
     }
     if (condition != null) {
