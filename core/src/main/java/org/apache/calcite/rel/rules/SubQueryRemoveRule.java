@@ -553,6 +553,29 @@ public class SubQueryRemoveRule
   }
 
   /**
+   * Check if NULL-safety can be skipped for IN subquery.
+   *
+   * <p>Returns true if all operands (needle, left side of IN) are NOT NULL,
+   * allowing us to skip the COUNT aggregate-based NULL-safety checks in rewriteIn().
+   *
+   * <p>When the needle is NOT NULL, NULL values in the haystack (subquery results)
+   * won't match anyway (NULL != anything in SQL), so we can safely use a simpler
+   * anti-join pattern (LEFT JOIN + IS NULL) without complex NULL-safety logic.
+   *
+   * @param subQuery IN sub-query with needle operands
+   * @return true iff NULL-safety checks can be safely skipped
+   */
+  private static boolean canSkipNullSafety(RexSubQuery subQuery) {
+    for (RexNode operand : subQuery.getOperands()) {
+      if (operand.getType().isNullable()) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Rewrites an IN RexSubQuery into a {@link Join}.
    *
    * @param e               IN sub-query to rewrite
@@ -671,6 +694,7 @@ public class SubQueryRemoveRule
     final RexLiteral falseLiteral = builder.literal(false);
     final RexLiteral unknownLiteral =
         builder.getRexBuilder().makeNullLiteral(trueLiteral.getType());
+    boolean needsNullSafety = false;
     if (allLiterals) {
       final List<RexNode> conditions =
           Pair.zip(expressionOperands, fields).stream()
@@ -718,39 +742,46 @@ public class SubQueryRemoveRule
       expressionOperands.clear();
       fields.clear();
     } else {
+      needsNullSafety =
+          (logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN
+           || logic == RelOptUtil.Logic.UNKNOWN_AS_TRUE)
+          && !canSkipNullSafety(e);
+
       switch (logic) {
       case TRUE:
         builder.aggregate(builder.groupKey(fields));
         break;
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
-        // Builds the cross join
-        // Some databases don't support use FILTER clauses for aggregate functions
-        // like {@code COUNT(*) FILTER (WHERE not(a is null))}
-        // So use count(*) when only one column
-        if (builder.fields().size() <= 1) {
-          builder.aggregate(builder.groupKey(),
-              builder.count(false, "c"),
-              builder.count(builder.fields()).as("ck"));
-        } else {
-          builder.aggregate(builder.groupKey(),
-              builder.count(false, "c"),
-              builder.count()
-                  .filter(builder
-                      .not(builder
-                          .and(builder.fields().stream()
-                              .map(builder::isNull)
-                              .collect(Collectors.toList()))))
-                  .as("ck"));
+        if (needsNullSafety) {
+          // Builds the cross join
+          // Some databases don't support use FILTER clauses for aggregate functions
+          // like {@code COUNT(*) FILTER (WHERE not(a is null))}
+          // So use count(*) when only one column
+          if (builder.fields().size() <= 1) {
+            builder.aggregate(builder.groupKey(),
+                builder.count(false, "c"),
+                builder.count(builder.fields()).as("ck"));
+          } else {
+            builder.aggregate(builder.groupKey(),
+                builder.count(false, "c"),
+                builder.count()
+                    .filter(builder
+                        .not(builder
+                            .and(builder.fields().stream()
+                                .map(builder::isNull)
+                                .collect(Collectors.toList()))))
+                    .as("ck"));
+          }
+          builder.as(ctAlias);
+          if (!variablesSet.isEmpty()) {
+            builder.join(JoinRelType.LEFT, trueLiteral, variablesSet);
+          } else {
+            builder.join(JoinRelType.INNER, trueLiteral, variablesSet);
+          }
+          offset += 2;
+          builder.push(e.rel);
         }
-        builder.as(ctAlias);
-        if (!variablesSet.isEmpty()) {
-          builder.join(JoinRelType.LEFT, trueLiteral, variablesSet);
-        } else {
-          builder.join(JoinRelType.INNER, trueLiteral, variablesSet);
-        }
-        offset += 2;
-        builder.push(e.rel);
         // fall through
       default:
         builder.aggregate(builder.groupKey(fields),
@@ -797,9 +828,12 @@ public class SubQueryRemoveRule
             builder.equals(builder.field(dtAlias, "cs"), falseLiteral),
             b);
       } else {
-        operands.add(
-            builder.equals(builder.field(ctAlias, "c"), builder.literal(0)),
-            falseLiteral);
+        // only reference ctAlias if we created it
+        if (needsNullSafety) {
+          operands.add(
+              builder.equals(builder.field(ctAlias, "c"), builder.literal(0)),
+              falseLiteral);
+        }
       }
       break;
     default:
@@ -822,10 +856,13 @@ public class SubQueryRemoveRule
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
-        operands.add(
-            builder.lessThan(builder.field(ctAlias, "ck"),
-                builder.field(ctAlias, "c")),
-            b);
+        // only reference ctAlias if we created it
+        if (needsNullSafety) {
+          operands.add(
+              builder.lessThan(builder.field(ctAlias, "ck"),
+                  builder.field(ctAlias, "c")),
+              b);
+        }
         break;
       default:
         break;

@@ -5621,6 +5621,28 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
+   * SubQueryRemoveRule should skip NULL-safety checks when NOT IN
+   * needle is NOT NULL</a>. */
+  @Test void testNotInWithNotNullNeedle() {
+    final String sql = "select * from empnullables as e1\n"
+        + "where coalesce(deptno, 0) not in (\n"
+        + "  select deptno from empnullables e2)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
+   * SubQueryRemoveRule should skip NULL-safety checks when NOT IN
+   * needle is NOT NULL</a>. */
+  @Test void testNotInWithNullableNeedle() {
+    final String sql = "select * from empnullables as e1\n"
+        + "where deptno not in (\n"
+        + "  select deptno from empnullables e2)";
+    sql(sql).withSubQueryRules().check();
+  }
+
   @Test void testSomeWithGreaterThanNoRowSubQuery() {
     final String sql = "select * from dept as d\n"
         + "where deptno > some(\n"
