@@ -88,6 +88,9 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
       case DIVIDE:
         operator = SqlStdOperatorTable.CHECKED_DIVIDE;
         break;
+      case DIVIDE_0_NULL:
+        operator = SqlStdOperatorTable.CHECKED_DIVIDE_0_NULL;
+        break;
       default:
         break;
       }

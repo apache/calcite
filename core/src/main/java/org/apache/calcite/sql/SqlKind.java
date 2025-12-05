@@ -296,6 +296,10 @@ public enum SqlKind {
   /** Arithmetic remainder operator, "MOD" (and "%" in some dialects). */
   MOD,
 
+  /** Nullable arithmetic remainder operator which returns NULL when remainder is zero,
+   * "MOD" (and "%" in some dialects). */
+  MOD_0_NULL,
+
   /**
    * Arithmetic plus operator, "+".
    *
@@ -334,6 +338,16 @@ public enum SqlKind {
    * Not used for date/time arithmetic.
    */
   CHECKED_DIVIDE,
+
+  /**
+   * Unchecked nullable version of DIVIDE, which produces NULL when dividing by zero.
+   */
+  DIVIDE_0_NULL,
+
+  /**
+   * Checked nullable version of DIVIDE, which produces NULL when dividing by zero.
+   */
+  CHECKED_DIVIDE_0_NULL,
 
   /**
    * Alternation operator in a pattern expression within a
@@ -1566,7 +1580,8 @@ public enum SqlKind {
           CHECKED_PLUS, CHECKED_MINUS, CHECKED_TIMES, CHECKED_DIVIDE);
 
   public static final Set<SqlKind> CHECKED_ARITHMETIC =
-      EnumSet.of(CHECKED_PLUS, CHECKED_MINUS, CHECKED_TIMES, CHECKED_DIVIDE, CHECKED_MINUS_PREFIX);
+      EnumSet.of(CHECKED_PLUS, CHECKED_MINUS, CHECKED_TIMES, CHECKED_DIVIDE,
+          CHECKED_DIVIDE_0_NULL, CHECKED_MINUS_PREFIX);
 
 
   /**
