@@ -35,9 +35,11 @@ import java.util.List;
 /**
  * A relational operator that combines multiple relational expressions into a single root.
  * This is used for multi-root optimization in the VolcanoPlanner.
+ *
+ * @see org.apache.calcite.adapter.enumerable.EnumerableCombine
  */
 public class Combine extends AbstractRelNode {
-  protected final ImmutableList<RelNode> inputs;
+  protected ImmutableList<RelNode> inputs;
 
   /** Creates a Combine. */
   public static Combine create(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs) {
@@ -54,6 +56,25 @@ public class Combine extends AbstractRelNode {
     return inputs;
   }
 
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    return new Combine(getCluster(), traitSet, inputs);
+  }
+
+  @Override public void replaceInput(int ordinalInParent, RelNode rel) {
+    // Combine has multiple inputs stored in an immutable list.
+    // To replace an input, we need to create a new list with the replacement.
+    ImmutableList.Builder<RelNode> newInputs = ImmutableList.builder();
+    for (int i = 0; i < inputs.size(); i++) {
+      if (i == ordinalInParent) {
+        newInputs.add(rel);
+      } else {
+        newInputs.add(inputs.get(i));
+      }
+    }
+    inputs = newInputs.build();
+  }
+
+
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
@@ -63,21 +84,18 @@ public class Combine extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
-    // Combine represents multiple independent result sets that are not merged.
-    // Each input maintains its own row type and is accessed independently.
-    //
-    // We use a struct type where each field represents one of the input queries.
-    // This allows metadata and optimization rules to understand the structure
-    // while making it clear that results are not unified into a single stream.
-
     RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
     RelDataTypeFactory.Builder builder = typeFactory.builder();
 
+    // One column per input query (QUERY_0, QUERY_1, etc.)
+    // Each cell is a nullable MAP representing a struct with column names as keys
+    RelDataType anyType = typeFactory.createJavaType(Object.class);
+    RelDataType mapType =
+        typeFactory.createMapType(typeFactory.createJavaType(String.class), anyType);
+    RelDataType nullableMapType = typeFactory.createTypeWithNullability(mapType, true);
+
     for (int i = 0; i < inputs.size(); i++) {
-      RelNode input = inputs.get(i);
-      // Create a field for each input with its row type
-      // Field names are "QUERY_0", "QUERY_1", etc.
-      builder.add("QUERY_" + i, input.getRowType());
+      builder.add("QUERY_" + i, nullableMapType);
     }
 
     return builder.build();
