@@ -805,14 +805,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return 0;
   }
 
-  private static boolean matchesExcludeNames(List<String> columnNames,
-      List<String> excludeNames, SqlNameMatcher nameMatcher) {
-    if (excludeNames.size() > columnNames.size()) {
+  private static boolean matchesExcludeNames(List<String> identifierNames,
+      List<String> excludedIdentifierNames, SqlNameMatcher nameMatcher) {
+    if (excludedIdentifierNames.size() > identifierNames.size()) {
       return false;
     }
-    final int offset = columnNames.size() - excludeNames.size();
-    for (int i = 0; i < excludeNames.size(); i++) {
-      if (!nameMatcher.matches(columnNames.get(offset + i), excludeNames.get(i))) {
+    final int offset = identifierNames.size() - excludedIdentifierNames.size();
+    for (int i = 0; i < excludedIdentifierNames.size(); i++) {
+      if (!nameMatcher.matches(identifierNames.get(offset + i),
+          excludedIdentifierNames.get(i))) {
         return false;
       }
     }
