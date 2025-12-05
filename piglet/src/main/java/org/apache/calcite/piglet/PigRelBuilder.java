@@ -58,8 +58,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.UnaryOperator;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Extension to {@link RelBuilder} for Pig logical operators.
@@ -186,7 +189,8 @@ public class PigRelBuilder extends RelBuilder {
     String key = className;
     if (udfClass == JythonFunction.class) {
       final String[] args = pigFunc.getCtorArgs();
-      assert args != null && args.length == 2;
+      requireNonNull(args, "args");
+      checkArgument(args.length == 2);
       final String fileName =
           args[0].substring(args[0].lastIndexOf("/") + 1,
               args[0].lastIndexOf(".py"));
@@ -232,7 +236,7 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder scan(RelOptTable userSchema, String... tableNames) {
     // First, look up the database schema to find the table schema with the given names
     final List<String> names = ImmutableList.copyOf(tableNames);
-    Objects.requireNonNull(relOptSchema, "relOptSchema");
+    requireNonNull(relOptSchema, "relOptSchema");
     final RelOptTable systemSchema = relOptSchema.getTableForMember(names);
 
     // Now we may end up with two different schemas.

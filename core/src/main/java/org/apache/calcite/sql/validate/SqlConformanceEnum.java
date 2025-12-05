@@ -103,6 +103,16 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isSupportedDualTable() {
+    switch (this) {
+    case MYSQL_5:
+    case ORACLE_10:
+    case ORACLE_12:
+      return true;
+    default:
+      return false;
+    }
+  }
 
   @Override public boolean isGroupByAlias() {
     switch (this) {
@@ -113,6 +123,15 @@ public enum SqlConformanceEnum implements SqlConformance {
       return true;
     default:
       return false;
+    }
+  }
+
+  @Override public SelectAliasLookup isSelectAlias() {
+    switch (this) {
+    case BABEL:
+      return SelectAliasLookup.ANY;
+    default:
+      return SelectAliasLookup.UNSUPPORTED;
     }
   }
 
@@ -240,15 +259,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
-    switch (this) {
-    case BIG_QUERY:
-      return false;
-    default:
-      return true;
-    }
-  }
-
   @Override public boolean isPercentRemainderAllowed() {
     switch (this) {
     case BABEL:
@@ -293,6 +303,19 @@ public enum SqlConformanceEnum implements SqlConformance {
     case LENIENT:
     case MYSQL_5:
     case BIG_QUERY:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean allowNiladicConstantWithoutParentheses() {
+    switch (this) {
+    case ORACLE_10:
+    case ORACLE_12:
+    case DEFAULT:
+    case LENIENT:
+    case BABEL:
       return true;
     default:
       return false;
@@ -449,6 +472,56 @@ public enum SqlConformanceEnum implements SqlConformance {
     case BABEL:
     case BIG_QUERY:
     case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean checkedArithmetic() {
+    switch (this) {
+    case DEFAULT:
+    case LENIENT:
+    case BABEL:
+    case ORACLE_10:
+    case ORACLE_12:
+    case PRAGMATIC_99:
+    case PRESTO:
+    case PRAGMATIC_2003:
+    case STRICT_92:
+    case STRICT_99:
+    case STRICT_2003:
+    case MYSQL_5:
+      // MySQL in strict mode uses checked arithmetic
+      // https://dev.mysql.com/doc/refman/8.4/en/sql-mode.html#sql-mode-strict
+    default:
+      return false;
+      // Postgres also has checked arithmetic, but there is no such conformance
+    case BIG_QUERY:
+      // BigQuery throws on overflow
+      // https://cloud.google.com/bigquery/docs/reference/standard-sql/operators
+    case SQL_SERVER_2008:
+      // SET ARITHABORT OFF can be used to turn off overflow behavior, but the default is ON
+      // https://learn.microsoft.com/en-us/sql/t-sql/statements/set-arithabort-transact-sql
+      return true;
+    }
+  }
+
+  @Override public boolean supportsUnsignedTypes() {
+    switch (this) {
+    case BABEL:
+    case DEFAULT:
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean isNonStrictGroupBy() {
+    switch (this) {
+    case BABEL:
       return true;
     default:
       return false;

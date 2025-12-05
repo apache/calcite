@@ -66,7 +66,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  *
  * <p>The sections which contain windowed agg functions become instances of
  * {@link org.apache.calcite.rel.logical.LogicalWindow}.
- * If the {@link org.apache.calcite.rel.logical.LogicalCalc} does not contain
+ * If the {@link org.apache.calcite.rel.core.Project} does not contain
  * any windowed agg functions, does nothing.
  *
  * <p>There is also a variant that matches

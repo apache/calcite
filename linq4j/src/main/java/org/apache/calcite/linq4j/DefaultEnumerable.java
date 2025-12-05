@@ -393,11 +393,24 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         innerKeySelector, resultSelector, comparer);
   }
 
+  @Override public <TInner, TKey, TResult> Enumerable<TResult> asofJoin(
+      Enumerable<TInner> inner,
+      Function1<T, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<T, @Nullable TInner, TResult> resultSelector,
+      Predicate2<T, TInner> matchComparator,
+      Comparator<TInner> timestampComparator,
+      boolean generateNullsOnRight) {
+    return EnumerableDefaults.asofJoin(getThis(), inner, outerKeySelector,
+        innerKeySelector, resultSelector, matchComparator,
+        timestampComparator, generateNullsOnRight);
+  }
+
   @Override public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer,
+      @Nullable EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight) {
     return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,

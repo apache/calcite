@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -27,6 +28,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -37,6 +39,8 @@ import com.google.common.collect.ImmutableSet;
 
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The SQL <code>EXTRACT</code> operator. Extracts a specified field value from
@@ -49,9 +53,12 @@ public class SqlExtractFunction extends SqlFunction {
 
   // SQL2003, Part 2, Section 4.4.3 - extract returns a exact numeric
   // TODO: Return type should be decimal for seconds
-  public SqlExtractFunction(String name) {
+  public SqlExtractFunction(String name, boolean allowString) {
     super(name, SqlKind.EXTRACT, ReturnTypes.BIGINT_NULLABLE, null,
-        OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
+        allowString
+            ? OperandTypes.INTERVALINTERVAL_INTERVALDATETIME
+                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME))
+            : OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
         SqlFunctionCategory.SYSTEM);
   }
 
@@ -141,7 +148,15 @@ public class SqlExtractFunction extends SqlFunction {
     //    startUnit = EPOCH and timeFrameName = 'MINUTE15'.
     //
     // If the latter, check that timeFrameName is valid.
-    SqlIntervalQualifier qualifier = call.operand(0);
+    SqlIntervalQualifier qualifier;
+    if (call.operand(0) instanceof SqlCharStringLiteral) {
+      final SqlCharStringLiteral stringLiteral = call.operand(0);
+      qualifier =
+          new SqlIntervalQualifier(requireNonNull(stringLiteral.toValue()),
+              call.operand(0).getParserPosition());
+    } else {
+      qualifier = call.operand(0);
+    }
     validator.validateTimeFrame(qualifier);
     TimeUnitRange range = qualifier.timeUnitRange;
 
@@ -203,7 +218,17 @@ public class SqlExtractFunction extends SqlFunction {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    TimeUnitRange value = getOperandLiteralValueOrThrow(call, 0, TimeUnitRange.class);
+    final TimeUnitRange value;
+    if (SqlTypeName.CHAR_TYPES.contains(call.getOperandType(0).getSqlTypeName())) {
+      value =
+          TimeUnitRange.of(
+              SqlIntervalQualifier.stringToDatePartTimeUnit(
+                  requireNonNull(call.getOperandLiteralValue(0, String.class))),
+          null);
+    } else {
+      value = getOperandLiteralValueOrThrow(call, 0, TimeUnitRange.class);
+    }
+
     switch (value) {
     case YEAR:
       return call.getOperandMonotonicity(1).unstrict();

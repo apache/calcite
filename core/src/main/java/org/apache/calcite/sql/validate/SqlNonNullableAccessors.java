@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.sql.SqlAsofJoin;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlJoin;
@@ -69,6 +70,11 @@ public class SqlNonNullableAccessors {
   public static SqlNode getCondition(SqlJoin join) {
     return requireNonNull(join.getCondition(),
         () -> "getCondition of " + safeToString(join));
+  }
+
+  public static SqlNode getMatchCondition(SqlAsofJoin join) {
+    return requireNonNull(join.getMatchCondition(),
+        () -> "getMatchCondition of " + safeToString(join));
   }
 
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)

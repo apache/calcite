@@ -78,43 +78,224 @@ from emp;
 
 !ok
 
+# [CALCITE-6538] OVER (ROWS CURRENT ROW) should return a window with one row, not all rows
+# (RANGE CURRENT ROW returns all rows, and is already correct.)
+select ename,
+  sal,
+  sum(sal) over (rows current row) as row_sum_sal,
+  sum(sal) over (range current row) as range_sum_sal
+from emp
+where job = 'MANAGER';
++-------+---------+-------------+---------------+
+| ENAME | SAL     | ROW_SUM_SAL | RANGE_SUM_SAL |
++-------+---------+-------------+---------------+
+| BLAKE | 2850.00 |     2850.00 |       8275.00 |
+| CLARK | 2450.00 |     2450.00 |       8275.00 |
+| JONES | 2975.00 |     2975.00 |       8275.00 |
++-------+---------+-------------+---------------+
+(3 rows)
+
+!ok
+
+# [CALCITE-5883] ROWS window aggregates ignore frames when there is no ORDER BY clause
+# Other windows with ROWS and no ORDER BY.
+select count(*) over (rows between 3 preceding and 2 preceding) as c3p2p,
+  sum(two) over (rows between 3 preceding and 2 preceding) as s3p2p,
+  sum(two) over (rows 1 preceding) as s1p,
+  sum(two) over (rows between 1 preceding and 1 following) as s1p1f,
+  sum(two) over (rows between current row and 2 following) as s2f
+from (select *, 2 as two from emp)
+order by 1;
++-------+-------+-----+-------+-----+
+| C3P2P | S3P2P | S1P | S1P1F | S2F |
++-------+-------+-----+-------+-----+
+|     0 |       |   2 |     4 |   6 |
+|     0 |       |   4 |     6 |   6 |
+|     1 |     2 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   4 |
+|     2 |     4 |   4 |     4 |   2 |
++-------+-------+-----+-------+-----+
+(14 rows)
+
+!ok
+
+# Various combinations of ROWS, RANGE, UNBOUNDED PRECEDING,
+# UNBOUNDED FOLLOWING, and CURRENT ROW.
+#
+# 'OVER (ROWS CURRENT ROW)' includes one row;
+#
+# 'OVER (ROWS UNBOUNDED PRECEDING)' includes the previous rows;
+#
+# 'OVER ()' includes all rows and is equivalent to
+# 'OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)' and
+# 'OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)' and
+# 'OVER (RANGE UNBOUNDED PRECEDING)'.
+# Checked on Postgres.
+select count(*) over (rows current row) as "rows",
+  count(*) over (rows unbounded preceding) as "rowsUp",
+  count(*) over (range unbounded preceding) as "rangeUp",
+  count(*) over () as "empty",
+  count(*) over (rows between unbounded preceding and unbounded following) as "rowsUpUf",
+  count(*) over (range between unbounded preceding and unbounded following) as "rangeUpUf",
+  count(*) over (range unbounded preceding) as "rangeUp"
+from emp
+order by 3;
++------+--------+---------+-------+----------+-----------+---------+
+| rows | rowsUp | rangeUp | empty | rowsUpUf | rangeUpUf | rangeUp |
++------+--------+---------+-------+----------+-----------+---------+
+|    1 |      1 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      2 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      3 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      4 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      5 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      6 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      7 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      8 |      14 |    14 |       14 |        14 |      14 |
+|    1 |      9 |      14 |    14 |       14 |        14 |      14 |
+|    1 |     10 |      14 |    14 |       14 |        14 |      14 |
+|    1 |     11 |      14 |    14 |       14 |        14 |      14 |
+|    1 |     12 |      14 |    14 |       14 |        14 |      14 |
+|    1 |     13 |      14 |    14 |       14 |        14 |      14 |
+|    1 |     14 |      14 |    14 |       14 |        14 |      14 |
++------+--------+---------+-------+----------+-----------+---------+
+(14 rows)
+
+!ok
+
+# Various combinations of ROWS, RANGE, UNBOUNDED PRECEDING,
+# UNBOUNDED FOLLOWING, and CURRENT ROW, with PARTITION BY.
+# The equivalence sets are the same the previous query (without PARTITION BY).
+# Checked on Postgres.
+select deptno,
+  count(*) over (partition by deptno rows current row) as "rows",
+  count(*) over (partition by deptno rows unbounded preceding) as "rowsUp",
+  count(*) over (partition by deptno range unbounded preceding) as "rangeUp",
+  count(*) over (partition by deptno) as "empty",
+  count(*) over (partition by deptno rows between unbounded preceding and unbounded following) as "rowsUpUf",
+  count(*) over (partition by deptno range between unbounded preceding and unbounded following) as "rangeUpUf",
+  count(*) over (partition by deptno range unbounded preceding) as "rangeUp"
+from emp
+order by 1, 4;
++--------+------+--------+---------+-------+----------+-----------+---------+
+| DEPTNO | rows | rowsUp | rangeUp | empty | rowsUpUf | rangeUpUf | rangeUp |
++--------+------+--------+---------+-------+----------+-----------+---------+
+|     10 |    1 |      1 |       3 |     3 |        3 |         3 |       3 |
+|     10 |    1 |      2 |       3 |     3 |        3 |         3 |       3 |
+|     10 |    1 |      3 |       3 |     3 |        3 |         3 |       3 |
+|     20 |    1 |      1 |       5 |     5 |        5 |         5 |       5 |
+|     20 |    1 |      2 |       5 |     5 |        5 |         5 |       5 |
+|     20 |    1 |      3 |       5 |     5 |        5 |         5 |       5 |
+|     20 |    1 |      4 |       5 |     5 |        5 |         5 |       5 |
+|     20 |    1 |      5 |       5 |     5 |        5 |         5 |       5 |
+|     30 |    1 |      1 |       6 |     6 |        6 |         6 |       6 |
+|     30 |    1 |      2 |       6 |     6 |        6 |         6 |       6 |
+|     30 |    1 |      3 |       6 |     6 |        6 |         6 |       6 |
+|     30 |    1 |      4 |       6 |     6 |        6 |         6 |       6 |
+|     30 |    1 |      5 |       6 |     6 |        6 |         6 |       6 |
+|     30 |    1 |      6 |       6 |     6 |        6 |         6 |       6 |
++--------+------+--------+---------+-------+----------+-----------+---------+
+(14 rows)
+
+!ok
+
+# As previous, with PARTITION BY and ORDER BY.
+#
+# 'OVER (... ROWS CURRENT ROW)' (rows) includes one row;
+#
+# 'OVER (...)' (empty),
+# 'OVER (... RANGE UNBOUNDED PRECEDING)' (rangeUp) and
+# 'OVER (... RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)' (rangeUpC)
+# are equivalent to each other,
+#
+# 'OVER (... ROWS UNBOUNDED PRECEDING)' (rowsUp) and
+# 'OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)' (rowsUpC)
+# are equivalent to each other and include N rows,
+# and are similar to empty/rangeUp/rangeUpC except when there are ties (WARD, SCOTT);
+#
+# 'OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)' (rowsUpUf) and
+# 'OVER (... RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)' (rangeUpUf)
+# are equivalent and return all rows.
+#
+# Checked on Postgres.
+select deptno, sal, ename,
+  count(*) over (partition by deptno order by sal rows current row) as "rows",
+  count(*) over (partition by deptno order by sal) as "empty",
+  count(*) over (partition by deptno order by sal range unbounded preceding) as "rangeUp",
+  count(*) over (partition by deptno order by sal range between unbounded preceding and current row) as "rangeUpC",
+  count(*) over (partition by deptno order by sal rows unbounded preceding) as "rowsUp",
+  count(*) over (partition by deptno order by sal rows between unbounded preceding and current row) as "rowsUpC",
+  count(*) over (partition by deptno order by sal range between unbounded preceding and unbounded following) as "rangeUpUf",
+  count(*) over (partition by deptno order by sal rows between unbounded preceding and unbounded following) as "rowsUpUf"
+from emp
+order by 1, 2;
++--------+---------+--------+------+-------+---------+----------+--------+---------+-----------+----------+
+| DEPTNO | SAL     | ENAME  | rows | empty | rangeUp | rangeUpC | rowsUp | rowsUpC | rangeUpUf | rowsUpUf |
++--------+---------+--------+------+-------+---------+----------+--------+---------+-----------+----------+
+|     10 | 1300.00 | MILLER |    1 |     1 |       1 |        1 |      1 |       1 |         3 |        3 |
+|     10 | 2450.00 | CLARK  |    1 |     2 |       2 |        2 |      2 |       2 |         3 |        3 |
+|     10 | 5000.00 | KING   |    1 |     3 |       3 |        3 |      3 |       3 |         3 |        3 |
+|     20 |  800.00 | SMITH  |    1 |     1 |       1 |        1 |      1 |       1 |         5 |        5 |
+|     20 | 1100.00 | ADAMS  |    1 |     2 |       2 |        2 |      2 |       2 |         5 |        5 |
+|     20 | 2975.00 | JONES  |    1 |     3 |       3 |        3 |      3 |       3 |         5 |        5 |
+|     20 | 3000.00 | SCOTT  |    1 |     5 |       5 |        5 |      4 |       4 |         5 |        5 |
+|     20 | 3000.00 | FORD   |    1 |     5 |       5 |        5 |      5 |       5 |         5 |        5 |
+|     30 |  950.00 | JAMES  |    1 |     1 |       1 |        1 |      1 |       1 |         6 |        6 |
+|     30 | 1250.00 | WARD   |    1 |     3 |       3 |        3 |      2 |       2 |         6 |        6 |
+|     30 | 1250.00 | MARTIN |    1 |     3 |       3 |        3 |      3 |       3 |         6 |        6 |
+|     30 | 1500.00 | TURNER |    1 |     4 |       4 |        4 |      4 |       4 |         6 |        6 |
+|     30 | 1600.00 | ALLEN  |    1 |     5 |       5 |        5 |      5 |       5 |         6 |        6 |
+|     30 | 2850.00 | BLAKE  |    1 |     6 |       6 |        6 |      6 |       6 |         6 |        6 |
++--------+---------+--------+------+-------+---------+----------+--------+---------+-----------+----------+
+(14 rows)
+
+!ok
+
 # STDDEV applied to nullable column
 select empno,
-  stddev(comm) over (order by empno rows unbounded preceding) as stdev
+  stddev(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) as stdev
 from emp
 where deptno = 30
 order by 1;
-+-------+-------------------------------------------------+
-| EMPNO | STDEV                                           |
-+-------+-------------------------------------------------+
-|  7499 |                                                 |
-|  7521 |  141.421356237309510106570087373256683349609375 |
-|  7654 | 585.9465277082316561063635163009166717529296875 |
-|  7698 | 585.9465277082316561063635163009166717529296875 |
-|  7844 | 602.7713773341707792496890760958194732666015625 |
-|  7900 | 602.7713773341707792496890760958194732666015625 |
-+-------+-------------------------------------------------+
++-------+----------+
+| EMPNO | STDEV    |
++-------+----------+
+|  7499 |          |
+|  7521 | 141.4213 |
+|  7654 | 585.9465 |
+|  7698 | 585.9465 |
+|  7844 | 602.7713 |
+|  7900 | 602.7713 |
++-------+----------+
 (6 rows)
 
 !ok
 
 # [CALCITE-5931] Allow integers like 1.00 in window frame
 select empno,
-  stddev(comm) over (order by empno rows 2 preceding) as stdev_2int,
-  stddev(comm) over (order by empno rows 2.00 preceding) as stdev_2double
+  stddev(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows 2 preceding) as stdev_2int,
+  stddev(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows 2.00 preceding) as stdev_2double
 from emp
 where deptno = 30
 order by 1;
-+-------+-------------------------------------------------+-------------------------------------------------+
-| EMPNO | STDEV_2INT                                      | STDEV_2DOUBLE                                   |
-+-------+-------------------------------------------------+-------------------------------------------------+
-|  7499 |                                                 |                                                 |
-|  7521 |  141.421356237309510106570087373256683349609375 |  141.421356237309510106570087373256683349609375 |
-|  7654 | 585.9465277082316561063635163009166717529296875 | 585.9465277082316561063635163009166717529296875 |
-|  7698 | 636.3961030678927954795653931796550750732421875 | 636.3961030678927954795653931796550750732421875 |
-|  7844 |  989.949493661166570745990611612796783447265625 |  989.949493661166570745990611612796783447265625 |
-|  7900 |                                                 |                                                 |
-+-------+-------------------------------------------------+-------------------------------------------------+
++-------+------------+---------------+
+| EMPNO | STDEV_2INT | STDEV_2DOUBLE |
++-------+------------+---------------+
+|  7499 |            |               |
+|  7521 |   141.4213 |      141.4213 |
+|  7654 |   585.9465 |      585.9465 |
+|  7698 |   636.3961 |      636.3961 |
+|  7844 |   989.9494 |      989.9494 |
+|  7900 |            |               |
++-------+------------+---------------+
 (6 rows)
 
 !ok
@@ -579,8 +760,8 @@ select emp."ENAME", emp."DEPTNO",
  nth_value(emp."DEPTNO", 10) over() as "tenth_value"
 from emp order by emp."ENAME";
 EnumerableSort(sort0=[$0], dir0=[ASC])
-  EnumerableWindow(window#0=[window(aggs [NTH_VALUE($1, $2), NTH_VALUE($1, $3), NTH_VALUE($1, $4), NTH_VALUE($1, $5), NTH_VALUE($1, $6)])])
-    EnumerableValues(tuples=[[{ 'Jane', 10 }, { 'Bob', 10 }, { 'Eric', 20 }, { 'Susan', 30 }, { 'Alice', 30 }, { 'Adam', 50 }, { 'Eve', 50 }, { 'Grace', 60 }, { 'Wilma', null }]])
+  EnumerableWindow(window#0=[window(aggs [NTH_VALUE($1, $2), NTH_VALUE($1, $3), NTH_VALUE($1, $4), NTH_VALUE($1, $5), NTH_VALUE($1, $6)])], constants=[[1, 2, 5, 8, 10]])
+    EnumerableValues(tuples=[[{ 'Jane ', 10 }, { 'Bob  ', 10 }, { 'Eric ', 20 }, { 'Susan', 30 }, { 'Alice', 30 }, { 'Adam ', 50 }, { 'Eve  ', 50 }, { 'Grace', 60 }, { 'Wilma', null }]])
 !plan
 +-------+--------+-------------+--------------+-------------+--------------+-------------+
 | ENAME | DEPTNO | first_value | second_value | fifth_value | eighth_value | tenth_value |
@@ -825,7 +1006,7 @@ select gender, count(*) over(partition by gender order by ename) as count1 from 
 EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], $1=[$t3])
   EnumerableWindow(window#0=[window(partition {2} order by [0] aggs [COUNT()])])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=['F'], expr#4=[=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
-      EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+      EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 +--------+--------+
 | GENDER | COUNT1 |
@@ -838,6 +1019,134 @@ EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], $1=[$t3])
 | F      |      6 |
 +--------+--------+
 (6 rows)
+
+!ok
+
+# [CALCITE-5855] Implement frame exclusion in window functions
+# Verified against PostgreSQL
+!use scott
+
+select empno,
+  avg(comm) over (order by empno rows 2 preceding exclude current row) as e1,
+  avg(comm) over (order by empno rows 2 preceding exclude group) as e2,
+  avg(comm) over (order by empno rows 2 preceding exclude ties) as e3,
+  avg(comm) over (order by empno rows 2 preceding exclude no others) as e4,
+  avg(comm) over (order by empno rows 2 preceding) as e5
+from emp
+order by 1;
++-------+---------+---------+---------+---------+---------+
+| EMPNO | E1      | E2      | E3      | E4      | E5      |
++-------+---------+---------+---------+---------+---------+
+|  7369 |         |         |         |         |         |
+|  7499 |         |         |  300.00 |  300.00 |  300.00 |
+|  7521 |  300.00 |  300.00 |  400.00 |  400.00 |  400.00 |
+|  7566 |  400.00 |  400.00 |  400.00 |  400.00 |  400.00 |
+|  7654 |  500.00 |  500.00 |  950.00 |  950.00 |  950.00 |
+|  7698 | 1400.00 | 1400.00 | 1400.00 | 1400.00 | 1400.00 |
+|  7782 | 1400.00 | 1400.00 | 1400.00 | 1400.00 | 1400.00 |
+|  7788 |         |         |         |         |         |
+|  7839 |         |         |         |         |         |
+|  7844 |         |         |    0.00 |    0.00 |    0.00 |
+|  7876 |    0.00 |    0.00 |    0.00 |    0.00 |    0.00 |
+|  7900 |    0.00 |    0.00 |    0.00 |    0.00 |    0.00 |
+|  7902 |         |         |         |         |         |
+|  7934 |         |         |         |         |         |
++-------+---------+---------+---------+---------+---------+
+(14 rows)
+
+!ok
+
+select
+  count(*) over (order by "one" rows between 2 preceding and 5 following exclude group) as c2p5fxg,
+  count(*) over (order by "one" rows between 2 preceding and 5 following) as c2p5f,
+  count(*) over (order by "one" rows 20 preceding) as c20p,
+  sum("one") over (order by "one" rows between 2 preceding and unbounded following exclude ties) as s2pxt,
+  sum("one") over (order by "one" rows between unbounded preceding and unbounded following exclude no others) as sxn,
+  sum("one") over (order by "one" rows between unbounded preceding and unbounded following) as s
+from (select *, 1 as "one" from emp) as e
+order by c20p;
++---------+-------+------+-------+-----+----+
+| C2P5FXG | C2P5F | C20P | S2PXT | SXN | S  |
++---------+-------+------+-------+-----+----+
+|       0 |     6 |    1 |     1 |  14 | 14 |
+|       0 |     7 |    2 |     1 |  14 | 14 |
+|       0 |     8 |    3 |     1 |  14 | 14 |
+|       0 |     8 |    4 |     1 |  14 | 14 |
+|       0 |     8 |    5 |     1 |  14 | 14 |
+|       0 |     8 |    6 |     1 |  14 | 14 |
+|       0 |     8 |    7 |     1 |  14 | 14 |
+|       0 |     8 |    8 |     1 |  14 | 14 |
+|       0 |     8 |    9 |     1 |  14 | 14 |
+|       0 |     7 |   10 |     1 |  14 | 14 |
+|       0 |     6 |   11 |     1 |  14 | 14 |
+|       0 |     5 |   12 |     1 |  14 | 14 |
+|       0 |     4 |   13 |     1 |  14 | 14 |
+|       0 |     3 |   14 |     1 |  14 | 14 |
++---------+-------+------+-------+-----+----+
+(14 rows)
+
+!ok
+
+# As above, without ORDER BY. Results are the same, because 'one' has
+# the same value for all rows.
+select
+  count(*) over (rows between 2 preceding and 5 following exclude group) as c2p5fxg,
+  count(*) over (rows between 2 preceding and 5 following) as c2p5f,
+  count(*) over (rows between 20 preceding and current row) as c20p,
+  sum("one") over (rows between 2 preceding and unbounded following exclude ties) as s2pxt,
+  sum("one") over (rows between unbounded preceding and unbounded following exclude no others) as sxn,
+  sum("one") over (rows between unbounded preceding and unbounded following) as s
+from (select *, 1 as "one" from emp) as e
+order by c20p;
++---------+-------+------+-------+-----+----+
+| C2P5FXG | C2P5F | C20P | S2PXT | SXN | S  |
++---------+-------+------+-------+-----+----+
+|       0 |     6 |    1 |     1 |  14 | 14 |
+|       0 |     7 |    2 |     1 |  14 | 14 |
+|       0 |     8 |    3 |     1 |  14 | 14 |
+|       0 |     8 |    4 |     1 |  14 | 14 |
+|       0 |     8 |    5 |     1 |  14 | 14 |
+|       0 |     8 |    6 |     1 |  14 | 14 |
+|       0 |     8 |    7 |     1 |  14 | 14 |
+|       0 |     8 |    8 |     1 |  14 | 14 |
+|       0 |     8 |    9 |     1 |  14 | 14 |
+|       0 |     7 |   10 |     1 |  14 | 14 |
+|       0 |     6 |   11 |     1 |  14 | 14 |
+|       0 |     5 |   12 |     1 |  14 | 14 |
+|       0 |     4 |   13 |     1 |  14 | 14 |
+|       0 |     3 |   14 |     1 |  14 | 14 |
++---------+-------+------+-------+-----+----+
+(14 rows)
+
+!ok
+
+select empno,
+  stddev(comm) over (order by empno rows between 2 preceding and 5 following exclude current row) as e1,
+  count(*) over (order by empno rows between 2 preceding and 5 following exclude group) as e2,
+  sum(sal) over (order by empno rows between 2 preceding and unbounded following exclude ties) as e3,
+  sum(sal) over (order by empno rows between unbounded preceding and unbounded following exclude no others) as e4,
+  sum(sal) over (order by empno rows between unbounded preceding and unbounded following) as e5
+from emp
+order by 1;
++-------+--------+----+----------+----------+----------+
+| EMPNO | E1     | E2 | E3       | E4       | E5       |
++-------+--------+----+----------+----------+----------+
+|  7369 | 585.94 |  5 | 29025.00 | 29025.00 | 29025.00 |
+|  7499 | 636.39 |  6 | 29025.00 | 29025.00 | 29025.00 |
+|  7521 | 777.81 |  7 | 29025.00 | 29025.00 | 29025.00 |
+|  7566 | 585.94 |  7 | 28225.00 | 29025.00 | 29025.00 |
+|  7654 | 353.55 |  7 | 26625.00 | 29025.00 | 29025.00 |
+|  7698 | 989.94 |  7 | 25375.00 | 29025.00 | 29025.00 |
+|  7782 | 989.94 |  7 | 22400.00 | 29025.00 | 29025.00 |
+|  7788 |        |  7 | 21150.00 | 29025.00 | 29025.00 |
+|  7839 |        |  7 | 18300.00 | 29025.00 | 29025.00 |
+|  7844 |        |  6 | 15850.00 | 29025.00 | 29025.00 |
+|  7876 |        |  5 | 12850.00 | 29025.00 | 29025.00 |
+|  7900 |        |  4 |  7850.00 | 29025.00 | 29025.00 |
+|  7902 |        |  3 |  6350.00 | 29025.00 | 29025.00 |
+|  7934 |        |  2 |  5250.00 | 29025.00 | 29025.00 |
++-------+--------+----+----------+----------+----------+
+(14 rows)
 
 !ok
 # End winagg.iq

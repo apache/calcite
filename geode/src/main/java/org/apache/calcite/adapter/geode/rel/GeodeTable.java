@@ -46,12 +46,15 @@ import org.apache.geode.cache.query.SelectResults;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a Geode Region.
@@ -91,7 +94,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
       final List<String> groupByFields,
       List<String> predicates,
       List<String> orderByFields,
-      Long limit) {
+      @Nullable Long limit) {
 
     final RelDataTypeFactory typeFactory = new JavaTypeFactoryExtImpl();
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
@@ -173,9 +176,10 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
 
     // Build and issue the query and return an Enumerator over the results
     StringBuilder queryBuilder = new StringBuilder("SELECT ");
-    queryBuilder.append(oqlSelectStatement);
-    queryBuilder.append(" FROM /" + regionName);
-    queryBuilder.append(whereClause);
+    queryBuilder.append(oqlSelectStatement)
+        .append(" FROM /")
+        .append(regionName)
+        .append(whereClause);
 
     if (!groupByFields.isEmpty()) {
       queryBuilder.append(Util.toString(groupByFields, " GROUP BY ", ", ", ""));
@@ -185,7 +189,7 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
       queryBuilder.append(Util.toString(orderByFields, " ORDER BY ", ", ", ""));
     }
     if (limit != null) {
-      queryBuilder.append(" LIMIT " + limit);
+      queryBuilder.append(" LIMIT ").append(limit);
     }
 
     final String oqlQuery = queryBuilder.toString();
@@ -249,7 +253,9 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
 
     private GemFireCache getClientCache() {
-      return schema.unwrap(GeodeSchema.class).cache;
+      final GeodeSchema geodeSchema =
+          requireNonNull(schema.unwrap(GeodeSchema.class));
+      return geodeSchema.cache;
     }
 
     /**

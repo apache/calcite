@@ -45,8 +45,12 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepPlannerTest is a unit test for {@link HepPlanner}. See
@@ -93,7 +97,7 @@ class HepPlannerTest {
 
   @AfterAll
   public static void checkActualAndReferenceFiles() {
-    diffRepos.checkActualAndReferenceFiles();
+    requireNonNull(diffRepos, "diffRepos").checkActualAndReferenceFiles();
   }
 
   public RelOptFixture fixture() {
@@ -132,7 +136,7 @@ class HepPlannerTest {
 
     final String sql = "(select name from dept union select ename from emp)\n"
         + "intersect (select fname from customer.contact)";
-    sql(sql).withPlanner(planner).check();
+    sql(sql).withPlanner(planner).checkUnchanged();
   }
 
   @Test void testRuleDescription() {
@@ -198,7 +202,9 @@ class HepPlannerTest {
     PrintWriter pw = new PrintWriter(sw);
 
     RelDotWriter planWriter = new RelDotWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, false);
-    planner.getRoot().explain(planWriter);
+    final RelNode root1 = planner.getRoot();
+    assertThat(root1, notNullValue());
+    root1.explain(planWriter);
     String planStr = sw.toString();
 
     assertThat(
@@ -208,7 +214,8 @@ class HepPlannerTest {
             + "}\n"));
   }
 
-  private void assertIncludesExactlyOnce(String message, String digest, String substring) {
+  private void assertIncludesExactlyOnce(String message, String digest,
+      String substring) {
     int pos = 0;
     int cnt = 0;
     while (pos >= 0) {
@@ -217,9 +224,9 @@ class HepPlannerTest {
         cnt++;
       }
     }
-    assertEquals(1, cnt,
-        () -> message + " should include <<" + substring + ">> exactly once"
-            + ", actual value is " + digest);
+    assertThat(message + " should include <<" + substring + ">> exactly once"
+        + ", actual value is " + digest,
+        cnt, is(1));
   }
 
   @Test void testMatchLimitOneTopDown() {
@@ -374,10 +381,10 @@ class HepPlannerTest {
         new RelOptMaterialization(tableRel, queryRel, null,
             ImmutableList.of("default", "mv"));
     planner.addMaterialization(mat1);
-    assertEquals(planner.getMaterializations().size(), 1);
-    assertEquals(planner.getMaterializations().get(0), mat1);
+    assertThat(planner.getMaterializations(), hasSize(1));
+    assertThat(mat1, is(planner.getMaterializations().get(0)));
     planner.clear();
-    assertEquals(planner.getMaterializations().size(), 0);
+    assertThat(planner.getMaterializations(), empty());
   }
 
   private long checkRuleApplyCount(HepMatchOrder matchOrder) {

@@ -38,6 +38,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
@@ -51,6 +52,8 @@ import java.util.List;
 import java.util.function.Predicate;
 
 import static com.google.common.collect.Iterables.concat;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Collection of rules which remove sections of a query plan known never to
@@ -389,8 +392,7 @@ public abstract class PruneEmptyRules {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           final Union union = call.rel(0);
-          final List<RelNode> inputs = union.getInputs();
-          assert inputs != null;
+          final List<RelNode> inputs = requireNonNull(union.getInputs());
           final RelBuilder relBuilder = call.builder();
           int nonEmptyInputs = 0;
           for (RelNode input : inputs) {
@@ -404,6 +406,9 @@ public abstract class PruneEmptyRules {
               + RelOptUtil.toString(union);
           if (nonEmptyInputs == 0) {
             relBuilder.push(union).empty();
+          } else if (nonEmptyInputs == 1 && !union.all) {
+            relBuilder.distinct();
+            relBuilder.convert(union.getRowType(), true);
           } else {
             relBuilder.union(union.all, nonEmptyInputs);
             relBuilder.convert(union.getRowType(), true);
@@ -427,8 +432,7 @@ public abstract class PruneEmptyRules {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           final Minus minus = call.rel(0);
-          final List<RelNode> inputs = minus.getInputs();
-          assert inputs != null;
+          final List<RelNode> inputs = requireNonNull(minus.getInputs());
           int nonEmptyInputs = 0;
           final RelBuilder relBuilder = call.builder();
           for (RelNode input : inputs) {
@@ -446,6 +450,9 @@ public abstract class PruneEmptyRules {
               + RelOptUtil.toString(minus);
           if (nonEmptyInputs == 0) {
             relBuilder.push(minus).empty();
+          } else if (nonEmptyInputs == 1 && !minus.all) {
+            relBuilder.distinct();
+            relBuilder.convert(minus.getRowType(), true);
           } else {
             relBuilder.minus(minus.all, nonEmptyInputs);
             relBuilder.convert(minus.getRowType(), true);
@@ -493,7 +500,7 @@ public abstract class PruneEmptyRules {
           Sort sort = call.rel(0);
           return sort.fetch != null
               && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.intValue(sort.fetch) == 0;
+              && RexLiteral.longValue(sort.fetch) == 0;
         }
 
       };
@@ -645,8 +652,7 @@ public abstract class PruneEmptyRules {
       return new RemoveEmptySingleRule(this) {
         @Override public boolean matches(RelOptRuleCall call) {
           RelNode node = call.rel(0);
-          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
-          return maxRowCount != null && maxRowCount == 0.0;
+          return RelMdUtil.isRelDefinitelyEmpty(call.getMetadataQuery(), node);
         }
       };
     }

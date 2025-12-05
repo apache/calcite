@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -139,6 +140,23 @@ public class SqlLibraryOperatorTableFactory {
     }
     for (SqlLibrary library : librarySet) {
       if (seekLibrarySet.contains(library)) {
+        return true;
+      }
+      // Also check inheritor libraries (if any) that are not excluded
+      for (SqlLibrary inheritor : library.inheritors()) {
+        if (seekLibrarySet.contains(inheritor)
+            && !arrayContains(libraryOperator.exceptLibraries(), inheritor)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** Returns whether an array contains a given element. */
+  private static <E> boolean arrayContains(E[] elements, E seek) {
+    for (E element : elements) {
+      if (Objects.equals(element, seek)) {
         return true;
       }
     }

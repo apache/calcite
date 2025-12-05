@@ -70,10 +70,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelMdCollation supplies a default implementation of
@@ -246,7 +247,7 @@ public class RelMdCollation
   public @Nullable ImmutableList<RelCollation> collations(RelSubset rel,
       RelMetadataQuery mq) {
     return copyOf(
-        Objects.requireNonNull(
+        requireNonNull(
             rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
   }
 
@@ -572,6 +573,8 @@ public class RelMdCollation
     case ANTI:
     case INNER:
     case LEFT:
+    case ASOF:
+    case LEFT_ASOF:
       return leftCollations;
     case RIGHT:
     case FULL:

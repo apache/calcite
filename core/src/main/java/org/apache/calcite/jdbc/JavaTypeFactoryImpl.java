@@ -38,6 +38,10 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
@@ -126,17 +130,20 @@ public class JavaTypeFactoryImpl
       final Types.ArrayType arrayType = (Types.ArrayType) type;
       final RelDataType componentRelType =
           createType(arrayType.getComponentType());
-      return createArrayType(
-          createTypeWithNullability(componentRelType,
+      RelDataType result =
+          createArrayType(
+              createTypeWithNullability(componentRelType,
               arrayType.componentIsNullable()), arrayType.maximumCardinality());
+      return createTypeWithNullability(result, true);
     }
     if (type instanceof Types.MapType) {
       final Types.MapType mapType = (Types.MapType) type;
       final RelDataType keyRelType = createType(mapType.getKeyType());
       final RelDataType valueRelType = createType(mapType.getValueType());
-      return createMapType(
-          createTypeWithNullability(keyRelType, mapType.keyIsNullable()),
-          createTypeWithNullability(valueRelType, mapType.valueIsNullable()));
+      RelDataType result =
+          createMapType(createTypeWithNullability(keyRelType, mapType.keyIsNullable()),
+              createTypeWithNullability(valueRelType, mapType.valueIsNullable()));
+      return createTypeWithNullability(result, true);
     }
     if (!(type instanceof Class)) {
       throw new UnsupportedOperationException("TODO: implement " + type);
@@ -225,6 +232,14 @@ public class JavaTypeFactoryImpl
         return Object.class;
       case NULL:
         return Void.class;
+      case UTINYINT:
+        return UByte.class;
+      case USMALLINT:
+        return UShort.class;
+      case UINTEGER:
+        return UInteger.class;
+      case UBIGINT:
+        return ULong.class;
       default:
         break;
       }

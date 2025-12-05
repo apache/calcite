@@ -227,7 +227,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);\n"
         + "B = SAMPLE A 0.5;\n";
     final String plan = ""
-        + "LogicalFilter(condition=[<(RAND(), 5E-1)])\n"
+        + "LogicalFilter(condition=[<(RAND(), 0.5E0)])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     final String sql = ""
         + "SELECT *\n"
@@ -383,17 +383,17 @@ class PigRelOpTest extends PigRelTestBase {
         + "          LogicalValues(tuples=[[{ 0 }]])\n";
 
     final String sql = ""
-        + "SELECT $cor1.DEPTNO AS dept, $cor1.JOB AS job, $cor1.EMPNO,"
-        + " $cor1.ENAME, $cor1.JOB0 AS JOB, $cor1.MGR, $cor1.HIREDATE,"
-        + " $cor1.SAL, $cor1.COMM, $cor1.DEPTNO0 AS DEPTNO\n"
+        + "SELECT $cor1.DEPTNO AS dept, $cor1.JOB AS job, t30.EMPNO,"
+        + " t30.ENAME, t30.JOB, t30.MGR, t30.HIREDATE,"
+        + " t30.SAL, t30.COMM, t30.DEPTNO\n"
         + "FROM (SELECT DEPTNO, JOB, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS $f2\n"
         + "    FROM scott.EMP\n"
         + "    WHERE JOB <> 'CLERK'\n"
         + "    GROUP BY DEPTNO, JOB) AS $cor1,\n"
-        + "  LATERAL UNNEST (SELECT $cor1.$f2 AS $f0\n"
-        + "    FROM (VALUES (0)) AS t (ZERO)) AS t3 (EMPNO, ENAME, JOB,"
-        + " MGR, HIREDATE, SAL, COMM, DEPTNO) AS t30\n"
+        + "  LATERAL UNNEST((SELECT $cor1.$f2 AS $f0\n"
+        + "      FROM (VALUES (0)) AS t (ZERO))) AS t30 (EMPNO, ENAME, JOB,"
+        + " MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
         + "ORDER BY $cor1.DEPTNO, $cor1.JOB";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
@@ -470,26 +470,25 @@ class PigRelOpTest extends PigRelTestBase {
         + "(30,5,BLAKE,MANAGER,30,2850.00,2850.00)\n";
 
     final String sql = ""
-        + "SELECT $cor5.group, $cor5.cnt, $cor5.ENAME, $cor5.JOB, "
-        + "$cor5.DEPTNO, $cor5.SAL, $cor5.$f3\n"
+        + "SELECT $cor5.group, $cor5.cnt, t110.ENAME, t110.JOB, "
+        + "t110.DEPTNO, t110.SAL, $cor5.$f3\n"
         + "FROM (SELECT $cor4.DEPTNO AS group, "
-        + "COUNT(PIG_BAG($cor4.X)) AS cnt, $cor4.X, "
-        + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION($cor4.X, 3))) AS $f3\n"
+        + "COUNT(PIG_BAG(t8.X)) AS cnt, t8.X, "
+        + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION(t8.X, 3))) AS $f3\n"
         + "    FROM (SELECT DEPTNO, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS A\n"
         + "        FROM scott.EMP\n"
         + "        GROUP BY DEPTNO) AS $cor4,\n"
-        + "      LATERAL (SELECT X\n"
-        + "        FROM (SELECT 'all' AS $f0, COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
-        + "            FROM UNNEST (SELECT $cor4.A AS $f0\n"
-        + "                FROM (VALUES (0)) AS t (ZERO)) "
+        + "      LATERAL (SELECT COLLECT($f1) AS X\n"
+        + "        FROM (SELECT 'all' AS $f0, ROW(ENAME, JOB, DEPTNO, SAL) AS $f1\n"
+        + "            FROM UNNEST((SELECT $cor4.A AS $f0\n"
+        + "                  FROM (VALUES (0)) AS t (ZERO))) "
         + "AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
         + "            WHERE JOB <> 'CLERK'\n"
-        + "            GROUP BY 'all'\n"
-        + "            ORDER BY SAL) AS t7) AS t8) AS $cor5,\n"
-        + "  LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
-        + "    FROM (VALUES (0)) AS t (ZERO)) "
-        + "AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
+        + "            ORDER BY SAL) AS t6\n"
+        + "        GROUP BY $f0) AS t8) AS $cor5,\n"
+        + "  LATERAL UNNEST((SELECT $cor5.X AS $f0\n"
+        + "      FROM (VALUES (0)) AS t (ZERO))) AS t110 (ENAME, JOB, DEPTNO, SAL)\n"
         + "ORDER BY $cor5.group";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
@@ -1531,7 +1530,7 @@ class PigRelOpTest extends PigRelTestBase {
     final String plan = ""
         + "LogicalSort(sort0=[$6], dir0=[ASC])\n"
         + "  LogicalProject(DEPTNO=[$0.DEPTNO], MGR=[$0.MGR], HIREDATE=[$0.HIREDATE], "
-        + "$f3=[COUNT(PIG_BAG($1))], newCol=[1:BIGINT], comArray=[MULTISET_PROJECTION($1, 6)], "
+        + "$f3=[COUNT(PIG_BAG($1))], newCol=[1:BIGINT], comArray=[CAST(MULTISET_PROJECTION($1, 6)):RecordType(DECIMAL(19, 0) COMM) MULTISET], "
         + "salSum=[BigDecimalSum(PIG_BAG(MULTISET_PROJECTION($1, 5)))])\n"
         + "    LogicalProject(group=[ROW($0, $1, $2)], A=[$3])\n"
         + "      LogicalAggregate(group=[{0, 1, 2}], A=[COLLECT($3)])\n"
@@ -1541,14 +1540,14 @@ class PigRelOpTest extends PigRelTestBase {
     final String optimizedPlan = ""
         + "LogicalSort(sort0=[$6], dir0=[ASC])\n"
         + "  LogicalProject(DEPTNO=[$0], MGR=[$1], HIREDATE=[$2], $f3=[CAST($3):BIGINT], "
-        + "newCol=[1:BIGINT], comArray=[$4], salSum=[CAST($5):DECIMAL(19, 0)])\n"
+        + "newCol=[1:BIGINT], comArray=[CAST($4):RecordType(DECIMAL(19, 0) COMM) MULTISET], salSum=[CAST($5):DECIMAL(19, 0)])\n"
         + "    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT()], agg#1=[COLLECT($3)], "
         + "agg#2=[SUM($4)])\n"
         + "      LogicalProject(DEPTNO=[$7], MGR=[$3], HIREDATE=[$4], COMM=[$6], SAL=[$5])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
     final String sql = ""
         + "SELECT DEPTNO, MGR, HIREDATE, CAST(COUNT(*) AS BIGINT) AS $f3, 1 AS newCol, "
-        + "COLLECT(COMM) AS comArray, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
+        + "CAST(COLLECT(COMM) AS ROW(COMM DECIMAL(19, 0) NULL) MULTISET) AS comArray, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
         + "ORDER BY 7";
@@ -1667,8 +1666,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "    LogicalTableScan(table=[[emp1]])\n";
 
     final String sql = "SELECT w0$o0 AS rank_A, id, name, age, city\n"
-        + "FROM (SELECT id, name, age, city, RANK() OVER (RANGE BETWEEN "
-        + "UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT id, name, age, city, RANK() OVER ()\n"
         + "    FROM emp1) AS t\n"
         + "WHERE w0$o0 > 1";
     pig(script).assertRel(hasTree(plan))

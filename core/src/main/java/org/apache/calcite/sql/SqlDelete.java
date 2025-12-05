@@ -32,7 +32,20 @@ import java.util.List;
  */
 public class SqlDelete extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("DELETE", SqlKind.DELETE);
+      new SqlSpecialOperator("DELETE", SqlKind.DELETE) {
+        @SuppressWarnings("argument.type.incompatible")
+        @Override public SqlCall createCall(
+            @Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos,
+            @Nullable SqlNode... operands) {
+          return new SqlDelete(
+              pos,
+              operands[0],
+              operands[1],
+              (SqlSelect) operands[2],
+              (SqlIdentifier) operands[3]);
+        }
+      };
 
   SqlNode targetTable;
   @Nullable SqlNode condition;
@@ -66,7 +79,7 @@ public class SqlDelete extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(targetTable, condition, alias);
+    return ImmutableNullableList.of(targetTable, condition, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -114,11 +127,13 @@ public class SqlDelete extends SqlCall {
   }
 
   /**
-   * Gets the source SELECT expression for the data to be deleted. This
-   * returns null before the condition has been expanded by
-   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
+   * Gets the source SELECT expression for the data to be deleted. The SELECT contains target
+   * table columns, for example <code>SELECT * FROM target</code>.
+   * Returns null before the statement has been expanded by
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)} or
+   * {@link SqlValidatorImpl#createSourceSelectForDelete(SqlDelete)}.
    *
-   * @return the source SELECT for the data to be inserted
+   * @return the source SELECT for the data to be deleted.
    */
   public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;

@@ -27,6 +27,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A generic implementation of {@link SqlMoniker}.
  */
@@ -43,7 +45,7 @@ public class SqlMonikerImpl implements SqlMoniker {
    */
   public SqlMonikerImpl(List<String> names, SqlMonikerType type) {
     this.names = ImmutableList.copyOf(names);
-    this.type = Objects.requireNonNull(type, "type");
+    this.type = requireNonNull(type, "type");
   }
 
   /**

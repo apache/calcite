@@ -29,6 +29,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
@@ -62,10 +63,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a Cassandra column family.
@@ -297,7 +299,7 @@ public class CassandraSchema extends AbstractSchema {
           + "WHERE keyspace_name='" + keyspace + "' AND view_name='"
           + view.getName().asInternal() + "'";
 
-      Row whereClauseRow = Objects.requireNonNull(session.execute(whereQuery).one());
+      Row whereClauseRow = requireNonNull(session.execute(whereQuery).one());
 
       queryBuilder.append(" WHERE ")
           .append(whereClauseRow.getString(0));
@@ -324,8 +326,8 @@ public class CassandraSchema extends AbstractSchema {
       query = buf.toString();
 
       // Add the view for this query
-      String viewName = "$" + getTableNames().size();
-      SchemaPlus schema = parentSchema.getSubSchema(name);
+      String viewName = "$" + tables().getNames(LikePattern.any()).size();
+      SchemaPlus schema = parentSchema.subSchemas().get(name);
       if (schema == null) {
         throw new IllegalStateException("Cannot find schema " + name
             + " in parent schema " + parentSchema.getName());

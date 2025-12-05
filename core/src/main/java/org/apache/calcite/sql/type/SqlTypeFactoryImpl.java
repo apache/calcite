@@ -32,6 +32,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -59,12 +61,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    if (typeName.allowsScale()) {
+      return createSqlType(typeName, precision, typeSystem.getDefaultScale(typeName));
+    }
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
     if (maxPrecision >= 0 && precision > maxPrecision) {
       precision = maxPrecision;
-    }
-    if (typeName.allowsScale()) {
-      return createSqlType(typeName, precision, typeName.getDefaultScale());
     }
     assertBasic(typeName);
     assert (precision >= 0)
@@ -77,6 +79,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
@@ -84,9 +87,24 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
-    if (maxPrecision >= 0 && precision > maxPrecision) {
-      precision = maxPrecision;
+    if (precision != RelDataType.PRECISION_NOT_SPECIFIED) {
+      final int minPrecision = typeSystem.getMinPrecision(typeName);
+      final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+      if (maxPrecision >= 0 && precision > maxPrecision) {
+        precision = maxPrecision;
+      }
+      if (precision < minPrecision) {
+        throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision)
+            .ex();
+      }
+    }
+    if (scale != RelDataType.SCALE_NOT_SPECIFIED) {
+      final int minScale = typeSystem.getMinScale(typeName);
+      final int maxScale = typeSystem.getMaxNumericScale();
+      if (scale < minScale) {
+        throw RESOURCE.invalidScaleForDecimalType(scale, minScale, maxScale)
+            .ex();
+      }
     }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);
@@ -235,6 +253,28 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType enforceTypeWithNullability(
+      final RelDataType type,
+      final boolean nullable) {
+    final RelDataType newType;
+    if (type instanceof BasicSqlType) {
+      newType = ((BasicSqlType) type).createWithNullability(nullable);
+    } else if (type instanceof MapSqlType) {
+      newType = copyMapType(type, nullable);
+    } else if (type instanceof ArraySqlType) {
+      newType = copyArrayType(type, nullable);
+    } else if (type instanceof MultisetSqlType) {
+      newType = copyMultisetType(type, nullable);
+    } else if (type instanceof IntervalSqlType) {
+      newType = copyIntervalType(type, nullable);
+    } else if (type instanceof ObjectSqlType) {
+      newType = copyObjectType(type, nullable);
+    } else {
+      return super.enforceTypeWithNullability(type, nullable);
+    }
+    return canonize(newType);
+  }
+
   private static void assertBasic(SqlTypeName typeName) {
     assert typeName != null;
     assert typeName != SqlTypeName.MULTISET
@@ -249,6 +289,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createSqlIntervalType() instead";
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   private @Nullable RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;
@@ -300,6 +341,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
             ? createSqlType(typeName, type.getPrecision())
             : createSqlType(typeName);
         type = createTypeWithNullability(type, originalType.isNullable());
+        // update java type's family
+        family = type.getFamily();
       }
 
       if (resultType == null) {

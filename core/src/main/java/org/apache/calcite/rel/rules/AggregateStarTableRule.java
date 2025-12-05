@@ -152,7 +152,7 @@ public class AggregateStarTableRule
       }
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         final AggregateCall copy =
-            rollUp(groupSet.cardinality(), relBuilder, aggCall, tileKey);
+            rollUp(groupSet.isEmpty(), relBuilder, aggCall, tileKey);
         if (copy == null) {
           return;
         }
@@ -194,7 +194,7 @@ public class AggregateStarTableRule
     call.transformTo(relBuilder.build());
   }
 
-  private static @Nullable AggregateCall rollUp(int groupCount,
+  private static @Nullable AggregateCall rollUp(boolean hasEmptyGroup,
       RelBuilder relBuilder, AggregateCall call, TileKey tileKey) {
     if (call.isDistinct()) {
       return null;
@@ -214,10 +214,10 @@ public class AggregateStarTableRule
       if (roll == null) {
         break tryRoll;
       }
-      return AggregateCall.create(roll, false, call.isApproximate(),
+      return AggregateCall.create(call.getParserPosition(), roll, false, call.isApproximate(),
           call.ignoreNulls(), call.rexList, ImmutableList.of(offset + i), -1,
           call.distinctKeys, call.collation,
-          groupCount, relBuilder.peek(), null, call.name);
+          hasEmptyGroup, relBuilder.peek(), null, call.name);
     }
 
     // Second, try to satisfy the aggregation based on group set columns.
@@ -231,10 +231,10 @@ public class AggregateStarTableRule
         }
         newArgs.add(z);
       }
-      return AggregateCall.create(aggregation, false,
+      return AggregateCall.create(call.getParserPosition(), aggregation, false,
           call.isApproximate(), call.ignoreNulls(), call.rexList,
           newArgs, -1, call.distinctKeys, call.collation,
-          groupCount, relBuilder.peek(), null, call.name);
+          hasEmptyGroup, relBuilder.peek(), null, call.name);
     }
 
     // No roll up possible.

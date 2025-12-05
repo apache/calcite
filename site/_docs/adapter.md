@@ -169,7 +169,7 @@ adding some DDL commands:
 Commands are described in the [SQL reference](reference.html#ddl-extensions).
 
 To enable, include `calcite-server.jar` in your class path, and add
-`parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
+`parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY`
 to the JDBC connect string (see connect string property
 [parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
 Here is an example using the `sqlline` shell.
@@ -177,7 +177,7 @@ Here is an example using the `sqlline` shell.
 {% highlight sql %}
 $ ./sqlline
 sqlline version 1.3.0
-> !connect jdbc:calcite:parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY sa ""
+> !connect jdbc:calcite:parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY sa ""
 > CREATE TABLE t (i INTEGER, j VARCHAR(10));
 No rows affected (0.293 seconds)
 > INSERT INTO t VALUES (1, 'a'), (2, 'bc');
@@ -304,7 +304,7 @@ window functions that rely upon order (`RANK`, for example) cannot be used as
 aggregate functions.
 
 Another difference is that windows are *non-disjoint*: a particular row can
-appear in more than one window. For example, 10:37 appears in both the
+appear in more than one window. For example, 9:37 appears in both the
 9:00-10:00 hour and also the 9:15-9:45 hour.
 
 Window functions are computed incrementally: when the clock ticks from

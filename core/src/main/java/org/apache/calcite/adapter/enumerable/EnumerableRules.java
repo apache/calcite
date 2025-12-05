@@ -49,6 +49,12 @@ public class EnumerableRules {
       EnumerableJoinRule.DEFAULT_CONFIG.toRule(EnumerableJoinRule.class);
 
   /** Rule that converts a
+   * {@link org.apache.calcite.rel.logical.LogicalAsofJoin} to
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static final RelOptRule ENUMERABLE_ASOFJOIN_RULE =
+      EnumerableAsofJoinRule.DEFAULT_CONFIG.toRule(EnumerableAsofJoinRule.class);
+
+  /** Rule that converts a
    * {@link org.apache.calcite.rel.logical.LogicalJoin} to
    * {@link EnumerableConvention enumerable calling convention}. */
   public static final RelOptRule ENUMERABLE_MERGE_JOIN_RULE =
@@ -205,6 +211,7 @@ public class EnumerableRules {
 
   public static final List<RelOptRule> ENUMERABLE_RULES =
       ImmutableList.of(EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_ASOFJOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,

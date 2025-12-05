@@ -49,8 +49,8 @@ public interface RelOptSchema {
   RelDataTypeFactory getTypeFactory();
 
   /**
-   * Registers all of the rules supported by this schema. Only called by
+   * Registers all the rules supported by this schema. Only called by
    * {@link RelOptPlanner#registerSchema}.
    */
-  void registerRules(RelOptPlanner planner) throws Exception;
+  void registerRules(RelOptPlanner planner);
 }

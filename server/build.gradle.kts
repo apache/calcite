@@ -30,6 +30,9 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("org.slf4j:slf4j-api")
 
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
+
     testImplementation(project(":testkit"))
     testImplementation("net.hydromatic:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")

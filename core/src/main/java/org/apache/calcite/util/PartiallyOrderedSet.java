@@ -90,6 +90,10 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * in the set.
    */
   private final Node<E> topNode;
+  /**
+   * Synthetic node to hold all nodes that have no children. It does not appear
+   * in the set.
+   */
   private final Node<E> bottomNode;
 
   /**
@@ -223,7 +227,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * Adds an element to this lattice.
    */
   @Override public boolean add(E e) {
-    assert e != null;
+    requireNonNull(e, "e");
     assert !CalciteSystemProperty.DEBUG.value() || isValid(true);
     Node<E> node = map.get(e);
     if (node != null) {
@@ -681,10 +685,22 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     }
   }
 
+  /**
+   * Returns all elements in the set that are not children. These elements appear at the top of
+   * the poset, and they usually referred to as roots/maximal elements of the poset.
+   *
+   * @return a list of elements that are not children.
+   */
   public List<E> getNonChildren() {
     return strip(topNode.childList);
   }
 
+  /**
+   * Returns all elements in the set that are not parents. These elements appear at the bottom of
+   * the poset, and they usually referred to as leafs/minimal elements of the poset.
+   *
+   * @return a list of elements that are not parents.
+   */
   public List<E> getNonParents() {
     return strip(bottomNode.parentList);
   }

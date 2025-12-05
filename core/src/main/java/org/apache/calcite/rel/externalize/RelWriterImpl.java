@@ -41,6 +41,7 @@ public class RelWriterImpl implements RelWriter {
   protected final PrintWriter pw;
   protected final SqlExplainLevel detailLevel;
   protected final boolean withIdPrefix;
+  protected final boolean expand;
   protected final Spacer spacer = new Spacer();
   private final List<Pair<String, @Nullable Object>> values = new ArrayList<>();
 
@@ -53,9 +54,15 @@ public class RelWriterImpl implements RelWriter {
   public RelWriterImpl(
       PrintWriter pw, SqlExplainLevel detailLevel,
       boolean withIdPrefix) {
+    this(pw, detailLevel, withIdPrefix, false);
+  }
+  public RelWriterImpl(
+      PrintWriter pw, SqlExplainLevel detailLevel,
+      boolean withIdPrefix, boolean expand) {
     this.pw = pw;
     this.detailLevel = detailLevel;
     this.withIdPrefix = withIdPrefix;
+    this.expand = expand;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -155,7 +162,7 @@ public class RelWriterImpl implements RelWriter {
 
   private boolean checkInputsPresentInExplain(RelNode node) {
     int i = 0;
-    if (values.size() > 0 && values.get(0).left.equals("subset")) {
+    if (!values.isEmpty() && values.get(0).left.equals("subset")) {
       ++i;
     }
     for (RelNode input : node.getInputs()) {
@@ -179,5 +186,9 @@ public class RelWriterImpl implements RelWriter {
     }
     buf.append(")");
     return buf.toString();
+  }
+
+  @Override public boolean expand() {
+    return this.expand;
   }
 }

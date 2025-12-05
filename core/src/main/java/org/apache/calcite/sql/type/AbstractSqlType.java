@@ -26,7 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Abstract base class for SQL implementations of {@link RelDataType}.
@@ -37,7 +38,7 @@ public abstract class AbstractSqlType
   //~ Instance fields --------------------------------------------------------
 
   protected final SqlTypeName typeName;
-  protected boolean isNullable;
+  protected final boolean isNullable;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -53,7 +54,7 @@ public abstract class AbstractSqlType
       boolean isNullable,
       @Nullable List<? extends RelDataTypeField> fields) {
     super(fields);
-    this.typeName = Objects.requireNonNull(typeName, "typeName");
+    this.typeName = requireNonNull(typeName, "typeName");
     this.isNullable = isNullable || (typeName == SqlTypeName.NULL);
   }
 

@@ -41,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -108,7 +107,7 @@ class PredicateAnalyzer {
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   static QueryBuilder analyze(RexNode expression) throws ExpressionNotAnalyzableException {
-    Objects.requireNonNull(expression, "expression");
+    requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression e = (QueryExpression) expression.accept(new Visitor());
@@ -118,7 +117,7 @@ class PredicateAnalyzer {
       }
       return e != null ? e.builder() : null;
     } catch (Throwable e) {
-      Throwables.propagateIfPossible(e, UnsupportedOperationException.class);
+      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
     }
   }
@@ -219,14 +218,12 @@ class PredicateAnalyzer {
       return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
     }
 
-    @SuppressWarnings("BetaApi")
     static boolean isSearchWithPoints(RexCall search) {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       return sarg.isPoints();
     }
 
-    @SuppressWarnings("BetaApi")
     static boolean isSearchWithComplementedPoints(RexCall search) {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
@@ -351,7 +348,7 @@ class PredicateAnalyzer {
 
       checkForIncompatibleDateTimeOperands(call);
 
-      checkState(call.getOperands().size() == 2);
+      checkState(call.getOperands().size() == 2 || call.isA(SqlKind.LIKE));
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
 
@@ -376,7 +373,12 @@ class PredicateAnalyzer {
       case CONTAINS:
         return QueryExpression.create(pair.getKey()).contains(pair.getValue());
       case LIKE:
-        throw new UnsupportedOperationException("LIKE not yet supported");
+        if (call.getOperands().size() == 3) {
+          final Expression e = call.getOperands().get(2).accept(this);
+          LiteralExpression escape = expressAsLiteral(e);
+          return QueryExpression.create(pair.getKey()).like(pair.getValue(), escape);
+        }
+        return QueryExpression.create(pair.getKey()).like(pair.getValue());
       case EQUALS:
         return QueryExpression.create(pair.getKey()).equals(pair.getValue());
       case NOT_EQUALS:
@@ -589,6 +591,8 @@ class PredicateAnalyzer {
 
     public abstract QueryExpression like(LiteralExpression literal);
 
+    public abstract QueryExpression like(LiteralExpression literal, LiteralExpression escape);
+
     public abstract QueryExpression notLike(LiteralExpression literal);
 
     public abstract QueryExpression equals(LiteralExpression literal);
@@ -665,7 +669,7 @@ class PredicateAnalyzer {
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
       this.partial = partial;
-      this.builder = Objects.requireNonNull(builder, "builder");
+      this.builder = requireNonNull(builder, "builder");
     }
 
     @Override public boolean isPartial() {
@@ -697,6 +701,11 @@ class PredicateAnalyzer {
     }
 
     @Override public QueryExpression like(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("SqlOperatorImpl ['like'] "
+          + "cannot be applied to a compound expression");
+    }
+
+    @Override public QueryExpression like(LiteralExpression literal, LiteralExpression escape) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['like'] "
           + "cannot be applied to a compound expression");
     }
@@ -796,6 +805,11 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression like(LiteralExpression literal) {
       builder = regexpQuery(getFieldReference(), literal.stringValue());
+      return this;
+    }
+
+    @Override public QueryExpression like(LiteralExpression literal, LiteralExpression escape) {
+      builder = regexpQuery(getFieldReference(), literal.stringValue(), escape.stringValue());
       return this;
     }
 
@@ -1036,7 +1050,6 @@ class PredicateAnalyzer {
       return RexLiteral.stringValue(literal);
     }
 
-    @SuppressWarnings("BetaApi")
     List<Object> sargValue() {
       final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       final RelDataType type = literal.getType();

@@ -37,6 +37,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -65,7 +66,6 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -120,6 +120,16 @@ public class RelMetadataFixture {
     }
     return new RelMetadataFixture(tester, factory, metadataConfig, relSupplier,
         convertAsCalc, relTransform);
+  }
+
+  public RelMetadataFixture withConfig(
+          UnaryOperator<SqlToRelConverter.Config> transform) {
+    return withFactory(f -> f.withSqlToRelConfig(transform));
+  }
+
+  public RelMetadataFixture withRelBuilderConfig(
+          UnaryOperator<RelBuilder.Config> transform) {
+    return withConfig(c -> c.addRelBuilderConfigTransform(transform));
   }
 
   /** Creates a copy of this fixture that uses a given function to create a
@@ -344,18 +354,24 @@ public class RelMetadataFixture {
     });
   }
 
+  @SuppressWarnings({"UnusedReturnValue"})
+  public RelMetadataFixture assertThatUniqueKeysAre(ImmutableBitSet... expectedUniqueKeys) {
+    return assertThatUniqueKeysAre(false, expectedUniqueKeys);
+  }
+
   /** Checks result of getting unique keys for SQL. */
   @SuppressWarnings({"UnusedReturnValue"})
-  public RelMetadataFixture assertThatUniqueKeysAre(
+  public RelMetadataFixture assertThatUniqueKeysAre(boolean ignoreNulls,
       ImmutableBitSet... expectedUniqueKeys) {
     RelNode rel = toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
+    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel, ignoreNulls);
     assertThat(result, notNullValue());
-    assertEquals(ImmutableSortedSet.copyOf(expectedUniqueKeys),
+    assertThat("unique keys, sql: " + relSupplier
+            + ", rel: " + RelOptUtil.toString(rel),
         ImmutableSortedSet.copyOf(result),
-        () -> "unique keys, sql: " + relSupplier + ", rel: " + RelOptUtil.toString(rel));
-    checkUniqueConsistent(rel);
+        is(ImmutableSortedSet.copyOf(expectedUniqueKeys)));
+    checkUniqueConsistent(rel, ignoreNulls);
     return this;
   }
 
@@ -364,17 +380,16 @@ public class RelMetadataFixture {
    * and {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
    * return consistent results.
    */
-  private static void checkUniqueConsistent(RelNode rel) {
+  private static void checkUniqueConsistent(RelNode rel, boolean ignoreNulls) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel);
+    final Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel, ignoreNulls);
     assertThat(uniqueKeys, notNullValue());
-    final ImmutableBitSet allCols =
-        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
-    for (ImmutableBitSet key : allCols.powerSet()) {
-      Boolean result2 = mq.areColumnsUnique(rel, key);
-      assertEquals(isUnique(uniqueKeys, key), SqlFunctions.isTrue(result2),
-          () -> "areColumnsUnique. key: " + key + ", uniqueKeys: " + uniqueKeys
-              + ", rel: " + RelOptUtil.toString(rel));
+    for (ImmutableBitSet key : uniqueKeys) {
+      Boolean result2 = mq.areColumnsUnique(rel, key, ignoreNulls);
+      assertThat("areColumnsUnique. key: " + key
+          + ", uniqueKeys: " + uniqueKeys
+          + ", rel: " + RelOptUtil.toString(rel),
+          SqlFunctions.isTrue(result2), is(isUnique(uniqueKeys, key)));
     }
   }
 

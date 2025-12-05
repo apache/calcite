@@ -568,6 +568,28 @@ public interface ExtendedEnumerable<TSource> {
       EqualityComparer<TKey> comparer);
 
   /**
+   * Correlates elements of two sequences based on
+   * - matching keys
+   * - a comparator for timestamps.
+   *
+   * @param inner               Inner sequence
+   * @param outerKeySelector    Function that extracts a key from the outer collection
+   * @param innerKeySelector    Function that extracts a key from the inner collection
+   * @param resultSelector      Function that computes the join result
+   * @param matchComparator     Function that compares an outer row and an inner row for timestamp
+   * @param timestampComparator Function that compares two inner rows for timestamp
+   * @param generateNullsOnRight If true, this a left join
+   */
+  <TInner, TKey, TResult> Enumerable<TResult> asofJoin(
+      Enumerable<TInner> inner,
+      Function1<TSource, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<TSource, @Nullable TInner, TResult> resultSelector,
+      Predicate2<TSource, TInner> matchComparator,
+      Comparator<TInner>  timestampComparator,
+      boolean generateNullsOnRight);
+
+  /**
    * Correlates the elements of two sequences based on matching keys, with
    * optional outer join semantics. A specified
    * {@code EqualityComparer<TSource>} is used to compare keys.
@@ -591,7 +613,7 @@ public interface ExtendedEnumerable<TSource> {
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer,
+      @Nullable EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight);
 
   /**

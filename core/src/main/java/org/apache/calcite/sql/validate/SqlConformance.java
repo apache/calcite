@@ -103,6 +103,39 @@ public interface SqlConformance {
   boolean isGroupByAlias();
 
   /**
+   * Value describing how to perform lookup for aliases defined in a SELECT list.
+   * When enabled, this feature is called "lateral column alias" in Spark SQL and Redshift,
+   * but also "inline column alias", or "self-referencing alias", "expression alias reuse", or
+   * "alias chaining".
+   */
+  enum SelectAliasLookup {
+    /** Values defined in a SELECT list are not visible within the list (standard SQL). */
+    UNSUPPORTED,
+    /** Values defined in a SELECT list are visible to the right of their definition.
+     *  */
+    LEFT_TO_RIGHT,
+    /** All values defined in a SELECT list can be used within the same list. */
+    ANY
+  }
+
+  /**
+   * Whether to allow aliases from the {@code SELECT} clause to be used as
+   * column names in the same {@code SELECT} clause.
+   * E.g., SELECT 1 as X, X+1 as Y;
+   * Name lookup considers an identifier in the same SELECT only
+   * if other lookups failed.
+   * Supported by Spark, Snowflake, Redshift, DuckDB.
+   *
+   * <p>Note: this usually requires {@link #isGroupByAlias} to also return true.
+   */
+  SelectAliasLookup isSelectAlias();
+
+  /**
+   * Allow non-GROUP BY columns in SELECT (MySQL loose mode).
+   */
+  boolean isNonStrictGroupBy();
+
+  /**
    * Whether {@code GROUP BY 2} is interpreted to mean 'group by the 2nd column
    * in the select list'.
    *
@@ -176,6 +209,21 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isSortByAliasObscures();
+
+  /**
+   * Whether this dialect supports dual table.
+   *
+   * <p>For example,
+   *
+   * <blockquote><pre>SELECT 1 + 1 FROM DUAL</pre></blockquote>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
+   * false otherwise.
+   */
+  boolean isSupportedDualTable();
 
   /**
    * Whether {@code FROM} clause is required in a {@code SELECT} statement.
@@ -255,22 +303,6 @@ public interface SqlConformance {
    * version 5.5).
    */
   boolean isMinusAllowed();
-
-  /**
-   * Whether this dialect uses {@code $} (dollar) for indexing capturing groups
-   * in the replacement string of regular expression functions such as
-   * {@code REGEXP_REPLACE}. If false, the dialect uses {@code \\} (backslash)
-   * for indexing capturing groups.
-   *
-   * <p>For example, {@code REGEXP_REPLACE("abc", "a(.)c", "X\\1")} in BigQuery
-   * is equivalent to {@code REGEXP_REPLACE("abc", "a(.)c", "X$1")} in MySQL;
-   * both produce the result "Xb".
-   *
-   * <p>Among the built-in conformance levels, false in
-   * {@link SqlConformanceEnum#BIG_QUERY};
-   * true otherwise.
-   */
-  boolean isRegexReplaceCaptureGroupDollarIndexed();
 
   /**
    * Whether {@code CROSS APPLY} and {@code OUTER APPLY} operators are allowed
@@ -361,6 +393,30 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowNiladicParentheses();
+
+  /**
+   * Whether to allow parentheses to be specified in calls to niladic functions of
+   * returned the specific constant value.
+   *
+   * <p>For example, {@code PI} is a niladic function and return specific constant values pi.
+   * In standard SQL it must be invoked with parentheses:
+   *
+   * <blockquote><code>VALUES PI()</code></blockquote>
+   *
+   * <p>If {@code allowNiladicConstantWithoutParentheses}, the following syntax is also valid:
+   *
+   * <blockquote><code>VALUES PI</code></blockquote>
+   *
+   * <p>The same function include E which result is Euler's constant.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
+   * {@link SqlConformanceEnum#DEFAULT};
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowNiladicConstantWithoutParentheses();
 
   /**
    * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
@@ -476,6 +532,7 @@ public interface SqlConformance {
    * {@link SqlConformanceEnum#ORACLE_12},
    * {@link SqlConformanceEnum#PRESTO},
    * {@link SqlConformanceEnum#SQL_SERVER_2008};
+   * {@link SqlConformanceEnum#BIG_QUERY}
    * false otherwise.
    */
   boolean shouldConvertRaggedUnionTypesToVarying();
@@ -599,4 +656,16 @@ public interface SqlConformance {
    */
   @Experimental
   boolean allowLenientCoercion();
+
+  /**
+   * Whether the implementation uses checked arithmetic.
+   * Most SQL dialects use checked arithmetic at runtime:
+   * they terminate with a fatal error on overflow.
+   */
+  boolean checkedArithmetic();
+
+  /**
+   * True when the unsigned versions of integer types are supported.
+   */
+  boolean supportsUnsignedTypes();
 }

@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 plugins {
-    id("me.champeau.gradle.jmh")
+    id("me.champeau.jmh")
 }
 
 dependencies {
     jmhImplementation(platform(project(":bom")))
+    jmhImplementation(project(":babel"))
     jmhImplementation(project(":core"))
     jmhImplementation(project(":linq4j"))
     jmhImplementation("com.google.guava:guava")
@@ -31,7 +32,7 @@ dependencies {
 }
 
 // See https://github.com/melix/jmh-gradle-plugin
-// Unfortunately, current jmh-gradle-plugin does not allow to cusomize jmh parameters from the
+// Unfortunately, current jmh-gradle-plugin does not allow to customize jmh parameters from the
 // command line, so the workarounds are:
 // a) Build and execute the jar itself: ./gradlew jmhJar && java -jar build/libs/calcite-...jar JMH_OPTIONS
 // b) Execute benchmarks via .main() methods from IDE (you might want to activate "power save mode"
@@ -44,7 +45,13 @@ tasks.withType<JavaExec>().configureEach {
         // At best jmh plugin should add the generated directories to the Gradle model, however,
         // currently it builds the jar only :-/
         // IntelliJ IDEA "execute main method" adds a JavaExec task, so we configure it
-        classpath(File(buildDir, "jmh-generated-classes"))
-        classpath(File(buildDir, "jmh-generated-resources"))
+        classpath(File(layout.buildDirectory.asFile.get(), "jmh-generated-classes"))
+        classpath(File(layout.buildDirectory.asFile.get(), "jmh-generated-resources"))
+    }
+}
+
+if (hasProperty("jmh.includes")) {
+    jmh {
+        includes = listOf(property("jmh.includes") as String)
     }
 }

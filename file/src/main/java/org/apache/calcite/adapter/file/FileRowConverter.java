@@ -21,9 +21,11 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableMap;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -39,6 +41,12 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.Util.first;
+
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Byte.parseByte;
+import static java.util.Objects.requireNonNull;
+
 /**
  * FileRowConverter.
  */
@@ -46,7 +54,7 @@ class FileRowConverter {
 
   // cache for lazy initialization
   private final FileReader fileReader;
-  private final List<Map<String, Object>> fieldConfigs;
+  private final @Nullable List<Map<String, Object>> fieldConfigs;
   private boolean initialized = false;
 
   // row parser configuration
@@ -120,7 +128,7 @@ class FileRowConverter {
 
             String sSkip = (String) fieldConfig.get("skip");
             if (sSkip != null) {
-              skip = Boolean.parseBoolean(sSkip);
+              skip = parseBoolean(sSkip);
             }
 
             Integer sourceIx = headerMap.get(thName);
@@ -141,7 +149,7 @@ class FileRowConverter {
       for (Map.Entry<String, Integer> e : headerMap.entrySet()) {
         final String name = e.getKey();
         if (!sources.contains(name) && !colNames.contains(name)) {
-          addFieldDef(name, null, null, e.getValue());
+          addFieldDef(name, null, ImmutableMap.of(), e.getValue());
         }
       }
 
@@ -154,7 +162,7 @@ class FileRowConverter {
   }
 
   // add another field definition to the FileRowConverter during initialization
-  private void addFieldDef(String name, FileFieldType type,
+  private void addFieldDef(String name, @Nullable FileFieldType type,
       Map<String, Object> config, int sourceCol) {
     this.fields.add(new FieldDef(name, type, config, sourceCol));
   }
@@ -185,7 +193,7 @@ class FileRowConverter {
     for (FieldDef f : this.fields) {
       names.add(f.getName());
 
-      FileFieldType fieldType = f.getType();
+      @Nullable FileFieldType fieldType = f.getType();
       RelDataType type;
 
       if (fieldType == null) {
@@ -205,53 +213,28 @@ class FileRowConverter {
     return typeFactory.createStructType(Pair.zip(names, types));
   }
 
-  /** Parses an an HTML table cell. */
+  /** Parses an HTML table cell. */
   private static class CellReader {
-    @SuppressWarnings("unused")
-    private String type;
-    private String selector;
-    private Integer selectedElement;
-    private String replaceText;
-    private Pattern replacePattern;
-    private String replaceWith;
-    private String matchText;
-    private Pattern matchPattern;
-    private Integer matchSeq;
+    private final String selector;
+    private final @Nullable Integer selectedElement;
+    private final @Nullable Pattern replacePattern;
+    private final String replaceWith;
+    private final @Nullable Pattern matchPattern;
+    private final int matchSeq;
 
     CellReader(Map<String, Object> config) {
-      if (config != null) {
-        this.type = (String) config.get("type");
-        this.selector = (String) config.get("selector");
-        this.selectedElement = (Integer) config.get("selectedElement");
-        this.replaceText = (String) config.get("replace");
-        this.replaceWith = (String) config.get("replaceWith");
-        this.matchText = (String) config.get("match");
-        this.matchSeq = (Integer) config.get("matchSeq");
-      }
-
-      if (this.selector == null) {
-        this.selector = "*";
-      }
-
-      if (this.replaceText != null) {
-        this.replacePattern = Pattern.compile(this.replaceText);
-      }
-
-      if (this.replaceWith == null) {
-        this.replaceWith = "";
-      }
-
-      if (this.matchText != null) {
-        this.matchPattern = Pattern.compile(this.matchText);
-      }
-
-      if (this.matchSeq == null) {
-        this.matchSeq = 0;
-      }
-
+      final @Nullable String unusedType = (String) config.get("type");
+      this.selector = first((String) config.get("selector"), "*");
+      this.selectedElement = (Integer) config.get("selectedElement");
+      @Nullable String replace = (String) config.get("replace");
+      this.replacePattern = replace == null ? null : Pattern.compile(replace);
+      this.replaceWith = first((String) config.get("replaceWith"), "");
+      @Nullable String match = (String) config.get("match");
+      this.matchPattern = match == null ? null : Pattern.compile(match);
+      this.matchSeq = first((Integer) config.get("matchSeq"), 0);
     }
 
-    String read(Element cell) {
+    @Nullable String read(Element cell) {
       ArrayList<String> cellText = new ArrayList<>();
 
       if (this.selectedElement != null) {
@@ -281,7 +264,7 @@ class FileRowConverter {
         while (m.find()) {
           allMatches.add(m.group());
         }
-        if (allMatches.size() != 0) {
+        if (!allMatches.isEmpty()) {
           return allMatches.get(this.matchSeq);
         } else {
           return null;
@@ -293,22 +276,22 @@ class FileRowConverter {
   /** Responsible for managing field (column) definition,
    * and for converting an Element to a java data type. */
   private class FieldDef {
-    String name;
-    FileFieldType type;
-    Map<String, Object> config;
-    CellReader cellReader;
-    int cellSeq;
+    final String name;
+    final @Nullable FileFieldType type;
+    final Map<String, Object> config;
+    final CellReader cellReader;
+    final int cellSeq;
 
-    FieldDef(String name, FileFieldType type, Map<String, Object> config,
-        int cellSeq) {
-      this.name = name;
+    FieldDef(String name, @Nullable FileFieldType type,
+        Map<String, Object> config, int cellSeq) {
+      this.name = requireNonNull(name, "name");
       this.type = type;
-      this.config = config;
+      this.config = requireNonNull(config, "config");
       this.cellReader = new CellReader(config);
       this.cellSeq = cellSeq;
     }
 
-    Object convert(Elements row) {
+    @Nullable Object convert(Elements row) {
       return toObject(this.type, this.cellReader.read(row.get(this.cellSeq)));
     }
 
@@ -316,7 +299,7 @@ class FileRowConverter {
       return this.name;
     }
 
-    FileFieldType getType() {
+    @Nullable FileFieldType getType() {
       return this.type;
     }
 
@@ -328,8 +311,9 @@ class FileRowConverter {
     }
 
     @SuppressWarnings("JavaUtilDate")
-    private Object toObject(FileFieldType fieldType, String string) {
-      if ((string == null) || (string.length() == 0)) {
+    private @Nullable Object toObject(@Nullable FileFieldType fieldType,
+        @Nullable String string) {
+      if (string == null || string.isEmpty()) {
         return null;
       }
 
@@ -338,15 +322,11 @@ class FileRowConverter {
       }
 
       switch (fieldType) {
-      default:
-      case STRING:
-        return string;
-
       case BOOLEAN:
-        return Boolean.parseBoolean(string);
+        return parseBoolean(string);
 
       case BYTE:
-        return Byte.parseByte(string);
+        return parseByte(string);
 
       case SHORT:
         try {
@@ -391,6 +371,10 @@ class FileRowConverter {
 
       case TIMESTAMP:
         return new java.sql.Timestamp(parseDate(string).getTime());
+
+      case STRING:
+      default:
+        return string;
       }
     }
   }

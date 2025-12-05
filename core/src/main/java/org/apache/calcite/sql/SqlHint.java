@@ -161,8 +161,9 @@ public class SqlHint extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     name.unparse(writer, leftPrec, rightPrec);
-    if (this.options.size() > 0) {
-      SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+    if (!this.options.isEmpty()) {
+      SqlWriter.Frame frame =
+          writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
       for (int i = 0; i < options.size(); i++) {
         SqlNode option = options.get(i);
         SqlNode nextOption = i < options.size() - 1 ? options.get(i + 1) : null;

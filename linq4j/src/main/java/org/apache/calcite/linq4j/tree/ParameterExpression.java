@@ -22,6 +22,10 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a named parameter expression.
  */
@@ -37,12 +41,12 @@ public class ParameterExpression extends Expression {
 
   public ParameterExpression(int modifier, Type type, String name) {
     super(ExpressionType.Parameter, type);
-    assert name != null : "name should not be null";
-    assert Character.isJavaIdentifierStart(name.charAt(0))
-      : "parameter name should be valid java identifier: "
-        + name + ". The first character is invalid.";
+    checkArgument(Character.isJavaIdentifierStart(name.charAt(0)),
+        "parameter name should be valid java identifier: %s. "
+            + "The first character is invalid.",
+        name);
     this.modifier = modifier;
-    this.name = name;
+    this.name = requireNonNull(name, "name");
   }
 
   @Override public Expression accept(Shuttle shuttle) {

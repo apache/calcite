@@ -20,8 +20,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility class to generate elastic search queries. Most query builders have
@@ -168,6 +171,17 @@ class QueryBuilders {
     return new RegexpQueryBuilder(name, regexp);
   }
 
+  /**
+   * A Query that matches documents containing terms with a specified regular expression.
+   *
+   * @param name   The name of the field
+   * @param regexp The regular expression
+   * @param escape The regular escape
+   */
+  static RegexpQueryBuilder regexpQuery(String name, String regexp, String escape) {
+    return new RegexpQueryBuilder(name, regexp, escape);
+  }
+
 
   /**
    * A Query that matches documents matching boolean combinations of other queries.
@@ -236,25 +250,25 @@ class QueryBuilders {
     private final List<QueryBuilder> shouldClauses = new ArrayList<>();
 
     BoolQueryBuilder must(QueryBuilder queryBuilder) {
-      Objects.requireNonNull(queryBuilder, "queryBuilder");
+      requireNonNull(queryBuilder, "queryBuilder");
       mustClauses.add(queryBuilder);
       return this;
     }
 
     BoolQueryBuilder filter(QueryBuilder queryBuilder) {
-      Objects.requireNonNull(queryBuilder, "queryBuilder");
+      requireNonNull(queryBuilder, "queryBuilder");
       filterClauses.add(queryBuilder);
       return this;
     }
 
     BoolQueryBuilder mustNot(QueryBuilder queryBuilder) {
-      Objects.requireNonNull(queryBuilder, "queryBuilder");
+      requireNonNull(queryBuilder, "queryBuilder");
       mustNotClauses.add(queryBuilder);
       return this;
     }
 
     BoolQueryBuilder should(QueryBuilder queryBuilder) {
-      Objects.requireNonNull(queryBuilder, "queryBuilder");
+      requireNonNull(queryBuilder, "queryBuilder");
       shouldClauses.add(queryBuilder);
       return this;
     }
@@ -298,8 +312,8 @@ class QueryBuilders {
     private final Object value;
 
     private TermQueryBuilder(final String fieldName, final Object value) {
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.value = Objects.requireNonNull(value, "value");
+      this.fieldName = requireNonNull(fieldName, "fieldName");
+      this.value = requireNonNull(value, "value");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {
@@ -321,8 +335,8 @@ class QueryBuilders {
     private final Iterable<?> values;
 
     private TermsQueryBuilder(final String fieldName, final Iterable<?> values) {
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.values = Objects.requireNonNull(values, "values");
+      this.fieldName = requireNonNull(fieldName, "fieldName");
+      this.values = requireNonNull(values, "values");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {
@@ -350,8 +364,8 @@ class QueryBuilders {
     private final Object value;
 
     private MatchQueryBuilder(final String fieldName, final Object value) {
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.value = Objects.requireNonNull(value, "value");
+      this.fieldName = requireNonNull(fieldName, "fieldName");
+      this.value = requireNonNull(value, "value");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {
@@ -374,8 +388,8 @@ class QueryBuilders {
     private final Iterable<?> values;
 
     private MatchesQueryBuilder(final String fieldName, final Iterable<?> values) {
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.values = Objects.requireNonNull(values, "values");
+      this.fieldName = requireNonNull(fieldName, "fieldName");
+      this.values = requireNonNull(values, "values");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {
@@ -419,17 +433,17 @@ class QueryBuilders {
     private String format;
 
     private RangeQueryBuilder(final String fieldName) {
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+      this.fieldName = requireNonNull(fieldName, "fieldName");
     }
 
     private RangeQueryBuilder to(Object value, boolean lte) {
-      this.lt = Objects.requireNonNull(value, "value");
+      this.lt = requireNonNull(value, "value");
       this.lte = lte;
       return this;
     }
 
     private RangeQueryBuilder from(Object value, boolean gte) {
-      this.gt = Objects.requireNonNull(value, "value");
+      this.gt = requireNonNull(value, "value");
       this.gte = gte;
       return this;
     }
@@ -496,14 +510,80 @@ class QueryBuilders {
     private final String fieldName;
     @SuppressWarnings("unused")
     private final String value;
+    @SuppressWarnings("unused")
+    private String escape;
 
     RegexpQueryBuilder(final String fieldName, final String value) {
-      this.fieldName = fieldName;
-      this.value = value;
+      this(fieldName, value, "\\");
     }
 
-    @Override void writeJson(final JsonGenerator generator) throws IOException {
-      throw new UnsupportedOperationException();
+    RegexpQueryBuilder(final String fieldName, final String value, final String escape) {
+      requireNonNull(fieldName, "fieldName");
+      requireNonNull(value, "value");
+      requireNonNull(escape, "escape");
+      this.fieldName = fieldName;
+      this.escape = escape;
+      // replace % to * and _ to ? for sql with like operator
+      HashMap<String, String> kv = new HashMap<>();
+      kv.put("%", "*");
+      kv.put("_", "?");
+      this.value = replaceWildcard(value, kv, escape);
+    }
+
+    public static String replaceWildcard(String value, Map<String, String> kv, String escape) {
+      ArrayList<String> ret = new ArrayList<>();
+      int escapeCount = 0;
+      for (int index = 0; index < value.length(); index++) {
+        String current = value.substring(index, index + 1);
+        if (index == 0) {
+          if (!current.equals(escape)) {
+            current = kv.keySet().contains(current) ? kv.get(current) : current;
+            ret.add(current);
+          } else {
+            escapeCount++;
+          }
+          continue;
+        }
+
+        if (!kv.keySet().contains(current) && !current.equals(escape)) {
+          ret.add(current);
+          escapeCount = 0;
+          continue;
+        }
+
+        if (current.equals(escape)) {
+          escapeCount++;
+          if (escapeCount % 2 == 0) {
+            ret.add(current);
+          }
+          continue;
+        }
+
+        String last = value.substring(index - 1, index);
+        if (kv.keySet().contains(current)) {
+          if (!last.equals(escape)) {
+            ret.add(kv.get(current));
+          } else {
+            if (escapeCount % 2 == 0) {
+              ret.add(kv.get(current));
+            } else {
+              ret.add(current);
+            }
+          }
+          escapeCount = 0;
+        }
+      }
+      return String.join("", ret);
+    }
+
+    @Override void writeJson(final JsonGenerator generator) throws IOException  {
+      generator.writeStartObject();
+      generator.writeFieldName("wildcard");
+      generator.writeStartObject();
+      generator.writeFieldName(fieldName);
+      writeObject(generator, value);
+      generator.writeEndObject();
+      generator.writeEndObject();
     }
   }
 
@@ -514,7 +594,7 @@ class QueryBuilders {
     private final String fieldName;
 
     ExistsQueryBuilder(final String fieldName) {
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+      this.fieldName = requireNonNull(fieldName, "fieldName");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {
@@ -536,7 +616,7 @@ class QueryBuilders {
     private final QueryBuilder builder;
 
     private ConstantScoreQueryBuilder(final QueryBuilder builder) {
-      this.builder = Objects.requireNonNull(builder, "builder");
+      this.builder = requireNonNull(builder, "builder");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {
@@ -559,7 +639,7 @@ class QueryBuilders {
     private final QueryBuilder builder;
 
     private DisMaxQueryBuilder(final QueryBuilder builder) {
-      this.builder = Objects.requireNonNull(builder, "builder");
+      this.builder = requireNonNull(builder, "builder");
     }
 
     @Override void writeJson(final JsonGenerator generator) throws IOException {

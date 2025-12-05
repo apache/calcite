@@ -44,4 +44,9 @@ public interface SqlTypeTransform {
   RelDataType transformType(
       SqlOperatorBinding opBinding,
       RelDataType typeToTransform);
+
+  /** Creates an operand type transform. */
+  default SqlOperatorBinding apply(SqlOperatorBinding operatorBinding) {
+    return operatorBinding.transform(this);
+  }
 }

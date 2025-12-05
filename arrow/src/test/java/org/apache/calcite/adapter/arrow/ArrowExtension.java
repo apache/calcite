@@ -65,7 +65,7 @@ class ArrowExtension implements ExecutionCondition {
     if (enabled) {
       return ConditionEvaluationResult.enabled("Arrow tests enabled");
     } else {
-      return ConditionEvaluationResult.disabled("Cassandra tests disabled");
+      return ConditionEvaluationResult.disabled("Arrow tests disabled");
     }
   }
 }

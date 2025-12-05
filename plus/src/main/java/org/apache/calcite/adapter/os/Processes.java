@@ -29,6 +29,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities regarding operating system processes.
  *
@@ -71,10 +73,10 @@ public class Processes {
   /** Enumerator that executes a process and returns each line as an element. */
   private static class ProcessLinesEnumerator
       extends AbstractEnumerable<String> {
-    private Supplier<Process> processSupplier;
+    private final Supplier<Process> processSupplier;
 
     ProcessLinesEnumerator(Supplier<Process> processSupplier) {
-      this.processSupplier = processSupplier;
+      this.processSupplier = requireNonNull(processSupplier, "processSupplier");
     }
 
     @Override public Enumerator<String> enumerator() {

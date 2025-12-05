@@ -34,10 +34,8 @@ public class BinaryExpression extends Expression {
   BinaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1) {
     super(nodeType, type);
-    assert expression0 != null : "expression0 should not be null";
-    assert expression1 != null : "expression1 should not be null";
-    this.expression0 = expression0;
-    this.expression1 = expression1;
+    this.expression0 = requireNonNull(expression0, "expression0");
+    this.expression1 = requireNonNull(expression1, "expression1");
     this.primitive = Primitive.of(expression0.getType());
   }
 

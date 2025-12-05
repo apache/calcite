@@ -51,10 +51,8 @@ public class RexProgramBuilder {
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
   private final List<@Nullable String> projectNameList = new ArrayList<>();
-  @SuppressWarnings("unused")
-  private final @Nullable RexSimplify simplify;
   private @Nullable RexLocalRef conditionRef = null;
-  private boolean validating;
+  private final boolean validating;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -70,10 +68,9 @@ public class RexProgramBuilder {
    */
   @SuppressWarnings("method.invocation.invalid")
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
-      @Nullable RexSimplify simplify) {
+      @Nullable RexSimplify unusedSimplify) {
     this.inputRowType = requireNonNull(inputRowType, "inputRowType");
     this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
-    this.simplify = simplify; // may be null
     this.validating = assertionsAreEnabled();
 
     // Pre-create an expression for each input field.
@@ -272,7 +269,7 @@ public class RexProgramBuilder {
    * not, call {@link #registerOutput(RexNode)} first.
    */
   public void addCondition(RexNode expr) {
-    assert expr != null;
+    requireNonNull(expr, "expr");
     RexLocalRef conditionRef = this.conditionRef;
     if (conditionRef == null) {
       this.conditionRef = conditionRef = registerInput(expr);
@@ -660,8 +657,7 @@ public class RexProgramBuilder {
       }
       ref = (RexLocalRef) ref.accept(shuttle);
       this.projectRefList.add(ref);
-      final String name = outFields.get(i).getName();
-      assert name != null;
+      final String name = requireNonNull(outFields.get(i).getName());
       projectNameList.add(name);
     }
     if (conditionRef != null) {
@@ -1052,7 +1048,7 @@ public class RexProgramBuilder {
    * references.
    */
   private static class UpdateRefShuttle extends RexShuttle {
-    private List<RexLocalRef> newRefs;
+    private final List<RexLocalRef> newRefs;
 
     private UpdateRefShuttle(List<RexLocalRef> newRefs) {
       this.newRefs = newRefs;

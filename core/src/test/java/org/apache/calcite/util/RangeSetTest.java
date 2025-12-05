@@ -17,6 +17,10 @@
 package org.apache.calcite.util;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.externalize.RelJson;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableList;
@@ -49,14 +53,19 @@ import static java.util.Arrays.asList;
  * Unit test for {@link RangeSets} and other utilities relating to Guava
  * {@link Range} and {@link RangeSet}.
  */
-@SuppressWarnings("UnstableApiUsage")
 class RangeSetTest {
 
   /** Tests {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)}
-   * and {@link RelJson#rangeFromJson(List)}. */
+   * and {@link RelJson#rangeFromJson(List, RelDataType)}. */
   @Test void testRangeSetSerializeDeserialize() {
     RelJson relJson = RelJson.create();
-    final Range<BigDecimal> point = Range.singleton(BigDecimal.valueOf(0));
+    RelDataType integerType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
+    RelDataType decimalType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DECIMAL);
+    RelDataType doubleType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DOUBLE);
+
+    final Range<Integer> integerPoint = Range.singleton(Integer.valueOf(0));
+    final Range<BigDecimal> bigDecimalPoint = Range.singleton(BigDecimal.valueOf(0));
+    final Range<Double> doublePoint = Range.singleton(Double.valueOf(0));
     final Range<BigDecimal> closedRange1 =
         Range.closed(BigDecimal.valueOf(0), BigDecimal.valueOf(5));
     final Range<BigDecimal> closedRange2 =
@@ -68,19 +77,27 @@ class RangeSetTest {
     final Range<BigDecimal> am1 = Range.atMost(BigDecimal.valueOf(3));
 
     // Test serialize/deserialize Range
-    //    Point
-    assertThat(RelJson.rangeFromJson(relJson.toJson(point)), is(point));
+    //    Integer Point
+    //    Deserializes as BigDecimal because Calcite uses BigDecimal for exact numerics
+    assertThat(RelJson.rangeFromJson(relJson.toJson(integerPoint), integerType),
+        is(bigDecimalPoint));
+    //    BigDecimal Point
+    assertThat(RelJson.rangeFromJson(relJson.toJson(bigDecimalPoint), decimalType),
+        is(bigDecimalPoint));
+    //    Double Point
+    assertThat(RelJson.rangeFromJson(relJson.toJson(doublePoint), doubleType),
+        is(doublePoint));
     //    Closed Range
-    assertThat(RelJson.rangeFromJson(relJson.toJson(closedRange1)),
+    assertThat(RelJson.rangeFromJson(relJson.toJson(closedRange1), decimalType),
         is(closedRange1));
     //    Open Range
-    assertThat(RelJson.rangeFromJson(relJson.toJson(gt1)), is(gt1));
-    assertThat(RelJson.rangeFromJson(relJson.toJson(al1)), is(al1));
-    assertThat(RelJson.rangeFromJson(relJson.toJson(lt1)), is(lt1));
-    assertThat(RelJson.rangeFromJson(relJson.toJson(am1)), is(am1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(gt1), decimalType), is(gt1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(al1), decimalType), is(al1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(lt1), decimalType), is(lt1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(am1), decimalType), is(am1));
     // Test closed single RangeSet
     final RangeSet<BigDecimal> closedRangeSet = ImmutableRangeSet.of(closedRange1);
-    assertThat(RelJson.rangeSetFromJson(relJson.toJson(closedRangeSet)),
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(closedRangeSet), decimalType),
         is(closedRangeSet));
     // Test complex RangeSets
     final RangeSet<BigDecimal> complexClosedRangeSet1 =
@@ -89,25 +106,24 @@ class RangeSetTest {
             .add(closedRange2)
             .build();
     assertThat(
-        RelJson.rangeSetFromJson(relJson.toJson(complexClosedRangeSet1)),
+        RelJson.rangeSetFromJson(relJson.toJson(complexClosedRangeSet1), decimalType),
         is(complexClosedRangeSet1));
     final RangeSet<BigDecimal> complexClosedRangeSet2 =
         ImmutableRangeSet.<BigDecimal>builder()
             .add(gt1)
             .add(am1)
             .build();
-    assertThat(RelJson.rangeSetFromJson(relJson.toJson(complexClosedRangeSet2)),
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(complexClosedRangeSet2), decimalType),
         is(complexClosedRangeSet2));
 
     // Test None and All
     final RangeSet<BigDecimal> setNone = ImmutableRangeSet.of();
     final RangeSet<BigDecimal> setAll = setNone.complement();
-    assertThat(RelJson.rangeSetFromJson(relJson.toJson(setNone)), is(setNone));
-    assertThat(RelJson.rangeSetFromJson(relJson.toJson(setAll)), is(setAll));
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(setNone), decimalType), is(setNone));
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(setAll), decimalType), is(setAll));
   }
 
   /** Tests {@link RangeSets#minus(RangeSet, Range)}. */
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testRangeSetMinus() {
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final RangeSet<Integer> setAll = setNone.complement();

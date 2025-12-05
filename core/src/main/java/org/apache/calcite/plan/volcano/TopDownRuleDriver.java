@@ -264,7 +264,7 @@ class TopDownRuleDriver implements RuleDriver {
    */
   private static class TaskDescriptor {
     private boolean first = true;
-    private StringBuilder builder = new StringBuilder();
+    private final StringBuilder builder = new StringBuilder();
 
     void log(Task task) {
       if (!LOGGER.isDebugEnabled()) {
@@ -308,7 +308,7 @@ class TopDownRuleDriver implements RuleDriver {
    */
   private class OptimizeGroup implements Task {
     private final RelSubset group;
-    private RelOptCost upperBound;
+    private final RelOptCost upperBound;
 
     OptimizeGroup(RelSubset group, RelOptCost upperBound) {
       this.group = group;

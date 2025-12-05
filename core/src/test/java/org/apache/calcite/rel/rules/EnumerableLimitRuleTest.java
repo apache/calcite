@@ -55,7 +55,7 @@ class EnumerableLimitRuleTest {
    * EnumerableLimitRule on Sort with no collation creates EnumerableLimit with
    * wrong traitSet and cluster</a>.
    */
-  @Test void enumerableLimitOnEmptySort() throws Exception {
+  @Test void enumerableLimitOnEmptySort() {
     RuleSet prepareRules =
         RuleSets.ofList(EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,

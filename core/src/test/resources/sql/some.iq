@@ -554,6 +554,24 @@ where sal > (select sal * 2 from "scott".emp);
 more than one value in agg SINGLE_VALUE
 !error
 
+# If sub-query return one NO-NULL value and NULL value, sub-query will throw exception.
+select * from "scott".emp
+where comm > (select comm from "scott".emp where comm = 300.00 or comm is null);
+more than one value in agg SINGLE_VALUE
+!error
+
+select * from "scott".emp
+where comm > (select comm from "scott".emp where comm = 300.00);
++-------+--------+----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+----------+------+------------+---------+---------+--------+
+|  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
++-------+--------+----------+------+------------+---------+---------+--------+
+(2 rows)
+
+!ok
+
 select * from "scott".emp
 where sal > any (select sal * 2 from "scott".emp)
 order by sal desc;
@@ -829,5 +847,126 @@ where sal > all (select comm from "scott".emp where comm is not null);
 
 !ok
 
+# [CALCITE-4758] When SOME sub-query is SqlNodeList and converted to VALUES, Calcite returns incorrect result
+
+# make sure the SqlNodeList converted to VALUES not OR condition
+!set insubquerythreshold 0
+
+select * from "scott".emp
+where sal > all(500, 2000);
++-------+-------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+------+------------+---------+------+--------+
+|  7566 | JONES | MANAGER   | 7839 | 1981-02-04 | 2975.00 |      |     20 |
+|  7698 | BLAKE | MANAGER   | 7839 | 1981-01-05 | 2850.00 |      |     30 |
+|  7782 | CLARK | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7788 | SCOTT | ANALYST   | 7566 | 1987-04-19 | 3000.00 |      |     20 |
+|  7839 | KING  | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7902 | FORD  | ANALYST   | 7566 | 1981-12-03 | 3000.00 |      |     20 |
++-------+-------+-----------+------+------------+---------+------+--------+
+(6 rows)
+
+!ok
+
+select * from "scott".emp
+where sal > all (4000, 2000);
++-------+-------+-----------+-----+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+-----+------------+---------+------+--------+
+|  7839 | KING  | PRESIDENT |     | 1981-11-17 | 5000.00 |      |     10 |
++-------+-------+-----------+-----+------------+---------+------+--------+
+(1 row)
+
+!ok
+
+select * from "scott".emp
+where sal > some (4000, 2000);
++-------+-------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+------+------------+---------+------+--------+
+|  7566 | JONES | MANAGER   | 7839 | 1981-02-04 | 2975.00 |      |     20 |
+|  7698 | BLAKE | MANAGER   | 7839 | 1981-01-05 | 2850.00 |      |     30 |
+|  7782 | CLARK | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7788 | SCOTT | ANALYST   | 7566 | 1987-04-19 | 3000.00 |      |     20 |
+|  7839 | KING  | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7902 | FORD  | ANALYST   | 7566 | 1981-12-03 | 3000.00 |      |     20 |
++-------+-------+-----------+------+------------+---------+------+--------+
+(6 rows)
+
+!ok
+
+# CALCITE-6786: ANY/SOME operator yields multiple rows in correlated queries
+
+WITH tb as (select array(SELECT * FROM (VALUES (TRUE), (NULL)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+WITH tb as (select array(SELECT * FROM (VALUES (FALSE), (NULL)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+|      |
++------+
+(1 row)
+
+!ok
+
+WITH tb as (select array(SELECT * FROM (VALUES (FALSE), (TRUE)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select sal, sal > some (4000, 2000, null) from "scott".emp;
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 | true   |
+| 2850.00 | true   |
+| 2975.00 | true   |
+| 3000.00 | true   |
+| 3000.00 | true   |
+| 5000.00 | true   |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
+(14 rows)
+
+!ok
+
+select * from "scott".emp
+where sal > any (4000, 2000);
++-------+-------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+------+------------+---------+------+--------+
+|  7566 | JONES | MANAGER   | 7839 | 1981-02-04 | 2975.00 |      |     20 |
+|  7698 | BLAKE | MANAGER   | 7839 | 1981-01-05 | 2850.00 |      |     30 |
+|  7782 | CLARK | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7788 | SCOTT | ANALYST   | 7566 | 1987-04-19 | 3000.00 |      |     20 |
+|  7839 | KING  | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7902 | FORD  | ANALYST   | 7566 | 1981-12-03 | 3000.00 |      |     20 |
++-------+-------+-----------+------+------------+---------+------+--------+
+(6 rows)
+
+!ok
 # End some.iq
 

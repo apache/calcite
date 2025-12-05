@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a PseudoField that is implemented via a Java reflection
  * {@link Field}.
@@ -29,8 +31,7 @@ public class ReflectedPseudoField implements PseudoField {
   private final Field field;
 
   public ReflectedPseudoField(Field field) {
-    assert field != null : "field should not be null";
-    this.field = field;
+    this.field = requireNonNull(field, "field");
   }
 
   @Override public String getName() {

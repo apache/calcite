@@ -84,11 +84,12 @@ import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.
@@ -218,8 +219,8 @@ public class Bindables {
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
       super(cluster, traitSet, ImmutableList.of(), table);
-      this.filters = Objects.requireNonNull(filters, "filters");
-      this.projects = Objects.requireNonNull(projects, "projects");
+      this.filters = requireNonNull(filters, "filters");
+      this.projects = requireNonNull(projects, "projects");
       checkArgument(canHandle(table));
     }
 
@@ -266,6 +267,11 @@ public class Bindables {
       return super.explainTerms(pw)
           .itemIf("filters", filters, !filters.isEmpty())
           .itemIf("projects", projects, !projects.equals(identity()));
+    }
+
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      double f = filters.isEmpty() ? 1d : 0.5d;
+      return super.estimateRowCount(mq) * f;
     }
 
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,

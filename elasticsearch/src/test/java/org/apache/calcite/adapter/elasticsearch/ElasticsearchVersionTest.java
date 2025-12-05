@@ -20,7 +20,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.adapter.elasticsearch.ElasticsearchVersion.fromString;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -29,13 +32,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 class ElasticsearchVersionTest {
 
   @Test void versions() {
-    assertEquals(ElasticsearchVersion.fromString("2.3.4"), ElasticsearchVersion.ES2);
-    assertEquals(ElasticsearchVersion.fromString("2.0.0"), ElasticsearchVersion.ES2);
-    assertEquals(ElasticsearchVersion.fromString("5.6.1"), ElasticsearchVersion.ES5);
-    assertEquals(ElasticsearchVersion.fromString("6.0.1"), ElasticsearchVersion.ES6);
-    assertEquals(ElasticsearchVersion.fromString("7.0.1"), ElasticsearchVersion.ES7);
-    assertEquals(ElasticsearchVersion.fromString("111.0.1"), ElasticsearchVersion.UNKNOWN);
-    assertEquals(ElasticsearchVersion.fromString("2020.12.12"), ElasticsearchVersion.UNKNOWN);
+    assertThat(ElasticsearchVersion.ES2, is(fromString("2.3.4")));
+    assertThat(ElasticsearchVersion.ES2, is(fromString("2.0.0")));
+    assertThat(ElasticsearchVersion.ES5, is(fromString("5.6.1")));
+    assertThat(ElasticsearchVersion.ES6, is(fromString("6.0.1")));
+    assertThat(ElasticsearchVersion.ES7, is(fromString("7.0.1")));
+    assertThat(ElasticsearchVersion.UNKNOWN, is(fromString("111.0.1")));
+    assertThat(ElasticsearchVersion.UNKNOWN, is(fromString("2020.12.12")));
 
     assertFails("");
     assertFails(".");
@@ -54,7 +57,7 @@ class ElasticsearchVersionTest {
 
   private static void assertFails(String version) {
     try {
-      ElasticsearchVersion.fromString(version);
+      fromString(version);
       fail(String.format(Locale.ROOT, "Should fail for version %s", version));
     } catch (IllegalArgumentException ignore) {
       // expected

@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
@@ -114,5 +115,18 @@ class EnumerableCalcTest {
                     builder.field("empid"),
                     builder.field("name"))
                 .build());
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6680">[CALCITE-6680]
+   * RexImpTable erroneously declares NullPolicy.NONE for IS_EMPTY</a>. */
+  @Test public void testEmptyCheckOnArray() {
+    CalciteAssert.that()
+        .withSchema("s", new ReflectiveSchema(new CatchallSchema()))
+        .withRel(builder -> builder
+            .scan("s", "everyTypes")
+            .project(builder.call(SqlStdOperatorTable.IS_EMPTY, builder.field("list")))
+            .build())
+        .planContains("input_value != null && input_value.isEmpty()")
+        .returnsUnordered("$f0=false", "$f0=true");
   }
 }

@@ -42,6 +42,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -50,6 +51,7 @@ import org.hamcrest.Matcher;
 
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -132,7 +134,7 @@ public class SqlValidatorFixture {
 
   public StringAndPos toSql(boolean withCaret) {
     return expression
-        ? StringAndPos.of(AbstractSqlTester.buildQuery(sap.addCarets()))
+        ? AbstractSqlTester.buildQueryWithPos(sap)
         : sap;
   }
 
@@ -234,6 +236,20 @@ public class SqlValidatorFixture {
   }
 
   /**
+   * Passes the returned type of a query to a consumer.
+   *
+   * @param check  Consumer run on the specific data type.
+   * @return The fixture itself.
+   */
+  public SqlValidatorFixture type(Consumer<RelDataType> check) {
+    tester.validateAndThen(factory, sap, (sql, validator, n) -> {
+      RelDataType actualType = validator.getValidatedNodeType(n);
+      check.accept(actualType);
+    });
+    return this;
+  }
+
+  /**
    * Checks that a query returns a single column, and that the column has the
    * expected type. For example,
    *
@@ -245,6 +261,19 @@ public class SqlValidatorFixture {
    */
   public SqlValidatorFixture columnType(String expectedType) {
     tester.checkColumnType(factory, toSql(false).sql, expectedType);
+    return this;
+  }
+
+  /**
+   * Checks that column {@code column} is or is not a measure.
+   */
+  public SqlValidatorFixture assertMeasure(int column,
+      Matcher<Boolean> matcher) {
+    tester.validateAndThen(factory, sap, (sql1, validator, n) -> {
+      final SqlNode selectItem = ((SqlSelect) n).getSelectList().get(column);
+      boolean isMeasure = SqlValidatorUtil.isMeasure(selectItem);
+      assertThat(isMeasure, matcher);
+    });
     return this;
   }
 

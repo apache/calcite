@@ -45,6 +45,8 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -413,6 +415,26 @@ class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         is("[\"bar\"]"));
+
+    // jsonize test
+
+    assertJsonQuery(
+        JsonFunctions.JsonPathContext
+            .withJavaObj(JsonFunctions.PathMode.STRICT,
+                Collections.singletonList("bar")),
+        SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        false,
+        isListOf("bar"));
+    assertJsonQuery(
+        JsonFunctions.JsonPathContext
+            .withUnknownException(new Exception("test message")),
+        SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
+        false,
+        is(Collections.emptyList()));
   }
 
   @Test void testJsonize() {
@@ -436,8 +458,10 @@ class SqlJsonFunctionsTest {
     // expect exception thrown
     final String message = "com.fasterxml.jackson.core.JsonParseException: "
         + "Unexpected close marker '}': expected ']' (for Array starting at "
-        + "[Source: (String)\"[}\"; line: 1, column: 1])\n at [Source: "
-        + "(String)\"[}\"; line: 1, column: 3]";
+        + "[Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` "
+        + "disabled); line: 1, column: 1])\n at [Source: REDACTED "
+        + "(`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: "
+        + "1, column: 2]";
     assertDejsonizeFailed("[}",
         errorMatches(new InvalidJsonException(message)));
   }
@@ -581,18 +605,22 @@ class SqlJsonFunctionsTest {
     assertIsJsonValue("{}", is(true));
     assertIsJsonValue("100", is(true));
     assertIsJsonValue("{]", is(false));
+    assertIsJsonValue(null, nullValue());
     assertIsJsonObject("[]", is(false));
     assertIsJsonObject("{}", is(true));
     assertIsJsonObject("100", is(false));
     assertIsJsonObject("{]", is(false));
+    assertIsJsonObject(null, nullValue());
     assertIsJsonArray("[]", is(true));
     assertIsJsonArray("{}", is(false));
     assertIsJsonArray("100", is(false));
     assertIsJsonArray("{]", is(false));
+    assertIsJsonArray(null, nullValue());
     assertIsJsonScalar("[]", is(false));
     assertIsJsonScalar("{}", is(false));
     assertIsJsonScalar("100", is(true));
     assertIsJsonScalar("{]", is(false));
+    assertIsJsonScalar(null, nullValue());
   }
 
   @Test public void testJsonInsert() {
@@ -706,14 +734,23 @@ class SqlJsonFunctionsTest {
       SqlJsonQueryWrapperBehavior wrapperBehavior,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
-      Matcher<? super String> matcher) {
+      Matcher<? super Object> matcher) {
+    assertJsonQuery(input, wrapperBehavior, emptyBehavior, errorBehavior, true, matcher);
+  }
+
+  private void assertJsonQuery(JsonFunctions.JsonPathContext input,
+      SqlJsonQueryWrapperBehavior wrapperBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+      boolean jsonize,
+      Matcher<? super Object> matcher) {
     final JsonFunctions.StatefulFunction f =
         new JsonFunctions.StatefulFunction();
     assertThat(
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior),
+            errorBehavior, jsonize),
         matcher);
   }
 
@@ -728,7 +765,7 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         () -> f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior),
+            errorBehavior, true),
         matcher);
   }
 

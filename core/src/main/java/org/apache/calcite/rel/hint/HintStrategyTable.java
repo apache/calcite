@@ -119,7 +119,7 @@ public class HintStrategyTable {
    * the given {@code rule} should be excluded. */
   public boolean isRuleExcluded(Hintable hintable, RelOptRule rule) {
     final List<RelHint> hints = hintable.getHints();
-    if (hints.size() == 0) {
+    if (hints.isEmpty()) {
       return false;
     }
 
@@ -141,7 +141,7 @@ public class HintStrategyTable {
       Set<ConverterRule> converterRules,
       Hintable hintable) {
     // If no converter rules are specified, we assume the conversion is possible.
-    return converterRules.size() == 0
+    return converterRules.isEmpty()
         || converterRules.stream()
             .anyMatch(converterRule -> converterRule.convert((RelNode) hintable) != null);
   }

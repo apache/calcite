@@ -240,4 +240,461 @@ EXPR$0
 true
 !ok
 
+#####################################################################
+# CONCAT_WS
+#
+# CONCAT_WS(sep[, str | array(str)]+)
+# Returns the concatenation of the strings separated by sep, skipping null values.
+# If sep is null, returns null directly
+#
+# Returns STRING
+
+SELECT CONCAT_WS('s');
+EXPR$0
+
+!ok
+
+SELECT CONCAT_WS(',', null);
+EXPR$0
+
+!ok
+
+SELECT CONCAT_WS(',', null, null);
+EXPR$0
+
+!ok
+
+SELECT CONCAT_WS(',', null, 'a');
+EXPR$0
+a
+!ok
+
+SELECT CONCAT_WS(',', 'a', 'b');
+EXPR$0
+a,b
+!ok
+
+SELECT CONCAT_WS(',', 'a', null, 'b');
+EXPR$0
+a,b
+!ok
+
+SELECT CONCAT_WS(null, 'a', 'b');
+EXPR$0
+null
+!ok
+
+SELECT CONCAT_WS(',', 'a', 100, 'b');
+EXPR$0
+a,100,b
+!ok
+
+SELECT CONCAT_WS(',', 'a', 100.0, 'b');
+EXPR$0
+a,100.0,b
+!ok
+
+SELECT CONCAT_WS('', cast('a' as varchar(2)), cast('b' as varchar(1)));
+EXPR$0
+ab
+!ok
+
+SELECT CONCAT_WS(',', array('a', 'b', 'c'));
+EXPR$0
+a,b,c
+!ok
+
+SELECT CONCAT_WS(',', array('a', null, 'c'));
+EXPR$0
+a,c
+!ok
+
+SELECT CONCAT_WS(',', array('a'));
+EXPR$0
+a
+!ok
+
+SELECT CONCAT_WS(null, array('a'));
+EXPR$0
+null
+!ok
+
+SELECT CONCAT_WS(null, array('a'), array('b'), array('c'));
+EXPR$0
+null
+!ok
+
+SELECT CONCAT_WS(',', array('a'), array('b'), array('c'));
+EXPR$0
+a,b,c
+!ok
+
+SELECT CONCAT_WS(',', 'a1', 'b1', 'c1', array('a'), array('b'), array('c'));
+EXPR$0
+a1,b1,c1,a,b,c
+!ok
+
+SELECT CONCAT_WS(',', null, 'a1', 'b1', null, 'c1', array('a'), array('b'), array('c'));
+EXPR$0
+a1,b1,c1,a,b,c
+!ok
+
+SELECT CONCAT_WS(',', null,'a1', 'b1', null, 'c1', array('a'), array('b'), array('c', null, 'd'));
+EXPR$0
+a1,b1,c1,a,b,c,d
+!ok
+
+SELECT CONCAT_WS(',', 100, 'b', array('c'));
+EXPR$0
+100,b,c
+!ok
+
+SELECT CONCAT_WS(',', array(null, null));
+EXPR$0
+
+!ok
+
+
+#####################################################################
+# REVERSE
+#
+# REVERSE(str | array)
+# Returns a reversed string or an array with reverse order of elements.
+#
+# Returns STRING or ARRAY
+
+SELECT REVERSE('Spark SQL');
+EXPR$0
+LQS krapS
+!ok
+
+SELECT REVERSE('#c@b!a');
+EXPR$0
+a!b@c#
+!ok
+
+SELECT REVERSE(5);
+EXPR$0
+5
+!ok
+
+SELECT REVERSE(array(2, 1, 4, 3));
+EXPR$0
+[3, 4, 1, 2]
+!ok
+
+SELECT REVERSE(NULL);
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(cast(NULL as tinyint));
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(array(NULL));
+EXPR$0
+[null]
+!ok
+
+SELECT REVERSE(cast(NULL as integer array));
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(array(cast(NULL as tinyint)));
+EXPR$0
+[null]
+!ok
+
+SELECT REVERSE('');
+EXPR$0
+
+!ok
+
+SELECT REVERSE(array(cast(1 as tinyint), 2));
+EXPR$0
+[2, 1]
+!ok
+
+SELECT REVERSE(array(2.1, 2.2));
+EXPR$0
+[2.2, 2.1]
+!ok
+
+SELECT REVERSE(array(2.1, NULL));
+EXPR$0
+[null, 2.1]
+!ok
+
+SELECT REVERSE(array(2, CAST(2.2 AS double)));
+EXPR$0
+[2.2, 2.0]
+!ok
+
+SELECT REVERSE(array(2, CAST(NULL AS double)));
+EXPR$0
+[null, 2.0]
+!ok
+
+SELECT REVERSE(array(CAST(2.1 as decimal(17)), 2.1111111111111119));
+EXPR$0
+[2.11, 2.00]
+!ok
+
+SELECT REVERSE(array(CAST(2.1 as double), 2.1111111111111119));
+EXPR$0
+[2.111111111111112, 2.1]
+!ok
+
+# Tests for CALCITE-6680
+# RexImpTable erroneously declares NullPolicy.NONE for IS_EMPTY
+# Added as Babel tests since they need the ARRAY() and MAP() functions
+
+CREATE OR REPLACE TABLE COMPLEX(
+   KEY INT, "list" INT ARRAY, "long" BIGINT, "map" MAP<VARCHAR, INT>, "set" INT MULTISET);
+(0 rows modified)
+
+!update
+
+INSERT INTO COMPLEX (VALUES
+ (0, NULL, 5, NULL, NULL),
+ -- Apparently there is no function of constructor to create an empty multiset
+ (1, array(), 4, NULL, multiset[1] MULTISET EXCEPT multiset[1]),
+ (2, ARRAY[0], 3, MAP(), multiset[0]),
+ (3, ARRAY[0, 1], 2, MAP['zero', 0], multiset[0, 1]),
+ (4, ARRAY[0, 1, 2], 1, MAP['zero', 0, 'one', 1], multiset[0, 1, 2]),
+ (5, ARRAY[0, 1, 2, 3], 0, MAP['zero', 0, 'one', 1, 'two', 2], multiset[0, 1, 2, 3])
+);
+(6 rows modified)
+
+!update
+!set outputformat mysql
+
+SELECT * FROM COMPLEX WHERE "list" IS EMPTY;
++-----+------+------+-----+-----+
+| KEY | list | long | map | set |
++-----+------+------+-----+-----+
+|   1 | []   |    4 |     | []  |
++-----+------+------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT * FROM COMPLEX WHERE "set" IS EMPTY;
++-----+------+------+-----+-----+
+| KEY | list | long | map | set |
++-----+------+------+-----+-----+
+|   1 | []   |    4 |     | []  |
++-----+------+------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT * FROM COMPLEX WHERE "map" IS EMPTY;
++-----+------+------+-----+-----+
+| KEY | list | long | map | set |
++-----+------+------+-----+-----+
+|   2 | [0]  |    3 | {}  | [0] |
++-----+------+------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT ARRAY_INSERT("list", 1, 2) AS list FROM COMPLEX;
++-----------------+
+| LIST            |
++-----------------+
+| [2, 0, 1, 2, 3] |
+| [2, 0, 1, 2]    |
+| [2, 0, 1]       |
+| [2, 0]          |
+| [2]             |
+|                 |
++-----------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET UNION "set" AS u FROM COMPLEX;
++--------------------------+
+| U                        |
++--------------------------+
+| [0, 0]                   |
+| [0, 1, 0, 1]             |
+| [0, 1, 2, 0, 1, 2]       |
+| [0, 1, 2, 3, 0, 1, 2, 3] |
+| []                       |
+|                          |
++--------------------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET UNION DISTINCT "set" AS u FROM COMPLEX;
++--------------+
+| U            |
++--------------+
+| [0, 1, 2, 3] |
+| [0, 1, 2]    |
+| [0, 1]       |
+| [0]          |
+| []           |
+|              |
++--------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET INTERSECT "set" AS u FROM COMPLEX;
++--------------+
+| U            |
++--------------+
+| [0, 1, 2, 3] |
+| [0, 1, 2]    |
+| [0, 1]       |
+| [0]          |
+| []           |
+|              |
++--------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET INTERSECT DISTINCT "set" AS u FROM COMPLEX;
++--------------+
+| U            |
++--------------+
+| [0, 1, 2, 3] |
+| [0, 1, 2]    |
+| [0, 1]       |
+| [0]          |
+| []           |
+|              |
++--------------+
+(6 rows)
+
+!ok
+
+SELECT "set" IS A SET AS u FROM COMPLEX;
++-------+
+| U     |
++-------+
+| false |
+| true  |
+| true  |
+| true  |
+| true  |
+| true  |
++-------+
+(6 rows)
+
+!ok
+
+SELECT (multiset[3] SUBMULTISET OF "set") FROM COMPLEX;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
+| true   |
+|        |
++--------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET EXCEPT "set" AS u FROM COMPLEX;
++----+
+| U  |
++----+
+| [] |
+| [] |
+| [] |
+| [] |
+| [] |
+|    |
++----+
+(6 rows)
+
+!ok
+
+SELECT KEY, "list" IS NULL AS N FROM COMPLEX;
++-----+-------+
+| KEY | N     |
++-----+-------+
+|   0 | true  |
+|   1 | false |
+|   2 | false |
+|   3 | false |
+|   4 | false |
+|   5 | false |
++-----+-------+
+(6 rows)
+
+!ok
+
+SELECT KEY, "map" IS NULL AS N FROM COMPLEX;
++-----+-------+
+| KEY | N     |
++-----+-------+
+|   0 | true  |
+|   1 | true  |
+|   2 | false |
+|   3 | false |
+|   4 | false |
+|   5 | false |
++-----+-------+
+(6 rows)
+
+!ok
+
+SELECT KEY, "set" IS NULL AS N FROM COMPLEX;
++-----+-------+
+| KEY | N     |
++-----+-------+
+|   0 | true  |
+|   1 | false |
+|   2 | false |
+|   3 | false |
+|   4 | false |
+|   5 | false |
++-----+-------+
+(6 rows)
+
+!ok
+
+SELECT greatest(1, null, 3) AS x;
++---+
+| X |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+SELECT least(1, 2, null, 3) AS x;
++---+
+| X |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+SELECT greatest(null, null) AS x;
++---+
+| X |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
 # End spark.iq

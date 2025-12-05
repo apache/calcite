@@ -56,12 +56,14 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdParallelism.SOURCE,
             RelMdDistribution.SOURCE,
             RelMdLowerBoundCost.SOURCE,
+            RelMdMeasure.SOURCE,
             RelMdMemory.SOURCE,
             RelMdDistinctRowCount.SOURCE,
             RelMdSelectivity.SOURCE,
             RelMdExplainVisibility.SOURCE,
             RelMdPredicates.SOURCE,
             RelMdAllPredicates.SOURCE,
-            RelMdCollation.SOURCE));
+            RelMdCollation.SOURCE,
+            RelMdFunctionalDependency.SOURCE));
   }
 }

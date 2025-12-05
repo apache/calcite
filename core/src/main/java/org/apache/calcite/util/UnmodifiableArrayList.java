@@ -17,8 +17,9 @@
 package org.apache.calcite.util;
 
 import java.util.AbstractList;
-import java.util.Objects;
 import java.util.RandomAccess;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A view onto an array that cannot be modified by the client.
@@ -39,7 +40,7 @@ public class UnmodifiableArrayList<E>
   private final E[] elements;
 
   private UnmodifiableArrayList(E[] elements) {
-    this.elements = Objects.requireNonNull(elements, "elements");
+    this.elements = requireNonNull(elements, "elements");
   }
 
   public static <E> UnmodifiableArrayList<E> of(E... elements) {

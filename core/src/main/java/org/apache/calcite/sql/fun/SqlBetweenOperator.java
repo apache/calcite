@@ -39,8 +39,6 @@ import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Defines the BETWEEN operator.
  *
@@ -150,7 +148,13 @@ public class SqlBetweenOperator extends SqlInfixOperator {
             opBinding.collectOperandTypes());
     RelDataType type =
         ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(newOpBinding);
-    return requireNonNull(type, "inferred BETWEEN element type");
+    if (type == null) {
+      throw opBinding.newError(
+          RESOURCE.cannotInferReturnType(
+              opBinding.getOperator().toString(),
+              opBinding.collectOperandTypes().toString()));
+    }
+    return type;
   }
 
   @Override public String getSignatureTemplate(final int operandsCount) {

@@ -20,9 +20,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 
-import java.util.Objects;
-
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A SQL literal representing a TIME WITH TIME ZONE value, for example <code>TIME WITH TIME ZONE
@@ -43,7 +43,7 @@ public class SqlTimeTzLiteral extends SqlAbstractDateTimeLiteral {
 
   /** Converts this literal to a {@link TimeWithTimeZoneString}. */
   protected TimeWithTimeZoneString getTime() {
-    return (TimeWithTimeZoneString) Objects.requireNonNull(value, "value");
+    return (TimeWithTimeZoneString) requireNonNull(value, "value");
   }
 
   @Override public SqlTimeTzLiteral clone(SqlParserPos pos) {

@@ -48,6 +48,7 @@ class JoinNamespace extends AbstractNamespace {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     switch (join.getJoinType()) {
     case LEFT:
+    case LEFT_ASOF:
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
     case RIGHT:

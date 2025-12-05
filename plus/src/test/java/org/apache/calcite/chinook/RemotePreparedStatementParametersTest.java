@@ -26,6 +26,11 @@ import java.sql.ResultSet;
 /**
  * Tests against parameters in prepared statement when using underlying JDBC
  * sub-schema.
+ *
+ * <p>Under JDK 23 and higher, this test requires
+ * "{@code -Djava.security.manager=allow}" command-line arguments due to
+ * Avatica's use of deprecated methods in {@link javax.security.auth.Subject}.
+ * These arguments are set automatically if you run via Gradle.
  */
 class RemotePreparedStatementParametersTest {
 

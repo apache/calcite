@@ -28,6 +28,7 @@ dependencies {
     implementation("net.hydromatic:foodmart-data-hsqldb")
     implementation("net.hydromatic:foodmart-queries")
     implementation("net.hydromatic:scott-data-hsqldb")
+    implementation("net.hydromatic:steelwheels-data-hsqldb")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.apache.commons:commons-pool2")
@@ -40,4 +41,10 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }

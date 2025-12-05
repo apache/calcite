@@ -65,7 +65,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
       // EnumerableMergeJoin only supports certain join types.
       return null;
     }
-    if (info.pairs().size() == 0) {
+    if (info.pairs().isEmpty()) {
       // EnumerableMergeJoin CAN support cartesian join, but disable it for now.
       return null;
     }

@@ -38,6 +38,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
@@ -58,6 +60,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.rel.RelCollations.containsOrderless;
 
@@ -94,7 +98,8 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
 
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
-    assert collations != null && collations.size() > 0;
+    requireNonNull(collations, "collations");
+    checkArgument(!collations.isEmpty());
     ImmutableIntList rightKeys = joinInfo.rightKeys
         .incr(left.getRowType().getFieldCount());
     // Currently it has very limited ability to represent the equivalent traits
@@ -347,11 +352,9 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       keyMap.put(sourceKeys.get(i), targetKeys.get(i));
     }
 
-    Mappings.TargetMapping mapping =
-        Mappings.target(keyMap,
-            (left2Right ? left : right).getRowType().getFieldCount(),
-            (left2Right ? right : left).getRowType().getFieldCount());
-    return mapping;
+    return Mappings.target(keyMap,
+        (left2Right ? left : right).getRowType().getFieldCount(),
+        (left2Right ? right : left).getRowType().getFieldCount());
   }
 
   /**
@@ -491,8 +494,23 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
           new RelFieldCollation(i, RelFieldCollation.Direction.ASCENDING,
               RelFieldCollation.NullDirection.LAST));
     }
+
+    final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
+    List<RelDataTypeField> leftRelDataTypeFieldList = leftKeyPhysType.getRowType().getFieldList();
+    List<RelDataTypeField> rightRelDataTypeFieldList = rightKeyPhysType.getRowType().getFieldList();
+    for (int i = 0; i < leftRelDataTypeFieldList.size(); i++) {
+      typeBuilder.add(leftRelDataTypeFieldList.get(i).getName(),
+          typeFactory.createTypeWithNullability(
+              leftRelDataTypeFieldList.get(i).getType(),
+              leftRelDataTypeFieldList.get(i).getType().isNullable()
+                  || rightRelDataTypeFieldList.get(i).getType().isNullable()));
+    }
+
+    RelDataType comparatorRowType = typeBuilder.build();
+    final PhysType comparatorPhysType =
+        PhysTypeImpl.of(typeFactory, comparatorRowType, JavaRowFormat.LIST);
     final RelCollation collation = RelCollations.of(fieldCollations);
-    final Expression comparator = leftKeyPhysType.generateMergeJoinComparator(collation);
+    final Expression comparator = comparatorPhysType.generateMergeJoinComparator(collation);
 
     return implementor.result(
         physType,

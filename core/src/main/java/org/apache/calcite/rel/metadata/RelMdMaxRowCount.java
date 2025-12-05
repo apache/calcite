@@ -115,11 +115,11 @@ public class RelMdMaxRowCount
       rowCount = Double.POSITIVE_INFINITY;
     }
 
-    final int offset = rel.offset instanceof RexLiteral ? RexLiteral.intValue(rel.offset) : 0;
+    final long offset = rel.offset instanceof RexLiteral ? RexLiteral.longValue(rel.offset) : 0;
     rowCount = Math.max(rowCount - offset, 0D);
 
     final double limit =
-        rel.fetch instanceof RexLiteral ? RexLiteral.intValue(rel.fetch) : rowCount;
+        rel.fetch instanceof RexLiteral ? RexLiteral.longValue(rel.fetch) : rowCount;
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -129,11 +129,11 @@ public class RelMdMaxRowCount
       rowCount = Double.POSITIVE_INFINITY;
     }
 
-    final int offset = rel.offset instanceof RexLiteral ? RexLiteral.intValue(rel.offset) : 0;
+    final long offset = rel.offset instanceof RexLiteral ? RexLiteral.longValue(rel.offset) : 0;
     rowCount = Math.max(rowCount - offset, 0D);
 
     final double limit =
-        rel.fetch instanceof RexLiteral ? RexLiteral.intValue(rel.fetch) : rowCount;
+        rel.fetch instanceof RexLiteral ? RexLiteral.longValue(rel.fetch) : rowCount;
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -159,7 +159,7 @@ public class RelMdMaxRowCount
     return rowCount * rel.getGroupSets().size();
   }
 
-  private static boolean allGroupKeysAreConstant(Aggregate aggregate,
+  static boolean allGroupKeysAreConstant(Aggregate aggregate,
       RelOptPredicateList predicateList) {
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     for (int key : aggregate.getGroupSet()) {
@@ -214,7 +214,7 @@ public class RelMdMaxRowCount
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
         if (sort.fetch instanceof RexLiteral) {
-          return (double) RexLiteral.intValue(sort.fetch);
+          return (double) RexLiteral.longValue(sort.fetch);
         }
       }
     }

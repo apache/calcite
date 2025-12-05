@@ -30,6 +30,8 @@ import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Hint attached to a relation expression.
  *
@@ -104,10 +106,8 @@ public class RelHint {
       String hintName,
       @Nullable List<String> listOption,
       @Nullable Map<String, String> kvOptions) {
-    Objects.requireNonNull(inheritPath, "inheritPath");
-    Objects.requireNonNull(hintName, "hintName");
     this.inheritPath = ImmutableList.copyOf(inheritPath);
-    this.hintName = hintName;
+    this.hintName = requireNonNull(hintName, "hintName");
     this.listOptions = listOption == null ? ImmutableList.of() : ImmutableList.copyOf(listOption);
     this.kvOptions = kvOptions == null ? ImmutableMap.of() : ImmutableMap.copyOf(kvOptions);
   }
@@ -126,7 +126,7 @@ public class RelHint {
    * @return the new {@code RelHint}
    */
   public RelHint copy(List<Integer> inheritPath) {
-    Objects.requireNonNull(inheritPath, "inheritPath");
+    requireNonNull(inheritPath, "inheritPath");
     return new RelHint(inheritPath, hintName, listOptions, kvOptions);
   }
 
@@ -155,12 +155,12 @@ public class RelHint {
         .append(this.hintName)
         .append(" inheritPath:")
         .append(this.inheritPath);
-    if (this.listOptions.size() > 0 || this.kvOptions.size() > 0) {
+    if (!this.listOptions.isEmpty() || !this.kvOptions.isEmpty()) {
       builder.append(" options:");
-      if (this.listOptions.size() > 0) {
-        builder.append(this.listOptions.toString());
+      if (!this.listOptions.isEmpty()) {
+        builder.append(this.listOptions);
       } else {
-        builder.append(this.kvOptions.toString());
+        builder.append(this.kvOptions);
       }
     }
     builder.append("]");
@@ -171,7 +171,7 @@ public class RelHint {
 
   /** Builder for {@link RelHint}. */
   public static class Builder {
-    private String hintName;
+    private final String hintName;
     private List<Integer> inheritPath;
 
     private List<String> listOptions;
@@ -186,7 +186,7 @@ public class RelHint {
 
     /** Sets up the inherit path with given integer list. */
     public Builder inheritPath(Iterable<Integer> inheritPath) {
-      this.inheritPath = ImmutableList.copyOf(Objects.requireNonNull(inheritPath, "inheritPath"));
+      this.inheritPath = ImmutableList.copyOf(inheritPath);
       return this;
     }
 
@@ -198,7 +198,7 @@ public class RelHint {
 
     /** Add a hint option as string. */
     public Builder hintOption(String hintOption) {
-      Objects.requireNonNull(hintOption, "hintOption");
+      requireNonNull(hintOption, "hintOption");
       checkState(this.kvOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.listOptions.add(hintOption);
@@ -207,7 +207,7 @@ public class RelHint {
 
     /** Add multiple string hint options. */
     public Builder hintOptions(Iterable<String> hintOptions) {
-      Objects.requireNonNull(hintOptions, "hintOptions");
+      requireNonNull(hintOptions, "hintOptions");
       checkState(this.kvOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.listOptions = ImmutableList.copyOf(hintOptions);
@@ -216,8 +216,8 @@ public class RelHint {
 
     /** Add a hint option as string key-value pair. */
     public Builder hintOption(String optionKey, String optionValue) {
-      Objects.requireNonNull(optionKey, "optionKey");
-      Objects.requireNonNull(optionValue, "optionValue");
+      requireNonNull(optionKey, "optionKey");
+      requireNonNull(optionValue, "optionValue");
       checkState(this.listOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.kvOptions.put(optionKey, optionValue);
@@ -226,7 +226,7 @@ public class RelHint {
 
     /** Add multiple string key-value pair hint options. */
     public Builder hintOptions(Map<String, String> kvOptions) {
-      Objects.requireNonNull(kvOptions, "kvOptions");
+      requireNonNull(kvOptions, "kvOptions");
       checkState(this.listOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.kvOptions = kvOptions;

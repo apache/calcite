@@ -79,7 +79,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -87,6 +86,7 @@ import java.util.TreeSet;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNullList;
+import static org.apache.calcite.sql.SqlUtil.deriveAliasFromOrdinal;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -369,7 +369,7 @@ public class SqlValidatorUtil {
       if (ordinal < 0) {
         return null;
       } else {
-        return SqlUtil.deriveAliasFromOrdinal(ordinal);
+        return deriveAliasFromOrdinal(ordinal);
       }
     }
   }
@@ -537,6 +537,7 @@ public class SqlValidatorUtil {
     requireNonNull(systemFieldList, "systemFieldList");
     switch (joinType) {
     case LEFT:
+    case LEFT_ASOF:
       rightType =
           typeFactory.createTypeWithNullability(
               requireNonNull(rightType, "rightType"), true);
@@ -652,7 +653,7 @@ public class SqlValidatorUtil {
     final Table t = table == null ? null : table.unwrap(Table.class);
     if (!(t instanceof CustomColumnResolvingTable)) {
       final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      return nameMatcher.field(rowType, id.getSimple());
+      return nameMatcher.field(rowType, Util.last(id.names));
     }
 
     final List<Pair<RelDataTypeField, List<String>>> entries =
@@ -677,7 +678,7 @@ public class SqlValidatorUtil {
   public static SqlValidatorNamespace lookup(
       SqlValidatorScope scope,
       List<String> names) {
-    assert names.size() > 0;
+    assert !names.isEmpty();
     final SqlNameMatcher nameMatcher =
         scope.getValidator().getCatalogReader().nameMatcher();
     final SqlValidatorScope.ResolvedImpl resolved =
@@ -686,8 +687,7 @@ public class SqlValidatorUtil {
     assert resolved.count() == 1;
     SqlValidatorNamespace namespace = resolved.only().namespace;
     for (String name : Util.skip(names)) {
-      namespace = namespace.lookupChild(name);
-      assert namespace != null;
+      namespace = requireNonNull(namespace.lookupChild(name));
     }
     return namespace;
   }
@@ -764,11 +764,47 @@ public class SqlValidatorUtil {
         new ArrayList<>(columnNameList.size());
     for (String name : columnNameList) {
       RelDataTypeField field = type.getField(name, caseSensitive, false);
-      assert field != null : "field " + name + (caseSensitive ? " (caseSensitive)" : "")
-          + " is not found in " + type;
+      if (field == null) {
+        throw new IllegalArgumentException("field " + name
+            + (caseSensitive ? " (caseSensitive)" : "") + " is not found in "
+            + type);
+      }
       fields.add(type.getFieldList().get(field.getIndex()));
     }
     return typeFactory.createStructType(fields);
+  }
+
+  /**
+   * Returns whether there are empty groups in the GROUP BY clause. The final grouping sets of
+   * GROUP BY clause is the result of the cartesian product of group items. Therefore, the GROUP BY
+   * clause contains empty groups only if each group item contains empty groups.
+   *
+   * @param groupClause Group items in GROUP BY clause
+   * @return Whether there are empty groups in GROUP BY clause
+   */
+  public static boolean hasEmptyGroup(List<SqlNode> groupClause) {
+    for (SqlNode groupItem : groupClause) {
+      switch (groupItem.getKind()) {
+      case ROLLUP:
+      case CUBE:
+        break;
+      case GROUPING_SETS:
+        boolean atLeastOneEmptyGroup = false;
+        for (SqlNode groupingSetsItem : ((SqlBasicCall) groupItem).getOperandList()) {
+          atLeastOneEmptyGroup |= hasEmptyGroup(ImmutableList.of(groupingSetsItem));
+        }
+        if (atLeastOneEmptyGroup) {
+          break;
+        }
+        return false;
+      default:
+        if (groupItem instanceof SqlNodeList && ((SqlNodeList) groupItem).isEmpty()) {
+          break;
+        }
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Analyzes an expression in a GROUP BY clause.
@@ -897,7 +933,7 @@ public class SqlValidatorUtil {
               ((SqlCall) expandedGroupExpr).getOperandList()));
     case OTHER:
       if (expandedGroupExpr instanceof SqlNodeList
-          && ((SqlNodeList) expandedGroupExpr).size() == 0) {
+          && ((SqlNodeList) expandedGroupExpr).isEmpty()) {
         return ImmutableBitSet.of();
       }
       break;
@@ -1306,9 +1342,16 @@ public class SqlValidatorUtil {
    *
    * <p>For a measure, {@code selectItem} will have the form
    * {@code AS(MEASURE(exp), alias)} and this method returns {@code exp}. */
+  @SuppressWarnings({"SwitchStatementWithTooFewBranches", "MissingCasesInEnumSwitch"})
   public static @Nullable SqlNode getMeasure(SqlNode selectItem) {
-    // The implementation of this method will be extended when we add the
-    // 'AS MEASURE' construct in [CALCITE-4496].
+    switch (selectItem.getKind()) {
+    case AS:
+      final SqlBasicCall call = (SqlBasicCall) selectItem;
+      switch (call.operand(0).getKind()) {
+      case MEASURE:
+        return ((SqlBasicCall) call.operand(0)).operand(0);
+      }
+    }
     return null;
   }
 
@@ -1608,8 +1651,7 @@ public class SqlValidatorUtil {
 
     FlatAggregate(SqlCall aggregateCall, @Nullable SqlCall filterCall,
         @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall) {
-      this.aggregateCall =
-          Objects.requireNonNull(aggregateCall, "aggregateCall");
+      this.aggregateCall = requireNonNull(aggregateCall, "aggregateCall");
       checkArgument(filterCall == null
           || filterCall.getKind() == SqlKind.FILTER);
       checkArgument(distinctCall == null

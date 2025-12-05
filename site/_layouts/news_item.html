@@ -29,7 +29,7 @@ layout: news
           {% if c.avatar %}
             {% assign avatar = c.avatar %}
           {% else %}
-            {% capture avatar %}https://github.com/{{ c.githubId }}.png{% endcapture %}
+            {% capture avatar %}{{ site.baseurl }}/img/avatars/{{ c.githubId }}.png{% endcapture %}
           {% endif %}
         {% endif %}
       {% endfor %}

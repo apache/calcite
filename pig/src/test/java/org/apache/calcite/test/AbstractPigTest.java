@@ -18,12 +18,18 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.util.Sources;
 
+import java.net.URL;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Common methods inheritable by all Pig-specific test classes.
  */
 public abstract class AbstractPigTest {
 
   protected String getFullPathForTestDataFile(String fileName) {
-    return Sources.of(getClass().getResource("/" + fileName)).file().getAbsolutePath();
+    final URL url = getClass().getResource("/" + fileName);
+    requireNonNull(url, "url");
+    return Sources.of(url).file().getAbsolutePath();
   }
 }

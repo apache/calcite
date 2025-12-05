@@ -38,6 +38,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -45,7 +46,6 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -123,7 +123,17 @@ class ImmutableBitSetTest {
       }
       buf.append(i);
     }
-    assertEquals(expected, buf.toString());
+    assertThat(buf, hasToString(expected));
+
+    // Now check that bitSet.stream() does the same as bitSet.iterator().
+    buf.setLength(0);
+    bitSet.stream().forEach(i -> {
+      if (buf.length() > 0) {
+        buf.append(", ");
+      }
+      buf.append(i);
+    });
+    assertThat(buf, hasToString(expected));
   }
 
   /**
@@ -132,6 +142,16 @@ class ImmutableBitSetTest {
    */
   @Test void testToList() {
     check((bitSet, list) -> assertThat(bitSet.toList(), equalTo(list)));
+  }
+
+  /**
+   * Tests the method
+   * {@link org.apache.calcite.util.ImmutableBitSet#stream()}.
+   */
+  @Test void testStream() {
+    check((bitSet, list) ->
+        assertThat(bitSet.stream().boxed().collect(Collectors.toList()),
+            equalTo(list)));
   }
 
   /**
@@ -173,16 +193,15 @@ class ImmutableBitSetTest {
    * Tests the method {@link BitSets#range(int, int)}.
    */
   @Test void testRange() {
-    assertEquals(ImmutableBitSet.range(0, 4).toList(),
-        Arrays.asList(0, 1, 2, 3));
-    assertEquals(ImmutableBitSet.range(1, 4).toList(),
-        Arrays.asList(1, 2, 3));
-    assertEquals(ImmutableBitSet.range(4).toList(),
-        Arrays.asList(0, 1, 2, 3));
-    assertEquals(ImmutableBitSet.range(0).toList(),
-        Collections.<Integer>emptyList());
-    assertEquals(ImmutableBitSet.range(2, 2).toList(),
-        Collections.<Integer>emptyList());
+    final List<Integer> list0123 = Arrays.asList(0, 1, 2, 3);
+    final List<Integer> list123 = Arrays.asList(1, 2, 3);
+    final List<Integer> listEmpty = Collections.emptyList();
+
+    assertThat(ImmutableBitSet.range(0, 4).toList(), is(list0123));
+    assertThat(ImmutableBitSet.range(1, 4).toList(), is(list123));
+    assertThat(ImmutableBitSet.range(4).toList(), is(list0123));
+    assertThat(ImmutableBitSet.range(0).toList(), is(listEmpty));
+    assertThat(ImmutableBitSet.range(2, 2).toList(), is(listEmpty));
 
     assertThat(ImmutableBitSet.range(63, 66),
         hasToString("{63, 64, 65}"));
@@ -224,10 +243,10 @@ class ImmutableBitSetTest {
         if (c == 0) {
           assertTrue(i == j || i == 3 && j == 4 || i == 4 && j == 3);
         } else {
-          assertEquals(c, Utilities.compare(i, j));
+          assertThat(Utilities.compare(i, j), is(c));
         }
-        assertEquals(c == 0, set0.equals(set1));
-        assertEquals(c == 0, set1.equals(set0));
+        assertThat(set0.equals(set1), is(c == 0));
+        assertThat(set1.equals(set0), is(c == 0));
       }
     }
   }
@@ -414,8 +433,8 @@ class ImmutableBitSetTest {
     final ImmutableBitSet fives3 =
         ImmutableBitSet.builder().addAll(fives).clear(2).set(10).build();
     assertNotSame(fives3, fives);
-    assertEquals(fives3, fives);
-    assertEquals(fives3, fives2);
+    assertThat(fives, is(fives3));
+    assertThat(fives2, is(fives3));
   }
 
   @Test void testIndexOf() {

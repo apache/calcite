@@ -36,6 +36,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
  * relational expression in Cassandra.
@@ -56,7 +58,8 @@ public class CassandraProject extends Project implements CassandraRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = super.computeSelfCost(planner, mq);
+    return requireNonNull(cost, "cost").multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {
@@ -66,9 +69,9 @@ public class CassandraProject extends Project implements CassandraRel {
             CassandraRules.cassandraFieldNames(getInput().getRowType()));
     final Map<String, String> fields = new LinkedHashMap<>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
-      assert pair.left != null;
+      final RexNode node = pair.left;
       final String name = pair.right;
-      final String originalName = pair.left.accept(translator);
+      final String originalName = node.accept(translator);
       fields.put(originalName, name);
     }
     implementor.add(fields, null);

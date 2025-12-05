@@ -33,6 +33,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Sort}
  * relational expression for an InnoDB data source.
@@ -48,7 +50,7 @@ public class InnodbSort extends Sort implements InnodbRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    RelOptCost cost = super.computeSelfCost(planner, mq);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
     if (!collation.getFieldCollations().isEmpty()) {
       return cost.multiplyBy(0.05);
     } else {

@@ -31,6 +31,11 @@ import static java.lang.System.getProperty;
 
 /**
  * Abstract class for Pig to {@link RelNode} tests.
+ *
+ * <p>Under JDK 23 and higher, this test requires
+ * "{@code -Djava.security.manager=allow}" command-line arguments due to
+ * Hadoop's use of deprecated methods in {@link javax.security.auth.Subject}.
+ * These arguments are set automatically if you run via Gradle.
  */
 public abstract class PigRelTestBase {
   PigConverter converter;

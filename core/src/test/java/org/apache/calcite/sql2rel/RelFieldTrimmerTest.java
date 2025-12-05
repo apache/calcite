@@ -32,21 +32,27 @@ import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Holder;
 
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -232,11 +238,11 @@ class RelFieldTrimmerTest {
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(trimmed, hasTree(expected));
 
-    assertTrue(original.getInput(0) instanceof Join);
+    assertThat(original.getInput(0), instanceOf(Join.class));
     final Join originalJoin = (Join) original.getInput(0);
     assertTrue(originalJoin.getHints().contains(noHashJoinHint));
 
-    assertTrue(trimmed.getInput(0) instanceof Join);
+    assertThat(trimmed.getInput(0), instanceOf(Join.class));
     final Join join = (Join) trimmed.getInput(0);
     assertTrue(join.getHints().contains(noHashJoinHint));
   }
@@ -266,13 +272,42 @@ class RelFieldTrimmerTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
 
-    assertTrue(original instanceof Aggregate);
+    assertThat(original, instanceOf(Aggregate.class));
     final Aggregate originalAggregate = (Aggregate) original;
     assertTrue(originalAggregate.getHints().contains(aggHint));
 
-    assertTrue(trimmed instanceof Aggregate);
+    assertThat(trimmed, instanceOf(Aggregate.class));
     final Aggregate aggregate = (Aggregate) trimmed;
     assertTrue(aggregate.getHints().contains(aggHint));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6734">[CALCITE-6734]
+   * RelFieldTrimmer should trim Aggregate's input fields which are arguments of
+   * unused aggregate functions</a>. */
+  @Test void testTrimUnusedAggregateInput() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode original =
+        builder.scan("EMP")
+            .filter(
+                builder.greaterThan(builder.field("DEPTNO"),
+                    builder.literal(100)))
+            .aggregate(
+                builder.groupKey(builder.field("DEPTNO")),
+                builder.sum(false, "SAL", builder.field("SAL")),
+                builder.count(false, "ENAME", builder.field("ENAME")))
+            .project(builder.field("DEPTNO"), builder.field("SAL"))
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(original);
+
+    final String expected = ""
+        + "LogicalAggregate(group=[{2}], SAL=[SUM($1)])\n"
+        + "  LogicalFilter(condition=[>($2, 100)])\n"
+        + "    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
   }
 
   /** Test case for
@@ -302,11 +337,11 @@ class RelFieldTrimmerTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
 
-    assertTrue(original.getInput(0).getInput(0) instanceof Project);
+    assertThat(original.getInput(0).getInput(0), instanceOf(Project.class));
     final Project originalProject = (Project) original.getInput(0).getInput(0);
     assertTrue(originalProject.getHints().contains(projectHint));
 
-    assertTrue(trimmed.getInput(0) instanceof Project);
+    assertThat(trimmed.getInput(0), instanceOf(Project.class));
     final Project project = (Project) trimmed.getInput(0);
     assertTrue(project.getHints().contains(projectHint));
   }
@@ -437,15 +472,15 @@ class RelFieldTrimmerTest {
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
 
-    assertTrue(original.getInput(0).getInput(0) instanceof Project);
+    assertThat(original.getInput(0).getInput(0), instanceOf(Project.class));
     final Project originalProject = (Project) original.getInput(0).getInput(0);
     assertTrue(originalProject.getHints().contains(calcHint));
 
-    assertTrue(relNode.getInput(0).getInput(0) instanceof Calc);
+    assertThat(relNode.getInput(0).getInput(0), instanceOf(Calc.class));
     final Calc originalCalc = (Calc) relNode.getInput(0).getInput(0);
     assertTrue(originalCalc.getHints().contains(calcHint));
 
-    assertTrue(trimmed.getInput(0).getInput(0) instanceof Calc);
+    assertThat(trimmed.getInput(0).getInput(0), instanceOf(Calc.class));
     final Calc calc = (Calc) trimmed.getInput(0).getInput(0);
     assertTrue(calc.getHints().contains(calcHint));
   }
@@ -543,4 +578,146 @@ class RelFieldTrimmerTest {
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6715">[CALCITE-6715]
+   * Enhance RelFieldTrimmer to trim LogicalCorrelate nodes</a>.
+   */
+  @Test void testLogicalCorrelateFieldTrimmer() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder.scan("EMP")
+        .projectPlus(builder.call(SqlStdOperatorTable.PLUS, builder.field(0), builder.field(0)))
+        .variable(v::set)
+        .values(new String[] {"dummy"}, true)
+        .project(
+            builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.field(v.get(), "DEPTNO"), builder.field(v.get(), "DEPTNO")))
+        .uncollect(Collections.emptyList(), false)
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .aggregate(builder.groupKey("ENAME"), builder.max(builder.field("EMPNO")))
+        .build();
+
+    String origTree = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($0, $0)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    Uncollect\n"
+        + "      LogicalProject($f0=[ARRAY($cor0.DEPTNO, $cor0.DEPTNO)])\n"
+        + "        LogicalValues(tuples=[[{ true }]])\n";
+    assertThat(root, hasTree(origTree));
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+    final String expected = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    Uncollect\n"
+        + "      LogicalProject($f0=[ARRAY($cor0.DEPTNO, $cor0.DEPTNO)])\n"
+        + "        LogicalValues(tuples=[[{ true }]])\n";
+
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6715">[CALCITE-6715]
+   * Enhance RelFieldTrimmer to trim LogicalCorrelate nodes</a>.
+   */
+  @Test void testLogicalCorrelateFieldTrimmer2() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder.scan("EMP")
+        .projectPlus(builder.call(SqlStdOperatorTable.PLUS, builder.field(0), builder.field(0)))
+        .variable(v::set)
+        .scan("DEPT")
+        .projectPlus(
+            builder.call(SqlStdOperatorTable.PLUS,
+            builder.field(v.get(), "DEPTNO"), builder.field(v.get(), "DEPTNO")))
+        .filter(
+            builder.equals(builder.field(0),
+                builder.call(
+                    SqlStdOperatorTable.PLUS,
+                    builder.literal(10),
+                    builder.field(v.get(), "DEPTNO"))))
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .aggregate(builder.groupKey("ENAME"), builder.max(builder.field("EMPNO")))
+        .build();
+
+    String origTree = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($0, $0)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "      LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[+($cor0.DEPTNO, $cor0.DEPTNO)])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(origTree));
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+    final String expected = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "      LogicalProject(DEPTNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3772">[CALCITE-3772]
+   * RelFieldTrimmer incorrectly trims fields when the query includes correlated-subquery</a>.
+   */
+  @Test void testTrimCorrelatedSubquery() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder.scan("EMP")
+        .variable(v::set)
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(5),
+            builder.literal(10)))
+        .project(
+            builder.field(0),
+            builder.scalarQuery(
+                b2 -> builder.scan("EMP").filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(3), builder.field(v.get(), "MGR")))
+                    .project(builder.field(0))
+                    .aggregate(builder.groupKey(), builder.countStar("c"))
+                    .build()))
+        .build();
+
+    String origTree = ""
+        + "LogicalProject(EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
+        + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n})])\n"
+        + "  LogicalFilter(condition=[>($5, 10)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(origTree));
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+    final String expected = ""
+        + "LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
+        + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalFilter(condition=[>($2, 10)])\n"
+        + "    LogicalProject(EMPNO=[$0], MGR=[$3], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(trimmed, hasTree(expected));
+  }
+
 }

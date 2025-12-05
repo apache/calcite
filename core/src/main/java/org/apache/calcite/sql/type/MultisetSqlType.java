@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * MultisetSqlType represents a standard SQL2003 multiset type.
  */
@@ -38,8 +40,7 @@ public class MultisetSqlType extends AbstractSqlType {
    */
   public MultisetSqlType(RelDataType elementType, boolean isNullable) {
     super(SqlTypeName.MULTISET, isNullable, null);
-    assert elementType != null;
-    this.elementType = elementType;
+    this.elementType = requireNonNull(elementType, "elementType");
     computeDigest();
   }
 
@@ -50,7 +51,7 @@ public class MultisetSqlType extends AbstractSqlType {
     if (withDetail) {
       sb.append(elementType.getFullTypeString());
     } else {
-      sb.append(elementType.toString());
+      sb.append(elementType);
     }
     sb.append(" MULTISET");
   }

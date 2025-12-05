@@ -17,6 +17,8 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -24,6 +26,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -32,9 +35,13 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import java.nio.charset.Charset;
 import java.util.List;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Common base for the <code>TRANSLATE(USING)</code> and
@@ -76,6 +83,40 @@ public class SqlTranslateFunction extends SqlConvertFunction {
     final String src_charset = operands.get(1).toString();
     SqlUtil.getCharset(src_charset);
     super.validateQuantifier(validator, call);
+  }
+
+  @Override public RelDataType inferReturnType(
+      SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final RelDataType ret = opBinding.getOperandType(0);
+    if (SqlTypeUtil.isNull(ret)) {
+      return ret;
+    }
+    final String descCharsetName;
+    if (opBinding instanceof SqlCallBinding) {
+      descCharsetName = ((SqlCallBinding) opBinding).getCall().operand(1).toString();
+    } else {
+      descCharsetName = ((RexCallBinding) opBinding).getStringLiteralOperand(1);
+    }
+    assert descCharsetName != null;
+    Charset descCharset = SqlUtil.getCharset(descCharsetName);
+    return typeFactory.createTypeWithCharsetAndCollation(ret, descCharset, getCollation(ret));
+  }
+
+  @Override public RelDataType deriveType(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
+    // don't need to derive type for Charsets
+    RelDataType nodeType =
+        validator.deriveType(scope, call.operand(0));
+    requireNonNull(nodeType, "nodeType");
+    RelDataType ret = validateOperands(validator, scope, call);
+    if (SqlTypeUtil.isNull(ret)) {
+      return ret;
+    }
+    // descCharset should be the returning type Charset of TRANSLATE
+    Charset descCharset = SqlUtil.getCharset(call.operand(1).toString());
+    return validator.getTypeFactory()
+        .createTypeWithCharsetAndCollation(ret, descCharset, getCollation(ret));
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,

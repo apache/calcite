@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * A <code>RelOptQuery</code> represents a set of
  * {@link RelNode relational expressions} which derive from the same
@@ -83,7 +85,7 @@ public class RelOptQuery {
   @Deprecated // to be removed before 2.0
   public static int getCorrelOrdinal(String correlName) {
     assert correlName.startsWith(CORREL_PREFIX);
-    return Integer.parseInt(correlName.substring(CORREL_PREFIX.length()));
+    return parseInt(correlName.substring(CORREL_PREFIX.length()));
   }
 
   /**

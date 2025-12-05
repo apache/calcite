@@ -49,18 +49,17 @@ select * from emp join dept on emp.deptno = dept.deptno;
 
 !ok
 
-# The following test is disabled, because we cannot handle non-equi-join.
-# Following it are the results from MySQL.
-!if (false) {
 select * from emp join dept on emp.deptno = dept.deptno and emp.gender = 'F';
- ename | deptno | gender | deptno | dname
--------+--------+--------+--------+-------------
- Jane  |     10 | F      |     10 | Sales
- Susan |     30 | F      |     30 | Engineering
- Alice |     30 | F      |     30 | Engineering
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Alice |     30 | F      |      30 | Engineering |
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
++-------+--------+--------+---------+-------------+
+(3 rows)
 
 !ok
-!}
 
 select * from emp join dept on emp.deptno = dept.deptno where emp.gender = 'F';
 +-------+--------+--------+---------+-------------+
@@ -86,22 +85,23 @@ select * from (select * from emp where gender ='F') as emp join dept on emp.dept
 
 !ok
 
-# The following test is disabled, because we cannot handle non-equi-join.
-# Following it are the results from MySQL.
-!if (false) {
 select * from emp left join dept on emp.deptno = dept.deptno and emp.gender = 'F';
- ename | deptno | gender | deptno | dname
--------+--------+--------+--------+-------------
- Jane  |     10 | F      |     10 | Sales
- Susan |     30 | F      |     30 | Engineering
- Alice |     30 | F      |     30 | Engineering
- Bob   |     10 | M      |   NULL | NULL
- Eric  |     20 | M      |   NULL | NULL
- Adam  |     50 | M      |   NULL | NULL
- Eve   |     50 | F      |   NULL | NULL
- Grace |     60 | F      |   NULL | NULL
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Adam  |     50 | M      |         |             |
+| Alice |     30 | F      |      30 | Engineering |
+| Bob   |     10 | M      |         |             |
+| Eric  |     20 | M      |         |             |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Wilma |        | F      |         |             |
++-------+--------+--------+---------+-------------+
+(9 rows)
+
 !ok
-!}
 
 select * from emp left join dept on emp.deptno = dept.deptno where emp.gender = 'F';
 +-------+--------+--------+---------+-------------+
@@ -133,21 +133,19 @@ select * from (select * from emp where gender ='F') as emp left join dept on emp
 
 !ok
 
-# The following test is disabled, because we cannot handle non-equi-join.
-# Following it are the results from MySQL.
-!if (false) {
 select * from emp right join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+--------+-------------+
-| ename | deptno | gender | deptno | dname       |
-+-------+--------+--------+--------+-------------+
-| Jane  |     10 | F      |     10 | Sales       |
-| Susan |     30 | F      |     30 | Engineering |
-| Alice |     30 | F      |     30 | Engineering |
-| NULL  |   NULL | NULL   |     20 | Marketing   |
-| NULL  |   NULL | NULL   |     40 | Empty       |
-+-------+--------+--------+--------+-------------+
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Alice |     30 | F      |      30 | Engineering |
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+|       |        |        |      20 | Marketing   |
+|       |        |        |      40 | Empty       |
++-------+--------+--------+---------+-------------+
+(5 rows)
+
 !ok
-!}
 
 select * from emp right join dept on emp.deptno = dept.deptno where emp.gender = 'F';
 +-------+--------+--------+---------+-------------+
@@ -175,27 +173,25 @@ select * from (select * from emp where gender ='F') as emp right join dept on em
 
 !ok
 
-!if (false) {
 select * from emp full join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+--------+-------------+
-| ename | deptno | gender | deptno |    dname    |
-+-------+--------+--------+--------+-------------+
-| Jane  |     10 | F      |     10 | Sales       |
-|       |        |        |     20 | Marketing   |
-| Alice |     30 | F      |     30 | Engineering |
-| Susan |     30 | F      |     30 | Engineering |
-|       |        |        |     40 | Empty       |
-| Wilma |        | F      |        |             |
-| Eric  |     20 | M      |        |             |
-| Bob   |     10 | M      |        |             |
-| Eve   |     50 | F      |        |             |
-| Adam  |     50 | M      |        |             |
-| Grace |     60 | F      |        |             |
-+-------+--------+--------+--------+-------------+
++-------+--------+--------+---------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
++-------+--------+--------+---------+-------------+
+| Adam  |     50 | M      |         |             |
+| Alice |     30 | F      |      30 | Engineering |
+| Bob   |     10 | M      |         |             |
+| Eric  |     20 | M      |         |             |
+| Eve   |     50 | F      |         |             |
+| Grace |     60 | F      |         |             |
+| Jane  |     10 | F      |      10 | Sales       |
+| Susan |     30 | F      |      30 | Engineering |
+| Wilma |        | F      |         |             |
+|       |        |        |      20 | Marketing   |
+|       |        |        |      40 | Empty       |
++-------+--------+--------+---------+-------------+
 (11 rows)
 
 !ok
-!}
 
 
 select * from emp full join dept on emp.deptno = dept.deptno where emp.gender = 'F';
@@ -249,7 +245,7 @@ select * from (select * from emp where gender ='F') as emp full join dept on emp
 !ok
 EnumerableNestedLoopJoin(condition=[=(-($1, $3), 0)], joinType=[full])
   EnumerableCalc(expr#0..2=[{inputs}], expr#3=['F'], expr#4=[=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
-    EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+    EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
   EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 

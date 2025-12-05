@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.ArrowSet;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Suppliers;
@@ -95,6 +96,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.MaxRowCount.Handler maxRowCountHandler;
   private BuiltInMetadata.MinRowCount.Handler minRowCountHandler;
   private BuiltInMetadata.Memory.Handler memoryHandler;
+  private BuiltInMetadata.Measure.Handler measureHandler;
   private BuiltInMetadata.NonCumulativeCost.Handler nonCumulativeCostHandler;
   private BuiltInMetadata.Parallelism.Handler parallelismHandler;
   private BuiltInMetadata.PercentageOriginalRows.Handler percentageOriginalRowsHandler;
@@ -107,6 +109,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.Size.Handler sizeHandler;
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
   private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
+  private BuiltInMetadata.FunctionalDependency.Handler functionalDependencyHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -137,6 +140,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.maxRowCountHandler = provider.handler(BuiltInMetadata.MaxRowCount.Handler.class);
     this.minRowCountHandler = provider.handler(BuiltInMetadata.MinRowCount.Handler.class);
     this.memoryHandler = provider.handler(BuiltInMetadata.Memory.Handler.class);
+    this.measureHandler =
+        provider.handler(BuiltInMetadata.Measure.Handler.class);
     this.nonCumulativeCostHandler =
         provider.handler(BuiltInMetadata.NonCumulativeCost.Handler.class);
     this.parallelismHandler = provider.handler(BuiltInMetadata.Parallelism.Handler.class);
@@ -151,6 +156,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = provider.handler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = provider.handler(BuiltInMetadata.UniqueKeys.Handler.class);
     this.lowerBoundCostHandler = provider.handler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    this.functionalDependencyHandler =
+        provider.handler(BuiltInMetadata.FunctionalDependency.Handler.class);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -170,6 +177,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.maxRowCountHandler = initialHandler(BuiltInMetadata.MaxRowCount.Handler.class);
     this.minRowCountHandler = initialHandler(BuiltInMetadata.MinRowCount.Handler.class);
     this.memoryHandler = initialHandler(BuiltInMetadata.Memory.Handler.class);
+    this.measureHandler = initialHandler(BuiltInMetadata.Measure.Handler.class);
     this.nonCumulativeCostHandler = initialHandler(BuiltInMetadata.NonCumulativeCost.Handler.class);
     this.parallelismHandler = initialHandler(BuiltInMetadata.Parallelism.Handler.class);
     this.percentageOriginalRowsHandler =
@@ -183,6 +191,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
     this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    this.functionalDependencyHandler =
+        initialHandler(BuiltInMetadata.FunctionalDependency.Handler.class);
   }
 
   private RelMetadataQuery(
@@ -201,6 +211,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.maxRowCountHandler = prototype.maxRowCountHandler;
     this.minRowCountHandler = prototype.minRowCountHandler;
     this.memoryHandler = prototype.memoryHandler;
+    this.measureHandler = prototype.measureHandler;
     this.nonCumulativeCostHandler = prototype.nonCumulativeCostHandler;
     this.parallelismHandler = prototype.parallelismHandler;
     this.percentageOriginalRowsHandler = prototype.percentageOriginalRowsHandler;
@@ -213,6 +224,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = prototype.sizeHandler;
     this.uniqueKeysHandler = prototype.uniqueKeysHandler;
     this.lowerBoundCostHandler = prototype.lowerBoundCostHandler;
+    this.functionalDependencyHandler = prototype.functionalDependencyHandler;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -288,7 +300,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * statistic.
    *
    * @param rel the relational expression
-   * @return max row count
+   * @return min row count
    */
   public @Nullable Double getMinRowCount(RelNode rel) {
     for (;;) {
@@ -299,6 +311,26 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       }
     }
   }
+
+  /**
+   * Returns whether the return rows of a given relational expression are empty.
+   *
+   * @param relNode the relational expression
+   * @return true or false depending on whether the return rows are empty, or
+   * null if not enough information is available to make that determination
+   */
+  public @Nullable Boolean isEmpty(RelNode relNode) {
+    Double minRowCount = getMinRowCount(relNode);
+    if (minRowCount != null && minRowCount > 0D) {
+      return Boolean.FALSE;
+    }
+    Double maxRowCount = getMaxRowCount(relNode);
+    if (maxRowCount != null && maxRowCount <= 0D) {
+      return Boolean.TRUE;
+    }
+    return null;
+  }
+
 
   /**
    * Returns the
@@ -441,7 +473,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       return null;
     }
     final Set<RelColumnOrigin> colOrigins = getColumnOrigins(rel, 0);
-    if (colOrigins == null || colOrigins.size() == 0) {
+    if (colOrigins == null || colOrigins.isEmpty()) {
       return null;
     }
     return colOrigins.iterator().next().getOriginTable();
@@ -803,6 +835,46 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   /**
    * Returns the
+   * {@link BuiltInMetadata.Measure#isMeasure(int)}
+   * statistic.
+   *
+   * @param rel      The relational expression
+   * @param column   Output column of the relational expression
+   * @return whether column is a measure
+   */
+  public @Nullable Boolean isMeasure(RelNode rel, int column) {
+    for (;;) {
+      try {
+        return measureHandler.isMeasure(rel, this, column);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        measureHandler = revise(BuiltInMetadata.Measure.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the
+   * {@link BuiltInMetadata.Measure#expand(int, BuiltInMetadata.Measure.Context)}
+   * statistic.
+   *
+   * @param rel      The relational expression
+   * @param column   Output column of the relational expression
+   * @param context  Context of the use of the measure
+   * @return expression for measure in the context
+   */
+  public RexNode expand(RelNode rel, int column,
+      BuiltInMetadata.Measure.Context context) {
+    for (;;) {
+      try {
+        return measureHandler.expand(rel, this, column, context);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        measureHandler = revise(BuiltInMetadata.Measure.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the
    * {@link BuiltInMetadata.DistinctRowCount#getDistinctRowCount(ImmutableBitSet, RexNode)}
    * statistic.
    *
@@ -917,6 +989,72 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);
       } catch (MetadataHandlerProvider.NoHandler e) {
         lowerBoundCostHandler = revise(BuiltInMetadata.LowerBoundCost.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Determines whether one column functionally determines another.
+   */
+  public @Nullable Boolean determines(RelNode rel, int determinant, int dependent) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.determines(rel, this, determinant, dependent);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Determines whether a set of columns functionally determines another set of columns.
+   */
+  public Boolean determinesSet(RelNode rel, ImmutableBitSet determinants,
+      ImmutableBitSet dependents) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.determinesSet(rel, this, determinants, dependents);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the closure of a set of columns under all functional dependencies.
+   */
+  public ImmutableBitSet dependents(RelNode rel, ImmutableBitSet ordinals) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.dependents(rel, this, ordinals);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns minimal determinant sets for the relation within the specified set of attributes.
+   */
+  public Set<ImmutableBitSet> determinants(RelNode rel, ImmutableBitSet ordinals) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.determinants(rel, this, ordinals);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns all functional dependencies for the relational expression.
+   */
+  public ArrowSet getFDs(RelNode rel) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.getFDs(rel, this);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
       }
     }
   }

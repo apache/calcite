@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import com.google.common.collect.Lists;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -554,8 +556,8 @@ public abstract class Functions {
 
   /** Nulls last comparator. */
   private static class NullsLastComparator
-      implements Comparator<Comparable>, Serializable {
-    @Override public int compare(Comparable o1, Comparable o2) {
+      implements Comparator<Object>, Serializable {
+    @Override public int compare(@Nullable Object o1, @Nullable Object o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -565,15 +567,25 @@ public abstract class Functions {
       if (o2 == null) {
         return -1;
       }
-      //noinspection unchecked
-      return o1.compareTo(o2);
+      if (o1 instanceof Comparable && o2 instanceof Comparable) {
+        //noinspection unchecked
+        return ((Comparable) o1).compareTo(o2);
+      } else if (o1 instanceof List && o2 instanceof List) {
+        return compareLists((List<?>) o1, (List<?>) o2);
+      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
+        final List<Object> list1 = Lists.newArrayList((Object[]) o1);
+        final List<Object> list2 = Lists.newArrayList((Object[]) o2);
+        return compareLists(list1, list2);
+      } else {
+        throw new IllegalArgumentException();
+      }
     }
   }
 
   /** Nulls first reverse comparator. */
   private static class NullsFirstReverseComparator
-      implements Comparator<Comparable>, Serializable  {
-    @Override public int compare(Comparable o1, Comparable o2) {
+      implements Comparator<Object>, Serializable  {
+    @Override public int compare(Object o1, Object o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -583,9 +595,61 @@ public abstract class Functions {
       if (o2 == null) {
         return 1;
       }
-      //noinspection unchecked
-      return -o1.compareTo(o2);
+      if (o1 instanceof Comparable && o2 instanceof Comparable) {
+        //noinspection unchecked
+        return -((Comparable) o1).compareTo(o2);
+      } else if (o1 instanceof List && o2 instanceof List) {
+        return -compareLists((List<?>) o1, (List<?>) o2);
+      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
+        final List<Object> list1 = Lists.newArrayList((Object[]) o1);
+        final List<Object> list2 = Lists.newArrayList((Object[]) o2);
+        return -compareLists(list1, list2);
+      } else {
+        throw new IllegalArgumentException();
+      }
     }
+  }
+
+  public static int compareLists(List<?> b0, List<?> b1) {
+    if (b0.isEmpty() && b1.isEmpty()) {
+      return 0;
+    }
+    for (int i = 0; i < b0.size() && i < b1.size(); i++) {
+      final int comparison = compareListItems(b0.get(i), b1.get(i));
+      if (comparison != 0) {
+        return comparison;
+      }
+    }
+    return Integer.compare(b0.size(), b1.size());
+  }
+
+  private static int compareListItems(@Nullable Object item0, @Nullable Object item1) {
+    if (item0 == null && item1 == null) {
+      return 0;
+    } else if (item0 == null) {
+      return 1;
+    } else if (item1 == null) {
+      return -1;
+    }
+    if (item0 instanceof List && item1 instanceof List) {
+      final List<?> b0ItemList = (List<?>) item0;
+      final List<?> b1ItemList = (List<?>) item1;
+      return compareLists(b0ItemList, b1ItemList);
+    } else if (item0 instanceof Object[] && item1 instanceof Object[]) {
+      return compareObjectArrays((Object[]) item0, (Object[]) item1);
+    } else if (item0.getClass().equals(item1.getClass()) && item0 instanceof Comparable<?>) {
+      final Comparable b0Comparable = (Comparable) item0;
+      final Comparable b1Comparable = (Comparable) item1;
+      return b0Comparable.compareTo(b1Comparable);
+    } else {
+      throw new IllegalArgumentException("Item types do not match");
+    }
+  }
+
+  public static int compareObjectArrays(Object[] b0, Object[] b1) {
+    final List<Object> b0List = Lists.newArrayList(b0);
+    final List<Object> b1List = Lists.newArrayList(b1);
+    return compareLists(b0List, b1List);
   }
 
   /** Nulls last reverse comparator. */

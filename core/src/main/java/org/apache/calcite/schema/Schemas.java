@@ -235,7 +235,7 @@ public final class Schemas {
       String name = iterator.next();
       requireNonNull(schema, "schema");
       if (iterator.hasNext()) {
-        SchemaPlus next = schema.getSubSchema(name);
+        SchemaPlus next = schema.subSchemas().get(name);
         if (next == null) {
           throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
         }
@@ -250,7 +250,7 @@ public final class Schemas {
   public static <E> Queryable<E> queryable(DataContext root, SchemaPlus schema,
       Class<E> clazz, String tableName) {
     QueryableTable table =
-        (QueryableTable) requireNonNull(schema.getTable(tableName),
+        (QueryableTable) requireNonNull(schema.tables().get(tableName),
             () -> "table " + tableName + " is not found in " + schema);
     QueryProvider queryProvider = root.getQueryProvider();
     return table.asQueryable(queryProvider, schema, tableName);
@@ -299,13 +299,13 @@ public final class Schemas {
       String name = iterator.next();
       requireNonNull(schema, "schema");
       if (iterator.hasNext()) {
-        SchemaPlus next = schema.getSubSchema(name);
+        SchemaPlus next = schema.subSchemas().get(name);
         if (next == null) {
           throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
         }
         schema = next;
       } else {
-        return schema.getTable(name);
+        return schema.tables().get(name);
       }
     }
   }
@@ -576,7 +576,7 @@ public final class Schemas {
       if (!iterator.hasNext()) {
         return path(builder.build());
       }
-      Schema next = schema.getSubSchema(name);
+      Schema next = schema.subSchemas().get(name);
       if (next == null) {
         throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
       }

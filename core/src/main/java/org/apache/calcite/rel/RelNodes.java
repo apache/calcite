@@ -16,9 +16,22 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.Util;
+
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Comparator;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 /**
  * Utilities concerning relational expressions.
@@ -47,6 +60,65 @@ public class RelNodes {
       }
     }
     return 0;
+  }
+
+  /** Returns whether a tree of {@link RelNode}s contains a match for a
+   * {@link RexNode} finder. */
+  public static boolean contains(RelNode rel,
+      Predicate<AggregateCall> aggPredicate, RexUtil.RexFinder finder) {
+    try {
+      findRex(rel, finder, aggPredicate, (relNode, rexNode) -> {
+        throw Util.FoundOne.NULL;
+      });
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+  }
+
+  /** Searches for expressions in a tree of {@link RelNode}s. */
+  // TODO: a new method RelNode.accept(RexVisitor, BiConsumer), with similar
+  // overrides to RelNode.accept(RexShuttle), would be better.
+  public static void findRex(RelNode rel, RexUtil.RexFinder finder,
+      Predicate<AggregateCall> aggPredicate,
+      BiConsumer<RelNode, @Nullable RexNode> consumer) {
+    if (rel instanceof Filter) {
+      Filter filter = (Filter) rel;
+      try {
+        filter.getCondition().accept(finder);
+      } catch (Util.FoundOne e) {
+        consumer.accept(filter, (RexNode) e.getNode());
+      }
+    }
+    if (rel instanceof Project) {
+      Project project = (Project) rel;
+      for (RexNode node : project.getProjects()) {
+        try {
+          node.accept(finder);
+        } catch (Util.FoundOne e) {
+          consumer.accept(project, (RexNode) e.getNode());
+        }
+      }
+    }
+    if (rel instanceof Join) {
+      Join join = (Join) rel;
+      try {
+        join.getCondition().accept(finder);
+      } catch (Util.FoundOne e) {
+        consumer.accept(join, (RexNode) e.getNode());
+      }
+    }
+    if (rel instanceof Aggregate) {
+      Aggregate aggregate = (Aggregate) rel;
+      for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+        if (aggPredicate.test(aggregateCall)) {
+          consumer.accept(aggregate, null);
+        }
+      }
+    }
+    for (RelNode input : rel.getInputs()) {
+      findRex(input, finder, aggPredicate, consumer);
+    }
   }
 
   /** Arbitrary stable comparator for {@link RelNode}s. */

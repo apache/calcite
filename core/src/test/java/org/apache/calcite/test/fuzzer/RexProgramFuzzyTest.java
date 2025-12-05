@@ -45,7 +45,8 @@ import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -248,14 +249,16 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
     if (node.isAlwaysTrue()) {
       if (!trueLiteral.equals(opt)) {
-        assertEquals(trueLiteral, opt,
-            () -> nodeToString(node) + " isAlwaysTrue, so it should simplify to TRUE " + uaf);
+        assertThat(nodeToString(node)
+                + " isAlwaysTrue, so it should simplify to TRUE " + uaf,
+            opt, is(trueLiteral));
       }
     }
     if (node.isAlwaysFalse()) {
       if (!falseLiteral.equals(opt)) {
-        assertEquals(falseLiteral, opt,
-            () -> nodeToString(node) + " isAlwaysFalse, so it should simplify to FALSE " + uaf);
+        assertThat(nodeToString(node)
+            + " isAlwaysFalse, so it should simplify to FALSE " + uaf,
+            opt, is(falseLiteral));
       }
     }
     if (STRONG.isNull(node)) {
@@ -263,37 +266,42 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
       case FALSE:
         if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
           if (!falseLiteral.equals(opt)) {
-            assertEquals(falseLiteral, opt,
-                () -> nodeToString(node)
-                    + " is always null boolean, so it should simplify to FALSE " + uaf);
+            assertThat(nodeToString(node)
+                    + " is always null boolean, so it should simplify to FALSE "
+                    + uaf,
+                opt, is(falseLiteral));
           }
         } else {
           if (!RexLiteral.isNullLiteral(opt)) {
-            assertEquals(rexBuilder.makeNullLiteral(node.getType()), opt,
-                () -> nodeToString(node)
-                    + " is always null (non boolean), so it should simplify to NULL " + uaf);
+            assertThat(nodeToString(node)
+                    + " is always null (non boolean), so it should simplify to NULL "
+                    + uaf,
+                opt, is(rexBuilder.makeNullLiteral(node.getType())));
           }
         }
         break;
       case TRUE:
         if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
           if (!trueLiteral.equals(opt)) {
-            assertEquals(trueLiteral, opt,
-                () -> nodeToString(node)
-                    + " is always null boolean, so it should simplify to TRUE " + uaf);
+            assertThat(nodeToString(node)
+                    + " is always null boolean, so it should simplify to TRUE "
+                    + uaf,
+                opt, is(trueLiteral));
           }
         } else {
           if (!RexLiteral.isNullLiteral(opt)) {
-            assertEquals(rexBuilder.makeNullLiteral(node.getType()), opt,
-                () -> nodeToString(node)
-                    + " is always null (non boolean), so it should simplify to NULL " + uaf);
+            assertThat(nodeToString(node)
+                    + " is always null (non boolean), so it should simplify to NULL "
+                    + uaf,
+                opt, is(rexBuilder.makeNullLiteral(node.getType())));
           }
         }
         break;
       case UNKNOWN:
         if (!RexUtil.isNull(opt)) {
-          assertEquals(nullBool, opt,
-              () -> nodeToString(node) + " is always null, so it should simplify to NULL " + uaf);
+          assertThat(nodeToString(node)
+                  + " is always null, so it should simplify to NULL " + uaf,
+              opt, is(nullBool));
         }
       }
     }
@@ -305,9 +313,10 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
           + " that has nullable type " + opt.getType());
     }
     if (!SqlTypeUtil.equalSansNullability(typeFactory, node.getType(), opt.getType())) {
-      assertEquals(node.getType(), opt.getType(),
-          () -> nodeToString(node)
-              + " has different type after simplification to " + nodeToString(opt));
+      assertThat(nodeToString(node)
+              + " has different type after simplification to "
+              + nodeToString(opt),
+          opt.getType(), is(node.getType()));
     }
   }
 

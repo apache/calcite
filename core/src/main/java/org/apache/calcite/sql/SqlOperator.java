@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.fun.SqlCallFactories;
+import org.apache.calcite.sql.fun.SqlCallFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -33,7 +35,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
@@ -48,7 +49,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
-import static org.apache.calcite.sql.type.SqlTypeUtil.isMeasure;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -79,7 +79,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class SqlOperator {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final String NL = System.getProperty("line.separator");
+  public static final String NL = System.lineSeparator();
 
   /**
    * Maximum precedence.
@@ -122,6 +122,9 @@ public abstract class SqlOperator {
   /** Used to validate operand types. */
   private final @Nullable SqlOperandTypeChecker operandTypeChecker;
 
+  /** Used to create {@link org.apache.calcite.sql.SqlCall}. */
+  private final SqlCallFactory callFactory;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -134,10 +137,10 @@ public abstract class SqlOperator {
       int rightPrecedence,
       @Nullable SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker) {
-    assert kind != null;
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlCallFactory callFactory) {
     this.name = name;
-    this.kind = kind;
+    this.kind = requireNonNull(kind, "kind");
     this.leftPrec = leftPrecedence;
     this.rightPrec = rightPrecedence;
     this.returnTypeInference = returnTypeInference;
@@ -147,6 +150,29 @@ public abstract class SqlOperator {
     }
     this.operandTypeInference = operandTypeInference;
     this.operandTypeChecker = operandTypeChecker;
+    this.callFactory = callFactory;
+  }
+
+  /**
+   * Creates an operator.
+   */
+  protected SqlOperator(
+      String name,
+      SqlKind kind,
+      int leftPrecedence,
+      int rightPrecedence,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
+    this(
+        name,
+        kind,
+        leftPrecedence,
+        rightPrecedence,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker,
+        SqlCallFactories.SQL_BASIC_CALL_FACTORY);
   }
 
   /**
@@ -243,6 +269,10 @@ public abstract class SqlOperator {
    */
   public abstract SqlSyntax getSyntax();
 
+  public final SqlCallFactory getSqlCallFactory() {
+    return callFactory;
+  }
+
   /**
    * Creates a call to this operator with a list of operands.
    *
@@ -275,9 +305,7 @@ public abstract class SqlOperator {
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
-    pos = pos.plusAll(operands);
-    return new SqlBasicCall(this, ImmutableNullableList.copyOf(operands), pos,
-        functionQualifier);
+    return callFactory.create(this, functionQualifier, pos, operands);
   }
 
   /** Not supported. Choose between
@@ -445,7 +473,7 @@ public abstract class SqlOperator {
    * Validates a call to this operator.
    *
    * <p>This method should not perform type-derivation or perform validation
-   * related related to types. That is done later, by
+   * related to types. That is done later, by
    * {@link #deriveType(SqlValidator, SqlValidatorScope, SqlCall)}. This method
    * should focus on structural validation.
    *
@@ -533,14 +561,10 @@ public abstract class SqlOperator {
     if (returnTypeInference != null) {
       RelDataType returnType = returnTypeInference.inferReturnType(opBinding);
       if (returnType == null) {
-        throw new IllegalArgumentException("Cannot infer return type for "
-            + opBinding.getOperator() + "; operand types: "
-            + opBinding.collectOperandTypes());
-      }
-
-      // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
-      if (isMeasure(returnType) && returnType.getMeasureElementType() != null) {
-        returnType = Objects.requireNonNull(returnType.getMeasureElementType());
+        throw opBinding.newError(
+            RESOURCE.cannotInferReturnType(
+                opBinding.getOperator().toString(),
+                opBinding.collectOperandTypes().toString()));
       }
 
       if (operandTypeInference != null
@@ -1011,6 +1035,27 @@ public abstract class SqlOperator {
   @Pure
   public @Nullable Supplier<Strong.Policy> getStrongPolicyInference() {
     return null;
+  }
+
+  /**
+   * Returns whether this is a safe operator.
+   *
+   * <p>If an operator is safe, then it never causes a run-time exception.
+   *
+   * <p>For example, the {@code a/b} is not safe. Because the
+   * {@code SqlStdOperatorTable.DIVIDE} may throw the exception when dividing by zero.
+   *
+   * <p>By default, returns {@code false}, which means the operator is not safe.
+   *
+   * <p>If an operator is safe, then some optimizations can be performed in
+   * {@code org.apache.calcite.rex.RexSimplify}.
+   *
+   * <p>For example:
+   * {@code NULL + a} can be optimized to {@code NULL}.
+   *
+   */
+  public Boolean isSafeOperator() {
+    return false;
   }
 
   /**

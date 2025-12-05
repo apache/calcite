@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
+import org.apache.calcite.util.TryThreadLocal;
 
 import com.google.common.collect.ImmutableList;
 
@@ -39,8 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>If a column is in {@code defaultColumns}, returns 1 as the default
  * value. */
 public class CountingFactory extends NullInitializerExpressionFactory {
-  public static final ThreadLocal<AtomicInteger> THREAD_CALL_COUNT =
-      ThreadLocal.withInitial(AtomicInteger::new);
+  public static final TryThreadLocal<AtomicInteger> THREAD_CALL_COUNT =
+      TryThreadLocal.withInitial(AtomicInteger::new);
 
   private final List<String> defaultColumns;
 

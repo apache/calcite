@@ -116,19 +116,16 @@ from UNNEST(array(select 'banana')) as fruit;
 
 !ok
 
-#TODO: Remove if when [CALCITE-5127] will be fixed.
-!if (false) {
 SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)
 FROM (SELECT ARRAY[1,2,3] as x) s;
-+--------+
-| FRUIT  |
-+--------+
-| banana |
-+--------+
++-----------+
+| EXPR$0    |
++-----------+
+| [2, 3, 4] |
++-----------+
 (1 row)
 
 !ok
-!}
 
 # If UNNEST is not the direct child of the AS, aliasing doesn't happen.
 SELECT fruit.*

@@ -25,6 +25,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * SetSemanticsTable appears as an parameter in a table function.
  * It represents as an input table with set semantics.
@@ -63,14 +65,14 @@ public class SqlSetSemanticsTableOperator extends SqlInternalOperator {
     call.operand(0).unparse(writer, 0, 0);
 
     SqlNodeList partitionList = call.operand(1);
-    if (partitionList.size() > 0) {
+    if (!partitionList.isEmpty()) {
       writer.sep("PARTITION BY");
       final SqlWriter.Frame partitionFrame = writer.startList("", "");
       partitionList.unparse(writer, 0, 0);
       writer.endList(partitionFrame);
     }
     SqlNodeList orderList = call.operand(2);
-    if (orderList.size() > 0) {
+    if (!orderList.isEmpty()) {
       writer.sep("ORDER BY");
       writer.list(
           SqlWriter.FrameTypeEnum.ORDER_BY_LIST,
@@ -83,9 +85,7 @@ public class SqlSetSemanticsTableOperator extends SqlInternalOperator {
       SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();
-    RelDataType tableType = validator.deriveType(scope, operands.get(0));
-    assert tableType != null;
-    return tableType;
+    return requireNonNull(validator.deriveType(scope, operands.get(0)));
   }
 
   @Override public boolean argumentMustBeScalar(int ordinal) {

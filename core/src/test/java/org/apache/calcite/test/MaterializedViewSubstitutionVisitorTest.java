@@ -48,7 +48,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -863,9 +862,9 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(m, q)
         .checkingThatResultContains(""
             + "LogicalUnion(all=[true])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[300], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -888,9 +887,9 @@ public class MaterializedViewSubstitutionVisitorTest {
         .checkingThatResultContains(""
             + "LogicalCalc(expr#0..9=[{inputs}], proj#0..4=[{exprs}], deptno0=[$t6], name0=[$t7], salary0=[$t8], commission0=[$t9])\n"
             + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
-            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -1134,6 +1133,231 @@ public class MaterializedViewSubstitutionVisitorTest {
         + "right join (select \"deptno\", \"name\" from \"depts\" where \"name\" is not null) \"t2\"\n"
         + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
     sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testLeftProjectOnRightJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testLeftProjectOnFullJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testRightProjectOnLeftJoinToJoinOk2() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  @Test void testRightProjectOnLeftJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testRightProjectOnFullJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testLeftProjectAndRightProjectOnLeftJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testLeftProjectAndRightProjectOnRightJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testLeftProjectAndRightProjectOnFullJoinToJoinOk() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", FLOOR(\"deptno\") a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testInnerJoinAdjustType() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE 1 END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String rightCalcQuery = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "join (select \"deptno\", \"deptno\" IS NULL,\"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftAndRightCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE \"empid\" END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "join (select \"deptno\", \"deptno\" IS NOT NULL, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, leftCalcQuery).ok();
+    sql(mv, rightCalcQuery).ok();
+    sql(mv, leftAndRightCalcQuery).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testLeftJoinAdjustType() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE 1 END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String rightCalcQuery = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" IS NULL,\"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftAndRightCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE \"empid\" END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" IS NOT NULL, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, leftCalcQuery).ok();
+    sql(mv, rightCalcQuery).noMat();
+    sql(mv, leftAndRightCalcQuery).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testRightJoinAdjustType() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE 1 END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String rightCalcQuery = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"deptno\" IS NULL,\"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftAndRightCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE \"empid\" END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"deptno\" IS NOT NULL, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, leftCalcQuery).noMat();
+    sql(mv, rightCalcQuery).ok();
+    sql(mv, leftAndRightCalcQuery).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6534">[CALCITE-6534]
+   * Adjust type when pulling up Calc in JoinUnifyRule</a>. */
+  @Test void testFullJoinAdjustType() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE 1 END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String rightCalcQuery = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"deptno\" IS NULL,\"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String leftAndRightCalcQuery = "select * from \n"
+        + "(select \"empid\", CASE WHEN \"empid\" = 1 THEN 0 ELSE \"empid\" END,"
+        + "\"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"deptno\" IS NOT NULL, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, leftCalcQuery).noMat();
+    sql(mv, rightCalcQuery).noMat();
+    sql(mv, leftAndRightCalcQuery).noMat();
   }
 
   @Test void testLeftFilterOnRightJoinToJoinFail() {
@@ -1868,7 +2092,7 @@ public class MaterializedViewSubstitutionVisitorTest {
     void checkSatisfiable(RexNode e, String s) {
       assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
       final RexNode simple = simplify.simplifyUnknownAsFalse(e);
-      assertEquals(s, simple.toString());
+      assertThat(simple, hasToString(s));
     }
   }
 

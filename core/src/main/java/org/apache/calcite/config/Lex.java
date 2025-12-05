@@ -21,8 +21,9 @@ import org.apache.calcite.avatica.util.Quoting;
 
 import com.google.common.collect.ImmutableSet;
 
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /** Named, built-in lexical policy. A lexical policy describes how
  * identifiers are quoted, whether they are converted to upper- or
@@ -89,9 +90,9 @@ public enum Lex {
       Casing quotedCasing,
       boolean caseSensitive,
       CharLiteralStyle... charLiteralStyles) {
-    this.quoting = Objects.requireNonNull(quoting, "quoting");
-    this.unquotedCasing = Objects.requireNonNull(unquotedCasing, "unquotedCasing");
-    this.quotedCasing = Objects.requireNonNull(quotedCasing, "quotedCasing");
+    this.quoting = requireNonNull(quoting, "quoting");
+    this.unquotedCasing = requireNonNull(unquotedCasing, "unquotedCasing");
+    this.quotedCasing = requireNonNull(quotedCasing, "quotedCasing");
     this.caseSensitive = caseSensitive;
     this.charLiteralStyles = ImmutableSet.copyOf(charLiteralStyles);
   }

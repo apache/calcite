@@ -62,6 +62,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.NumberUtil.multiply;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
  */
@@ -108,9 +110,7 @@ public class RelMdUtil {
     RexCall call = (RexCall) artificialSelectivityFuncNode;
     assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
-    @SuppressWarnings("unboxing.of.nullable")
-    double doubleValue = ((RexLiteral) operand).getValueAs(Double.class);
-    return doubleValue;
+    return RexLiteral.numberValue(operand).doubleValue();
   }
 
   /**
@@ -208,6 +208,18 @@ public class RelMdUtil {
       RelNode rel, ImmutableBitSet colMask) {
     Boolean b = mq.areColumnsUnique(rel, colMask, false);
     return b != null && b;
+  }
+
+  public static boolean isRelDefinitelyEmpty(RelMetadataQuery mq,
+      RelNode rel) {
+    Boolean b = mq.isEmpty(rel);
+    return b != null && b;
+  }
+
+  public static boolean isRelDefinitelyNotEmpty(RelMetadataQuery mq,
+      RelNode rel) {
+    Boolean b = mq.isEmpty(rel);
+    return b != null && !b;
   }
 
   public static @Nullable Boolean areColumnsUnique(RelMetadataQuery mq, RelNode rel,
@@ -556,15 +568,15 @@ public class RelMdUtil {
       ImmutableBitSet groupKey,
       Aggregate aggRel,
       ImmutableBitSet.Builder childKey) {
-    List<AggregateCall> aggCalls = aggRel.getAggCallList();
+    final List<AggregateCall> aggCallList = aggRel.getAggCallList();
+    final List<Integer> groupList = aggRel.getGroupSet().asList();
     for (int bit : groupKey) {
       if (bit < aggRel.getGroupCount()) {
         // group by column
-        childKey.set(bit);
+        childKey.set(groupList.get(bit));
       } else {
-        // aggregate column -- set a bit for each argument being
-        // aggregated
-        AggregateCall agg = aggCalls.get(bit - aggRel.getGroupCount());
+        // aggregate column -- set a bit for each argument being aggregated
+        final AggregateCall agg = aggCallList.get(bit - aggRel.getGroupCount());
         for (Integer arg : agg.getArgList()) {
           childKey.set(arg);
         }
@@ -590,6 +602,9 @@ public class RelMdUtil {
       final RexNode e = projExprs.get(bit);
       if (e instanceof RexInputRef) {
         baseCols.set(((RexInputRef) e).getIndex());
+      } else if (RexUtil.isLosslessCast(e)
+          && ((RexCall) e).getOperands().get(0).isA(SqlKind.INPUT_REF)) {
+        baseCols.set(((RexInputRef) ((RexCall) e).getOperands().get(0)).getIndex());
       } else {
         projCols.set(bit);
       }
@@ -831,6 +846,10 @@ public class RelMdUtil {
     }
     double innerRowCount = left * right * selectivity;
     switch (join.getJoinType()) {
+    case ASOF:
+      return left * selectivity;
+    case LEFT_ASOF:
+      return left;
     case INNER:
       return innerRowCount;
     case LEFT:
@@ -901,12 +920,12 @@ public class RelMdUtil {
    * cardinality of its result. */
   private static class CardOfProjExpr extends RexVisitorImpl<@Nullable Double> {
     private final RelMetadataQuery mq;
-    private Project rel;
+    private final Project rel;
 
     CardOfProjExpr(RelMetadataQuery mq, Project rel) {
       super(true);
-      this.mq = mq;
-      this.rel = rel;
+      this.mq = requireNonNull(mq, "mq");
+      this.rel = requireNonNull(rel, "rel");
     }
 
     @Override public @Nullable Double visitInputRef(RexInputRef var) {
@@ -1000,8 +1019,8 @@ public class RelMdUtil {
       // Cannot be determined
       return false;
     }
-    final int offsetVal = offset == null ? 0 : RexLiteral.intValue(offset);
-    final int limit = RexLiteral.intValue(fetch);
+    final long offsetVal = offset == null ? 0 : RexLiteral.longValue(offset);
+    final long limit = RexLiteral.longValue(fetch);
     return (double) offsetVal + (double) limit >= rowCount;
   }
 

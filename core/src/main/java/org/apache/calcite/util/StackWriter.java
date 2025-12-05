@@ -104,7 +104,7 @@ public class StackWriter extends FilterWriter {
   //~ Instance fields --------------------------------------------------------
 
   private int indentationDepth;
-  private String indentation;
+  private final String indentation;
   private boolean needIndent;
   private final Deque<Character> quoteStack = new ArrayDeque<>();
 

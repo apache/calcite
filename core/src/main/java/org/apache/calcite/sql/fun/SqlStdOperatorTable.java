@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -86,6 +87,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -198,7 +200,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * <code>DEFAULT</code> operator indicates that an argument to a function call
-   * is to take its default value..
+   * is to take its default value.
    */
   public static final SqlSpecialOperator DEFAULT = new SqlDefaultOperator();
 
@@ -273,9 +275,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                 typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
                     ? ReturnTypes.LEAST_RESTRICTIVE
                     : ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE;
-
-            return requireNonNull(returnType.inferReturnType(opBinding),
-                "inferred CONCAT element type");
+            RelDataType type = returnType.inferReturnType(opBinding);
+            if (type == null) {
+              throw opBinding.newError(
+                  RESOURCE.cannotInferReturnType(
+                      opBinding.getOperator().toString(),
+                      opBinding.collectOperandTypes().toString()));
+            }
+            return type;
           }),
           null,
           OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
@@ -288,6 +295,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBinaryOperator(
           "/",
           SqlKind.DIVIDE,
+          60,
+          true,
+          ReturnTypes.QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
+  /**
+   * Checked version of arithmetic division operator, '<code>/</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_DIVIDE =
+      new SqlBinaryOperator(
+          "/",
+          SqlKind.CHECKED_DIVIDE,
           60,
           true,
           ReturnTypes.QUOTIENT_NULLABLE,
@@ -320,6 +340,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBasicFunction RAND = SqlBasicFunction
       .create("RAND", ReturnTypes.DOUBLE,
           OperandTypes.NILADIC.or(OperandTypes.NUMERIC), SqlFunctionCategory.NUMERIC)
+      .withDeterministic(false)
       .withDynamic(true);
 
   /**
@@ -333,6 +354,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBinaryOperator(
           "/INT",
           SqlKind.DIVIDE,
+          60,
+          true,
+          ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
+  /**
+   * Checked version of integer division.  @see DIVIDE_INTEGER.
+   */
+  public static final SqlBinaryOperator CHECKED_DIVIDE_INTEGER =
+      new SqlBinaryOperator(
+          "/INT",
+          SqlKind.CHECKED_DIVIDE,
           60,
           true,
           ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
@@ -547,12 +581,40 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.MINUS_OPERATOR);
 
   /**
+   * Checked version of infix arithmetic minus operator, '<code>-</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_MINUS =
+      new SqlMonotonicBinaryOperator(
+          "-",
+          SqlKind.CHECKED_MINUS,
+          40,
+          true,
+
+          // Same type inference strategy as sum
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.MINUS_OPERATOR);
+
+  /**
    * Arithmetic multiplication operator, '<code>*</code>'.
    */
   public static final SqlBinaryOperator MULTIPLY =
       new SqlMonotonicBinaryOperator(
           "*",
           SqlKind.TIMES,
+          60,
+          true,
+          ReturnTypes.PRODUCT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.MULTIPLY_OPERATOR);
+
+  /**
+   * Checked version of arithmetic multiplication operator, '<code>*</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_MULTIPLY =
+      new SqlMonotonicBinaryOperator(
+          "*",
+          SqlKind.CHECKED_TIMES,
           60,
           true,
           ReturnTypes.PRODUCT_NULLABLE,
@@ -592,6 +654,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlMonotonicBinaryOperator(
           "+",
           SqlKind.PLUS,
+          40,
+          true,
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.PLUS_OPERATOR);
+
+  /**
+   * Checked version of infix arithmetic plus operator, '<code>+</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_PLUS =
+      new SqlMonotonicBinaryOperator(
+          "+",
+          SqlKind.CHECKED_PLUS,
           40,
           true,
           ReturnTypes.NULLABLE_SUM,
@@ -809,7 +884,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON VALUE",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -818,7 +893,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON VALUE",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -827,7 +902,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON OBJECT",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -836,7 +911,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON OBJECT",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -845,7 +920,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON ARRAY",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -854,7 +929,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON ARRAY",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -863,7 +938,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON SCALAR",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -872,7 +947,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON SCALAR",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -945,6 +1020,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPrefixOperator(
           "-",
           SqlKind.MINUS_PREFIX,
+          80,
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.NUMERIC_OR_INTERVAL);
+
+  /**
+   * Checked version of prefix arithmetic minus operator, '<code>-</code>'.
+   */
+  public static final SqlPrefixOperator CHECKED_UNARY_MINUS =
+      new SqlPrefixOperator(
+          "-",
+          SqlKind.CHECKED_MINUS_PREFIX,
           80,
           ReturnTypes.ARG0,
           InferTypes.RETURN_TYPE,
@@ -1190,6 +1277,74 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction VARIANCE =
       new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
+  public static final SqlBasicFunction BITCOUNT =
+      SqlBasicFunction
+          .create("BITCOUNT", ReturnTypes.BIGINT_NULLABLE,
+              OperandTypes.INTEGER.or(OperandTypes.BINARY), SqlFunctionCategory.NUMERIC);
+
+  /**
+   * <code>BITAND</code> scalar function.
+   */
+  public static final SqlFunction BITAND =
+      SqlBasicFunction.create("BITAND", SqlKind.BITAND,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITOR</code> scalar function.
+   */
+  public static final SqlFunction BITOR =
+      SqlBasicFunction.create("BITOR", SqlKind.BITOR,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITXOR</code> scalar function.
+   */
+  public static final SqlFunction BITXOR =
+      SqlBasicFunction.create("BITXOR", SqlKind.BITXOR,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>{@code ^}</code> operator.
+   */
+  public static final SqlBinaryOperator BITXOR_OPERATOR =
+      new SqlBinaryOperator(
+          "^",
+          SqlKind.BITXOR,
+          40,
+          true,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY)
+              .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC));
+  // Both operands should support bitwise operations
+
+  /**
+   * <code>{@code &}</code> operator.
+   */
+  public static final SqlBinaryOperator BITAND_OPERATOR =
+      new SqlBinaryOperator(
+          "&",
+          SqlKind.BITAND,
+          50,        // Higher precedence than XOR but lower than multiplication
+          true,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY)
+              .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC)
+              .or(OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER)
+                  .or(OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.UNSIGNED_NUMERIC))));
+
+  /**
+   * <code>BITNOT</code> scalar function.
+   */
+  public static final SqlFunction BITNOT =
+      SqlBasicFunction.create("BITNOT", SqlKind.BITNOT,
+          ReturnTypes.ARG0_OR_INTEGER,
+          OperandTypes.INTEGER.or(OperandTypes.BINARY));
+
   /**
    * <code>BIT_AND</code> aggregate function.
    */
@@ -1207,6 +1362,35 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction BIT_XOR =
       new SqlBitOpAggFunction(SqlKind.BIT_XOR);
+
+  /**
+   * <code>{@code <<}</code> (left shift) operator.
+   */
+  public static final SqlBinaryOperator BIT_LEFT_SHIFT =
+      new SqlBinaryOperator(
+          "<<",
+          SqlKind.OTHER,
+          32,                                     // Standard shift operator precedence
+          true,
+          ReturnTypes.ARG0_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER)));
+
+  /**
+   * left shift function.
+   */
+  public static final SqlFunction LEFTSHIFT =
+      SqlBasicFunction.create(
+          "LEFTSHIFT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.INTEGER)));
 
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions
@@ -1580,7 +1764,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction SUBSTRING = new SqlSubstringFunction();
 
   /** The {@code REPLACE(string, search, replace)} function. Not standard SQL,
-   * but in Oracle and Postgres. */
+   * but in Oracle, PostgreSQL and Microsoft SQL Server.
+   *
+   * <p>REPLACE behaves a little different in Microsoft SQL Server,
+   * whose search pattern is case-insensitive during matching.
+   *
+   * <p>For example, {@code REPLACE(('ciAao', 'a', 'ciao'))} returns "ciAciaoo" in both
+   * Oracle and PostgreSQL, but returns "ciciaociaoo" in Microsoft SQL Server. */
   public static final SqlFunction REPLACE =
       SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
@@ -1816,7 +2006,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction PI =
       SqlBasicFunction.create("PI", ReturnTypes.DOUBLE, OperandTypes.NILADIC,
           SqlFunctionCategory.NUMERIC)
-          .withSyntax(SqlSyntax.FUNCTION_ID);
+          .withSyntax(SqlSyntax.FUNCTION_ID_CONSTANT);
+
+  /** The {@code TYPEOF} function. */
+  public static final SqlFunction TYPEOF =
+      SqlBasicFunction.create("TYPEOF", ReturnTypes.VARCHAR, OperandTypes.VARIANT,
+              SqlFunctionCategory.STRING);
+
+  /** The {@code VARIANTNULL} function. */
+  public static final SqlFunction VARIANTNULL =
+      SqlBasicFunction.create("VARIANTNULL", ReturnTypes.VARIANT, OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
 
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =
@@ -1958,19 +2158,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               SqlTypeFamily.DATETIME));
 
   /**
-   * Use of the <code>IN_FENNEL</code> operator forces the argument to be
-   * evaluated in Fennel. Otherwise acts as identity function.
-   */
-  public static final SqlFunction IN_FENNEL =
-      new SqlMonotonicUnaryFunction(
-          "$IN_FENNEL",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM);
-
-  /**
    * The SQL <code>CAST</code> operator.
    *
    * <p>The SQL syntax is
@@ -2001,7 +2188,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
    * 23</code>
    */
-  public static final SqlFunction EXTRACT = new SqlExtractFunction("EXTRACT");
+  public static final SqlFunction EXTRACT = new SqlExtractFunction("EXTRACT", false);
 
   /**
    * The SQL <code>YEAR</code> operator. Returns the Year
@@ -2122,7 +2309,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>MAP is not standard SQL.
    */
   public static final SqlOperator ITEM =
-      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP, 1, true);
+      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP_OR_VARIANT, 1, true);
 
   /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".
@@ -2716,6 +2903,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return floor ? SqlLibraryOperators.FLOOR_BIG_QUERY : SqlLibraryOperators.CEIL_BIG_QUERY;
     } else {
       return floor ? SqlStdOperatorTable.FLOOR : SqlStdOperatorTable.CEIL;
+    }
+  }
+
+  /** Returns the operator for standard {@code CONVERT} and Oracle's {@code CONVERT}
+   * with the given library. */
+  public static SqlOperator getConvertFuncByConformance(SqlConformance conformance) {
+    if (SqlConformanceEnum.ORACLE_10 == conformance
+        || SqlConformanceEnum.ORACLE_12 == conformance) {
+      return SqlLibraryOperators.CONVERT_ORACLE;
+    } else {
+      return SqlStdOperatorTable.CONVERT;
     }
   }
 }

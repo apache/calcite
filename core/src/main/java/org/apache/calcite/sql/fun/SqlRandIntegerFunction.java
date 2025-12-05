@@ -45,6 +45,10 @@ public class SqlRandIntegerFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean isDeterministic() {
+    return false;
+  }
+
   // Plans referencing context variables should never be cached
   @Override public boolean isDynamicFunction() {
     return true;

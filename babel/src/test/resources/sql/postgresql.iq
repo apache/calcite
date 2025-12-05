@@ -18,6 +18,27 @@
 !use scott-postgresql
 !set outputformat csv
 
+# Test CAST INTERVAL
+select CAST('3723' AS INTERVAL HOUR TO SECOND);
+EXPR$0
++1:02:03.000000
+!ok
+
+select CAST('3721' AS INTERVAL SECOND);
+EXPR$0
++3721.000000
+!ok
+
+select CAST('2' AS INTERVAL);
+EXPR$0
++2.000000
+!ok
+
+select CAST('-3723' AS INTERVAL);
+EXPR$0
+-3723.000000
+!ok
+
 # Test string and array comparison
 select array[0,1,2] = '{0,1,2}';
 EXPR$0
@@ -39,6 +60,68 @@ EXPR$0
 false
 !ok
 
+#Test string function split_part
+select split_part('abc~@~def~@~ghi', '~@~', 2);
+EXPR$0
+def
+!ok
+
+select split_part('abc,def,ghi,jkl', ',', -2);
+EXPR$0
+ghi
+!ok
+
+# Test string_to_array function
+select string_to_array('a,b,c', ',', 'd');
+EXPR$0
+[a, b, c]
+!ok
+
+select string_to_array('a,b,,d', ',', 'd');
+EXPR$0
+[a, b, , null]
+!ok
+
+select string_to_array('a,b,,d', ',', null);
+EXPR$0
+[a, b, , d]
+!ok
+
+select string_to_array('abc', '');
+EXPR$0
+[abc]
+!ok
+
+select string_to_array('abc', ',', 'abc');
+EXPR$0
+[null]
+!ok
+
+select string_to_array('calcite apache org', ' ', 'apache');
+EXPR$0
+[calcite, null, org]
+!ok
+
+select string_to_array('calcite apache org', ' ');
+EXPR$0
+[calcite, apache, org]
+!ok
+
+select string_to_array('a*c', NULL, '*');
+EXPR$0
+[a, null, c]
+!ok
+
+select string_to_array(NULL, ' ');
+EXPR$0
+null
+!ok
+
+select string_to_array('', '');
+EXPR$0
+[]
+!ok
+
 # Test coercion string to array inside INSERT
 create table sal_emp (name varchar, pay_by_quarter int array, schedule varchar array array);
 (0 rows modified)
@@ -58,14 +141,1069 @@ NAME, PAY_BY_QUARTER, SCHEDULE
 Bill, [10000, 10000, 10000, 10000], [[meeting, lunch], [training, presentation]]
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS');
 EXPR$0
 2022-06-03 12:15:48.678
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'HH');
+EXPR$0
+12
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'HH12');
+EXPR$0
+01
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'HH24');
+EXPR$0
+13
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'MI');
+EXPR$0
+15
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'SS');
+EXPR$0
+48
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'MS');
+EXPR$0
+678
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'US');
+EXPR$0
+678000
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FF1');
+EXPR$0
+6
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FF2');
+EXPR$0
+67
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FF3');
+EXPR$0
+678
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FF4');
+EXPR$0
+6780
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FF5');
+EXPR$0
+67800
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FF6');
+EXPR$0
+678000
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'SSSS');
+EXPR$0
+44148
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'SSSSS');
+EXPR$0
+44148
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'AM');
+EXPR$0
+PM
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'am');
+EXPR$0
+pm
+!ok
+
+select to_char(timestamp '2022-06-03 02:15:48.678', 'PM');
+EXPR$0
+AM
+!ok
+
+select to_char(timestamp '2022-06-03 02:15:48.678', 'pm');
+EXPR$0
+am
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'A.M.');
+EXPR$0
+P.M.
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'a.m.');
+EXPR$0
+p.m.
+!ok
+
+select to_char(timestamp '2022-06-03 02:15:48.678', 'P.M.');
+EXPR$0
+A.M.
+!ok
+
+select to_char(timestamp '2022-06-03 02:15:48.678', 'p.m.');
+EXPR$0
+a.m.
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'Y,YYY');
+EXPR$0
+2,022
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY');
+EXPR$0
+2022
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'YYY');
+EXPR$0
+022
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'YY');
+EXPR$0
+22
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'Y');
+EXPR$0
+2
+!ok
+
+select to_char(timestamp '2023-01-01 12:15:48.678', 'IYYY');
+EXPR$0
+2022
+!ok
+
+select to_char(timestamp '2023-01-01 12:15:48.678', 'IYY');
+EXPR$0
+022
+!ok
+
+select to_char(timestamp '2023-01-01 12:15:48.678', 'IY');
+EXPR$0
+22
+!ok
+
+select to_char(timestamp '2023-01-01 12:15:48.678', 'I');
+EXPR$0
+2
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'BC');
+EXPR$0
+AD
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'bc');
+EXPR$0
+ad
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'AD');
+EXPR$0
+AD
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'ad');
+EXPR$0
+ad
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'B.C.');
+EXPR$0
+A.D.
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'b.c.');
+EXPR$0
+a.d.
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'A.D.');
+EXPR$0
+A.D.
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'a.d.');
+EXPR$0
+a.d.
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMMONTH');
+EXPR$0
+JUNE
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMMonth');
+EXPR$0
+June
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMmonth');
+EXPR$0
+june
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'MON');
+EXPR$0
+JUN
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'Mon');
+EXPR$0
+Jun
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'mon');
+EXPR$0
+jun
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMDAY');
+EXPR$0
+FRIDAY
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMDay');
+EXPR$0
+Friday
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMday');
+EXPR$0
+friday
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'DY');
+EXPR$0
+FRI
+!ok
+
+select to_char(timestamp '0001-01-01 00:00:00.000', 'DY');
+EXPR$0
+MON
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'Dy');
+EXPR$0
+Fri
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'dy');
+EXPR$0
+fri
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'DDD');
+EXPR$0
+154
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'IDDD');
+EXPR$0
+152
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'DD');
+EXPR$0
+03
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'D');
+EXPR$0
+6
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'ID');
+EXPR$0
+5
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'W');
+EXPR$0
+1
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'WW');
+EXPR$0
+22
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'IW');
+EXPR$0
+22
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'CC');
+EXPR$0
+21
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'J');
+EXPR$0
+2459734
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'Q');
+EXPR$0
+2
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'RM');
+EXPR$0
+VI
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', 'rm');
+EXPR$0
+vi
+!ok
+
+select to_char(null, 'YYYY');
+EXPR$0
+null
+!ok
+
+select to_char(timestamp '2022-06-03 13:15:48.678', null);
+EXPR$0
+null
+!ok
+
+select to_char(null, null);
+EXPR$0
+null
+!ok
+
+select to_timestamp('01', 'HH');
+EXPR$0
+0001-01-01 01:00:00
+!ok
+
+select to_timestamp('1', 'HH');
+EXPR$0
+0001-01-01 01:00:00
+!ok
+
+select to_timestamp('11', 'HH');
+EXPR$0
+0001-01-01 11:00:00
+!ok
+
+select to_timestamp('01', 'HH12');
+EXPR$0
+0001-01-01 01:00:00
+!ok
+
+select to_timestamp('1', 'HH12');
+EXPR$0
+0001-01-01 01:00:00
+!ok
+
+select to_timestamp('11', 'HH12');
+EXPR$0
+0001-01-01 11:00:00
+!ok
+
+select to_timestamp('01', 'HH24');
+EXPR$0
+0001-01-01 01:00:00
+!ok
+
+select to_timestamp('1', 'HH24');
+EXPR$0
+0001-01-01 01:00:00
+!ok
+
+select to_timestamp('18', 'HH24');
+EXPR$0
+0001-01-01 18:00:00
+!ok
+
+select to_timestamp('01', 'MI');
+EXPR$0
+0001-01-01 00:01:00
+!ok
+
+select to_timestamp('1', 'MI');
+EXPR$0
+0001-01-01 00:01:00
+!ok
+
+select to_timestamp('57', 'MI');
+EXPR$0
+0001-01-01 00:57:00
+!ok
+
+select to_timestamp('01', 'SS');
+EXPR$0
+0001-01-01 00:00:01
+!ok
+
+select to_timestamp('1', 'SS');
+EXPR$0
+0001-01-01 00:00:01
+!ok
+
+select to_timestamp('57', 'SS');
+EXPR$0
+0001-01-01 00:00:57
+!ok
+
+select to_timestamp('03AM', 'HH12AM');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03AM', 'HH12PM');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03PM', 'HH12AM');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03PM', 'HH12PM');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03A.M.', 'HH12A.M.');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03A.M.', 'HH12P.M.');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03P.M.', 'HH12A.M.');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03P.M.', 'HH12P.M.');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03am', 'HH12am');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03am', 'HH12pm');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03pm', 'HH12am');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03pm', 'HH12pm');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03a.m.', 'HH12a.m.');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03a.m.', 'HH12p.m.');
+EXPR$0
+0001-01-01 03:00:00
+!ok
+
+select to_timestamp('03p.m.', 'HH12a.m.');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('03p.m.', 'HH12p.m.');
+EXPR$0
+0001-01-01 15:00:00
+!ok
+
+select to_timestamp('0,001', 'Y,YYY');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('2,024', 'Y,YYY');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('0001', 'YYYY');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'YYYY');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('2024', 'YYYY');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('001', 'YYY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'YYY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('987', 'YYY');
+EXPR$0
+1987-01-01 00:00:00
+!ok
+
+select to_timestamp('01', 'YY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'YY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('24', 'YY');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'Y');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('4', 'YY');
+EXPR$0
+2004-01-01 00:00:00
+!ok
+
+select to_timestamp('0001', 'IYYY');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'IYYY');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('2024', 'IYYY');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('001', 'IYY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'IYY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('987', 'IYY');
+EXPR$0
+1987-01-01 00:00:00
+!ok
+
+select to_timestamp('01', 'IY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'IY');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('24', 'IY');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'I');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('4', 'I');
+EXPR$0
+2004-01-01 00:00:00
+!ok
+
+select to_timestamp('JANUARY', 'MONTH');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('MARCH', 'MONTH');
+EXPR$0
+0001-03-01 00:00:00
+!ok
+
+select to_timestamp('NOVEMBER', 'MONTH');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('January', 'Month');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('March', 'Month');
+EXPR$0
+0001-03-01 00:00:00
+!ok
+
+select to_timestamp('November', 'Month');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('january', 'month');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('march', 'month');
+EXPR$0
+0001-03-01 00:00:00
+!ok
+
+select to_timestamp('november', 'month');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('JAN', 'MON');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('MAR', 'MON');
+EXPR$0
+0001-03-01 00:00:00
+!ok
+
+select to_timestamp('NOV', 'MON');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('Jan', 'Mon');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('Mar', 'Mon');
+EXPR$0
+0001-03-01 00:00:00
+!ok
+
+select to_timestamp('Nov', 'Mon');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('jan', 'mon');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('mar', 'mon');
+EXPR$0
+0001-03-01 00:00:00
+!ok
+
+select to_timestamp('nov', 'mon');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('01', 'MM');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'MM');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('11', 'MM');
+EXPR$0
+0001-11-01 00:00:00
+!ok
+
+select to_timestamp('1982 23 MONDAY', 'IYYY IW DAY');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 THURSDAY', 'IYYY IW DAY');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 FRIDAY', 'IYYY IW DAY');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('1982 23 Monday', 'IYYY IW Day');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 Thursday', 'IYYY IW Day');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 Friday', 'IYYY IW Day');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('1982 23 monday', 'IYYY IW day');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 thursday', 'IYYY IW day');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 friday', 'IYYY IW day');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('1982 23 MON', 'IYYY IW DY');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 THU', 'IYYY IW DY');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 FRI', 'IYYY IW DY');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('1982 23 Mon', 'IYYY IW Dy');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 Thu', 'IYYY IW Dy');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 Fri', 'IYYY IW Dy');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('1982 23 mon', 'IYYY IW dy');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 thu', 'IYYY IW dy');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 fri', 'IYYY IW dy');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('2024 001', 'YYYY DDD');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('2024 1', 'YYYY DDD');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('2024 137', 'YYYY DDD');
+EXPR$0
+2024-05-16 00:00:00
+!ok
+
+select to_timestamp('01', 'DD');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'DD');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('23', 'DD');
+EXPR$0
+0001-01-23 00:00:00
+!ok
+
+select to_timestamp('2020 001', 'IYYY IDDD');
+EXPR$0
+2019-12-30 00:00:00
+!ok
+
+select to_timestamp('2020 1', 'IYYY IDDD');
+EXPR$0
+2019-12-30 00:00:00
+!ok
+
+select to_timestamp('2020 137', 'IYYY IDDD');
+EXPR$0
+2020-05-14 00:00:00
+!ok
+
+select to_timestamp('1982 23 1', 'IYYY IW ID');
+EXPR$0
+1982-06-07 00:00:00
+!ok
+
+select to_timestamp('1982 23 4', 'IYYY IW ID');
+EXPR$0
+1982-06-10 00:00:00
+!ok
+
+select to_timestamp('1982 23 5', 'IYYY IW ID');
+EXPR$0
+1982-06-11 00:00:00
+!ok
+
+select to_timestamp('2024 1 1', 'YYYY MM W');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('2024 4 2', 'YYYY MM W');
+EXPR$0
+2024-04-08 00:00:00
+!ok
+
+select to_timestamp('2024 11 4', 'YYYY MM W');
+EXPR$0
+2024-11-22 00:00:00
+!ok
+
+select to_timestamp('2024 01', 'YYYY WW');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('2024 1', 'YYYY WW');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('2024 51', 'YYYY WW');
+EXPR$0
+2024-12-16 00:00:00
+!ok
+
+select to_timestamp('2020 01', 'IYYY IW');
+EXPR$0
+2019-12-30 00:00:00
+!ok
+
+select to_timestamp('2020 1', 'IYYY IW');
+EXPR$0
+2019-12-30 00:00:00
+!ok
+
+select to_timestamp('2020 51', 'IYYY IW');
+EXPR$0
+2020-12-14 00:00:00
+!ok
+
+select to_timestamp('21', 'CC');
+EXPR$0
+2001-01-01 00:00:00
+!ok
+
+select to_timestamp('16', 'CC');
+EXPR$0
+1501-01-01 00:00:00
+!ok
+
+select to_timestamp('1', 'CC');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('2460311', 'J');
+EXPR$0
+2024-01-01 00:00:00
+!ok
+
+select to_timestamp('2445897', 'J');
+EXPR$0
+1984-07-15 00:00:00
+!ok
+
+select to_timestamp('1806606', 'J');
+EXPR$0
+0234-03-21 00:00:00
+!ok
+
+select to_timestamp('I', 'RM');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('IV', 'RM');
+EXPR$0
+0001-04-01 00:00:00
+!ok
+
+select to_timestamp('IX', 'RM');
+EXPR$0
+0001-09-01 00:00:00
+!ok
+
+select to_timestamp('i', 'rm');
+EXPR$0
+0001-01-01 00:00:00
+!ok
+
+select to_timestamp('iv', 'rm');
+EXPR$0
+0001-04-01 00:00:00
+!ok
+
+select to_timestamp('ix', 'rm');
+EXPR$0
+0001-09-01 00:00:00
 !ok
 
 select to_date('2022-06-03', 'YYYY-MM-DD');
 EXPR$0
 2022-06-03
+!ok
+
+select to_date('2,024-04-17', 'Y,YYY-MM-DD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('24-04-17', 'YYY-MM-DD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('24-04-17', 'YY-MM-DD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('2124-04-17', 'CCYY-MM-DD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('20240417', 'YYYYMMDD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('2,0240417', 'Y,YYYMMDD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('2024-16-3', 'IYYY-IW-ID');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('2024-16 Wednesday', 'IYYY-IW Day');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('2024-108', 'IYYY-IDDD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('April 17, 2024', 'Month DD, YYYY');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('IV 17, 2024', 'RM DD, YYYY');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('APR 17, 2024', 'MON DD, YYYY');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('2024-16', 'YYYY-WW');
+EXPR$0
+2024-04-15
+!ok
+
+select to_date('2024-108', 'YYYY-DDD');
+EXPR$0
+2024-04-17
+!ok
+
+select to_date('0000-01-01', 'YYYY-MM-DD');
+EXPR$0
+0001-01-01
 !ok
 
 select to_timestamp('18:46:32 2022-06-03', 'HH24:MI:SS YYYY-MM-DD');
@@ -77,6 +1215,40 @@ select to_timestamp('18:46:32 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY');
 EXPR$0
 2022-06-03 18:46:32
 !ok
+
+select date_part('microsecond', timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+48678000
+!ok
+
+select date_part(MICROSECOND, timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+48678000
+!ok
+
+select date_part('minute', timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+15
+!ok
+
+select date_part(MINUTE, timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+15
+!ok
+
+select date_part('dow', timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+6
+!ok
+
+select date_part(DOW, timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+6
+!ok
+
+select date_part('foo', timestamp '2022-06-03 12:15:48.678');
+java.sql.SQLException: Error while executing SQL "select date_part('foo', timestamp '2022-06-03 12:15:48.678')": From line 1, column 18 to line 1, column 22: 'foo' is not a valid time frame
+!error
 
 # -----------------------------------------------------------------------------
 # Posix regex
@@ -125,6 +1297,41 @@ false
 SELECT 'abd' ~ 'ab[cd]' AS x;
 X
 true
+!ok
+
+SELECT greatest(1, 2, 3) AS x;
+X
+3
+!ok
+
+SELECT greatest(1, null, 3) AS x;
+X
+3
+!ok
+
+SELECT least(1, 2, 3) AS x;
+X
+1
+!ok
+
+SELECT regexp_replace('abc def GHI', '[a-z]+', 'X') AS x;
+X
+X def GHI
+!ok
+
+SELECT regexp_replace('abc def GHI', '[a-z]+', 'X', 'g') AS x;
+X
+X X GHI
+!ok
+
+SELECT regexp_replace('ABC def GHI', '[a-z]+', 'X', 'i') AS x;
+X
+X def GHI
+!ok
+
+SELECT regexp_replace('ABC def GHI', '([a-z]+).*', '\1', 'i') AS x;
+X
+ABC
 !ok
 
 # End postgresql.iq

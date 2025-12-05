@@ -42,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * behavior only by providing strategy objects, not by overriding methods in a
  * subclass.
  */
-public class SqlBasicFunction extends SqlFunction {
+public final class SqlBasicFunction extends SqlFunction {
   private final SqlSyntax syntax;
   private final boolean deterministic;
   private final SqlOperandHandler operandHandler;
@@ -87,6 +87,24 @@ public class SqlBasicFunction extends SqlFunction {
     this.monotonicityInference =
         requireNonNull(monotonicityInference, "monotonicityInference");
     this.dynamic = dynamic;
+  }
+
+  /**
+   * Creates a {@code SqlBasicFunction}.
+   *
+   * @param name function name
+   * @param kind function kind
+   * @param returnTypeInference Strategy to use for return type inference
+   * @param operandTypeChecker Strategy to use for parameter type checking
+   * @return a {@code SqlBasicFunction}
+   */
+  public static SqlBasicFunction create(String name, SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    return new SqlBasicFunction(name, kind,
+        SqlSyntax.FUNCTION, true, returnTypeInference, null,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
+        SqlFunctionCategory.SYSTEM, call -> SqlMonotonicity.NOT_MONOTONIC, false);
   }
 
   /** Creates a {@code SqlBasicFunction} whose name is the same as its kind
@@ -139,6 +157,10 @@ public class SqlBasicFunction extends SqlFunction {
 
   @Override public boolean isDeterministic() {
     return deterministic;
+  }
+
+  @Override public @Nullable SqlOperator reverse() {
+    return isSymmetrical() ? this : null;
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {

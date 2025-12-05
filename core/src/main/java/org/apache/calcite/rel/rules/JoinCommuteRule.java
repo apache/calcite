@@ -137,10 +137,21 @@ public class JoinCommuteRule
         .build();
   }
 
+  public static RexNode swapJoinCond(RexNode cond, Join join, RexBuilder rexBuilder) {
+    final VariableReplacer variableReplacer =
+        new VariableReplacer(rexBuilder, join.getLeft().getRowType(), join.getRight().getRowType());
+    return variableReplacer.apply(cond);
+  }
+
   @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
     // SEMI and ANTI join cannot be swapped.
     if (!join.getJoinType().projectsRight()) {
+      return false;
+    }
+
+    // If rightToLeftOnly is enabled, only allow RIGHT joins to be swapped
+    if (config.isRightToLeftOnly() && join.getJoinType() != JoinRelType.RIGHT) {
       return false;
     }
 
@@ -233,6 +244,10 @@ public class JoinCommuteRule
         .withOperandFor(LogicalJoin.class)
         .withSwapOuter(false);
 
+    Config SWAP_OUTER = DEFAULT.withSwapOuter(true);
+
+    Config RIGHT_TO_LEFT_ONLY = DEFAULT.withRightToLeftOnly(true).withSwapOuter(true);
+
     @Override default JoinCommuteRule toRule() {
       return new JoinCommuteRule(this);
     }
@@ -265,5 +280,13 @@ public class JoinCommuteRule
 
     /** Sets {@link #isAllowAlwaysTrueCondition()}. */
     Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);
+
+    /** If true, only RIGHT JOIN will be swapped; default false. */
+    @Value.Default default boolean isRightToLeftOnly() {
+      return false;
+    }
+
+    /** Sets {@link #isRightToLeftOnly()}. */
+    Config withRightToLeftOnly(boolean isRightToLeftOnly);
   }
 }

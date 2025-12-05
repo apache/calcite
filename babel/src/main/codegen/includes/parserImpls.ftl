@@ -29,6 +29,33 @@ JoinType LeftAntiJoin() :
     <LEFT> <ANTI> <JOIN> { return JoinType.LEFT_ANTI_JOIN; }
 }
 
+SqlNode DatePartFunctionCall() :
+{
+    final Span s;
+    final SqlOperator op;
+    final SqlNode unit;
+    final List<SqlNode> args;
+    SqlNode e;
+}
+{
+    <DATE_PART> { op = SqlLibraryOperators.DATE_PART; }
+    { s = span(); }
+    <LPAREN>
+    (   unit = TimeUnitOrName() {
+            args = startList(unit);
+        }
+    |   unit = Expression(ExprContext.ACCEPT_NON_QUERY) {
+            args = startList(unit);
+        }
+    )
+    <COMMA> e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+        args.add(e);
+    }
+    <RPAREN> {
+        return op.createCall(s.end(this), args);
+    }
+}
+
 SqlNode DateaddFunctionCall() :
 {
     final Span s;
@@ -38,8 +65,7 @@ SqlNode DateaddFunctionCall() :
     SqlNode e;
 }
 {
-    (   <DATE_PART>  { op = SqlLibraryOperators.DATE_PART; }
-    |   <DATEADD> { op = SqlLibraryOperators.DATEADD; }
+    (   <DATEADD> { op = SqlLibraryOperators.DATEADD; }
     |   <DATEDIFF> { op = SqlLibraryOperators.DATEDIFF; }
     |   <DATEPART>  { op = SqlLibraryOperators.DATEPART; }
     )

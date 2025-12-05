@@ -64,6 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -78,7 +79,7 @@ public class ScannableTableTest {
     try (Enumerator<Object[]> cursor = tens()) {
       assertTrue(cursor.moveNext());
       assertThat(cursor.current()[0], equalTo(0));
-      assertThat(cursor.current().length, equalTo(1));
+      assertThat(cursor.current(), arrayWithSize(1));
       assertTrue(cursor.moveNext());
       assertThat(cursor.current()[0], equalTo(10));
       assertTrue(cursor.moveNext());
@@ -277,9 +278,10 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
         + "EnumerableAggregate(group=[{0}], C=[COUNT()])\n"
-        + "  EnumerableAggregate(group=[{0, 1}])\n"
-        + "    EnumerableInterpreter\n"
-        + "      BindableTableScan(table=[[s, beatles]], filters=[[=($2, 1940)]], projects=[[2, 0]])";
+        + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[1940], k=[$t1], i=[$t0])\n"
+        + "    EnumerableAggregate(group=[{1}])\n"
+        + "      EnumerableInterpreter\n"
+        + "        BindableTableScan(table=[[s, beatles]], filters=[[=($2, 1940)]], projects=[[2, 0]])";
     CalciteAssert.that()
         .with(newSchema("s", PairList.of("beatles", table)))
         .query(sql)

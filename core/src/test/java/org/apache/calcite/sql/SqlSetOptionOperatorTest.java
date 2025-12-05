@@ -63,7 +63,7 @@ class SqlSetOptionOperatorTest {
     assertThat(opt.getClass(), equalTo(returned.getClass()));
     SqlSetOption optRet = (SqlSetOption) returned;
     assertThat(optRet.getScope(), is(opt.getScope()));
-    assertThat(optRet.getName(), is(opt.getName()));
+    assertThat(optRet.name(), is(opt.name()));
     assertThat(optRet.getFunctionQuantifier(), is(opt.getFunctionQuantifier()));
     assertThat(optRet.getParserPosition(), is(opt.getParserPosition()));
     assertThat(optRet.getValue(), is(opt.getValue()));

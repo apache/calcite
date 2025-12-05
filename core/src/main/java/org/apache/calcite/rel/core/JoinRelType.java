@@ -70,7 +70,28 @@ public enum JoinRelType {
    *     WHERE DEPT.DEPTNO = EMP.DEPTNO)</pre>
    * </blockquote>
    */
-  ANTI;
+  ANTI,
+
+  /**
+   * An ASOF JOIN operation combines rows from two tables based on comparable timestamp values.
+   * For each row in the left table, the join finds at most one row in the right table that has the
+   * "closest" timestamp value. The matched row on the right side is the closest match,
+   * which could less than or equal or greater than or equal in the timestamp column,
+   * as specified by the comparison operator.
+   *
+   * <p>Example:
+   * <blockquote><pre>
+   * FROM left_table ASOF JOIN right_table
+   *   MATCH_CONDITION ( left_table.timecol &le; right_table.timecol )
+   *   ON left_table.col = right_table.col</pre>
+   * </blockquote>
+   */
+  ASOF,
+
+  /**
+   * The left version of an ASOF join, where each row from the left table is part of the output.
+   */
+  LEFT_ASOF;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
@@ -80,7 +101,7 @@ public enum JoinRelType {
    * right-hand side.
    */
   public boolean generatesNullsOnRight() {
-    return (this == LEFT) || (this == FULL);
+    return (this == LEFT) || (this == FULL) || (this == LEFT_ASOF);
   }
 
   /**
@@ -96,7 +117,7 @@ public enum JoinRelType {
    * generate NULL values, either on the left-hand side or right-hand side.
    */
   public boolean isOuterJoin() {
-    return (this == LEFT) || (this == RIGHT) || (this == FULL);
+    return (this == LEFT) || (this == RIGHT) || (this == FULL) || (this == LEFT_ASOF);
   }
 
   /**

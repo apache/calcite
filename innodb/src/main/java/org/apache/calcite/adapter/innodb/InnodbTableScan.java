@@ -39,27 +39,30 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression representing a scan of an InnoDB data source.
  */
 public class InnodbTableScan extends TableScan implements InnodbRel {
   final InnodbTable innodbTable;
-  final RelDataType projectRowType;
+  final @Nullable RelDataType projectRowType;
   /** Force to use one specific index from hint. */
   private final @Nullable String forceIndexName;
   /** This contains index to scan table and optional condition. */
   private final IndexCondition indexCondition;
 
   protected InnodbTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, InnodbTable innodbTable, RelDataType projectRowType,
-      List<RelHint> hints) {
+      RelOptTable table, InnodbTable innodbTable,
+      @Nullable RelDataType projectRowType, List<RelHint> hints) {
     super(cluster, traitSet, hints, table);
-    this.innodbTable = innodbTable;
+    this.innodbTable = requireNonNull(innodbTable, "innodbTable");
     this.projectRowType = projectRowType;
     this.forceIndexName = getForceIndexName(hints).orElse(null);
     this.indexCondition = getIndexCondition();
-    assert innodbTable != null;
-    assert getConvention() == InnodbRel.CONVENTION;
+    checkArgument(getConvention() == InnodbRel.CONVENTION);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -126,7 +129,7 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
     return Optional.empty();
   }
 
-  public String getForceIndexName() {
+  public @Nullable String getForceIndexName() {
     return forceIndexName;
   }
 

@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.JoinType;
+import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -30,16 +31,20 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
+import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
+import org.apache.calcite.linq4j.tree.NewArrayExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
@@ -65,6 +70,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -80,6 +86,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.Function;
+
+import static org.apache.calcite.config.CalciteSystemProperty.JOIN_SELECTOR_COMPACT_CODE_THRESHOLD;
 
 import static java.util.Objects.requireNonNull;
 
@@ -154,12 +162,18 @@ public class EnumUtils {
 
   static Expression joinSelector(JoinRelType joinType, PhysType physType,
       List<PhysType> inputPhysTypes) {
+    final int outputFieldCount = physType.getRowType().getFieldCount();
+    // If there are many output fields, create the output dynamically so that the code size stays
+    // below the limit. See CALCITE-3094.
+    if (shouldGenerateCompactCode(outputFieldCount)) {
+      return joinSelectorCompact(joinType, physType, inputPhysTypes);
+    }
+
     // A parameter for each input.
     final List<ParameterExpression> parameters = new ArrayList<>();
 
     // Generate all fields.
     final List<Expression> expressions = new ArrayList<>();
-    final int outputFieldCount = physType.getRowType().getFieldCount();
     for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
       final PhysType inputPhysType =
           ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
@@ -192,6 +206,73 @@ public class EnumUtils {
     return Expressions.lambda(
         Function2.class,
         physType.record(expressions),
+        parameters);
+  }
+
+  static boolean shouldGenerateCompactCode(int outputFieldCount) {
+    int compactCodeThreshold = JOIN_SELECTOR_COMPACT_CODE_THRESHOLD.value();
+    return compactCodeThreshold >= 0 && outputFieldCount >= compactCodeThreshold;
+  }
+
+  static Expression joinSelectorCompact(JoinRelType joinType, PhysType physType,
+      List<PhysType> inputPhysTypes) {
+    // A parameter for each input.
+    final List<ParameterExpression> parameters = new ArrayList<>();
+
+    // Generate all fields.
+    final int outputFieldCount = physType.getRowType().getFieldCount();
+
+    final BlockBuilder compactCode = new BlockBuilder();
+    // Even if the fields are all of the same type, they are always boxed,
+    // so we use an Object[] that is easier to match with the input arrays.
+    final ParameterExpression compactOutputVar =
+        Expressions.variable(Object[].class, "outputArray");
+    final DeclarationStatement exp =
+        Expressions.declare(
+            0, compactOutputVar, new NewArrayExpression(Object.class, 1,
+                Expressions.constant(outputFieldCount), null));
+    compactCode.add(exp);
+
+    int outputField = 0;
+    for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
+      final PhysType inputPhysType =
+          ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
+      // If the parameter is an array we declare as Object[] because it
+      // needs to match the type of the array that will be returned
+      final Type parameterType = Types.isArray(inputPhysType.getJavaRowType())
+          ? Object[].class
+          : Primitive.box(inputPhysType.getJavaRowType());
+
+      final ParameterExpression parameter =
+          Expressions.parameter(parameterType, EnumUtils.LEFT_RIGHT.get(ord.i));
+      parameters.add(parameter);
+      if (outputField == outputFieldCount) {
+        // For instance, if semi-join needs to return just the left inputs
+        break;
+      }
+      final int fieldCount = inputPhysType.getRowType().getFieldCount();
+      // Delegate copying the row values to JavaRowFormat
+      final List<Statement> copyStatements =
+          Nullness.castNonNull(
+              inputPhysType.getFormat().copy(parameter, Nullness.castNonNull(compactOutputVar),
+                  outputField, fieldCount));
+      if (joinType.generatesNullsOn(ord.i)) {
+        // [CALCITE-6593] NPE when outer joining tables with many fields and unmatching rows
+        compactCode.add(
+            Expressions.ifThen(Expressions.notEqual(parameter, Expressions.constant(null)),
+                Expressions.block(copyStatements)));
+      } else {
+        for (Statement copyStatement : copyStatements) {
+          compactCode.add(copyStatement);
+        }
+      }
+      outputField += fieldCount;
+    }
+
+    compactCode.add(Nullness.castNonNull(compactOutputVar));
+    return Expressions.lambda(
+        Function2.class,
+        compactCode.toBlock(),
         parameters);
   }
 
@@ -283,7 +364,7 @@ public class EnumUtils {
       }
     } else {
       int j = 0;
-      for (int i = 0; i < expressions.size(); i++) {
+      for (Expression expression : expressions) {
         Class<?> type;
         if (!targetTypes[j].isArray()) {
           type = targetTypes[j];
@@ -291,7 +372,7 @@ public class EnumUtils {
         } else {
           type = targetTypes[j].getComponentType();
         }
-        list.add(fromInternal(expressions.get(i), type));
+        list.add(fromInternal(expression, type));
       }
     }
     return list;
@@ -354,12 +435,16 @@ public class EnumUtils {
     if (!Types.needTypeCast(fromType, toType)) {
       return operand;
     }
+
+    // TODO use Expressions#convertChecked to throw exception in case of overflow (CALCITE-6366)
+
     // E.g. from "Short" to "int".
     // Generate "x.intValue()".
     final Primitive toPrimitive = Primitive.of(toType);
     final Primitive toBox = Primitive.ofBox(toType);
     final Primitive fromBox = Primitive.ofBox(fromType);
     final Primitive fromPrimitive = Primitive.of(fromType);
+    final UnsignedType unsignedType = UnsignedType.of(toType);
     final boolean fromNumber = fromType instanceof Class
         && Number.class.isAssignableFrom((Class) fromType);
     if (fromType == String.class) {
@@ -377,7 +462,7 @@ public class EnumUtils {
               "to" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
               operand);
         default:
-          // Generate "Short.parseShort(x)".
+          // Generate "parseShort(x)".
           return Expressions.call(
               toPrimitive.getBoxClass(),
               "parse" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
@@ -406,10 +491,25 @@ public class EnumUtils {
     if (toPrimitive != null) {
       if (fromPrimitive != null) {
         // E.g. from "float" to "double"
-        return Expressions.convert_(
+        if (toPrimitive == Primitive.BOOLEAN) {
+          // Conversion to Boolean can use the existing 'convert_' function
+          return Expressions.convert_(operand, toPrimitive.getPrimitiveClass());
+        }
+        // Other destination types require checked conversions
+        return Expressions.convertChecked(
             operand, toPrimitive.getPrimitiveClass());
       }
-      if (fromNumber || fromBox == Primitive.CHAR) {
+      if (fromType == BigDecimal.class && toPrimitive.isFixedNumeric()) {
+        // Conversion from decimal to an exact type
+        ConstantExpression zero = Expressions.constant(0);
+        // Elsewhere Calcite uses this rounding mode implicitly, so we have to be consistent.
+        // E.g., this is the rounding mode used by BigDecimal.longValue().
+        Expression rounding = Expressions.constant(RoundingMode.DOWN);
+        // Generate 'rounded = operand.setScale(0, RoundingMode.DOWN);'
+        Expression rounded = Expressions.call(operand, "setScale", zero, rounding);
+        // Generate 'return rounded.to*ValueExact()'
+        return Expressions.unboxExact(rounded, toPrimitive);
+      } else if (fromNumber || fromBox == Primitive.CHAR) {
         // Generate "x.shortValue()".
         return Expressions.unbox(operand, toPrimitive);
       } else {
@@ -500,6 +600,26 @@ public class EnumUtils {
               SqlFunctions.class,
               "toBigDecimal",
               operand));
+    } else if (unsignedType != null) {
+      // E.e. toULong
+      String functionName = unsignedType.getConvertFunctionName();
+      if (fromPrimitive != null) {
+        // E.g. from "int" to "ULong".
+        // Generate "UnsignedType.toULong(x)"
+        return Expressions.call(
+            UnsignedType.class,
+            functionName,
+            operand);
+      } else {
+        // Generate "x == null ? null : UnsignedType.toULong(x)"
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.call(
+                UnsignedType.class,
+                functionName,
+                operand));
+      }
     } else if (toType == String.class) {
       if (fromPrimitive != null) {
         switch (fromPrimitive) {
@@ -654,8 +774,8 @@ public class EnumUtils {
    * @throws RuntimeException if no suitable method found
    */
   public static MethodCallExpression call(@Nullable Expression targetExpression,
-      Class clazz, String methodName, List<? extends Expression> arguments) {
-    Class[] argumentTypes = Types.toClassArray(arguments);
+      Class<?> clazz, String methodName, List<? extends Expression> arguments) {
+    Class<?>[] argumentTypes = Types.toClassArray(arguments);
     try {
       Method candidate = clazz.getMethod(methodName, argumentTypes);
       return Expressions.call(targetExpression, candidate, arguments);
@@ -751,6 +871,10 @@ public class EnumUtils {
       return JoinType.SEMI;
     case ANTI:
       return JoinType.ANTI;
+    case ASOF:
+      return JoinType.ASOF;
+    case LEFT_ASOF:
+      return JoinType.LEFT_ASOF;
     default:
       break;
     }
@@ -898,7 +1022,7 @@ public class EnumUtils {
     }
 
     @Override public boolean moveNext() {
-      return initialized ? list.size() > 0 : inputEnumerator.moveNext();
+      return initialized ? !list.isEmpty() : inputEnumerator.moveNext();
     }
 
     @Override public void reset() {
@@ -1038,7 +1162,7 @@ public class EnumUtils {
     }
 
     @Override public @Nullable Object[] current() {
-      if (list.size() > 0) {
+      if (!list.isEmpty()) {
         return takeOne();
       } else {
         @Nullable Object[] current = inputEnumerator.current();
@@ -1060,7 +1184,7 @@ public class EnumUtils {
     }
 
     @Override public boolean moveNext() {
-      return list.size() > 0 || inputEnumerator.moveNext();
+      return !list.isEmpty() || inputEnumerator.moveNext();
     }
 
     @Override public void reset() {

@@ -275,7 +275,7 @@ public class SqlSelect extends SqlCall {
   @EnsuresNonNullIf(expression = "hints", result = true)
   public boolean hasHints() {
     // The hints may be passed as null explicitly.
-    return this.hints != null && this.hints.size() > 0;
+    return this.hints != null && !this.hints.isEmpty();
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
@@ -307,7 +307,7 @@ public class SqlSelect extends SqlCall {
   }
 
   public boolean hasOrderBy() {
-    return orderBy != null && orderBy.size() != 0;
+    return orderBy != null && !orderBy.isEmpty();
   }
 
   public boolean hasWhere() {

@@ -33,6 +33,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Sort}
  * relational expression in Cassandra.
@@ -48,7 +50,7 @@ public class CassandraSort extends Sort implements CassandraRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    RelOptCost cost = super.computeSelfCost(planner, mq);
+    RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
     if (!collation.getFieldCollations().isEmpty()) {
       return cost.multiplyBy(0.05);
     } else {

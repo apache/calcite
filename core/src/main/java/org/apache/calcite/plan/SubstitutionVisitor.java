@@ -77,6 +77,7 @@ import com.google.common.collect.Sets;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -127,6 +128,14 @@ import static java.util.Objects.requireNonNull;
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
+  private static final Strong STRONG = new Strong() {
+    @Override public boolean isNull(RexInputRef ref) {
+      // Here strong is used to determine if the nullable side calc can be pulled up to the join,
+      // and we will adjust nullability if RexInputRef is not null,
+      // so here RexInputRef is always satisfies null-if-null
+      return true;
+    }
+  };
 
   public static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.of(
@@ -341,7 +350,7 @@ public class SubstitutionVisitor {
       if (newOperands.size() < 2) {
         return newOperands.values().iterator().next();
       }
-      return rexBuilder.makeCall(call.getOperator(),
+      return rexBuilder.makeCall(call.getParserPosition(), call.getOperator(),
           ImmutableList.copyOf(newOperands.values()));
     }
     case EQUALS:
@@ -353,7 +362,8 @@ public class SubstitutionVisitor {
       RexCall call = (RexCall) condition;
       RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
       RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
-      call = (RexCall) rexBuilder.makeCall(call.getOperator(), left, right);
+      call =
+          (RexCall) rexBuilder.makeCall(call.getParserPosition(), call.getOperator(), left, right);
 
       if (left.toString().compareTo(right.toString()) <= 0) {
         return call;
@@ -368,6 +378,8 @@ public class SubstitutionVisitor {
       final RexNode e = RexUtil.expandSearch(rexBuilder, null, condition);
       return canonizeNode(rexBuilder, e);
     }
+    case CHECKED_PLUS:
+    case CHECKED_TIMES:
     case PLUS:
     case TIMES: {
       RexCall call = (RexCall) condition;
@@ -375,10 +387,11 @@ public class SubstitutionVisitor {
       RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
 
       if (left.toString().compareTo(right.toString()) <= 0) {
-        return rexBuilder.makeCall(call.getOperator(), left, right);
+        return rexBuilder.makeCall(call.getParserPosition(), call.getOperator(), left, right);
       }
 
-      RexNode newCall = rexBuilder.makeCall(call.getOperator(), right, left);
+      RexNode newCall =
+          rexBuilder.makeCall(call.getParserPosition(), call.getOperator(), right, left);
       // new call should not be used if its inferred type is not same as old
       if (!newCall.getType().equals(call.getType())) {
         return call;
@@ -416,10 +429,7 @@ public class SubstitutionVisitor {
         new HashSet<>(RexUtil.strings(RelOptUtil.conjunctions(condition)));
     final Set<String> targetDisjunctions =
         new HashSet<>(RexUtil.strings(RelOptUtil.conjunctions(target)));
-    if (conditionDisjunctions.equals(targetDisjunctions)) {
-      return true;
-    }
-    return false;
+    return conditionDisjunctions.equals(targetDisjunctions);
   }
 
   /**
@@ -443,7 +453,8 @@ public class SubstitutionVisitor {
     for (RexNode disjunction : disjunctions) {
       switch (disjunction.getKind()) {
       case LITERAL:
-        if (!RexLiteral.booleanValue(disjunction)) {
+        if (!RexLiteral.isNullLiteral(disjunction)
+            && !RexLiteral.booleanValue(disjunction)) {
           return false;
         }
         break;
@@ -454,7 +465,8 @@ public class SubstitutionVisitor {
     for (RexNode disjunction : notDisjunctions) {
       switch (disjunction.getKind()) {
       case LITERAL:
-        if (RexLiteral.booleanValue(disjunction)) {
+        if (!RexLiteral.isNullLiteral(disjunction)
+            && RexLiteral.booleanValue(disjunction)) {
           return false;
         }
         break;
@@ -604,13 +616,15 @@ public class SubstitutionVisitor {
                 if (targetDescendant == target) {
                   // A real substitution happens. We purge the attempted
                   // replacement list and add them into substitution list.
-                  // Meanwhile we stop matching the descendants and jump
+                  // Meanwhile, we stop matching the descendants and jump
                   // to the next subtree in pre-order traversal.
                   if (!target.equals(replacement)) {
                     Replacement r =
                         replace(query.getInput(), target, replacement.clone());
-                    assert r != null
-                        : rule + "should have returned a result containing the target.";
+                    if (r == null) {
+                      throw new AssertionError(rule + " should have returned "
+                          + "a result containing the target.");
+                    }
                     attempted.add(r);
                   }
                   substitutions.add(ImmutableList.copyOf(attempted));
@@ -784,7 +798,7 @@ public class SubstitutionVisitor {
         }
       }
     } else {
-      assert queryParent != null;
+      requireNonNull(queryParent, "queryParent");
       for (UnifyRule rule : applicableRules(queryParent, target)) {
         final UnifyResult x = apply(rule, queryParent, target);
         if (x != null) {
@@ -1207,6 +1221,7 @@ public class SubstitutionVisitor {
       final MutableJoin query = (MutableJoin) call.query;
       final MutableCalc qInput0 = (MutableCalc) query.getLeft();
       final MutableRel qInput1 = query.getRight();
+      MutableRel qInput0Input = qInput0.getInput();
       final Pair<RexNode, List<RexNode>> qInput0Explained = explainCalc(qInput0);
       final RexNode qInput0Cond = qInput0Explained.left;
       final List<RexNode> qInput0Projs = qInput0Explained.right;
@@ -1220,10 +1235,11 @@ public class SubstitutionVisitor {
       if (joinRelType == null) {
         return null;
       }
-      // Check if filter under join can be pulled up.
-      if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, null)) {
+      // Check if calc under join can be pulled up.
+      if (!canPullUpCalcUnderJoin(joinRelType, qInput0Explained, null)) {
         return null;
       }
+
       // Try pulling up MutableCalc only when Join condition references mapping.
       final List<RexNode> identityProjects =
           rexBuilder.identityProjects(qInput1.rowType);
@@ -1238,7 +1254,7 @@ public class SubstitutionVisitor {
             final int newIdx = ((RexInputRef) qInput0Projs.get(idx)).getIndex();
             return new RexInputRef(newIdx, inputRef.getType());
           } else {
-            int newIdx = idx - fieldCnt(qInput0) + fieldCnt(qInput0.getInput());
+            int newIdx = idx - fieldCnt(qInput0) + fieldCnt(qInput0Input);
             return new RexInputRef(newIdx, inputRef.getType());
           }
         }
@@ -1249,16 +1265,10 @@ public class SubstitutionVisitor {
       // MutableJoin matches only when the conditions are analyzed to be same.
       if (splitted != null && splitted.isAlwaysTrue()) {
         final RexNode compenCond = qInput0Cond;
-        final List<RexNode> compenProjs = new ArrayList<>();
-        for (int i = 0; i < fieldCnt(query); i++) {
-          if (i < fieldCnt(qInput0)) {
-            compenProjs.add(qInput0Projs.get(i));
-          } else {
-            final int newIdx = i - fieldCnt(qInput0) + fieldCnt(qInput0.getInput());
-            compenProjs.add(
-                new RexInputRef(newIdx, query.rowType.getFieldList().get(i).getType()));
-          }
-        }
+        final List<RexNode> compenProjs =
+            shiftAndAdjustProjectExpr(query, target, rexBuilder,
+                qInput0Projs, qInput0Input.rowType.getFieldList(), null, null);
+
         final RexProgram compenRexProgram =
             RexProgram.create(target.rowType, compenProjs, compenCond,
                 query.rowType, rexBuilder);
@@ -1304,10 +1314,11 @@ public class SubstitutionVisitor {
       if (joinRelType == null) {
         return null;
       }
-      // Check if filter under join can be pulled up.
-      if (!canPullUpFilterUnderJoin(joinRelType, null, qInput1Cond)) {
+      // Check if calc under join can be pulled up.
+      if (!canPullUpCalcUnderJoin(joinRelType, null, qInput1Explained)) {
         return null;
       }
+
       // Try pulling up MutableCalc only when Join condition references mapping.
       final List<RexNode> identityProjects =
           rexBuilder.identityProjects(qInput0.rowType);
@@ -1334,18 +1345,11 @@ public class SubstitutionVisitor {
       if (splitted != null && splitted.isAlwaysTrue()) {
         final RexNode compenCond =
             RexUtil.shift(qInput1Cond, qInput0.rowType.getFieldCount());
-        final List<RexNode> compenProjs = new ArrayList<>();
-        for (int i = 0; i < query.rowType.getFieldCount(); i++) {
-          if (i < fieldCnt(qInput0)) {
-            compenProjs.add(
-                new RexInputRef(i, query.rowType.getFieldList().get(i).getType()));
-          } else {
-            final RexNode shifted =
-                RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
-                    qInput0.rowType.getFieldCount());
-            compenProjs.add(shifted);
-          }
-        }
+
+        final List<RexNode> compenProjs =
+            shiftAndAdjustProjectExpr(query, target, rexBuilder,
+                null, null, qInput1Projs, qInput1.getInput().rowType.getFieldList());
+
         final RexProgram compensatingRexProgram =
             RexProgram.create(target.rowType, compenProjs, compenCond,
                 query.rowType, rexBuilder);
@@ -1394,10 +1398,11 @@ public class SubstitutionVisitor {
       if (joinRelType == null) {
         return null;
       }
-      // Check if filter under join can be pulled up.
-      if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, qInput1Cond)) {
+      // Check if calc under join can be pulled up.
+      if (!canPullUpCalcUnderJoin(joinRelType, qInput0Explained, qInput1Explained)) {
         return null;
       }
+
       if (!referenceByMapping(query.condition, qInput0Projs, qInput1Projs)) {
         return null;
       }
@@ -1425,17 +1430,11 @@ public class SubstitutionVisitor {
             RexUtil.composeConjunction(rexBuilder,
                 ImmutableList.of(qInput0Cond, qInput1CondShifted));
 
-        final List<RexNode> compenProjs = new ArrayList<>();
-        for (int i = 0; i < query.rowType.getFieldCount(); i++) {
-          if (i < fieldCnt(qInput0)) {
-            compenProjs.add(qInput0Projs.get(i));
-          } else {
-            RexNode shifted =
-                RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
-                    fieldCnt(qInput0.getInput()));
-            compenProjs.add(shifted);
-          }
-        }
+        final List<RexNode> compenProjs =
+            shiftAndAdjustProjectExpr(query, target, rexBuilder,
+                qInput0Projs, qInput0.getInput().rowType.getFieldList(),
+                qInput1Projs, qInput1.getInput().rowType.getFieldList());
+
         final RexProgram compensatingRexProgram =
             RexProgram.create(target.rowType, compenProjs, compenCond,
                 query.rowType, rexBuilder);
@@ -1764,16 +1763,15 @@ public class SubstitutionVisitor {
   /** Explain filtering condition and projections from MutableCalc. */
   public static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
-    final RexNode condition = shuttle.apply(calc.program.getCondition());
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex : shuttle.apply(calc.program.getProjectList())) {
-      projects.add(rex);
-    }
-    if (condition == null) {
-      return Pair.of(calc.cluster.getRexBuilder().makeLiteral(true), projects);
+    final RexNode condition;
+    if (calc.program.getCondition() == null) {
+      condition = calc.cluster.getRexBuilder().makeLiteral(true);
     } else {
-      return Pair.of(condition, projects);
+      condition = calc.program.getCondition().accept(shuttle);
     }
+    final List<RexNode> projects =
+        ImmutableList.copyOf(shuttle.apply(calc.program.getProjectList()));
+    return Pair.of(condition, projects);
   }
 
   /**
@@ -1979,7 +1977,8 @@ public class SubstitutionVisitor {
             final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
             if (aggFunction != null) {
               newAggCall =
-                  AggregateCall.create(aggFunction, aggregateCall.isDistinct(),
+                  AggregateCall.create(aggregateCall.getParserPosition(),
+                      aggFunction, aggregateCall.isDistinct(),
                       aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
                       aggregateCall.rexList,
                       ImmutableList.of(target.groupSet.cardinality() + i), -1,
@@ -2033,7 +2032,7 @@ public class SubstitutionVisitor {
       newArgList.add(newArgIndex);
     }
     final boolean isAllowBuild;
-    if (newArgList.size() == 0) {
+    if (newArgList.isEmpty()) {
       // Size of agg-call's args is empty, we stop to build a new agg-call,
       // eg: count(1) or count(*).
       isAllowBuild = false;
@@ -2041,7 +2040,8 @@ public class SubstitutionVisitor {
       // Args of agg-call is distinct, we can build a new agg-call.
       isAllowBuild = true;
     } else if (aggregation.getDistinctOptionality() == Optionality.IGNORED) {
-      // If attribute of agg-call's distinct could be ignore, we can build a new agg-call.
+      // If attribute of agg-call's distinct could be ignored,
+      // we can build a new agg-call.
       isAllowBuild = true;
     } else {
       isAllowBuild = false;
@@ -2049,7 +2049,7 @@ public class SubstitutionVisitor {
     if (!isAllowBuild) {
       return null;
     }
-    return AggregateCall.create(aggregation,
+    return AggregateCall.create(queryAggCall.getParserPosition(), aggregation,
         queryAggCall.isDistinct(), queryAggCall.isApproximate(),
         queryAggCall.ignoreNulls(), queryAggCall.rexList,
         newArgList, -1, queryAggCall.distinctKeys,
@@ -2149,31 +2149,150 @@ public class SubstitutionVisitor {
   }
 
   /**
-   * Check if filter under join can be pulled up,
+   * Check if calc under join can be pulled up,
    * when meeting JoinOnCalc of query unify to Join of target.
    * Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule} <br/>
    * {@link JoinOnRightCalcToJoinUnifyRule} <br/>
    * {@link JoinOnCalcsToJoinUnifyRule} <br/>
    */
-  private static boolean canPullUpFilterUnderJoin(JoinRelType joinType,
-      @Nullable RexNode leftFilterRexNode, @Nullable RexNode rightFilterRexNode) {
-    if (joinType == JoinRelType.INNER) {
-      return true;
+  private static boolean canPullUpCalcUnderJoin(JoinRelType joinType,
+      @Nullable Pair<RexNode, List<RexNode>> qInput0Explained,
+      @Nullable Pair<RexNode, List<RexNode>> qInput1Explained) {
+    if (qInput0Explained != null
+        && joinType.generatesNullsOn(0)
+        && !isCalcStrong(qInput0Explained)) {
+      return false;
     }
-    if (joinType == JoinRelType.LEFT
-        && (rightFilterRexNode == null || rightFilterRexNode.isAlwaysTrue())) {
-      return true;
+    return qInput1Explained == null
+        || !joinType.generatesNullsOn(1)
+        || isCalcStrong(qInput1Explained);
+  }
+
+  /** Determines if all projects are strong and the condition is always true. */
+  private static boolean isCalcStrong(Pair<RexNode, List<RexNode>> inputExplained) {
+    final RexNode cond = inputExplained.left;
+    final List<RexNode> projs = inputExplained.right;
+    return cond.isAlwaysTrue() && projs.stream().allMatch(STRONG::isNull);
+  }
+
+  /**
+   * Generates project expressions by shifting and adjusting the nullability of expressions
+   * based on the provided join targets and inputs.
+   *
+   * <p>Used in the Join rewrite to pull up the calc in query
+   * to the join in mv to ensure operator equivalence.
+   * (Already make sure that pull up is valid).
+   *
+   * <p>Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule},
+   * {@link JoinOnRightCalcToJoinUnifyRule},
+   * {@link JoinOnCalcsToJoinUnifyRule}.
+   *
+   * @param query MutableRel of query
+   * @param target MutableRel of target
+   * @param rexBuilder Rex builder
+   * @param qInput0Projs Project expressions from the left calc of the query join if exist
+   * @param qInput0InputFields Input fields from the left input of the query join if exist
+   * @param qInput1Projs Project expressions from the right calc of the query join if exist
+   * @param qInput1InputFields Input fields from the right input of the query join if exist
+   * @return The Project expression that makes target equivalent to query
+   */
+  private static List<RexNode> shiftAndAdjustProjectExpr(MutableJoin query, MutableJoin target,
+      RexBuilder rexBuilder,
+      @Nullable List<RexNode> qInput0Projs, @Nullable List<RelDataTypeField> qInput0InputFields,
+      @Nullable List<RexNode> qInput1Projs, @Nullable List<RelDataTypeField> qInput1InputFields) {
+    int queryLeftCount = fieldCnt(query.getLeft());
+    int targetLeftCount = fieldCnt(target.getLeft());
+    int[] adjustments0 = new int[target.rowType.getFieldCount()];
+    int[] adjustments1 = new int[target.rowType.getFieldCount()];
+
+    if (qInput1Projs != null) {
+      Arrays.fill(adjustments1, targetLeftCount);
     }
-    if (joinType == JoinRelType.RIGHT
-        && (leftFilterRexNode == null || leftFilterRexNode.isAlwaysTrue())) {
-      return true;
+
+    // In cases such as JoinOnLeftCalcToJoinUnifyRule and JoinOnCalcsToJoinUnifyRule rules,
+    // initialize the converter where the left calc needs to be pulled up.
+    RelOptUtil.RexInputConverter converter0 =
+        new RelOptUtil.RexInputConverter(rexBuilder, qInput0InputFields,
+            target.rowType.getFieldList(), adjustments0);
+
+    // In cases such as JoinOnRightCalcToJoinUnifyRule and JoinOnCalcsToJoinUnifyRule rules,
+    // initialize the converter where the left calc needs to be pulled up.
+    RelOptUtil.RexInputConverter converter1 =
+        new RelOptUtil.RexInputConverter(rexBuilder, qInput1InputFields,
+            target.rowType.getFieldList(), adjustments1);
+
+    final List<RexNode> compenProjs = new ArrayList<>();
+    for (int i = 0; i < fieldCnt(query); i++) {
+      RelDataType type = query.rowType.getFieldList().get(i).getType();
+      if (i < queryLeftCount) {
+        if (qInput0Projs == null) {
+          compenProjs.add(new RexInputRef(i, type));
+        } else {
+          // Before:
+          //        QueryJoin      TargetJoin
+          //        /     \         /     \
+          //      Calc   Right    Left   Right
+          //        |
+          //      Left
+          //
+          // After:
+          //        QueryJoin         Calc
+          //        /     \            |
+          //      Calc   Right     TargetJoin
+          //        |               /     \
+          //      Left            Left   Right
+          //
+          // Since Calc is on the left side of the Join, no shift is required.
+          // However, due to nullability caused by the Join,
+          // we must adjust the type of RexInputRef.
+          RexNode apply = converter0.apply(qInput0Projs.get(i));
+          compenProjs.add(adjustNullability(apply, type, rexBuilder));
+        }
+      } else {
+        if (qInput1Projs == null) {
+          // This is equivalent to a shift, but without a calc on the right side to pull up,
+          // we know it's a RexInputRef, so converter isn't needed.
+          compenProjs.add(
+              new RexInputRef(i - queryLeftCount + targetLeftCount, type));
+        } else {
+          // Before:
+          //        QueryJoin      TargetJoin
+          //        /     \         /     \
+          //      Left   Calc    Left   Right
+          //               |
+          //             Right
+          //
+          // After, We pull up the Calc of Query to target to make it equivalent to Query:
+          //        QueryJoin          Calc
+          //        /     \             |
+          //      Left   Calc       TargetJoin
+          //               |         /     \
+          //             Right     Left   Right
+          //
+          // With regard to type adjustments, as above.
+          // And since Query's Right is equivalent to Target's Right and now calc
+          // will be pulled up above the join, we need to shift join's leftCount,
+          // which is what we did in initializing converter1.
+          RexNode apply = converter1.apply(qInput1Projs.get(i - queryLeftCount));
+          compenProjs.add(adjustNullability(apply, type, rexBuilder));
+        }
+      }
     }
-    if (joinType == JoinRelType.FULL
-        && ((rightFilterRexNode == null || rightFilterRexNode.isAlwaysTrue())
-        && (leftFilterRexNode == null || leftFilterRexNode.isAlwaysTrue()))) {
-      return true;
+    return compenProjs;
+  }
+
+  /** Cast RexNode to the given type if only nullability differs, otherwise throw. */
+  private static RexNode adjustNullability(RexNode rexNode,
+      RelDataType type, RexBuilder rexBuilder) {
+    if (rexNode.getType().equals(type)) {
+      return rexNode;
     }
-    return false;
+    final RelDataType adjustedType =
+        rexBuilder.getTypeFactory().createTypeWithNullability(rexNode.getType(), type.isNullable());
+    if (type.equals(adjustedType)) {
+      return rexBuilder.makeCast(adjustedType, rexNode);
+    }
+    throw new AssertionError("Adjust nullability failed:" + rexNode.getType() + " " + type);
   }
 
   /** Operand to a {@link UnifyRule}. */
@@ -2282,15 +2401,16 @@ public class SubstitutionVisitor {
       this.ordinal = ordinal;
     }
 
-    @Override public boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+    @Override public boolean matches(SubstitutionVisitor visitor,
+        MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
-      assert rel0 != null : "QueryOperand should have been called first";
+      requireNonNull(rel0, "QueryOperand should have been called first");
       return rel0 == rel || visitor.equivalents.get(rel0).contains(rel);
     }
 
     @Override public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
-      assert rel0 != null : "QueryOperand should have been called first";
+      requireNonNull(rel0, "QueryOperand should have been called first");
       return visitor.isWeaker(rel0, rel);
     }
   }

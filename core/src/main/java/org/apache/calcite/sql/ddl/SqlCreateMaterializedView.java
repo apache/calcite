@@ -30,7 +30,8 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code CREATE MATERIALIZED VIEW} statement.
@@ -49,9 +50,9 @@ public class SqlCreateMaterializedView extends SqlCreate {
       boolean ifNotExists, SqlIdentifier name, @Nullable SqlNodeList columnList,
       SqlNode query) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name, "name");
+    this.name = requireNonNull(name, "name");
     this.columnList = columnList; // may be null
-    this.query = Objects.requireNonNull(query, "query");
+    this.query = requireNonNull(query, "query");
   }
 
   @SuppressWarnings("nullness")

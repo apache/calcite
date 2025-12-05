@@ -1,0 +1,93 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<Root>
+  <TestCase name="testSuggestReturnsCommonAggregateProjectFilterJoinTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalAggregate(group=[{0}], CNT=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($4, 'Sales')])
+      LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+        LogicalTableScan(table=[[EMP]])
+        LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonAggregateProjectFilterTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[>($0, 50)])
+      LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonAggregateProjectTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonFilterTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalFilter(condition=[=($0, 1)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonProjectFilterJoinTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalProject(EMPNO=[$0], DNAME=[$4])
+  LogicalFilter(condition=[=($4, 'Sales')])
+    LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+      LogicalTableScan(table=[[EMP]])
+      LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonProjectFilterTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[=($0, 1)])
+    LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonProjectJoinTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalProject(EMPNO=[$0], DNAME=[$4])
+  LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+    LogicalTableScan(table=[[EMP]])
+    LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsTwoCommonFilterTableScans">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalFilter(condition=[=($0, 1)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestion_1">
+      <![CDATA[LogicalFilter(condition=[=($0, 2)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+</Root>

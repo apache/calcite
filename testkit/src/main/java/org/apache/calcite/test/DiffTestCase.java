@@ -20,6 +20,7 @@ import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.incava.diff.Diff;
 import org.incava.diff.Difference;
 import org.junit.jupiter.api.AfterEach;
@@ -29,7 +30,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.OutputStream;
@@ -37,12 +37,14 @@ import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -57,25 +59,25 @@ public abstract class DiffTestCase {
   /**
    * Name of current .log file.
    */
-  protected File logFile;
+  protected @Nullable File logFile;
 
   /**
    * Name of current .ref file.
    */
-  protected File refFile;
+  protected @Nullable File refFile;
 
   /**
    * OutputStream for current test log.
    */
-  protected OutputStream logOutputStream;
+  protected @Nullable OutputStream logOutputStream;
 
   /** Diff masks defined so far. */
   private String diffMasks;
-  Pattern compiledDiffPattern;
-  Matcher compiledDiffMatcher;
+  @Nullable Pattern compiledDiffPattern;
+  @Nullable Matcher compiledDiffMatcher;
   private String ignorePatterns;
-  Pattern compiledIgnorePattern;
-  Matcher compiledIgnoreMatcher;
+  @Nullable Pattern compiledIgnorePattern;
+  @Nullable Matcher compiledIgnoreMatcher;
 
   /**
    * Whether to give verbose message if diff fails.
@@ -87,7 +89,7 @@ public abstract class DiffTestCase {
    *
    * @param testCaseName Test case name
    */
-  protected DiffTestCase(String testCaseName) throws Exception {
+  protected DiffTestCase(String testCaseName) {
     this.testCaseName = testCaseName;
     // diffMasks = new ArrayList();
     diffMasks = "";
@@ -134,9 +136,9 @@ public abstract class DiffTestCase {
    */
   protected Writer openTestLog() throws Exception {
     File testClassDir =
-        new File(
-            getTestlogRoot(),
+        new File(getTestlogRoot(),
             ReflectUtil.getUnqualifiedClassName(getClass()));
+    //noinspection ResultOfMethodCallIgnored
     testClassDir.mkdirs();
     File testLogFile =
         new File(
@@ -146,8 +148,8 @@ public abstract class DiffTestCase {
         openTestLogOutputStream(testLogFile), StandardCharsets.UTF_8);
   }
 
-  /** Returns the root directory under which testlogs should be written. */
-  protected abstract File getTestlogRoot() throws Exception;
+  /** Returns the root directory under which test logs should be written. */
+  protected abstract File getTestlogRoot();
 
   /**
    * Initializes a diff-based test, overriding the default log file naming
@@ -160,12 +162,13 @@ public abstract class DiffTestCase {
       throws IOException {
     assert logOutputStream == null;
 
-    logFile = new File(testFileSansExt.toString() + ".log");
+    logFile = new File(testFileSansExt + ".log");
+    //noinspection ResultOfMethodCallIgnored
     logFile.delete();
 
-    refFile = new File(testFileSansExt.toString() + ".ref");
+    refFile = new File(testFileSansExt + ".ref");
 
-    logOutputStream = new FileOutputStream(logFile);
+    logOutputStream = Files.newOutputStream(logFile.toPath());
     return logOutputStream;
   }
 
@@ -182,12 +185,20 @@ public abstract class DiffTestCase {
    * @see #diffFile(File, File)
    */
   protected void diffTestLog() throws IOException {
-    assert logOutputStream != null;
+    if (logOutputStream == null) {
+      throw new IllegalStateException();
+    }
     logOutputStream.close();
     logOutputStream = null;
 
+    if (refFile == null) {
+      throw new IllegalStateException();
+    }
     if (!refFile.exists()) {
       fail("Reference file " + refFile + " does not exist");
+    }
+    if (logFile == null) {
+      throw new IllegalStateException();
     }
     diffFile(logFile, refFile);
   }
@@ -264,6 +275,7 @@ public abstract class DiffTestCase {
     }
 
     // no diffs detected, so delete redundant .log file
+    //noinspection ResultOfMethodCallIgnored
     logFile.delete();
   }
 
@@ -276,7 +288,7 @@ public abstract class DiffTestCase {
    */
   protected void addDiffMask(String mask) {
     // diffMasks.add(mask);
-    if (diffMasks.length() == 0) {
+    if (diffMasks.isEmpty()) {
       diffMasks = mask;
     } else {
       diffMasks = diffMasks + "|" + mask;
@@ -286,7 +298,7 @@ public abstract class DiffTestCase {
   }
 
   protected void addIgnorePattern(String javaPattern) {
-    if (ignorePatterns.length() == 0) {
+    if (ignorePatterns.isEmpty()) {
       ignorePatterns = javaPattern;
     } else {
       ignorePatterns = ignorePatterns + "|" + javaPattern;
@@ -297,9 +309,12 @@ public abstract class DiffTestCase {
 
   private String applyDiffMask(String s) {
     if (compiledDiffMatcher != null) {
+      if (compiledDiffPattern == null) {
+        throw new AssertionError();
+      }
       compiledDiffMatcher.reset(s);
 
-      // we assume most of lines do not match
+      // we assume most lines do not match
       // so compiled matches will be faster than replaceAll.
       if (compiledDiffMatcher.find()) {
         return compiledDiffPattern.matcher(s).replaceAll("XYZZY");
@@ -322,12 +337,16 @@ public abstract class DiffTestCase {
     final String message =
         "diff detected at line " + lineNumber + " in " + logFile;
     if (verbose) {
+      if (refFile == null) {
+        throw new IllegalStateException();
+      }
       if (inIde()) {
         // If we're in IntelliJ, it's worth printing the 'expected
         // <...> actual <...>' string, because IntelliJ can format
         // this intelligently. Otherwise, use the more concise
         // diff format.
-        assertEquals(fileContents(refFile), fileContents(logFile), message);
+        assertThat(message, fileContents(logFile),
+            is(fileContents(refFile)));
       } else {
         String s = diff(refFile, logFile);
         fail(message + '\n' + s + '\n');

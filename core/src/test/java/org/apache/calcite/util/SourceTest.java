@@ -41,7 +41,6 @@ import static org.apache.calcite.util.Sources.url;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -70,8 +69,8 @@ class SourceTest {
     for (Reader r : Arrays.asList(source.reader(),
         new InputStreamReader(source.openStream(), StandardCharsets.UTF_8.name()))) {
       try (BufferedReader reader = new BufferedReader(r)) {
-        assertEquals("a", reader.readLine());
-        assertEquals("b", reader.readLine());
+        assertThat(reader.readLine(), is("a"));
+        assertThat(reader.readLine(), is("b"));
         assertNull(reader.readLine());
       }
     }
@@ -96,10 +95,11 @@ class SourceTest {
     URL url = of(new File(path)).url();
 
     assertNotNull(url, () -> "No URL generated for Sources.of(file " + path + ")");
-    assertEquals(expectedUrl, url.toString(),
-        () -> "Sources.of(file " + path + ").url()");
-    assertEquals(path, slashify(Sources.of(url).file().getPath()),
-        () -> "Sources.of(Sources.of(file " + path + ").url()).file().getPath()");
+    assertThat("Sources.of(file " + path + ").url()", url,
+        hasToString(expectedUrl));
+    assertThat("Sources.of(Sources.of(file " + path
+            + ").url()).file().getPath()",
+        slashify(Sources.of(url).file().getPath()), is(path));
   }
 
   @ParameterizedTest
@@ -114,8 +114,10 @@ class SourceTest {
     // e.g. it might throw java.nio.file.InvalidPathException: Malformed input or input contains
     // unmappable characters: /home/.../ws/core/????????? ?????? ??????? ?????.txt
     //        at java.base/sun.nio.fs.UnixPath.encode(UnixPath.java:145)
-    assertEquals(absoluteFile.getAbsolutePath(), url.toURI().getSchemeSpecificPart(),
-        () -> "Sources.of(Sources.of(file(" + path + ").absolutePath).url()).file().getPath()");
+    assertThat("Sources.of(Sources.of(file(" + path
+        + ").absolutePath).url()).file().getPath()",
+        url.toURI().getSchemeSpecificPart(),
+        is(absoluteFile.getAbsolutePath()));
   }
 
   @Test void testAppendWithSpaces() {
@@ -176,17 +178,18 @@ class SourceTest {
   @Test void testSpaceInUrl() {
     String url = "file:" + ROOT_PREFIX + "dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
+    assertThat(url + " .file().getAbsolutePath()",
         foo.file().getAbsolutePath(),
-        () -> url + " .file().getAbsolutePath()");
+        is(new File(ROOT_PREFIX + "dir name/test file.json")
+            .getAbsolutePath()));
   }
 
   @Test void testSpaceInRelativeUrl() {
     String url = "file:dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals("dir name/test file.json",
+    assertThat(url + " .file().getAbsolutePath()",
         foo.file().getPath().replace('\\', '/'),
-        () -> url + " .file().getAbsolutePath()");
+        is("dir name/test file.json"));
   }
 
   @Test void testRelative() {

@@ -57,9 +57,9 @@ import static java.util.Objects.requireNonNull;
 public class CassandraTable extends AbstractQueryableTable
     implements TranslatableTable {
   final RelProtoDataType protoRowType;
-  List<String> partitionKeys;
-  List<String> clusteringKeys;
-  List<RelFieldCollation> clusteringOrder;
+  final List<String> partitionKeys;
+  final List<String> clusteringKeys;
+  final List<RelFieldCollation> clusteringOrder;
   private final Optional<String> keyspace;
   private final String columnFamily;
 

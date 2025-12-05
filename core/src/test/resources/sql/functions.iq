@@ -18,6 +18,111 @@
 !use mysqlfunc
 !set outputformat mysql
 
+# BIT Functions
+
+# BIT_COUNT
+select bit_count(8);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count('8');
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count('a');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count('');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count(null);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+select bit_count(1 + 1);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count(true);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# The result of this SQL has been verified on MySQL 8.0, following are the test results for MySQL 8.0.
+
+# mysql> SELECT BIT_COUNT(DATE '1996-08-03'), BIT_COUNT(TIME '16:22:34'), BIT_COUNT(TIMESTAMP '1996-08-03 16:22:34') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2001-01-01'), BIT_COUNT(TIME '12:20:00'), BIT_COUNT(TIMESTAMP '2001-01-01 12:20:00') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2002-05-03'), BIT_COUNT(TIME '13:12:14'), BIT_COUNT(TIMESTAMP '2002-05-03 13:12:14') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2005-09-07'), BIT_COUNT(TIME '06:02:04'), BIT_COUNT(TIMESTAMP '2005-09-07 06:02:04') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2007-01-01'), BIT_COUNT(TIME '23:09:59'), BIT_COUNT(TIMESTAMP '2007-01-01 23:09:59');
+# +------------------------------+----------------------------+--------------------------------------------+
+# | BIT_COUNT(DATE '1996-08-03') | BIT_COUNT(TIME '16:22:34') | BIT_COUNT(TIMESTAMP '1996-08-03 16:22:34') |
+# +------------------------------+----------------------------+--------------------------------------------+
+# |                           12 |                         11 |                                         24 |
+# |                           12 |                          8 |                                         22 |
+# |                           14 |                          5 |                                         22 |
+# |                           16 |                          9 |                                         25 |
+# |                           14 |                         10 |                                         21 |
+# +------------------------------+----------------------------+--------------------------------------------+
+# 5 rows in set (0.02 sec)
+
+select bit_count(joinedat), bit_count(joinetime), bit_count(joinetimestamp) from emps_date_time ORDER BY empno;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     12 |     11 |     24 |
+|     12 |      8 |     22 |
+|     14 |      5 |     22 |
+|     16 |      9 |     25 |
+|     14 |     10 |     21 |
++--------+--------+--------+
+(5 rows)
+
+!ok
+
 # MATH Functions
 
 # CBRT
@@ -435,6 +540,27 @@ from t;
 
 !ok
 
+# [CALCITE-6730] Add CONVERT function(enabled in Oracle library)
+select convert('abcd', utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert('abcd', utf8, latin1);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
 SELECT XMLTRANSFORM(
                    '<?xml version="1.0"?>
                     <Article>
@@ -760,6 +886,28 @@ from t;
 
 !ok
 
+# [CALCITE-6791] Search pattern during matching in REPLACE function should be case insensitive in MSSQL
+!use scott-mssql
+select replace('ciAao', 'a', 'ciao');
++-------------+
+| EXPR$0      |
++-------------+
+| ciciaociaoo |
++-------------+
+(1 row)
+
+!ok
+
+select replace('ciAao', 'A', 'ciao');
++-------------+
+| EXPR$0      |
++-------------+
+| ciciaociaoo |
++-------------+
+(1 row)
+
+!ok
+
 # concat in BigQuery
 !use post-big-query
 
@@ -888,6 +1036,75 @@ select convert(null using utf8);
 +--------+
 |        |
 +--------+
+(1 row)
+
+!ok
+
+# [CALCITE-6774] REPLACE function returns wrong result when search pattern is an empty string
+select replace('ciao', '', 'ciao');
++--------+
+| EXPR$0 |
++--------+
+| ciao   |
++--------+
+(1 row)
+
+!ok
+
+select replace('ci ao', ' ', 'ciao');
++----------+
+| EXPR$0   |
++----------+
+| ciciaoao |
++----------+
+(1 row)
+
+!ok
+
+with t as (select replace(null, 'ciao', 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('ciao', cast(null as varchar), 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('ciao', 'ci', cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('', 'ciao', 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
 (1 row)
 
 !ok

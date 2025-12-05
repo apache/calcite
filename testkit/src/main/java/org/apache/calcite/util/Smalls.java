@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.BaseQueryable;
@@ -78,11 +79,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Holder for various classes and functions used in tests as user-defined
@@ -162,7 +165,7 @@ public class Smalls {
     if (s == null) {
       items = ImmutableList.of();
     } else {
-      Integer latest = Integer.parseInt(s.substring(1, s.length() - 1));
+      Integer latest = parseInt(s.substring(1, s.length() - 1));
       items = ImmutableList.of(1, 3, latest);
     }
     final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);
@@ -513,7 +516,7 @@ public class Smalls {
    * and named parameters. */
   public static class MyPlusFunction {
     public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
-        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+        ThreadLocal.withInitial(AtomicInteger::new);
 
     // Note: Not marked @Deterministic
     public MyPlusFunction() {
@@ -530,7 +533,7 @@ public class Smalls {
    * {@link org.apache.calcite.schema.FunctionContext} parameter. */
   public static class MyPlusInitFunction {
     public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
-        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+        ThreadLocal.withInitial(AtomicInteger::new);
     public static final ThreadLocal<String> THREAD_DIGEST =
         new ThreadLocal<>();
 
@@ -565,7 +568,7 @@ public class Smalls {
   /** As {@link MyPlusFunction} but declared to be deterministic. */
   public static class MyDeterministicPlusFunction {
     public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
-        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
+        ThreadLocal.withInitial(AtomicInteger::new);
 
     @Deterministic public MyDeterministicPlusFunction() {
       INSTANCE_COUNT.get().incrementAndGet();
@@ -678,6 +681,15 @@ public class Smalls {
         throw new IOException("IOException when argument > 100");
       }
       return x + 10;
+    }
+  }
+
+  /** User-defined function with niladic parentheses. */
+  public static class MyNiladicParenthesesFunction {
+    // This is a constant function that tests for niladic parentheses,
+    // and it returns the constant value foo
+    public String eval() {
+      return "foo";
     }
   }
 
@@ -899,7 +911,7 @@ public class Smalls {
    * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
     public MyTwoParamsSumFunctionFilter1(FunctionContext fx) {
-      Objects.requireNonNull(fx, "fx");
+      requireNonNull(fx, "fx");
       assert fx.getParameterCount() == 2;
     }
     public int init() {
@@ -1464,6 +1476,34 @@ public class Smalls {
               Expressions.constant(tableName));
       return Expressions.call(queryableExpression,
           BuiltInMethod.QUERYABLE_AS_ENUMERABLE.method);
+    }
+  }
+
+  /** User-defined function that decodes a Base64 string to bytes. */
+  public static class MyUnbase64Function {
+    public static ByteString eval(String s) {
+      if (s == null) {
+        return null;
+      }
+      try {
+        return ByteString.ofBase64(s);
+      } catch (Exception e) {
+        return null;
+      }
+    }
+  }
+
+  /** User-defined function with return type Character[]. */
+  public static class CharacterArrayFunction {
+    public static Character[] eval(String s) {
+      if (s == null) {
+        return null;
+      }
+      Character[] characters = new Character[s.length()];
+      for (int i = 0; i < s.length(); i++) {
+        characters[i] = s.charAt(i);
+      }
+      return characters;
     }
   }
 }

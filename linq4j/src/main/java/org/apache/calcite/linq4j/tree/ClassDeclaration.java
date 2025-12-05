@@ -23,6 +23,8 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Declaration of a class.
  */
@@ -36,9 +38,8 @@ public class ClassDeclaration extends MemberDeclaration {
 
   public ClassDeclaration(int modifier, String name, @Nullable Type extended,
       List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
-    assert name != null : "name should not be null";
     this.modifier = modifier;
-    this.name = name;
+    this.name = requireNonNull(name, "name");
     this.memberDeclarations = memberDeclarations;
     this.extended = extended;
     this.implemented = implemented;
@@ -88,23 +89,10 @@ public class ClassDeclaration extends MemberDeclaration {
     if (!classClass.equals(that.classClass)) {
       return false;
     }
-    if (extended != null ? !extended.equals(that.extended) : that.extended
-        != null) {
-      return false;
-    }
-    if (implemented != null ? !implemented.equals(that.implemented) : that
-        .implemented != null) {
-      return false;
-    }
-    if (memberDeclarations != null ? !memberDeclarations.equals(that
-        .memberDeclarations) : that.memberDeclarations != null) {
-      return false;
-    }
-    if (!name.equals(that.name)) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(extended, that.extended)
+        && implemented.equals(that.implemented)
+        && memberDeclarations.equals(that.memberDeclarations)
+        && name.equals(that.name);
   }
 
   @Override public int hashCode() {

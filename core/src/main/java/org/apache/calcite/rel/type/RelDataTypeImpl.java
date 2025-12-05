@@ -127,7 +127,7 @@ public abstract class RelDataTypeImpl
       }
     }
     // Extra field
-    if (fieldList.size() > 0) {
+    if (!fieldList.isEmpty()) {
       final RelDataTypeField lastField = Iterables.getLast(fieldList);
       if (lastField.getName().equals("_extra")) {
         return new RelDataTypeFieldImpl(
@@ -189,17 +189,23 @@ public abstract class RelDataTypeImpl
   }
 
   @Override public List<RelDataTypeField> getFieldList() {
-    assert fieldList != null : "fieldList must not be null, type = " + this;
+    if (fieldList == null) {
+      throw new AssertionError("fieldList must not be null, type = " + this);
+    }
     return fieldList;
   }
 
   @Override public List<String> getFieldNames() {
-    assert fieldList != null : "fieldList must not be null, type = " + this;
+    if (fieldList == null) {
+      throw new AssertionError("fieldList must not be null, type = " + this);
+    }
     return Pair.left(fieldList);
   }
 
   @Override public int getFieldCount() {
-    assert fieldList != null : "fieldList must not be null, type = " + this;
+    if (fieldList == null) {
+      throw new AssertionError("fieldList must not be null, type = " + this);
+    }
     return fieldList.size();
   }
 
@@ -229,7 +235,7 @@ public abstract class RelDataTypeImpl
   @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RelDataTypeImpl
-          && Objects.equals(this.digest, ((RelDataTypeImpl) obj).digest);
+        && Objects.equals(this.digest, ((RelDataTypeImpl) obj).digest);
   }
 
   @Override public int hashCode() {
@@ -350,7 +356,7 @@ public abstract class RelDataTypeImpl
    * that copies a given type using the given type factory.
    */
   public static RelProtoDataType proto(final RelDataType protoType) {
-    assert protoType != null;
+    requireNonNull(protoType, "protoType");
     return typeFactory -> typeFactory.copyType(protoType);
   }
 
@@ -366,7 +372,7 @@ public abstract class RelDataTypeImpl
    */
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final boolean nullable) {
-    assert typeName != null;
+    requireNonNull(typeName, "typeName");
     return typeFactory -> {
       final RelDataType type = typeFactory.createSqlType(typeName);
       return typeFactory.createTypeWithNullability(type, nullable);
@@ -386,7 +392,7 @@ public abstract class RelDataTypeImpl
    */
   public static RelProtoDataType proto(final SqlTypeName typeName,
       final int precision, final boolean nullable) {
-    assert typeName != null;
+    requireNonNull(typeName, "typeName");
     return typeFactory -> {
       final RelDataType type = typeFactory.createSqlType(typeName, precision);
       return typeFactory.createTypeWithNullability(type, nullable);

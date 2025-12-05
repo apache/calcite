@@ -24,6 +24,7 @@ import org.apache.calcite.util.Util;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -48,6 +50,9 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
 import static org.apache.calcite.runtime.HttpUtils.post;
+
+import static java.lang.Boolean.parseBoolean;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
@@ -68,7 +73,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   public SplunkConnectionImpl(String url, String username, String password)
       throws MalformedURLException {
-    this(new URL(url), username, password);
+    this(URI.create(url).toURL(), username, password);
   }
 
   public SplunkConnectionImpl(URL url, String username, String password) {
@@ -124,22 +129,23 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-      List<String> fieldList, SearchResultListener srl) {
-    assert srl != null;
+      @Nullable List<String> fieldList, SearchResultListener srl) {
+    requireNonNull(srl, "srl");
     Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
     assert x == null;
   }
 
   @Override public Enumerator<Object> getSearchResultEnumerator(String search,
-      Map<String, String> otherArgs, List<String> fieldList) {
-    return getSearchResults_(search, otherArgs, fieldList, null);
+      Map<String, String> otherArgs, @Nullable List<String> fieldList) {
+    return requireNonNull(
+        getSearchResults_(search, otherArgs, fieldList, null));
   }
 
-  private Enumerator<Object> getSearchResults_(
+  private @Nullable Enumerator<Object> getSearchResults_(
       String search,
       Map<String, String> otherArgs,
-      List<String> wantedFields,
-      SearchResultListener srl) {
+      @Nullable List<String> wantedFields,
+      @Nullable SearchResultListener srl) {
     String searchUrl =
         String.format(Locale.ROOT,
             "%s://%s:%d/services/search/jobs/export",
@@ -148,10 +154,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
             url.getPort());
 
     StringBuilder data = new StringBuilder();
-    Map<String, String> args = new LinkedHashMap<>();
-    if (otherArgs != null) {
-      args.putAll(otherArgs);
-    }
+    Map<String, String> args = new LinkedHashMap<>(otherArgs);
     args.put("search", search);
     // override these args
     args.put("output_mode", "csv");
@@ -259,9 +262,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     if (search == null) {
       printUsage("Missing required argument: search");
+      return;
     }
     if (field_list == null) {
       printUsage("Missing required argument: field_list");
+      return;
     }
 
     List<String> fieldList = StringUtils.decodeList(field_list, ',');
@@ -275,14 +280,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
     Map<String, String> searchArgs = new HashMap<>();
     searchArgs.put("earliest_time", argsMap.get("earliest_time"));
     searchArgs.put("latest_time", argsMap.get("latest_time"));
-    searchArgs.put(
-        "field_list",
+    searchArgs.put("field_list",
         StringUtils.encodeList(fieldList, ',').toString());
 
 
     CountingSearchResultListener dummy =
         new CountingSearchResultListener(
-            Boolean.valueOf(argsMap.get("-print")));
+            parseBoolean(argsMap.get("-print")));
     long start = System.currentTimeMillis();
     c.getSearchResults(search, searchArgs, null, dummy);
 
@@ -296,7 +300,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * interface that just counts the results. */
   public static class CountingSearchResultListener
       implements SearchResultListener {
-    String[] fieldNames = null;
+    String @Nullable[] fieldNames;
     int resultCount = 0;
     final boolean print;
 
@@ -311,9 +315,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
     @Override public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
-        for (int i = 0; i < this.fieldNames.length; ++i) {
-          System.out.printf(Locale.ROOT, "%s=%s\n", this.fieldNames[i],
-              values[i]);
+        requireNonNull(fieldNames, "fieldNames");
+        for (int i = 0; i < fieldNames.length; ++i) {
+          System.out.printf(Locale.ROOT, "%s=%s\n", fieldNames[i], values[i]);
         }
         System.out.println();
       }
@@ -332,9 +336,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * on the value of {@code source}. */
   public static class SplunkResultEnumerator implements Enumerator<Object> {
     private final CSVReader csvReader;
-    private String[] fieldNames;
-    private int[] sources;
-    private Object current;
+    private String @Nullable [] fieldNames;
+    private int @Nullable [] sources;
+    private @Nullable Object current;
 
     /**
      * Where to find the singleton field, or whether to map. Values:
@@ -348,7 +352,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
      */
     private int source;
 
-    public SplunkResultEnumerator(InputStream in, List<String> wantedFields) {
+    public SplunkResultEnumerator(InputStream in,
+        @Nullable List<String> wantedFields) {
       csvReader =
           new CSVReader(
               new BufferedReader(
@@ -361,6 +366,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
           // do nothing
         } else {
           final List<String> headerList = Arrays.asList(fieldNames);
+          requireNonNull(wantedFields, "wantedFields");
           if (wantedFields.size() == 1) {
             // Yields 0 or higher if wanted field exists.
             // Yields -1 if wanted field does not exist.

@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -345,5 +346,42 @@ class SqlTypeFactoryTest {
     assertThat(unknownType2.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
     assertFalse(unknownType2.isNullable());
     assertThat(unknownType2.getFullTypeString(), is("UNKNOWN NOT NULL"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5199">[CALCITE-5199]
+   * The leastRestrictiveStructuredType method should reserve the StructKind instead of
+   * override it to FULLY_QUALIFIED</a>. */
+  @Test void testLeastRestrictiveStructurePreservesStructKind() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataTypeFactory typeFactory = f.typeFactory;
+
+    // Test with PEEK_FIELDS
+    testStructKindPreservation(typeFactory, f, StructKind.PEEK_FIELDS);
+    // Test with PEEK_FIELDS_DEFAULT
+    testStructKindPreservation(typeFactory, f, StructKind.PEEK_FIELDS_DEFAULT);
+  }
+
+  private void testStructKindPreservation(
+      RelDataTypeFactory typeFactory, SqlTypeFixture f, StructKind kind) {
+    // Create two struct types with the specified kind
+    RelDataType struct1 =
+        typeFactory.createStructType(kind,
+            ImmutableList.of(f.sqlInt, f.sqlInt),
+            ImmutableList.of("i", "j"));
+    RelDataType struct2 =
+        typeFactory.createStructType(kind,
+            ImmutableList.of(f.sqlBigInt, f.sqlBigInt),
+            ImmutableList.of("i", "j"));
+
+    // Compute least restrictive type
+    RelDataType leastRestrictive =
+        typeFactory.leastRestrictive(ImmutableList.of(struct1, struct2));
+
+    // Verify the result is a struct type
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ROW));
+
+    // Verify the struct kind is preserved, not overridden to FULLY_QUALIFIED
+    assertThat(leastRestrictive.getStructKind(), is(kind));
   }
 }

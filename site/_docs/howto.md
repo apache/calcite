@@ -31,16 +31,16 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 or 19)
-and Gradle (version 7.6.1) on your path.
+Prerequisite is Java (JDK 8, 11, 17, 21 or 23)
+and Gradle (version 8.7) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.36.0-src.tar.gz
-$ cd apache-calcite-1.36.0-src
+$ tar xvfz apache-calcite-1.41.0-src.tar.gz
+$ cd apache-calcite-1.41.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 or 19) on your path.
+and Java (JDK 8, 11, 17, 21 or 23) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
@@ -91,7 +91,7 @@ For more information about Gradle, check the following links:
 
 ## Upgrade Gradle and the Gradle Wrapper
 
-Gradle's [documentation](https://docs.gradle.org/current/userguide/upgrading_version_7.html)
+Gradle's [documentation](https://docs.gradle.org/current/userguide/upgrading_version_8.html)
 provides detailed information about how to upgrade Gradle. Here is a list of steps:
 
 1. Run `./gradlew help --warning-mode=all` to find out whether you are
@@ -99,10 +99,8 @@ provides detailed information about how to upgrade Gradle. Here is a list of ste
 2. Fix the deprecations and repeat the previous step to confirm they are
    fixed. This is a step where Gradle doc could be very helpful since it
    contains info about deprecations and how to cope with them.
-3. Run `./gradlew wrapper --gradle-version <new_gradle_version>` to upgrade
-   Gradle. If necessary it will also upgrade the Gradle Wrapper.
-   This step also updates `gradle/wrapper/gradle-wrapper.properties`,
-   including the checksum.
+3. Run `./gradlew wrapper --gradle-version=<new_gradle_version> --gradle-distribution-sha256-sum=<distribution-sum>`
+   to upgrade Gradle. Checksum should be taken from [Gradle release checksums](https://gradle.org/release-checksums/).
 4. Check and update Kotlin version in `gradle.properties` if required.
    Check should be done against [Kotlin compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html#kotlin).
 5. Step 3 will have removed the header from
@@ -685,8 +683,8 @@ asfGitSourcePassword=
 Note:
 * Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
-* Git source account can be configured to either Gitbox (the default) or Github. For Gitbox, `asfGitSourceUsername`
-is your apache id, and `asfGitSourcePassword` is the corresponding password. For Github, `asfGitSourceUsername`
+* Git source account can be configured to either Gitbox (the default) or GitHub. For Gitbox, `asfGitSourceUsername`
+is your apache id, and `asfGitSourcePassword` is the corresponding password. For GitHub, `asfGitSourceUsername`
 is your GitHub id while `asfGitSourcePassword` is not your GitHub password, you need to generate it in
 https://github.com/settings/tokens choosing `Personal access tokens`.
 
@@ -730,7 +728,8 @@ Before you start:
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
   is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 9 or 10).
+* Make sure you are using JDK 8. (Compiling with JDK 21 causes
+  [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -794,6 +793,32 @@ The release candidate process does not add commits,
 so there's no harm if it fails. It might leave `-rc` tag behind
 which can be removed if required.
 
+Define your credentials in your `~/.gradle/gradle.properties` file.
+Replace `jhyde`, `julianhyde` and `xxx` as appropriate, and be sure to
+make the file private (permission 600).
+```
+useGpgCmd=true
+signing.gnupg.executable=gpg
+signing.gnupg.useLegacyGpg=false
+signing.gnupg.keyName=0xXXXXXXXX
+signing.gnupg.passphrase=xxx
+
+asfSvnUsername=jhyde
+asfSvnPassword=xxx
+asfGitSourceUsername=julianhyde
+asfGitSourcePassword=xxx
+asfNexusUsername=jhyde
+asfNexusPassword=xxx
+asfCommitterId=jhyde
+
+asfTestSvnPassword=test
+asfTestSvnUsername=test
+asfTestGitSourceUsername=test
+asfTestGitSourcePassword=test
+asfTestNexusUsername=test
+asfTestNexusPassword=test
+```
+
 If you wish, you can perform a dry-run release with a help of
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment);
 it would perform the same steps, but it would push changes to the mock Nexus, Git, and SVN servers.
@@ -816,7 +841,7 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
 ./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -849,7 +874,6 @@ your key to the keyservers used by Nexus, see above.
 * Make sure that the following files do not occur in the source
   distros: `KEYS`, `gradlew`, `gradlew.bat`, `gradle-wrapper.jar`,
   `gradle-wrapper.properties`
-* Make sure that there is no `KEYS` file in the source distros
 * In each .jar (for example
   `core/build/libs/calcite-core-X.Y.Z.jar` and
   `mongodb/build/libs/calcite-mongodb-X.Y.Z-sources.jar`), check
@@ -930,7 +954,7 @@ No 0s or -1s.
 Therefore, I am delighted to announce that the proposal to release
 Apache Calcite X.Y.Z has passed.
 
-Thanks everyone. We’ll now roll the release out to the mirrors.
+Thanks everyone. We’ll now publish and announce the release.
 
 There was some feedback during voting. I shall open a separate
 thread to discuss.
@@ -953,7 +977,7 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
 ./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -992,15 +1016,15 @@ Make sure to add the version number and date of the latest release at the site l
 
 The release notes and the javadoc of the new version will be automatically deployed to the website
 once the release commits/tags reach the ASF remote and the respective
-[Gitub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
+[GitHub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
 
 Add a release announcement by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
 and adapt the release date in `history.md` if necessary. Preview the changes locally, by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md), and then commit and push
 the changes to the `main` branch. Please note that due to [CALCITE-5584](https://issues.apache.org/jira/browse/CALCITE-5584),
-the commit should be pushed to Github as the last commit, do not chain it with "Prepare for next development iteration"
-commit.
+the commit should be pushed to GitHub as the last commit; do not chain it with
+the "Prepare for next development iteration" commit.
 
 Ensure that all changes to the website (news, release notes, javadoc) are correctly displayed.
 
@@ -1016,9 +1040,10 @@ a new version (e.g., X.Y+1.Z) for the next release. In order to make the [releas
 reflect state of the next release, change the fixVersion in the [JIRA filter powering the dashboard](https://issues.apache.org/jira/issues/?filter=12346388)
 and save the changes.
 
-Increase the `calcite.version` value in `/gradle.properties`, commit and push
+Increase the `calcite.version` value in `/gradle.properties`, and update `JdbcTest.testVersion` accordingly.
+Ensure that build and test pass and then commit and push
 the change with the message "Prepare for next development iteration"
-(see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
+(see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference).
 
 Re-open the `main` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
 that `main` code freeze is over and commits can resume.

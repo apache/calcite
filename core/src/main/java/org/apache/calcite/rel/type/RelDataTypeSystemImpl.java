@@ -22,6 +22,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.RoundingMode;
+
+import static org.apache.calcite.sql.type.SqlTypeName.DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_START_PRECISION;
+
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
  * providing parameters from the SQL standard.
@@ -33,12 +38,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *   <caption>Parameter values</caption>
  *   <tr><th>Parameter</th>         <th>Value</th></tr>
  *   <tr><td>MAX_NUMERIC_SCALE</td> <td>19</td></tr>
+ *   <tr><td>MIN_NUMERIC_SCALE</td> <td>0</td></tr>
+ *   <tr><td>MAX_NUMERIC_PRECISION</td> <td>19</td></tr>
  * </table>
  */
 public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   @Override public int getMaxScale(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
+      // from 1.39, this will be 'return 19;'
       return getMaxNumericScale();
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -55,7 +63,37 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_SECOND:
       return SqlTypeName.MAX_INTERVAL_FRACTIONAL_SECOND_PRECISION;
     default:
-      return -1;
+      return RelDataType.SCALE_NOT_SPECIFIED;
+    }
+  }
+
+  /**
+   * Returns the minimum scale (or fractional second precision in the case of
+   * intervals) allowed for this type, or {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed scale
+   */
+  @Override public int getMinScale(SqlTypeName typeName) {
+    switch (typeName) {
+    case DECIMAL:
+      return 0;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      return 0; // MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+    default:
+      return RelDataType.SCALE_NOT_SPECIFIED;
     }
   }
 
@@ -69,6 +107,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case VARBINARY:
       return RelDataType.PRECISION_NOT_SPECIFIED;
     case DECIMAL:
+      // from 1.39, this will be 'return getMaxPrecision(typeName);'
       return getMaxNumericPrecision();
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -87,12 +126,16 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case BOOLEAN:
       return 1;
     case TINYINT:
+    case UTINYINT:
       return 3;
     case SMALLINT:
+    case USMALLINT:
       return 5;
     case INTEGER:
+    case UINTEGER:
       return 10;
     case BIGINT:
+    case UBIGINT:
       return 19;
     case REAL:
       return 7;
@@ -112,13 +155,39 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       // (microseconds) per SQL99 part 2 section 6.1 syntax rule 30.
       return 0;
     default:
-      return -1;
+      return RelDataType.PRECISION_NOT_SPECIFIED;
+    }
+  }
+
+  /** Returns the default scale for this type if supported, otherwise {@link RelDataType#SCALE_NOT_SPECIFIED}
+   *  if scale is either unsupported or must be specified explicitly. */
+  @Override public int getDefaultScale(SqlTypeName typeName) {
+    switch (typeName) {
+    case DECIMAL:
+      return 0;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      return DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+    default:
+      return RelDataType.SCALE_NOT_SPECIFIED;
     }
   }
 
   @Override public int getMaxPrecision(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
+      // from 1.39, this will be 'return 19;'
       return getMaxNumericPrecision();
     case VARCHAR:
     case CHAR:
@@ -152,12 +221,58 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     }
   }
 
+  /**
+   * Returns the minimum precision (or length) allowed for this type,
+   * or {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed precision
+   */
+  @Override public int getMinPrecision(SqlTypeName typeName) {
+    switch (typeName) {
+    case DECIMAL:
+    case VARCHAR:
+    case CHAR:
+    case VARBINARY:
+    case BINARY:
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
+      return 1;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      return MIN_INTERVAL_START_PRECISION;
+    default:
+      return RelDataType.PRECISION_NOT_SPECIFIED;
+    }
+  }
+
+  @SuppressWarnings("deprecation")
   @Override public int getMaxNumericScale() {
     return 19;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getMaxNumericPrecision() {
     return 19;
+  }
+
+  @Override public RoundingMode roundingMode() {
+    return RoundingMode.DOWN;
   }
 
   @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {
@@ -220,7 +335,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public int getNumTypeRadix(SqlTypeName typeName) {
     if (typeName.getFamily() == SqlTypeFamily.NUMERIC
-        && getDefaultPrecision(typeName) != -1) {
+        && getDefaultPrecision(typeName) != RelDataType.PRECISION_NOT_SPECIFIED) {
       return 10;
     }
     return 0;

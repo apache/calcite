@@ -28,17 +28,19 @@ import java.util.List;
 
 import redis.clients.jedis.Jedis;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The class with RedisDataProcess.
  */
 public class RedisDataProcess {
-  String tableName;
-  String dataFormat;
-  String keyDelimiter;
-  RedisDataType dataType = null;
-  RedisDataFormat redisDataFormat = null;
-  List<LinkedHashMap<String, Object>> fields;
-  private Jedis jedis;
+  final String tableName;
+  final String dataFormat;
+  final String keyDelimiter;
+  final RedisDataType dataType;
+  final RedisDataFormat redisDataFormat;
+  final List<LinkedHashMap<String, Object>> fields;
+  private final Jedis jedis;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public RedisDataProcess(Jedis jedis, RedisTableFieldInfo tableFieldInfo) {
@@ -48,17 +50,16 @@ public class RedisDataProcess {
     dataFormat = tableFieldInfo.getDataFormat();
     tableName = tableFieldInfo.getTableName();
     keyDelimiter = tableFieldInfo.getKeyDelimiter();
-    dataType = RedisDataType.fromTypeName(type);
-    redisDataFormat = RedisDataFormat.fromTypeName(tableFieldInfo.getDataFormat());
+    dataType = requireNonNull(RedisDataType.fromTypeName(type));
+    redisDataFormat =
+        requireNonNull(
+            RedisDataFormat.fromTypeName(tableFieldInfo.getDataFormat()));
     objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
         .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
         .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-    assert redisDataFormat != null;
-    assert dataType != null;
   }
 
   public List<Object[]> read() {
-    List<Object[]> objs = new ArrayList<>();
     switch (dataType) {
     case STRING:
       return parse(jedis.keys(tableName));
@@ -71,7 +72,7 @@ public class RedisDataProcess {
     case HASH:
       return parse(jedis.hvals(tableName));
     default:
-      return objs;
+      return new ArrayList<>();
     }
   }
 
@@ -107,48 +108,48 @@ public class RedisDataProcess {
   }
 
   List<Object[]> parse(Iterable<String> keys) {
-    List<Object[]> objs = new ArrayList<>();
+    List<Object[]> objects = new ArrayList<>();
     for (String key : keys) {
       if (dataType == RedisDataType.STRING) {
         key = jedis.get(key);
       }
       switch (redisDataFormat) {
       case RAW:
-        objs.add(new Object[]{key});
+        objects.add(new Object[]{key});
         break;
       case JSON:
-        objs.add(parseJson(key));
+        objects.add(parseJson(key));
         break;
       case CSV:
-        objs.add(parseCsv(key));
+        objects.add(parseCsv(key));
         break;
       default:
         break;
       }
     }
-    return objs;
+    return objects;
   }
 
   public List<Object[]> parse(List<String> keys) {
-    List<Object[]> objs = new ArrayList<>();
+    List<Object[]> objects = new ArrayList<>();
     for (String key : keys) {
       if (dataType == RedisDataType.STRING) {
         key = jedis.get(key);
       }
       switch (redisDataFormat) {
       case RAW:
-        objs.add(new Object[]{key});
+        objects.add(new Object[]{key});
         break;
       case JSON:
-        objs.add(parseJson(key));
+        objects.add(parseJson(key));
         break;
       case CSV:
-        objs.add(parseCsv(key));
+        objects.add(parseCsv(key));
         break;
       default:
         break;
       }
     }
-    return objs;
+    return objects;
   }
 }

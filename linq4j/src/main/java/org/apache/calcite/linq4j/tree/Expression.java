@@ -36,8 +36,6 @@ public abstract class Expression extends AbstractNode {
    */
   protected Expression(ExpressionType nodeType, Type type) {
     super(nodeType, type);
-    assert nodeType != null;
-    assert type != null;
   }
 
   @Override // More specific return type.

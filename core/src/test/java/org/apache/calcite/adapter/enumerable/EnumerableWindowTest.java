@@ -38,7 +38,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
@@ -76,9 +77,9 @@ public class EnumerableWindowTest {
     final Window updated = original.copy(newConstants);
 
     assertNotSame(original, updated);
-    assertEquals(1, original.getConstants().size());
+    assertThat(original.getConstants(), hasSize(1));
     assertSame(constants.get(0), original.getConstants().get(0));
-    assertEquals(1, updated.getConstants().size());
+    assertThat(updated.getConstants(), hasSize(1));
     assertSame(newConstants.get(0), updated.getConstants().get(0));
   }
 }

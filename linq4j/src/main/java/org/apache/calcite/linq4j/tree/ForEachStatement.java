@@ -20,6 +20,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a "for-each" loop, "for (T v : iterable) { f(v); }".
  */
@@ -34,9 +36,9 @@ public class ForEachStatement extends Statement {
   public ForEachStatement(ParameterExpression parameter, Expression iterable,
       Statement body) {
     super(ExpressionType.ForEach, Void.TYPE);
-    this.parameter = Objects.requireNonNull(parameter, "parameter");
-    this.iterable = Objects.requireNonNull(iterable, "iterable");
-    this.body = Objects.requireNonNull(body, "body"); // may be empty block, not null
+    this.parameter = requireNonNull(parameter, "parameter");
+    this.iterable = requireNonNull(iterable, "iterable");
+    this.body = requireNonNull(body, "body"); // may be empty block, not null
   }
 
   @Override public ForEachStatement accept(Shuttle shuttle) {

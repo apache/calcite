@@ -43,7 +43,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.PatternSyntaxException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -59,8 +60,14 @@ class Projection2Test {
   @BeforeAll
   public static void setupInstance() throws Exception {
     final Map<String, String> mappings =
-        ImmutableMap.of("a", "long",
-            "b.a", "long", "b.b", "long", "b.c.a", "keyword");
+        ImmutableMap.<String, String>builder()
+            .put("a", "long")
+            .put("b", "nested")
+            .put("b.a", "long")
+            .put("b.b", "long")
+            .put("b.c", "nested")
+            .put("b.c.a", "keyword")
+            .build();
 
     NODE.createIndex(NAME, mappings);
 
@@ -289,7 +296,7 @@ class Projection2Test {
         fail &= processedRows == lines.length;
 
         if (fail) {
-          assertEquals(String.join("\n", Arrays.asList(lines)), actual.toString());
+          assertThat(actual, hasToString(String.join("\n", lines)));
           fail("Should have failed on previous line, but for some reason didn't");
         }
       } catch (SQLException e) {

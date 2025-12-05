@@ -23,9 +23,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import java.util.Objects;
-
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An operator that applies a distinct operation before rows are included in an
@@ -69,8 +69,8 @@ public class SqlWithinDistinctOperator extends SqlBinaryOperator {
           RESOURCE.withinDistinctNotAllowed(
               flat.aggregateCall.getOperator().getName()));
     }
-    for (SqlNode order : Objects.requireNonNull(flat.distinctList)) {
-      Objects.requireNonNull(validator.deriveType(scope, order));
+    for (SqlNode order : requireNonNull(flat.distinctList)) {
+      requireNonNull(validator.deriveType(scope, order));
     }
     validator.validateAggregateParams(flat.aggregateCall, flat.filter,
         flat.distinctList, flat.orderList, scope);

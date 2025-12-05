@@ -28,8 +28,8 @@
 - name: Alessandro Solimando
   apacheId: asolimando
   githubId: asolimando
-  org: Cloudera
-  role: Committer
+  org:
+  role: PMC
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
@@ -50,11 +50,17 @@
   githubId: libenchao
   pronouns: he/him
   org: ByteDance
-  role: PMC Chair
+  role: PMC
 - name: Bertil Chapuis
   apacheId: bchapuis
   githubId: bchapuis
   org: HEIG-VD
+  role: Committer
+- name: Cancai Cai
+  apacheId: cancai
+  githubId: caicancai
+  pronouns: he/him
+  org:
   role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
@@ -91,6 +97,11 @@
   apacheId: ebegoli
   githubId: ebegoli
   org: Oak Ridge National Laboratory
+  role: Committer
+- name: Fanyuan Qiu
+  apacheId: suibianwanwan
+  githubId: suibianwanwank
+  org:
   role: Committer
 - name: Feng Zhu
   apacheId: fengzhu
@@ -238,7 +249,7 @@
   apacheId: mbudiu
   githubId: mihaibudiu
   org: Feldera.com
-  role: Committer
+  role: PMC
 - name: Milinda Pathirage
   apacheId: milinda
   githubId: milinda
@@ -280,8 +291,8 @@
 - name: Ruben Quesada Lopez
   apacheId: rubenql
   githubId: rubenada
-  org: TIBCO
-  role: PMC
+  org: Voltron Data
+  role: PMC Chair
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia
@@ -367,7 +378,7 @@
   githubId: NobiGo
   pronouns: he/him
   org: Hikvision
-  role: Committer
+  role: PMC
 - name: Yong Liu
   apacheId: jackylau
   githubId: liuyongvs
@@ -384,6 +395,11 @@
   githubId: ILuffZhe
   pronouns: he/him
   org: Hikvision
+  role: Committer
+- name: Zhen Chen
+  apacheId: zhenchen
+  githubId: xiedeyantu
+  org:
   role: Committer
 - name: Zhen Wang
   apacheId: zhenw

@@ -60,7 +60,7 @@ public class Nullness {
    * has unknown nullability, so the following needs to be used:
    *
    * <pre><code>
-   * T get() { return sneakyNull(value); }
+   * T get() { return castNonNull(value); }
    * </code></pre>
    *
    * @param <T>     the type of the reference

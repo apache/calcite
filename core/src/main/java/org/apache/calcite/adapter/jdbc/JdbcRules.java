@@ -54,7 +54,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -338,11 +337,27 @@ public class JdbcRules {
     private static boolean canJoinOnCondition(RexNode node) {
       final List<RexNode> operands;
       switch (node.getKind()) {
+      case DYNAMIC_PARAM:
+      case INPUT_REF:
       case LITERAL:
         // literal on a join condition would be TRUE or FALSE
         return true;
       case AND:
       case OR:
+      case IS_NULL:
+      case IS_NOT_NULL:
+      case IS_TRUE:
+      case IS_NOT_TRUE:
+      case IS_FALSE:
+      case IS_NOT_FALSE:
+      case EQUALS:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case IS_NOT_DISTINCT_FROM:
+      case CAST:
         operands = ((RexCall) node).getOperands();
         for (RexNode operand : operands) {
           if (!canJoinOnCondition(operand)) {
@@ -350,21 +365,6 @@ public class JdbcRules {
           }
         }
         return true;
-
-      case EQUALS:
-      case IS_NOT_DISTINCT_FROM:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_THAN_OR_EQUAL:
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-        operands = ((RexCall) node).getOperands();
-        if ((operands.get(0) instanceof RexInputRef)
-            && (operands.get(1) instanceof RexInputRef)) {
-          return true;
-        }
-        // fall through
-
       default:
         return false;
       }
@@ -867,7 +867,7 @@ public class JdbcRules {
       if (cost == null) {
         return null;
       }
-      return cost.multiplyBy(.1);
+      return cost.multiplyBy(JdbcConvention.COST_MULTIPLIER);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {

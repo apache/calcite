@@ -25,7 +25,7 @@ dependencies {
     api(project(":core"))
     api(project(":linq4j"))
 
-    api("com.datastax.oss:java-driver-core")
+    api("org.apache.cassandra:java-driver-core")
     api("com.google.guava:guava")
     api("org.slf4j:slf4j-api")
 

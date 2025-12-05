@@ -224,12 +224,13 @@ projectItem:
 
 tableExpression:
       tableReference [, tableReference ]*
-  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] JOIN tableExpression [ joinCondition ]
+  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] [ ASOF ] JOIN tableExpression [ joinCondition ]
   |   tableExpression CROSS JOIN tableExpression
   |   tableExpression [ CROSS | OUTER ] APPLY tableExpression
 
 joinCondition:
       ON booleanExpression
+  |   MATCH_CONDITION booleanExpression ON booleanExpression
   |   USING '(' column [, column ]* ')'
 
 tableReference:
@@ -331,10 +332,17 @@ windowSpec:
       [ ORDER BY orderItem [, orderItem ]* ]
       [ PARTITION BY expression [, expression ]* ]
       [
-          RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING }
-      |   ROWS numericExpression { PRECEDING | FOLLOWING }
+          RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING [exclude]}
+      |   ROWS numericExpression { PRECEDING | FOLLOWING [exclude] }
       ]
       ')'
+
+exclude:
+      EXCLUDE NO OTHERS
+  |   EXCLUDE CURRENT ROW
+  |   EXCLUDE GROUP
+  |   EXCLUDE TIES
+
 {% endhighlight %}
 
 In *insert*, if the INSERT or UPSERT statement does not specify a
@@ -404,6 +412,30 @@ VALUE is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isValueAllowed--).
 
+An "ASOF JOIN" operation combines rows from two tables based on
+comparable timestamp values.  For each row in the left table, the join
+finds at most a single row in the right table that has the "closest"
+timestamp value. The matched row on the right side is the closest
+match whose timestamp column is compared using one of the operations
+&lt;, &le;, &gt;, or &ge;, as specified by the comparison operator in
+the MATCH_CONDITION clause.  The comparison is performed using SQL
+semantics, which returns 'false' when comparing 'NULL' values with any
+other values.  Thus a 'NULL' timestamp in the left table will not
+match any timestamps in the right table.
+
+ASOF JOIN can be used in an OUTER JOIN form as LEFT ASOF JOIN.  In this case,
+when there is no match for a row in the left table, the columns from
+the right table are null-padded.  There are no RIGHT ASOF joins.
+
+Example:
+
+```SQL
+SELECT *
+FROM left_table LEFT ASOF JOIN right_table
+MATCH_CONDITION left_table.timecol <= right_table.timecol
+ON left_table.col = right_table.col
+```
+
 ## Keywords
 
 The following is a list of SQL keywords.
@@ -435,6 +467,7 @@ ARRAY_CONCAT_AGG,
 **AS**,
 ASC,
 **ASENSITIVE**,
+**ASOF**,
 ASSERTION,
 ASSIGNMENT,
 **ASYMMETRIC**,
@@ -733,10 +766,12 @@ MAP,
 **MATCH**,
 MATCHED,
 **MATCHES**,
+**MATCH_CONDITION**,
 **MATCH_NUMBER**,
 **MATCH_RECOGNIZE**,
 **MAX**,
 MAXVALUE,
+**MEASURE**,
 **MEASURES**,
 **MEMBER**,
 **MERGE**,
@@ -1080,6 +1115,7 @@ UNDER,
 UNNAMED,
 **UNNEST**,
 UNPIVOT,
+**UNSIGNED**,
 **UPDATE**,
 **UPPER**,
 **UPSERT**,
@@ -1093,11 +1129,13 @@ USER_DEFINED_TYPE_SCHEMA,
 UTF16,
 UTF32,
 UTF8,
+**UUID**,
 **VALUE**,
 **VALUES**,
 **VALUE_OF**,
 **VARBINARY**,
 **VARCHAR**,
+**VARIANT**,
 **VARYING**,
 **VAR_POP**,
 **VAR_SAMP**,
@@ -1156,6 +1194,10 @@ name will have been converted to upper case also.
 | SMALLINT    | 2 byte signed integer     | Range is -32768 to 32767
 | INTEGER, INT | 4 byte signed integer    | Range is -2147483648 to 2147483647
 | BIGINT      | 8 byte signed integer     | Range is -9223372036854775808 to 9223372036854775807
+| TINYINT UNSIGNED  | 1 byte unsigned integer     | Range is 0 to 255
+| SMALLINT UNSIGNED | 2 byte unsigned integer     | Range is 0 to 65535
+| INTEGER UNSIGNED, INT UNSIGNED | 4 byte unsigned integer    | Range is 0 to 4294967295
+| BIGINT UNSIGNED   | 8 byte unsigned integer     | Range is 0 to 18446744073709551615
 | DECIMAL(p, s) | Fixed point             | Example: 123.45 and DECIMAL '123.45' are identical values, and have type DECIMAL(5, 2)
 | NUMERIC(p, s) | Fixed point             | A synonym for DECIMAL
 | REAL        | 4 byte floating point     | 6 decimal digits precision; examples: CAST(1.2 AS REAL), CAST('Infinity' AS REAL)
@@ -1172,6 +1214,7 @@ name will have been converted to upper case also.
 | TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
 | TIMESTAMP WITH LOCAL TIME ZONE | Date and time with local time zone | Example: TIMESTAMP WITH LOCAL TIME ZONE '1969-07-20 20:17:40'
 | TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP WITH TIME ZONE '1969-07-20 20:17:40 America/Los Angeles'
+| UUID        | An 128-bit UUID           | Example: UUID '123e4567-e89b-12d3-a456-426655440000'
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1-5' YEAR TO MONTH, INTERVAL '45' DAY, INTERVAL '1 2:34:56.789' DAY TO SECOND
 | GEOMETRY | Geometry | Examples: ST_GeomFromText('POINT (30 10)')
 
@@ -1198,21 +1241,71 @@ Note:
 
 ### Non-scalar types
 
-| Type     | Description                | Example literals
+| Type     | Description                | Example type
 |:-------- |:---------------------------|:---------------
 | ANY      | The union of all types |
 | UNKNOWN  | A value of an unknown type; used as a placeholder |
 | ROW      | Row with 1 or more columns | Example: row(f0 int null, f1 varchar)
-| MAP      | Collection of keys mapped to values | Example: (int, varchar) map
+| MAP      | Collection of keys mapped to values | Example: map &lt; int, varchar &gt;
 | MULTISET | Unordered collection that may contain duplicates | Example: int multiset
 | ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
 | CURSOR   | Cursor over the result of executing a query |
 | FUNCTION | A function definition that is not bound to an identifier, it is not fully supported in CAST or DDL | Example FUNCTION(INTEGER, VARCHAR(30)) -> INTEGER
+| VARIANT  | Dynamically-typed value that can have at runtime a value of any other type | VARIANT
 
 Note:
 
 * Every `ROW` column type can have an optional [ NULL | NOT NULL ] suffix
   to indicate if this column type is nullable, default is not nullable.
+
+### The `VARIANT` type
+
+Values of `VARIANT` type are dynamically-typed.
+Any such value holds at runtime two pieces of information:
+- the data type
+- the data value
+
+Values of `VARIANT` type can be created by casting any other value to a `VARIANT`: e.g.
+`SELECT CAST(x AS VARIANT)`.  Conversely, values of type `VARIANT` can be cast to any other data type
+`SELECT CAST(variant AS INT)`.  A cast of a value of type `VARIANT` to target type T
+will compare the runtime type with T.  If the types are identical or the types are
+numeric and there is a natural conversion between the two types, the
+original value is converted to the target type and returned.  Otherwise the `CAST` returns `NULL`.
+
+Values of type `ARRAY`, `MAP`, and `ROW` type can be cast to `VARIANT`.  `VARIANT` values
+also offer the following operations:
+
+- indexing using array indexing notation `variant[index]`.  If the `VARIANT` is
+  obtained from an `ARRAY` value, the indexing operation returns a `VARIANT` whose value element
+  is the element at the specified index.  Otherwise, this operation returns `NULL`
+- indexing using map element access notation `variant[key]`, where `key` can have
+  any legal `MAP` key type.  If the `VARIANT` is obtained from a `MAP` value
+  that has en element with this key, a `VARIANT` value holding the associated value in
+  the `MAP` is returned.  Otherwise `NULL` is returned.  If the `VARIANT` is obtained from `ROW` value
+  which has a field with the name `key`, this operation returns a `VARIANT` value holding
+  the corresponding field value.  Otherwise `NULL` is returned.
+- field access using the dot notation: `variant.field`.  This operation is interpreted
+  as equivalent to `variant['field']`.  Note, however, that the field notation
+  is subject to the capitalization rules of the SQL dialect, so for correct
+  operation the field may need to be quoted: `variant."field"`
+
+The runtime types do not need to match exactly the compile-time types.
+As a compiler front-end, Calcite does not mandate exactly how the runtime types
+are represented.  Calcite does include one particular implementation in
+Java runtime, which is used for testing.  In this representation
+the runtime types are represented as follows:
+
+- The scalar types do not include information about precision and scale.  Thus all `DECIMAL`
+  compile-time types are represented by a single run-time type.
+- `CHAR(N)` and `VARCHAR` are both represented by a single runtime `VARCHAR` type.
+- `BINARY(N)` and `VARBINARY` are both represented by a single runtime `VARBINARY` type.
+- `FLOAT` and `DOUBLE` are both represented by the same runtime type.
+- All "short interval" types (from days to seconds) are represented by a single type.
+- All "long interval" types (from years to months) are represented by a single type.
+- Generic types such as `INT ARRAY`, `MULTISET`, and `MAP` convert all their elements to VARIANT values
+
+The function VARIANTNULL() can be used to create an instance
+of the `VARIANT` `null` value.
 
 ### Spatial types
 
@@ -1370,10 +1463,10 @@ comp:
 | LOWER(string)              | Returns a character string converted to lower case
 | POSITION(substring IN string) | Returns the position of the first occurrence of *substring* in *string*
 | POSITION(substring IN string FROM integer) | Returns the position of the first occurrence of *substring* in *string* starting at a given point (not standard SQL)
-| TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string1*
-| OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*
-| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point
-| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length
+| TRIM( { BOTH &#124; LEADING &#124; TRAILING } [[ string1 ] FROM ] string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string2*.  If *string1* is missing a single space is used.
+| OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*, starting at the specified position *integer* in *string1* and optionally for a specified length *integer2*
+| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point. If starting point is less than 1, the returned expression will begin at the first character that is specified in expression
+| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length. If start point is less than 1 in this case, the number of characters that are returned is the largest value of either the start + length - 1 or 0
 | INITCAP(string)            | Returns *string* with the first letter of each word converter to upper case and the rest to lower case. Words are sequences of alphanumeric characters separated by non-alphanumeric characters.
 
 Not implemented:
@@ -1388,7 +1481,7 @@ Not implemented:
 | OCTET_LENGTH(binary) | Returns the number of bytes in *binary*
 | POSITION(binary1 IN binary2) | Returns the position of the first occurrence of *binary1* in *binary2*
 | POSITION(binary1 IN binary2 FROM integer) | Returns the position of the first occurrence of *binary1* in *binary2* starting at a given point (not standard SQL)
-| OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*
+| OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*, starting at the specified position *integer* in *binary1* and optionally for a specified length *integer2*
 | SUBSTRING(binary FROM integer) | Returns a substring of *binary* starting at a given point
 | SUBSTRING(binary FROM integer FOR integer) | Returns a substring of *binary* starting at a given point with a given length
 
@@ -1477,6 +1570,8 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 | CONVERT(string, charSet1, charSet2)     | Converts *string* from *charSet1* to *charSet2*
 | CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
 | TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*
+| TYPEOF(variant)                        | Returns a string that describes the runtime type of *variant*, where variant has a `VARIANT` type
+| VARIANTNULL()                          | Returns an instance of the `VARIANT` null value (constructor)
 
 Converting a string to a **BINARY** or **VARBINARY** type produces the
 list of bytes of the string's encoding in the strings' charset.  A
@@ -1493,7 +1588,11 @@ type:
 typeName:
       sqlTypeName
   |   rowTypeName
+  |   mapTypeName
   |   compoundIdentifier
+
+mapTypeName:
+  MAP '<' type ',' type '>'
 
 sqlTypeName:
       char [ precision ] [ charSet ]
@@ -1507,9 +1606,9 @@ sqlTypeName:
   |   integer
   |   BINARY [ precision ]
   |   varbinary [ precision ]
-  |   TINYINT
-  |   SMALLINT
-  |   BIGINT
+  |   TINYINT [ UNSIGNED ]
+  |   SMALLINT [ UNSIGNED ]
+  |   BIGINT [ UNSIGNED ]
   |   REAL
   |   double
   |   FLOAT
@@ -1534,7 +1633,7 @@ decimal:
       DECIMAL | DEC | NUMERIC
 
 integer:
-      INTEGER | INT
+      INTEGER [ UNSIGNED ] | INT [ UNSIGNED ] | UNSIGNED
 
 varbinary:
       BINARY VARYING | VARBINARY
@@ -1564,25 +1663,33 @@ Calcite type conversions. The table shows all possible conversions,
 without regard to the context in which it is made. The rules governing
 these details follow the table.
 
-| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY |
-|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|
-| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     |
-| BOOLEAN             | x    | i       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | x        | x     |
-| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
-| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
-| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
-| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     |
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     |
-| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     |
-| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     |
-| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     |
-| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     |
-| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     |
-| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     |
-| GEOMETRY            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     |
-| ARRAY               | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     |
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | TINYINT UNSIGNED | SMALLINT UNSIGNED | INT UNSIGNED | BIGINT UNSIGNED | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY | MAP | MULTISET | ROW | UUID |
+|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:-----------------|:------------------|:-------------|:----------------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|:----|:---------|:----|:-----|
+| NULL                | i    | i       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     | x   | x        | x   | i    |
+| BOOLEAN             | x    | i       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TINYINT             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| INT                 | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| BIGINT              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TINYINT UNSIGNED    | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| SMALLINT UNSIGNED   | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| INT UNSIGNED        | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| BIGINT UNSIGNED     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     | x   | x        | x   | x    |
+| DATE                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TIME                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     | i   | i        | i   | i    |
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     | x   | x        | x   | i    |
+| GEOMETRY            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     | x   | x        | x   | x    |
+| ARRAY               | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     | x   | x        | x   | x    |
+| MAP                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | i   | x        | x   | x    |
+| MULTISET            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | i        | x   | x    |
+| ROW                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | i   | x    |
+| UUID                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | x   | i    |
 
 i: implicit cast / e: explicit cast / x: not allowed
 
@@ -1590,6 +1697,9 @@ i: implicit cast / e: explicit cast / x: not allowed
 
 * Set operation (`UNION`, `EXCEPT`, `INTERSECT`): compare every branch
   row data type and find the common type of each fields pair;
+* Arithmetic operations combining signed and unsigned values will
+  produce a result with the wider type; if both types have the same width,
+  the result is unsigned;
 * Binary arithmetic expression (`+`, `-`, `&`, `^`, `/`, `%`): promote
   string operand to data type of the other numeric operand;
 * Binary comparison (`=`, `<`, `<=`, `<>`, `>`, `>=`):
@@ -1818,7 +1928,7 @@ period:
 | {fn LOCATE(string1, string2 [, integer])} | Returns the position in *string2* of the first occurrence of *string1*. Searches from the beginning of *string2*, unless *integer* is specified.
 | {fn LEFT(string, length)} | Returns the leftmost *length* characters from *string*
 | {fn LTRIM(string)} | Returns *string* with leading space characters removed
-| {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
+| {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; returns unchanged *string* if *search* is an empty string(''); if *replacement* is the empty string, the occurrences of *search* are removed. Matching between *search* and *string* is case-insensitive under SQL Server semantics
 | {fn REVERSE(string)} | Returns *string* with the order of the characters reversed
 | {fn RIGHT(string, length)} | Returns the rightmost *length* characters from *string*
 | {fn RTRIM(string)} | Returns *string* with trailing space characters removed
@@ -1958,15 +2068,19 @@ windowedAggregateCall:
       agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
       [ RESPECT NULLS | IGNORE NULLS ]
       [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
-      [ FILTER '(' WHERE condition ')' ]
       OVER window
   |   agg '(' '*' ')'
-      [ FILTER  '(' WHERE condition ')' ]
       OVER window
 {% endhighlight %}
 
 where *agg* is one of the operators in the following table, or a user-defined
 aggregate function.
+
+The *exclude* clause can be one of:
+- EXCLUDE NO OTHER: Does not exclude any row from the frame. This is the default.
+- EXCLUDE CURRENT ROW: Exclude the current row from the frame.
+- EXCLUDE GROUP: Exclude the current row and its ordering peers from the frame.
+- EXCLUDE TIES: Exclude all the ordering peers of the current row, but not the current row itself.
 
 `DISTINCT`, `FILTER` and `WITHIN GROUP` are as described for aggregate
 functions.
@@ -2630,6 +2744,10 @@ Note:
 | jsonValue IS JSON ARRAY           | Whether *jsonValue* is a JSON array
 | jsonValue IS NOT JSON ARRAY       | Whether *jsonValue* is not a JSON array
 
+Note:
+
+* If the *jsonValue* is `NULL`, the function will return `NULL`.
+
 ### Dialect-specific Operators
 
 The following operators are not in the SQL standard, and are not enabled in
@@ -2650,7 +2768,9 @@ The 'C' (compatibility) column contains value:
 * 'q' for Microsoft SQL Server ('fun=mssql' in the connect string),
 * 'o' for Oracle ('fun=oracle' in the connect string),
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
+* 'r' for Amazon RedShift ('fun=redshift' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
+* 'i' for ClickHouse('fun=clickhouse' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2673,65 +2793,84 @@ In the following:
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
+| p | ACOSD(numeric)                                 | Returns the inverse cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
-| s | ARRAY([expr [, expr ]*])                       | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
+| o s | ADD_MONTHS(date, numMonths)                  | Returns the date that is *numMonths* after *date*
+| h s | ARRAY([expr [, expr ]*])                     | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
 | s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | s | ARRAY_CONTAINS(array, element)                 | Returns true if the *array* contains the *element*
-| s | ARRAY_DISTINCT(array)                          | Removes duplicate values from the *array* that keeps ordering of elements
-| s | ARRAY_EXCEPT(array1, array2)                   | Returns an array of the elements in *array1* but not in *array2*, without duplicates
+| h s | ARRAY_DISTINCT(array)                        | Removes duplicate values from the *array* that keeps ordering of elements
+| h s | ARRAY_EXCEPT(array1, array2)                 | Returns an array of the elements in *array1* but not in *array2*, without duplicates
 | s | ARRAY_INSERT(array, pos, element)              | Places *element* into index *pos* of *array*. Array index start at 1, or start from the end if index is negative. Index above array size appends the array, or prepends the array if index is negative, with `NULL` elements.
-| s | ARRAY_INTERSECT(array1, array2)                | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
-| s | ARRAY_JOIN(array, delimiter [, nullText ])     | Synonym for `ARRAY_TO_STRING`
+| h s | ARRAY_INTERSECT(array1, array2)              | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
+| h s | ARRAY_JOIN(array, delimiter [, nullText ])   | Synonym for `ARRAY_TO_STRING`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
-| s | ARRAY_MAX(array)                               | Returns the maximum value in the *array*
-| s | ARRAY_MIN(array)                               | Returns the minimum value in the *array*
+| h s | ARRAY_MAX(array)                             | Returns the maximum value in the *array*
+| h s | ARRAY_MIN(array)                             | Returns the minimum value in the *array*
 | s | ARRAY_POSITION(array, element)                 | Returns the (1-based) index of the first *element* of the *array* as long
-| s | ARRAY_REMOVE(array, element)                   | Remove all elements that equal to *element* from the *array*
+| h s | ARRAY_REMOVE(array, element)                 | Remove all elements that equal to *element* from the *array*
 | s | ARRAY_PREPEND(array, element)                  | Appends an *element* to the beginning of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the beginning of the *array*
 | s | ARRAY_REPEAT(element, count)                   | Returns the array containing element count times.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
+| h | ARRAY_SLICE(array, start, length)              | Returns the subset or range of elements.
 | b | ARRAY_TO_STRING(array, delimiter [, nullText ])| Returns a concatenation of the elements in *array* as a STRING and take *delimiter* as the delimiter. If the *nullText* parameter is used, the function replaces any `NULL` values in the array with the value of *nullText*. If the *nullText* parameter is not used, the function omits the `NULL` value and its preceding delimiter. Returns `NULL` if any argument is `NULL`
-| s | ARRAY_UNION(array1, array2)                    | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
+| h s | ARRAY_UNION(array1, array2)                  | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
 | s | ARRAYS_OVERLAP(array1, array2)                 | Returns true if *array1 contains at least a non-null element present also in *array2*. If the arrays have no common element and they are both non-empty and either of them contains a null element null is returned, false otherwise
 | s | ARRAYS_ZIP(array [, array ]*)                  | Returns a merged *array* of structs in which the N-th struct contains all N-th values of input arrays
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
+| p | ASIND(numeric)                                 | Returns the inverse sine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
+| p | ATAND(numeric)                                 | Returns the inverse tangent of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN.
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
+| * | BITAND(value1, value2)                         | Returns the bitwise AND of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | BITOR(value1, value2)                          | Returns the bitwise OR of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | BITXOR(value1, value2)                         | Returns the bitwise XOR of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | LEFTSHIFT(value1, value2) | Returns the result of left-shifting *value1* by *value2* bits. *value1* can be integer, unsigned integer, or binary. For binary, the result has the same length as *value1*. The shift amount *value2* is normalized using modulo arithmetic based on the bit width of *value1*. For integers, this uses modulo 32; for binary types, it uses modulo (8 × byte_length). Negative shift amounts are converted to equivalent positive shifts through this modulo operation. For example, `LEFTSHIFT(1, -2)` returns `1073741824` (equivalent to `1 << 30`), and `LEFTSHIFT(8, -1)` returns `0` due to overflow.
+| * | BITNOT(value)                                  | Returns the bitwise NOT of *value*. *value* must be either an integer type or a binary value.
 | f | BITAND_AGG(value)                              | Equivalent to `BIT_AND(value)`
 | f | BITOR_AGG(value)                               | Equivalent to `BIT_OR(value)`
+| * | BITCOUNT(value)                                | Returns the bitwise COUNT of *value* or NULL if *value* is NULL. *value* must be and integer or binary value.
+| b s | BIT_COUNT(integer)                           | Returns the bitwise COUNT of *integer* or NULL if *integer* is NULL
+| m | BIT_COUNT(numeric)                             | Returns the bitwise COUNT of the integer portion of *numeric* or NULL if *numeric* is NULL
+| b m s | BIT_COUNT(binary)                          | Returns the bitwise COUNT of *binary* or NULL if *binary* is NULL
 | s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 | s | BIT_LENGTH(string)                             | Returns the bit length of *string*
 | s | BIT_GET(value, position)                       | Returns the bit (0 or 1) value at the specified *position* of numeric *value*. The positions are numbered from right to left, starting at zero. The *position* argument cannot be negative
 | b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
-| b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
+| b o p r | CHR(integer)                             | Returns the character whose UTF-8 code is *integer*
 | b | CODE_POINTS_TO_BYTES(integers)                 | Converts *integers*, an array of integers between 0 and 255 inclusive, into bytes; throws error if any element is out of range
 | b | CODE_POINTS_TO_STRING(integers)                | Converts *integers*, an array of integers between 0 and 0xD7FF or between 0xE000 and 0x10FFFF inclusive, into string; throws error if any element is out of range
-| o | CONCAT(string, string)                         | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
+| o r | CONCAT(string, string)                       | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
 | b m | CONCAT(string [, string ]*)                  | Concatenates one or more strings, returns null if any of the arguments is null
 | p q | CONCAT(string [, string ]*)                  | Concatenates one or more strings, null is treated as empty string
-| m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
+| m | CONCAT_WS(separator, str1 [, string ]*)        | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
+| p | CONCAT_WS(separator, any [, any ]*)            | Concatenates all but the first argument, returns null only when separator is null, otherwise treats null arguments as empty strings
 | q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, requires at least 3 arguments (up to 254), treats null arguments as empty strings
+| s | CONCAT_WS(separator [, string \| array(string)]*)  | Concatenates one or more strings or arrays. Besides the separator, other arguments can include strings or string arrays. returns null only when separator is null, treats other null arguments as empty strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | b | CONTAINS_SUBSTR(expression, string [ , json_scope =&gt; json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
-| p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
+| o | CONVERT(string, destCharSet[, srcCharSet])     | Converts *string* from *srcCharSet* to *destCharSet*. If the *srcCharSet* parameter is not specified, then it uses the default CharSet
+| r | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
+| p | COSD(numeric)                                  | Returns the cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | * | COTH(numeric)                                  | Returns the hyperbolic cotangent of *numeric*
+| s h | CRC32(string)                                | Calculates a cyclic redundancy check value for string or binary argument and returns bigint value
 | * | CSC(numeric)                                   | Returns the cosecant of *numeric* in radians
 | * | CSCH(numeric)                                  | Returns the hyperbolic cosecant of *numeric*
 | b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
-| m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
+| m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, for a locale of en, it will return 'Sunday' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10', and for a locale of zh, it will return '星期日'
 | b | DATE(timestamp)                                | Extracts the DATE from a *timestamp*
 | b | DATE(timestampLtz)                             | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
 | b | DATE(timestampLtz, timeZone)                   | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type) in *timeZone*
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | b | DATE(year, month, day)                         | Returns a DATE value for *year*, *month*, and *day* (all of type INTEGER)
-| p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
-| p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| q r f | DATEADD(timeUnit, integer, datetime)       | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
+| q r f | DATEDIFF(timeUnit, datetime, datetime2)    | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
 | b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
@@ -2742,15 +2881,17 @@ In the following:
 | b | DATETIME_SUB(timestamp, interval)              | Returns the TIMESTAMP that occurs *interval* before *timestamp*
 | b | DATETIME_TRUNC(timestamp, timeUnit)            | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | b s | DATE_FROM_UNIX_DATE(integer)                 | Returns the DATE that is *integer* days after 1970-01-01
-| p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| p r | DATE_PART(timeUnit, datetime)                | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| s h | DATE_ADD(date, numDays)                      | Returns the DATE that is *numDays* after *date*
 | b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
 | b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| s h | DATE_SUB(date, numDays)                      | Returns the DATE that is *numDays* before *date*
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
-| o s | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
-| p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| o r s h | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
+| p r | DIFFERENCE(string, string)                   | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | f s | ENDSWITH(string1, string2)                   | Returns whether *string2* is a suffix of *string1*
-| b p | ENDS_WITH(string1, string2)                  | Equivalent to `ENDSWITH(string1, string2)`
+| b | ENDS_WITH(string1, string2)                    | Equivalent to `ENDSWITH(string1, string2)`
 | s | EXISTS(array, func)                            | Returns whether a predicate *func* holds for one or more elements in the *array*
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
@@ -2765,13 +2906,13 @@ In the following:
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
-| b o s | GREATEST(expr [, expr ]*)                  | Returns the greatest of the expressions
+| b o p r s h | GREATEST(expr [, expr ]*)            | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b s | IFNULL(value1, value2)                       | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
-| b o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
-| m | INSTR(string, substring)                       | Equivalent to `POSITION(substring IN string)`
+| b h o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
+| b h m o | INSTR(string, substring)                   | Equivalent to `POSITION(substring IN string)`
 | b | IS_INF(value)                                  | Returns whether *value* is infinite
 | b | IS_NAN(value)                                  | Returns whether *value* is NaN
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
@@ -2784,21 +2925,28 @@ In the following:
 | m | JSON_REPLACE(jsonValue, path, val [, path, val ]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
 | m | JSON_SET(jsonValue, path, val [, path, val ]*) | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
-| b o s | LEAST(expr [, expr ]* )                    | Returns the least of the expressions
-| b m p s | LEFT(string, length)                     | Returns the leftmost *length* characters from the *string*
-| f s | LEN(string)                                  | Equivalent to `CHAR_LENGTH(string)`
-| b f s | LENGTH(string)                             | Equivalent to `CHAR_LENGTH(string)`
+| b o p r s h | LEAST(expr [, expr ]* )                | Returns the least of the expressions
+| b m p r s | LEFT(string, length)                   | Returns the leftmost *length* characters from the *string*
+| f r s | LEN(string)                                | Equivalent to `CHAR_LENGTH(string)`
+| b f h p r s | LENGTH(string)                       | Equivalent to `CHAR_LENGTH(string)`
 | h s | LEVENSHTEIN(string1, string2)                | Returns the Levenshtein distance between *string1* and *string2*
-| b | LOG(numeric1 [, numeric2 ])                    | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
+| b | LOG(numeric1 [, base ])                        | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or error if *numeric1* is 0 or negative
+| m s h | LOG([, base ], numeric1)                   | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or null if *numeric1* is 0 or negative
+| p | LOG([, base ], numeric1 )                      | Returns the logarithm of *numeric1* to base *base*, or base 10 if *numeric1* is not present, or error if *numeric1* is 0 or negative
 | m s | LOG2(numeric)                                | Returns the base 2 logarithm of *numeric*
-| b o s | LPAD(string, length [, pattern ])          | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
+| s | LOG1P(numeric)                                 | Returns the natural logarithm of 1 plus *numeric*
+| b o p r s h | LPAD(string, length [, pattern ])    | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | b | TO_BASE32(string)                              | Converts the *string* to base-32 encoded form and returns an encoded string
 | b | FROM_BASE32(string)                            | Returns the decoded result of a base-32 *string* as a string
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
-| b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
+| b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string. If the input argument is an invalid base-64 *string* the function returns `NULL`
+| h | BASE64(string)                                 | Converts the *string* to base-64 encoded form and returns a encoded string
+| h | UNBASE64(string)                               | Returns the decoded result of a base-64 *string* as a string. If the input argument is an invalid base-64 *string* the function returns `NULL`
+| h s | HEX(string)                                  | Converts *string* into a hexadecimal varchar
 | b | TO_HEX(binary)                                 | Converts *binary* into a hexadecimal varchar
 | b | FROM_HEX(varchar)                              | Converts a hexadecimal-encoded *varchar* into bytes
-| b o s | LTRIM(string)                              | Returns *string* with all blanks removed from the start
+| s h | BIN(BIGINT)                                  | Converts a *bigint* into bytes string
+| b o p r s h | LTRIM(string)                        | Returns *string* with all blanks removed from the start
 | s | MAP()                                          | Returns an empty map
 | s | MAP(key, value [, key, value]*)                | Returns a map with the given *key*/*value* pairs
 | s | MAP_CONCAT(map [, map]*)                       | Concatenates one or more maps. If any input argument is `NULL` the function returns `NULL`. Note that calcite is using the LAST_WIN strategy
@@ -2809,33 +2957,40 @@ In the following:
 | s | MAP_FROM_ARRAYS(array1, array2)                | Returns a map created from an *array1* and *array2*. Note that the lengths of two arrays should be the same and calcite is using the LAST_WIN strategy
 | s | MAP_FROM_ENTRIES(arrayOfRows)                  | Returns a map created from an arrays of row with two fields. Note that the number of fields in a row must be 2. Note that calcite is using the LAST_WIN strategy
 | s | STR_TO_MAP(string [, stringDelimiter [, keyValueDelimiter]]) | Returns a map after splitting the *string* into key/value pairs using delimiters. Default delimiters are ',' for *stringDelimiter* and ':' for *keyValueDelimiter*. Note that calcite is using the LAST_WIN strategy
-| b m p s | MD5(string)                              | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
-| m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
-| o s | NVL(value1, value2)                          | Returns *value1* if *value1* is not null, otherwise *value2*
+| s | SUBSTRING_INDEX(string, delim, count)          | Returns the substring from *string* before *count* occurrences of the delimiter *delim*. If *count* is positive, everything to the left of the final delimiter (counting from the left) is returned. If *count* is negative, everything to the right of the final delimiter (counting from the right) is returned. The function substring_index performs a case-sensitive match when searching for *delim*.
+| p r | STRING_TO_ARRAY(string, delimiter [, nullString ]) | Returns a one-dimensional string[] array by splitting the input string value into subvalues using the specified string value as the "delimiter". Optionally, allows a specified string value to be interpreted as NULL.
+| b m p r s h | MD5(string)                          | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
+| m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, for a locale of en, it will return 'February' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10', and for a locale of zh, it will return '二月'
+| o r s | NVL(value1, value2)                        | Returns *value1* if *value1* is not null, otherwise *value2*
+| o r s | NVL2(value1, value2, value3)               | Returns *value2* if *value1* is not null, otherwise *value3*
 | b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
 | b | ORDINAL(index)                                 | Similar to `OFFSET` except *index* begins at 1
 | b | PARSE_DATE(format, string)                     | Uses format specified by *format* to convert *string* representation of date to a DATE value
 | b | PARSE_DATETIME(format, string)                 | Uses format specified by *format* to convert *string* representation of datetime to a TIMESTAMP value
 | b | PARSE_TIME(format, string)                     | Uses format specified by *format* to convert *string* representation of time to a TIME value
 | b | PARSE_TIMESTAMP(format, string[, timeZone])    | Uses format specified by *format* to convert *string* representation of timestamp to a TIMESTAMP WITH LOCAL TIME ZONE value in *timeZone*
-| h s | PARSE_URL(urlString, partToExtract [, keyToExtract] ) | Returns the specified *partToExtract* from the *urlString*. Valid values for *partToExtract* include HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, and USERINFO. *keyToExtract* specifies which query to extract
+| h s | PARSE_URL(urlString, partToExtract [, keyToExtract] ) | Returns the specified *partToExtract* from the *urlString*. Valid values for *partToExtract* include HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, and USERINFO. *keyToExtract* specifies which query to extract. If the first argument is an invalid url *string* the function returns `NULL`
 | b s | POW(numeric1, numeric2)                      | Returns *numeric1* raised to the power *numeric2*
-| p | RANDOM()                                       | Generates a random double between 0 and 1 inclusive
+| b c h q m o f s p r | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
+| p r | RANDOM()                                     | Generates a random double between 0 and 1 inclusive
 | s | REGEXP(string, regexp)                         | Equivalent to `string1 RLIKE string2`
 | b | REGEXP_CONTAINS(string, regexp)                | Returns whether *string* is a partial match for the *regexp*
 | b | REGEXP_EXTRACT(string, regexp [, position [, occurrence]]) | Returns the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Returns NULL if there is no match
 | b | REGEXP_EXTRACT_ALL(string, regexp)             | Returns an array of all substrings in *string* that matches the *regexp*. Returns an empty array if there is no match
 | b | REGEXP_INSTR(string, regexp [, position [, occurrence [, occurrence_position]]]) | Returns the lowest 1-based position of the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Setting occurrence_position (default 0) to 1 returns the end position of substring + 1. Returns 0 if there is no match
-| m o p s | REGEXP_LIKE(string, regexp [, flags])        | Equivalent to `string1 RLIKE string2` with an optional parameter for search flags. Supported flags are: <ul><li>i: case-insensitive matching</li><li>c: case-sensitive matching</li><li>n: newline-sensitive matching</li><li>s: non-newline-sensitive matching</li><li>m: multi-line</li></ul>
-| b m o | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* specifies which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
+| m o p r s | REGEXP_LIKE(string, regexp [, flags])  | Equivalent to `string1 RLIKE string2` with an optional parameter for search flags. Supported flags are: <ul><li>i: case-insensitive matching</li><li>c: case-sensitive matching</li><li>n: newline-sensitive matching</li><li>s: non-newline-sensitive matching</li><li>m: multi-line</li></ul>
+| r | REGEXP_REPLACE(string, regexp)                 | Replaces all substrings of *string* that match *regexp* with the empty string
+| b m o r h | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* specifies which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
+| p | REGEXP_REPLACE(string, regexp, rep [, matchType]) | Replaces substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr, *matchType* specifies how to perform matching and whether to only replace first match or all
 | b | REGEXP_SUBSTR(string, regexp [, position [, occurrence]]) | Synonym for REGEXP_EXTRACT
-| b m p s | REPEAT(string, integer)                  | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
+| b m p r s h | REPEAT(string, integer)                | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
-| b m p s | RIGHT(string, length)                    | Returns the rightmost *length* characters from the *string*
-| h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
-| h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
-| b o s | RPAD(string, length[, pattern ])           | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
-| b o s | RTRIM(string)                              | Returns *string* with all blanks removed from the end
+| s | REVERSE(string \| array)                        | Returns *string* with the characters in reverse order or array with elements in reverse order
+| b m p r s | RIGHT(string, length)                  | Returns the rightmost *length* characters from the *string*
+| h m s | string1 RLIKE string2                      | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
+| h m s | string1 NOT RLIKE string2                  | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
+| b o p r s h | RPAD(string, length[, pattern ])       | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
+| b o p r s h | RTRIM(string)                          | Returns *string* with all blanks removed from the end
 | b | SAFE_ADD(numeric1, numeric2)                   | Returns *numeric1* + *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
 | b | SAFE_DIVIDE(numeric1, numeric2)                | Returns *numeric1* / *numeric2*, or NULL on overflow or if *numeric2* is zero.  Arguments implicitly are cast to one of the types BIGINT, DOUBLE, or DECIMAL
@@ -2846,19 +3001,24 @@ In the following:
 | b | SAFE_SUBTRACT(numeric1, numeric2)              | Returns *numeric1* - *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | * | SEC(numeric)                                   | Returns the secant of *numeric* in radians
 | * | SECH(numeric)                                  | Returns the hyperbolic secant of *numeric*
-| b m p s | SHA1(string)                             | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| b m p r s h | SHA1(string)                           | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string
 | b p | SHA512(string)                               | Calculates a SHA-512 hash value of *string* and returns it as a hex string
+| p | SIND(numeric)                                  | Returns the sine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
-| b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
+| b m o p r h | SOUNDEX(string)                        | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | s | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return original *string* if *string* is encoded with multi-byte encoding such as UTF-8
-| m s | SPACE(integer)                               | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
+| m s h | SPACE(integer)                               | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma).  If the *string* is empty it returns an empty array, otherwise, if the *delimiter* is empty, it returns an array containing the original *string*.
+| p | SPLIT_PART(string, delimiter, n)               | Returns the *n*th field in *string* using *delimiter*; returns empty string if *n* is less than 1 or greater than the number of fields, and the n can be negative to count from the end.
 | f s | STARTSWITH(string1, string2)                 | Returns whether *string2* is a prefix of *string1*
 | b p | STARTS_WITH(string1, string2)                | Equivalent to `STARTSWITH(string1, string2)`
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
-| b p | STRPOS(string, substring)                    | Equivalent to `POSITION(substring IN string)`
-| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b r p | STRPOS(string, substring)                  | Equivalent to `POSITION(substring IN string)`
+| b m o p r | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o | SYSDATE                                        | Returns the current date in the operating system time zone of the database server, in a value of datatype DATE.
+| o | SYSTIMESTAMP                                   | Returns the current date and time in the operating system time zone of the database server, in a value of datatype TIMESTAMP WITH TIME ZONE.
+| p | TAND(numeric)                                  | Returns the tangent of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric is greater than the maximum double value.
 | * | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
 | b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)
@@ -2881,11 +3041,11 @@ In the following:
 | b | TIME_DIFF(time, time2, timeUnit)               | Returns the whole number of *timeUnit* between *time* and *time2*
 | b | TIME_SUB(time, interval)                       | Returns the TIME value that is *interval* before *time*
 | b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
-| m o p | TO_CHAR(timestamp, format)                 | Converts *timestamp* to a string using the format *format*
+| m o p r | TO_CHAR(timestamp, format)               | Converts *timestamp* to a string using the format *format*
 | b | TO_CODE_POINTS(string)                         | Converts *string* to an array of integers that represent code points or extended ASCII character values
-| o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
-| o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
-| b o p s | TRANSLATE(expr, fromString, toString)    | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o p r h | TO_DATE(string, format)                    | Converts *string* to a date using the format *format*
+| o p r | TO_TIMESTAMP(string, format)               | Converts *string* to a timestamp using the format *format*
+| b o p r s | TRANSLATE(expr, fromString, toString)  | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, integer2 ])                  | Truncates *numeric1* to optionally *integer2* (if not specified 0) places right to the decimal point
 | q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails
 | b s | UNIX_MICROS(timestamp)                       | Returns the number of microseconds since 1970-01-01 00:00:00
@@ -2898,10 +3058,6 @@ In the following:
 
 Note:
 
-* Calcite has no Redshift library, so the Postgres library
-  is used instead. The functions `DATEADD`, `DATEDIFF` are
-  implemented in Redshift and not Postgres but nevertheless
-  appear in Calcite's Postgres library
 * Functions `DATEADD`, `DATEDIFF`, `DATE_PART` require the Babel parser
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
@@ -2931,8 +3087,10 @@ Dialect-specific aggregate functions.
 | c | AGGREGATE(m)                                   | Computes measure *m* in the context of the current GROUP BY key
 | b p | ARRAY_AGG( [ ALL &#124; DISTINCT ] value [ RESPECT NULLS &#124; IGNORE NULLS ] [ ORDER BY orderItem [, orderItem ]* ] ) | Gathers values into arrays
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
-| p s | BOOL_AND(condition)                          | Synonym for `EVERY`
-| p s | BOOL_OR(condition)                           | Synonym for `SOME`
+| p r s | BOOL_AND(condition)                        | Synonym for `EVERY`
+| p r s | BOOL_OR(condition)                         | Synonym for `SOME`
+| f | BOOLAND_AGG(condition)                         | Synonym for `EVERY`
+| f | BOOLOR_AGG(condition)                          | Synonym for `SOME`
 | b | COUNTIF(condition)                             | Returns the number of rows for which *condition* is TRUE; equivalent to `COUNT(*) FILTER (WHERE condition)`
 | m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
@@ -3427,7 +3585,7 @@ and *minRepeat* and *maxRepeat* are non-negative integers.
 
 DDL extensions are only available in the calcite-server module.
 To enable, include `calcite-server.jar` in your class path, and add
-`parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
+`parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY`
 to the JDBC connect string (see connect string property
 [parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
 

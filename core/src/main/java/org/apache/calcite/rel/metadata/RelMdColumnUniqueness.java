@@ -321,19 +321,20 @@ public class RelMdColumnUniqueness
     }
 
     final JoinInfo joinInfo = rel.analyzeCondition();
-
-    // Joining with a singleton constrains the keys on the other table
-    final Double rightMaxRowCount = mq.getMaxRowCount(right);
-    if (rightMaxRowCount != null && rightMaxRowCount <= 1.0) {
-      leftColumns = leftColumns.union(joinInfo.leftSet());
-    }
-    final Double leftMaxRowCount = mq.getMaxRowCount(left);
-    if (leftMaxRowCount != null && leftMaxRowCount <= 1.0) {
-      rightColumns = rightColumns.union(joinInfo.rightSet());
+    if (rel.getJoinType() == JoinRelType.INNER) {
+      // Joining with a singleton constrains the keys on the other table
+      final Double rightMaxRowCount = mq.getMaxRowCount(right);
+      if (rightMaxRowCount != null && rightMaxRowCount <= 1.0) {
+        leftColumns = leftColumns.union(joinInfo.leftSet());
+      }
+      final Double leftMaxRowCount = mq.getMaxRowCount(left);
+      if (leftMaxRowCount != null && leftMaxRowCount <= 1.0) {
+        rightColumns = rightColumns.union(joinInfo.rightSet());
+      }
     }
 
     // If the original column mask contains columns from both the left and
-    // right hand side, then the columns are unique if and only if they're
+    // right hand side, then the columns are unique if (but not only if) they're
     // unique for their respective join inputs
     Boolean leftUnique = mq.areColumnsUnique(left, leftColumns, ignoreNulls);
     Boolean rightUnique = mq.areColumnsUnique(right, rightColumns, ignoreNulls);
@@ -341,37 +342,48 @@ public class RelMdColumnUniqueness
         && (rightColumns.cardinality() > 0)) {
       if ((leftUnique == null) || (rightUnique == null)) {
         return null;
-      } else {
-        return leftUnique && rightUnique;
+      } else if (leftUnique && rightUnique) {
+        return true;
       }
     }
 
-    // If we're only trying to determine uniqueness for columns that
-    // originate from one join input, then determine if the equijoin
-    // columns from the other join input are unique.  If they are, then
-    // the columns are unique for the entire join if they're unique for
-    // the corresponding join input, provided that input is not null
-    // generating.
+    // Determine if the equijoin columns from the other join input are unique.
+    // If they are, then the columns are unique for the entire join if they're unique for
+    // the corresponding join input, provided that input is not null generating.
     if (leftColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnLeft()) {
         return false;
       }
-      Boolean rightJoinColsUnique =
-          mq.areColumnsUnique(right, joinInfo.rightSet(), ignoreNulls);
-      if ((rightJoinColsUnique == null) || (leftUnique == null)) {
+      if (leftUnique == null) {
         return null;
       }
-      return rightJoinColsUnique && leftUnique;
-    } else if (rightColumns.cardinality() > 0) {
+      if (leftUnique) {
+        Boolean joinRightKeyUnique = mq.areColumnsUnique(right, joinInfo.rightSet(), ignoreNulls);
+        if (joinRightKeyUnique == null) {
+          return null;
+        }
+        if (joinRightKeyUnique) {
+          return true;
+        }
+      }
+    }
+    // Similarly, if the columns originate from the right input
+    if (rightColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnRight()) {
         return false;
       }
-      Boolean leftJoinColsUnique =
-          mq.areColumnsUnique(left, joinInfo.leftSet(), ignoreNulls);
-      if ((leftJoinColsUnique == null) || (rightUnique == null)) {
+      if (rightUnique == null) {
         return null;
       }
-      return leftJoinColsUnique && rightUnique;
+      if (rightUnique) {
+        Boolean joinLeftKeyUnique = mq.areColumnsUnique(left, joinInfo.leftSet(), ignoreNulls);
+        if (joinLeftKeyUnique == null) {
+          return null;
+        }
+        if (joinLeftKeyUnique) {
+          return true;
+        }
+      }
     }
 
     return false;
@@ -461,7 +473,7 @@ public class RelMdColumnUniqueness
           || rel2 instanceof Values
           || rel2 instanceof Sort
           || rel2 instanceof TableScan
-          || simplyProjects(rel2, columns)) {
+          || rel2 instanceof Project) {
         try {
           final Boolean unique = mq.areColumnsUnique(rel2, columns, ignoreNulls);
           if (unique != null) {
@@ -478,27 +490,6 @@ public class RelMdColumnUniqueness
       }
     }
     return false;
-  }
-
-  private static boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
-    if (!(rel instanceof Project)) {
-      return false;
-    }
-    Project project = (Project) rel;
-    final List<RexNode> projects = project.getProjects();
-    for (int column : columns) {
-      if (column >= projects.size()) {
-        return false;
-      }
-      if (!(projects.get(column) instanceof RexInputRef)) {
-        return false;
-      }
-      final RexInputRef ref = (RexInputRef) projects.get(column);
-      if (ref.getIndex() != column) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /** Splits a column set between left and right sets. */

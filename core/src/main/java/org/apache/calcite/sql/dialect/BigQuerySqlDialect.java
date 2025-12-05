@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
@@ -31,18 +32,17 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
 
@@ -55,7 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import static java.util.Objects.requireNonNull;
+import static java.lang.Long.parseLong;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -74,6 +74,15 @@ public class BigQuerySqlDialect extends SqlDialect {
       .withCaseSensitive(false);
 
   public static final SqlDialect DEFAULT = new BigQuerySqlDialect(DEFAULT_CONTEXT);
+
+  // The BigQuery type system differs from the DEFAULT type system in this respect,
+  // as evidenced by tests in big-query.iq
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new DelegatingTypeSystem(RelDataTypeSystem.DEFAULT) {
+    @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+      return true;
+    }
+  };
 
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(
@@ -112,6 +121,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.supportsImplicitTypeCoercion(call)
             && RexUtil.isLiteral(call.getOperands().get(0), false)
             && !SqlTypeUtil.isNumeric(call.type);
+  }
+
+  @Override public RelDataTypeSystem getTypeSystem() {
+    return TYPE_SYSTEM;
   }
 
   @Override public boolean supportsApproxCountDistinct() {
@@ -200,7 +213,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           rightPrec);
       break;
     case TRIM:
-      unparseTrim(writer, call, leftPrec, rightPrec);
+      RelToSqlConverterUtil.unparseTrimLR(writer, call, leftPrec, rightPrec);
       break;
     case ITEM:
       if (call.getOperator().getName().equals("ITEM")) {
@@ -229,7 +242,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print("-");
     }
     try {
-      Long.parseLong(interval.getIntervalLiteral());
+      parseLong(interval.getIntervalLiteral());
     } catch (NumberFormatException e) {
       throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
     }
@@ -246,41 +259,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       throw new RuntimeException("Range time unit is not supported for BigQuery.");
     }
-  }
-
-  /**
-   * For usage of TRIM, LTRIM and RTRIM in BQ see
-   * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
-   * BQ Trim Function</a>.
-   */
-  private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    final String operatorName;
-    SqlLiteral trimFlag = call.operand(0);
-    SqlLiteral valueToTrim = call.operand(1);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      operatorName = "LTRIM";
-      break;
-    case TRAILING:
-      operatorName = "RTRIM";
-      break;
-    default:
-      operatorName = call.getOperator().getName();
-      break;
-    }
-    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-
-    // If the trimmed character is a non-space character, add it to the target SQL.
-    // eg: TRIM(BOTH 'A' from 'ABCD'
-    // Output Query: TRIM('ABC', 'A')
-    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
-    if (!value.matches("\\s+")) {
-      writer.literal(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endFunCall(trimFrame);
   }
 
   /** When indexing an array in BigQuery, an array subscript operator must

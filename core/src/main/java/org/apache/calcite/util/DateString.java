@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Date literal.
  *
@@ -112,15 +114,15 @@ public class DateString implements Comparable<DateString> {
   }
 
   private int getYear() {
-    return Integer.parseInt(v.substring(0, 4));
+    return parseInt(v.substring(0, 4));
   }
 
   private int getMonth() {
-    return Integer.parseInt(v.substring(5, 7));
+    return parseInt(v.substring(5, 7));
   }
 
   private int getDay() {
-    return Integer.parseInt(v.substring(8, 10));
+    return parseInt(v.substring(8, 10));
   }
 
   /** Creates a DateString that is a given number of days since the epoch. */

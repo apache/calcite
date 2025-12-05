@@ -142,6 +142,19 @@ public class SqlCastFunction extends SqlFunction {
       RelDataType expressionType, RelDataType targetType, boolean safe) {
     boolean isNullable = expressionType.isNullable() || safe;
 
+    if (targetType.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // A variant can be cast from any other type, and it inherits
+      // the nullability of the source.
+      // Note that the order of this test and the next one is important.
+      return typeFactory.createTypeWithNullability(targetType, expressionType.isNullable());
+    }
+
+    if (expressionType.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // A variant can be cast to any other type, but the result
+      // is always nullable, like in the case of a safe cast.
+      return typeFactory.createTypeWithNullability(targetType, true);
+    }
+
     if (isCollection(expressionType)) {
       RelDataType expressionElementType = expressionType.getComponentType();
       RelDataType targetElementType = targetType.getComponentType();
@@ -228,8 +241,8 @@ public class SqlCastFunction extends SqlFunction {
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, mappingRule)) {
       if (throwOnFailure) {
         throw callBinding.newError(
-            RESOURCE.cannotCastValue(validatedNodeType.toString(),
-                returnType.toString()));
+            RESOURCE.cannotCastValue(validatedNodeType.getFullTypeString(),
+                returnType.getFullTypeString()));
       }
       return false;
     }

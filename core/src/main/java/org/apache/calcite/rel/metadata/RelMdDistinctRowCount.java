@@ -172,12 +172,18 @@ public class RelMdDistinctRowCount
         return 1D;
       }
     }
+    // the result of the aggregation function is difficult to infer, so if the groupKey contains
+    // the aggregated column, return the full row count of Aggregate. This is the most conservative
+    // estimate, and the actual ndv will not be greater than it.
+    if (groupKey.anyMatch(key -> key >= rel.getGroupCount())) {
+      return mq.getRowCount(rel);
+    }
     // determine which predicates can be applied on the child of the
     // aggregate
     final List<RexNode> notPushable = new ArrayList<>();
     final List<RexNode> pushable = new ArrayList<>();
     RelOptUtil.splitFilters(
-        rel.getGroupSet(),
+        ImmutableBitSet.range(rel.getGroupCount()),
         predicate,
         pushable,
         notPushable);

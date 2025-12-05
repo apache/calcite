@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Check the output of {@link RuleMatchVisualizer}.
  */
@@ -143,7 +145,7 @@ class RuleMatchVisualizerTest extends RelOptTestBase {
           break;
         }
       }
-      assert oldName != null;
+      requireNonNull(oldName, "oldName");
       String newName = rename.computeIfAbsent(oldName, k -> "" + (rename.size() + offset));
       sb.append(str, last, start);
       sb.append(newName);

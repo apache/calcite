@@ -22,7 +22,7 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /** Table registered in the graph. */
 public class LatticeTable {
@@ -30,8 +30,8 @@ public class LatticeTable {
   public final String alias;
 
   LatticeTable(RelOptTable table) {
-    t = Objects.requireNonNull(table, "table");
-    alias = Objects.requireNonNull(Util.last(table.getQualifiedName()));
+    t = requireNonNull(table, "table");
+    alias = requireNonNull(Util.last(table.getQualifiedName()));
   }
 
   @Override public int hashCode() {

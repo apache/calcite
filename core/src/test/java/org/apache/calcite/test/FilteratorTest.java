@@ -28,7 +28,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,12 +48,12 @@ class FilteratorTest {
     // call hasNext twice
     assertTrue(filterator.hasNext());
     assertTrue(filterator.hasNext());
-    assertEquals("tom", filterator.next());
+    assertThat(filterator.next(), is("tom"));
 
     // call next without calling hasNext
-    assertEquals("dick", filterator.next());
+    assertThat(filterator.next(), is("dick"));
     assertTrue(filterator.hasNext());
-    assertEquals("harry", filterator.next());
+    assertThat(filterator.next(), is("harry"));
     assertFalse(filterator.hasNext());
     assertFalse(filterator.hasNext());
   }
@@ -62,8 +64,8 @@ class FilteratorTest {
     final List<String> tomDickHarry = Arrays.asList("paul", null, "ringo");
     final Filterator<String> filterator =
         new Filterator<String>(tomDickHarry.iterator(), String.class);
-    assertEquals("paul", filterator.next());
-    assertEquals("ringo", filterator.next());
+    assertThat(filterator.next(), is("paul"));
+    assertThat(filterator.next(), is("ringo"));
     assertFalse(filterator.hasNext());
   }
 
@@ -85,10 +87,10 @@ class FilteratorTest {
     assertTrue(filterator.hasNext());
 
     // skips null
-    assertTrue(arrayList == filterator.next());
+    assertThat(arrayList, is(filterator.next()));
 
     // skips the HashSet
-    assertTrue(linkedList == filterator.next());
+    assertThat(linkedList, is(filterator.next()));
     assertFalse(filterator.hasNext());
   }
 
@@ -98,6 +100,6 @@ class FilteratorTest {
     for (int i : Util.filter(Arrays.asList(numbers), Integer.class)) {
       result.add(i);
     }
-    assertEquals("[1, 2, 4]", result.toString());
+    assertThat(result, hasToString("[1, 2, 4]"));
   }
 }

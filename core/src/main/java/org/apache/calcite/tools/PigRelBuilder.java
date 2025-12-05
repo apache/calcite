@@ -96,7 +96,8 @@ public class PigRelBuilder extends RelBuilder {
    *
    * @return This builder
    */
-  public PigRelBuilder distinct(Partitioner partitioner, int parallel) {
+  public PigRelBuilder distinct(@Nullable Partitioner partitioner,
+      int parallel) {
     // TODO: Use partitioner and parallel
     distinct();
     return this;
@@ -119,13 +120,14 @@ public class PigRelBuilder extends RelBuilder {
    *
    * @return This builder
    */
-  public PigRelBuilder group(GroupOption option, Partitioner partitioner,
-      int parallel, GroupKey... groupKeys) {
+  public PigRelBuilder group(GroupOption option,
+      @Nullable Partitioner partitioner, int parallel, GroupKey... groupKeys) {
     return group(option, partitioner, parallel, ImmutableList.copyOf(groupKeys));
   }
 
-  public PigRelBuilder group(GroupOption option, Partitioner partitioner,
-      int parallel, Iterable<? extends GroupKey> groupKeys) {
+  public PigRelBuilder group(GroupOption option,
+      @Nullable Partitioner partitioner, int parallel,
+      Iterable<? extends GroupKey> groupKeys) {
     final List<GroupKey> groupKeyList = ImmutableList.copyOf(groupKeys);
     validateGroupList(groupKeyList);
 

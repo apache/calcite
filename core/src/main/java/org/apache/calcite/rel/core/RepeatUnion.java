@@ -31,7 +31,8 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that computes a repeat union (recursive union in SQL
@@ -80,7 +81,7 @@ public abstract class RepeatUnion extends BiRel {
     this.all = all;
     this.transientTable = transientTable;
     if (transientTable != null) {
-      Objects.requireNonNull(transientTable.unwrap(TransientTable.class));
+      requireNonNull(transientTable.unwrap(TransientTable.class));
     }
   }
 

@@ -23,6 +23,7 @@ import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -277,6 +278,8 @@ public class SqlDialect {
       return DatabaseProduct.CLICKHOUSE;
     case "DBMS:CLOUDSCAPE":
       return DatabaseProduct.DERBY;
+    case "DUCKDB":
+      return DatabaseProduct.DUCKDB;
     case "EXASOL":
       return DatabaseProduct.EXASOL;
     case "FIREBOLT":
@@ -466,9 +469,21 @@ public class SqlDialect {
     }
   }
 
+  public void unparseBoolLiteral(SqlWriter writer,
+      SqlLiteral literal, int leftPrec, int rightPrec) {
+    Object value = literal.getValue();
+    writer.keyword(
+        value == null ? "UNKNOWN" : (Boolean) value ? "TRUE" : "FALSE");
+  }
+
   public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal(literal.toString());
+  }
+
+  public void unparseNumericLiteral(SqlWriter writer,
+      String value, int leftPrec, int rightPrec) {
+    writer.literal(value);
   }
 
   public void unparseSqlDatetimeArithmetic(SqlWriter writer,
@@ -740,8 +755,13 @@ public class SqlDialect {
     return true;
   }
 
+  public boolean supportsOrderByLiteral() {
+    return true;
+  }
+
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
+    case LITERAL_AGG:
     case COUNT:
     case SUM:
     case SUM0:
@@ -777,6 +797,21 @@ public class SqlDialect {
     return true;
   }
 
+  /** Returns whether this dialect supports case when return boolean type. */
+  public boolean supportBooleanCaseWhen() {
+    return true;
+  }
+
+  /** Returns whether this dialect supports generate 'SELECT *'. */
+  public boolean supportGenerateSelectStar(RelNode relNode) {
+    return true;
+  }
+
+  /** Converts {@link RexNode} expression to {@link RexNode} expression before unparse. */
+  public RexNode prepareUnparse(RexNode rexNode) {
+    return rexNode;
+  }
+
   /** Returns whether this dialect supports a given function or operator.
    * It only applies to built-in scalar functions and operators, since
    * user-defined functions and procedures should be read by JdbcSchema. */
@@ -809,6 +844,10 @@ public class SqlDialect {
     case PLUS:
     case ROW:
     case TIMES:
+    case CHECKED_PLUS:
+    case CHECKED_TIMES:
+    case CHECKED_MINUS:
+    case CHECKED_DIVIDE:
       return true;
     default:
       return BUILT_IN_OPERATORS_LIST.contains(operator);
@@ -988,6 +1027,38 @@ public class SqlDialect {
    * @param fetch Number of rows to fetch, or null
    */
   public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset, @Nullable SqlNode fetch) {
+  }
+
+  public void unparseSqlSetOption(SqlWriter writer,
+      int leftPrec, int rightPrec, SqlSetOption option) {
+    String scope = option.getScope();
+    if (scope != null) {
+      writer.keyword("ALTER");
+      writer.keyword(scope);
+    }
+
+    SqlNode value = option.getValue();
+    if (value != null) {
+      writer.keyword("SET");
+    } else {
+      writer.keyword("RESET");
+    }
+
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+    SqlNode name = option.name();
+    if (name.getKind() == SqlKind.IDENTIFIER) {
+      name.unparse(writer, leftPrec, rightPrec);
+    } else {
+      new SqlIdentifier(name.toSqlString(this).getSql(), name.getParserPosition())
+          .unparse(writer, leftPrec, rightPrec);
+    }
+
+    if (value != null) {
+      writer.sep("=");
+      value.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endList(frame);
   }
 
   /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
@@ -1250,6 +1321,8 @@ public class SqlDialect {
       return SqlConformanceEnum.ORACLE_10;
     case MSSQL:
       return SqlConformanceEnum.SQL_SERVER_2008;
+    case PRESTO:
+      return SqlConformanceEnum.PRESTO;
     default:
       return SqlConformanceEnum.PRAGMATIC_2003;
     }
@@ -1368,6 +1441,8 @@ public class SqlDialect {
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
+    DUCKDB("DUCKDB", null, NullCollation.LAST),
+    DORIS("Doris", "`", NullCollation.LOW),
     EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     FIREBOLT("Firebolt", "\"", NullCollation.LOW),
@@ -1381,6 +1456,7 @@ public class SqlDialect {
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
     PRESTO("Presto", "\"", NullCollation.LAST),
+    TRINO("Trino", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),
@@ -1390,6 +1466,7 @@ public class SqlDialect {
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     SPARK("Spark", null, NullCollation.LOW),
+    SQLITE("SQLite", null, NullCollation.LOW),
     STARROCKS("StarRocks", "`", NullCollation.LOW),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so

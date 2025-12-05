@@ -46,13 +46,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -173,7 +178,7 @@ public class DiffRepository {
   private static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
       CacheBuilder.newBuilder().build(CacheLoader.from(Key::toRepo));
 
-  private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
+  private static final ThreadLocal<DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
       ThreadLocal.withInitial(() -> {
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setXIncludeAware(false);
@@ -194,11 +199,13 @@ public class DiffRepository {
   private final @Nullable DiffRepository baseRepository;
   private final int indent;
   private final ImmutableSortedSet<String> outOfOrderTests;
+  private final Boolean existsMethodOnlyInXml;
+  private final SortedMap<String, Node> xmlTestCases;
   private Document doc;
   private final Element root;
   private final URL refFile;
   private final File logFile;
-  private final Filter filter;
+  private final @Nullable Filter filter;
   private int modCount;
   private int modCountAtLastWrite;
 
@@ -212,7 +219,8 @@ public class DiffRepository {
    * @param indent    Indentation of XML file
    */
   private DiffRepository(URL refFile, File logFile,
-      @Nullable DiffRepository baseRepository, Filter filter, int indent) {
+      @Nullable DiffRepository baseRepository, @Nullable Filter filter,
+      int indent, Set<String> javaTestMethods) {
     this.baseRepository = baseRepository;
     this.filter = filter;
     this.indent = indent;
@@ -224,7 +232,7 @@ public class DiffRepository {
     // Load the document.
     try {
       DocumentBuilder docBuilder =
-          Nullness.castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
+          DOCUMENT_BUILDER_FACTORY.get().newDocumentBuilder();
       try (InputStream inputStream = refFile.openStream()) {
         // Parse the reference file.
         this.doc = docBuilder.parse(inputStream);
@@ -236,7 +244,9 @@ public class DiffRepository {
         flushDoc();
       }
       this.root = doc.getDocumentElement();
-      outOfOrderTests = validate(this.root);
+      this.xmlTestCases = analyze(this.root);
+      outOfOrderTests = validateOrder(this.root, this.xmlTestCases);
+      existsMethodOnlyInXml = checkExists(this.root, javaTestMethods, this.xmlTestCases);
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
     }
@@ -245,6 +255,11 @@ public class DiffRepository {
   //~ Methods ----------------------------------------------------------------
 
   public void checkActualAndReferenceFiles() {
+    if (existsMethodOnlyInXml || !outOfOrderTests.isEmpty()) {
+      modCount++;
+      flushDoc();
+    }
+
     if (!logFile.exists()) {
       return;
     }
@@ -265,11 +280,15 @@ public class DiffRepository {
     }
   }
 
+  String logFilePath() {
+    return logFile.getAbsolutePath();
+  }
+
   private static URL findFile(Class<?> clazz, final String suffix) {
     // The reference file for class "com.foo.Bar" is "com/foo/Bar.xml"
     String rest = "/" + clazz.getName().replace('.', File.separatorChar)
         + suffix;
-    return clazz.getResource(rest);
+    return requireNonNull(clazz.getResource(rest));
   }
 
   /** Returns the diff repository, checking that it is not null.
@@ -290,15 +309,12 @@ public class DiffRepository {
    * if there is one variable.)
    */
   public String expand(String tag, String text) {
-    if (text == null) {
-      return null;
-    } else if (text.startsWith("${")
+    requireNonNull(tag, "tag");
+    requireNonNull(text, "text");
+    if (text.startsWith("${")
         && text.endsWith("}")) {
-      final String testCaseName = getCurrentTestCaseName(true);
+      final String testCaseName = getCurrentTestCaseName();
       final String token = text.substring(2, text.length() - 1);
-      if (tag == null) {
-        tag = token;
-      }
       assert token.startsWith(tag) : "token '" + token
           + "' does not match tag '" + tag + "'";
       String expanded = get(testCaseName, token);
@@ -309,16 +325,16 @@ public class DiffRepository {
         return text;
       }
       if (filter != null) {
-        expanded =
-            filter.filter(this, testCaseName, tag, text, expanded);
+        expanded = filter.filter(this, testCaseName, tag, text, expanded);
       }
       return expanded;
     } else {
       // Make sure what appears in the resource file is consistent with
       // what is in the Java. It helps to have a redundant copy in the
       // resource file.
-      final String testCaseName = getCurrentTestCaseName(true);
-      if (baseRepository == null || baseRepository.get(testCaseName, tag) == null) {
+      final String testCaseName = getCurrentTestCaseName();
+      if (baseRepository == null
+          || baseRepository.get(testCaseName, tag) == null) {
         set(tag, text);
       }
       return text;
@@ -332,8 +348,8 @@ public class DiffRepository {
    * @param value        Value of the resource
    */
   public synchronized void set(String resourceName, String value) {
-    assert resourceName != null;
-    final String testCaseName = getCurrentTestCaseName(true);
+    requireNonNull(resourceName, "resourceName");
+    final String testCaseName = getCurrentTestCaseName();
     update(testCaseName, resourceName, value);
   }
 
@@ -352,7 +368,7 @@ public class DiffRepository {
    * @param resourceName Name of resource, e.g. "sql", "plan"
    * @return The value of the resource, or null if not found
    */
-  private synchronized String get(
+  private synchronized @Nullable String get(
       final String testCaseName,
       String resourceName) {
     Element testCaseElement = getTestCaseElement(testCaseName, true, null);
@@ -363,7 +379,7 @@ public class DiffRepository {
         return null;
       }
     }
-    final Element resourceElement =
+    final @Nullable Element resourceElement =
         getResourceElement(testCaseElement, resourceName);
     if (resourceElement != null) {
       return getText(resourceElement);
@@ -409,7 +425,7 @@ public class DiffRepository {
   private synchronized @Nullable Element getTestCaseElement(
       final String testCaseName,
       boolean checkOverride,
-      List<Pair<String, Element>> elements) {
+      @Nullable List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
@@ -452,7 +468,7 @@ public class DiffRepository {
    * @param fail Whether to fail if no method is found
    * @return Name of current test case, or null if not found
    */
-  private static String getCurrentTestCaseName(boolean fail) {
+  private static @Nullable String getCurrentTestCaseName(boolean fail) {
     // REVIEW jvs 12-Mar-2006: Too clever by half.  Someone might not know
     // about this and use a private helper method whose name also starts
     // with test. Perhaps just require them to pass in getName() from the
@@ -476,6 +492,13 @@ public class DiffRepository {
     } else {
       return null;
     }
+  }
+
+  /** Returns the current test case name;
+   * equivalent to {@link #getCurrentTestCaseName}(true),
+   * this method throws if not found, and never returns null. */
+  private static String getCurrentTestCaseName() {
+    return requireNonNull(getCurrentTestCaseName(true));
   }
 
   public void assertEquals(String tag, String expected, String actual) {
@@ -534,12 +557,12 @@ public class DiffRepository {
       resourceElement.setAttribute(RESOURCE_NAME_ATTR, resourceName);
       testCaseElement.appendChild(resourceElement);
       ++modCount;
-      if (!value.equals("")) {
+      if (!value.isEmpty()) {
         resourceElement.appendChild(doc.createCDATASection(value));
       }
     } else {
       final List<Node> newChildList;
-      if (value.equals("")) {
+      if (value.isEmpty()) {
         newChildList = ImmutableList.of();
       } else {
         newChildList = ImmutableList.of(doc.createCDATASection(value));
@@ -553,7 +576,7 @@ public class DiffRepository {
     flushDoc();
   }
 
-  private static Node ref(String testCaseName,
+  private static @Nullable Node ref(String testCaseName,
       List<Pair<String, Element>> map) {
     if (map.isEmpty()) {
       return null;
@@ -563,7 +586,7 @@ public class DiffRepository {
     int i = 0;
     final List<String> names = Pair.left(map);
     for (String s : names) {
-      if (s.compareToIgnoreCase(testCaseName) <= 0) {
+      if (s.compareTo(testCaseName) <= 0) {
         ++i;
       }
     }
@@ -575,13 +598,13 @@ public class DiffRepository {
     // will end up in exactly the right position, and if the list is not sorted,
     // the new item will end up in approximately the right position.
     while (i < map.size()
-        && names.get(i).compareToIgnoreCase(testCaseName) < 0) {
+        && names.get(i).compareTo(testCaseName) < 0) {
       ++i;
     }
-    if (i >= map.size() - 1) {
+    if (i > map.size() - 1) {
       return null;
     }
-    while (i >= 0 && names.get(i).compareToIgnoreCase(testCaseName) > 0) {
+    while (i >= 0 && names.get(i).compareTo(testCaseName) > 0) {
       --i;
     }
     return map.get(i + 1).right;
@@ -608,11 +631,10 @@ public class DiffRepository {
     modCountAtLastWrite = modCount;
   }
 
-  /** Validates the root element.
+  /** Analyzes the root element.
    *
-   * <p>Returns the set of test names that are out of order in the reference
-   * file (empty if the reference file is fully sorted). */
-  private static ImmutableSortedSet<String> validate(Element root) {
+   * <p>Returns the set of test names that in the reference file. */
+  private static SortedMap<String, Node> analyze(Element root) {
     if (!root.getNodeName().equals(ROOT_TAG)) {
       throw new RuntimeException("expected root element of type '" + ROOT_TAG
           + "', but found '" + root.getNodeName() + "'");
@@ -622,8 +644,6 @@ public class DiffRepository {
     // tests are out of order.
     final SortedMap<String, Node> testCases = new TreeMap<>();
     final NodeList childNodes = root.getChildNodes();
-    final List<String> outOfOrderNames = new ArrayList<>();
-    String previousName = null;
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
@@ -632,8 +652,48 @@ public class DiffRepository {
         if (testCases.put(name, testCase) != null) {
           throw new RuntimeException("TestCase '" + name + "' is duplicate");
         }
-        if (previousName != null
-            && previousName.compareTo(name) > 0) {
+      }
+    }
+    return testCases;
+  }
+
+  /** Checks if there are methods that only exist in XML.
+   *
+   * <p>Returns true if there are methods that only exist in XML. */
+  private static Boolean checkExists(Element root, Set<String> javaTestMethods,
+      Map<String, Node> testCases) {
+    final List<String> existsOnlyInXml = new ArrayList<>();
+    for (Map.Entry<String, Node> entry : testCases.entrySet()) {
+      String name = entry.getKey();
+      if (!javaTestMethods.contains(name)) {
+        existsOnlyInXml.add(name);
+      }
+    }
+    if (!existsOnlyInXml.isEmpty()) {
+      for (String value : existsOnlyInXml) {
+        root.removeChild(testCases.get(value));
+      }
+    }
+
+    return !existsOnlyInXml.isEmpty();
+  }
+
+  /** Validates the root element order.
+   *
+   * <p>Returns the set of test names that are out of order in the reference
+   * file (empty if the reference file is fully sorted). */
+  private static ImmutableSortedSet<String> validateOrder(Element root,
+      SortedMap<String, Node> testCases) {
+    String previousName = null;
+    final List<String> outOfOrderNames = new ArrayList<>();
+    final NodeList childNodes = root.getChildNodes();
+
+    for (int i = 0; i < childNodes.getLength(); i++) {
+      Node child = childNodes.item(i);
+      if (child.getNodeName().equals(TEST_CASE_TAG)) {
+        Element testCase = (Element) child;
+        String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
+        if (previousName != null && previousName.compareTo(name) > 0) {
           outOfOrderNames.add(name);
         }
         previousName = name;
@@ -660,7 +720,7 @@ public class DiffRepository {
    * @param resourceName    Name of resource, e.g. "sql", "plan"
    * @return The value of the resource, or null if not found
    */
-  private static Element getResourceElement(
+  private static @Nullable Element getResourceElement(
       Element testCaseElement,
       String resourceName) {
     return getResourceElement(testCaseElement, resourceName, false);
@@ -676,7 +736,7 @@ public class DiffRepository {
    *                        name and the same parent that are eclipsed
    * @return The value of the resource, or null if not found
    */
-  private static Element getResourceElement(Element testCaseElement,
+  private static @Nullable Element getResourceElement(Element testCaseElement,
       String resourceName, boolean killYoungerSiblings) {
     final NodeList childNodes = testCaseElement.getChildNodes();
     Element found = null;
@@ -872,7 +932,8 @@ public class DiffRepository {
    * @return The diff repository shared between test cases in this class
    */
   public static DiffRepository lookup(Class<?> clazz,
-      DiffRepository baseRepository, Filter filter, int indent) {
+      @Nullable DiffRepository baseRepository, @Nullable Filter filter,
+      int indent) {
     final Key key = new Key(clazz, baseRepository, filter, indent);
     return REPOSITORY_CACHE.getUnchecked(key);
   }
@@ -902,12 +963,12 @@ public class DiffRepository {
   /** Cache key. */
   private static class Key {
     private final Class<?> clazz;
-    private final DiffRepository baseRepository;
-    private final Filter filter;
+    private final @Nullable DiffRepository baseRepository;
+    private final @Nullable Filter filter;
     private final int indent;
 
-    Key(Class<?> clazz, DiffRepository baseRepository, Filter filter,
-        int indent) {
+    Key(Class<?> clazz, @Nullable DiffRepository baseRepository,
+        @Nullable Filter filter, int indent) {
       this.clazz = requireNonNull(clazz, "clazz");
       this.baseRepository = baseRepository;
       this.filter = filter;
@@ -934,8 +995,11 @@ public class DiffRepository {
           .replace(".xml", "_actual.xml");
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
+      Set<String> javaTestMethods =
+          Arrays.stream(clazz.getDeclaredMethods()).map(Method::getName)
+              .filter(name -> name.startsWith("test")).collect(Collectors.toSet());
       return new DiffRepository(refFile, logFile, baseRepository, filter,
-          indent);
+          indent, javaTestMethods);
     }
   }
 

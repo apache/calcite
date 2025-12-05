@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
@@ -67,7 +68,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       RelDataType type = opBinding.getOperandType(operand);
       if (type.getSqlTypeName() == SqlTypeName.ANY) {
         // Unnest Operator in schema less systems returns one column as the output
-        // $unnest is a place holder to specify that one column with type ANY is output.
+        // $unnest is a placeholder to specify that one column with type ANY is output.
         return builder
             .add("$unnest",
                 SqlTypeName.ANY)
@@ -81,14 +82,22 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
 
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
+      // If a type is nullable, all field accesses inside the type are also nullable
       if (type instanceof MapSqlType) {
         MapSqlType mapType = (MapSqlType) type;
         builder.add(MAP_KEY_COLUMN_NAME, mapType.getKeyType());
         builder.add(MAP_VALUE_COLUMN_NAME, mapType.getValueType());
       } else {
         RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
+        boolean isNullable = componentType.isNullable();
         if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
-          builder.addAll(componentType.getFieldList());
+          for (RelDataTypeField field : componentType.getFieldList()) {
+            RelDataType fieldType = field.getType();
+            if (isNullable) {
+              fieldType = typeFactory.enforceTypeWithNullability(fieldType, true);
+            }
+            builder.add(field.getName(), fieldType);
+          }
         } else {
           builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
               componentType);
@@ -112,14 +121,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    if (call.operandCount() == 1
-        && call.getOperandList().get(0).getKind() == SqlKind.SELECT) {
-      // avoid double ( ) on unnesting a sub-query
-      writer.keyword(getName());
-      call.operand(0).unparse(writer, 0, 0);
-    } else {
-      super.unparse(writer, call, leftPrec, rightPrec);
-    }
+    super.unparse(writer, call, leftPrec, rightPrec);
     if (withOrdinality) {
       writer.keyword("WITH ORDINALITY");
     }

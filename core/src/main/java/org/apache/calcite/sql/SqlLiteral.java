@@ -49,10 +49,14 @@ import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Calendar;
 import java.util.Objects;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -177,9 +181,8 @@ public class SqlLiteral extends SqlNode {
       SqlParserPos pos) {
     super(pos);
     this.value = value;
-    this.typeName = typeName;
-    assert typeName != null;
-    assert valueMatchesType(value, typeName);
+    this.typeName = requireNonNull(typeName, "typeName");
+    checkArgument(valueMatchesType(value, typeName));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -234,6 +237,8 @@ public class SqlLiteral extends SqlNode {
       return value instanceof BitString;
     case CHAR:
       return value instanceof NlsString;
+    case UUID:
+      return value instanceof UUID;
     case SYMBOL:
       return (value instanceof Enum)
           || (value instanceof SqlSampleSpec);
@@ -261,7 +266,7 @@ public class SqlLiteral extends SqlNode {
    * Returns the value of this literal.
    *
    * <p>Try not to use this method! There are so many different kinds of
-   * values, it's better to to let SqlLiteral do whatever it is you want to
+   * values, it's better to let SqlLiteral do whatever it is you want to
    * do.
    *
    * @see #booleanValue()
@@ -754,8 +759,7 @@ public class SqlLiteral extends SqlNode {
       int rightPrec) {
     switch (typeName) {
     case BOOLEAN:
-      writer.keyword(
-          value == null ? "UNKNOWN" : (Boolean) value ? "TRUE" : "FALSE");
+      writer.getDialect().unparseBoolLiteral(writer, this, leftPrec, rightPrec);
       break;
     case NULL:
       writer.keyword("NULL");
@@ -780,6 +784,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case NULL:
     case BOOLEAN:
+    case UUID:
       RelDataType ret = typeFactory.createSqlType(typeName);
       ret = typeFactory.createTypeWithNullability(ret, null == value);
       return ret;
@@ -835,7 +840,7 @@ public class SqlLiteral extends SqlNode {
     case VARBINARY: // should never happen
 
     default:
-      throw Util.needToImplement(toString() + ", operand=" + value);
+      throw Util.needToImplement(this + ", operand=" + value);
     }
   }
 
@@ -929,6 +934,13 @@ public class SqlLiteral extends SqlNode {
       SqlParserPos pos) {
     return new SqlTimeTzLiteral(t, precision, pos);
   }
+
+  public static SqlUuidLiteral createUuid(
+      UUID u,
+      SqlParserPos pos) {
+    return new SqlUuidLiteral(u, pos);
+  }
+
   /**
    * Creates an interval literal.
    *
@@ -1102,7 +1114,7 @@ public class SqlLiteral extends SqlNode {
         final String u = s.substring(i + 1, i + 5);
         final int v;
         try {
-          v = Integer.parseInt(u, 16);
+          v = parseInt(u, 16);
         } catch (NumberFormatException ex) {
           throw SqlUtil.newContextException(getParserPosition(),
               RESOURCE.unicodeEscapeMalformed(i));

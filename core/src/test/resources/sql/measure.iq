@@ -18,27 +18,826 @@
 !set outputformat mysql
 !use scott
 
+# View with one measure
+create view empm as
+select *, avg(sal) as measure avg_sal
+from emp;
+(0 rows modified)
+
+!update
+
+# Aggregate query with naked measure
+select job, avg_sal as a
+from empm
+group by job;
++-----------+---------+
+| JOB       | A       |
++-----------+---------+
+| ANALYST   | 3000.00 |
+| CLERK     | 1037.50 |
+| MANAGER   | 2758.33 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 1400.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+# Same query using subquery
+select job, avg_sal as a
+from (
+  select *, avg(sal) as measure avg_sal
+  from "scott".emp
+) as empm
+group by job;
++-----------+---------+
+| JOB       | A       |
++-----------+---------+
+| ANALYST   | 3000.00 |
+| CLERK     | 1037.50 |
+| MANAGER   | 2758.33 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 1400.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+# Same query using CTE
+with empm as (
+  select *, avg(sal) as measure avg_sal
+  from emp
+)
+select job, avg_sal as a
+from empm
+group by job;
++-----------+---------+
+| JOB       | A       |
++-----------+---------+
+| ANALYST   | 3000.00 |
+| CLERK     | 1037.50 |
+| MANAGER   | 2758.33 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 1400.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+# Measure on primary key gives type error (casting away NOT NULL); cause was
+# [CALCITE-6555] RelBuilder.aggregateRex thinks aggregate functions of
+# "GROUP BY ()" queries are NOT NULL
+with empm as (
+  select *, min(empno) as measure avg_sal
+  from emp
+)
+select deptno, avg_sal as a
+from empm
+group by deptno;
++--------+------+
+| DEPTNO | A    |
++--------+------+
+|     10 | 7782 |
+|     20 | 7369 |
+|     30 | 7499 |
++--------+------+
+(3 rows)
+
+!ok
+
+# Equivalent using AGGREGATE
+select job, aggregate(avg_sal) as a
+from empm
+group by job;
++-----------+---------+
+| JOB       | A       |
++-----------+---------+
+| ANALYST   | 3000.00 |
+| CLERK     | 1037.50 |
+| MANAGER   | 2758.33 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 1400.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+# Equivalent where the argument of the measure (sal) is private to the CTE
+with empm as (
+  select deptno, job, avg(sal) as measure avg_sal
+  from emp)
+select job, aggregate(avg_sal) as a
+from empm
+group by job;
++-----------+---------+
+| JOB       | A       |
++-----------+---------+
+| ANALYST   | 3000.00 |
+| CLERK     | 1037.50 |
+| MANAGER   | 2758.33 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 1400.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+# Similar to previous, grand total
+select avg_sal as a
+from empm
+group by ();
++---------+
+| A       |
++---------+
+| 2073.21 |
++---------+
+(1 row)
+
+!ok
+
+# Same as previous; 'group by ()' is implicit when we use AGGREGATE.
+select AGGREGATE(avg_sal) as a
+from empm;
++---------+
+| A       |
++---------+
+| 2073.21 |
++---------+
+(1 row)
+
+!ok
+
+# Similar to previous; 'group by ()' is implicit when we use COUNT.
+select avg_sal as a, COUNT(*) AS c
+from empm;
++---------+----+
+| A       | C  |
++---------+----+
+| 2073.21 | 14 |
++---------+----+
+(1 row)
+
+!ok
+
+# [CALCITE-6559] Query with measure that applies AVG to SMALLINT
+# throws AssertionError "Cannot add expression of different type to set"
+#
+# Occurs when AVG measure is applied to SMALLINT or TINYINT column.
+# A CAST is added internally to the result of SUM / COUNT, but this cast
+# prevents a cast to nullable for the null-generating side of an outer join.
+WITH empm AS (
+    SELECT *, AVG(empno) AS MEASURE avg_empno
+    FROM emp)
+SELECT job, avg_empno
+FROM empm
+GROUP BY job;
++-----------+-----------+
+| JOB       | AVG_EMPNO |
++-----------+-----------+
+| ANALYST   |      7845 |
+| CLERK     |      7769 |
+| MANAGER   |      7682 |
+| PRESIDENT |      7839 |
+| SALESMAN  |      7629 |
++-----------+-----------+
+(5 rows)
+
+!ok
+
 !if (false) {
+# [CALCITE-6564] Support queries with measures on top of a VALUES relation
+#
+# The following querey is the original test case for [CALCITE-6559]; that
+# bug is fixed, but this query now fails during planning due to VALUES.
+WITH tbl_with_null_dim AS (
+    SELECT e.deptno, e.grade, AVG(e.grade) AS MEASURE avg_grade
+    FROM (VALUES (1, 70),
+             (1, 50),
+             (NULL, 50),
+             (3, 82)) AS e (deptno, grade))
+SELECT deptno, avg_grade
+FROM tbl_with_null_dim
+GROUP BY deptno;
++--------+-----------+
+| DEPTNO | AVG_GRADE |
++--------+-----------+
+|      1 |        60 |
+|      3 |        82 |
+|        |        50 |
++--------+-----------+
+(3 rows)
+
+!ok
+!}
+
+# CTE with literal measure
+with emp2 as (
+  select *, 2 as measure two
+  from emp
+)
+select job, two
+from emp2
+group by job;
++-----------+-----+
+| JOB       | TWO |
++-----------+-----+
+| ANALYST   |   2 |
+| CLERK     |   2 |
+| MANAGER   |   2 |
+| PRESIDENT |   2 |
+| SALESMAN  |   2 |
++-----------+-----+
+(5 rows)
+
+!ok
+
+# As previous, grand total
+with emp2 as (
+  select *, 2 as measure two
+  from emp
+)
+select two
+from emp2
+group by ();
++-----+
+| TWO |
++-----+
+|   2 |
++-----+
+(1 row)
+
+!ok
+
+# AGGREGATE may not be applied to non-measure
+select aggregate(deptno)
+from empm
+group by job;
+Argument to function 'AGGREGATE' must be a measure
+!error
+
+# AGGREGATE makes a query into an aggregate query, and therefore non-grouped
+# columns are illegal.
+select aggregate(avg_sal) as a, deptno
+from empm;
+Expression 'DEPTNO' is not being grouped
+!error
+
+# As above, but without AGGREGATE, is valid.
+select avg_sal as a, deptno
+from empm;
++---------+--------+
+| A       | DEPTNO |
++---------+--------+
+| 2450.00 |     10 |
+| 5000.00 |     10 |
+| 1300.00 |     10 |
+| 1100.00 |     20 |
+| 3000.00 |     20 |
+| 2975.00 |     20 |
+| 3000.00 |     20 |
+|  800.00 |     20 |
+| 1600.00 |     30 |
+| 2850.00 |     30 |
+|  950.00 |     30 |
+| 1250.00 |     30 |
+| 1500.00 |     30 |
+| 1250.00 |     30 |
++---------+--------+
+(14 rows)
+
+!ok
+
+# Measure in query with ORDER BY and no GROUP BY.
+# (As above, but sorted.)
+select avg_sal as a, deptno
+from empm
+order by deptno, ename;
++---------+--------+
+| A       | DEPTNO |
++---------+--------+
+| 2450.00 |     10 |
+| 5000.00 |     10 |
+| 1300.00 |     10 |
+| 1100.00 |     20 |
+| 3000.00 |     20 |
+| 2975.00 |     20 |
+| 3000.00 |     20 |
+|  800.00 |     20 |
+| 1600.00 |     30 |
+| 2850.00 |     30 |
+|  950.00 |     30 |
+| 1250.00 |     30 |
+| 1500.00 |     30 |
+| 1250.00 |     30 |
++---------+--------+
+(14 rows)
+
+!ok
+
+# Measure in query with ORDER BY and LIMIT but no GROUP BY.
+select avg_sal as a, ename, deptno
+from empm
+order by ename limit 3;
++---------+-------+--------+
+| A       | ENAME | DEPTNO |
++---------+-------+--------+
+| 1100.00 | ADAMS |     20 |
+| 1600.00 | ALLEN |     30 |
+| 2850.00 | BLAKE |     30 |
++---------+-------+--------+
+(3 rows)
+
+!ok
+
+# Measure in query with ORDER BY and LIMIT but no GROUP BY, omitting sort key.
+# (As above, but not projecting ename.)
+select avg_sal as a, deptno
+from empm
+order by ename limit 3;
++---------+--------+
+| A       | DEPTNO |
++---------+--------+
+| 1100.00 |     20 |
+| 1600.00 |     30 |
+| 2850.00 |     30 |
++---------+--------+
+(3 rows)
+
+!ok
+
+# Measure in query with ORDER and LIMIT but no GROUP BY, sorting by measure.
+select avg_sal, deptno
+from empm
+order by avg_sal desc limit 3;
++---------+--------+
+| AVG_SAL | DEPTNO |
++---------+--------+
+| 1100.00 |     20 |
+|  950.00 |     30 |
+|  800.00 |     20 |
++---------+--------+
+(3 rows)
+
+!ok
+
+# Measure in query with WHERE but no GROUP BY
+select avg_sal as a, deptno
+from empm
+where job = 'MANAGER';
++---------+--------+
+| A       | DEPTNO |
++---------+--------+
+| 2450.00 |     10 |
+| 2850.00 |     30 |
+| 2975.00 |     20 |
++---------+--------+
+(3 rows)
+
+!ok
 
 # Measure that references another measure
 select *
 from (
   select deptno,
-    empno + 1 as measure e1,
-    e1 + deptno as measure e2
+      empno + 1 as measure e1,
+      e1 + deptno as measure e2
   from "scott".emp
-  where deptno = 10);
+  where job = 'CLERK');
 +--------+------+------+
 | DEPTNO | E1   | E2   |
 +--------+------+------+
-|     10 | 7783 | 7793 |
-|     10 | 7840 | 7850 |
+|     20 | 7370 | 7390 |
+|     20 | 7877 | 7897 |
+|     30 | 7901 | 7931 |
 |     10 | 7935 | 7945 |
 +--------+------+------+
+(4 rows)
+
+!ok
+
+# Measure may reference non-measure alias
+select deptno + 1 as d1,
+    d1 + 2 as measure d3
+from "scott".dept;
++----+----+
+| D1 | D3 |
++----+----+
+| 11 | 13 |
+| 21 | 23 |
+| 31 | 33 |
+| 41 | 43 |
++----+----+
+(4 rows)
+
+!ok
+
+# In a measure ('d'), qualified references give you the column, and unqualified
+# references give the alias. In a regular select item ('d2'), qualified and
+# unqualified references give the column.
+select e.empno + 1 as deptno,
+    deptno + e.deptno as measure d,
+    deptno + e.deptno as d2
+from "scott".emp as e
+where job = 'CLERK';
++--------+------+----+
+| DEPTNO | D    | D2 |
++--------+------+----+
+|   7370 | 7390 | 40 |
+|   7877 | 7897 | 40 |
+|   7901 | 7931 | 60 |
+|   7935 | 7945 | 20 |
++--------+------+----+
+(4 rows)
+
+!ok
+
+# Measure used in GROUP BY query
+select deptno, count_plus_100
+from (
+  select empno, deptno, job,
+      count(*) + 100 as measure count_plus_100
+  from "scott".emp)
+group by deptno;
++--------+----------------+
+| DEPTNO | COUNT_PLUS_100 |
++--------+----------------+
+|     10 |            103 |
+|     20 |            105 |
+|     30 |            106 |
++--------+----------------+
 (3 rows)
 
 !ok
 
+# As above, using AGGREGATE function
+select deptno, aggregate(count_plus_100) as count_plus_100
+from (
+  select empno, deptno, job,
+      count(*) + 100 as measure count_plus_100
+  from "scott".emp)
+group by deptno;
++--------+----------------+
+| DEPTNO | COUNT_PLUS_100 |
++--------+----------------+
+|     10 |            103 |
+|     20 |            105 |
+|     30 |            106 |
++--------+----------------+
+(3 rows)
+
+!ok
+
+# Aggregate measure used in non-aggregate query
+select empno, count_plus_100
+from (
+  select empno, deptno, job,
+      count(*) + 100 as measure count_plus_100
+  from "scott".emp);
++-------+----------------+
+| EMPNO | COUNT_PLUS_100 |
++-------+----------------+
+|  7369 |            101 |
+|  7499 |            101 |
+|  7521 |            101 |
+|  7566 |            101 |
+|  7654 |            101 |
+|  7698 |            101 |
+|  7782 |            101 |
+|  7788 |            101 |
+|  7839 |            101 |
+|  7844 |            101 |
+|  7876 |            101 |
+|  7900 |            101 |
+|  7902 |            101 |
+|  7934 |            101 |
++-------+----------------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..8=[{inputs}], expr#9=[100], expr#10=[+($t8, $t9)], EMPNO=[$t0], COUNT_PLUS_100=[$t10])
+  EnumerableWindow(window#0=[window(rows between CURRENT ROW and CURRENT ROW aggs [COUNT()])])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Aggregate measure used in non-aggregate query with ORDER BY
+select empno, count_plus_100
+from (
+  select empno, deptno, job,
+      count(*) + 100 as measure count_plus_100
+  from "scott".emp)
+order by 1;
++-------+----------------+
+| EMPNO | COUNT_PLUS_100 |
++-------+----------------+
+|  7369 |            101 |
+|  7499 |            101 |
+|  7521 |            101 |
+|  7566 |            101 |
+|  7654 |            101 |
+|  7698 |            101 |
+|  7782 |            101 |
+|  7788 |            101 |
+|  7839 |            101 |
+|  7844 |            101 |
+|  7876 |            101 |
+|  7900 |            101 |
+|  7902 |            101 |
+|  7934 |            101 |
++-------+----------------+
+(14 rows)
+
+!ok
+
+# Aggregate measure used in non-aggregate query with WHERE and ORDER BY
+select empno, count_plus_100
+from (
+  select empno, deptno, job,
+      count(*) + 100 as measure count_plus_100
+  from "scott".emp)
+where deptno = 10
+order by 1;
++-------+----------------+
+| EMPNO | COUNT_PLUS_100 |
++-------+----------------+
+|  7782 |            101 |
+|  7839 |            101 |
+|  7934 |            101 |
++-------+----------------+
+(3 rows)
+
+!ok
+
+# Aggregate measure
+select deptno, count_plus_100
+from (
+  select empno, deptno, job,
+      count(*) + 100 as measure count_plus_100
+  from "scott".emp)
+group by deptno;
++--------+----------------+
+| DEPTNO | COUNT_PLUS_100 |
++--------+----------------+
+|     10 |            103 |
+|     20 |            105 |
+|     30 |            106 |
++--------+----------------+
+(3 rows)
+
+!ok
+
+# Measure based on distinct aggregate
+select deptno, cdj1
+from (
+  select empno, deptno, job,
+      count(distinct job) + 1 as measure cdj1
+  from "scott".emp)
+group by deptno;
++--------+------+
+| DEPTNO | CDJ1 |
++--------+------+
+|     10 |    4 |
+|     20 |    6 |
+|     30 |    7 |
++--------+------+
+(3 rows)
+
+!ok
+
+# Measure based on query with WHERE
+select deptno, c, avg_sal
+from (
+  select *, count(*) as measure c, avg(sal) as measure avg_sal
+  from "scott".emp
+  where job in ('ANALYST', 'SALESMAN'))
+group by deptno;
++--------+---+---------+
+| DEPTNO | C | AVG_SAL |
++--------+---+---------+
+|     20 | 2 | 3000.00 |
+|     30 | 4 | 1400.00 |
++--------+---+---------+
+(2 rows)
+
+!ok
+
+# Data to verify the previous query result.
+select deptno,
+    count(*) as c,
+    avg(sal) as avg_sal,
+    count(*) filter (where job in ('ANALYST', 'SALESMAN')) as c1,
+    avg(sal) filter (where job in ('ANALYST', 'SALESMAN')) as avg_sal1
+from "scott".emp
+group by deptno;
++--------+---+---------+----+----------+
+| DEPTNO | C | AVG_SAL | C1 | AVG_SAL1 |
++--------+---+---------+----+----------+
+|     10 | 3 | 2916.66 |  0 |          |
+|     20 | 5 | 2175.00 |  2 |  3000.00 |
+|     30 | 6 | 1566.66 |  4 |  1400.00 |
++--------+---+---------+----+----------+
+(3 rows)
+
+!ok
+
+# Measures defined in a strange order;
+# same measure used several times.
+select deptno,
+    avg_sal as avg_sal,
+    aggregate(avg_sal) as avg_sal2,
+    avg_sal as avg_sal3,
+    c,
+    deptno2 + 1 as d2
+from (
+  select avg(sal) as measure avg_sal,
+    empno,
+    job,
+    deptno as deptno2,
+    count(*) as measure c,
+    deptno
+  from "scott".emp
+  where job in ('ANALYST', 'SALESMAN'))
+where job = 'SALESMAN'
+group by deptno, deptno2;
++--------+---------+----------+----------+---+----+
+| DEPTNO | AVG_SAL | AVG_SAL2 | AVG_SAL3 | C | D2 |
++--------+---------+----------+----------+---+----+
+|     30 | 1400.00 |  1400.00 |  1400.00 | 4 | 31 |
++--------+---------+----------+----------+---+----+
+(1 row)
+
+!ok
+
+# Measure with FILTER
+select job,
+    c,
+    aggregate(avg_sal) as avg_sal,
+    aggregate(c) filter (where deptno = 20) as c2,
+    aggregate(avg_sal) filter (where deptno = 20) as avg_sal2
+from (
+  select *, count(*) as measure c, avg(sal) as measure avg_sal
+  from "scott".emp
+  where job <> 'PRESIDENT')
+where deptno < 25
+group by job;
++---------+---+---------+----+----------+
+| JOB     | C | AVG_SAL | C2 | AVG_SAL2 |
++---------+---+---------+----+----------+
+| ANALYST | 2 | 3000.00 |  2 |  3000.00 |
+| CLERK   | 4 | 1037.50 |  2 |   950.00 |
+| MANAGER | 3 | 2758.33 |  1 |  2975.00 |
++---------+---+---------+----+----------+
+(3 rows)
+
+!ok
+
+!if (false) {
+# Null values in GROUP BY
+with emp1 as (
+  select empno, ename, job, sal,
+      case when job = 'ANALYST' /* or job = 'PRESIDENT' */ then null
+           else deptno
+      end as deptno
+  from emp),
+empm as (
+  select *, avg(sal) as measure avg_sal
+  from emp1)
+select deptno, avg_sal
+from empm
+group by deptno;
++--------+-------------------+
+| DEPTNO | AVG_SAL           |
++--------+-------------------+
+|     10 |           1875.00 |
+|     20 |           1625.00 |
+|     30 | 1566.666666666667 |
+|        | 3666.666666666667 |
++--------+-------------------+
+(4 rows)
+
+!ok
+!}
+
+# Correlated query with null values
+create view emp1 as
+select empno, ename, job, sal,
+    case when job = 'ANALYST' then null else deptno end as deptno
+from emp;
+(0 rows modified)
+
+!update
+
+!if (false) {
+select ename, deptno,
+    (select count(*)
+     from emp1 as e2
+     where e2.deptno is not distinct from e1.deptno) as c
+from emp1 as e1;
+!ok
+
+select ename, deptno,
+    count(*) over (partition by deptno) as c
+from emp1 as e1;
++--------+--------+---+
+| ENAME  | DEPTNO | C |
++--------+--------+---+
+| ADAMS  |     20 | 3 |
+| ALLEN  |     30 | 6 |
+| BLAKE  |     30 | 6 |
+| CLARK  |     10 | 3 |
+| FORD   |        | 2 |
+| JAMES  |     30 | 6 |
+| JONES  |     20 | 3 |
+| KING   |     10 | 3 |
+| MARTIN |     30 | 6 |
+| MILLER |     10 | 3 |
+| SCOTT  |        | 2 |
+| SMITH  |     20 | 3 |
+| TURNER |     30 | 6 |
+| WARD   |     30 | 6 |
++--------+--------+---+
+(14 rows)
+
+!ok
+
+select ename, deptno,
+    (select count(*)
+     from emp1 as e2
+     where e1.deptno is null) as c
+from emp1 as e1;
+!ok
+
+
+!if (false) {
+# Rollup
+# TODO: number is wrong for 'all' row
+with empm as (
+  select *, avg(sal) as measure avg_sal
+  from emp)
+select deptno, avg_sal
+from empm
+group by rollup(deptno);
++---------+
+| AVG_SAL |
++---------+
+| 2916.67 |
+| 2175.00 |
+| 1566.67 |
+| 2073.21 |
++---------+
+(4 rows)
+
+!ok
+!}
+
+!if (false) {
+# Measure defined in terms of measure
+with empm as (
+  select *,
+      avg(remun) as measure avg_remun,
+      sum(sal + comm) as measure remun
+  from emp)
+select deptno, avg_remun
+from empm
+group by deptno;
+!ok
+!}
+
+!if (false) {
+# Measure used in join query
+with deptm as (
+  select *,
+      sum(deptno) as measure sum_deptno
+  from dept)
+select *
+from deptm as d
+join emp as e using (deptno);
+!ok
+!}
+
+!if (false) {
+# Measure used in join query; note that measure is 'grain-locked'
+with deptm as (
+  select *,
+      sum(deptno) as measure sum_deptno
+  from dept)
+select e.ename, d.dname, d.sum_deptno, count(*) as c
+from deptm as d
+join emp as e using (deptno)
+group by deptno;
+!ok
+!}
+
+!if (false) {
+# Similar, but left join
+with deptm as (
+  select *,
+      sum(deptno) as measure sum_deptno
+  from dept)
+select e.ename, d.dname, d.sum_deptno, count(*) as c
+from deptm as d
+left join emp as e using (deptno)
+group by deptno;
+!ok
 !}
 
 # End measure.iq

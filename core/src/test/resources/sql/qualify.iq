@@ -96,4 +96,35 @@ no rows selected
 
 !ok
 
+# [CALCITE-6691] QUALIFY on subquery that projects
+# There should be 3 rows because only 3 employees have the highest salary in
+# their department.
+WITH t0 AS (SELECT deptno, sal FROM emp),
+t1 AS (SELECT deptno
+    FROM t0
+    QUALIFY row_number() OVER (PARTITION BY deptno
+                               ORDER BY sal DESC) = 1)
+SELECT deptno FROM t1;
+DEPTNO
+------
+    10
+    20
+    30
+
+!ok
+
+# QUALIFY on aggregate query
+SELECT deptno
+FROM emp
+GROUP BY deptno, job
+QUALIFY row_number() OVER (PARTITION BY deptno
+                           ORDER BY COUNT(*) DESC) = 1;
+DEPTNO
+------
+    10
+    20
+    30
+
+!ok
+
 # End qualify.iq

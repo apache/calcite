@@ -44,6 +44,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -52,6 +53,9 @@ import org.apache.calcite.util.Optionality;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -88,6 +92,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
         SqlOperatorTables.chain(parentTable,
             SqlOperatorTables.of(new RampFunction(),
                 new DedupFunction(),
+                new TableFunctionReturnTableFunction(),
                 new MyFunction(),
                 new MyAvgAggFunction(),
                 new RowFunction(),
@@ -99,6 +104,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new TopNTableFunction(),
                 new SimilarlityTableFunction(),
                 new InvalidTableFunction(),
+                new CompareStringsOrNumericValues(),
                 HIGHER_ORDER_FUNCTION,
                 HIGHER_ORDER_FUNCTION2)));
   }
@@ -207,6 +213,39 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
+  /** "TFRT" user-defined table function. */
+  public static class TableFunctionReturnTableFunction extends SqlFunction
+      implements SqlTableFunction {
+    TableFunctionReturnTypeInference inference;
+
+    public TableFunctionReturnTableFunction() {
+      super("TFRT",
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      inference =
+          new TableFunctionReturnTypeInference(factory -> factory.builder()
+              .add("NAME", SqlTypeName.CURSOR)
+              .build(),
+          Lists.newArrayList("NAME"), true);
+      inference.inferReturnType(opBinding);
+      return opBinding.getTypeFactory().createSqlType(SqlTypeName.CURSOR);
+    }
+
+    @Override public @Nullable SqlReturnTypeInference getReturnTypeInference() {
+      return inference;
+    }
+
+    @Override public SqlReturnTypeInference getRowTypeInference() {
+      return inference;
+    }
+  }
+
   /** "Score" user-defined table function. First parameter is input table
    * with row semantics. */
   public static class ScoreTableFunction extends SqlFunction
@@ -274,7 +313,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "Score(TABLE table_name)";
-      };
+      }
     }
   }
 
@@ -624,6 +663,27 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       final RelDataTypeFactory typeFactory =
           opBinding.getTypeFactory();
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
+    }
+  }
+
+  /**
+   * "COMPARE_STRINGS_OR_NUMERIC_VALUES" is a user-defined function whose arguments can be either
+   * two strings or two numeric values of the same type.
+   */
+  public static class CompareStringsOrNumericValues extends SqlFunction {
+    public CompareStringsOrNumericValues() {
+      super("COMPARE_STRINGS_OR_NUMERIC_VALUES",
+          new SqlIdentifier("COMPARE_STRINGS_OR_NUMERIC_VALUES", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.STRING_SAME_SAME.or(
+              OperandTypes.NUMERIC_NUMERIC.and(OperandTypes.SAME_SAME)),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      return opBinding.getOperandType(0);
     }
   }
 

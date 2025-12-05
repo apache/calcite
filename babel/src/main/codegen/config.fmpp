@@ -30,12 +30,14 @@ data: {
       "org.apache.calcite.sql.SqlCreate",
       "org.apache.calcite.sql.babel.SqlBabelCreateTable",
       "org.apache.calcite.sql.babel.TableCollectionType",
-      "org.apache.calcite.sql.babel.postgresql.AndChain",
-      "org.apache.calcite.sql.babel.postgresql.SqlBegin",
-      "org.apache.calcite.sql.babel.postgresql.SqlCommit",
-      "org.apache.calcite.sql.babel.postgresql.SqlDiscard",
-      "org.apache.calcite.sql.babel.postgresql.SqlRollback",
-      "org.apache.calcite.sql.babel.postgresql.SqlShow",
+      "org.apache.calcite.sql.babel.postgres.TransactionMode",
+      "org.apache.calcite.sql.babel.postgres.TransactionChainingMode",
+      "org.apache.calcite.sql.babel.postgres.SqlBegin",
+      "org.apache.calcite.sql.babel.postgres.SqlCommit",
+      "org.apache.calcite.sql.babel.postgres.SqlDiscard",
+      "org.apache.calcite.sql.babel.postgres.SqlRollback",
+      "org.apache.calcite.sql.babel.postgres.SqlShow",
+      "org.apache.calcite.sql.babel.postgres.SqlSetOptions",
       "org.apache.calcite.sql.ddl.SqlDdlNodes",
     ]
 
@@ -49,6 +51,7 @@ data: {
       "SEED"
       "SEMI"
       "SEQUENCES"
+      "SNAPSHOT"
       "TEMP"
       "VOLATILE"
     ]
@@ -555,6 +558,7 @@ data: {
     # Return type of method implementation should be "SqlNode".
     # Example: "DateaddFunctionCall()".
     builtinFunctionCallMethods: [
+       "DatePartFunctionCall()",
        "DateaddFunctionCall()"
     ]
 
@@ -566,12 +570,11 @@ data: {
     ]
 
     statementParserMethods: [
-      "PostgresqlSqlShow()",
-      "PostgresqlSqlSetOption()",
-      "PostgresqlSqlBegin()",
-      "PostgresqlSqlDiscard()",
-      "PostgresqlSqlCommit()",
-      "PostgresqlSqlRollback()"
+      "PostgresSqlBegin()"
+      "PostgresSqlCommit()"
+      "PostgresSqlDiscard()"
+      "PostgresSqlRollback()"
+      "PostgresSqlShow()"
     ]
 
     # Binary operators tokens.
@@ -607,11 +610,13 @@ data: {
     # Example: "parserImpls.ftl".
     implementationFiles: [
       "parserImpls.ftl"
-      "parserPostgresqlImpls.ftl"
+      "parserPostgresImpls.ftl"
     ]
 
+    setOptionParserMethod: "PostgresSqlSetOption"
     includePosixOperators: true
     includeParsingStringLiteralAsArrayLiteral: true
+    includeIntervalWithoutQualifier: true
   }
 }
 

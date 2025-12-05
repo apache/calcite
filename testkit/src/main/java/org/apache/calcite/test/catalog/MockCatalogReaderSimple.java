@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.ObjectSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
@@ -451,6 +452,17 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(struct10View);
   }
 
+  private void registerTableDoublePK(MockSchema salesSchema, Fixture fixture) {
+    final MockTable doublePK =
+        MockTable.create(this, salesSchema, "DOUBLE_PK", false, 14);
+    doublePK.addColumn("ID1", fixture.intType, true);
+    doublePK.addColumn("ID2", fixture.varchar20Type);
+    doublePK.addColumn("NAME", fixture.varchar20Type);
+    doublePK.addColumn("AGE", fixture.intType);
+    doublePK.keyList.add(ImmutableBitSet.of(0, 1));
+    registerTable(doublePK);
+  }
+
   @Override public MockCatalogReaderSimple init() {
     final Fixture fixture = new Fixture(typeFactory);
 
@@ -552,6 +564,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerStructTypeTables(fixture);
 
     registerTablesWithRollUp(salesSchema, fixture);
+
+    registerTableDoublePK(salesSchema, fixture);
+
     return this;
   }
 }

@@ -37,6 +37,7 @@ public class RexPermuteInputsShuttle extends RexShuttle {
 
   private final Mappings.TargetMapping mapping;
   private final ImmutableList<RelDataTypeField> fields;
+  private final boolean matchTargetType;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -54,14 +55,41 @@ public class RexPermuteInputsShuttle extends RexShuttle {
   public RexPermuteInputsShuttle(
       Mappings.TargetMapping mapping,
       RelNode... inputs) {
-    this(mapping, fields(inputs));
+    this(mapping, fields(inputs), false);
+  }
+
+  /**
+   * Creates a RexPermuteInputsShuttle.
+   *
+   * <p>The mapping provides at most one target for every source.
+   *
+   * @param mapping               Mapping
+   * @param shouldMatchTargetType If {@code false}, each input reference is substituted
+   *                              with a reference retaining the original input's type.
+   *                              If {@code true}, each input reference is substituted
+   *                              with a reference matching the target type.
+   * @param inputs                Input relational expressions
+   */
+  public RexPermuteInputsShuttle(
+      Mappings.TargetMapping mapping,
+      boolean shouldMatchTargetType,
+      RelNode... inputs) {
+    this(mapping, fields(inputs), shouldMatchTargetType);
   }
 
   private RexPermuteInputsShuttle(
       Mappings.TargetMapping mapping,
       ImmutableList<RelDataTypeField> fields) {
+    this(mapping, fields, false);
+  }
+
+  private RexPermuteInputsShuttle(
+      Mappings.TargetMapping mapping,
+      ImmutableList<RelDataTypeField> fields,
+      boolean matchTargetType) {
     this.mapping = mapping;
     this.fields = fields;
+    this.matchTargetType = matchTargetType;
   }
 
   /** Creates a shuttle with an empty field list. It cannot handle GET calls but
@@ -85,9 +113,15 @@ public class RexPermuteInputsShuttle extends RexShuttle {
   @Override public RexNode visitInputRef(RexInputRef local) {
     final int index = local.getIndex();
     int target = mapping.getTarget(index);
-    return new RexInputRef(
-        target,
-        local.getType());
+    if (!matchTargetType) {
+      return new RexInputRef(
+          target,
+          local.getType());
+    } else {
+      return new RexInputRef(
+          target,
+          fields.get(target).getType());
+    }
   }
 
   @Override public RexNode visitCall(RexCall call) {

@@ -109,3 +109,15 @@ org.hamcrest.Matcher#matches(java.lang.Object)
 java.util.Locale#<init>(java.lang.String)
 java.util.Locale#<init>(java.lang.String,java.lang.String)
 java.util.Locale#<init>(java.lang.String,java.lang.String,java.lang.String)
+
+@defaultMessage Use thread-specific locale
+java.util.Locale#setDefault(java.util.Locale)
+#java.util.Locale#setDefault(java.util.Locale.Category,java.util.Locale)
+
+@defaultMessage Use "java.net.URI.toURL"
+java.net.URL#<init>(java.lang.String)
+java.net.URL#<init>(java.net.URL, java.lang.String)
+java.net.URL#<init>(java.net.URL, java.lang.String, java.net.URLStreamHandler)
+java.net.URL#<init>(java.lang.String, java.lang.String, int, java.lang.String)
+java.net.URL#<init>(java.lang.String, java.lang.String, java.lang.String)
+java.net.URL#<init>(java.lang.String, java.lang.String, int, java.lang.String, java.net.URLStreamHandler)

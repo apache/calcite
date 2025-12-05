@@ -31,9 +31,10 @@ import org.apache.calcite.util.Util;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.
@@ -51,9 +52,9 @@ public class SqlCreateFunction extends SqlCreate {
       boolean ifNotExists, SqlIdentifier name,
       SqlNode className, SqlNodeList usingList) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name, "name");
-    this.className = className;
-    this.usingList = Objects.requireNonNull(usingList, "usingList");
+    this.name = requireNonNull(name, "name");
+    this.className = requireNonNull(className, "className");
+    this.usingList = requireNonNull(usingList, "usingList");
     checkArgument(usingList.size() % 2 == 0);
   }
 

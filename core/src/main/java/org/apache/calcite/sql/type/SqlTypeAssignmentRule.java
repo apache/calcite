@@ -70,26 +70,62 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // TINYINT is assignable from...
     rules.add(SqlTypeName.TINYINT, EnumSet.of(SqlTypeName.TINYINT));
 
+    // UTINYINT is assignable from...
+    rules.add(SqlTypeName.UTINYINT, EnumSet.of(SqlTypeName.UTINYINT));
+
     // SMALLINT is assignable from...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.UTINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rules.add(SqlTypeName.SMALLINT, rule);
+
+    // USMALLINT is assignable from...
+    rule.clear();
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rules.add(SqlTypeName.USMALLINT, rule);
 
     // INTEGER is assignable from...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rules.add(SqlTypeName.INTEGER, rule);
+
+    // UINTEGER is assignable from...
+    rule.clear();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rules.add(SqlTypeName.UINTEGER, rule);
 
     // BIGINT is assignable from...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
     rule.add(SqlTypeName.BIGINT);
     rules.add(SqlTypeName.BIGINT, rule);
+
+    // UBIGINT is assignable from...
+    rule.clear();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rule.add(SqlTypeName.UBIGINT);
+    rules.add(SqlTypeName.UBIGINT, rule);
 
     // FLOAT (up to 64 bit floating point) is assignable from...
     rule.clear();
@@ -97,6 +133,10 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rule.add(SqlTypeName.UBIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
     rule.add(SqlTypeName.DOUBLE);
@@ -108,6 +148,10 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rule.add(SqlTypeName.UBIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
     rule.add(SqlTypeName.DOUBLE);
@@ -120,6 +164,10 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rule.add(SqlTypeName.UBIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
     rule.add(SqlTypeName.REAL);
@@ -132,6 +180,10 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rule.add(SqlTypeName.UBIGINT);
     rule.add(SqlTypeName.REAL);
     rule.add(SqlTypeName.DOUBLE);
     rule.add(SqlTypeName.DECIMAL);
@@ -204,12 +256,19 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // SYMBOL is assignable from ...
     rules.add(SqlTypeName.SYMBOL, EnumSet.of(SqlTypeName.SYMBOL));
 
+    // UUID is assignable from
+    rules.add(SqlTypeName.UUID, EnumSet.of(SqlTypeName.UUID));
+
     // ANY is assignable from ...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.UTINYINT);
+    rule.add(SqlTypeName.USMALLINT);
+    rule.add(SqlTypeName.UINTEGER);
+    rule.add(SqlTypeName.UBIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
     rule.add(SqlTypeName.DOUBLE);
@@ -217,6 +276,8 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.DATE);
     rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.UUID);
+    rule.add(SqlTypeName.VARIANT);
     rules.add(SqlTypeName.ANY, rule);
 
     INSTANCE = new SqlTypeAssignmentRule(rules.map);

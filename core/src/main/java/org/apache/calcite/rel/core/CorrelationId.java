@@ -22,6 +22,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Set;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Describes the necessary parameters for an implementation in order to
  * identify and set dynamic variables.
@@ -59,7 +61,7 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
    * @param name     variable name
    */
   public CorrelationId(String name) {
-    this(Integer.parseInt(name.substring(CORREL_PREFIX.length())), name);
+    this(parseInt(name.substring(CORREL_PREFIX.length())), name);
     assert name.startsWith(CORREL_PREFIX)
         : "Correlation name should start with " + CORREL_PREFIX
         + " actual name is " + name;

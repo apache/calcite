@@ -17,6 +17,7 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.util.SimpleNamespaceContext;
+import org.apache.calcite.util.TryThreadLocal;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -66,8 +67,8 @@ import static java.util.Objects.requireNonNull;
  */
 public class XmlFunctions {
 
-  private static final ThreadLocal<@Nullable XPathFactory> XPATH_FACTORY =
-      ThreadLocal.withInitial(() -> {
+  private static final TryThreadLocal<XPathFactory> XPATH_FACTORY =
+      TryThreadLocal.withInitial(() -> {
         final XPathFactory xPathFactory = XPathFactory.newInstance();
         try {
           xPathFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -76,8 +77,9 @@ public class XmlFunctions {
         }
         return xPathFactory;
       });
-  private static final ThreadLocal<@Nullable TransformerFactory> TRANSFORMER_FACTORY =
-      ThreadLocal.withInitial(() -> {
+
+  private static final TryThreadLocal<TransformerFactory> TRANSFORMER_FACTORY =
+      TryThreadLocal.withInitial(() -> {
         final TransformerFactory transformerFactory = TransformerFactory.newInstance();
         transformerFactory.setErrorListener(new InternalErrorListener());
         try {
@@ -87,8 +89,9 @@ public class XmlFunctions {
         }
         return transformerFactory;
       });
-  private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
-      ThreadLocal.withInitial(() -> {
+
+  private static final TryThreadLocal<DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
+      TryThreadLocal.withInitial(() -> {
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setXIncludeAware(false);
         documentBuilderFactory.setExpandEntityReferences(false);
@@ -117,7 +120,8 @@ public class XmlFunctions {
     }
     try {
       final Node documentNode = getDocumentNode(input);
-      XPathExpression xpathExpression = castNonNull(XPATH_FACTORY.get()).newXPath().compile(xpath);
+      XPathExpression xpathExpression =
+          XPATH_FACTORY.get().newXPath().compile(xpath);
       try {
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(documentNode, XPathConstants.NODESET);
@@ -145,8 +149,8 @@ public class XmlFunctions {
     try {
       final Source xsltSource = new StreamSource(new StringReader(xslt));
       final Source xmlSource = new StreamSource(new StringReader(xml));
-      final Transformer transformer = castNonNull(TRANSFORMER_FACTORY.get())
-          .newTransformer(xsltSource);
+      final Transformer transformer =
+          TRANSFORMER_FACTORY.get().newTransformer(xsltSource);
       final StringWriter writer = new StringWriter();
       final StreamResult result = new StreamResult(writer);
       transformer.setErrorListener(new InternalErrorListener());
@@ -169,7 +173,7 @@ public class XmlFunctions {
       return null;
     }
     try {
-      XPath xPath = castNonNull(XPATH_FACTORY.get()).newXPath();
+      XPath xPath = XPATH_FACTORY.get().newXPath();
 
       if (namespace != null) {
         xPath.setNamespaceContext(extractNamespaceContext(namespace));
@@ -206,7 +210,7 @@ public class XmlFunctions {
       return null;
     }
     try {
-      XPath xPath = castNonNull(XPATH_FACTORY.get()).newXPath();
+      XPath xPath = XPATH_FACTORY.get().newXPath();
       if (namespace != null) {
         xPath.setNamespaceContext(extractNamespaceContext(namespace));
       }
@@ -247,7 +251,7 @@ public class XmlFunctions {
 
   private static String convertNodeToString(Node node) throws TransformerException {
     StringWriter writer = new StringWriter();
-    Transformer transformer = castNonNull(TRANSFORMER_FACTORY.get()).newTransformer();
+    Transformer transformer = TRANSFORMER_FACTORY.get().newTransformer();
     transformer.setErrorListener(new InternalErrorListener());
     transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
     transformer.transform(new DOMSource(node), new StreamResult(writer));
@@ -257,7 +261,7 @@ public class XmlFunctions {
   private static Node getDocumentNode(final String xml) {
     try {
       final DocumentBuilder documentBuilder =
-          castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
+          DOCUMENT_BUILDER_FACTORY.get().newDocumentBuilder();
       final InputSource inputSource = new InputSource(new StringReader(xml));
       return documentBuilder.parse(inputSource);
     } catch (final ParserConfigurationException | SAXException | IOException e) {

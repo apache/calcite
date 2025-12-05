@@ -133,7 +133,7 @@ public class AggregateRemoveRule
                 aggregate.getGroupSet(), aggregate.groupSets, aggCall);
         if (constant != null) {
           final RexNode cast =
-              rexBuilder.ensureType(aggCall.type, constant, false);
+              rexBuilder.ensureType(aggCall.getParserPosition(), aggCall.type, constant, false);
           projects.add(cast);
           continue;
         }
@@ -143,7 +143,8 @@ public class AggregateRemoveRule
       final RexNode singleton =
           splitter.singleton(rexBuilder, input.getRowType(), aggCall);
       final RexNode cast =
-          rexBuilder.ensureType(aggCall.type, singleton, false);
+          rexBuilder.ensureType(
+              aggCall.getParserPosition(), aggCall.type, singleton, false);
       projects.add(cast);
     }
 

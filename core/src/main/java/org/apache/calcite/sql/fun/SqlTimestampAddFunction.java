@@ -38,6 +38,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Map;
 
+import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.first;
 
 /**
@@ -129,8 +130,15 @@ public class SqlTimestampAddFunction extends SqlFunction {
     //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'.
     //
     // If the latter, check that timeFrameName is valid.
-    validator.validateTimeFrame(
-        (SqlIntervalQualifier) call.getOperandList().get(0));
+    SqlIntervalQualifier op0 = call.operand(0);
+    validator.validateTimeFrame(op0);
+    if (op0.timeFrameName == null
+        && op0.timeUnitRange.startUnit.multiplier == null) {
+      // Not all time frames can be used in date arithmetic, e.g., DOW
+      throw validator.newValidationError(op0,
+          RESOURCE.invalidTimeFrameInOperation(
+              op0.timeUnitRange.toString(), call.getOperator().getName()));
+    }
   }
 
   /** Creates a SqlTimestampAddFunction. */

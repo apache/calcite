@@ -144,13 +144,13 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       SqlUtil.validateCharset(bytesValue, charset);
     } else {
       //noinspection ConstantConditions
-      assert stringValue != null : "stringValue must not be null";
+      requireNonNull(stringValue, "stringValue");
       // Java string can be malformed if LATIN1 is required.
       if (this.charsetName != null
           && (this.charsetName.equals("LATIN1")
           || this.charsetName.equals("ISO-8859-1"))) {
         //noinspection ConstantConditions
-        assert charset != null : "charset must not be null";
+        requireNonNull(charset, "charset");
         if (!charset.newEncoder().canEncode(stringValue)) {
           throw RESOURCE.charsetEncoding(stringValue, charset.name()).ex();
         }
@@ -208,8 +208,8 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
 
   public String getValue() {
     if (stringValue == null) {
-      assert bytesValue != null : "bytesValue must not be null";
-      assert charset != null : "charset must not be null";
+      requireNonNull(bytesValue, "bytesValue");
+      requireNonNull(charset, "charset");
       return DECODE_MAP.getUnchecked(Pair.of(bytesValue, charset));
     }
     return stringValue;
@@ -222,6 +222,63 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   public NlsString rtrim() {
     String trimmed = SqlFunctions.rtrim(getValue());
     if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
+   * left and right.
+   */
+  public NlsString trim(String trimed) {
+    String trimmed = SqlFunctions.trim(true, true, trimed, getValue());
+    if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
+   * left.
+   */
+  public NlsString ltrim(String trimed) {
+    String trimmed = SqlFunctions.trim(true, false, trimed, getValue());
+    if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
+   * right.
+   */
+  public NlsString rtrim(String trimed) {
+    String trimmed = SqlFunctions.trim(false, true, trimed, getValue());
+    if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
+   * right.  The result is never shorter than minResultSize.
+   *
+   * @param minResultSize Expected size for result string.  If negative, it indicates
+   *                   that no trimming should be done.
+   */
+  public NlsString rtrim(int minResultSize) {
+    String value = getValue();
+    if (value.length() <= minResultSize || minResultSize < 0) {
+      return this;
+    }
+    String left = value.substring(0, minResultSize);
+    String right = value.substring(minResultSize);
+    String trimmed = left + SqlFunctions.rtrim(right);
+    if (!trimmed.equals(value)) {
       return new NlsString(trimmed, charsetName, collation);
     }
     return this;

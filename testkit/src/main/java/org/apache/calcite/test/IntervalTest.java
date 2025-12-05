@@ -871,7 +871,7 @@ public class IntervalTest {
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' YEAR")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
+        .columnType("INTERVAL YEAR NOT NULL");
     f.wholeExpr("INTERVAL '100' YEAR(2)")
         .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' YEAR(3)")
@@ -936,7 +936,7 @@ public class IntervalTest {
     //  (default, explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
     f.wholeExpr("INTERVAL '100-0' YEAR TO MONTH")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
+        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
     f.wholeExpr("INTERVAL '100-0' YEAR(2) TO MONTH")
         .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000-0' YEAR(3) TO MONTH")
@@ -1124,7 +1124,7 @@ public class IntervalTest {
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' MONTH")
-        .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
+        .columnType("INTERVAL MONTH NOT NULL");
     f.wholeExpr("INTERVAL '100' MONTH(2)")
         .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' MONTH(3)")
@@ -1180,7 +1180,7 @@ public class IntervalTest {
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' DAY")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
+        .columnType("INTERVAL DAY NOT NULL");
     f.wholeExpr("INTERVAL '100' DAY(2)")
         .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' DAY(3)")
@@ -1245,7 +1245,7 @@ public class IntervalTest {
     //  (default, explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
     f.wholeExpr("INTERVAL '100 0' DAY TO HOUR")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
+        .columnType("INTERVAL DAY TO HOUR NOT NULL");
     f.wholeExpr("INTERVAL '100 0' DAY(2) TO HOUR")
         .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000 0' DAY(3) TO HOUR")
@@ -1323,7 +1323,7 @@ public class IntervalTest {
     //  (default, explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
     f.wholeExpr("INTERVAL '100 0:0' DAY TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
+        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
     f.wholeExpr("INTERVAL '100 0:0' DAY(2) TO MINUTE")
         .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000 0:0' DAY(3) TO MINUTE")
@@ -1511,8 +1511,7 @@ public class IntervalTest {
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' HOUR")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
+        .columnType("INTERVAL HOUR NOT NULL");
     f.wholeExpr("INTERVAL '100' HOUR(2)")
         .fails("Interval field value 100 exceeds precision of "
             + "HOUR\\(2\\) field.*");
@@ -1580,7 +1579,7 @@ public class IntervalTest {
     //  (default, explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
     f.wholeExpr("INTERVAL '100:0' HOUR TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
+        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
     f.wholeExpr("INTERVAL '100:0' HOUR(2) TO MINUTE")
         .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000:0' HOUR(3) TO MINUTE")
@@ -1659,8 +1658,7 @@ public class IntervalTest {
     //  (default, explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
     f.wholeExpr("INTERVAL '100:0:0' HOUR TO SECOND")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
+        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
     f.wholeExpr("INTERVAL '100:0:0' HOUR(2) TO SECOND")
         .fails("Interval field value 100 exceeds precision of "
             + "HOUR\\(2\\) field.*");
@@ -1736,7 +1734,7 @@ public class IntervalTest {
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' MINUTE")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
+        .columnType("INTERVAL MINUTE NOT NULL");
     f.wholeExpr("INTERVAL '100' MINUTE(2)")
         .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' MINUTE(3)")
@@ -1809,7 +1807,7 @@ public class IntervalTest {
     //  (default, explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
     f.wholeExpr("INTERVAL '100:0' MINUTE TO SECOND")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
+        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
     f.wholeExpr("INTERVAL '100:0' MINUTE(2) TO SECOND")
         .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000:0' MINUTE(3) TO SECOND")
@@ -1883,7 +1881,7 @@ public class IntervalTest {
     // Field value out of range
     //  (default, explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' SECOND")
-        .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
+        .columnType("INTERVAL SECOND NOT NULL");
     f.wholeExpr("INTERVAL '100' SECOND(2)")
         .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' SECOND(3)")

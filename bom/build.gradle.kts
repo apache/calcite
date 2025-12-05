@@ -21,7 +21,7 @@ plugins {
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
 // Note: Gradle allows to declare dependency on "bom" as "api",
-// and it makes the contraints to be transitively visible
+// and it makes the constraints to be transitively visible
 // However Maven can't express that, so the approach is to use Gradle resolution
 // and generate pom files with resolved versions
 // See https://github.com/gradle/gradle/issues/9866
@@ -54,8 +54,7 @@ dependencies {
         apiv("cn.hutool:hutool-all")
         apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
-        apiv("com.datastax.oss:java-driver-core", "cassandra-java-driver-core")
-        apiv("com.fasterxml.jackson.core:jackson-databind")
+        apiv("org.apache.cassandra:java-driver-core", "cassandra-java-driver-core")
         apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.oshi:oshi-core")
         apiv("com.github.stephenc.jcip:jcip-annotations")
@@ -93,7 +92,9 @@ dependencies {
         apiv("net.hydromatic:quidem")
         apiv("net.hydromatic:scott-data-hsqldb")
         apiv("net.hydromatic:sql-logic-test")
+        apiv("net.hydromatic:steelwheels-data-hsqldb")
         apiv("net.hydromatic:tpcds", "hydromatic.tpcds")
+        apiv("net.minidev:json-smart")
         apiv("net.java.dev.jna:jna")
         apiv("net.java.dev.jna:jna-platform")
         apiv("net.sf.opencsv:opencsv")
@@ -148,6 +149,7 @@ dependencies {
         apiv("org.hsqldb:hsqldb")
         apiv("org.incava:java-diff")
         apiv("org.jboss:jandex")
+        apiv("org.jooq:joou-java-6", "joou")
         apiv("org.jsoup:jsoup")
         apiv("org.junit:junit-bom", "junit5")
         apiv("org.mockito:mockito-core", "mockito")

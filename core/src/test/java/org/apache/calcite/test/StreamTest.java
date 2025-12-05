@@ -142,7 +142,7 @@ public class StreamTest {
                 + "      LogicalProject(ROWTIME=[FLOOR($0, FLAG(HOUR))], PRODUCT=[$2])\n"
                 + "        LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
-            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[>($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[>($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
                 + "  EnumerableAggregate(group=[{0, 1}], C=[COUNT()])\n"
                 + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2])\n"
                 + "      EnumerableInterpreter\n"

@@ -1,0 +1,508 @@
+# measure-paper.iq - Examples from the 'Measures in SQL' paper
+# (Julian Hyde and John Fremlin; SIGMOD 2024;
+# https://doi.org/10.1145/3626246.3653374)
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!set outputformat mysql
+!use scott
+
+# "Measures in SQL" paper
+
+# Table 1: Customers table
+CREATE VIEW "Customers" AS
+SELECT * FROM (VALUES
+ ('Alice', 23),
+ ('Bob', 41),
+ ('Celia', 17))
+  AS t ("custName", "age");
+(0 rows modified)
+
+!update
+
+# Table 2: Orders table
+CREATE VIEW "Orders" AS
+SELECT * FROM (VALUES
+ ('Happy', 'Alice', DATE '2023-11-28', 6, 4),
+ ('Acme', 'Bob', DATE '2023-11-27', 5, 2),
+ ('Happy', 'Alice', DATE '2024-11-28', 7, 4),
+ ('Whizz', 'Celia', DATE '2023-11-25', 3, 1),
+ ('Happy', 'Bob', DATE '2022-11-27', 4, 1))
+  AS t ("prodName", "custName", "orderDate", "revenue", "cost");
+(0 rows modified)
+
+!update
+
+# Listing 1: Summarizing Orders by product name
+SELECT "prodName",
+  COUNT (*) AS c,
+  CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+    AS "profitMargin"
+FROM "Orders"
+GROUP BY "prodName";
++----------+---+--------------------+
+| prodName | C | profitMargin       |
++----------+---+--------------------+
+| Acme     | 1 |               0.60 |
+| Happy    | 3 | 0.4705882352941176 |
+| Whizz    | 1 | 0.6666666666666667 |
++----------+---+--------------------+
+(3 rows)
+
+!ok
+
+# Listing 2: Summarized Orders view
+CREATE VIEW "SummarizedOrders" AS
+  SELECT "prodName", "orderDate",
+    CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+      AS "profitMargin"
+  FROM "Orders"
+  GROUP BY "prodName", "orderDate";
+(0 rows modified)
+
+!update
+
+# 2.1
+SELECT "prodName", AVG("profitMargin") AS "m"
+FROM "SummarizedOrders"
+GROUP BY "prodName";
++----------+----------+
+| prodName | m        |
++----------+----------+
+| Acme     | 0.600000 |
+| Happy    | 0.503968 |
+| Whizz    | 0.666666 |
++----------+----------+
+(3 rows)
+
+!ok
+
+# 2.2
+SELECT *
+FROM "SummarizedOrders";
++----------+------------+--------------------+
+| prodName | orderDate  | profitMargin       |
++----------+------------+--------------------+
+| Acme     | 2023-11-27 |               0.60 |
+| Happy    | 2022-11-27 |               0.75 |
+| Happy    | 2023-11-28 | 0.3333333333333333 |
+| Happy    | 2024-11-28 | 0.4285714285714286 |
+| Whizz    | 2023-11-25 | 0.6666666666666667 |
++----------+------------+--------------------+
+(5 rows)
+
+!ok
+
+# Alternative view #1 - group by prodName, custName
+SELECT "prodName", "custName",
+  CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+    AS "profitMargin"
+FROM "Orders"
+GROUP BY "prodName", "custName";
++----------+----------+--------------------+
+| prodName | custName | profitMargin       |
++----------+----------+--------------------+
+| Acme     | Bob      |               0.60 |
+| Happy    | Alice    | 0.3846153846153846 |
+| Happy    | Bob      |               0.75 |
+| Whizz    | Celia    | 0.6666666666666667 |
++----------+----------+--------------------+
+(4 rows)
+
+!ok
+
+# Alternative view #2 - group by prodName
+SELECT "prodName",
+  CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+    AS "profitMargin"
+FROM "Orders"
+GROUP BY "prodName";
++----------+--------------------+
+| prodName | profitMargin       |
++----------+--------------------+
+| Acme     |               0.60 |
+| Happy    | 0.4705882352941176 |
+| Whizz    | 0.6666666666666667 |
++----------+--------------------+
+(3 rows)
+
+!ok
+
+# Alternative view #3 - group by prodName, orderDate, custName
+SELECT "prodName", "orderDate", "custName",
+  CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+    AS "profitMargin"
+FROM "Orders"
+GROUP BY "prodName", "orderDate", "custName";
++----------+------------+----------+--------------------+
+| prodName | orderDate  | custName | profitMargin       |
++----------+------------+----------+--------------------+
+| Acme     | 2023-11-27 | Bob      |               0.60 |
+| Happy    | 2022-11-27 | Bob      |               0.75 |
+| Happy    | 2023-11-28 | Alice    | 0.3333333333333333 |
+| Happy    | 2024-11-28 | Alice    | 0.4285714285714286 |
+| Whizz    | 2023-11-25 | Celia    | 0.6666666666666667 |
++----------+------------+----------+--------------------+
+(5 rows)
+
+!ok
+
+# Alternative view #4 - group by custName
+SELECT "custName",
+  CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+    AS "profitMargin"
+FROM "Orders"
+GROUP BY "custName";
++----------+--------------------+
+| custName | profitMargin       |
++----------+--------------------+
+| Alice    | 0.3846153846153846 |
+| Bob      | 0.6666666666666667 |
+| Celia    | 0.6666666666666667 |
++----------+--------------------+
+(3 rows)
+
+!ok
+
+# Listing 3: EnhancedOrders view
+CREATE VIEW "EnhancedOrders" AS
+  SELECT "orderDate", "prodName",
+    (SUM("revenue") - SUM("cost")) / SUM("revenue")
+      AS MEASURE "profitMargin"
+  FROM "Orders";
+(0 rows modified)
+
+!update
+
+# 3.1
+# Disabled - cannot plan
+!if (false) {
+SELECT "prodName", AGGREGATE("profitMargin")
+FROM "EnhancedOrders"
+GROUP BY "prodName";
+!ok
+!}
+
+# Listing 4: Evaluating a query
+# Disabled - cannot plan
+!if (false) {
+SELECT "prodName", AGGREGATE("profitMargin") AS "profitMargin",
+  COUNT (*) AS "count"
+FROM "EnhancedOrders"
+GROUP BY "prodName";
++----------+--------------+-------+
+| prodName | profitMargin | count |
++----------+--------------+-------+
+| Acme     |         0.60 |     1 |
+| Happy    |         0.47 |     3 |
+| Whizz    |         0.67 |     1 |
++----------+--------------+-------+
+(3 rows)
+
+!ok
+!}
+
+# Listing 5: Query after expansion of measure
+SELECT "prodName",
+  (SELECT
+      CAST(SUM(i."revenue") - SUM(i."cost") AS DECIMAL(4, 2)) / SUM(i."revenue")
+    FROM "Orders" AS i
+    WHERE i."prodName" = o."prodName") AS "profitMargin",
+  COUNT(*) AS "count"
+FROM "Orders" AS o
+GROUP BY "prodName";
++----------+--------------+-------+
+| prodName | profitMargin | count |
++----------+--------------+-------+
+| Acme     |     0.600000 |     1 |
+| Happy    |     0.470588 |     3 |
+| Whizz    |     0.666666 |     1 |
++----------+--------------+-------+
+(3 rows)
+
+!ok
+
+# Profit margin for 'Happy' orders for each customer
+SELECT "custName",
+  CAST(SUM("revenue") - SUM("cost") AS DECIMAL(4,2)) / SUM("revenue")
+    AS "profitMargin"
+FROM "Orders"
+WHERE "prodName" = 'Happy'
+GROUP BY "custName";
++----------+--------------------+
+| custName | profitMargin       |
++----------+--------------------+
+| Alice    | 0.3846153846153846 |
+| Bob      |               0.75 |
++----------+--------------------+
+(2 rows)
+
+!ok
+
+# Listing 6: Query with proportion of total revenue
+# Disabled - AT not supported
+!if (false) {
+SELECT "prodName", "sumRevenue",
+  "sumRevenue" / "sumRevenue" AT (ALL "prodName")
+    AS "proportionOfTotalRevenue"
+FROM (SELECT *,
+    SUM("revenue") AS MEASURE "sumRevenue"
+  FROM Orders) AS o
+GROUP BY "prodName";
+!ok
+!}
+
+# Listing 7: Comparing profit margins in 2023 and 2024
+# Disabled - AT not supported
+!if (false) {
+SELECT "prodName", "orderYear",
+  "profitMargin",
+  "profitMargin" AT (SET "orderYear" = CURRENT "orderYear" - 1)
+    AS "profitMarginLastYear"
+FROM (SELECT *,
+    (SUM("revenue") - SUM("cost")) / SUM("revenue")
+      AS MEASURE "profitMargin",
+    YEAR("orderDate") AS "orderYear"
+  FROM "Orders")
+WHERE "orderYear" = 2024
+GROUP BY "prodName", "orderYear";
++----------+-----------+--------------+----------------------+
+| prodName | orderYear | profitMargin | profitMarginLastYear |
++----------+-----------+--------------+----------------------+
+| Happy    |      2024 |          1.0 |                  1.0 |
++----------+-----------+--------------+----------------------+
+(3 rows)
+
+!ok
+!}
+
+# Listing 8: Query with visible totals
+# Disabled - AT not supported
+!if (false) {
+SELECT o."prodName",
+  COUNT(*) AS "c",
+  AGGREGATE(o."sumRevenue") AS "rAgg",
+  o."sumRevenue" AT (VISIBLE) AS "rViz",
+  o."sumRevenue" AS r
+FROM (SELECT *,
+    SUM("revenue") AS MEASURE "sumRevenue"
+  FROM "Orders") AS o
+WHERE o."custName" <> 'Bob'
+GROUP BY ROLLUP(o."prodName");
++----------+---+------+------+-----+
+| prodName | c | rAgg | rViz | r   |
++----------+---+------+------+-----+
+| Happy    | 2 |   13 |   13 |  17 |
+| Whizz    | 1 |    3 |    3 |   3 |
+|          | 3 |   16 |   16 |  25 |
++----------+---+------+------+-----+
+(3 rows)
+
+!ok
+!}
+
+# Listing 9: Joining measures
+# Disabled - AT not supported
+!if (false) {
+WITH "EnhancedCustomers" AS (
+  SELECT *, AVG("age") AS MEASURE "avgAge"
+  FROM "Customers")
+SELECT o."prodName",
+  COUNT(*) AS "orderCount",
+  AVG(c."age") AS "weightedAvgAge",
+  c."avgAge" AS "avgAge",
+  c."avgAge" AT (VISIBLE) AS "visibleAvgAge"
+FROM "Orders" AS o
+JOIN "EnhancedCustomers" AS c USING ("custName")
+WHERE e."age" >= 18
+GROUP BY o."prodName";
+!ok
+!}
+
+# Listing 9, simplified
+# Disabled - UnsupportedOperationException at org.apache.calcite.rel.metadata.RelMdMeasure.expand
+!if (false) {
+WITH "EnhancedCustomers" AS (
+  SELECT *, AVG("age") AS MEASURE "avgAge"
+  FROM "Customers")
+SELECT o."prodName",
+  AVG(c."age") AS "weightedAvgAge",
+  c."avgAge" AS "avgAge"
+FROM "Orders" AS o
+JOIN "EnhancedCustomers" AS c USING ("custName")
+GROUP BY o."prodName";
+!ok
+!}
+
+# Using WITHIN DISTINCT
+WITH EnhancedCustomers AS (
+  SELECT *, AVG("age") AS MEASURE "avgAge"
+  FROM "Customers")
+SELECT o."prodName",
+  AVG(c."age") AS "weightedAvgAge",
+  AVG(c."age") WITHIN DISTINCT (c."custName") AS "avgAge"
+FROM "Orders" AS o
+JOIN EnhancedCustomers AS c USING ("custName")
+GROUP BY o."prodName";
++----------+----------------+--------+
+| prodName | weightedAvgAge | avgAge |
++----------+----------------+--------+
+| Acme     |             41 |     41 |
+| Happy    |             29 |     32 |
+| Whizz    |             17 |     17 |
++----------+----------------+--------+
+(3 rows)
+
+!ok
+
+# Listing 10: Year over year revenue by product
+CREATE VIEW "OrdersWithRevenue" AS
+  SELECT *, SUM("revenue") AS MEASURE "sumRevenue"
+  FROM "Orders";
+(0 rows modified)
+
+!update
+
+# 10.1
+# Disabled - AT not supported
+!if (false) {
+SELECT "prodName", YEAR("orderDate") AS "orderYear",
+  "sumRevenue" / "sumRevenue" AT
+    (SET "orderYear" = CURRENT "orderYear" - 1) AS "ratio"
+FROM "OrdersWithRevenue"
+GROUP BY "prodName", YEAR("orderDate");
+!ok
+!}
+
+# Listing 11: Expansion of query comparing average revenue
+# 11.1 Row definition
+# Disabled - CREATE TYPE not supported
+!if (false) {
+#CREATE TYPE "OrdersRow" AS
+#  ROW ("prodName": VARCHAR,
+#       "custName": VARCHAR,
+#       "orderDate": DATE,
+#       "revenue": INTEGER,
+#       "cost": INTEGER);
+#!update
+!}
+
+# 11.2 Auxiliary computation for sumRevenue
+# Disabled - CREATE FUNCTION not supported
+!if (false) {
+#CREATE FUNCTION "computeSumRevenue"(
+#  "rowPredicate" : FUNCTION(r: "OrdersRow")
+#    RETURNS BOOLEAN) AS
+#SELECT SUM(o."revenue")
+#FROM "Orders" AS o
+#WHERE APPLY("rowPredicate", o);
+#!update
+!}
+
+# 11.3 After expansion of sumRevenue occurrences
+!if (false) {
+SELECT o.prodName, YEAR(o."orderDate") AS orderYear,
+    computeSumRevenue(
+      r -> r."prodName" = o."prodName" AND
+           YEAR(r."orderDate") = YEAR(o."orderDate"))
+  / computeSumRevenue (
+      r -> r."prodName" = o."prodName" AND
+           YEAR(r."orderDate") = YEAR(o."orderDate") - 1)
+  AS "ratio"
+FROM "Orders" AS o
+GROUP BY "prodName", YEAR("orderDate");
+!ok
+!}
+
+# Listing 12: Four equivalent queries to find orders with more
+# revenue than average for their product
+
+# 12.1 Query 1: correlated subquery
+SELECT o."prodName", o."orderDate"
+FROM "Orders" AS o
+WHERE o."revenue" >
+  (SELECT AVG("revenue")
+    FROM "Orders" AS o1
+    WHERE o1."prodName" = o."prodName");
++----------+------------+
+| prodName | orderDate  |
++----------+------------+
+| Happy    | 2023-11-28 |
+| Happy    | 2024-11-28 |
++----------+------------+
+(2 rows)
+
+!ok
+
+# 12.2 Query 2: self-join
+SELECT o."prodName", o."orderDate"
+FROM "Orders" AS o
+LEFT JOIN
+  (SELECT "prodName", AVG("revenue") AS "avgRevenue"
+    FROM "Orders"
+    GROUP BY "prodName") AS o2
+ON o."prodName" = o2."prodName"
+WHERE o."revenue" > o2."avgRevenue";
++----------+------------+
+| prodName | orderDate  |
++----------+------------+
+| Happy    | 2023-11-28 |
+| Happy    | 2024-11-28 |
++----------+------------+
+(2 rows)
+
+!ok
+
+# 12.3 Query 3: window aggregate
+SELECT o."prodName", o."orderDate"
+FROM
+  (SELECT "prodName", "revenue", "orderDate",
+      AVG("revenue") OVER (PARTITION BY "prodName")
+        AS "avgRevenue"
+    FROM "Orders") AS o
+    WHERE o."revenue" > o."avgRevenue";
++----------+------------+
+| prodName | orderDate  |
++----------+------------+
+| Happy    | 2023-11-28 |
+| Happy    | 2024-11-28 |
++----------+------------+
+(2 rows)
+
+!ok
+
+# 12.4 Query 4: measures
+# Disabled - AT not supported
+!if (false) {
+SELECT o."prodName", o."orderDate"
+FROM
+  (SELECT "prodName", "orderDate", "revenue",
+      AVG("revenue") AS MEASURE "avgRevenue"
+    FROM "Orders") AS o
+    WHERE o."revenue" >
+      o."avgRevenue" AT (WHERE "prodName" = o."prodName");
++----------+------------+
+| prodName | orderDate  |
++----------+------------+
+| Happy    | 2023-11-28 |
+| Happy    | 2024-11-28 |
++----------+------------+
+(2 rows)
+
+!ok
+!}
+
+# End measure-paper.iq

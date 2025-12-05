@@ -65,7 +65,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see SqlStdOperatorTable#SEARCH
  */
-@SuppressWarnings({"BetaApi", "type.argument.type.incompatible", "UnstableApiUsage"})
+@SuppressWarnings("type.argument.type.incompatible")
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final RexUnknownAs nullAs;

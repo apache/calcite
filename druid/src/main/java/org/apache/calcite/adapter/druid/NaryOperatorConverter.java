@@ -24,7 +24,8 @@ import org.apache.calcite.sql.SqlOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Converts Calcite n-ary operators to Druid expressions, for example
@@ -35,8 +36,9 @@ public class NaryOperatorConverter implements DruidSqlOperatorConverter {
   private final String druidOperatorName;
 
   public NaryOperatorConverter(SqlOperator operator, String druidOperatorName) {
-    this.operator = Objects.requireNonNull(operator, "operator");
-    this.druidOperatorName = Objects.requireNonNull(druidOperatorName, "druidOperatorName");
+    this.operator = requireNonNull(operator, "operator");
+    this.druidOperatorName =
+        requireNonNull(druidOperatorName, "druidOperatorName");
   }
 
   @Override public SqlOperator calciteOperator() {

@@ -24,6 +24,9 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.net.URI;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -77,7 +80,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
           throw new IllegalArgumentException(
               "Must specify 'password' property");
         }
-        URL url2 = new URL(url1);
+        URL url2 = URI.create(url1).toURL();
         splunkConnection = new SplunkConnectionImpl(url2, user, password);
       }
     } catch (Exception e) {
@@ -93,12 +96,13 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   @SuppressWarnings("unused")
   private static class MockSplunkConnection implements SplunkConnection {
     @Override public Enumerator<Object> getSearchResultEnumerator(String search,
-        Map<String, String> otherArgs, List<String> fieldList) {
+        Map<String, String> otherArgs, @Nullable List<String> fieldList) {
       throw new NullPointerException();
     }
 
-    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-        List<String> fieldList, SearchResultListener srl) {
+    @Override public void getSearchResults(String search,
+        Map<String, String> otherArgs,
+        @Nullable List<String> fieldList, SearchResultListener srl) {
       throw new UnsupportedOperationException();
     }
   }
@@ -106,22 +110,19 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   /** Connection that records requests and responses. */
   @SuppressWarnings("unused")
   private static class WrappingSplunkConnection implements SplunkConnection {
-    @SuppressWarnings("unused")
-    private final SplunkConnection connection;
-
     WrappingSplunkConnection(SplunkConnection connection) {
-      this.connection = connection;
     }
 
-    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-        List<String> fieldList, SearchResultListener srl) {
+    @Override public void getSearchResults(String search,
+        Map<String, String> otherArgs,
+        @Nullable List<String> fieldList, SearchResultListener srl) {
       System.out.println("search='" + search
           + "', otherArgs=" + otherArgs
           + ", fieldList='" + fieldList);
     }
 
     @Override public Enumerator<Object> getSearchResultEnumerator(String search,
-        Map<String, String> otherArgs, List<String> fieldList) {
+        Map<String, String> otherArgs, @Nullable List<String> fieldList) {
       throw new UnsupportedOperationException();
     }
   }

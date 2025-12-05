@@ -44,7 +44,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CsvStreamScannableTable extends CsvScannableTable
     implements StreamableTable {
   /** Creates a CsvScannableTable. */
-  CsvStreamScannableTable(Source source, RelProtoDataType protoRowType) {
+  CsvStreamScannableTable(Source source,
+      @Nullable RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 

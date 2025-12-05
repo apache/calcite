@@ -23,7 +23,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A trait that consists of a list of traits, all of the same type.
@@ -42,7 +43,7 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
   // Must remain private. Does not copy the array.
   private RelCompositeTrait(RelTraitDef traitDef, T[] traits) {
     this.traitDef = traitDef;
-    this.traits = Objects.requireNonNull(traits, "traits");
+    this.traits = requireNonNull(traits, "traits");
     //noinspection unchecked
     assert Ordering.natural()
         .isStrictlyOrdered(Arrays.asList((Comparable[]) traits))

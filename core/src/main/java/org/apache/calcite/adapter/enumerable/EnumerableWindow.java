@@ -46,6 +46,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -301,7 +302,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       }
 
       declareAndResetState(typeFactory, builder, result, windowIdx, aggs,
-          outputPhysType, outputRow);
+          outputPhysType, outputRow, group.exclude);
 
       // There are assumptions that minX==0. If ever change this, look for
       // frameRowCount, bounds checking, etc
@@ -400,11 +401,17 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       }
 
       Expression lowerBoundCanChange =
-          group.lowerBound.isUnbounded() && group.lowerBound.isPreceding()
+          group.lowerBound.isUnboundedPreceding()
           ? Expressions.constant(false)
           : Expressions.notEqual(startX, prevStart);
+
+      Expression isExcluding =
+          Expressions.constant(group.exclude != RexWindowExclusion.EXCLUDE_NO_OTHER);
+
+      // If there's exclude clause we need to recompute the window every time, as rows can affect
+      // differently for the same frame.
       Expression needRecomputeWindow =
-          Expressions.orElse(lowerBoundCanChange,
+          Expressions.orElse(Expressions.orElse(isExcluding, lowerBoundCanChange),
               Expressions.lessThan(endX, prevEnd));
 
       BlockStatement resetWindowState = builder6.toBlock();
@@ -458,15 +465,17 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       };
 
       implementAdd(aggs, builder7, resultContextBuilder, rexArguments, jDecl);
-
       BlockStatement forBlock = builder7.toBlock();
+
+      // Don't run the aggregate function if current row is excluded
+      Statement exclude = buildExcludeGuard(group, comparator_, i_, jDecl, rows_, forBlock);
       if (!forBlock.statements.isEmpty()) {
         // For instance, row_number does not use for loop to compute the value
         Statement forAggLoop =
             Expressions.for_(Arrays.asList(jDecl),
                 Expressions.lessThanOrEqual(jDecl.parameter, endX),
                 Expressions.preIncrementAssign(jDecl.parameter),
-                forBlock);
+                exclude);
         if (!hasRows.equals(Expressions.constant(true))) {
           forAggLoop = Expressions.ifThen(hasRows, forAggLoop);
         }
@@ -518,6 +527,29 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     builder.add(
         Expressions.return_(null, source_));
     return implementor.result(inputPhysType, builder.toBlock());
+  }
+
+  private static Statement buildExcludeGuard(Group group, Expression comparator,
+      ParameterExpression currentRow,
+      DeclarationStatement jDecl, Expression rows, BlockStatement forBlock) {
+    if (group.exclude == RexWindowExclusion.EXCLUDE_CURRENT_ROW) {
+      return Expressions.ifThen(Expressions.notEqual(currentRow, jDecl.parameter), forBlock);
+    } else if (group.exclude == RexWindowExclusion.EXCLUDE_GROUP) {
+      return Expressions.ifThen(
+          Expressions.notEqual(Expressions.constant(0),
+              Expressions.call(comparator, BuiltInMethod.COMPARATOR_COMPARE.method,
+                  Expressions.arrayIndex(rows, currentRow),
+                  Expressions.arrayIndex(rows, jDecl.parameter))), forBlock);
+    } else if (group.exclude == RexWindowExclusion.EXCLUDE_TIES) {
+      return Expressions.ifThen(
+          Expressions.or(Expressions.equal(currentRow, jDecl.parameter),
+              Expressions.notEqual(Expressions.constant(0),
+                  Expressions.call(comparator, BuiltInMethod.COMPARATOR_COMPARE.method,
+                      Expressions.arrayIndex(rows, currentRow),
+                      Expressions.arrayIndex(rows, jDecl.parameter)))), forBlock);
+    } else {
+      return forBlock;
+    }
   }
 
   private static Function<BlockBuilder, WinAggFrameResultContext>
@@ -741,7 +773,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   private void declareAndResetState(final JavaTypeFactory typeFactory,
       BlockBuilder builder, final Result result, int windowIdx,
       List<AggImpState> aggs, PhysType outputPhysType,
-      List<Expression> outputRow) {
+      List<Expression> outputRow, RexWindowExclusion exclusion) {
     for (final AggImpState agg : aggs) {
       agg.context =
           new WinAggContext() {
@@ -781,6 +813,10 @@ public class EnumerableWindow extends Window implements EnumerableRel {
 
             @Override public List<? extends Type> keyTypes() {
               throw new UnsupportedOperationException();
+            }
+
+            @Override public RexWindowExclusion getExclude() {
+              return exclusion;
             }
           };
       String aggName = "a" + agg.aggIdx;

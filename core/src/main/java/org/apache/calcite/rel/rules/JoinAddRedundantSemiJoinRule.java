@@ -74,7 +74,7 @@ public class JoinAddRedundantSemiJoinRule
 
     // determine if we have a valid join condition
     final JoinInfo joinInfo = origJoinRel.analyzeCondition();
-    if (joinInfo.leftKeys.size() == 0) {
+    if (joinInfo.leftKeys.isEmpty()) {
       return;
     }
 

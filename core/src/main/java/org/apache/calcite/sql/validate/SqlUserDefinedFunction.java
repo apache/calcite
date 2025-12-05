@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
@@ -41,6 +42,8 @@ import java.util.List;
 */
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;
+
+  public final SqlSyntax syntax;
 
   @Deprecated // to be removed before 2.0
   public SqlUserDefinedFunction(SqlIdentifier opName,
@@ -63,7 +66,17 @@ public class SqlUserDefinedFunction extends SqlFunction {
       @Nullable SqlOperandMetadata operandMetadata,
       Function function) {
     this(opName, kind, returnTypeInference, operandTypeInference,
-        operandMetadata, function, SqlFunctionCategory.USER_DEFINED_FUNCTION);
+        operandMetadata, function, SqlFunctionCategory.USER_DEFINED_FUNCTION, SqlSyntax.FUNCTION);
+  }
+
+  /** Creates a {@link SqlUserDefinedFunction} with sql syntax. */
+  public SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandMetadata operandMetadata,
+      Function function, SqlSyntax syntax) {
+    this(opName, kind, returnTypeInference, operandTypeInference,
+        operandMetadata, function, SqlFunctionCategory.USER_DEFINED_FUNCTION, syntax);
   }
 
   /** Constructor used internally and by derived classes. */
@@ -72,14 +85,19 @@ public class SqlUserDefinedFunction extends SqlFunction {
       SqlOperandTypeInference operandTypeInference,
       @Nullable SqlOperandMetadata operandMetadata,
       Function function,
-      SqlFunctionCategory category) {
+      SqlFunctionCategory category, SqlSyntax syntax) {
     super(Util.last(opName.names), opName, kind, returnTypeInference,
         operandTypeInference, operandMetadata, category);
     this.function = function;
+    this.syntax = syntax;
   }
 
   @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
     return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
+  }
+
+  @Override public SqlSyntax getSyntax() {
+    return syntax;
   }
 
   /**

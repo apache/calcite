@@ -24,7 +24,8 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree node for "{@code FOR SYSTEM_TIME AS OF}" temporal clause.
@@ -41,8 +42,8 @@ public class SqlSnapshot extends SqlCall {
   /** Creates a SqlSnapshot. */
   public SqlSnapshot(SqlParserPos pos, SqlNode tableRef, SqlNode period) {
     super(pos);
-    this.tableRef = Objects.requireNonNull(tableRef, "tableRef");
-    this.period = Objects.requireNonNull(period, "period");
+    this.tableRef = requireNonNull(tableRef, "tableRef");
+    this.period = requireNonNull(period, "period");
   }
 
   // ~ Methods
@@ -66,10 +67,10 @@ public class SqlSnapshot extends SqlCall {
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
-      tableRef = Objects.requireNonNull(operand, "operand");
+      tableRef = requireNonNull(operand, "operand");
       break;
     case OPERAND_PERIOD:
-      period = Objects.requireNonNull(operand, "operand");
+      period = requireNonNull(operand, "operand");
       break;
     default:
       throw new AssertionError(i);

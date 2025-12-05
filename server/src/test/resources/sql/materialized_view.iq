@@ -39,12 +39,12 @@ select * from dept where deptno > 10;
 
 # Check contents
 select * from v;
-+--------+-------------+
-| DEPTNO | NAME        |
-+--------+-------------+
-|     20 | Marketing   |
-|     30 | Engineering |
-+--------+-------------+
++--------+------------+
+| DEPTNO | NAME       |
++--------+------------+
+|     20 | Marketing  |
+|     30 | Engineerin |
++--------+------------+
 (2 rows)
 
 !ok
@@ -64,12 +64,12 @@ select * from dept where deptno < 30;
 
 # Check contents are unchanged
 select * from v;
-+--------+-------------+
-| DEPTNO | NAME        |
-+--------+-------------+
-|     20 | Marketing   |
-|     30 | Engineering |
-+--------+-------------+
++--------+------------+
+| DEPTNO | NAME       |
++--------+------------+
+|     20 | Marketing  |
+|     30 | Engineerin |
++--------+------------+
 (2 rows)
 
 !ok

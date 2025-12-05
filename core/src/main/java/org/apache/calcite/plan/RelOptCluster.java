@@ -35,11 +35,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An environment for related relational expressions during the
@@ -87,8 +88,8 @@ public class RelOptCluster {
       Map<String, RelNode> mapCorrelToRel) {
     this.nextCorrel = nextCorrel;
     this.mapCorrelToRel = mapCorrelToRel;
-    this.planner = Objects.requireNonNull(planner, "planner");
-    this.typeFactory = Objects.requireNonNull(typeFactory, "typeFactory");
+    this.planner = requireNonNull(planner, "planner");
+    this.typeFactory = requireNonNull(typeFactory, "typeFactory");
     this.rexBuilder = rexBuilder;
     this.originalExpression = rexBuilder.makeLiteral("?");
 
@@ -228,7 +229,7 @@ public class RelOptCluster {
    * @param hintStrategies The specified hint strategies to override the default one(empty)
    */
   public void setHintStrategies(HintStrategyTable hintStrategies) {
-    Objects.requireNonNull(hintStrategies, "hintStrategies");
+    requireNonNull(hintStrategies, "hintStrategies");
     this.hintStrategies = hintStrategies;
   }
 

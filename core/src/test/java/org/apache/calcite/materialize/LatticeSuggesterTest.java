@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 package org.apache.calcite.materialize;
+
+import org.apache.calcite.materialize.Lattice.Measure;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
@@ -35,6 +37,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableBitSet.Builder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -56,6 +60,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import static org.apache.calcite.test.Matchers.isListOf;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -599,9 +605,8 @@ class LatticeSuggesterTest {
         .map(c -> (Lattice.DerivedColumn) c)
         .collect(Collectors.toList());
     assertThat(derivedColumns, hasSize(2));
-    final List<String> tables = ImmutableList.of("customer");
-    assertThat(derivedColumns.get(0).tables, is(tables));
-    assertThat(derivedColumns.get(1).tables, is(tables));
+    assertThat(derivedColumns.get(0).tables, isListOf("customer"));
+    assertThat(derivedColumns.get(1).tables, isListOf("customer"));
   }
 
   /** Tests a number of features only available in Redshift: the {@code CONCAT}
@@ -609,12 +614,13 @@ class LatticeSuggesterTest {
   @Test void testRedshiftDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
-        .withLibrary(SqlLibrary.POSTGRESQL);
+        .withLibrary(SqlLibrary.REDSHIFT);
 
     final String q0 = "select\n"
-        + "  CONCAT(\"fname\", ' ', \"lname\") as \"full_name\",\n"
+        // CONCAT function in RedShift only accepts two arguments
+        + "  CONCAT(\"fname\", \"lname\") as \"full_name\",\n"
         + "  convert_timezone('UTC', 'America/Los_Angeles',\n"
-        + "    cast('2019-01-01 01:00:00' as timestamp)),\n"
+        + "  cast('2019-01-01 01:00:00' as timestamp)),\n"
         + "  left(\"fname\", 1) as \"initial\",\n"
         + "  to_date('2019-01-01', 'YYYY-MM-DD'),\n"
         + "  to_timestamp('2019-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS'),\n"
@@ -719,6 +725,127 @@ class LatticeSuggesterTest {
   @Test void testFoodmartSimpleJoin() throws Exception {
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6374">[CALCITE-6374]
+   * LatticeSuggester throw NullPointerException when agg call covered with cast </a>. */
+  @Test void testCastAggrNameExpression() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  cast(sum(\"num_children_at_home\" + 11) as double) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM($f2)]";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
+        is(l0));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final List<Lattice.DerivedColumn> derivedColumns = lattice.columns.stream()
+        .filter(c -> c instanceof Lattice.DerivedColumn)
+        .map(c -> (Lattice.DerivedColumn) c)
+        .collect(Collectors.toList());
+    assertThat(derivedColumns, hasSize(4));
+    final List<String> tables = ImmutableList.of("customer");
+    checkDerivedColumn(lattice, tables, derivedColumns, 0, "n10", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 1, "$f2", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 2, "n12", false);
+    checkDerivedColumn(lattice, tables, derivedColumns, 3, "n11", false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6605">[CALCITE-6605]
+   * Lattice SQL supports complex column expressions </a>. */
+  @Test void testExpressionLatticeSql() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\") as \"n10\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final String l0 = "customer:[COUNT(), SUM(customer.num_children_at_home)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()), is(l0));
+    ImmutableList<Measure> measures = lattice.defaultMeasures;
+    assert measures.size() == 2;
+    Builder groupSetBuilder = ImmutableBitSet.builder();
+    measures.forEach(measure -> groupSetBuilder.addAll(measure.argBitSet()));
+    ImmutableBitSet groupSet = groupSetBuilder.build();
+    String sql = "SELECT \"customer\".\"num_children_at_home\", COUNT(*) AS \"m0\", "
+        + "SUM(\"customer\".\"num_children_at_home\") AS \"m1\"\n"
+        + "FROM \"foodmart\".\"customer\" AS \"customer\"\n"
+        + "GROUP BY \"customer\".\"num_children_at_home\"";
+    assertThat(lattice.sql(groupSet, true, measures),
+        is(sql));
+  }
+
+  /** Test case for measure field involving a complex column operation,
+   * for example sum("num_children_at_home" + 10). */
+  @Test void testExpressionLatticeSql2() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  sum(\"num_children_at_home\" + 11) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM(n11)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()), is(l0));
+    ImmutableList<Measure> measures = lattice.defaultMeasures;
+    assert measures.size() == 3;
+    Builder groupSetBuilder = ImmutableBitSet.builder();
+    measures.forEach(measure -> groupSetBuilder.addAll(measure.argBitSet()));
+    ImmutableBitSet groupSet = groupSetBuilder.build();
+    String sql = "SELECT \"num_children_at_home\" + 10 AS \"n10\", "
+        + "\"num_children_at_home\" + 11 AS \"n11\", COUNT(*) AS \"m0\", "
+        + "SUM(\"num_children_at_home\" + 10) AS \"m1\", "
+        + "SUM(\"num_children_at_home\" + 11) AS \"m2\"\n"
+        + "FROM \"foodmart\".\"customer\" AS \"customer\"\n"
+        + "GROUP BY \"num_children_at_home\" + 10, \"num_children_at_home\" + 11";
+    assertThat(lattice.sql(groupSet, true, measures),
+        is(sql));
+  }
+
+  /** Test case for measure field involving a complex column operation with functions,
+   * for example sum(cast("num_children_at_home" as double) + 11). */
+  @Test void testExpressionLatticeSql3() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  sum(cast(\"num_children_at_home\" as double) + 11) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM(n11)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()), is(l0));
+    ImmutableList<Measure> measures = lattice.defaultMeasures;
+    assert measures.size() == 3;
+    Builder groupSetBuilder = ImmutableBitSet.builder();
+    measures.forEach(measure -> groupSetBuilder.addAll(measure.argBitSet()));
+    ImmutableBitSet groupSet = groupSetBuilder.build();
+    String sql = "SELECT \"num_children_at_home\" + 10 AS \"n10\", "
+        + "CAST(\"num_children_at_home\" AS DOUBLE) + 11 AS \"n11\", "
+        + "COUNT(*) AS \"m0\", SUM(\"num_children_at_home\" + 10) AS \"m1\", "
+        + "SUM(CAST(\"num_children_at_home\" AS DOUBLE) + 11) AS \"m2\"\n"
+        + "FROM \"foodmart\".\"customer\" AS \"customer\"\n"
+        + "GROUP BY \"num_children_at_home\" + 10, CAST(\"num_children_at_home\" AS DOUBLE) + 11";
+    assertThat(lattice.sql(groupSet, true, measures),
+        is(sql));
   }
 
   private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec)

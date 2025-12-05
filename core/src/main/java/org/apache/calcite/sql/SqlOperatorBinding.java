@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.util.NlsString;
@@ -70,8 +71,24 @@ public abstract class SqlOperatorBinding {
    *
    * <p>Returns -1 if the query is not an aggregate query.
    */
+  @Deprecated
   public int getGroupCount() {
     return -1;
+  }
+
+  /**
+   * If the operator call occurs in an aggregate query, returns whether there are
+   * empty groups in the GROUP BY clause. For example,
+   *
+   * <pre>
+   * SELECT count(*) FROM emp GROUP BY deptno, gender;            returns false
+   * SELECT count(*) FROM emp;                                    returns true
+   * SELECT count(*) FROM emp GROUP BY ROLLUP(deptno, gender);    returns true
+   * </pre>
+   * Returns false if the query is not an aggregate query.
+   */
+  public boolean hasEmptyGroup() {
+    return false;
   }
 
   /**
@@ -299,4 +316,25 @@ public abstract class SqlOperatorBinding {
    */
   public abstract CalciteException newError(
       Resources.ExInst<SqlValidatorException> e);
+
+  /** Returns an operator binding equivalent that is equivalent to this
+   * except that a transform has been applied to each operand type. */
+  public SqlOperatorBinding transform(SqlTypeTransform typeTransform) {
+    final SqlOperatorBinding operatorBinding = this;
+    return new SqlOperatorBinding(typeFactory, sqlOperator) {
+      @Override public int getOperandCount() {
+        return operatorBinding.getOperandCount();
+      }
+
+      @Override public RelDataType getOperandType(int ordinal) {
+        return typeTransform.transformType(operatorBinding,
+            operatorBinding.getOperandType(ordinal));
+      }
+
+      @Override public CalciteException newError(
+          Resources.ExInst<SqlValidatorException> e) {
+        return operatorBinding.newError(e);
+      }
+    };
+  }
 }

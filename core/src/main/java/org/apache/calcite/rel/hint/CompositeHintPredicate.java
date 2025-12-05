@@ -20,6 +20,8 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * A {@link HintPredicate} to combine multiple hint predicates into one.
  *
@@ -35,8 +37,8 @@ public class CompositeHintPredicate implements HintPredicate {
 
   //~ Instance fields --------------------------------------------------------
 
-  private ImmutableList<HintPredicate> predicates;
-  private Composition composition;
+  private final ImmutableList<HintPredicate> predicates;
+  private final Composition composition;
 
   /**
    * Creates a {@link CompositeHintPredicate} with a {@link Composition}
@@ -47,12 +49,8 @@ public class CompositeHintPredicate implements HintPredicate {
    * to create a {@link CompositeHintPredicate}.
    */
   CompositeHintPredicate(Composition composition, HintPredicate... predicates) {
-    assert predicates != null;
-    assert predicates.length > 1;
-    for (HintPredicate predicate : predicates) {
-      assert predicate != null;
-    }
     this.predicates = ImmutableList.copyOf(predicates);
+    checkArgument(this.predicates.size() > 1);
     this.composition = composition;
   }
 

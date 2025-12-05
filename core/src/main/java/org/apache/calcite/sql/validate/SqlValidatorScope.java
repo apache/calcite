@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -65,7 +64,7 @@ public interface SqlValidatorScope {
   SqlNode getNode();
 
   /**
-   * Looks up a node with a given name. Returns null if none is found.
+   * Looks up a node with a given name. Adds the match(es) to the resolved if found.
    *
    * @param names       Name of node to find, maybe partially or fully qualified
    * @param nameMatcher Name matcher
@@ -140,7 +139,7 @@ public interface SqlValidatorScope {
               && SqlValidatorUtil.isMeasure(select.getSelectList().get(f.getIndex()));
         }
         return f != null
-            && f.getType().getSqlTypeName() == SqlTypeName.MEASURE;
+            && f.getType().isMeasure();
       }
     }
     return false;

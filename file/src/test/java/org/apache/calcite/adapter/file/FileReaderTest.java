@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -38,13 +39,13 @@ import static org.apache.calcite.util.TestUtil.getJavaMajorVersion;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import static java.lang.System.getProperty;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for FileReader.
@@ -60,7 +61,9 @@ class FileReaderTest {
           "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States");
 
   private static Source resource(String path) {
-    return Sources.of(FileReaderTest.class.getResource("/" + path));
+    final URL url =
+        requireNonNull(FileReaderTest.class.getResource("/" + path), "url");
+    return Sources.of(url);
   }
 
   private static String resourcePath(String path) {
@@ -80,7 +83,7 @@ class FileReaderTest {
     assumeTrue(!r.equals("OpenJDK Runtime Environment")
             || getJavaMajorVersion() > 10,
         "Java 10+ should have root certificates (JEP 319). Runtime is "
-            + r + ", Jave major version is " + getJavaMajorVersion());
+            + r + ", Java major version is " + getJavaMajorVersion());
 
     FileReader t = new FileReader(STATES_SOURCE);
     t.refresh();
@@ -109,7 +112,7 @@ class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - malformed URL. */
-  @Test void testFileReaderMalUrl() throws FileReaderException {
+  @Test void testFileReaderMalUrl() {
     try {
       final Source badSource = Sources.url("bad" + CITIES_SOURCE.url());
       fail("expected exception, got " + badSource);
@@ -143,7 +146,7 @@ class FileReaderTest {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
-    assertTrue(headings.get(1).text().equals("H1"));
+    assertThat(headings.get(1).text(), is("H1"));
   }
 
   /** Test {@link FileReader} with static file - data. */
@@ -152,9 +155,9 @@ class FileReaderTest {
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
-    assertTrue(row.get(2).text().equals("R0C2"));
+    assertThat(row.get(2).text(), is("R0C2"));
     row = i.next();
-    assertTrue(row.get(0).text().equals("R1C0"));
+    assertThat(row.get(0).text(), is("R1C0"));
   }
 
   /** Tests {@link FileReader} with bad static file - headings. */
@@ -162,7 +165,7 @@ class FileReaderTest {
     final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
-    assertTrue(headings.get(1).text().equals("H1"));
+    assertThat(headings.get(1).text(), is("H1"));
   }
 
   /** Tests {@link FileReader} with bad static file - data. */
@@ -171,9 +174,9 @@ class FileReaderTest {
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
-    assertTrue(row.get(2).text().equals("R0C2"));
+    assertThat(row.get(2).text(), is("R0C2"));
     row = i.next();
-    assertTrue(row.get(0).text().equals("R1C0"));
+    assertThat(row.get(0).text(), is("R1C0"));
   }
 
   /** Tests {@link FileReader} with no headings static file - data. */
@@ -182,7 +185,7 @@ class FileReaderTest {
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
-    assertTrue(row.get(2).text().equals("R0C2"));
+    assertThat(row.get(2).text(), is("R0C2"));
   }
 
   /** Tests {@link FileReader} iterator with a static file. */
@@ -193,8 +196,8 @@ class FileReaderTest {
     for (Elements aT : t) {
       row = aT;
     }
-    assertFalse(row == null);
-    assertTrue(row.get(1).text().equals("R2C1"));
+    assertNotNull(row);
+    assertThat(row.get(1).text(), is("R2C1"));
   }
 
   /** Tests reading a CSV file via the file adapter. Based on the test case for

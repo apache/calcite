@@ -1,0 +1,154 @@
+# hep.iq - hep tests can customizable optimization rules for hep planner
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# This documents the required format for .iq files containing hep planner rule configurations
+#
+# SYNTAX:
+# -------
+# !set hep-rules "
+# +CoreRules.RULE_NAME1,
+# -CoreRules.RULE_NAME2,
+# +EnumerableRules.ENUMERABLE_RULE_NAME"
+#
+# RULES FORMAT SPECIFICATION:
+# ---------------------------
+# 1. Must begin with: !set hep-rules " (double quote)
+# 2. Each rule must be on its own line. All lines except last must end with comma.
+#    The last rule line must close with " (double quote) on final line
+# 3. Rules must start with - (remove) or + (add)
+#
+# RULE PROCESSING LOGIC:
+# ----------------------
+# 1. Rule prefix interpretation:
+#    - CoreRules.RULE_NAME -> added/removed from hep program
+#    - EnumerableRules.RULE_NAME -> added/removed from volcano program
+#    - RULE_NAME (no prefix) -> treated as CoreRules, added/removed from hep program
+# 2. Duplicate operations on the same rule: last operation wins
+#    Example: "+Rule1,+Rule1,-Rule1" results in rule being removed
+# 3. Optimizer execution pipeline:
+#    The optimizer uses a multi-program architecture with the following execution order:
+#    - SubQuery program — executed to handle subqueries
+#    - Decorrelate program — executed to remove correlated subqueries
+#    - Trim program — executed to remove unused columns
+#    - HEP program — executed by HepPlanner; initial rules set by CoreRules.*
+#    - Volcano program — executed by VolcanoPlanner; initial rules set by EnumerableRules.ENUMERABLE_RULES
+#      and modified by configurable EnumerableRules.* rule sets
+#    - Calc program — executed by HepPlanner; initial rules set by RelOptRules.CALC_RULES (non-configurable)
+
+!use scott
+!set outputformat mysql
+
+# The hep-rules test is functioning correctly.
+!set hep-rules "
++CoreRules.PROJECT_FILTER_TRANSPOSE,
++CoreRules.UNION_FILTER_TO_FILTER"
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+UNION
+SELECT mgr, comm FROM emp WHERE comm > 5;
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
++------+---------+
+(3 rows)
+
+!ok
+EnumerableAggregate(group=[{0, 1}])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[=($t8, $t9)], expr#11=[CAST($t6):DECIMAL(12, 2)], expr#12=[5.00:DECIMAL(12, 2)], expr#13=[>($t11, $t12)], expr#14=[OR($t10, $t13)], MGR=[$t3], COMM=[$t6], $condition=[$t14])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!set hep-rules original
+
+# Testing with the planner-rules shows that due to cost-based selection issues,
+# the planner fails to choose a plan that includes the Aggregate operator.
+!set planner-rules "
++CoreRules.PROJECT_FILTER_TRANSPOSE,
++CoreRules.UNION_FILTER_TO_FILTER"
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+UNION
+SELECT mgr, comm FROM emp WHERE comm > 5;
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
++------+---------+
+(3 rows)
+
+!ok
+EnumerableUnion(all=[false])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[=($t8, $t9)], MGR=[$t3], COMM=[$t6], $condition=[$t10])
+    EnumerableTableScan(table=[[scott, EMP]])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], MGR=[$t3], COMM=[$t6], $condition=[$t10])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!set planner-rules original
+
+# This hep-rules test validates support for modifying EnumerableRules.
+!set hep-rules "
++CoreRules.PROJECT_FILTER_TRANSPOSE,
++CoreRules.UNION_FILTER_TO_FILTER,
+-EnumerableRules.ENUMERABLE_AGGREGATE_RULE"
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+UNION
+SELECT mgr, comm FROM emp WHERE comm > 5;
+Missing conversion is LogicalAggregate[convention: NONE -> ENUMERABLE]
+!error
+!set hep-rules original
+
+# This hep-rules test query with correlated subquery can be executed.
+!set hep-rules "
++CoreRules.PROJECT_FILTER_TRANSPOSE"
+
+SELECT e1.mgr, e1.comm
+FROM emp e1
+WHERE e1.mgr > 12
+  AND EXISTS (
+    SELECT 1
+    FROM emp e2
+    WHERE e2.mgr = e1.mgr
+      AND e2.comm > 5);
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
++------+---------+
+(5 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], MGR=[$t1], COMM=[$t2])
+  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[>($t8, $t9)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t3)], expr#12=[AND($t10, $t11)], MGR=[$t3], $condition=[$t12])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!set hep-rules original
+
+# End hep.iq

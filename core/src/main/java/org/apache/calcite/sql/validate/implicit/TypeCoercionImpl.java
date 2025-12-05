@@ -48,11 +48,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getScope;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 
@@ -291,18 +289,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return null;
     }
 
-    RelDataType commonType;
-    if (SqlTypeUtil.sameNamedType(type1, type2)) {
-      commonType = factory.leastRestrictive(Arrays.asList(type1, type2));
-    } else {
-      commonType = commonTypeForBinaryComparison(type1, type2);
-    }
+    RelDataType commonType = commonTypeForBinaryComparison(type1, type2);
     for (int i = 2; i < dataTypes.size() && commonType != null; i++) {
-      if (SqlTypeUtil.sameNamedType(commonType, dataTypes.get(i))) {
-        commonType = factory.leastRestrictive(Arrays.asList(commonType, dataTypes.get(i)));
-      } else {
-        commonType = commonTypeForBinaryComparison(commonType, dataTypes.get(i));
-      }
+      commonType = commonTypeForBinaryComparison(commonType, dataTypes.get(i));
     }
     return commonType;
   }
@@ -356,12 +345,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       // Case1: numeric literal and boolean
       if (lNode.getKind() == SqlKind.LITERAL) {
         BigDecimal val = ((SqlLiteral) lNode).getValueAs(BigDecimal.class);
-        if (val.compareTo(BigDecimal.ONE) == 0) {
-          SqlNode lNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+        if (val.compareTo(BigDecimal.ZERO) == 0) {
+          SqlNode lNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
           binding.getCall().setOperand(0, lNode1);
           return true;
         } else {
-          SqlNode lNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+          SqlNode lNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
           binding.getCall().setOperand(0, lNode1);
           return true;
         }
@@ -376,12 +365,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       // Case1: literal numeric + boolean
       if (rNode.getKind() == SqlKind.LITERAL) {
         BigDecimal val = ((SqlLiteral) rNode).getValueAs(BigDecimal.class);
-        if (val.compareTo(BigDecimal.ONE) == 0) {
-          SqlNode rNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+        if (val.compareTo(BigDecimal.ZERO) == 0) {
+          SqlNode rNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
           binding.getCall().setOperand(1, rNode1);
           return true;
         } else {
-          SqlNode rNode1 = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+          SqlNode rNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
           binding.getCall().setOperand(1, rNode1);
           return true;
         }
@@ -393,11 +382,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * CASE and COALESCE type coercion, collect all the branches types including then
+   * CASE WHEN type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
-  @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+  @SuppressWarnings("deprecation")
+  public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     // For sql statement like:
     // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
     // an exception throws when entering this method.
@@ -428,6 +418,40 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             || coerced;
       }
       return coerced;
+    }
+    return false;
+  }
+
+  /**
+   * Coerces CASE WHEN and COALESCE statement branches to a unified type.
+   * NULLIF returns the same type as the first operand without return type coercion.
+   */
+  @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
+    if (callBinding.getCall().getKind() == SqlKind.COALESCE) {
+      // For sql statement like: `coalesce(a, b, c)`
+      return coalesceCoercion(callBinding);
+    } else if (callBinding.getCall().getKind() == SqlKind.NULLIF) {
+      // For sql statement like: `nullif(a, b)`
+      return false;
+    } else {
+      assert callBinding.getCall() instanceof SqlCase;
+      return caseWhenCoercion(callBinding);
+    }
+  }
+
+  /**
+   * COALESCE type coercion, collect all the branches types to find a common type,
+   * then cast the operands to the common type when needed.
+   */
+  private boolean coalesceCoercion(SqlCallBinding callBinding) {
+    List<RelDataType> argTypes = new ArrayList<>();
+    SqlValidatorScope scope = getScope(callBinding);
+    for (SqlNode node : callBinding.operands()) {
+      argTypes.add(validator.deriveType(scope, node));
+    }
+    RelDataType widerType = getWiderTypeFor(argTypes, true);
+    if (null != widerType) {
+      return coerceOperandsType(scope, callBinding.getCall(), widerType);
     }
     return false;
   }
@@ -491,6 +515,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       argTypes[0] = type1;
       argTypes[1] = type2;
       boolean coerced = false;
+
+      // Find the common types for RSH and LSH columns.
       List<RelDataType> widenTypes = new ArrayList<>();
       for (int i = 0; i < colCount; i++) {
         final int i2 = i;
@@ -520,12 +546,20 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         }
         widenTypes.add(widenType);
       }
-      // Find all the common type for RSH and LSH columns.
+
       assert widenTypes.size() == colCount;
+      if (!type1.isStruct()) {
+        // A "scalar" (non-ROW) type is in the LHS of the IN
+        coerced = coerceOperandType(scope, binding.getCall(), 0, widenTypes.get(0))
+            || coerced;
+      }
+
       for (int i = 0; i < widenTypes.size(); i++) {
         RelDataType desired = widenTypes.get(i);
         // LSH maybe a row values or single node.
         if (node1.getKind() == SqlKind.ROW) {
+          // E.g., SELECT ROW('a', 'b') IN (...)
+          // Coerce every field of the ROW to the desired type
           assert node1 instanceof SqlCall;
           if (coerceOperandType(scope, (SqlCall) node1, i, desired)) {
             updateInferredColumnType(
@@ -533,18 +567,28 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
                 node1, i, widenTypes.get(i));
             coerced = true;
           }
-        } else {
-          coerced = coerceOperandType(scope, binding.getCall(), 0, desired)
-              || coerced;
         }
-        // RHS may be a row values expression or sub-query.
+
+        // RHS may be a list of expressions or a sub-query.
         if (node2 instanceof SqlNodeList) {
+          // A list of expressions, e.g., SELECT x IN (a, b, c)
+          //                                          ^^^^^^^^^
+          // In this case we try to coerce every expression in the list to the same type
+          // (this may not be possible)
           final SqlNodeList node3 = (SqlNodeList) node2;
           boolean listCoerced = false;
           if (type2.isStruct()) {
-            for (SqlNode node : (SqlNodeList) node2) {
-              assert node instanceof SqlCall;
-              listCoerced = coerceOperandType(scope, (SqlCall) node, i, desired) || listCoerced;
+            for (SqlNode node : node3) {
+              if (node instanceof SqlCall) {
+                SqlCall call = (SqlCall) node;
+                if (call.getKind() == SqlKind.ROW) {
+                  // An expression in the RHS list is a ROW expression.
+                  // e.g., SELECT x IN (ROW(1, 2), ...)
+                  //                    ^^^^^^^^^
+                  // In this case cast every field of the ROW to the corresponding desired type
+                  listCoerced = coerceOperandType(scope, (SqlCall) node, i, desired) || listCoerced;
+                }
+              }
             }
             if (listCoerced) {
               updateInferredColumnType(
@@ -561,7 +605,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           }
           coerced = coerced || listCoerced;
         } else {
-          // Another sub-query.
+          // Another sub-query, e.t. SELECT x IN (SELECT a, b FROM ...)
+          // x must have the type ROW(typeof(a), typeof(b))
           SqlValidatorScope scope1 = node2 instanceof SqlSelect
               ? validator.getSelectScope((SqlSelect) node2)
               : scope;
@@ -571,6 +616,76 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return coerced;
     }
     return false;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>STRATEGIES
+   *
+   * <p>To determine the common type:
+   *
+   * <ul>
+   *
+   * <li>When the LHS has a Simple type and RHS has a Collection type determined by {@link SqlTypeUtil#isCollection},
+   * to find the common type of LHS's type and RHS's component type.
+   * <li>If the common type differs from the LHS type, then coerced LHS type,
+   * and the nullability of the result type remains unchanged.
+   * <li>Create a new Collection type that matches the common type,
+   * the nullability of the new type keep same as RHS's component type and RHS's collection type.
+   * <li>If this new type differs from the RHS type, adjust the RHS type as needed.
+   *
+   *<pre>
+   * field1       ARRAY(field2, field3, field4)
+   *    |                |       |       |
+   *    |                +-------+-------+
+   *    |                        |
+   *    |                  component type
+   *    |                        |
+   *    +------common type-------+
+   *</pre>
+   *
+   * <li>If LHS type and the component type of RHS are different from the common type,
+   * CAST needs to be added.
+   * </ul>
+   */
+  @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
+    final RelDataType type1 = binding.getOperandType(0);
+    final RelDataType collectionType = binding.getOperandType(1);
+    final RelDataType type2 = collectionType.getComponentType();
+    requireNonNull(type2, "type2");
+    final SqlCall sqlCall = binding.getCall();
+    final SqlValidatorScope scope = binding.getScope();
+    final SqlNode node1 = binding.operand(0);
+    final SqlNode node2 = binding.operand(1);
+    RelDataType widenType = commonTypeForBinaryComparison(type1, type2);
+    if (widenType == null) {
+      widenType = getTightestCommonType(type1, type2);
+    }
+    if (widenType == null) {
+      return false;
+    }
+    final RelDataType leftWidenType =
+        binding.getTypeFactory().enforceTypeWithNullability(widenType, type1.isNullable());
+    boolean coercedLeft =
+        coerceOperandType(scope, sqlCall, 0, leftWidenType);
+    if (coercedLeft) {
+      updateInferredType(node1, leftWidenType);
+    }
+    final RelDataType rightWidenType =
+        binding.getTypeFactory().enforceTypeWithNullability(widenType, type2.isNullable());
+    RelDataType collectionWidenType =
+        binding.getTypeFactory().createArrayType(rightWidenType, -1);
+    collectionWidenType =
+        binding
+            .getTypeFactory()
+            .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
+    boolean coercedRight =
+        coerceOperandType(scope, sqlCall, 1, collectionWidenType);
+    if (coercedRight) {
+      updateInferredType(node2, collectionWidenType);
+    }
+    return coercedLeft || coercedRight;
   }
 
   @Override public boolean builtinFunctionCoercion(
@@ -671,16 +786,10 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           targetType);
     case UPDATE:
       SqlUpdate update = (SqlUpdate) query;
-      final SqlNodeList sourceExpressionList = update.getSourceExpressionList();
-      if (sourceExpressionList != null) {
-        return coerceColumnType(sourceScope, sourceExpressionList, columnIndex, targetType);
-      } else {
-        // Note: this is dead code since sourceExpressionList is always non-null
-        return coerceSourceRowType(sourceScope,
-            castNonNull(update.getSourceSelect()),
-            columnIndex,
-            targetType);
-      }
+      return coerceSourceRowType(sourceScope,
+          requireNonNull(update.getSourceSelect()),
+          columnIndex,
+          targetType);
     default:
       return rowTypeCoercion(sourceScope, query, columnIndex, targetType);
     }

@@ -31,7 +31,6 @@ import org.apache.calcite.util.DateString;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +66,7 @@ class ArrowTranslator {
     if (disjunctions.size() == 1) {
       return translateAnd(disjunctions.get(0));
     } else {
-      throw new AssertionError("cannot translate " + condition);
+      throw new UnsupportedOperationException("Unsupported disjunctive condition " + condition);
     }
   }
 
@@ -114,11 +113,19 @@ class ArrowTranslator {
     return predicates;
   }
 
-  /** Translate a binary relation. */
+  /**
+   * Translates a binary or unary relation.
+   *
+   * @param node A RexNode that always evaluates to a boolean expression.
+   *             Currently, this method is only called from translateAnd.
+   * @return The translated SQL string for the relation.
+   */
   private String translateMatch2(RexNode node) {
     switch (node.getKind()) {
     case EQUALS:
       return translateBinary("equal", "=", (RexCall) node);
+    case NOT_EQUALS:
+      return translateBinary("not_equal", "<>", (RexCall) node);
     case LESS_THAN:
       return translateBinary("less_than", ">", (RexCall) node);
     case LESS_THAN_OR_EQUAL:
@@ -127,8 +134,21 @@ class ArrowTranslator {
       return translateBinary("greater_than", "<", (RexCall) node);
     case GREATER_THAN_OR_EQUAL:
       return translateBinary("greater_than_or_equal_to", "<=", (RexCall) node);
+    case IS_NULL:
+      return translateUnary("isnull", (RexCall) node);
+    case IS_NOT_NULL:
+      return translateUnary("isnotnull", (RexCall) node);
+    case IS_NOT_TRUE:
+      return translateUnary("isnottrue", (RexCall) node);
+    case IS_NOT_FALSE:
+      return translateUnary("isnotfalse", (RexCall) node);
+    case INPUT_REF:
+      final RexInputRef inputRef = (RexInputRef) node;
+      return fieldNames.get(inputRef.getIndex()) + " istrue";
+    case NOT:
+      return translateUnary("isfalse", (RexCall) node);
     default:
-      throw new AssertionError("cannot translate " + node);
+      throw new UnsupportedOperationException("Unsupported operator " + node);
     }
   }
 
@@ -147,7 +167,7 @@ class ArrowTranslator {
     if (expression != null) {
       return expression;
     }
-    throw new AssertionError("cannot translate op " + op + " call " + call);
+    throw new UnsupportedOperationException("Unsupported binary operator " + call);
   }
 
   /** Translates a call to a binary operator. Returns null on failure. */
@@ -173,7 +193,7 @@ class ArrowTranslator {
   private String translateOp2(String op, String name, RexLiteral right) {
     Object value = literalValue(right);
     String valueString = value.toString();
-    String valueType = getLiteralType(value);
+    String valueType = getLiteralType(right.getType());
 
     if (value instanceof String) {
       final RelDataTypeField field = requireNonNull(rowType.getField(name, true, false), "field");
@@ -185,18 +205,48 @@ class ArrowTranslator {
     return name + " " + op + " " + valueString + " " + valueType;
   }
 
-  private static String getLiteralType(Object literal) {
-    if (literal instanceof BigDecimal) {
-      BigDecimal bigDecimalLiteral = (BigDecimal) literal;
-      int scale = bigDecimalLiteral.scale();
-      if (scale == 0) {
-        return "integer";
-      } else if (scale > 0) {
-        return "float";
-      }
-    } else if (String.class.equals(literal.getClass())) {
-      return "string";
+  /** Translates a call to a unary operator. */
+  private String translateUnary(String op, RexCall call) {
+    final RexNode opNode = call.operands.get(0);
+    @Nullable String expression = translateUnary2(op, opNode);
+
+    if (expression != null) {
+      return expression;
     }
-    throw new AssertionError("Invalid literal");
+
+    throw new UnsupportedOperationException("Unsupported unary operator " + call);
+  }
+
+  /** Translates a call to a unary operator. Returns null on failure. */
+  private @Nullable String translateUnary2(String op, RexNode opNode) {
+    if (opNode.getKind() == SqlKind.INPUT_REF) {
+      final RexInputRef inputRef = (RexInputRef) opNode;
+      final String name = fieldNames.get(inputRef.getIndex());
+      return translateUnaryOp(op, name);
+    }
+
+    return null;
+  }
+
+  /** Combines a field name and a unary operator to produce a predicate string. */
+  private static String translateUnaryOp(String op, String name) {
+    return name + " " + op;
+  }
+
+  private static String getLiteralType(RelDataType  type) {
+    if (type.getSqlTypeName() == SqlTypeName.DECIMAL) {
+      return "decimal" + "(" + type.getPrecision() + "," + type.getScale() + ")";
+    } else if (type.getSqlTypeName() == SqlTypeName.REAL) {
+      return "float";
+    } else if (type.getSqlTypeName() == SqlTypeName.DOUBLE) {
+      return "double";
+    } else if (type.getSqlTypeName() == SqlTypeName.INTEGER) {
+      return "integer";
+    } else if (type.getSqlTypeName() == SqlTypeName.VARCHAR
+        || type.getSqlTypeName() == SqlTypeName.CHAR) {
+      return "string";
+    } else {
+      throw new UnsupportedOperationException("Unsupported type " + type);
+    }
   }
 }

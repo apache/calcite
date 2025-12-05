@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -60,6 +62,8 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullSmallInt;
   protected RexLiteral nullVarchar;
   protected RexLiteral nullDecimal;
+  protected RexLiteral nullReal;
+  protected RexLiteral nullDouble;
   protected RexLiteral nullVarbinary;
 
   private RelDataType nullableBool;
@@ -76,6 +80,12 @@ public abstract class RexProgramBuilderBase {
 
   private RelDataType nullableDecimal;
   private RelDataType nonNullableDecimal;
+
+  private RelDataType nullableReal;
+  private RelDataType nonNullableReal;
+
+  private RelDataType nullableDouble;
+  private RelDataType nonNullableDouble;
 
   private RelDataType nullableVarbinary;
   private RelDataType nonNullableVarbinary;
@@ -120,6 +130,14 @@ public abstract class RexProgramBuilderBase {
     nonNullableDecimal = typeFactory.createSqlType(SqlTypeName.DECIMAL);
     nullableDecimal = typeFactory.createTypeWithNullability(nonNullableDecimal, true);
     nullDecimal = rexBuilder.makeNullLiteral(nullableDecimal);
+
+    nonNullableReal = typeFactory.createSqlType(SqlTypeName.REAL);
+    nullableReal = typeFactory.createTypeWithNullability(nonNullableReal, true);
+    nullReal = rexBuilder.makeNullLiteral(nullableReal);
+
+    nonNullableDouble = typeFactory.createSqlType(SqlTypeName.DOUBLE);
+    nullableDouble = typeFactory.createTypeWithNullability(nonNullableDouble, true);
+    nullDouble = rexBuilder.makeNullLiteral(nullableDouble);
 
     nonNullableVarbinary = typeFactory.createSqlType(SqlTypeName.VARBINARY);
     nullableVarbinary = typeFactory.createTypeWithNullability(nonNullableVarbinary, true);
@@ -325,6 +343,21 @@ public abstract class RexProgramBuilderBase {
   protected RexNode add(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }
+  protected RexNode greatest(RexNode... nodes) {
+    return rexBuilder.makeCall(SqlLibraryOperators.GREATEST, nodes);
+  }
+
+  protected RexNode least(RexNode... nodes) {
+    return rexBuilder.makeCall(SqlLibraryOperators.LEAST, nodes);
+  }
+
+  protected RexNode m2v(RexNode n) {
+    return rexBuilder.makeCall(SqlInternalOperators.M2V, n);
+  }
+
+  protected RexNode v2m(RexNode n) {
+    return rexBuilder.makeCall(SqlInternalOperators.V2M, n);
+  }
 
   protected RexNode item(RexNode inputRef, RexNode literal) {
     return rexBuilder.makeCall(SqlStdOperatorTable.ITEM, inputRef, literal);
@@ -408,11 +441,27 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RelDataType tDecimal() {
-    return nonNullableDecimal;
+    return tDecimal(false);
   }
 
   protected RelDataType tDecimal(boolean nullable) {
     return nullable ? nullableDecimal : nonNullableDecimal;
+  }
+
+  protected RelDataType tReal() {
+    return tReal(false);
+  }
+
+  protected RelDataType tReal(boolean nullable) {
+    return nullable ? nullableReal : nonNullableReal;
+  }
+
+  protected RelDataType tDouble() {
+    return tDouble(false);
+  }
+
+  protected RelDataType tDouble(boolean nullable) {
+    return nullable ? nullableDouble : nonNullableDouble;
   }
 
   protected RelDataType tBigInt() {
@@ -490,6 +539,16 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeLiteral(value, nonNullableVarchar);
   }
 
+  protected RexLiteral literalVarchar(String value) {
+    if (value == null) {
+      return rexBuilder.makeNullLiteral(nullableVarchar);
+    }
+    return (RexLiteral) rexBuilder.makeLiteral(value, nonNullableVarchar, true, true);
+  }
+
+  protected RexLiteral literal(double value) {
+    return rexBuilder.makeApproxLiteral(value, nonNullableDouble);
+  }
   // Variables
 
   /**

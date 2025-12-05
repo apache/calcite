@@ -147,6 +147,24 @@ from (select deptno, count(*) from emp group by deptno);
 
 !ok
 
+# [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError
+#
+# The scenario has the same aggregate function (SUM) at multiple levels; the
+# lower level is NOT NULL (because of GROUP BY) and the upper level is nullable.
+SELECT sum(deptno) AS s
+FROM (
+    SELECT sum(deptno) AS deptno
+    FROM dept
+    GROUP BY dname);
++-----+
+| S   |
++-----+
+| 100 |
++-----+
+(1 row)
+
+!ok
+
 # [CALCITE-998] Exception when calling STDDEV_SAMP, STDDEV_POP
 # stddev_samp
 select stddev_samp(deptno) as s from emp;
@@ -217,6 +235,30 @@ group by gender;
 | F      | 17 | 19 | 19 | 5 |
 | M      | 17 | 20 | 20 | 3 |
 +--------+----+----+----+---+
+(2 rows)
+
+!ok
+
+# [CALCITE-7192] lost FILTER condition when decomposition
+select gender,
+  stddev_pop(deptno) as p,
+  stddev_pop(deptno) filter (where deptno > 50) as pf,
+  stddev_samp(deptno) as s,
+  stddev_samp(deptno) filter (where deptno > 40) as sf,
+  var_pop(deptno) as vp,
+  var_pop(deptno) filter (where deptno > 30) as vpf,
+  var_samp(deptno) as vs,
+  var_samp(deptno) filter (where deptno > 20) as vsf,
+  avg(deptno) as a,
+  avg(deptno) filter (where deptno > 10) as af
+from emp
+group by gender;
++--------+----+----+----+----+-----+-----+-----+-----+----+----+
+| GENDER | P  | PF | S  | SF | VP  | VPF | VS  | VSF | A  | AF |
++--------+----+----+----+----+-----+-----+-----+-----+----+----+
+| F      | 17 |  0 | 19 |  7 | 304 |  25 | 380 | 225 | 36 | 42 |
+| M      | 17 |    | 20 |    | 289 |   0 | 433 |     | 26 | 35 |
++--------+----+----+----+----+-----+-----+-----+-----+----+----+
 (2 rows)
 
 !ok
@@ -747,7 +789,8 @@ select count(*) as c,
   grouping_id(gender, deptno) as ggd,
   grouping_id(deptno, gender) as gdg
 from emp
-group by rollup(deptno, gender);
+group by rollup(deptno, gender)
+order by c, g, gid, gd, gg, ggd, gdg;
 +---+---+-----+----+----+-----+-----+
 | C | G | GID | GD | GG | GGD | GDG |
 +---+---+-----+----+----+-----+-----+
@@ -758,14 +801,14 @@ group by rollup(deptno, gender);
 | 1 | 0 |   0 |  0 |  0 |   0 |   0 |
 | 1 | 0 |   0 |  0 |  0 |   0 |   0 |
 | 1 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
 | 2 | 0 |   0 |  0 |  0 |   0 |   0 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
+| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
 | 9 | 1 |   0 |  1 |  1 |   3 |   3 |
-| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 1 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
-| 2 | 0 |   0 |  0 |  1 |   2 |   1 |
 +---+---+-----+----+----+-----+-----+
 (15 rows)
 
@@ -862,31 +905,32 @@ group by rollup(deptno);
 
 # GROUPING, GROUPING_ID and GROUP_ID
 select deptno, gender, grouping(deptno) gd, grouping(gender) gg,
-  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gd,
-  group_id() gid, count(*) c
+  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gid,
+  group_id() g, count(*) c
 from emp
-group by cube(deptno, gender);
-+--------+--------+----+----+----+----+-----+---+
-| DEPTNO | GENDER | GD | GG | DG | GD | GID | C |
-+--------+--------+----+----+----+----+-----+---+
-|     10 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     10 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     20 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     30 | F      |  0 |  0 |  0 |  0 |   0 | 2 |
-|     50 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     50 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     60 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|        | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|        |        |  1 |  1 |  3 |  3 |   0 | 9 |
-|     10 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     20 |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|     30 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     50 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     60 |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|        | F      |  1 |  0 |  2 |  1 |   0 | 6 |
-|        | M      |  1 |  0 |  2 |  1 |   0 | 3 |
-|        |        |  0 |  1 |  1 |  2 |   0 | 1 |
-+--------+--------+----+----+----+----+-----+---+
+group by cube(deptno, gender)
+order by deptno, gender, gd, gg, dg, gid, g, c;
++--------+--------+----+----+----+-----+---+---+
+| DEPTNO | GENDER | GD | GG | DG | GID | G | C |
++--------+--------+----+----+----+-----+---+---+
+|     10 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     10 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     10 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     20 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     20 |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|     30 | F      |  0 |  0 |  0 |   0 | 0 | 2 |
+|     30 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     50 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     50 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     50 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     60 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     60 |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|        | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|        | F      |  1 |  0 |  2 |   1 | 0 | 6 |
+|        | M      |  1 |  0 |  2 |   1 | 0 | 3 |
+|        |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|        |        |  1 |  1 |  3 |   3 | 0 | 9 |
++--------+--------+----+----+----+-----+---+---+
 (17 rows)
 
 !ok
@@ -1321,11 +1365,6 @@ order by g, i, s desc;
 | 1900.00 | 0 | 0 |
 | 1300.00 | 0 | 0 |
 |  950.00 | 0 | 0 |
-| 8275.00 | 0 | 1 |
-| 6000.00 | 0 | 1 |
-| 5600.00 | 0 | 1 |
-| 5000.00 | 0 | 1 |
-| 4150.00 | 0 | 1 |
 | 6000.00 | 1 | 0 |
 | 5600.00 | 1 | 0 |
 | 5000.00 | 1 | 0 |
@@ -1340,6 +1379,11 @@ order by g, i, s desc;
 | 5600.00 | 2 | 0 |
 | 5000.00 | 2 | 0 |
 | 4150.00 | 2 | 0 |
+| 8275.00 | 2 | 1 |
+| 6000.00 | 2 | 1 |
+| 5600.00 | 2 | 1 |
+| 5000.00 | 2 | 1 |
+| 4150.00 | 2 | 1 |
 +---------+---+---+
 (28 rows)
 
@@ -1794,14 +1838,14 @@ group by deptno;
 select count(distinct deptno) as cd, count(*) as c
 from "scott".emp
 group by cube(deptno);
-+----+---+
-| CD | C |
-+----+---+
-|  1 | 3 |
-|  1 | 5 |
-|  1 | 6 |
-|  3 | 3 |
-+----+---+
++----+----+
+| CD | C  |
++----+----+
+|  1 |  3 |
+|  1 |  5 |
+|  1 |  6 |
+|  3 | 14 |
++----+----+
 (4 rows)
 
 !ok
@@ -1888,11 +1932,11 @@ from "scott".emp;
 # Previously threw "java.lang.ArithmeticException: Non-terminating decimal
 # expansion; no exact representable decimal result"
 select avg(comm) as a, count(comm) as c from "scott".emp where empno < 7844;
-+-------------------+---+
-| A                 | C |
-+-------------------+---+
-| 733.3333333333333 | 3 |
-+-------------------+---+
++--------+---+
+| A      | C |
++--------+---+
+| 733.33 | 3 |
++--------+---+
 (1 row)
 
 !ok
@@ -1916,9 +1960,9 @@ group by deptno;
 EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
   EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK':VARCHAR(9)], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
     EnumerableUnion(all=[true])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[20], expr#10=[<($t8, $t9)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t10])
         EnumerableTableScan(table=[[scott, EMP]])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[>($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[20], expr#10=[>($t8, $t9)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t10])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2779,7 +2823,7 @@ select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 !ok
 
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
+  EnumerableAggregate(group=[{}], EXPR$0_g0=[COUNT($0) FILTER $4], EXPR$1_g0=[MIN($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $5], EXPR$3_g0=[MIN($3) FILTER $5])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
       EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT($5)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($0)])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2797,7 +2841,7 @@ select count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp;
 !ok
 
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
+  EnumerableAggregate(group=[{}], EXPR$0_g0=[COUNT($0) FILTER $4], EXPR$1_g0=[MIN($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $5], EXPR$3_g0=[MIN($3) FILTER $5])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
       EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], EXPR$1=[COUNT($2)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($7)])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2821,7 +2865,7 @@ select MGR, count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".
 !ok
 
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):BIGINT NOT NULL], proj#0..1=[{exprs}], EXPR$2=[$t5], EXPR$3=[$t3], EXPR$4=[$t4])
-  EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1) FILTER $5], EXPR$2=[MIN($2) FILTER $6], EXPR$3=[MIN($3) FILTER $6], EXPR$4=[MIN($4) FILTER $6])
+  EnumerableAggregate(group=[{0}], EXPR$1_g0=[COUNT($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $6], EXPR$3_g0=[MIN($3) FILTER $6], EXPR$4_g0=[MIN($4) FILTER $6])
     EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])
       EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], EXPR$2=[COUNT($2)], EXPR$3=[MIN($5)], EXPR$4=[MAX($5)], $g=[GROUPING($3, $7)])
         EnumerableTableScan(table=[[scott, EMP]])
@@ -2844,9 +2888,9 @@ select MGR, count(distinct DEPTNO, JOB), MIN(SAL), MAX(SAL) from "scott".emp gro
 
 !ok
 
-EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1, $2) FILTER $5], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
-  EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[3], expr#9=[=($t5, $t8)], MGR=[$t1], DEPTNO=[$t2], JOB=[$t0], EXPR$2=[$t3], EXPR$3=[$t4], $g_0=[$t7], $g_3=[$t9])
-    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($3, $7, $2)])
+EnumerableAggregate(group=[{1}], EXPR$1_g0=[COUNT($2, $0) FILTER $5], EXPR$2_g0=[MIN($3) FILTER $6], EXPR$3_g0=[MIN($4) FILTER $6])
+  EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[5], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_5=[$t9])
+    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($2, $3, $7)])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2913,10 +2957,10 @@ EnumerableAggregate(group=[{}], REGR_COUNT(COMM, SAL)=[REGR_COUNT($6, $5)], REGR
 
 # [CALCITE-1776, CALCITE-2402] REGR_SXX, REGR_SXY, REGR_SYY
 SELECT
-  regr_sxx(COMM, SAL) as "REGR_SXX(COMM, SAL)",
-  regr_syy(COMM, SAL) as "REGR_SYY(COMM, SAL)",
-  regr_sxx(SAL, COMM) as "REGR_SXX(SAL, COMM)",
-  regr_syy(SAL, COMM) as "REGR_SYY(SAL, COMM)"
+  regr_sxx(CAST(COMM AS DECIMAL(12, 4)), CAST(SAL AS DECIMAL(12, 4))) as "REGR_SXX(COMM, SAL)",
+  regr_syy(CAST(COMM AS DECIMAL(12, 4)), CAST(SAL AS DECIMAL(12, 4))) as "REGR_SYY(COMM, SAL)",
+  regr_sxx(CAST(SAL AS DECIMAL(12, 4)), CAST(COMM AS DECIMAL(12, 4))) as "REGR_SXX(SAL, COMM)",
+  regr_syy(CAST(SAL AS DECIMAL(12, 4)), CAST(COMM AS DECIMAL(12, 4))) as "REGR_SYY(SAL, COMM)"
 from "scott".emp;
 +---------------------+---------------------+---------------------+---------------------+
 | REGR_SXX(COMM, SAL) | REGR_SYY(COMM, SAL) | REGR_SXX(SAL, COMM) | REGR_SYY(SAL, COMM) |
@@ -2929,16 +2973,16 @@ from "scott".emp;
 
 # [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP
 SELECT
-  covar_pop(COMM, COMM) as "COVAR_POP(COMM, COMM)",
-  covar_samp(SAL, SAL) as "COVAR_SAMP(SAL, SAL)",
-  var_pop(COMM) as "VAR_POP(COMM)",
-  var_samp(SAL) as "VAR_SAMP(SAL)"
+  covar_pop(CAST(COMM AS DECIMAL(12, 4)), CAST(COMM AS DECIMAL(12, 4))) as "COVAR_POP(COMM, COMM)",
+  covar_samp(CAST(SAL AS DECIMAL(12, 4)), CAST(SAL AS DECIMAL(12, 4))) as "COVAR_SAMP(SAL, SAL)",
+  var_pop(CAST(COMM AS DECIMAL(12, 4))) as "VAR_POP(COMM)",
+  var_samp(CAST(SAL AS DECIMAL(12, 4))) as "VAR_SAMP(SAL)"
 from "scott".emp;
-+-----------------------+----------------------+---------------+-------------------+
-| COVAR_POP(COMM, COMM) | COVAR_SAMP(SAL, SAL) | VAR_POP(COMM) | VAR_SAMP(SAL)     |
-+-----------------------+----------------------+---------------+-------------------+
-|           272500.0000 |    1398313.873626374 |   272500.0000 | 1398313.873626374 |
-+-----------------------+----------------------+---------------+-------------------+
++-----------------------+----------------------+---------------+---------------+
+| COVAR_POP(COMM, COMM) | COVAR_SAMP(SAL, SAL) | VAR_POP(COMM) | VAR_SAMP(SAL) |
++-----------------------+----------------------+---------------+---------------+
+|           272500.0000 |         1398313.8736 |   272500.0000 |  1398313.8736 |
++-----------------------+----------------------+---------------+---------------+
 (1 row)
 
 !ok
@@ -2970,23 +3014,23 @@ from "scott".emp group by SAL;
 # [CALCITE-1776, CALCITE-2402] COVAR_POP, COVAR_SAMP, VAR_SAMP, VAR_POP with group by
 SELECT
   MONTH(HIREDATE) as "MONTH",
-  covar_samp(SAL, COMM) as "COVAR_SAMP(SAL, COMM)",
-  var_pop(COMM) as "VAR_POP(COMM)",
-  var_samp(SAL) as "VAR_SAMP(SAL)"
+  covar_samp(CAST(SAL AS DECIMAL(12, 4)), CAST(COMM AS DECIMAL(12, 4))) as "COVAR_SAMP(SAL, COMM)",
+  var_pop(CAST(COMM AS DECIMAL(12, 4))) as "VAR_POP(COMM)",
+  var_samp(CAST(SAL AS DECIMAL(12, 4))) as "VAR_SAMP(SAL)"
 from "scott".emp
 group by MONTH(HIREDATE);
-+-------+-----------------------+---------------+-------------------+
-| MONTH | COVAR_SAMP(SAL, COMM) | VAR_POP(COMM) | VAR_SAMP(SAL)     |
-+-------+-----------------------+---------------+-------------------+
-|     1 |                       |               |      1201250.0000 |
-|    11 |                       |               |                   |
-|    12 |                       |               | 1510833.333333334 |
-|     2 |           -35000.0000 |    10000.0000 |  831458.333333335 |
-|     4 |                       |               |                   |
-|     5 |                       |               |                   |
-|     6 |                       |               |                   |
-|     9 |          -175000.0000 |   490000.0000 |        31250.0000 |
-+-------+-----------------------+---------------+-------------------+
++-------+-----------------------+---------------+---------------+
+| MONTH | COVAR_SAMP(SAL, COMM) | VAR_POP(COMM) | VAR_SAMP(SAL) |
++-------+-----------------------+---------------+---------------+
+|     1 |                       |               |  1201250.0000 |
+|    11 |                       |               |               |
+|    12 |                       |               |  1510833.3333 |
+|     2 |           -35000.0000 |    10000.0000 |   831458.3333 |
+|     4 |                       |               |               |
+|     5 |                       |               |               |
+|     6 |                       |               |               |
+|     9 |          -175000.0000 |   490000.0000 |    31250.0000 |
++-------+-----------------------+---------------+---------------+
 (8 rows)
 
 !ok
@@ -3061,7 +3105,7 @@ group by deptno;
 
 !ok
 EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([1 DESC]) FILTER $2])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7500], expr#9=[>($t0, $t8)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t9])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7500], expr#10=[>($t8, $t9)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t10])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3102,7 +3146,7 @@ group by dept.deptno;
 
 !ok
 EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
-  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>($t2, $t5)], expr#7=[IS TRUE($t6)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t7])
+  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[CAST($t2):DECIMAL(12, 2)], expr#6=[2000.00:DECIMAL(12, 2)], expr#7=[>($t5, $t6)], expr#8=[IS TRUE($t7)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t8])
     EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
@@ -3187,34 +3231,34 @@ LIMIT 500;
 !use post
 
 select gender, json_objectagg(ename: deptno absent on null) from emp group by gender;
-+--------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                |
-+--------+-------------------------------------------------------+
-| F      | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
-| M      | {"Adam":50,"Bob":10,"Eric":20}                        |
-+--------+-------------------------------------------------------+
++--------+----------------------------------------------------------+
+| GENDER | EXPR$1                                                   |
++--------+----------------------------------------------------------+
+| F      | {"Jane ":10,"Grace":60,"Susan":30,"Alice":30,"Eve  ":50} |
+| M      | {"Bob  ":10,"Adam ":50,"Eric ":20}                       |
++--------+----------------------------------------------------------+
 (2 rows)
 
 !ok
 
 select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) format json) from emp group by gender;
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| GENDER | EXPR$1                                                                                                                                                                               |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
-| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                                  |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane ","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve  ","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob  ","deptno":10},{"ename":"Eric ","deptno":20},{"ename":"Adam ","deptno":50}]                                                                                             |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 (2 rows)
 
 !ok
 
 select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno)) from emp group by gender;
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| GENDER | EXPR$1                                                                                                                                                                               |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
-| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                                  |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane ","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve  ","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob  ","deptno":10},{"ename":"Eric ","deptno":20},{"ename":"Adam ","deptno":50}]                                                                                             |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 (2 rows)
 
 !ok
@@ -3223,10 +3267,10 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 +-------------------------------------------------------------------------------------------+
 | EXPR$0                                                                                    |
 +-------------------------------------------------------------------------------------------+
-| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
-| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Adam ","gender":"M"},{"ename":"Eve  ","gender":"F"}],"deptno":50} |
+| {"employees":[{"ename":"Eric ","gender":"M"}],"deptno":20}                                |
 | {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
-| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Jane ","gender":"F"},{"ename":"Bob  ","gender":"M"}],"deptno":10} |
 | {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
 | {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
 +-------------------------------------------------------------------------------------------+
@@ -3238,10 +3282,10 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 +-------------------------------------------------------------------------------------------+
 | EXPR$0                                                                                    |
 +-------------------------------------------------------------------------------------------+
-| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
-| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Adam ","gender":"M"},{"ename":"Eve  ","gender":"F"}],"deptno":50} |
+| {"employees":[{"ename":"Eric ","gender":"M"}],"deptno":20}                                |
 | {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
-| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Jane ","gender":"F"},{"ename":"Bob  ","gender":"M"}],"deptno":10} |
 | {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
 | {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
 +-------------------------------------------------------------------------------------------+
@@ -3290,53 +3334,53 @@ select gender,
 json_objectagg(ename: deptno),
 json_objectagg(ename: deptno absent on null)
 from emp group by gender;
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                             | EXPR$2                                                |
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| F      | {"Eve":50,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Jane":10} | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
-| M      | {"Adam":50,"Bob":10,"Eric":20}                                     | {"Adam":50,"Bob":10,"Eric":20}                        |
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
++--------+-----------------------------------------------------------------------+----------------------------------------------------------+
+| GENDER | EXPR$1                                                                | EXPR$2                                                   |
++--------+-----------------------------------------------------------------------+----------------------------------------------------------+
+| F      | {"Jane ":10,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Eve  ":50} | {"Jane ":10,"Grace":60,"Susan":30,"Alice":30,"Eve  ":50} |
+| M      | {"Bob  ":10,"Adam ":50,"Eric ":20}                                    | {"Bob  ":10,"Adam ":50,"Eric ":20}                       |
++--------+-----------------------------------------------------------------------+----------------------------------------------------------+
 (2 rows)
 
 !ok
 EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+  EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select listagg(ename) as combined_name from emp;
-+------------------------------------------------+
-| COMBINED_NAME                                  |
-+------------------------------------------------+
-| Jane,Bob,Eric,Susan,Alice,Adam,Eve,Grace,Wilma |
-+------------------------------------------------+
++-------------------------------------------------------+
+| COMBINED_NAME                                         |
++-------------------------------------------------------+
+| Jane ,Bob  ,Eric ,Susan,Alice,Adam ,Eve  ,Grace,Wilma |
++-------------------------------------------------------+
 (1 row)
 
 !ok
 
 select listagg(ename) within group(order by gender, ename) as combined_name from emp;
-+------------------------------------------------+
-| COMBINED_NAME                                  |
-+------------------------------------------------+
-| Alice,Eve,Grace,Jane,Susan,Wilma,Adam,Bob,Eric |
-+------------------------------------------------+
++-------------------------------------------------------+
+| COMBINED_NAME                                         |
++-------------------------------------------------------+
+| Alice,Eve  ,Grace,Jane ,Susan,Wilma,Adam ,Bob  ,Eric  |
++-------------------------------------------------------+
 (1 row)
 
 !ok
 
 EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([2, 0])])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+  EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select
   listagg(ename) within group(order by deptno, ename) as default_listagg_sep,
   listagg(ename, '; ') within group(order by deptno, ename desc) as custom_listagg_sep
 from emp group by gender;
-+----------------------------------+---------------------------------------+
-| DEFAULT_LISTAGG_SEP              | CUSTOM_LISTAGG_SEP                    |
-+----------------------------------+---------------------------------------+
-| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
-| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
-+----------------------------------+---------------------------------------+
++-------------------------------------+------------------------------------------+
+| DEFAULT_LISTAGG_SEP                 | CUSTOM_LISTAGG_SEP                       |
++-------------------------------------+------------------------------------------+
+| Bob  ,Eric ,Adam                    | Bob  ; Eric ; Adam                       |
+| Jane ,Alice,Susan,Eve  ,Grace,Wilma | Jane ; Susan; Alice; Eve  ; Grace; Wilma |
++-------------------------------------+------------------------------------------+
 (2 rows)
 
 !ok
@@ -3350,11 +3394,11 @@ select
     group_concat(distinct ename order by ename) as combined_name,
     group_concat(ename order by ename separator ';') as separated_name
 from emp;
-+------------------------------------------------+------------------------------------------------+
-| COMBINED_NAME                                  | SEPARATED_NAME                                 |
-+------------------------------------------------+------------------------------------------------+
-| Adam,Alice,Bob,Eric,Eve,Grace,Jane,Susan,Wilma | Adam;Alice;Bob;Eric;Eve;Grace;Jane;Susan;Wilma |
-+------------------------------------------------+------------------------------------------------+
++-------------------------------------------------------+-------------------------------------------------------+
+| COMBINED_NAME                                         | SEPARATED_NAME                                        |
++-------------------------------------------------------+-------------------------------------------------------+
+| Adam ,Alice,Bob  ,Eric ,Eve  ,Grace,Jane ,Susan,Wilma | Adam ;Alice;Bob  ;Eric ;Eve  ;Grace;Jane ;Susan;Wilma |
++-------------------------------------------------------+-------------------------------------------------------+
 (1 row)
 
 !ok
@@ -3363,11 +3407,11 @@ from emp;
 select
     group_concat(deptno, ename order by ename) as combined_name
 from emp;
-+-----------------------------------------------+
-| COMBINED_NAME                                 |
-+-----------------------------------------------+
-| 50Alice30Bob10Eric20Eve50Grace60Jane10Susan30 |
-+-----------------------------------------------+
++-----------------------------------------------------+
+| COMBINED_NAME                                       |
++-----------------------------------------------------+
+| 50Alice30Bob  10Eric 20Eve  50Grace60Jane 10Susan30 |
++-----------------------------------------------------+
 (1 row)
 
 !ok
@@ -3388,12 +3432,12 @@ select
   string_agg(ename order by deptno, ename) as default_string_agg_sep,
   string_agg(ename, '; ' order by deptno, ename desc) as custom_string_agg_sep
 from emp group by gender;
-+----------------------------------+---------------------------------------+
-| DEFAULT_STRING_AGG_SEP           | CUSTOM_STRING_AGG_SEP                 |
-+----------------------------------+---------------------------------------+
-| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
-| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
-+----------------------------------+---------------------------------------+
++-------------------------------------+------------------------------------------+
+| DEFAULT_STRING_AGG_SEP              | CUSTOM_STRING_AGG_SEP                    |
++-------------------------------------+------------------------------------------+
+| Bob  ,Eric ,Adam                    | Bob  ; Eric ; Adam                       |
+| Jane ,Alice,Susan,Eve  ,Grace,Wilma | Jane ; Susan; Alice; Eve  ; Grace; Wilma |
++-------------------------------------+------------------------------------------+
 (2 rows)
 
 !ok
@@ -3666,6 +3710,24 @@ group by
 
 !ok
 
+select
+    deptno,
+    case when deptno in (10) then 1 else 2 end as col1,
+    case when deptno in (10) then 5 else 6 end as col2
+from emp
+group by deptno, case when deptno in (10) then 5 else 6 end
+order by deptno;
++--------+------+------+
+| DEPTNO | COL1 | COL2 |
++--------+------+------+
+|     10 |    1 |    5 |
+|     20 |    2 |    6 |
+|     30 |    2 |    6 |
++--------+------+------+
+(3 rows)
+
+!ok
+
 # Test case for [CALCITE-5388] tempList expression inside EnumerableWindow.getPartitionIterator should be unoptimized
 with
     CTE1(rownr1, val1) as ( select ROW_NUMBER() OVER(ORDER BY id ASC), id from (values (1), (2)) as Vals1(id) ),
@@ -3778,4 +3840,462 @@ select distinct sum(deptno + '1') as deptsum from dept order by 1;
 (1 row)
 
 !ok
+
+# [CALCITE-6839] The SUM function sometimes throws overflow exceptions due
+# to incorrect return types
+!use scott-spark
+# Test TINYINT Type
+select sum(mgr) from emp;
++--------+
+| EXPR$0 |
++--------+
+| 100611 |
++--------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], EXPR$0=[SUM($3)])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test Float Type
+select sum(cast(mgr as float)) from emp;
++----------+
+| EXPR$0   |
++----------+
+| 100611.0 |
++----------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):FLOAT], $f0=[$t8])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-6834] In query that applies COALESCE to nullable SUM, EnumerableProjectToCalcRule throws AssertionError
+# sum(mgr) return TINYINT, coalesce(sum(mgr),0) return INTEGER, so need CAST
+!use scott
+select coalesce(sum(mgr),0) as m
+from emp;
+java.sql.SQLException: Error while executing SQL "select coalesce(sum(mgr),0) as m
+from emp": Value 38835 out of range
+!error
+EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], M=[$t1])
+  EnumerableAggregate(group=[{}], agg#0=[$SUM0($3)])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# sum(cast(mgr as int)) return INTEGER, coalesce(sum(cast(mgr as int)),0) return INTEGER, so don't need CAST
+select coalesce(sum(cast(mgr as int)),0) as m
+from emp;
++--------+
+| M      |
++--------+
+| 100611 |
++--------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], $f0=[$t8])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# sum(mgr) return INTEGER, coalesce(sum(mgr),0) return BIGINT, so need CAST
+select coalesce(sum(cast(mgr as int)),cast(0 as bigint)) as m
+from emp;
++--------+
+| M      |
++--------+
+| 100611 |
++--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):BIGINT NOT NULL], M=[$t1])
+  EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], $f0=[$t8])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-7126] The calculation result of grouping function is wrong
+SELECT deptno, job, sal, SUM(comm),
+       GROUPING(deptno) AS deptno_flag,
+       GROUPING(job) AS job_flag,
+       GROUPING(sal) AS sal_flag
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job))
+ORDER BY deptno, job, sal;
++--------+-----------+---------+---------+-------------+----------+----------+
+| DEPTNO | JOB       | SAL     | EXPR$3  | DEPTNO_FLAG | JOB_FLAG | SAL_FLAG |
++--------+-----------+---------+---------+-------------+----------+----------+
+|     10 | CLERK     |         |         |           0 |        0 |        1 |
+|     10 | CLERK     |         |         |           0 |        0 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |
+|     10 |           | 1300.00 |         |           0 |        1 |        0 |
+|     10 |           | 2450.00 |         |           0 |        1 |        0 |
+|     10 |           | 5000.00 |         |           0 |        1 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |
+|     20 |           |  800.00 |         |           0 |        1 |        0 |
+|     20 |           | 1100.00 |         |           0 |        1 |        0 |
+|     20 |           | 2975.00 |         |           0 |        1 |        0 |
+|     20 |           | 3000.00 |         |           0 |        1 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |
+|     30 |           |  950.00 |         |           0 |        1 |        0 |
+|     30 |           | 1250.00 | 1900.00 |           0 |        1 |        0 |
+|     30 |           | 1500.00 |    0.00 |           0 |        1 |        0 |
+|     30 |           | 1600.00 |  300.00 |           0 |        1 |        0 |
+|     30 |           | 2850.00 |         |           0 |        1 |        0 |
++--------+-----------+---------+---------+-------------+----------+----------+
+(30 rows)
+
+!ok
+
+EnumerableMergeUnion(all=[true])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..6=[{inputs}], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], EXPR$3=[$t3], DEPTNO_FLAG=[$t4], JOB_FLAG=[$t5], SAL_FLAG=[$t6])
+      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], EXPR$3=[SUM($6)], DEPTNO_FLAG=[GROUPING($7)], JOB_FLAG=[GROUPING($2)], SAL_FLAG=[GROUPING($5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[1], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], EXPR$3=[$t2], DEPTNO_FLAG=[$t3], JOB_FLAG=[$t4], SAL_FLAG=[$t6])
+      EnumerableAggregate(group=[{2, 7}], EXPR$3=[SUM($6)], DEPTNO_FLAG=[GROUPING($7)], JOB_FLAG=[GROUPING($2)])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# The subset of GROUPING SETS cannot contain all the fields in the GROUPING and GROUPING SETS has duplicate groupings
+SELECT deptno, job, sal,
+       SUM(comm) AS sum_comm,
+       GROUPING(deptno, job, sal) AS flag,
+       GROUP_ID() AS g
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job))
+ORDER BY deptno, job, sal;
++--------+-----------+---------+----------+------+---+
+| DEPTNO | JOB       | SAL     | SUM_COMM | FLAG | G |
++--------+-----------+---------+----------+------+---+
+|     10 | CLERK     |         |          |    1 | 0 |
+|     10 | CLERK     |         |          |    1 | 1 |
+|     10 | MANAGER   |         |          |    1 | 0 |
+|     10 | MANAGER   |         |          |    1 | 1 |
+|     10 | PRESIDENT |         |          |    1 | 0 |
+|     10 | PRESIDENT |         |          |    1 | 1 |
+|     10 |           | 1300.00 |          |    2 | 0 |
+|     10 |           | 2450.00 |          |    2 | 0 |
+|     10 |           | 5000.00 |          |    2 | 0 |
+|     20 | ANALYST   |         |          |    1 | 0 |
+|     20 | ANALYST   |         |          |    1 | 1 |
+|     20 | CLERK     |         |          |    1 | 0 |
+|     20 | CLERK     |         |          |    1 | 1 |
+|     20 | MANAGER   |         |          |    1 | 0 |
+|     20 | MANAGER   |         |          |    1 | 1 |
+|     20 |           |  800.00 |          |    2 | 0 |
+|     20 |           | 1100.00 |          |    2 | 0 |
+|     20 |           | 2975.00 |          |    2 | 0 |
+|     20 |           | 3000.00 |          |    2 | 0 |
+|     30 | CLERK     |         |          |    1 | 0 |
+|     30 | CLERK     |         |          |    1 | 1 |
+|     30 | MANAGER   |         |          |    1 | 0 |
+|     30 | MANAGER   |         |          |    1 | 1 |
+|     30 | SALESMAN  |         |  2200.00 |    1 | 0 |
+|     30 | SALESMAN  |         |  2200.00 |    1 | 1 |
+|     30 |           |  950.00 |          |    2 | 0 |
+|     30 |           | 1250.00 |  1900.00 |    2 | 0 |
+|     30 |           | 1500.00 |     0.00 |    2 | 0 |
+|     30 |           | 1600.00 |   300.00 |    2 | 0 |
+|     30 |           | 2850.00 |          |    2 | 0 |
++--------+-----------+---------+----------+------+---+
+(30 rows)
+
+!ok
+EnumerableMergeUnion(all=[true])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], SUM_COMM=[$t3], FLAG=[$t4], G=[$t5])
+      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], SUM_COMM=[SUM($6)], FLAG=[GROUPING($7, $2, $5)])
+        EnumerableTableScan(table=[[scott, EMP]])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[4], expr#7=[*($t6, $t3)], expr#8=[2], expr#9=[*($t8, $t4)], expr#10=[+($t7, $t9)], expr#11=[1], expr#12=[+($t10, $t11)], expr#13=[1:BIGINT], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], SUM_COMM=[$t2], FLAG=[$t12], G=[$t13])
+      EnumerableAggregate(group=[{2, 7}], SUM_COMM=[SUM($6)], agg#1=[GROUPING($7)], agg#2=[GROUPING($2)])
+        EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-7116] Optimize queries with GROUPING SETS by converting them into equivalent UNION ALL of GROUP BY operations
+# Before SQL
+SELECT deptno, job, sal, SUM(comm),
+       GROUPING(deptno) AS deptno_flag,
+       GROUPING(job) AS job_flag,
+       GROUPING(sal) AS sal_flag,
+       GROUP_ID() AS group_id
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal), (deptno, job));
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+| DEPTNO | JOB       | SAL     | EXPR$3  | DEPTNO_FLAG | JOB_FLAG | SAL_FLAG | GROUP_ID |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        0 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        1 |
+|     10 |           | 1300.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 2450.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 5000.00 |         |           0 |        1 |        0 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     20 |           | 1100.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 2975.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 3000.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           |  800.00 |         |           0 |        1 |        0 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        0 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        1 |
+|     30 |           | 1250.00 | 1900.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1500.00 |    0.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1600.00 |  300.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 2850.00 |         |           0 |        1 |        0 |        0 |
+|     30 |           |  950.00 |         |           0 |        1 |        0 |        0 |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+(30 rows)
+
+!ok
+
+# After SQL
+# This SQL comes from RelToSqlConverterTest#testAggregateGroupingSetsToUnionRule(). This result is the same as the result of Before SQL.
+SELECT DEPTNO, JOB, SAL, EXPR$3, DEPTNO_FLAG, JOB_FLAG, SAL_FLAG, 0 AS GROUP_ID
+FROM (
+    SELECT DEPTNO, JOB, CAST(NULL AS DECIMAL(7, 2)) AS SAL,
+        SUM(COMM) AS EXPR$3,
+        0 AS DEPTNO_FLAG,
+        0 AS JOB_FLAG,
+        1 AS SAL_FLAG
+    FROM EMP
+    GROUP BY DEPTNO, JOB
+    UNION ALL
+    SELECT DEPTNO, CAST(NULL AS VARCHAR(9)) AS JOB, SAL,
+        SUM(COMM) AS EXPR$3,
+        0 AS DEPTNO_FLAG,
+        1 AS JOB_FLAG,
+        0 AS SAL_FLAG
+    FROM EMP
+    GROUP BY DEPTNO, SAL
+) t5
+UNION ALL
+SELECT DEPTNO, JOB, CAST(NULL AS DECIMAL(7, 2)) AS SAL,
+    SUM(COMM),
+    GROUPING(DEPTNO) AS DEPTNO_FLAG,
+    GROUPING(JOB) AS JOB_FLAG,
+    1 AS SAL_FLAG,
+    1 AS GROUP_ID
+FROM EMP
+GROUP BY DEPTNO, JOB;
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+| DEPTNO | JOB       | SAL     | EXPR$3  | DEPTNO_FLAG | JOB_FLAG | SAL_FLAG | GROUP_ID |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     10 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     10 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        0 |
+|     10 | PRESIDENT |         |         |           0 |        0 |        1 |        1 |
+|     10 |           | 1300.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 2450.00 |         |           0 |        1 |        0 |        0 |
+|     10 |           | 5000.00 |         |           0 |        1 |        0 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        0 |
+|     20 | ANALYST   |         |         |           0 |        0 |        1 |        1 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     20 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     20 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     20 |           | 1100.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 2975.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           | 3000.00 |         |           0 |        1 |        0 |        0 |
+|     20 |           |  800.00 |         |           0 |        1 |        0 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        0 |
+|     30 | CLERK     |         |         |           0 |        0 |        1 |        1 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        0 |
+|     30 | MANAGER   |         |         |           0 |        0 |        1 |        1 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        0 |
+|     30 | SALESMAN  |         | 2200.00 |           0 |        0 |        1 |        1 |
+|     30 |           | 1250.00 | 1900.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1500.00 |    0.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 1600.00 |  300.00 |           0 |        1 |        0 |        0 |
+|     30 |           | 2850.00 |         |           0 |        1 |        0 |        0 |
+|     30 |           |  950.00 |         |           0 |        1 |        0 |        0 |
++--------+-----------+---------+---------+-------------+----------+----------+----------+
+(30 rows)
+
+!ok
+
+# [CALCITE-7189] Support MySQL-style non-standard GROUP BY
+# In Calcite, ANY_VALUE is implemented based on MAX, which ensures test stability.
+!use scott-babel
+select deptno,
+       ename,
+       sal as sal_col,
+       emp.JOB as full_identifier,
+       sal+comm as two_cols_only_one_in_group_by,
+       sal+1 as sal_plus_constant,
+       3 as constant_3,
+       max(sal) as agg_func
+from emp group by deptno, sal_col;
++--------+--------+---------+-----------------+-------------------------------+-------------------+------------+----------+
+| DEPTNO | ENAME  | SAL_COL | FULL_IDENTIFIER | TWO_COLS_ONLY_ONE_IN_GROUP_BY | SAL_PLUS_CONSTANT | CONSTANT_3 | AGG_FUNC |
++--------+--------+---------+-----------------+-------------------------------+-------------------+------------+----------+
+|     10 | CLARK  | 2450.00 | MANAGER         |                               |           2451.00 |          3 |  2450.00 |
+|     10 | KING   | 5000.00 | PRESIDENT       |                               |           5001.00 |          3 |  5000.00 |
+|     10 | MILLER | 1300.00 | CLERK           |                               |           1301.00 |          3 |  1300.00 |
+|     20 | ADAMS  | 1100.00 | CLERK           |                               |           1101.00 |          3 |  1100.00 |
+|     20 | JONES  | 2975.00 | MANAGER         |                               |           2976.00 |          3 |  2975.00 |
+|     20 | SCOTT  | 3000.00 | ANALYST         |                               |           3001.00 |          3 |  3000.00 |
+|     20 | SMITH  |  800.00 | CLERK           |                               |            801.00 |          3 |   800.00 |
+|     30 | ALLEN  | 1600.00 | SALESMAN        |                       1900.00 |           1601.00 |          3 |  1600.00 |
+|     30 | BLAKE  | 2850.00 | MANAGER         |                               |           2851.00 |          3 |  2850.00 |
+|     30 | JAMES  |  950.00 | CLERK           |                               |            951.00 |          3 |   950.00 |
+|     30 | TURNER | 1500.00 | SALESMAN        |                       1500.00 |           1501.00 |          3 |  1500.00 |
+|     30 | WARD   | 1250.00 | SALESMAN        |                       2650.00 |           1251.00 |          3 |  1250.00 |
++--------+--------+---------+-----------------+-------------------------------+-------------------+------------+----------+
+(12 rows)
+
+!ok
+EnumerableCalc(expr#0..8=[{inputs}], DEPTNO=[$t0], ENAME=[$t2], SAL_COL=[$t3], FULL_IDENTIFIER=[$t4], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[$t5], SAL_PLUS_CONSTANT=[$t6], CONSTANT_3=[$t7], AGG_FUNC=[$t8])
+  EnumerableAggregate(group=[{0, 1}], ENAME=[ANY_VALUE($2)], SAL_COL=[ANY_VALUE($1)], FULL_IDENTIFIER=[ANY_VALUE($3)], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[ANY_VALUE($4)], SAL_PLUS_CONSTANT=[ANY_VALUE($5)], CONSTANT_3=[ANY_VALUE($6)], AGG_FUNC=[MAX($1)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[+($t5, $t6)], expr#9=[1], expr#10=[+($t5, $t9)], expr#11=[3], DEPTNO=[$t7], SAL=[$t5], ENAME=[$t1], JOB=[$t2], $f4=[$t8], $f5=[$t10], $f6=[$t11])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-5465] Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan when sql has distinct agg-call with rollup
+!use scott
+WITH t1 (id, c1) AS (
+    VALUES
+        ('1', 'A1'),
+        ('2', 'A2'),
+        ('3', 'A3'),
+        ('3', 'A3'),
+        ('3', 'A2'),
+        (NULL, 'A4')
+)
+SELECT id, COUNT(DISTINCT c1)
+FROM t1
+GROUP BY ROLLUP(id);
++----+--------+
+| ID | EXPR$1 |
++----+--------+
+| 1  |      1 |
+| 2  |      1 |
+| 3  |      2 |
+|    |      1 |
+|    |      4 |
++----+--------+
+(5 rows)
+
+!ok
+
+SELECT deptno, job, COUNT(DISTINCT ename)
+FROM "scott".emp
+GROUP BY ROLLUP(deptno, job);
++--------+-----------+--------+
+| DEPTNO | JOB       | EXPR$2 |
++--------+-----------+--------+
+|     10 | CLERK     |      1 |
+|     10 | MANAGER   |      1 |
+|     10 | PRESIDENT |      1 |
+|     10 |           |      3 |
+|     20 | ANALYST   |      2 |
+|     20 | CLERK     |      2 |
+|     20 | MANAGER   |      1 |
+|     20 |           |      5 |
+|     30 | CLERK     |      1 |
+|     30 | MANAGER   |      1 |
+|     30 | SALESMAN  |      4 |
+|     30 |           |      6 |
+|        |           |     14 |
++--------+-----------+--------+
+(13 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal)
+FROM "scott".emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      4 |
+|     30 |      5 |
+|        |     12 |
++--------+--------+
+(4 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal), SUM(sal)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2   |
++--------+--------+----------+
+|     10 |      3 |  8750.00 |
+|     20 |      4 | 10875.00 |
+|     30 |      5 |  9400.00 |
+|        |     12 | 29025.00 |
++--------+--------+----------+
+(4 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal), COUNT(sal)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |      3 |      3 |
+|     20 |      4 |      5 |
+|     30 |      5 |      6 |
+|        |     12 |     14 |
++--------+--------+--------+
+(4 rows)
+
+!ok
+
+SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal), COUNT(*)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+----------+--------+
+| DEPTNO | EXPR$1 | EXPR$2   | EXPR$3 |
++--------+--------+----------+--------+
+|     10 |      3 |  8750.00 |      3 |
+|     20 |      4 |  7875.00 |      5 |
+|     30 |      5 |  8150.00 |      6 |
+|        |     12 | 24775.00 |     14 |
++--------+--------+----------+--------+
+(4 rows)
+
+!ok
+
 # End agg.iq

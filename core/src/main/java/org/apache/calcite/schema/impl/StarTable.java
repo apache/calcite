@@ -41,9 +41,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Virtual table that is composed of two or more tables joined together.
@@ -68,7 +69,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
 
   /** Creates a StarTable. */
   private StarTable(Lattice lattice, ImmutableList<Table> tables) {
-    this.lattice = Objects.requireNonNull(lattice, "lattice");
+    this.lattice = requireNonNull(lattice, "lattice");
     this.tables = tables;
   }
 

@@ -84,8 +84,13 @@ public class ArrowRules {
       final Filter filter = call.rel(0);
 
       if (filter.getTraitSet().contains(Convention.NONE)) {
-        final RelNode converted = convert(filter);
-        call.transformTo(converted);
+        try {
+          final RelNode converted = convert(filter);
+          call.transformTo(converted);
+        } catch (UnsupportedOperationException e) {
+          // skip rule application when hitting an unsupported feature,
+          // allowing a plan in the Enumerable convention to be generated
+        }
       }
     }
 

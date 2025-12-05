@@ -230,7 +230,7 @@ public class SqlAdvisor {
    * @return preferred casing when replacing input word
    */
   private Casing getPreferredCasing(String word) {
-    if (word == prevWord) {
+    if (word.equals(prevWord)) {
       return castNonNull(prevPreferredCasing);
     }
     boolean hasLower = false;
@@ -621,11 +621,11 @@ public class SqlAdvisor {
 
   /** Text and position info of a validator or parser exception. */
   public static class ValidateErrorInfo {
-    private int startLineNum;
-    private int startColumnNum;
-    private int endLineNum;
-    private int endColumnNum;
-    private @Nullable String errorMsg;
+    private final int startLineNum;
+    private final int startColumnNum;
+    private final int endLineNum;
+    private final int endColumnNum;
+    private final @Nullable String errorMsg;
 
     /**
      * Creates a new ValidateErrorInfo with the position coordinates and an

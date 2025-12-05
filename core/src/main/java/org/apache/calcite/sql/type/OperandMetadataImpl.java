@@ -21,10 +21,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Operand type-checking strategy user-defined functions (including user-defined
@@ -49,7 +50,8 @@ public class OperandMetadataImpl extends FamilyOperandTypeChecker
       Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory,
       IntFunction<String> paramNameFn, Predicate<Integer> optional) {
     super(families, optional);
-    this.paramTypesFactory = Objects.requireNonNull(paramTypesFactory, "paramTypesFactory");
+    this.paramTypesFactory =
+        requireNonNull(paramTypesFactory, "paramTypesFactory");
     this.paramNameFn = paramNameFn;
   }
 

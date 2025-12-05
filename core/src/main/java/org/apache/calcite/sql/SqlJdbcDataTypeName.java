@@ -22,6 +22,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Defines the name of the types which can occur as a type argument
  * in a JDBC <code>{fn CONVERT(value, type)}</code> function.
@@ -78,19 +82,20 @@ public enum SqlJdbcDataTypeName implements Symbolizable {
     this(null, range);
   }
 
-  SqlJdbcDataTypeName(@Nullable SqlTypeName typeName, @Nullable TimeUnitRange range) {
-    assert (typeName == null) != (range == null);
+  SqlJdbcDataTypeName(@Nullable SqlTypeName typeName,
+      @Nullable TimeUnitRange range) {
     this.typeName = typeName;
     this.range = range;
+    checkArgument((typeName == null) != (range == null));
   }
 
   /** Creates a parse tree node for a type identifier of this name. */
   public SqlNode createDataType(SqlParserPos pos) {
     if (typeName != null) {
-      assert range == null;
+      checkArgument(range == null);
       return new SqlDataTypeSpec(new SqlBasicTypeNameSpec(typeName, pos), pos);
     } else {
-      assert range != null;
+      requireNonNull(range, "range");
       return new SqlIntervalQualifier(range.startUnit, range.endUnit, pos);
     }
   }

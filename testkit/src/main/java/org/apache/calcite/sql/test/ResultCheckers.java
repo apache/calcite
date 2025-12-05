@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.test;
 
 import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.test.Matchers;
 import org.apache.calcite.util.ImmutableNullableSet;
 import org.apache.calcite.util.JdbcType;
 
@@ -40,9 +39,11 @@ import java.util.regex.Pattern;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.closeTo;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.lang.Double.parseDouble;
+import static java.lang.Long.parseLong;
 import static java.util.Objects.requireNonNull;
 
 /** Utilities for {@link SqlTester.ResultChecker}. */
@@ -73,8 +74,7 @@ public class ResultCheckers {
   }
 
   public static SqlTester.ResultChecker isWithin(double value, double delta) {
-    return new MatcherResultChecker<>(Matchers.within(value, delta),
-        JdbcType.DOUBLE);
+    return new MatcherResultChecker<>(closeTo(value, delta), JdbcType.DOUBLE);
   }
 
   public static SqlTester.ResultChecker isSingle(double delta, String value) {
@@ -145,10 +145,10 @@ public class ResultCheckers {
       case PRIMITIVE_LONG:
         long l;
         try {
-          l = Long.parseLong(s0);
+          l = parseLong(s0);
         } catch (NumberFormatException e) {
           // Large integers come out in scientific format, say "5E+06"
-          l = (long) Double.parseDouble(s0);
+          l = (long) parseDouble(s0);
         }
         assertThat(msg, resultSet.getByte(1), equalTo((byte) l));
         assertThat(msg, resultSet.getShort(1), equalTo((short) l));
@@ -159,7 +159,7 @@ public class ResultCheckers {
       case PRIMITIVE_FLOAT:
       case DOUBLE:
       case PRIMITIVE_DOUBLE:
-        final double d = Double.parseDouble(s0);
+        final double d = parseDouble(s0);
         assertThat(msg, resultSet.getFloat(1), equalTo((float) d));
         assertThat(msg, resultSet.getDouble(1), equalTo(d));
         break;
@@ -174,7 +174,7 @@ public class ResultCheckers {
       assertThat(msg, wasNull2, equalTo(wasNull0));
     }
     resultSet.close();
-    assertEquals(refSet, actualSet, msg);
+    assertThat(msg, actualSet, is(refSet));
   }
 
   private static ColumnMetaData.Rep rep(int columnType) {

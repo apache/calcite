@@ -18,6 +18,10 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -384,8 +388,155 @@ public enum Primitive {
     }
   }
 
+  /** Called from BuiltInMethod.INTEGER_CAST */
   public static @Nullable Object integerCast(Primitive primitive, final Object value) {
-    return requireNonNull(primitive, "primitive").numberValue((Number) value);
+    return requireNonNull(primitive, "primitive").numberValue((Number) value, RoundingMode.DOWN);
+  }
+
+  /** Called from BuiltInMethod.INTEGER_CAST_ROUNDING_MODE */
+  public static @Nullable Object integerCast(Primitive primitive, final Object value,
+      RoundingMode roundingMode) {
+    return requireNonNull(primitive, "primitive").numberValue((Number) value, roundingMode);
+  }
+
+  static BigDecimal checkOverflow(BigDecimal value, int precision, int scale,
+      RoundingMode roundingMode) {
+    BigDecimal result = value.setScale(scale, roundingMode);
+    result = result.stripTrailingZeros();
+    if (result.scale() < scale) {
+      // stripTrailingZeros also removes zeros if there is no
+      // decimal point, converting 1000 to 1e+3, using a negative scale.
+      // Here we undo this change.
+      result = result.setScale(scale, roundingMode);
+    }
+    int actualPrecision = result.precision();
+    if (actualPrecision > precision) {
+      throw new ArithmeticException("Value " + value
+          + " cannot be represented as a DECIMAL(" + precision + ", " + scale + ")");
+    }
+    if (scale < 0) {
+      // The result maybe scientific notation string,e.g. 1.234E+6,
+      // we need to convert it to 1234000
+      return new BigDecimal(result.toPlainString());
+    }
+    return result;
+  }
+
+  /** Called from BuiltInMethod.CHAR_DECIMAL_CAST */
+  public static @Nullable Object charToDecimalCast(
+      @Nullable String value, int precision, int scale) {
+    return charToDecimalCast(value, precision, scale, RoundingMode.DOWN);
+  }
+
+  /** Called from BuiltInMethod.CHAR_DECIMAL_CAST_ROUNDING_MODE */
+  public static @Nullable Object charToDecimalCast(
+      @Nullable String value, int precision, int scale, RoundingMode roundingMode) {
+    if (value == null) {
+      return null;
+    }
+    BigDecimal result = new BigDecimal(value.trim());
+    return checkOverflow(result, precision, scale, roundingMode);
+  }
+
+  /**
+   * Convert a short time interval to a decimal value.
+   * Called from BuiltInMethod.SHORT_INTERVAL_DECIMAL_CAST.
+   * @param unitScale Scale describing source interval type */
+  public static @Nullable Object shortIntervalToDecimalCast(
+      @Nullable Long value, int precision, int scale,
+      BigDecimal unitScale) {
+    return shortIntervalToDecimalCast(value, precision, scale, unitScale, RoundingMode.DOWN);
+  }
+
+  /**
+   * Convert a short time interval to a decimal value.
+   * Called from BuiltInMethod.SHORT_INTERVAL_DECIMAL_CAST_ROUNDING_MODE.
+   * @param unitScale Scale describing source interval type */
+  public static @Nullable Object shortIntervalToDecimalCast(
+      @Nullable Long value, int precision, int scale,
+      BigDecimal unitScale, RoundingMode roundingMode) {
+    if (value == null) {
+      return null;
+    }
+    // Divide with the scale expected of the result
+    BigDecimal result = new BigDecimal(value).divide(unitScale, scale, roundingMode);
+    return checkOverflow(result, precision, scale, roundingMode);
+  }
+
+  /**
+   * Convert a long time interval to a decimal value.
+   * Called from BuiltInMethod.LONG_INTERVAL_DECIMAL_CAST.
+   * @param unitScale Scale describing source interval type */
+  public static @Nullable Object longIntervalToDecimalCast(
+      @Nullable Integer value, int precision, int scale,
+      BigDecimal unitScale) {
+    return longIntervalToDecimalCast(value, precision, scale, unitScale, RoundingMode.DOWN);
+  }
+
+  /**
+   * Convert a long time interval to a decimal value.
+   * Called from BuiltInMethod.LONG_INTERVAL_DECIMAL_CAST_ROUNDING_MODE.
+   * @param unitScale Scale describing source interval type */
+  public static @Nullable Object longIntervalToDecimalCast(
+      @Nullable Integer value, int precision, int scale,
+      BigDecimal unitScale, RoundingMode roundingMode) {
+    if (value == null) {
+      return null;
+    }
+    // Divide with the scale expected of the result
+    BigDecimal result = new BigDecimal(value).divide(unitScale, scale, roundingMode);
+    return checkOverflow(result, precision, scale, roundingMode);
+  }
+
+  /** Called from BuiltInMethod.DECIMAL_DECIMAL_CAST */
+  public static @Nullable Object decimalDecimalCast(
+      @Nullable BigDecimal value, int precision, int scale) {
+    return decimalDecimalCast(value, precision, scale, RoundingMode.DOWN);
+  }
+
+  /** Called from BuiltInMethod.DECIMAL_DECIMAL_CAST_ROUNDING_MODE */
+  public static @Nullable Object decimalDecimalCast(
+      @Nullable BigDecimal value, int precision, int scale, RoundingMode roundingMode) {
+    if (value == null) {
+      return null;
+    }
+    return checkOverflow(value, precision, scale, roundingMode);
+  }
+
+  /** Called from BuiltInMethod.INTEGER_DECIMAL_CAST */
+  public static @Nullable Object integerDecimalCast(
+      @Nullable Number value, int precision, int scale) {
+    return integerDecimalCast(value, precision, scale, RoundingMode.DOWN);
+  }
+
+  /** Called from BuiltInMethod.INTEGER_DECIMAL_CAST_ROUNDING_MODE */
+  public static @Nullable Object integerDecimalCast(
+      @Nullable Number value, int precision, int scale, RoundingMode roundingMode) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal decimal = new BigDecimal(value.longValue());
+    return checkOverflow(decimal, precision, scale, roundingMode);
+  }
+
+  /** Called from BuiltInMethod.FP_DECIMAL_CAST */
+  public static @Nullable Object fpDecimalCast(
+      @Nullable Number value, int precision, int scale) {
+    return fpDecimalCast(value, precision, scale, RoundingMode.DOWN);
+  }
+
+  /** Called from BuiltInMethod.FP_DECIMAL_CAST_ROUNDING_MODE */
+  public static @Nullable Object fpDecimalCast(
+      @Nullable Number value, int precision, int scale, RoundingMode roundingMode) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal decimal = BigDecimal.valueOf(value.doubleValue());
+    return checkOverflow(decimal, precision, scale, roundingMode);
+  }
+
+  public @Nullable Object numberValueRoundDown(Number value) {
+    return numberValue(value, RoundingMode.DOWN);
   }
 
   /**
@@ -394,12 +545,16 @@ public enum Primitive {
    * an exception is thrown.
    *
    * @param value  Value to convert.
+   * @param roundingMode Rounding behavior.
    * @return       The converted value, or null if the type of the result is not a number.
    */
-  public @Nullable Object numberValue(Number value) {
+  public @Nullable Object numberValue(Number value, RoundingMode roundingMode) {
     switch (this) {
     case BYTE:
       checkRoundedRange(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
+      if (value instanceof BigDecimal) {
+        return ((BigDecimal) value).setScale(0, roundingMode).byteValue();
+      }
       return value.byteValue();
     case CHAR:
       // No overflow checks for char values.
@@ -407,15 +562,30 @@ public enum Primitive {
       return (char) value.intValue();
     case SHORT:
       checkRoundedRange(value, Short.MIN_VALUE, Short.MAX_VALUE);
+      if (value instanceof BigDecimal) {
+        return ((BigDecimal) value).setScale(0, roundingMode).shortValue();
+      }
       return value.shortValue();
     case INT:
       checkRoundedRange(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
+      if (value instanceof BigDecimal) {
+        return ((BigDecimal) value).setScale(0, roundingMode).intValue();
+      }
       return value.intValue();
     case LONG:
       if (value instanceof Byte
           || value instanceof Short
           || value instanceof Integer
-          || value instanceof Long) {
+          || value instanceof Long
+          || value instanceof UByte
+          || value instanceof UShort
+          || value instanceof UInteger) {
+        return value.longValue();
+      }
+      if (value instanceof ULong) {
+        if (value.longValue() < 0) {
+          throw new ArithmeticException("Value " + value + " out of range");
+        }
         return value.longValue();
       }
       if (value instanceof Float
@@ -424,14 +594,14 @@ public enum Primitive {
         // so we cannot use checkRoundedRange.
         BigDecimal decimal = BigDecimal.valueOf(value.doubleValue())
             // Round to an integer
-            .setScale(0, RoundingMode.DOWN);
+            .setScale(0, roundingMode);
         // longValueExact will throw ArithmeticException if out of range
         return decimal.longValueExact();
       }
       if (value instanceof BigDecimal) {
         BigDecimal decimal = ((BigDecimal) value)
             // Round to an integer
-            .setScale(0, RoundingMode.DOWN);
+            .setScale(0, roundingMode);
         // longValueExact will throw ArithmeticException if out of range
         return decimal.longValueExact();
       }

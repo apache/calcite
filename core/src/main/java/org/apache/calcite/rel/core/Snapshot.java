@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -84,7 +83,7 @@ public abstract class Snapshot extends SingleRel implements Hintable {
   protected Snapshot(RelOptCluster cluster, RelTraitSet traitSet, List<RelHint> hints,
       RelNode input, RexNode period) {
     super(cluster, traitSet, input);
-    this.period = Objects.requireNonNull(period, "period");
+    this.period = requireNonNull(period, "period");
     this.hints = ImmutableList.copyOf(hints);
     assert isValid(Litmus.THROW, null);
   }

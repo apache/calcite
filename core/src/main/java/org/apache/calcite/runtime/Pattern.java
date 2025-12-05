@@ -18,11 +18,12 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Objects;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /** Regular expression, to be compiled into an {@link Automaton}. */
 public interface Pattern {
@@ -153,7 +154,7 @@ public interface Pattern {
     final Op op;
 
     AbstractPattern(Op op) {
-      this.op = Objects.requireNonNull(op, "op");
+      this.op = requireNonNull(op, "op");
     }
 
     @Override public Automaton toAutomaton() {
@@ -167,7 +168,7 @@ public interface Pattern {
 
     SymbolPattern(String name) {
       super(Op.SYMBOL);
-      this.name = Objects.requireNonNull(name, "name");
+      this.name = requireNonNull(name, "name");
     }
 
     @Override public String toString() {

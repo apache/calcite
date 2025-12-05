@@ -39,6 +39,8 @@ import org.apache.calcite.util.Bug;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
@@ -73,6 +75,12 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   String OUT_OF_RANGE_MESSAGE = ".* out of range.*";
 
+  String INTEGER_OVERFLOW = "integer overflow.*";
+
+  String LONG_OVERFLOW = "long overflow.*";
+
+  String DECIMAL_OVERFLOW = ".*cannot be represented as a DECIMAL.*";
+
   String WRONG_FORMAT_MESSAGE = "Number has wrong format.*";
 
   // TODO: Change message
@@ -90,13 +98,16 @@ public interface SqlOperatorFixture extends AutoCloseable {
   String INVALID_ARGUMENTS_NUMBER =
       "Invalid number of arguments to function .* Was expecting .* arguments";
 
+  String INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR =
+      "Cannot apply '.*' to arguments of type .*";
+
   //~ Enums ------------------------------------------------------------------
 
   /**
    * Name of a virtual machine that can potentially implement an operator.
    */
   enum VmName {
-    FENNEL, JAVA, EXPAND
+    JAVA, EXPAND
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -451,6 +462,24 @@ public interface SqlOperatorFixture extends AutoCloseable {
       ResultChecker checker);
 
   /**
+   * Checks that an aggregate expression returns the expected result.
+   *
+   * <p>For example, <code>checkAgg("AVG(DISTINCT x)", new String[] {"2", "3",
+   * null, "3" }, "INTEGER", isSingle([2, 3]));</code>
+   *
+   * @param expr        Aggregate expression, e.g. <code>SUM(DISTINCT x)</code>
+   * @param inputValues Array of input values, e.g. <code>["1", null,
+   *                    "2"]</code>.
+   * @param type        Expected result type
+   * @param checker     Result checker
+   */
+  void checkAgg(
+      String expr,
+      String[] inputValues,
+      String type,
+      ResultChecker checker);
+
+  /**
    * Checks that an aggregate expression with multiple args returns the expected
    * result.
    *
@@ -547,6 +576,19 @@ public interface SqlOperatorFixture extends AutoCloseable {
                 .with(CalciteConnectionProperty.FUN, library.fun));
   }
 
+  default SqlOperatorFixture withLibraries(SqlLibrary... libraries) {
+    List<String> names = new ArrayList<>();
+    for (SqlLibrary lib : libraries) {
+      names.add(lib.fun);
+    }
+    return withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(libraries))
+        .withConnectionFactory(cf ->
+            cf.with(ConnectionFactories.add(CalciteAssert.SchemaSpec.HR))
+                .with(CalciteConnectionProperty.FUN, String.join(",", names)));
+  }
+
   /** Applies this fixture to some code for each of the given libraries. */
   default void forEachLibrary(Iterable<? extends SqlLibrary> libraries,
       Consumer<SqlOperatorFixture> consumer) {
@@ -637,11 +679,13 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   default void checkCastFails(String value, String targetType,
       String expectedError, boolean runtime, CastType castType) {
-    final String query = getCastString(value, targetType, !runtime, castType);
-    if (castType == CastType.CAST || !runtime) {
-      checkFails(query, expectedError, runtime);
+    // Safe casts should never fail
+    boolean shouldFail = castType == CastType.CAST;
+    final String castString = getCastString(value, targetType, shouldFail && !runtime, castType);
+    if (shouldFail) {
+      checkFails(castString, expectedError, runtime);
     } else {
-      checkNull(query);
+      checkNull(castString);
     }
   }
 

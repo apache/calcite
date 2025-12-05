@@ -20,15 +20,22 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
+
+import java.util.Arrays;
 
 import static org.apache.calcite.test.Matchers.sortsAs;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Tests for {@link org.apache.calcite.rel.metadata.RelMdPredicates} class. */
 public class RelMdPredicatesTest {
@@ -89,6 +96,26 @@ public class RelMdPredicatesTest {
     RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     assertThat(list.rightInferredPredicates, sortsAs(expectedPredicates));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
+   * Random functions are incorrectly considered deterministic</a>. */
+  @Test void testRandomFunctionsAreNotConsideredConstant() {
+    FrameworkConfig config = RelBuilderTest.config().build();
+    for (SqlOperator randomOp : Arrays.asList(SqlStdOperatorTable.RAND,
+        SqlLibraryOperators.RANDOM, SqlStdOperatorTable.RAND_INTEGER)) {
+      RelBuilder b = RelBuilder.create(config);
+      RelNode rel = b
+          .scan("EMP")
+          .project(b.field(0), b.call(randomOp))
+          .sort(1)
+          .build();
+      RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+      RelOptPredicateList list = mq.getPulledUpPredicates(rel);
+      assertTrue(list.constantMap.isEmpty(),
+          "Operator " + randomOp + " considered constant: " + list.constantMap);
+    }
   }
 
 }

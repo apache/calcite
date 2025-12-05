@@ -28,7 +28,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package.
@@ -41,7 +42,7 @@ class PigAdapterTest extends AbstractPigTest {
           Sources.of(PigAdapterTest.class.getResource("/model.json"))
               .file().getAbsolutePath());
 
-  @Test void testScanAndFilter() throws Exception {
+  @Test void testScanAndFilter() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" where \"tc0\" > 'abc'")
@@ -144,7 +145,7 @@ class PigAdapterTest extends AbstractPigTest {
                 + "};"));
   }
 
-  @Test void testImplWithJoin() throws Exception {
+  @Test void testImplWithJoin() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" join \"s\" on \"tc1\"=\"sc0\"")
@@ -173,7 +174,7 @@ class PigAdapterTest extends AbstractPigTest {
           actual == null || actual.isEmpty()
               ? null
               : (String) actual.get(0);
-      assertEquals(strings[0], actualArray, "expected Pig script not found");
+      assertThat("expected Pig script not found", actualArray, is(strings[0]));
     };
   }
 }

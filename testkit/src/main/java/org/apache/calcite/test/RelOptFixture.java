@@ -250,6 +250,10 @@ public class RelOptFixture {
     return withConfig(c -> c.withExpand(expand));
   }
 
+  public RelOptFixture withInSubQueryThreshold(final int inSubQueryThreshold) {
+    return withConfig(c -> c.withInSubQueryThreshold(inSubQueryThreshold));
+  }
+
   public RelOptFixture withConfig(
       UnaryOperator<SqlToRelConverter.Config> transform) {
     return withFactory(f -> f.withSqlToRelConfig(transform));

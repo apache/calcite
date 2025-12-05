@@ -63,7 +63,7 @@ public class ParserBenchmark {
   SqlParser parser;
 
   @Setup
-  public void setup() throws SqlParseException {
+  public void setup() {
     StringBuilder sb = new StringBuilder((int) (length * 1.2));
     sb.append("select 1");
     Random rnd = new Random();

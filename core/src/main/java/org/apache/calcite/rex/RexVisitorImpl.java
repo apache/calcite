@@ -126,6 +126,10 @@ public class RexVisitorImpl<@Nullable R> implements RexVisitor<R> {
     return null;
   }
 
+  @Override public R visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    return null;
+  }
+
   /**
    * Visits an array of expressions, returning the logical 'and' of their
    * results.

@@ -141,7 +141,8 @@ public class JsonFunctions {
       switch (mode) {
       case STRICT:
         if (input.hasException()) {
-          return JsonPathContext.withStrictException(pathSpec, input.exc);
+          return JsonPathContext.withStrictException(pathSpec,
+              requireNonNull(input.exc));
         }
         ctx =
             JsonPath.parse(input.obj(),
@@ -225,7 +226,7 @@ public class JsonFunctions {
         case FALSE:
           return Boolean.FALSE;
         case ERROR:
-          throw toUnchecked(context.exc);
+          throw toUnchecked(requireNonNull(context.exc));
         case UNKNOWN:
           return null;
         default:
@@ -299,7 +300,7 @@ public class JsonFunctions {
       }
       switch (errorBehavior) {
       case ERROR:
-        throw toUnchecked(exc);
+        throw toUnchecked(requireNonNull(exc, "exc"));
       case NULL:
         return null;
       case DEFAULT:
@@ -310,30 +311,35 @@ public class JsonFunctions {
       }
     }
 
-    public @Nullable String jsonQuery(String input,
+    public @Nullable Object jsonQuery(
+        String input,
         String pathSpec,
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-        SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
       return jsonQuery(
           jsonApiCommonSyntaxWithCache(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
     }
 
-    public @Nullable String jsonQuery(JsonValueContext input,
+    public @Nullable Object jsonQuery(JsonValueContext input,
         String pathSpec,
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-        SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
       return jsonQuery(
           jsonApiCommonSyntax(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
     }
 
-    public @Nullable String jsonQuery(JsonPathContext context,
+    public @Nullable Object jsonQuery(
+        JsonPathContext context,
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-        SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
       final Exception exc;
       if (context.hasException()) {
         exc = context.exc;
@@ -369,9 +375,9 @@ public class JsonFunctions {
           case NULL:
             return null;
           case EMPTY_ARRAY:
-            return "[]";
+            return jsonQueryEmptyArray(jsonize);
           case EMPTY_OBJECT:
-            return "{}";
+            return jsonQueryEmptyObject(jsonize);
           default:
             throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
                 emptyBehavior.toString()).ex();
@@ -381,25 +387,41 @@ public class JsonFunctions {
               RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
                   value.toString()).ex();
         } else {
-          try {
-            return jsonize(value);
-          } catch (Exception e) {
-            exc = e;
+          if (jsonize) {
+            try {
+              return jsonize(value);
+            } catch (Exception e) {
+              exc = e;
+            }
+          } else {
+            return value;
           }
         }
       }
       switch (errorBehavior) {
       case ERROR:
-        throw toUnchecked(exc);
+        throw toUnchecked(requireNonNull(exc, "exc"));
       case NULL:
         return null;
       case EMPTY_ARRAY:
-        return "[]";
+        return jsonQueryEmptyArray(jsonize);
       case EMPTY_OBJECT:
-        return "{}";
+        return jsonQueryEmptyObject(jsonize);
       default:
         throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
             errorBehavior.toString()).ex();
+      }
+    }
+
+    private static Object jsonQueryEmptyArray(boolean jsonize) {
+      return jsonize ? "[]" : Collections.emptyList();
+    }
+
+    private static String jsonQueryEmptyObject(boolean jsonize) {
+      if (jsonize) {
+        return "{}";
+      } else {
+        throw RESOURCE.illegalEmptyObjectInJsonQueryFunc().ex();
       }
     }
   }
@@ -550,13 +572,9 @@ public class JsonFunctions {
       for (int i = 0; i < size; ++i) {
         Object obj = q.poll();
         if (obj instanceof Map) {
-          for (Object value : ((LinkedHashMap) obj).values()) {
-            q.add(value);
-          }
+          q.addAll(((LinkedHashMap) obj).values());
         } else if (obj instanceof Collection) {
-          for (Object value : (Collection) obj) {
-            q.add(value);
-          }
+          q.addAll((Collection) obj);
         }
       }
       ++depth;
@@ -585,7 +603,7 @@ public class JsonFunctions {
     final Object value;
     try {
       if (context.hasException()) {
-        throw toUnchecked(context.exc);
+        throw toUnchecked(requireNonNull(context.exc));
       }
       value = context.obj;
 
@@ -630,7 +648,7 @@ public class JsonFunctions {
     final Object value;
     try {
       if (context.hasException()) {
-        throw toUnchecked(context.exc);
+        throw toUnchecked(requireNonNull(context.exc));
       }
       value = context.obj;
 
@@ -812,7 +830,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonValue(String input) {
+  public static @Nullable Boolean isJsonValue(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       dejsonize(input);
       return true;
@@ -821,7 +842,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonObject(String input) {
+  public static @Nullable Boolean isJsonObject(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return o instanceof Map;
@@ -830,7 +854,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonArray(String input) {
+  public static @Nullable Boolean isJsonArray(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return o instanceof Collection;
@@ -839,7 +866,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonScalar(String input) {
+  public static @Nullable Boolean isJsonScalar(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return !(o instanceof Map) && !(o instanceof Collection);

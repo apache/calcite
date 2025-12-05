@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents an expression that has a ternary operator.
  */
@@ -32,12 +34,9 @@ public class TernaryExpression extends Expression {
   TernaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1, Expression expression2) {
     super(nodeType, type);
-    assert expression0 != null : "expression0 should not be null";
-    assert expression1 != null : "expression1 should not be null";
-    assert expression2 != null : "expression2 should not be null";
-    this.expression0 = expression0;
-    this.expression1 = expression1;
-    this.expression2 = expression2;
+    this.expression0 = requireNonNull(expression0, "expression0");
+    this.expression1 = requireNonNull(expression1, "expression1");
+    this.expression2 = requireNonNull(expression2, "expression2");
   }
 
   @Override public Expression accept(Shuttle shuttle) {

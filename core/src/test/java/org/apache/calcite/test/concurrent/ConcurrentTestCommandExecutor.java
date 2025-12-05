@@ -18,6 +18,8 @@ package org.apache.calcite.test.concurrent;
 
 import org.apache.calcite.util.Unsafe;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,27 +34,27 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * The id for this thread.
    */
-  private Integer threadId;
+  private final Integer threadId;
 
   /**
    * JDBC URL to connect with.
    */
-  private String jdbcURL;
+  private final String jdbcURL;
 
   /**
    * JDBC Connection properties.
    */
-  private Properties jdbcProps;
+  private final Properties jdbcProps;
 
   /**
    * Command sequence for this thread.
    */
-  private Iterable<ConcurrentTestCommand> commands;
+  private final Iterable<ConcurrentTestCommand> commands;
 
   /**
    * Used to synchronize command execution.
    */
-  private Sync synchronizer;
+  private final Sync synchronizer;
 
   /**
    * JDBC connection for commands.
@@ -62,7 +64,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * Current JDBC Statement. May be null.
    */
-  private Statement statement;
+  private @Nullable Statement statement;
 
   /**
    * First exception thrown by the thread.
@@ -77,12 +79,12 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * Debugging print stream. May be null.
    */
-  private final PrintStream debugPrintStream;
+  private final @Nullable PrintStream debugPrintStream;
 
   /**
    * Command throwing error.
    */
-  private ConcurrentTestCommand errorCommand;
+  private @Nullable ConcurrentTestCommand errorCommand;
 
   /**
    * Constructs a ConcurrentTestCommandExecutor with the given thread
@@ -106,7 +108,7 @@ class ConcurrentTestCommandExecutor extends Thread {
       Properties jdbcProps,
       Iterable<ConcurrentTestCommand> commands,
       Sync synchronizer,
-      PrintStream debugPrintStream) {
+      @Nullable PrintStream debugPrintStream) {
     this.threadId = threadId;
     this.jdbcURL = jdbcURL;
     this.jdbcProps = jdbcProps;
@@ -185,7 +187,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   private void handleError(
       Throwable error,
       String when,
-      ConcurrentTestCommand command) {
+      @Nullable ConcurrentTestCommand command) {
     this.error = error;
     this.when = when;
     this.errorCommand = command;
@@ -208,7 +210,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * Obtains the thread's current JDBC statement. May return null.
    */
-  public Statement getStatement() {
+  public @Nullable Statement getStatement() {
     return statement;
   }
 

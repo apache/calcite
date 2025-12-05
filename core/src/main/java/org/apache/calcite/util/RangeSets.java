@@ -32,11 +32,10 @@ import java.util.function.Function;
 import static java.util.Objects.requireNonNull;
 
 /** Utilities for Guava {@link com.google.common.collect.RangeSet}. */
-@SuppressWarnings({"BetaApi", "UnstableApiUsage"})
 public class RangeSets {
   private RangeSets() {}
 
-  @SuppressWarnings({"BetaApi", "rawtypes"})
+  @SuppressWarnings("rawtypes")
   private static final ImmutableRangeSet ALL =
       ImmutableRangeSet.of().complement();
 

@@ -30,10 +30,11 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
-import java.util.Objects;
 
 import de.bwaldvogel.mongo.MongoServer;
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Instantiates a new connection to a embedded (but fake) or real mongo database
@@ -54,10 +55,10 @@ class MongoDatabasePolicy implements AfterAllCallback {
   private final Closer closer;
 
   private MongoDatabasePolicy(MongoClient client, Closer closer) {
-    MongoClient client1 = Objects.requireNonNull(client, "client");
+    MongoClient client1 = requireNonNull(client, "client");
     this.database = client.getDatabase(DB_NAME);
-    this.closer = Objects.requireNonNull(closer, "closer");
-    closer.add(client::close);
+    this.closer = requireNonNull(closer, "closer");
+    closer.add(client);
   }
 
   @Override public void afterAll(ExtensionContext context) {

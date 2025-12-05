@@ -44,7 +44,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
@@ -56,6 +55,8 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for {@link Profiler}.
@@ -370,7 +371,7 @@ class ProfilerTest {
     assertThat(q.isValid(), is(true));
   }
 
-  private Fluid scott() throws Exception {
+  private Fluid scott() {
     final String sql = "select * from \"scott\".emp\n"
         + "join \"scott\".dept on emp.deptno = dept.deptno";
     return sql(sql)
@@ -380,7 +381,7 @@ class ProfilerTest {
         .project(Fluid.EXTENDED_COLUMNS);
   }
 
-  private Fluid foodmart() throws Exception {
+  private Fluid foodmart() {
     final String sql = "select \"s\".*, \"p\".*, \"t\".*, \"pc\".*\n"
         + "from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
         + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
@@ -469,10 +470,10 @@ class ProfilerTest {
         Predicate<Profiler.Statistic> predicate,
         Comparator<Profiler.Statistic> comparator, int limit,
         List<String> columns) {
-      this.sql = Objects.requireNonNull(sql, "sql");
-      this.factory = Objects.requireNonNull(factory, "factory");
+      this.sql = requireNonNull(sql, "sql");
+      this.factory = requireNonNull(factory, "factory");
       this.columns = ImmutableList.copyOf(columns);
-      this.predicate = Objects.requireNonNull(predicate, "predicate");
+      this.predicate = requireNonNull(predicate, "predicate");
       this.comparator = comparator; // null means sort on JSON representation
       this.limit = limit;
       this.config = config;

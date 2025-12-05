@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents an expression that has a unary operator.
  */
@@ -29,8 +31,7 @@ public class UnaryExpression extends Expression {
 
   UnaryExpression(ExpressionType nodeType, Type type, Expression expression) {
     super(nodeType, type);
-    assert expression != null : "expression should not be null";
-    this.expression = expression;
+    this.expression = requireNonNull(expression, "expression");
   }
 
   @Override public Expression accept(Shuttle shuttle) {
@@ -51,6 +52,24 @@ public class UnaryExpression extends Expression {
         expression.accept(writer, nodeType.rprec, rprec);
       }
       return;
+    case ConvertChecked:
+      // This is ugly, but Java does not seem to have any facilities
+      // to perform checked cast between scalar types!
+      // So we use the existing linq4j Primitive.numberValue method
+      // which does overflow checking.
+      if (!writer.requireParentheses(this, lprec, rprec)) {
+        // Generate Java code that looks like e.g.,
+        // ((Number)org.apache.calcite.linq4j.tree.Primitive.of(int.class)
+        //     .numberValueRoundDown(literal_value)).intValue();
+        writer.append("((Number)")
+            .append("org.apache.calcite.linq4j.tree.Primitive.of(")
+            .append(type)
+            .append(".class)")
+            .append(".numberValueRoundDown(");
+        expression.accept(writer, nodeType.rprec, rprec);
+        writer.append(")).").append(type).append("Value()");
+      }
+      return;
     default:
       break;
     }
@@ -58,8 +77,10 @@ public class UnaryExpression extends Expression {
       expression.accept(writer, lprec, nodeType.rprec);
       writer.append(nodeType.op);
     } else {
+      writer.append("(");
       writer.append(nodeType.op);
       expression.accept(writer, nodeType.lprec, rprec);
+      writer.append(")");
     }
   }
 
@@ -75,12 +96,7 @@ public class UnaryExpression extends Expression {
     }
 
     UnaryExpression that = (UnaryExpression) o;
-
-    if (!expression.equals(that.expression)) {
-      return false;
-    }
-
-    return true;
+    return expression.equals(that.expression);
   }
 
   @Override public int hashCode() {

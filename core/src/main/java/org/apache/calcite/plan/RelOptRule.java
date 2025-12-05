@@ -31,8 +31,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -99,8 +100,9 @@ public abstract class RelOptRule {
    */
   protected RelOptRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, @Nullable String description) {
-    this.operand = Objects.requireNonNull(operand, "operand");
-    this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory, "relBuilderFactory");
+    this.operand = requireNonNull(operand, "operand");
+    this.relBuilderFactory =
+        requireNonNull(relBuilderFactory, "relBuilderFactory");
     if (description == null) {
       description = guessDescription(getClass().getName());
     }

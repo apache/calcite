@@ -61,7 +61,7 @@ import java.util.TreeMap;
 @Value.Enclosing
 public class AggregateProjectPullUpConstantsRule
     extends RelRule<AggregateProjectPullUpConstantsRule.Config>
-    implements TransformationRule {
+    implements SubstitutionRule {
 
   /** Creates an AggregateProjectPullUpConstantsRule. */
   protected AggregateProjectPullUpConstantsRule(Config config) {
@@ -127,7 +127,6 @@ public class AggregateProjectPullUpConstantsRule
     for (int key : map.keySet()) {
       newGroupSet = newGroupSet.clear(key);
     }
-    final int newGroupCount = newGroupSet.cardinality();
 
     // If the constants are on the trailing edge of the group list, we just
     // reduce the group count.
@@ -139,7 +138,7 @@ public class AggregateProjectPullUpConstantsRule
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       newAggCalls.add(
           aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
-              groupCount, newGroupCount));
+              aggregate.hasEmptyGroup(), newGroupSet.isEmpty()));
     }
     relBuilder.aggregate(relBuilder.groupKey(newGroupSet), newAggCalls);
 
@@ -175,6 +174,7 @@ public class AggregateProjectPullUpConstantsRule
     }
     relBuilder.project(Pair.left(projects), Pair.right(projects)); // inverse
     call.transformTo(relBuilder.build());
+    call.getPlanner().prune(aggregate);
   }
 
 
@@ -182,6 +182,7 @@ public class AggregateProjectPullUpConstantsRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableAggregateProjectPullUpConstantsRule.Config.of();
+    Config ANY = DEFAULT.withOperandFor(LogicalAggregate.class, RelNode.class);
 
     @Override default AggregateProjectPullUpConstantsRule toRule() {
       return new AggregateProjectPullUpConstantsRule(this);

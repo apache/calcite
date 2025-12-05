@@ -40,6 +40,7 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
@@ -76,7 +77,8 @@ public class ModelHandler {
       .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 
-  private final CalciteConnection connection;
+  private final SchemaPlus rootSchema;
+  private final @Nullable String defaultSchemaName;
   private final Deque<Pair<? extends @Nullable String, SchemaPlus>> schemaStack =
       new ArrayDeque<>();
   private final String modelUri;
@@ -84,12 +86,10 @@ public class ModelHandler {
   Lattice.@Nullable TileBuilder tileBuilder;
 
   @SuppressWarnings("method.invocation.invalid")
-  public ModelHandler(CalciteConnection connection, String uri)
-      throws IOException {
+  public ModelHandler(SchemaPlus rootSchema, String uri) throws IOException {
     super();
-    this.connection = connection;
     this.modelUri = uri;
-
+    this.rootSchema = rootSchema;
     JsonRoot root;
     ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
@@ -104,6 +104,19 @@ public class ModelHandler {
       root = mapper.readValue(new File(uri), JsonRoot.class);
     }
     visit(root);
+    this.defaultSchemaName = root.defaultSchema;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public ModelHandler(CalciteConnection connection, String uri) throws IOException {
+    this(connection.getRootSchema(), uri);
+    if (defaultSchemaName != null) {
+      try {
+        connection.setSchema(defaultSchemaName);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -119,7 +132,7 @@ public class ModelHandler {
    *
    * @param schema Schema to add to
    * @param functionName Name of function; null to derived from method name
-   * @param path Path to look for functions
+   * @param unusedPath Path to look for functions (currently ignored)
    * @param className Class to inspect for methods that may be user-defined
    *                  functions
    * @param methodName Method name;
@@ -128,8 +141,9 @@ public class ModelHandler {
    * @param upCase Whether to convert method names to upper case, so that they
    *               can be called without using quotes
    */
-  public static void addFunctions(SchemaPlus schema, @Nullable String functionName,
-      List<String> path, String className, @Nullable String methodName, boolean upCase) {
+  public static void addFunctions(SchemaPlus schema,
+      @Nullable String functionName, List<String> unusedPath,
+      String className, @Nullable String methodName, boolean upCase) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -194,7 +208,7 @@ public class ModelHandler {
 
   public void visit(JsonRoot jsonRoot) {
     final Pair<@Nullable String, SchemaPlus> pair =
-        Pair.of(null, connection.getRootSchema());
+        Pair.of(null, rootSchema);
     schemaStack.push(pair);
     for (JsonType rootType : jsonRoot.types) {
       rootType.accept(this);
@@ -204,13 +218,6 @@ public class ModelHandler {
     }
     final Pair<? extends @Nullable String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
-    if (jsonRoot.defaultSchema != null) {
-      try {
-        connection.setSchema(jsonRoot.defaultSchema);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
-      }
-    }
   }
 
   public void visit(JsonMapSchema jsonSchema) {
@@ -360,7 +367,7 @@ public class ModelHandler {
       if (jsonMaterialization.view == null) {
         // If the user did not supply a view name, that means the materialized
         // view is pre-populated. Generate a synthetic view name.
-        viewName = "$" + schema.getTableNames().size();
+        viewName = "$" + schema.tables().getNames(LikePattern.any()).size();
         existing = true;
       } else {
         viewName = jsonMaterialization.view;
@@ -471,6 +478,10 @@ public class ModelHandler {
     return schema;
   }
 
+  public @Nullable String defaultSchemaName() {
+    return this.defaultSchemaName;
+  }
+
   public void visit(final JsonType jsonType) {
     try {
       final SchemaPlus schema = currentMutableSchema("type");
@@ -517,7 +528,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonMeasure jsonMeasure) {
-    assert latticeBuilder != null;
+    requireNonNull(latticeBuilder, "latticeBuilder");
     final boolean distinct = false; // no distinct field in JsonMeasure.yet
     final Lattice.Measure measure =
         latticeBuilder.resolveMeasure(jsonMeasure.agg, distinct,

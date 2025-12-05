@@ -159,6 +159,10 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     throw unbound(lambdaRef);
   }
 
+  @Override public Comparable visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    throw unbound(nodeAndFieldIndex);
+  }
+
   @Override public Comparable visitCall(RexCall call) {
     final List<Comparable> values = visitList(call.operands);
     switch (call.getKind()) {
@@ -230,6 +234,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case CEIL:
     case FLOOR:
       return ceil(call, values);
+    case TRIM:
+      return trim(call, values);
     case EXTRACT:
       return extract(values);
     case LIKE:
@@ -296,9 +302,9 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  @SuppressWarnings({"BetaApi", "rawtypes", "unchecked", "UnstableApiUsage"})
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static Comparable search(SqlTypeName typeName, List<Comparable> values) {
-    final Comparable value = values.get(0);
+    Comparable value = values.get(0);
     final Sarg sarg = (Sarg) values.get(1);
     if (value == N) {
       switch (sarg.nullAs) {
@@ -310,13 +316,16 @@ public class RexInterpreter implements RexVisitor<Comparable> {
         return N;
       }
     }
+    if (SqlTypeName.NUMERIC_TYPES.contains(typeName)) {
+      value = number(value);
+    }
     return translate(sarg.rangeSet, typeName).contains(value);
   }
 
   /** Translates the values in a RangeSet from literal format to runtime format.
    * For example the DATE SQL type uses DateString for literals and Integer at
    * runtime. */
-  @SuppressWarnings({"BetaApi", "rawtypes", "unchecked", "UnstableApiUsage"})
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static RangeSet translate(RangeSet rangeSet, SqlTypeName typeName) {
     switch (typeName) {
     case DATE:
@@ -326,6 +335,9 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case TIMESTAMP:
       return RangeSets.copy(rangeSet, TimestampString::getMillisSinceEpoch);
     default:
+      if (SqlTypeName.NUMERIC_TYPES.contains(typeName)) {
+        return RangeSets.copy(rangeSet, RexInterpreter::number);
+      }
       return rangeSet;
     }
   }
@@ -337,6 +349,25 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       }
     }
     return N;
+  }
+
+  private static Comparable trim(RexNode call, List<Comparable> values) {
+    if (containsNull(values)) {
+      return N;
+    }
+    NlsString trimType = (NlsString) values.get(0);
+    NlsString trimed = (NlsString) values.get(1);
+    NlsString trimString = (NlsString) values.get(2);
+    switch (trimType.getValue()) {
+    case "BOTH":
+      return trimString.trim(trimed.getValue());
+    case "LEADING":
+      return trimString.ltrim(trimed.getValue());
+    case "TRAILING":
+      return trimString.rtrim(trimed.getValue());
+    default:
+      throw unbound(call);
+    }
   }
 
   private static Comparable ceil(RexCall call, List<Comparable> values) {

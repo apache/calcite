@@ -25,6 +25,10 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a call to either a static or an instance method.
  */
@@ -38,14 +42,16 @@ public class MethodCallExpression extends Expression {
   MethodCallExpression(Type returnType, Method method,
       @Nullable Expression targetExpression, List<Expression> expressions) {
     super(ExpressionType.Call, returnType);
-    assert expressions != null : "expressions should not be null";
-    assert method != null : "method should not be null";
-    assert (targetExpression == null) == Modifier.isStatic(
-        method.getModifiers());
-    assert Types.toClass(returnType) == method.getReturnType();
-    this.method = method;
+    checkArgument((targetExpression == null)
+        == Modifier.isStatic(method.getModifiers()),
+        "static method requires target expression "
+            + "[static: %s, targetExpression: %s]",
+        Modifier.isStatic(method.getModifiers()),
+        targetExpression);
+    checkArgument(Types.toClass(returnType) == method.getReturnType());
+    this.method = requireNonNull(method, "method");
     this.targetExpression = targetExpression;
-    this.expressions = expressions;
+    this.expressions = requireNonNull(expressions, "expressions");
   }
 
   MethodCallExpression(Method method, @Nullable Expression targetExpression,
@@ -121,19 +127,9 @@ public class MethodCallExpression extends Expression {
     }
 
     MethodCallExpression that = (MethodCallExpression) o;
-
-    if (!expressions.equals(that.expressions)) {
-      return false;
-    }
-    if (!method.equals(that.method)) {
-      return false;
-    }
-    if (targetExpression != null ? !targetExpression.equals(that
-        .targetExpression) : that.targetExpression != null) {
-      return false;
-    }
-
-    return true;
+    return expressions.equals(that.expressions)
+        && method.equals(that.method)
+        && Objects.equals(targetExpression, that.targetExpression);
   }
 
   @Override public int hashCode() {

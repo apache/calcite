@@ -75,11 +75,17 @@ public class SqlAsOperator extends SqlSpecialOperator {
     final SqlWriter.Frame frame =
         writer.startList(
             SqlWriter.FrameTypeEnum.AS);
-    call.operand(0).unparse(writer, leftPrec, getLeftPrec());
+    final SqlNode op0 = call.operand(0);
+    final boolean measure = op0.getKind() == SqlKind.MEASURE;
+    final SqlNode op01 = measure ? ((SqlCall) op0).operand(0) : op0;
+    op01.unparse(writer, leftPrec, getLeftPrec());
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
     if (writer.getDialect().allowsAs()) {
       writer.sep("AS");
+      if (measure) {
+        writer.sep("MEASURE");
+      }
       writer.setNeedWhitespace(needsSpace);
     }
     call.operand(1).unparse(writer, getRightPrec(), rightPrec);

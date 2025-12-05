@@ -35,6 +35,8 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CsvTranslatableTable extends CsvTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
-  CsvTranslatableTable(Source source, RelProtoDataType protoRowType) {
+  CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType) {
     super(source, protoRowType);
   }
 

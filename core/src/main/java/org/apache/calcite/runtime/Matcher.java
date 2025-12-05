@@ -38,6 +38,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Workspace that partialMatches patterns against an automaton.
  *
@@ -51,20 +53,17 @@ public class Matcher<E> {
   // but only one thread can use them at a time. Putting them here saves the
   // expense of creating a fresh object each call to "match".
 
-  @SuppressWarnings("unused")
-  private final ImmutableBitSet startSet;
-
   /**
    * Creates a Matcher; use {@link #builder}.
    */
   private Matcher(Automaton automaton,
       ImmutableMap<String, Predicate<MemoryFactory.Memory<E>>> predicates) {
-    this.predicates = Objects.requireNonNull(predicates, "predicates");
+    this.predicates = requireNonNull(predicates, "predicates");
     final ImmutableBitSet.Builder startSetBuilder =
         ImmutableBitSet.builder();
     startSetBuilder.set(automaton.startState.id);
     automaton.epsilonSuccessors(automaton.startState.id, startSetBuilder);
-    startSet = startSetBuilder.build();
+    ImmutableBitSet unusedStartSet = startSetBuilder.build();
     // Build the DFA
     dfa = new DeterministicAutomaton(automaton);
   }

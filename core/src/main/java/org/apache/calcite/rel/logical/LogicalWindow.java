@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -56,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Window}
  * not targeted at any particular engine or calling convention.
@@ -68,8 +71,8 @@ public final class LogicalWindow extends Window {
    *
    * @param cluster Cluster
    * @param traitSet Trait set
-   * @param hints   Hints for this node
-   * @param input   Input relational expression
+   * @param hints Hints for this node
+   * @param input Input relational expression
    * @param constants List of constants that are additional inputs
    * @param rowType Output row type
    * @param groups Window groups
@@ -179,6 +182,7 @@ public final class LogicalWindow extends Window {
       for (RexOver over : entry.getValue()) {
         final RexWinAggCall aggCall =
             new RexWinAggCall(
+                over.getParserPosition(),
                 over.getAggOperator(),
                 over.getType(),
                 toInputRefs(over.operands),
@@ -199,6 +203,7 @@ public final class LogicalWindow extends Window {
               windowKey.isRows,
               windowKey.lowerBound.accept(toInputRefs),
               windowKey.upperBound.accept(toInputRefs),
+              windowKey.exclude,
               windowKey.orderKeys,
               aggCalls));
     }
@@ -243,8 +248,7 @@ public final class LogicalWindow extends Window {
           @Override public RexNode visitOver(RexOver over) {
             // Look up the aggCall which this expr was translated to.
             final Window.RexWinAggCall aggCall =
-                aggMap.get(origToNewOver.get(over));
-            assert aggCall != null;
+                requireNonNull(aggMap.get(origToNewOver.get(over)));
             assert RelOptUtil.eq(
                 "over",
                 over.getType(),
@@ -334,22 +338,25 @@ public final class LogicalWindow extends Window {
     private final boolean isRows;
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
+    private final RexWindowExclusion exclude;
 
     WindowKey(
         ImmutableBitSet groupSet,
         RelCollation orderKeys,
         boolean isRows,
         RexWindowBound lowerBound,
-        RexWindowBound upperBound) {
+        RexWindowBound upperBound,
+        RexWindowExclusion exclude) {
       this.groupSet = groupSet;
       this.orderKeys = orderKeys;
       this.isRows = isRows;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
+      this.exclude = exclude;
     }
 
     @Override public int hashCode() {
-      return Objects.hash(groupSet, orderKeys, isRows, lowerBound, upperBound);
+      return Objects.hash(groupSet, orderKeys, isRows, lowerBound, upperBound, exclude);
     }
 
     @Override public boolean equals(@Nullable Object obj) {
@@ -359,6 +366,7 @@ public final class LogicalWindow extends Window {
           && orderKeys.equals(((WindowKey) obj).orderKeys)
           && Objects.equals(lowerBound, ((WindowKey) obj).lowerBound)
           && Objects.equals(upperBound, ((WindowKey) obj).upperBound)
+          && exclude == ((WindowKey) obj).exclude
           && isRows == ((WindowKey) obj).isRows;
     }
   }
@@ -390,7 +398,7 @@ public final class LogicalWindow extends Window {
     WindowKey windowKey =
         new WindowKey(
             groupSet, orderKeys, aggWindow.isRows(),
-            aggWindow.getLowerBound(), aggWindow.getUpperBound());
+            aggWindow.getLowerBound(), aggWindow.getUpperBound(), aggWindow.getExclude());
     windowMap.put(windowKey, over);
   }
 

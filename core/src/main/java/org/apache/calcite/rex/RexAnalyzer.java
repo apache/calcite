@@ -54,7 +54,6 @@ public class RexAnalyzer {
 
   /** Generates a map of variables and lists of values that could be assigned
    * to them. */
-  @SuppressWarnings("BetaApi")
   public Iterable<Map<RexNode, Comparable>> assignments() {
     final List<List<Comparable>> generators =
         variables.stream().map(RexAnalyzer::getComparables)
@@ -135,7 +134,10 @@ public class RexAnalyzer {
     @Override public Void visitCall(RexCall call) {
       switch (call.getKind()) {
       case CAST:
+      case M2V:
       case OTHER_FUNCTION:
+      case V2M:
+      case ARRAY_VALUE_CONSTRUCTOR:
         ++unsupportedCount;
         return null;
       default:

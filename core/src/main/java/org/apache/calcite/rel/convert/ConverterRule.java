@@ -35,6 +35,8 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
@@ -53,8 +55,8 @@ public abstract class ConverterRule
   /** Creates a <code>ConverterRule</code>. */
   protected ConverterRule(Config config) {
     super(config);
-    this.inTrait = Objects.requireNonNull(config.inTrait());
-    this.outTrait = Objects.requireNonNull(config.outTrait());
+    this.inTrait = requireNonNull(config.inTrait());
+    this.outTrait = requireNonNull(config.outTrait());
 
     // Source and target traits must have same type
     assert inTrait.getTraitDef() == outTrait.getTraitDef();

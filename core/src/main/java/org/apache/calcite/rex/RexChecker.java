@@ -126,9 +126,12 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
       return litmus.fail("RexInputRef index {} out of range 0..{}",
           index, inputTypeList.size() - 1);
     }
+    // Type of field and type of result can differ in nullability.  See [CALCITE-6764]
     if (!ref.getType().isStruct()
-        && !RelOptUtil.eq("ref", ref.getType(), "input",
-            inputTypeList.get(index), litmus)) {
+        && !RelOptUtil.eqUpToNullability(
+            ref.getType().isNullable(),
+            "ref", ref.getType(), "input",
+        inputTypeList.get(index), litmus)) {
       ++failCount;
       return litmus.fail(null);
     }
@@ -160,8 +163,10 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
       ++failCount;
       return litmus.fail(null);
     }
+    // Type of field may not match type of field access - they may differ in nullability
     final RelDataTypeField typeField = refType.getFieldList().get(index);
-    if (!RelOptUtil.eq(
+    if (!RelOptUtil.eqUpToNullability(
+        refType.isNullable(),
         "type1",
         typeField.getType(),
         "type2",

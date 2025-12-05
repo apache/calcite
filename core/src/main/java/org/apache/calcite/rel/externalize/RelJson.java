@@ -43,6 +43,8 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
@@ -50,6 +52,7 @@ import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -97,6 +100,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -294,6 +298,15 @@ public class RelJson {
     throw new RuntimeException("input field " + input + " is out of range");
   }
 
+  public Object toJson(SqlParserPos pos) {
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    map.put("line", pos.getLineNum());
+    map.put("column", pos.getColumnNum());
+    map.put("end_line", pos.getEndLineNum());
+    map.put("end_column", pos.getEndColumnNum());
+    return map;
+  }
+
   public Object toJson(RelCollationImpl node) {
     final List<Object> list = new ArrayList<>();
     for (RelFieldCollation fieldCollation : node.getFieldCollations()) {
@@ -445,13 +458,14 @@ public class RelJson {
     return map;
   }
 
-  @SuppressWarnings({"BetaApi", "UnstableApiUsage"}) // RangeSet GA in Guava 32
   public @Nullable Object toJson(@Nullable Object value) {
     if (value == null
         || value instanceof Number
         || value instanceof String
         || value instanceof Boolean) {
       return value;
+    } else if (value instanceof SqlParserPos) {
+      return toJson((SqlParserPos) value);
     } else if (value instanceof RexNode) {
       return toJson((RexNode) value);
     } else if (value instanceof RexWindow) {
@@ -493,8 +507,12 @@ public class RelJson {
     } else if (value instanceof Range) {
       //noinspection rawtypes,unchecked
       return toJson((Range) value);
+    } else if (value instanceof ByteString) {
+      return toJson(((ByteString) value).toString(16));
+    } else if (value instanceof UUID) {
+      return toJson(value.toString());
     } else {
-      throw new UnsupportedOperationException("type not serializable: "
+      throw new UnsupportedOperationException("type not serializable as JSON: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");
     }
   }
@@ -506,7 +524,6 @@ public class RelJson {
     return map;
   }
 
-  @SuppressWarnings({"BetaApi", "UnstableApiUsage"}) // RangeSet GA in Guava 32
   public <C extends Comparable<C>> List<List<String>> toJson(
       RangeSet<C> rangeSet) {
     final List<List<String>> list = new ArrayList<>();
@@ -520,7 +537,7 @@ public class RelJson {
   }
 
   /** Serializes a {@link Range} that can be deserialized using
-   * {@link RelJson#rangeFromJson(List)}. */
+   * {@link RelJson#rangeFromJson(List, RelDataType)}. */
   public <C extends Comparable<C>> List<String> toJson(Range<C> range) {
     return RangeSets.map(range, RangeToJsonConverter.instance());
   }
@@ -559,15 +576,7 @@ public class RelJson {
   }
 
   private Object toJson(RelDataTypeField node) {
-    final Map<String, @Nullable Object> map;
-    if (node.getType().isStruct()) {
-      map = jsonBuilder().map();
-      map.put("fields", toJson(node.getType()));
-      map.put("nullable", node.getType().isNullable());
-    } else {
-      //noinspection unchecked
-      map = (Map<String, @Nullable Object>) toJson(node.getType());
-    }
+    Map<String, Object> map = (Map<String, Object>) toJson(node.getType());
     map.put("name", node.getName());
     return map;
   }
@@ -619,10 +628,33 @@ public class RelJson {
       map.put("correl", ((RexCorrelVariable) node).getName());
       map.put("type", toJson(node.getType()));
       return map;
+    case LAMBDA_REF: {
+      RexLambdaRef ref = (RexLambdaRef) node;
+      map = jsonBuilder().map();
+      map.put("index", ref.getIndex());
+      map.put("name", ref.getName());
+      map.put("type", toJson(ref.getType()));
+      return map;
+    }
+    case LAMBDA: {
+      RexLambda lambda = (RexLambda) node;
+      map = jsonBuilder().map();
+      final List<@Nullable Object> parameters = jsonBuilder().list();
+      for (RexLambdaRef param : lambda.getParameters()) {
+        parameters.add(toJson(param));
+      }
+      map.put("op", "lambda");
+      map.put("parameters", parameters);
+      map.put("expression", toJson(lambda.getExpression()));
+      return map;
+    }
     default:
       if (node instanceof RexCall) {
         final RexCall call = (RexCall) node;
         map = jsonBuilder().map();
+        if (call.getParserPosition() != SqlParserPos.ZERO) {
+          map.put("pos", toJson(call.getParserPosition()));
+        }
         map.put("op", toJson(call.getOperator()));
         final List<@Nullable Object> list = jsonBuilder().list();
         for (RexNode operand : call.getOperands()) {
@@ -661,10 +693,10 @@ public class RelJson {
 
   private Object toJson(RexWindow window) {
     final Map<String, @Nullable Object> map = jsonBuilder().map();
-    if (window.partitionKeys.size() > 0) {
+    if (!window.partitionKeys.isEmpty()) {
       map.put("partition", toJson(window.partitionKeys));
     }
-    if (window.orderKeys.size() > 0) {
+    if (!window.orderKeys.isEmpty()) {
       map.put("order", toJson(window.orderKeys));
     }
     if (window.getLowerBound() == null) {
@@ -772,11 +804,18 @@ public class RelJson {
             upperBound = null;
             physical = false;
           }
+          final RexWindowExclusion exclude;
+          if (window.get("exclude") != null) {
+            exclude = toRexWindowExclusion((Map) window.get("exclude"));
+          } else {
+            exclude = RexWindowExclusion.EXCLUDE_NO_OTHER;
+          }
           final boolean distinct = get((Map<String, Object>) map, "distinct");
-          return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
+          return rexBuilder.makeOver(SqlParserPos.ZERO, type, operator, rexOperands, partitionKeys,
               ImmutableList.copyOf(orderKeys),
               requireNonNull(lowerBound, "lowerBound"),
               requireNonNull(upperBound, "upperBound"),
+              requireNonNull(exclude, "exclude"),
               physical,
               true, false, distinct, false);
         } else {
@@ -821,11 +860,21 @@ public class RelJson {
         final RelDataType type = toType(typeFactory, get(map, "type"));
         if (literal instanceof Map
             && ((Map<?, ?>) literal).containsKey("rangeSet")) {
-          Sarg sarg = sargFromJson((Map) literal);
+          Sarg sarg = sargFromJson((Map) literal, type);
           return rexBuilder.makeSearchArgumentLiteral(sarg, type);
         }
-        if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
+        SqlTypeName sqlTypeName = type.getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
+        } else if (sqlTypeName == SqlTypeName.TIMESTAMP
+            || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          if (literal instanceof Integer) {
+            literal = ((Integer) literal).longValue();
+          }
+        } else if (sqlTypeName == SqlTypeName.BINARY || sqlTypeName == SqlTypeName.VARBINARY) {
+          literal = ByteString.of((String) literal, 16);
+        } else if (sqlTypeName == SqlTypeName.UUID) {
+          literal = UUID.fromString((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type);
       }
@@ -836,7 +885,7 @@ public class RelJson {
           return rexBuilder.makeNullLiteral(type);
         }
         final RelDataType type = toType(typeFactory, get(map, "type"));
-        Sarg sarg = sargFromJson((Map) sargObject);
+        Sarg sarg = sargFromJson((Map) sargObject, type);
         return rexBuilder.makeSearchArgumentLiteral(sarg, type);
       }
       if (map.containsKey("dynamicParam")) {
@@ -864,6 +913,7 @@ public class RelJson {
     }
   }
 
+  @Deprecated
   /** Converts a JSON object to a {@code Sarg}.
    *
    * <p>For example,
@@ -871,8 +921,6 @@ public class RelJson {
    * nullAs: "UNKNOWN"}} represents the range x &ge; 0 and x &le; 5 or
    * x &gt; 10.
    */
-  // BetaApi is no longer a concern; the Beta tag was removed in Guava 32.0
-  @SuppressWarnings({"BetaApi", "unchecked"})
   public static <C extends Comparable<C>> Sarg<C> sargFromJson(
       Map<String, Object> map) {
     final String nullAs = requireNonNull((String) map.get("nullAs"), "nullAs");
@@ -882,8 +930,17 @@ public class RelJson {
         RelJson.<C>rangeSetFromJson(rangeSet));
   }
 
+  public static <C extends Comparable<C>> Sarg<C> sargFromJson(
+      Map<String, Object> map, RelDataType type) {
+    final String nullAs = requireNonNull((String) map.get("nullAs"), "nullAs");
+    final List<List<String>> rangeSet =
+        requireNonNull((List<List<String>>) map.get("rangeSet"), "rangeSet");
+    return Sarg.of(RelEnumTypes.toEnum(nullAs),
+        RelJson.<C>rangeSetFromJson(rangeSet, type));
+  }
+
+  @Deprecated
   /** Converts a JSON list to a {@link RangeSet}. */
-  @SuppressWarnings({"BetaApi", "UnstableApiUsage"}) // RangeSet GA in Guava 32
   public static <C extends Comparable<C>> RangeSet<C> rangeSetFromJson(
       List<List<String>> rangeSetsJson) {
     final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
@@ -895,6 +952,19 @@ public class RelJson {
     return builder.build();
   }
 
+  /** Converts a JSON list to a {@link RangeSet} with supplied value typing. */
+  public static <C extends Comparable<C>> RangeSet<C> rangeSetFromJson(
+      List<List<String>> rangeSetsJson, RelDataType type) {
+    final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
+    try {
+      rangeSetsJson.forEach(list -> builder.add(rangeFromJson(list, type)));
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating RangeSet from JSON: ", e);
+    }
+    return builder.build();
+  }
+
+  @Deprecated
   /** Creates a {@link Range} from a JSON object.
    *
    * <p>The JSON object is as serialized using {@link RelJson#toJson(Range)},
@@ -933,7 +1003,46 @@ public class RelJson {
     }
   }
 
+  /** Creates a {@link Range} from a JSON object.
+   *
+   * <p>The JSON object is as serialized using {@link RelJson#toJson(Range)},
+   * e.g. {@code ["[", ")", 10, "-"]}.
+   *
+   * @see RangeToJsonConverter */
+  public static <C extends Comparable<C>> Range<C> rangeFromJson(
+      List<String> list, RelDataType type) {
+    switch (list.get(0)) {
+    case "all":
+      return Range.all();
+    case "atLeast":
+      return Range.atLeast(rangeEndPointFromJson(list.get(1), type));
+    case "atMost":
+      return Range.atMost(rangeEndPointFromJson(list.get(1), type));
+    case "greaterThan":
+      return Range.greaterThan(rangeEndPointFromJson(list.get(1), type));
+    case "lessThan":
+      return Range.lessThan(rangeEndPointFromJson(list.get(1), type));
+    case "singleton":
+      return Range.singleton(rangeEndPointFromJson(list.get(1), type));
+    case "closed":
+      return Range.closed(rangeEndPointFromJson(list.get(1), type),
+          rangeEndPointFromJson(list.get(2), type));
+    case "closedOpen":
+      return Range.closedOpen(rangeEndPointFromJson(list.get(1)),
+          rangeEndPointFromJson(list.get(2), type));
+    case "openClosed":
+      return Range.openClosed(rangeEndPointFromJson(list.get(1)),
+          rangeEndPointFromJson(list.get(2), type));
+    case "open":
+      return Range.open(rangeEndPointFromJson(list.get(1), type),
+          rangeEndPointFromJson(list.get(2), type));
+    default:
+      throw new AssertionError("unknown range type " + list.get(0));
+    }
+  }
+
   @SuppressWarnings({"rawtypes", "unchecked"})
+  @Deprecated
   private static <C extends Comparable<C>> C rangeEndPointFromJson(Object o) {
     Exception e = null;
     for (Class clsType : VALUE_CLASSES) {
@@ -946,6 +1055,42 @@ public class RelJson {
     throw new RuntimeException(
         "Error deserializing range endpoint (did not find compatible type): ",
         e);
+  }
+
+  private static <C extends Comparable<C>> C rangeEndPointFromJson(Object o, RelDataType type) {
+    Exception e;
+    try {
+      Class clsType = determineRangeEndpointValueClass(type);
+      return (C) OBJECT_MAPPER.readValue((String) o, clsType);
+    } catch (JsonProcessingException ex) {
+      e = ex;
+    }
+    throw new RuntimeException(
+        "Error deserializing range endpoint (did not find compatible type): ",
+        e);
+  }
+
+  private static Class determineRangeEndpointValueClass(RelDataType type) {
+    SqlTypeName typeName = RexLiteral.strictTypeName(type);
+    switch (typeName) {
+    case DECIMAL:
+      return BigDecimal.class;
+    case DOUBLE:
+      return Double.class;
+    case CHAR:
+      return NlsString.class;
+    case BOOLEAN:
+      return Boolean.class;
+    case TIMESTAMP:
+      return TimestampString.class;
+    case DATE:
+      return DateString.class;
+    case TIME:
+      return TimeString.class;
+    default:
+      throw new RuntimeException(
+          "Error deserializing range endpoint (did not find compatible type)");
+    }
   }
 
   private void addRexFieldCollationList(List<RexFieldCollation> list,
@@ -969,6 +1114,26 @@ public class RelJson {
     }
   }
 
+  private static @Nullable RexWindowExclusion toRexWindowExclusion(
+      @Nullable Map<String, Object> map) {
+    if (map == null) {
+      return null;
+    }
+    final String type = get(map, "type");
+    switch (type) {
+    case "CURRENT_ROW":
+      return RexWindowExclusion.EXCLUDE_CURRENT_ROW;
+    case "GROUP":
+      return RexWindowExclusion.EXCLUDE_GROUP;
+    case "TIES":
+      return RexWindowExclusion.EXCLUDE_TIES;
+    case "NO OTHERS":
+      return RexWindowExclusion.EXCLUDE_NO_OTHER;
+    default:
+      throw new UnsupportedOperationException(
+          "cannot convert " + type + " to rex window exclusion");
+    }
+  }
   private @Nullable RexWindowBound toRexWindowBound(RelInput input,
       @Nullable Map<String, Object> map) {
     if (map == null) {
@@ -988,7 +1153,7 @@ public class RelJson {
     case "FOLLOWING":
       return RexWindowBounds.following(toRex(input, get(map, "offset")));
     default:
-      throw new UnsupportedOperationException("cannot convert type to rex window bound " + type);
+      throw new UnsupportedOperationException("cannot convert " + type + " to rex window bound");
     }
   }
 

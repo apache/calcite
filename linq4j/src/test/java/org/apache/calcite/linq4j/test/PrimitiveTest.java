@@ -23,9 +23,10 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -86,21 +87,21 @@ class PrimitiveTest {
   }
 
   @Test void testBox() {
-    assertEquals(String.class, Primitive.box(String.class));
-    assertEquals(Integer.class, Primitive.box(int.class));
-    assertEquals(Integer.class, Primitive.box(Integer.class));
-    assertEquals(boolean[].class, Primitive.box(boolean[].class));
+    assertThat(Primitive.box(String.class), is(String.class));
+    assertThat(Primitive.box(int.class), is(Integer.class));
+    assertThat(Primitive.box(Integer.class), is(Integer.class));
+    assertThat(Primitive.box(boolean[].class), is(boolean[].class));
   }
 
   @Test void testOfBox() {
-    assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
+    assertThat(Primitive.ofBox(Integer.class), is(Primitive.INT));
     assertNull(Primitive.ofBox(int.class));
     assertNull(Primitive.ofBox(String.class));
     assertNull(Primitive.ofBox(Integer[].class));
   }
 
   @Test void testOfBoxOr() {
-    assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
+    assertThat(Primitive.ofBox(Integer.class), is(Primitive.INT));
     assertNull(Primitive.ofBox(int.class));
     assertNull(Primitive.ofBox(String.class));
     assertNull(Primitive.ofBox(Integer[].class));
@@ -108,13 +109,13 @@ class PrimitiveTest {
 
   /** Tests the {@link Primitive#number(Number)} method. */
   @Test void testNumber() {
-    Number number = Primitive.SHORT.number(Integer.valueOf(2));
-    assertTrue(number instanceof Short);
-    assertEquals(2, number.shortValue());
+    Number number = Primitive.SHORT.number(2);
+    assertThat(number, instanceOf(Short.class));
+    assertThat(number.shortValue(), is((short) 2));
 
-    number = Primitive.FLOAT.number(Integer.valueOf(2));
-    assertTrue(number instanceof Float);
-    assertEquals(2.0d, number.doubleValue(), 0d);
+    number = Primitive.FLOAT.number(2);
+    assertThat(number, instanceOf(Float.class));
+    assertThat(number.doubleValue(), is(2.0d));
 
     try {
       number = Primitive.INT.number(null);
@@ -128,7 +129,7 @@ class PrimitiveTest {
       number = Primitive.CHAR.number(3);
       fail("expected exception, got " + number);
     } catch (AssertionError e) {
-      // ok
+      assertThat(e.getMessage(), is("CHAR: 3"));
     }
 
     // not a number
@@ -136,14 +137,14 @@ class PrimitiveTest {
       number = Primitive.BOOLEAN.number(null);
       fail("expected exception, got " + number);
     } catch (AssertionError e) {
-      // ok
+      assertThat(e.getMessage(), is("BOOLEAN: null"));
     }
   }
 
   /** Test for
    * {@link Primitive#send(org.apache.calcite.linq4j.tree.Primitive.Source, org.apache.calcite.linq4j.tree.Primitive.Sink)}. */
   @Test void testSendSource() {
-    final List<Object> list = new ArrayList<Object>();
+    final List<Object> list = new ArrayList<>();
     for (Primitive primitive : Primitive.values()) {
       primitive.send(
           new Primitive.Source() {
@@ -257,50 +258,51 @@ class PrimitiveTest {
     char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     int[] sources = {1, 2, 3, 4, 5, 6, 0};
     final Object permute = Primitive.CHAR.permute(chars, sources);
-    assertTrue(permute instanceof char[]);
-    assertEquals("bcdefga", String.valueOf((char[]) permute));
+    assertThat(permute, instanceOf(char[].class));
+    assertThat(String.valueOf((char[]) permute), is("bcdefga"));
   }
 
   /** Test for {@link Primitive#arrayToString(Object)}. */
   @Test void testArrayToString() {
     char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
-    assertEquals("[a, b, c, d, e, f, g]", Primitive.CHAR.arrayToString(chars));
+    assertThat(Primitive.CHAR.arrayToString(chars),
+        is("[a, b, c, d, e, f, g]"));
   }
 
   /** Test for {@link Primitive#sortArray(Object)}. */
   @Test void testArraySort() {
     char[] chars = {'m', 'o', 'n', 'o', 'l', 'a', 'k', 'e'};
     Primitive.CHAR.sortArray(chars);
-    assertEquals("[a, e, k, l, m, n, o, o]",
-        Primitive.CHAR.arrayToString(chars));
+    assertThat(Primitive.CHAR.arrayToString(chars),
+        is("[a, e, k, l, m, n, o, o]"));
 
     // mixed true and false
     boolean[] booleans0 = {true, false, true, true, false};
     Primitive.BOOLEAN.sortArray(booleans0);
-    assertEquals("[false, false, true, true, true]",
-        Primitive.BOOLEAN.arrayToString(booleans0));
+    assertThat(Primitive.BOOLEAN.arrayToString(booleans0),
+        is("[false, false, true, true, true]"));
 
     // all false
     boolean[] booleans1 = {false, false, false, false, false};
     Primitive.BOOLEAN.sortArray(booleans1);
-    assertEquals("[false, false, false, false, false]",
-        Primitive.BOOLEAN.arrayToString(booleans1));
+    assertThat(Primitive.BOOLEAN.arrayToString(booleans1),
+        is("[false, false, false, false, false]"));
 
     // all true
     boolean[] booleans2 = {true, true, true, true, true};
     Primitive.BOOLEAN.sortArray(booleans2);
-    assertEquals("[true, true, true, true, true]",
-        Primitive.BOOLEAN.arrayToString(booleans2));
+    assertThat(Primitive.BOOLEAN.arrayToString(booleans2),
+        is("[true, true, true, true, true]"));
 
     // empty
     boolean[] booleans3 = {};
     Primitive.BOOLEAN.sortArray(booleans3);
-    assertEquals("[]", Primitive.BOOLEAN.arrayToString(booleans3));
+    assertThat(Primitive.BOOLEAN.arrayToString(booleans3), is("[]"));
 
     // ranges specified
     boolean[] booleans4 = {true, true, false, false, true, false, false};
     Primitive.BOOLEAN.sortArray(booleans4, 1, 6);
-    assertEquals("[true, false, false, false, true, true, false]",
-        Primitive.BOOLEAN.arrayToString(booleans4));
+    assertThat(Primitive.BOOLEAN.arrayToString(booleans4),
+        is("[true, false, false, false, true, true, false]"));
   }
 }

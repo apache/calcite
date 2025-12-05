@@ -19,7 +19,9 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.type.MeasureSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -258,7 +260,8 @@ public interface RelDataType {
 
   /** Returns whether the field types are equal with each other by ignoring the
    * field names. If it is not a struct, just return the result of {@code
-   * #equals(Object)}. */
+   * #equals(Object)}. Note that for generic types (e.g., ARRAY),
+   * this is also the same as equals, even if type arguments are ROW types. */
   @API(since = "1.24", status = API.Status.INTERNAL)
   default boolean equalsSansFieldNames(@Nullable RelDataType that) {
     if (this == that) {
@@ -282,5 +285,41 @@ public interface RelDataType {
     } else {
       return equals(that);
     }
+  }
+
+  /**
+   * Same as {@link #equalsSansFieldNames}, but ignore nullability also.
+   */
+  default boolean equalsSansFieldNamesAndNullability(@Nullable RelDataType that) {
+    if (this == that) {
+      return true;
+    }
+    if (that == null || getClass() != that.getClass()) {
+      return false;
+    }
+    if (isStruct()) {
+      List<RelDataTypeField> l1 = this.getFieldList();
+      List<RelDataTypeField> l2 = that.getFieldList();
+      if (l1.size() != l2.size()) {
+        return false;
+      }
+      for (int i = 0; i < l1.size(); i++) {
+        if (!SqlTypeUtil.equalSansNullability(l1.get(i).getType(), l2.get(i).getType())) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return SqlTypeUtil.equalSansNullability(this, that);
+    }
+  }
+
+  /** Returns whether this type is a measure.
+   *
+   * @see SqlTypeUtil#fromMeasure(RelDataTypeFactory, RelDataType)
+   * @see MeasureSqlType
+   */
+  default boolean isMeasure() {
+    return getSqlTypeName() == SqlTypeName.MEASURE;
   }
 }

@@ -178,6 +178,10 @@ public interface RexImplicationCheckerFixtures {
           node2);
     }
 
+    public RexNode between(RexNode node, RexNode lower, RexNode upper) {
+      return rexBuilder.makeBetween(node, lower, upper);
+    }
+
     public RexNode notNull(RexNode node1) {
       return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, node1);
     }

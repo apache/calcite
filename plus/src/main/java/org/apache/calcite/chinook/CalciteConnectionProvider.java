@@ -16,16 +16,18 @@
  */
 package org.apache.calcite.chinook;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Provider of calcite connections for end-to-end tests.
@@ -42,13 +44,15 @@ public class CalciteConnectionProvider {
     Properties info = new Properties();
     info.setProperty("lex", "MYSQL");
     info.setProperty("model", "inline:" + provideSchema());
+    info.setProperty("conformance", "MYSQL_5");
     return info;
   }
 
   private String provideSchema() throws IOException {
     final InputStream stream =
         getClass().getResourceAsStream("/chinook/chinook.json");
-    return CharStreams.toString(new InputStreamReader(stream, Charsets.UTF_8));
+    requireNonNull(stream, "stream");
+    return CharStreams.toString(new InputStreamReader(stream, StandardCharsets.UTF_8));
   }
 
 }

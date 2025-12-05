@@ -210,7 +210,7 @@ public class IdentifierNamespace extends AbstractNamespace {
       }
     }
 
-    this.mustFilterFields = resolvedNamespace.getMustFilterFields();
+    filterRequirement = resolvedNamespace.getFilterRequirement();
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {
@@ -251,7 +251,9 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   @Override public SqlValidatorNamespace resolve() {
-    assert resolvedNamespace != null : "must call validate first";
+    if (resolvedNamespace == null) {
+      throw new IllegalStateException("must call validate first");
+    }
     return resolvedNamespace.resolve();
   }
 

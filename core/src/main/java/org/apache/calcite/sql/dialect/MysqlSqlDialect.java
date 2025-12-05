@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -53,6 +54,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
@@ -70,9 +72,32 @@ public class MysqlSqlDialect extends SqlDialect {
             return 65535;
           case TIMESTAMP:
             return 6;
+          case DECIMAL:
+            return 65;
+          case UBIGINT:
+            return 20;
           default:
             return super.getMaxPrecision(typeName);
           }
+        }
+
+        // We can refer to document of MySQL 5.x and 8.x:
+        // https://dev.mysql.com/doc/refman/8.4/en/precision-math-decimal-characteristics.html
+        // https://dev.mysql.com/doc/refman/5.7/en/precision-math-decimal-characteristics.html
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 30;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
+        @Override public int getDefaultPrecision(SqlTypeName typeName) {
+          if (typeName == SqlTypeName.CHAR) {
+            return RelDataType.PRECISION_NOT_SPECIFIED;
+          }
+          return super.getDefaultPrecision(typeName);
         }
       };
 
@@ -171,6 +196,18 @@ public class MysqlSqlDialect extends SqlDialect {
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    case UTINYINT:
+    case USMALLINT:
+    case UINTEGER:
+      throw new RuntimeException(
+          "MySQL doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!");
+    case UBIGINT:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "UNSIGNED",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
@@ -194,18 +231,19 @@ public class MysqlSqlDialect extends SqlDialect {
     // For MySQL, generate
     //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
-    //   WHEN 1 THEN <result>
+    //   WHEN 1 THEN MIN(<result>)
     //   ELSE (SELECT NULL UNION ALL SELECT NULL)
     //   END
     final SqlNode caseExpr =
         new SqlCase(SqlParserPos.ZERO,
-            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
             SqlNodeList.of(
                 SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
                 SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
             SqlNodeList.of(
                 nullLiteral,
-                operand),
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
             SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
                 SqlStdOperatorTable.UNION_ALL
                     .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
@@ -247,6 +285,27 @@ public class MysqlSqlDialect extends SqlDialect {
 
     case LISTAGG:
       unparseListAggCall(writer, call, null, leftPrec, rightPrec);
+      break;
+
+    case EXTRACT:
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit) {
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      writer.print(funName);
+      final SqlWriter.Frame extractFrame = writer.startList("(", ")");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(extractFrame);
       break;
 
     default:
@@ -318,6 +377,8 @@ public class MysqlSqlDialect extends SqlDialect {
     }
 
     String format;
+    boolean needSubStr = false;
+    int substringLength = 0;
     switch (unit) {
     case YEAR:
       format = "%Y-01-01";
@@ -337,9 +398,25 @@ public class MysqlSqlDialect extends SqlDialect {
     case SECOND:
       format = "%Y-%m-%d %H:%i:%s";
       break;
+    case MILLISECOND:
+      needSubStr = true;
+      format = "%Y-%m-%d %H:%i:%s.%f";
+      substringLength = 23;
+      break;
+    case MICROSECOND:
+      needSubStr = true;
+      format = "%Y-%m-%d %H:%i:%s.%f";
+      substringLength = 26;
+      break;
     default:
       throw new AssertionError("MYSQL does not support FLOOR for time unit: "
           + unit);
+    }
+
+    SqlWriter.Frame substringFrame = null;
+    if (needSubStr) {
+      writer.print("SUBSTRING");
+      substringFrame = writer.startList("(", ")");
     }
 
     writer.print("DATE_FORMAT");
@@ -348,6 +425,12 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.sep(",", true);
     writer.print("'" + format + "'");
     writer.endList(frame);
+
+    if (needSubStr) {
+      String substringFormat = String.format(Locale.ROOT, ", 1, %s", substringLength);
+      writer.print(substringFormat);
+      writer.endList(substringFrame);
+    }
   }
 
   @Override public boolean supportsAggregateFunctionFilter() {

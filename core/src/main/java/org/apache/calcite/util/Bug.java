@@ -57,13 +57,6 @@ public abstract class Bug {
   public static final boolean DT785_FIXED = false;
 
   /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-327">issue
-   * FRG-327: AssertionError while translating IN list that contains null</a>
-   * is fixed.
-   */
-  public static final boolean FRG327_FIXED = false;
-
-  /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-377">issue
    * FRG-377: Regular character set identifiers defined in SQL:2008 spec like
    * :ALPHA:, * :UPPER:, :LOWER:, ... etc. are not yet implemented in
@@ -75,12 +68,6 @@ public abstract class Bug {
    * Whether dtbug1684 "CURRENT_DATE not implemented in fennel calc" is fixed.
    */
   public static final boolean DT1684_FIXED = false;
-
-  /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FNL-25">issue
-   * FNL-25</a> is fixed. (also filed as dtbug 153)
-   */
-  public static final boolean FNL25_FIXED = false;
 
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-73">issue FRG-73:
@@ -153,11 +140,6 @@ public abstract class Bug {
   public static final boolean CALCITE_2401_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2539">[CALCITE-2539]
-   * Several test case not passed in CalciteSqlOperatorTest.java</a> is fixed. */
-  public static final boolean CALCITE_2539_FIXED = false;
-
-  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2869">[CALCITE-2869]
    * JSON data type support</a> is fixed. */
   public static final boolean CALCITE_2869_FIXED = false;
@@ -190,6 +172,12 @@ public abstract class Bug {
   public static final boolean CALCITE_4645_FIXED = false;
 
   /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4868">[CALCITE-4868]
+   * Elasticsearch adapter fails if GROUP BY is followed by ORDER BY</a> is
+   * fixed. */
+  public static final boolean CALCITE_4868_FIXED = false;
+
+  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5422">[CALCITE-5422]
    * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
   public static final boolean CALCITE_5422_FIXED = false;
@@ -201,14 +189,42 @@ public abstract class Bug {
   public static final boolean CALCITE_6092_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6269">[CALCITE-6269]
-   * Fix missing/broken BigQuery date-time format elements</a> is fixed. */
-  public static final boolean CALCITE_6269_FIXED = false;
-
-  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6270">[CALCITE-6270]
    * Support FORMAT in CAST from Numeric and BYTES to String (Enabled in BigQuery)</a> is fixed. */
   public static final boolean CALCITE_6270_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6367">[CALCITE-6367]
+   * Add timezone support for FORMAT clause in CAST (enabled in BigQuery)</a> is fixed. */
+  public static final boolean CALCITE_6367_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6391">
+   * [CALCITE-6391] Apply mapping to RelCompositeTrait does not apply it to wrapped traits</a>
+   * is fixed. */
+  public static final boolean CALCITE_6391_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6293">
+   * [CALCITE-6293] Support OR condition in Arrow adapter</a> is fixed. */
+  public static final boolean CALCITE_6293_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6294">
+   * [CALCITE-6294] Support IN filter in Arrow adapter</a> is fixed. */
+  public static final boolean CALCITE_6294_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6328">[CALCITE-6328]
+   * The BigQuery functions SAFE_* do not match the BigQuery specification</a>
+   * is fixed. */
+  public static final boolean CALCITE_6328_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6611">[CALCITE-6611]
+   * Rules that modify the sort collation cannot be applied in VolcanoPlanner</a>
+   * is fixed. */
+  public static final boolean CALCITE_6611_FIXED = false;
 
   /**
    * Use this to flag temporary code.

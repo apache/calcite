@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.druid;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import static java.util.Objects.requireNonNull;
+
 /** Druid type. */
 public enum DruidType {
   LONG(SqlTypeName.BIGINT),
@@ -43,7 +45,7 @@ public enum DruidType {
 
   /** Returns a DruidType matching the given String type from a Druid metric. */
   static DruidType getTypeFromMetric(String type) {
-    assert type != null;
+    requireNonNull(type, "type");
     if (type.equals("hyperUnique")) {
       return HYPER_UNIQUE;
     } else if (type.equals("thetaSketch")) {
@@ -58,9 +60,9 @@ public enum DruidType {
     throw new AssertionError("Unknown type: " + type);
   }
 
-  /** Returns a DruidType matching the String from a meta data query. */
+  /** Returns a DruidType matching the String from a metadata query. */
   static DruidType getTypeFromMetaData(String type) {
-    assert type != null;
+    requireNonNull(type, "type");
     switch (type) {
     case "LONG":
       return LONG;

@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Array;
@@ -28,11 +30,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -54,7 +54,8 @@ public abstract class Types {
     if (typeArguments.length == 0) {
       return type;
     }
-    return new ParameterizedTypeImpl(type, toList(typeArguments), null);
+    return new ParameterizedTypeImpl(type, ImmutableList.copyOf(typeArguments),
+        null);
   }
 
   /**
@@ -72,7 +73,7 @@ public abstract class Types {
     if (type instanceof GenericArrayType) {
       return ((GenericArrayType) type).getGenericComponentType();
     }
-    Class clazz = toClass(type);
+    Class<?> clazz = toClass(type);
     if (clazz.isArray()) {
       return clazz.getComponentType();
     }
@@ -88,23 +89,7 @@ public abstract class Types {
     return null;
   }
 
-  /**
-   * Returns a list backed by a copy of an array. The contents of the list
-   * will not change even if the contents of the array are subsequently
-   * modified.
-   */
-  private static <T> List<T> toList(T[] ts) {
-    switch (ts.length) {
-    case 0:
-      return Collections.emptyList();
-    case 1:
-      return Collections.singletonList(ts[0]);
-    default:
-      return Arrays.asList(ts.clone());
-    }
-  }
-
-  static Field getField(String fieldName, Class clazz) {
+  static Field getField(String fieldName, Class<?> clazz) {
     try {
       return clazz.getField(fieldName);
     } catch (NoSuchFieldException e) {
@@ -116,8 +101,8 @@ public abstract class Types {
   static PseudoField getField(String fieldName, Type type) {
     if (type instanceof RecordType) {
       return getRecordField(fieldName, (RecordType) type);
-    } else if (type instanceof Class && ((Class) type).isArray()) {
-      return getSystemField(fieldName, (Class) type);
+    } else if (type instanceof Class && ((Class<?>) type).isArray()) {
+      return getSystemField(fieldName, (Class<?>) type);
     } else {
       return field(getField(fieldName, toClass(type)));
     }
@@ -134,35 +119,28 @@ public abstract class Types {
   }
 
   private static RecordField getSystemField(final String fieldName,
-      final Class clazz) {
+      final Class<?> clazz) {
     // The "length" field of an array does not appear in Class.getFields().
     return new ArrayLengthRecordField(fieldName, clazz);
   }
 
-  public static Class toClass(Type type) {
+  public static Class<?> toClass(Type type) {
     if (type instanceof Class) {
-      return (Class) type;
+      return (Class<?>) type;
     }
     if (type instanceof ParameterizedType) {
       return toClass(((ParameterizedType) type).getRawType());
     }
     if (type instanceof TypeVariable) {
-      TypeVariable typeVariable = (TypeVariable) type;
+      TypeVariable<?> typeVariable = (TypeVariable<?>) type;
       return toClass(typeVariable.getBounds()[0]);
     }
     throw new RuntimeException("unsupported type " + type); // TODO:
   }
 
-  static Class[] toClassArray(Collection<Type> types) {
-    List<Class> classes = new ArrayList<>();
-    for (Type type : types) {
-      classes.add(toClass(type));
-    }
-    return classes.toArray(new Class[0]);
-  }
-
-  public static Class[] toClassArray(Iterable<? extends Expression> arguments) {
-    List<Class> classes = new ArrayList<>();
+  public static Class<?>[] toClassArray(
+      Iterable<? extends Expression> arguments) {
+    List<Class<?>> classes = new ArrayList<>();
     for (Expression argument : arguments) {
       classes.add(toClass(argument.getType()));
     }
@@ -174,7 +152,7 @@ public abstract class Types {
    */
   public static @Nullable Type getComponentType(Type type) {
     if (type instanceof Class) {
-      return ((Class) type).getComponentType();
+      return ((Class<?>) type).getComponentType();
     }
     if (type instanceof ArrayType) {
       return ((ArrayType) type).getComponentType();
@@ -186,7 +164,7 @@ public abstract class Types {
       return getComponentType(((ParameterizedType) type).getRawType());
     }
     if (type instanceof TypeVariable) {
-      TypeVariable typeVariable = (TypeVariable) type;
+      TypeVariable<?> typeVariable = (TypeVariable<?>) type;
       return getComponentType(typeVariable.getBounds()[0]);
     }
     return null; // not an array type
@@ -217,7 +195,7 @@ public abstract class Types {
     if (!(type instanceof Class)) {
       return type.toString();
     }
-    Class clazz = (Class) type;
+    Class<?> clazz = (Class<?>) type;
     if (clazz.isArray()) {
       return className(clazz.getComponentType()) + "[]";
     }
@@ -238,7 +216,7 @@ public abstract class Types {
     return toClass(type).isArray();
   }
 
-  public static Field nthField(int ordinal, Class clazz) {
+  public static Field nthField(int ordinal, Class<?> clazz) {
     return clazz.getFields()[ordinal];
   }
 
@@ -250,8 +228,8 @@ public abstract class Types {
     return field(toClass(clazz).getFields()[ordinal]);
   }
 
-  public static boolean allAssignable(boolean varArgs, Class[] parameterTypes,
-      Class[] argumentTypes) {
+  public static boolean allAssignable(boolean varArgs,
+      Class<?>[] parameterTypes, Class<?>[] argumentTypes) {
     if (varArgs) {
       if (argumentTypes.length < parameterTypes.length - 1) {
         return false;
@@ -262,8 +240,7 @@ public abstract class Types {
       }
     }
     for (int i = 0; i < argumentTypes.length; i++) {
-      Class
-          parameterType =
+      Class<?> parameterType =
           !varArgs || i < parameterTypes.length - 1
               ? parameterTypes[i]
               : Object.class;
@@ -285,11 +262,12 @@ public abstract class Types {
    * @return Whether parameter can be assigned from argument
    */
   @SuppressWarnings("nullness")
-  private static boolean assignableFrom(Class parameter, Class argument) {
+  private static boolean assignableFrom(Class<?> parameter, Class<?> argument) {
     return parameter.isAssignableFrom(argument)
            || parameter.isPrimitive()
         && argument.isPrimitive()
-        && Primitive.of(parameter).assignableFrom(Primitive.of(argument));
+        && requireNonNull(Primitive.of(parameter))
+            .assignableFrom(requireNonNull(Primitive.of(argument)));
   }
 
   /**
@@ -304,8 +282,8 @@ public abstract class Types {
    * @return A method with the given name that matches the arguments given
    * @throws RuntimeException if method not found
    */
-  public static Method lookupMethod(Class clazz, String methodName,
-      Class... argumentTypes) {
+  public static Method lookupMethod(Class<?> clazz, String methodName,
+      Class<?>... argumentTypes) {
     try {
       return clazz.getMethod(methodName, argumentTypes);
     } catch (NoSuchMethodException e) {
@@ -330,11 +308,11 @@ public abstract class Types {
    * @return A method with the given name that matches the arguments given
    * @throws RuntimeException if method not found
    */
-  public static Constructor lookupConstructor(Type type,
-      Class... argumentTypes) {
-    final Class clazz = toClass(type);
-    Constructor[] constructors = clazz.getDeclaredConstructors();
-    for (Constructor constructor : constructors) {
+  public static Constructor<?> lookupConstructor(Type type,
+      Class<?>... argumentTypes) {
+    final Class<?> clazz = toClass(type);
+    Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+    for (Constructor<?> constructor : constructors) {
       if (allAssignable(constructor.isVarArgs(),
           constructor.getParameterTypes(), argumentTypes)) {
         return constructor;
@@ -353,7 +331,7 @@ public abstract class Types {
   }
 
   public static Field lookupField(Type type, String name) {
-    final Class clazz = toClass(type);
+    final Class<?> clazz = toClass(type);
     try {
       return clazz.getField(name);
     } catch (NoSuchFieldException e) {
@@ -361,10 +339,7 @@ public abstract class Types {
     }
   }
 
-  public static void discard(Object o) {
-    if (false) {
-      discard(o);
-    }
+  public static void discard(Object ignored) {
   }
 
   /**
@@ -426,28 +401,14 @@ public abstract class Types {
       return expression;
     }
     if (returnType instanceof Class
-        && Number.class.isAssignableFrom((Class) returnType)
+        && Number.class.isAssignableFrom((Class<?>) returnType)
         && type instanceof Class
-        && Number.class.isAssignableFrom((Class) type)) {
-
-      if (returnType == BigDecimal.class) {
-        return Expressions.call(
-            BigDecimal.class,
-            "valueOf",
-            Expressions.call(expression, "longValue"));
-      } else if (
-          returnType == Byte.class
-              || returnType == Short.class
-              || returnType == Integer.class
-              || returnType == Long.class) {
-        return Expressions.convertChecked(expression, returnType);
-      } else {
-        // E.g.
-        //   Integer foo(BigDecimal o) {
-        //     return o.intValue();
-        //   }
-        return Expressions.unbox(expression, requireNonNull(Primitive.ofBox(returnType)));
-      }
+        && Number.class.isAssignableFrom((Class<?>) type)) {
+      // E.g.
+      //   Integer foo(BigDecimal o) {
+      //     return o.intValue();
+      //   }
+      return Expressions.unbox(expression, requireNonNull(Primitive.ofBox(returnType)));
     }
     if (Primitive.is(returnType) && !Primitive.is(type)) {
       // E.g.
@@ -495,12 +456,6 @@ public abstract class Types {
     return new ReflectedPseudoField(field);
   }
 
-  static Class arrayClass(Type type) {
-    // REVIEW: Is there a way to do this without creating an instance? We
-    //  just need the inverse of Class.getComponentType().
-    return Array.newInstance(toClass(type), 0).getClass();
-  }
-
   static Type arrayType(Type type, int dimension) {
     for (int i = 0; i < dimension; i++) {
       type = arrayType(type);
@@ -510,7 +465,7 @@ public abstract class Types {
 
   static Type arrayType(Type type) {
     if (type instanceof Class) {
-      Class clazz = (Class) type;
+      Class<?> clazz = (Class<?>) type;
 
       // REVIEW: Is there a way to do this without creating an instance?
       //   We just need the inverse of Class.getComponentType().
@@ -540,13 +495,9 @@ public abstract class Types {
     ParameterizedTypeImpl(Type rawType, List<Type> typeArguments,
         @Nullable Type ownerType) {
       super();
-      this.rawType = rawType;
-      this.typeArguments = typeArguments;
+      this.rawType = requireNonNull(rawType, "rawType");
+      this.typeArguments = ImmutableList.copyOf(typeArguments);
       this.ownerType = ownerType;
-      assert rawType != null;
-      for (Type typeArgument : typeArguments) {
-        assert typeArgument != null;
-      }
     }
 
     @Override public String toString() {

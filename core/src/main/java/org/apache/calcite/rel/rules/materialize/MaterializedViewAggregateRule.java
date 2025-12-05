@@ -348,7 +348,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           rexBuilder.makeInputRef(relBuilder.peek(),
               aggregate.getGroupCount() + i);
       aggregateCalls.add(
-          relBuilder.aggregateCall(rollupAgg, operand)
+          relBuilder.aggregateCall(aggCall.getParserPosition(), rollupAgg, operand)
               .distinct(aggCall.isDistinct())
               .approximate(aggCall.isApproximate())
               .as(aggCall.name));
@@ -606,7 +606,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
             queryAggregate.getGroupCount() + aggregateCalls.size());
         final RexInputRef operand = rexBuilder.makeInputRef(input, k);
         aggregateCalls.add(
-            relBuilder.aggregateCall(rollupAgg, operand)
+            relBuilder.aggregateCall(queryAggCall.getParserPosition(), rollupAgg, operand)
                 .approximate(queryAggCall.isApproximate())
                 .distinct(queryAggCall.isDistinct())
                 .as(queryAggCall.name));

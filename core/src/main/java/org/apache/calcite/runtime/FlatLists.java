@@ -21,6 +21,7 @@ import org.apache.calcite.util.ImmutableNullableList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
@@ -1321,6 +1322,10 @@ public class FlatLists {
 
     @Override public int size() {
       return list.size();
+    }
+
+    @Override @NonNull public Object[] toArray(@NonNull ComparableListImpl<T> this) {
+      return this.list.toArray();
     }
 
     @Override public int compareTo(List o) {

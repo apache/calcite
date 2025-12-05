@@ -148,10 +148,19 @@ public class SqlMerge extends SqlCall {
 
   /**
    * Gets the source SELECT expression for the data to be updated/inserted.
-   * Returns null before the statement has been expanded by
-   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)}.
    *
-   * @return the source SELECT for the data to be updated
+   * <p>The source SELECT column order:
+   * <ul>
+   *   <li>`WHEN NOT MATCHED THEN INSERT` only: [new values...]</li>
+   *   <li>`WHEN MATCHED THEN UPDATE` only: [old table columns..., updated new values...]</li>
+   *   <li>Both `NOT MATCHED THEN INSERT` and `WHEN MATCHED THEN UPDATE`: [insert new values...,
+   *   old table columns..., updated new values...]</li>
+   * </ul>
+   * Returns null before the statement has been expanded by
+   * {@link SqlValidatorImpl#performUnconditionalRewrites(SqlNode, boolean)} and
+   * {@link SqlValidatorImpl#rewriteMerge(SqlMerge)}.
+   *
+   * @return the source SELECT for the data to be updated/inserted
    */
   public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;

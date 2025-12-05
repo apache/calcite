@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
+import static java.util.Objects.requireNonNull;
+
 /** Enumerator that reads from a Cassandra column family. */
 class CassandraEnumerator implements Enumerator<Object> {
   private final Iterator<Row> iterator;
@@ -86,7 +88,7 @@ class CassandraEnumerator implements Enumerator<Object> {
    * @param index Index of the field within the Row object
    */
   private @Nullable Object currentRowField(int index) {
-    assert current != null;
+    requireNonNull(current, "current");
     final Object o =
          current.get(index,
              CodecRegistry.DEFAULT.codecFor(

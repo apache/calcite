@@ -45,6 +45,10 @@ concurrency:
 # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  GUAVA_MIN: '21.0' # oldest supported Guava version
+  GUAVA_MAX: '33.4.8-jre' # latest supported Guava version
+  GUAVA: '21.0' # most jobs test against oldest Guava version
 
 jobs:
   windows-jdk8:
@@ -52,26 +56,20 @@ jobs:
     name: 'Windows (JDK 8)'
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 50
     - name: 'Set up JDK 8'
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v5
       with:
         java-version: 8
         distribution: 'zulu'
     - uses: burrunan/gradle-cache-action@v1
       name: Test
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
-        # Arrow build is excluded because it is not supported on Windows
-        # See https://arrow.apache.org/docs/java/install.html#system-compatibility
-        arguments: --scan --no-parallel --no-daemon build javadoc --exclude-task :arrow:build
+        arguments: --scan --no-parallel --no-daemon build javadoc
     - name: 'sqlline and sqllsh'
       shell: cmd
       run: |
@@ -88,26 +86,50 @@ jobs:
     name: 'Windows (JDK 17)'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 17'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 17
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          # Arrow build is excluded because it is not supported on Windows
-          # See https://arrow.apache.org/docs/java/install.html#system-compatibility
-          arguments: --scan --no-parallel --no-daemon build --exclude-task :arrow:build
+          arguments: --scan --no-parallel --no-daemon build
+      - name: 'sqlline and sqllsh'
+        shell: cmd
+        run: |
+          call sqlline.bat -e '!quit'
+          echo.
+          echo Sqlline example/csv
+          call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+          echo.
+          echo sqlsh
+          call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
+
+  windows-jdk21:
+    if: github.event.action != 'labeled'
+    name: 'Windows (JDK 21)'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'zulu'
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon build
       - name: 'sqlline and sqllsh'
         shell: cmd
         run: |
@@ -121,78 +143,65 @@ jobs:
 
   linux-jdk8-oldest-guava-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8), oldest Guava, America/New_York Timezone'
+    name: 'Linux (JDK 8, oldest Guava, America/New_York Timezone)'
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '21.0' # oldest Guava
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 8'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 8
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} build
 
   linux-jdk8-latest-guava-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8), latest Guava, America/New_York Timezone'
+    name: 'Linux (JDK 8, latest Guava, America/New_York Timezone)'
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '32.1.3-jre' # latest supported Guava version
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 8'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 8
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} tasks build
 
   linux-jdk11-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 11), Pacific/Chatham Timezone'
+    name: 'Linux (JDK 11, Pacific/Chatham Timezone)'
     runs-on: ubuntu-latest
     env:
       TZ: 'Pacific/Chatham' # flips between +12:45 and +13:45
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 11
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -202,55 +211,57 @@ jobs:
     if: github.event.action != 'labeled'
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '21.0' # oldest Guava
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 17'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 17
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-          # The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-          # to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-          _JAVA_OPTIONS: ${{ env._JAVA_OPTIONS }} --add-opens=java.base/java.nio=ALL-UNNAMED
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
 
-  linux-jdk19: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
+  linux-jdk121:  # LTS JDK version, don't remove until EOL
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 19)'
+    name: 'Linux (JDK 21)'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '21.0' # oldest Guava
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 19'
-        uses: actions/setup-java@v2
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@v5
         with:
-          java-version: 19
+          java-version: 21
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-          # The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-          # to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-          _JAVA_OPTIONS: ${{ env._JAVA_OPTIONS }} --add-opens=java.base/java.nio=ALL-UNNAMED
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+
+  linux-jdk23: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
+    if: github.event.action != 'labeled'
+    name: 'Linux (JDK 23)'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 23'
+        uses: actions/setup-java@v5
+        with:
+          java-version: 23
+          distribution: 'zulu'
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -258,11 +269,11 @@ jobs:
 
   linux-avatica:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 11), Avatica main'
+    name: 'Linux (JDK 11, Avatica main)'
     runs-on: ubuntu-latest
     steps:
     - name: 'Set up JDK 11'
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v5
       with:
         java-version: 11
         distribution: 'zulu'
@@ -271,10 +282,6 @@ jobs:
         git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
     - uses: burrunan/gradle-cache-action@v1
       name: Build Avatica
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: avatica-jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
@@ -283,15 +290,11 @@ jobs:
         properties: |
           calcite.avatica.version=1.0.0-dev-main
           skipJavadoc=
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 50
     - uses: burrunan/gradle-cache-action@v1
       name: Test
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
@@ -303,28 +306,21 @@ jobs:
 
   mac:
     if: github.event.action != 'labeled'
-    name: 'macOS (JDK 19)'
-    runs-on: macos-latest
+    name: 'macOS (JDK 21)'
+    runs-on: macos-15
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 19'
-        uses: actions/setup-java@v2
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@v5
         with:
-          java-version: 19
+          java-version: 21
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-          # The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-          # to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-          _JAVA_OPTIONS: ${{ env._JAVA_OPTIONS }} --add-opens=java.base/java.nio=ALL-UNNAMED
         with:
-          job-id: jdk19
+          job-id: jdk21
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'
@@ -337,79 +333,64 @@ jobs:
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
-  errorprone-guava-latest: # LTS JDK version, don't remove until EOL
+  errorprone-guava-latest:
     if: github.event.action != 'labeled'
-    name: 'Error Prone (JDK 11), latest Guava'
+    name: 'ErrorProne (JDK 11, latest Guava)'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '32.1.3-jre' # ErrorProne checks for Beta APIs, so use the latest supported Guava version
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 11
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: errprone
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} -PenableErrorprone classes
+          # ErrorProne checks for Beta APIs, so use the latest supported Guava version
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes
 
   linux-checkerframework:
     name: 'CheckerFramework (JDK 11)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 11
           distribution: 'zulu'
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
-  linux-checkerframework-guava29:
-    name: 'CheckerFramework (JDK 11), oldest Guava'
+  linux-checkerframework-oldest-guava:
+    name: 'CheckerFramework (JDK 11, oldest Guava)'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '21.0' # oldest Guava
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 11
           distribution: 'zulu'
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} -PenableCheckerframework :linq4j:classes :core:classes
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
   linux-slow:
     # Run slow tests when the commit is on main or it is requested explicitly by adding an
@@ -418,20 +399,16 @@ jobs:
     name: 'Linux (JDK 8) Slow Tests'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 50
       - name: 'Set up JDK 8'
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v5
         with:
           java-version: 8
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk8
           remote-build-cache-proxy-enabled: false
@@ -443,12 +420,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: 'Set up JDK 17'
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v5
       with:
         java-version: 17
         distribution: 'zulu'
     - name: 'Checkout Druid dataset'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
       with:
         repository: zabetak/calcite-druid-dataset
         fetch-depth: 1
@@ -468,17 +445,13 @@ jobs:
     - name: 'Index Foodmart/Wikipedia datasets'
       working-directory: ./druid-dataset
       run: ./index.sh 30s
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 1
         path: calcite
     - uses: burrunan/gradle-cache-action@v1
       name: 'Run Druid tests'
       timeout-minutes: 10
-      env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         build-root-directory: ./calcite
         job-id: Druid8

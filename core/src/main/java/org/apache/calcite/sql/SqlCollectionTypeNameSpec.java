@@ -26,6 +26,8 @@ import org.apache.calcite.util.Util;
 
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A sql type name specification of collection type.
  *
@@ -56,7 +58,27 @@ import java.util.Objects;
  */
 public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
   private final SqlTypeNameSpec elementTypeName;
+  private final boolean elementTypeNullable;
   private final SqlTypeName collectionTypeName;
+
+  /**
+   * Creates a {@code SqlCollectionTypeNameSpec}.
+   *
+   * @param elementTypeName    Type of the collection element
+   * @param elementTypeNullable Type of the collection element is nullable
+   * @param collectionTypeName Collection type name
+   * @param pos                Parser position, must not be null
+   */
+  public SqlCollectionTypeNameSpec(SqlTypeNameSpec elementTypeName,
+      boolean elementTypeNullable,
+      SqlTypeName collectionTypeName,
+      SqlParserPos pos) {
+    super(new SqlIdentifier(collectionTypeName.name(), pos), pos);
+    this.elementTypeName = requireNonNull(elementTypeName, "elementTypeName");
+    this.elementTypeNullable = elementTypeNullable;
+    this.collectionTypeName =
+        requireNonNull(collectionTypeName, "collectionTypeName");
+  }
 
   /**
    * Creates a {@code SqlCollectionTypeNameSpec}.
@@ -68,9 +90,7 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
   public SqlCollectionTypeNameSpec(SqlTypeNameSpec elementTypeName,
       SqlTypeName collectionTypeName,
       SqlParserPos pos) {
-    super(new SqlIdentifier(collectionTypeName.name(), pos), pos);
-    this.elementTypeName = Objects.requireNonNull(elementTypeName, "elementTypeName");
-    this.collectionTypeName = Objects.requireNonNull(collectionTypeName, "collectionTypeName");
+    this(elementTypeName, true, collectionTypeName, pos);
   }
 
   public SqlTypeNameSpec getElementTypeName() {
@@ -78,7 +98,10 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
   }
 
   @Override public RelDataType deriveType(SqlValidator validator) {
-    final RelDataType type = elementTypeName.deriveType(validator);
+    RelDataType type = elementTypeName.deriveType(validator);
+    if (elementTypeNullable) {
+      type = validator.getTypeFactory().enforceTypeWithNullability(type, true);
+    }
     return createCollectionType(type, validator.getTypeFactory());
   }
 

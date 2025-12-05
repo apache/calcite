@@ -605,12 +605,12 @@ public class RelSubset extends AbstractRelNode {
    * with the cheapest implementation of the expression.
    */
   static class CheapestPlanReplacer {
-    VolcanoPlanner planner;
+    final VolcanoPlanner planner;
     final Map<Integer, RelNode> visited = new HashMap<>();
 
     CheapestPlanReplacer(VolcanoPlanner planner) {
       super();
-      this.planner = planner;
+      this.planner = requireNonNull(planner, "planner");
     }
 
     private static String traitDiff(RelTraitSet original, RelTraitSet desired) {

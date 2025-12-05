@@ -16,13 +16,15 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -35,7 +37,7 @@ public class HttpUtils {
 
   public static HttpURLConnection getURLConnection(String url)
       throws IOException {
-    return (HttpURLConnection) new URL(url).openConnection();
+    return (HttpURLConnection) URI.create(url).toURL().openConnection();
   }
 
   public static void appendURLEncodedArgs(
@@ -88,7 +90,7 @@ public class HttpUtils {
 
   public static InputStream post(
       String url,
-      CharSequence data,
+      @Nullable CharSequence data,
       Map<String, String> headers,
       int cTimeout,
       int rTimeout) throws IOException {
@@ -98,7 +100,7 @@ public class HttpUtils {
 
   public static InputStream executeMethod(
       String method, String url,
-      CharSequence data, Map<String, String> headers,
+      @Nullable CharSequence data, @Nullable Map<String, String> headers,
       int cTimeout, int rTimeout) throws IOException {
     // NOTE: do not log "data" or "url"; may contain user name or password.
     final HttpURLConnection conn = getURLConnection(url);

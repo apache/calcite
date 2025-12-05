@@ -52,6 +52,14 @@ class BabelParserTest extends SqlParserTest {
         .withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY));
   }
 
+  /** Tests that the Babel parser correctly parses a CAST to INTERVAL type
+   * in PostgreSQL dialect. */
+  @Test void testCastToInterval() {
+    SqlParserFixture postgreF = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    postgreF.sql("select cast(x as interval)")
+        .ok("SELECT CAST(\"x\" AS INTERVAL SECOND)");
+  }
+
   @Test void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }
@@ -189,8 +197,8 @@ class BabelParserTest extends SqlParserTest {
     sql("select date(x) from t").ok(expected);
   }
 
-  /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
-   * ordinary function syntax except that its first argument is a time unit
+  /** The DATEADD, DATEDIFF (in Redshift, Snowflake) and DATE_PART (in PostgreSQL)
+   * functions have ordinary function syntax  except that its first argument is a time unit
    * (e.g. DAY). We must not parse that first argument as an identifier. */
   @Test void testRedshiftFunctionsWithDateParts() {
     final String sql = "SELECT DATEADD(day, 1, t),\n"
@@ -304,6 +312,12 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testCreateTableMapType() {
+    final String sql = "create table foo (bar map<integer, varchar>)";
+    final String expected = "CREATE TABLE `FOO` (`BAR` MAP< INTEGER, VARCHAR >)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testCreateSetTable() {
     final String sql = "create set table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE SET TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
@@ -321,6 +335,13 @@ class BabelParserTest extends SqlParserTest {
     final String sql = "create volatile table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE VOLATILE TABLE `FOO` "
         + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testCreateVariantTable() {
+    final String sql = "create table foo (bar variant not null)";
+    final String expected = "CREATE TABLE `FOO` "
+        + "(`BAR` VARIANT NOT NULL)";
     sql(sql).ok(expected);
   }
 
@@ -352,31 +373,42 @@ class BabelParserTest extends SqlParserTest {
         .ok("SELECT (ARRAY['a', 'b'])");
   }
 
-  @Test void testPostgresqlShow() {
+  @Test void testPostgresSqlShow() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("SHOW autovacuum")
         .ok("SHOW \"autovacuum\"");
+    f.sql("SHOW \"autovacuum\"")
+        .same();
+    f.sql("SHOW ALL")
+        .ok("SHOW \"all\"");
+    f.sql("SHOW TIME ZONE")
+        .ok("SHOW \"timezone\"");
+    f.sql("SHOW SESSION AUTHORIZATION")
+        .ok("SHOW \"session_authorization\"");
     f.sql("SHOW TRANSACTION ISOLATION LEVEL")
         .ok("SHOW \"transaction_isolation\"");
   }
 
-  @Test void testPostgresqlSetOption() {
+  @Test void testPostgresSqlSetOption() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("SET SESSION autovacuum = true")
-        .ok("ALTER SESSION SET \"autovacuum\" = TRUE");
+        .ok("SET \"autovacuum\" = TRUE");
     f.sql("SET SESSION autovacuum = DEFAULT")
-        .ok("ALTER SESSION SET \"autovacuum\" = DEFAULT");
+        .ok("SET \"autovacuum\" = DEFAULT");
     f.sql("SET LOCAL autovacuum TO 'DEFAULT'")
-        .ok("ALTER LOCAL SET \"autovacuum\" = 'DEFAULT'");
+        .ok("SET LOCAL \"autovacuum\" = 'DEFAULT'");
 
     f.sql("SET SESSION TIME ZONE DEFAULT")
-        .ok("ALTER SESSION SET \"timezone\" = DEFAULT");
+        .ok("SET TIME ZONE DEFAULT");
     f.sql("SET SESSION TIME ZONE LOCAL")
-        .ok("ALTER SESSION SET \"timezone\" = 'LOCAL'");
-    f.sql("SET TIME ZONE 'PST8PDT'")
-        .ok("SET \"timezone\" = 'PST8PDT'");
-    f.sql("SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE")
-        .ok("SET \"timezone\" = INTERVAL '-08:00' HOUR TO MINUTE");
+        .ok("SET TIME ZONE LOCAL");
+    f.sql("SET TIME ZONE 'PST8PDT'").same();
+    f.sql("SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE").same();
+    f.sql("SET timezone = 'PST8PDT'")
+            .ok("SET \"timezone\" = 'PST8PDT'");
+
+    f.sql("SET SESSION AUTHORIZATION DEFAULT")
+        .ok("SET \"session_authorization\" = DEFAULT");
 
     f.sql("SET search_path = public,public,\"$user\"")
         .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
@@ -384,9 +416,39 @@ class BabelParserTest extends SqlParserTest {
         .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
     f.sql("SET NAMES iso_8859_15_to_utf8")
         .ok("SET \"client_encoding\" = \"iso_8859_15_to_utf8\"");
+
+    f.sql("SET TRANSACTION READ ONLY").same();
+    f.sql("SET TRANSACTION READ WRITE").same();
+    f.sql("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE").same();
+    f.sql("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY, DEFERRABLE").same();
+    f.sql("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE").same();
+
+    f.sql("SET TRANSACTION SNAPSHOT '000003A1-1'").same();
+
+    f.sql("SET ROLE NONE").same();
+    f.sql("SET ROLE 'paul'").same();
   }
 
-  @Test void testPostgresqlBegin() {
+  @Test void testPostgresSqlReset() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+
+    // RESET ROLE, RESET SESSION AUTHORIZATION, RESET TRANSACTION ISOLATION LEVEL,
+    // and RESET TIME ZONE are simply syntactic sugar for a more unified syntax
+    // RESET "<variable_name>".
+    f.sql("RESET ALL").same();
+    f.sql("RESET ROLE")
+        .ok("RESET \"role\"");
+    f.sql("RESET SESSION AUTHORIZATION")
+        .ok("RESET \"session_authorization\"");
+    f.sql("RESET TRANSACTION ISOLATION LEVEL")
+        .ok("RESET \"transaction_isolation\"");
+    f.sql("RESET TIME ZONE")
+        .ok("RESET \"timezone\"");
+    f.sql("RESET autovacuum")
+        .ok("RESET \"autovacuum\"");
+  }
+
+  @Test void testPostgresSqlBegin() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("BEGIN").same();
     f.sql("BEGIN READ ONLY").same();
@@ -398,7 +460,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("BEGIN ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE").same();
   }
 
-  @Test void testPostgresqlCommit() {
+  @Test void testPostgresSqlCommit() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("COMMIT").same();
     f.sql("COMMIT WORK")
@@ -410,7 +472,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("COMMIT AND CHAIN").same();
   }
 
-  @Test void testPostgresqlRollback() {
+  @Test void testPostgresSqlRollback() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("ROLLBACK").same();
     f.sql("ROLLBACK WORK")
@@ -422,7 +484,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("ROLLBACK AND CHAIN").same();
   }
 
-  @Test void testPostgresqlDiscard() {
+  @Test void testPostgresSqlDiscard() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("DISCARD ALL").same();
     f.sql("DISCARD PLANS").same();
@@ -439,12 +501,12 @@ class BabelParserTest extends SqlParserTest {
         + "from geo.area2\n"
         + "where cname = 'cityA') as b on a.cid = b.cid\n"
         + "group by a.cid, a.cname";
-    final String expected = "SELECT A.CID, A.CNAME, COUNT(1) AMOUNT\n"
-        + "FROM GEO.AREA1 A\n"
-        + "LEFT ANTI JOIN (SELECT DISTINCT CID, CNAME\n"
-        + "FROM GEO.AREA2\n"
-        + "WHERE (CNAME = 'cityA')) B ON (A.CID = B.CID)\n"
-        + "GROUP BY A.CID, A.CNAME";
+    final String expected = "SELECT `A`.`CID`, `A`.`CNAME`, COUNT(1) `AMOUNT`\n"
+        + "FROM `GEO`.`AREA1` `A`\n"
+        + "LEFT ANTI JOIN (SELECT DISTINCT `CID`, `CNAME`\n"
+        + "FROM `GEO`.`AREA2`\n"
+        + "WHERE (`CNAME` = 'cityA')) `B` ON (`A`.`CID` = `B`.`CID`)\n"
+        + "GROUP BY `A`.`CID`, `A`.`CNAME`";
     f.sql(sql).ok(expected);
   }
 

@@ -35,9 +35,9 @@ import static java.util.Objects.requireNonNull;
 public class SqlNumericLiteral extends SqlLiteral {
   //~ Instance fields --------------------------------------------------------
 
-  private @Nullable Integer prec;
-  private @Nullable Integer scale;
-  private boolean isExact;
+  private final @Nullable Integer prec;
+  private final @Nullable Integer scale;
+  private final boolean exact;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -45,15 +45,15 @@ public class SqlNumericLiteral extends SqlLiteral {
       BigDecimal value,
       @Nullable Integer prec,
       @Nullable Integer scale,
-      boolean isExact,
+      boolean exact,
       SqlParserPos pos) {
     super(
         value,
-        isExact ? SqlTypeName.DECIMAL : SqlTypeName.DOUBLE,
+        exact ? SqlTypeName.DECIMAL : SqlTypeName.DOUBLE,
         pos);
     this.prec = prec;
     this.scale = scale;
-    this.isExact = isExact;
+    this.exact = exact;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -72,44 +72,49 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   public boolean isExact() {
-    return isExact;
+    return exact;
   }
 
   @Override public SqlNumericLiteral clone(SqlParserPos pos) {
     return new SqlNumericLiteral(getValueNonNull(), getPrec(), getScale(),
-        isExact, pos);
+        exact, pos);
   }
 
   @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.literal(toValue());
+    writer.getDialect().unparseNumericLiteral(writer, toValue(), leftPrec, rightPrec);
   }
 
   @Override public String toValue() {
     final BigDecimal bd = getValueNonNull();
-    if (isExact) {
+    if (exact) {
       return bd.toPlainString();
     }
     return Util.toScientificNotation(bd);
   }
 
   @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
-    if (isExact) {
+    if (exact) {
       int scaleValue = requireNonNull(scale, "scale");
       if (0 == scaleValue) {
-        BigDecimal bd = getValueNonNull();
-        SqlTypeName result;
-        long l = bd.longValue();
-        if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
-          result = SqlTypeName.INTEGER;
-        } else {
-          result = SqlTypeName.BIGINT;
+        try {
+          BigDecimal bd = getValueNonNull();
+          SqlTypeName result;
+          // Will throw if the number cannot be represented as a long.
+          long l = bd.longValueExact();
+          if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
+            result = SqlTypeName.INTEGER;
+          } else {
+            result = SqlTypeName.BIGINT;
+          }
+          return typeFactory.createSqlType(result);
+        } catch (ArithmeticException ex) {
+          // This indicates that the value does not fit in any integer type.
+          // Fallback to DECIMAL.
         }
-        return typeFactory.createSqlType(result);
       }
-
       // else we have a decimal
       return typeFactory.createSqlType(
           SqlTypeName.DECIMAL,

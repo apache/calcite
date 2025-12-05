@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -36,19 +37,19 @@ import org.slf4j.Logger;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Abstract base for implementations of the {@link RelOptPlanner} interface.
@@ -86,6 +87,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private @Nullable RexExecutor executor;
 
+  private @Nullable RelDecorrelator decorrelator;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -93,7 +96,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
       @Nullable Context context) {
-    this.costFactory = Objects.requireNonNull(costFactory, "costFactory");
+    this.costFactory = requireNonNull(costFactory, "costFactory");
     if (context == null) {
       context = Contexts.empty();
     }
@@ -149,8 +152,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   @Override public boolean addRule(RelOptRule rule) {
     // Check that there isn't a rule with the same description
-    final String description = rule.toString();
-    assert description != null;
+    final String description = requireNonNull(rule.toString());
 
     RelOptRule existingRule = mapDescToRule.put(description, rule);
     if (existingRule != null) {
@@ -289,6 +291,17 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   @Override public @Nullable RexExecutor getExecutor() {
     return executor;
+  }
+
+  @Override public void setDecorrelator(@Nullable RelDecorrelator decorrelator) {
+    this.decorrelator = decorrelator;
+  }
+
+  @Override public RelDecorrelator getDecorrelator() {
+    if (decorrelator == null) {
+      throw new IllegalStateException("RelDecorrelator has not been set");
+    }
+    return decorrelator;
   }
 
   @Override public void onCopy(RelNode rel, RelNode newRel) {
@@ -444,7 +457,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
   private static class RuleAttemptsListener implements RelOptListener {
     private long beforeTimestamp;
-    private Map<String, Pair<Long, Long>> ruleAttempts;
+    private final Map<String, Pair<Long, Long>> ruleAttempts;
 
     RuleAttemptsListener() {
       ruleAttempts = new HashMap<>();
@@ -459,12 +472,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       } else {
         long elapsed = (System.nanoTime() - this.beforeTimestamp) / 1000;
         String rule = event.getRuleCall().getRule().toString();
-        if (ruleAttempts.containsKey(rule)) {
-          Pair<Long, Long> p = ruleAttempts.get(rule);
-          ruleAttempts.put(rule, Pair.of(p.left + 1, p.right + elapsed));
-        } else {
-          ruleAttempts.put(rule, Pair.of(1L,  elapsed));
-        }
+        ruleAttempts.compute(rule, (k, p) ->
+            p == null
+                ? Pair.of(1L,  elapsed)
+                : Pair.of(p.left + 1, p.right + elapsed));
       }
     }
 
@@ -482,17 +493,16 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       // then by rule name ascending.
       List<Map.Entry<String, Pair<Long, Long>>> list =
           new ArrayList<>(this.ruleAttempts.entrySet());
-      Collections.sort(list,
-          (left, right) -> {
-            int res = right.getValue().left.compareTo(left.getValue().left);
-            if (res == 0) {
-              res = right.getValue().right.compareTo(left.getValue().right);
-            }
-            if (res == 0) {
-              res = left.getKey().compareTo(right.getKey());
-            }
-            return res;
-          });
+      list.sort((left, right) -> {
+        int res = right.getValue().left.compareTo(left.getValue().left);
+        if (res == 0) {
+          res = right.getValue().right.compareTo(left.getValue().right);
+        }
+        if (res == 0) {
+          res = left.getKey().compareTo(right.getKey());
+        }
+        return res;
+      });
 
       // Print out rule attempts and time
       StringBuilder sb = new StringBuilder();

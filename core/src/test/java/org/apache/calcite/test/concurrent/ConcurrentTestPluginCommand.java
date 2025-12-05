@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.test.concurrent;
 
-import java.io.IOException;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.Statement;
 
@@ -46,7 +47,7 @@ public interface ConcurrentTestPluginCommand {
      *
      * @return current statement for thread
      */
-    Statement getCurrentStatement();
+    @Nullable Statement getCurrentStatement();
   }
 
   /**
@@ -54,5 +55,5 @@ public interface ConcurrentTestPluginCommand {
    *
    * @param testContext Exposed context for plugin to run in.
    */
-  void execute(TestContext testContext) throws IOException;
+  void execute(TestContext testContext);
 }

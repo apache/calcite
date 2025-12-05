@@ -82,6 +82,11 @@ public interface DataContext {
      * statement. Required. */
     LOCAL_TIMESTAMP("localTimestamp", Long.class),
 
+    /** The time in the operating system time zone of the database server. In
+     * milliseconds after 1970-01-01 00:00:00, in the time zone of the database
+     * server. Required. */
+    SYS_TIMESTAMP("sysTimestamp", Long.class),
+
     /** The Spark engine. Available if Spark is on the class path. */
     SPARK_CONTEXT("sparkContext", Object.class),
 

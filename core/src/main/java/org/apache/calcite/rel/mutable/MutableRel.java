@@ -27,7 +27,8 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** Mutable equivalent of {@link RelNode}.
  *
@@ -71,9 +72,9 @@ public abstract class MutableRel {
 
   protected MutableRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type) {
-    this.cluster = Objects.requireNonNull(cluster, "cluster");
-    this.rowType = Objects.requireNonNull(rowType, "rowType");
-    this.type = Objects.requireNonNull(type, "type");
+    this.cluster = requireNonNull(cluster, "cluster");
+    this.rowType = requireNonNull(rowType, "rowType");
+    this.type = requireNonNull(type, "type");
   }
 
   public @Nullable MutableRel getParent() {

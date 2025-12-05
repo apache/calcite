@@ -48,7 +48,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
 
   private RelNode root;
 
-  private RelOptRule rule;
+  private @Nullable RelOptRule rule;
 
   private RelNode transformationResult;
 
@@ -114,7 +114,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
    */
   private boolean matchRecursive(
       RelNode rel,
-      RelNode parent,
+      @Nullable RelNode parent,
       int ordinalInParent) {
     List<RelNode> bindings = new ArrayList<RelNode>();
     if (match(

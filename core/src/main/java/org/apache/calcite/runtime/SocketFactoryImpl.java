@@ -93,7 +93,7 @@ public class SocketFactoryImpl extends SocketFactory {
    */
   public static final int LINGER = 0;
 
-  @Override public Socket createSocket() throws IOException {
+  @Override public Socket createSocket() {
     Socket s = new Socket();
     return applySettings(s);
   }

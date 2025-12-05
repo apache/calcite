@@ -33,9 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for {@link Source}.
@@ -82,7 +83,7 @@ public abstract class Sources {
 
   public static Source url(String url) {
     try {
-      return of(new URL(url));
+      return of(URI.create(url).toURL());
     } catch (MalformedURLException | IllegalArgumentException e) {
       throw new RuntimeException("Malformed URL: '" + url + "'", e);
     }
@@ -106,7 +107,7 @@ public abstract class Sources {
     private final CharSource charSource;
 
     private GuavaCharSource(CharSource charSource) {
-      this.charSource = Objects.requireNonNull(charSource, "charSource");
+      this.charSource = requireNonNull(charSource, "charSource");
     }
 
     private UnsupportedOperationException unsupported() {
@@ -175,19 +176,19 @@ public abstract class Sources {
     private final boolean urlGenerated;
 
     private FileSource(URL url) {
-      this.url = Objects.requireNonNull(url, "url");
+      this.url = requireNonNull(url, "url");
       this.file = urlToFile(url);
       this.urlGenerated = false;
     }
 
     private FileSource(File file) {
-      this.file = Objects.requireNonNull(file, "file");
+      this.file = requireNonNull(file, "file");
       this.url = fileToUrl(file);
       this.urlGenerated = true;
     }
 
     private File fileNonNull() {
-      return Objects.requireNonNull(file, "file");
+      return requireNonNull(file, "file");
     }
 
     private static @Nullable File urlToFile(URL url) {
@@ -222,7 +223,7 @@ public abstract class Sources {
           // That is why java.net.URLEncoder.encode(java.lang.String, java.lang.String) is not
           // suitable because it replaces " " with "+".
           String encodedPath = new URI(null, null, filePath, null).getRawPath();
-          return new URL("file", null, 0, encodedPath);
+          return URI.create("file:" + encodedPath).toURL();
         } catch (MalformedURLException | URISyntaxException e) {
           throw new IllegalArgumentException("Unable to create URL for file " + filePath, e);
         }

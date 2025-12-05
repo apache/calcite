@@ -30,16 +30,16 @@ None scheduled.
 
 # Project Members
 
-Name (Apache ID) | Github | Org | Role
-:--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+Name (Apache ID) | Github                                                                                                                                                                                   | Org | Role
+:--------------- |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| :-- | :---
+{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}{{ site.baseurl }}/img/avatars/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endunless %}{% endfor %}
 
 Emeritus members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) {{ c.pronouns }} | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}{{ site.baseurl }}/img/avatars/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endif %}{% endfor %}
 
 # Mailing Lists
@@ -86,6 +86,29 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## Federated Query Planning w/ Calcite & Substrait
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=231s)].
+
+## Streaming, Incremental, Finite-Memory Computations in SQL Over Unbounded Streams
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=2212s)].
+
+## Revolutionizing Data Lakes: A Dive into Coral, the SQL Translation, Analysis, and Rewrite Engine
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=4226s)].
+
+## Optimizing Common Table Expressions in Apache Hive with Calcite
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[sumary](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.md)],
+[[slides](https://www.slideshare.net/slideshow/optimizing-common-table-expressions-in-apache-hive-with-calcite/276219213)],
+[[pdf](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.pdf)],
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=6317s)].
 
 ## Adding measures to Calcite SQL
 
@@ -226,6 +249,7 @@ If you have something interesting to share with the community drop us an email o
 consider creating a pull request on GitHub. If you just finished a cool project using Calcite
 consider writing a short article about it for our [news section]({{ site.baseurl }}/news/index.html).
 
+* <a href="https://www.feldera.com/blog/constant-folding-in-calcite">Constant folding in Calcite</a> (Mihai Budiu, 2025)
 * <a href="https://github.com/JiajunBernoulli/calcite-notes">Calcite notes about runnable examples and concise documents</a> (Jiajun Xie, 2024)
 * <a href="https://www.feldera.com/blog/calcite-irs/">Calcite program representations</a> (Mihai Budiu, October 2023)
 * <a href="https://datalore.jetbrains.com/view/notebook/JYTVfn90xYSmv6U5f2NIQR">Building a new Calcite frontend (GraphQL)</a> (Gavin Ray, 2022)

@@ -73,7 +73,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   /**
    * Global cache for RelDataType.
    */
-  @SuppressWarnings("BetaApi")
   private static final Interner<RelDataType> DATATYPE_CACHE =
       Interners.newWeakInterner();
 
@@ -136,10 +135,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(javaType);
   }
 
-  // implement RelDataTypeFactory
   @Override public RelDataType createJoinType(RelDataType... types) {
-    assert types != null;
-    assert types.length >= 1;
+    requireNonNull(types, "types");
+    checkArgument(types.length >= 1);
     final List<RelDataType> flattenedTypes = new ArrayList<>();
     getTypeList(ImmutableList.copyOf(types), flattenedTypes);
     return canonize(
@@ -208,7 +206,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       List<RelDataType> types, SqlTypeMappingRule mappingRule) {
     requireNonNull(types, "types");
     requireNonNull(mappingRule, "mappingRule");
-    checkArgument(types.size() >= 1, "types.size >= 1");
+    checkArgument(!types.isEmpty(), "!types.isEmpty");
     RelDataType type0 = types.get(0);
     if (type0.isStruct()) {
       return leastRestrictiveStructuredType(types);
@@ -239,7 +237,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
 
     // recursively compute column-wise least restrictive
-    final Builder builder = builder();
+    // preserve the struct kind from type0
+    final Builder builder = builder().kind(type0.getStructKind());
     for (int j = 0; j < fieldCount; ++j) {
       // REVIEW jvs 22-Jan-2004:  Always use the field name from the
       // first type?
@@ -277,9 +276,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     if (type == null) {
       return null;
     }
-    return sqlTypeName == SqlTypeName.ARRAY
-        ? new ArraySqlType(type, isNullable)
-        : new MultisetSqlType(type, isNullable);
+    RelDataType collection = sqlTypeName == SqlTypeName.ARRAY
+        ? createArrayType(type, -1)
+        : createMultisetType(type, -1);
+    return createTypeWithNullability(collection, isNullable);
   }
 
   protected @Nullable RelDataType leastRestrictiveMapType(
@@ -304,7 +304,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     if (valueType == null) {
       return null;
     }
-    return new MapSqlType(keyType, valueType, isNullable);
+    return createTypeWithNullability(createMapType(keyType, valueType), isNullable);
   }
 
   protected RelDataType leastRestrictiveIntervalDatetimeType(
@@ -412,13 +412,37 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(newType);
   }
 
+  @Override public RelDataType enforceTypeWithNullability(
+      final RelDataType type,
+      final boolean nullable) {
+    requireNonNull(type, "type");
+    RelDataType newType;
+    if (type.isNullable() == nullable) {
+      newType = type;
+    } else if (type instanceof RelRecordType) {
+      return createStructType(type.getStructKind(),
+          new AbstractList<RelDataType>() {
+            @Override public RelDataType get(int index) {
+              return type.getFieldList().get(index).getType();
+            }
+
+            @Override public int size() {
+              return type.getFieldCount();
+            }
+          },
+          type.getFieldNames(), nullable);
+    } else {
+      newType = copySimpleType(type, nullable);
+    }
+    return canonize(newType);
+  }
+
   /**
    * Registers a type, or returns the existing type if it is already
    * registered.
    *
    * @throws NullPointerException if type is null
    */
-  @SuppressWarnings("BetaApi")
   protected RelDataType canonize(final RelDataType type) {
     return DATATYPE_CACHE.intern(type);
   }
@@ -571,8 +595,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   /** Create decimal type equivalent with the given {@code type} while sans nullability. */
   private RelDataType decimalOf2(RelDataType type) {
     assert SqlTypeUtil.isNumeric(type) || SqlTypeUtil.isNull(type);
-    SqlTypeName typeName = type.getSqlTypeName();
-    assert typeName != null;
+    final SqlTypeName typeName = requireNonNull(type.getSqlTypeName());
     switch (typeName) {
     case DECIMAL:
       // Fix the precision when the type is JavaType.
@@ -620,8 +643,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public class JavaType extends RelDataTypeImpl {
     private final Class clazz;
     private final boolean nullable;
-    private @Nullable SqlCollation collation;
-    private @Nullable Charset charset;
+    private final @Nullable SqlCollation collation;
+    private final @Nullable Charset charset;
 
     public JavaType(Class clazz) {
       this(clazz, !clazz.isPrimitive());
@@ -642,8 +665,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       super(fieldsOf(clazz));
       this.clazz = clazz;
       this.nullable = nullable;
-      assert (charset != null) == SqlTypeUtil.inCharFamily(this)
-          : "Need to be a chartype";
+      checkArgument((charset != null) == SqlTypeUtil.inCharFamily(this),
+          "Need to be a chartype");
       this.charset = charset;
       this.collation = collation;
       computeDigest();
@@ -665,6 +688,13 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
       sb.append("JavaType(");
       sb.append(clazz);
+      if (clazz == String.class
+          && charset != null
+          && !SqlCollation.IMPLICIT.getCharset().equals(charset)) {
+        sb.append(" CHARACTER SET \"");
+        sb.append(charset.name());
+        sb.append("\"");
+      }
       sb.append(")");
     }
 

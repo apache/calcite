@@ -29,10 +29,11 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for processing {@link org.apache.calcite.linq4j.Enumerable}
@@ -96,7 +97,7 @@ public class Enumerables {
           final AtomicInteger matchCounter = new AtomicInteger(1);
 
           @Override public TResult current() {
-            Objects.requireNonNull(resultRow, "resultRow");
+            requireNonNull(resultRow, "resultRow");
             return resultRow;
           }
 

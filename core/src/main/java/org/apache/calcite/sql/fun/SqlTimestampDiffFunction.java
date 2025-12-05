@@ -20,15 +20,20 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * The <code>TIMESTAMPDIFF</code> function, which calculates the difference
@@ -107,9 +112,65 @@ class SqlTimestampDiffFunction extends SqlFunction {
     //
     // If the latter, check that timeFrameName is valid.
     if (call.operand(2) instanceof SqlIntervalQualifier) {
-      validator.validateTimeFrame(call.operand(2));
+      SqlIntervalQualifier op2 = call.operand(2);
+      validator.validateTimeFrame(op2);
+      if (op2.timeFrameName == null
+          && op2.timeUnitRange.startUnit.multiplier == null) {
+        // Not all time frames can be used in date arithmetic, e.g., DOW
+        throw validator.newValidationError(op2,
+            RESOURCE.invalidTimeFrameInOperation(
+                op2.timeUnitRange.toString(), call.getOperator().getName()));
+      }
     } else {
-      validator.validateTimeFrame(call.operand(0));
+      SqlIntervalQualifier op0 = call.operand(0);
+      validator.validateTimeFrame(op0);
+      if (op0.timeFrameName == null
+          && op0.timeUnitRange.startUnit.multiplier == null) {
+        // Not all time frames can be used in date arithmetic, e.g., DOW
+        throw validator.newValidationError(op0,
+            RESOURCE.invalidTimeFrameInOperation(
+                op0.timeUnitRange.toString(), call.getOperator().getName()));
+      }
     }
+  }
+
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+    // Coerce type first.
+    SqlValidator validator = callBinding.getValidator();
+    SqlCall call = callBinding.getCall();
+    int leftIndex = 1;
+    int rightIndex = 2;
+    if (call.operand(2) instanceof SqlIntervalQualifier) {
+      leftIndex = 0;
+      rightIndex = 1;
+    }
+
+    RelDataType left = callBinding.getOperandType(leftIndex);
+    RelDataType right = callBinding.getOperandType(rightIndex);
+
+    // For a subtraction between DATE and TIME cast the DATE operand to TIMESTAMP
+    if (left.getSqlTypeName() == SqlTypeName.DATE && right.getSqlTypeName() == SqlTypeName.TIME) {
+      RelDataType common = validator.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+      common = validator.getTypeFactory().createTypeWithNullability(common, left.isNullable());
+
+      SqlNode castLeft =
+          SqlStdOperatorTable.CAST.createCall(
+              call.getParserPosition(), call.getOperandList().get(leftIndex),
+              SqlTypeUtil.convertTypeToSpec(common).withNullable(common.isNullable()));
+      call.setOperand(leftIndex, castLeft);
+      validator.setValidatedNodeType(castLeft, common);
+    }
+    if (right.getSqlTypeName() == SqlTypeName.DATE && left.getSqlTypeName() == SqlTypeName.TIME) {
+      RelDataType common = validator.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+      common = validator.getTypeFactory().createTypeWithNullability(common, right.isNullable());
+
+      SqlNode castRight =
+          SqlStdOperatorTable.CAST.createCall(
+              call.getParserPosition(), call.getOperandList().get(rightIndex),
+              SqlTypeUtil.convertTypeToSpec(common).withNullable(common.isNullable()));
+      call.setOperand(rightIndex, castRight);
+      validator.setValidatedNodeType(castRight, common);
+    }
+    return super.checkOperandTypes(callBinding, throwOnFailure);
   }
 }

@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -169,7 +170,11 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
   }
 
   @Override public void visit(LOFilter filter) throws FrontendException {
-    final RexNode relExFilter = PigRelExVisitor.translatePigEx(builder, filter.getFilterPlan());
+    RexNode relExFilter = PigRelExVisitor.translatePigEx(builder, filter.getFilterPlan());
+    if (relExFilter.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      RelDataType boolType = builder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+      relExFilter = builder.getRexBuilder().makeCast(boolType, relExFilter);
+    }
     builder.filter(relExFilter);
     builder.register(filter);
   }
@@ -447,14 +452,14 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     return GroupType.REGULAR;
   }
 
-  @Override public void visit(LOLimit loLimit) throws FrontendException {
+  @Override public void visit(LOLimit loLimit) {
     builder.limit(0, (int) loLimit.getLimit());
     builder.register(loLimit);
   }
 
   @Override public void visit(LOSort loSort) throws FrontendException {
     // TODO Hanlde custom sortFunc from Pig???
-    final int limit = (int) loSort.getLimit();
+    final long limit = loSort.getLimit();
     List<RexNode> relSortCols = new ArrayList<>();
     if (loSort.isStar()) {
       // Sort using all columns
@@ -601,7 +606,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     builder.register(loUnion);
   }
 
-  @Override public void visit(LODistinct loDistinct) throws FrontendException {
+  @Override public void visit(LODistinct loDistinct) {
     // Straightforward, just build distinct on the top relation
     builder.distinct();
     builder.register(loDistinct);
@@ -617,7 +622,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     throw new FrontendException("Not implemented", 10000);
   }
 
-  @Override public void visit(LOSplit loSplit) throws FrontendException {
+  @Override public void visit(LOSplit loSplit) {
     builder.register(loSplit);
   }
 
@@ -628,7 +633,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     builder.register(loSplitOutput);
   }
 
-  @Override public void visit(LOStore store) throws FrontendException {
+  @Override public void visit(LOStore store) {
     builder.store(store.getAlias());
   }
 

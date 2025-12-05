@@ -33,6 +33,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of
  * {@link Sort}
@@ -45,7 +47,7 @@ public class GeodeSort extends Sort implements GeodeRel {
 
   /** Creates a GeodeSort. */
   GeodeSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RelCollation collation, RexNode fetch) {
+      RelNode input, RelCollation collation, @Nullable RexNode fetch) {
     super(cluster, traitSet, input, collation, null, fetch);
 
     assert getConvention() == GeodeRel.CONVENTION;
@@ -54,9 +56,7 @@ public class GeodeSort extends Sort implements GeodeRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-
-    RelOptCost cost = super.computeSelfCost(planner, mq);
-
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
     if (fetch != null) {
       return cost.multiplyBy(0.05);
     } else {
@@ -86,7 +86,7 @@ public class GeodeSort extends Sort implements GeodeRel {
     }
 
     if (fetch != null) {
-      geodeImplementContext.setLimit(((RexLiteral) fetch).getValueAs(Long.class));
+      geodeImplementContext.setLimit(RexLiteral.numberValue(fetch).longValue());
     }
   }
 

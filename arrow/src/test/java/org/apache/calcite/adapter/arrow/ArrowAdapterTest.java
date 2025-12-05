@@ -22,9 +22,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -42,9 +42,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.test.Matchers.isListOf;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests for the Apache Arrow adapter.
@@ -56,9 +59,11 @@ class ArrowAdapterTest {
   private static File arrowDataDirectory;
 
   @BeforeAll
-  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
+  static void initializeArrowState(@TempDir Path sharedTempDir)
+      throws IOException, SQLException {
     URL modelUrl =
-        Objects.requireNonNull(ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
+        requireNonNull(
+            ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
     Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
     Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
     Files.copy(sourceModelFilePath, modelFileTarget);
@@ -68,9 +73,13 @@ class ArrowAdapterTest {
     arrowDataDirectory = arrowFilesDirectory.toFile();
 
     File dataLocationFile = arrowFilesDirectory.resolve("arrowdata.arrow").toFile();
-    ArrowData arrowDataGenerator = new ArrowData();
+    ArrowDataTest arrowDataGenerator = new ArrowDataTest();
     arrowDataGenerator.writeArrowData(dataLocationFile);
     arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
+
+    File datatypeLocationFile = arrowFilesDirectory.resolve("arrowdatatype.arrow").toFile();
+    ArrowDataTest arrowtypeDataGenerator = new ArrowDataTest();
+    arrowtypeDataGenerator.writeArrowDataType(datatypeLocationFile);
 
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
@@ -83,8 +92,8 @@ class ArrowAdapterTest {
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType relDataType = tableMap.get("ARROWDATA").getRowType(typeFactory);
 
-    assertEquals(relDataType.getFieldNames(),
-        ImmutableList.of("intField", "stringField", "floatField", "longField"));
+    assertThat(relDataType.getFieldNames(),
+        isListOf("intField", "stringField", "floatField", "longField"));
   }
 
   @Test void testArrowProjectAllFields() {
@@ -238,15 +247,24 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("OR is not supported yet")
   @Test void testArrowProjectFieldsWithDisjunctiveFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\"=12 or \"stringField\"='12'";
-    String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String plan;
+    if (Bug.CALCITE_6293_FIXED) {
+      plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    } else {
+      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[12], "
+          + "expr#3=[=($t0, $t2)], expr#4=['12':VARCHAR], expr#5=[=($t1, $t4)], "
+          + "expr#6=[OR($t3, $t5)], proj#0..1=[{exprs}], $condition=[$t6])\n"
+          + "  ArrowToEnumerableConverter\n"
+          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    }
     String result = "intField=12; stringField=12\n";
 
     CalciteAssert.that()
@@ -256,15 +274,23 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("IN is not supported as OR is not supported yet")
   @Test void testArrowProjectFieldsWithInFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" in (0, 1, 2)";
-    String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String plan;
+    if (Bug.CALCITE_6294_FIXED) {
+      plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    } else {
+      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[0, 1, 2]], "
+          + "expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+          + "  ArrowToEnumerableConverter\n"
+          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    }
     String result = "intField=0; stringField=0\n"
         + "intField=1; stringField=1\n"
         + "intField=2; stringField=2\n";
@@ -276,20 +302,51 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("IS NOT NULL is not supported yet")
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6295">[CALCITE-6295]
+   * Support IS NOT NULL in Arrow adapter</a>. */
   @Test void testArrowProjectFieldsWithIsNotNullFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
-        + "where \"intField\" is not null\n"
-        + "order by \"intField\"\n"
-        + "limit 1";
-    String plan = "PLAN=EnumerableLimit(fetch=[1])\n"
-        + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-        + "    ArrowToEnumerableConverter\n"
-        + "      ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "        ArrowFilter(condition=[IS NOT NULL($0)])\n"
-        + "          ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    String result = "intField=0; stringField=0\n";
+        + "where \"intField\" is not null\n";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[IS NOT NULL($0)])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(50)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6295">[CALCITE-6295]
+   * Support IS NOT NULL in Arrow adapter</a>. */
+  @Test void testConjunctiveIsNotNullFilters() {
+    String sql = "select * from arrowdata\n"
+        + "where \"intField\" is not null and \"stringField\" is not null";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowFilter(condition=[AND(IS NOT NULL($0), IS NOT NULL($1))])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(50)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithEqualFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=($0, 12)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=12; stringField=12\n";
 
     CalciteAssert.that()
         .with(arrow)
@@ -298,15 +355,79 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("IS NULL is not supported yet")
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6618">[CALCITE-6618]
+   * Support Not Equal in Arrow adapterr</a>. */
+  @Test void testArrowProjectFieldsWithNotEqualFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" <> 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[<>($0, 12)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=0; stringField=0\n"
+        + "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n"
+        + "intField=4; stringField=4\n"
+        + "intField=5; stringField=5\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(6)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithBetweenFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" between 1 and 3";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[SEARCH($0, Sarg[[1..3]])])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+  * <a href="https://issues.apache.org/jira/browse/CALCITE-6296">[CALCITE-6296]
+  * Support IS NULL in Arrow adapter</a>. */
   @Test void testArrowProjectFieldsWithIsNullFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" is null";
     String plan = "ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[IS NOT NULL($0)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[IS NULL($0)])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(0)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6296">[CALCITE-6296]
+   * Support IS NULL in Arrow adapter</a>. */
+  @Test void testConjunctiveIsNullFilters() {
+    String sql = "select * from arrowdata\n"
+        + "where \"intField\" is null and \"stringField\" is null";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowFilter(condition=[AND(IS NULL($0), IS NULL($1))])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
 
     CalciteAssert.that()
         .with(arrow)
@@ -319,7 +440,7 @@ class ArrowAdapterTest {
     String sql = "select * from arrowdata\n"
         + " where \"floatField\"=15.0";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0)])\n"
+        + "  ArrowFilter(condition=[=($2, 15.0E0)])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=15; stringField=15; floatField=15.0; longField=15\n";
 
@@ -611,8 +732,8 @@ class ArrowAdapterTest {
   @Test void testFilteredAgg() {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP";
     String plan = "PLAN=EnumerableAggregate(group=[{}], SALESSUM=[SUM($0) FILTER $1])\n"
-        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
-        + "expr#10=[IS TRUE($t9)], SAL=[$t5], $f1=[$t10])\n"
+        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[400.00:DECIMAL(12, 2)], "
+        + "expr#10=[>($t8, $t9)], expr#11=[IS TRUE($t10)], SAL=[$t5], $f1=[$t11])\n"
         + "    ArrowToEnumerableConverter\n"
         + "      ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
     String result = "SALESSUM=2500.00\n";
@@ -629,8 +750,8 @@ class ArrowAdapterTest {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP group by EMPNO";
     String plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], SALESSUM=[$t1])\n"
         + "  EnumerableAggregate(group=[{0}], SALESSUM=[SUM($1) FILTER $2])\n"
-        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
-        + "expr#10=[IS TRUE($t9)], EMPNO=[$t0], SAL=[$t5], $f2=[$t10])\n"
+        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[400.00:DECIMAL(12, 2)], "
+        + "expr#10=[>($t8, $t9)], expr#11=[IS TRUE($t10)], EMPNO=[$t0], SAL=[$t5], $f2=[$t11])\n"
         + "      ArrowToEnumerableConverter\n"
         + "        ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
     String result = "SALESSUM=1250.00\nSALESSUM=null\n";
@@ -706,6 +827,191 @@ class ArrowAdapterTest {
         .with(arrow)
         .query(sql)
         .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6637">[CALCITE-6637]
+   * Date type results should not be automatically converted to timestamp in Arrow adapters</a>. */
+  @Test void testDateProject() {
+    String sql = "select HIREDATE from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(HIREDATE=[$4])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "HIREDATE=1980-12-17\nHIREDATE=1981-02-20\nHIREDATE=1981-02-22\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6638">[CALCITE-6638]
+   * Arrow adapter should support IS FALSE Operator and IS TRUE Operator</a>. */
+  @Test void testArrowProjectWithIsTrueFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is true";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[$7])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "booleanField=true\nbooleanField=true\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectWithIsTrueFilter2() {
+    String sql = "select \"intField\"\n"
+        + "from arrowdatatype\n"
+        + "where (\"intField\" > 10) is true";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$2])\n"
+        + "    ArrowFilter(condition=[>($2, 10)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "intField=11\nintField=12\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithIsFalseFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is false";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[NOT($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "booleanField=false\nbooleanField=false\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+
+  @Test void testArrowProjectFieldsWithIsNotTrueFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is not true";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[IS NOT TRUE($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "booleanField=null\nbooleanField=false\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithIsNotFalseFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is not false";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[IS NOT FALSE($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "booleanField=null\nbooleanField=true\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithIsUnknownFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is unknown";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[IS NULL($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "booleanField=null\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(1)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6684">[CALCITE-6684]
+   * Arrow adapter should supports filter conditions of Decimal type</a>. */
+  @Test void testArrowProjectFieldsWithDecimalFilter() {
+    String sql = "select \"decimalField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"decimalField\" = 1.00";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(decimalField=[$8])\n"
+        + "    ArrowFilter(condition=[=($8, 1.00)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "decimalField=1.00\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithDoubleFilter() {
+    String sql = "select \"doubleField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"doubleField\" = 1.00";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(doubleField=[$6])\n"
+        + "    ArrowFilter(condition=[=($6, 1.0E0)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "doubleField=1.0\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithStringFilter() {
+    String sql = "select \"stringField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"stringField\" = '1'";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(stringField=[$3])\n"
+        + "    ArrowFilter(condition=[=($3, '1')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]])\n\n";
+    String result = "stringField=1\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
         .returns(result)
         .explainContains(plan);
   }

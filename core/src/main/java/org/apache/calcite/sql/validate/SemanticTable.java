@@ -16,7 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /**
  * Extension to {@link SqlValidatorTable} with extra, optional metadata.
@@ -43,5 +47,13 @@ public interface SemanticTable {
    * @throws IndexOutOfBoundsException if column ordinal is out of range */
   default boolean mustFilter(int column) {
     return getFilter(column) != null;
+  }
+
+  /**
+   * Returns a list of column ordinals (0-based) of fields that defuse
+   * must-filter columns when filtered on.
+   */
+  default List<Integer> bypassFieldList() {
+    return ImmutableList.of();
   }
 }

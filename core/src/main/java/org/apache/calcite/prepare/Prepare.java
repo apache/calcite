@@ -56,6 +56,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.ConvertToChecked;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -228,7 +229,7 @@ public abstract class Prepare {
   public PreparedResult prepareSql(
       SqlNode sqlQuery,
       SqlNode sqlNodeOriginal,
-      Class runtimeContextClass,
+      Class<?> runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation) {
     init(runtimeContextClass);
@@ -255,6 +256,11 @@ public abstract class Prepare {
 
     RelRoot root =
         sqlToRelConverter.convertQuery(sqlQuery, needsValidation, true);
+    if (this.context.config().conformance().checkedArithmetic()) {
+      ConvertToChecked checkedConv = new ConvertToChecked(root.rel.getCluster().getRexBuilder());
+      RelNode rel = checkedConv.visit(root.rel);
+      root = root.withRel(rel);
+    }
     Hook.CONVERTED.run(root.rel);
 
     if (timingTracer != null) {
@@ -390,7 +396,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return castNonNull(THREAD_TRIM.get()) || RelOptUtil.countJoins(rootRel) < 2;
+    return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
   }
 
   protected abstract void init(Class runtimeContextClass);
@@ -652,10 +658,9 @@ public abstract class Prepare {
 
     public Materialization(CalciteSchema.TableEntry materializedTable,
         String sql, List<String> viewSchemaPath) {
-      assert materializedTable != null;
-      assert sql != null;
-      this.materializedTable = materializedTable;
-      this.sql = sql;
+      this.materializedTable =
+          requireNonNull(materializedTable, "materializedTable");
+      this.sql = requireNonNull(sql, "sql");
       this.viewSchemaPath = viewSchemaPath;
     }
 

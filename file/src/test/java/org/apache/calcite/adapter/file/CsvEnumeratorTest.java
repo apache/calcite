@@ -20,39 +20,41 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test for the {@link CsvEnumerator}.
  */
+@SuppressWarnings("SameParameterValue")
 class CsvEnumeratorTest {
 
   @Test void testParseDecimalScaleRounding() {
-    assertEquals(new BigDecimal("123.45"),
-        CsvEnumerator.parseDecimal(5, 2, "123.45"));
-    assertEquals(new BigDecimal("123.46"),
-        CsvEnumerator.parseDecimal(5, 2, "123.455"));
-    assertEquals(new BigDecimal("-123.46"),
-        CsvEnumerator.parseDecimal(5, 2, "-123.455"));
-    assertEquals(new BigDecimal("123.45"),
-        CsvEnumerator.parseDecimal(5, 2, "123.454"));
-    assertEquals(new BigDecimal("-123.45"),
-        CsvEnumerator.parseDecimal(5, 2, "-123.454"));
+    checkParse("123.45", 5, 2, "123.45");
+    checkParse("123.455", 5, 2, "123.46");
+    checkParse("-123.455", 5, 2, "-123.46");
+    checkParse("123.454", 5, 2, "123.45");
+    checkParse("-123.454", 5, 2, "-123.45");
+  }
+
+  private static void checkParse(String s, int precision, int scale,
+      String expected) {
+    assertThat(CsvEnumerator.parseDecimal(precision, scale, s),
+        is(new BigDecimal(expected)));
   }
 
   @Test void testParseDecimalPrecisionExceeded() {
+    checkThrows(4, 0, "1e+5");
+    checkThrows(4, 0, "-1e+5");
+    checkThrows(4, 0, "12345");
+    checkThrows(4, 0, "-12345");
+    checkThrows(4, 2, "123.45");
+    checkThrows(4, 2, "-123.45");
+  }
+
+  private static void checkThrows(int precision, int scale, String s) {
     assertThrows(IllegalArgumentException.class,
-        () -> CsvEnumerator.parseDecimal(4, 0, "1e+5"));
-    assertThrows(IllegalArgumentException.class,
-        () -> CsvEnumerator.parseDecimal(4, 0, "-1e+5"));
-    assertThrows(IllegalArgumentException.class,
-        () -> CsvEnumerator.parseDecimal(4, 0, "12345"));
-    assertThrows(IllegalArgumentException.class,
-        () -> CsvEnumerator.parseDecimal(4, 0, "-12345"));
-    assertThrows(IllegalArgumentException.class,
-        () -> CsvEnumerator.parseDecimal(4, 2, "123.45"));
-    assertThrows(IllegalArgumentException.class,
-        () -> CsvEnumerator.parseDecimal(4, 2, "-123.45"));
+        () -> CsvEnumerator.parseDecimal(precision, scale, s));
   }
 }

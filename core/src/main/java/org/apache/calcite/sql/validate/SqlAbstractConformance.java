@@ -33,8 +33,20 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowCharLiteralAlias();
   }
 
+  @Override public boolean isSupportedDualTable() {
+    return SqlConformanceEnum.DEFAULT.isSupportedDualTable();
+  }
+
   @Override public boolean isGroupByAlias() {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
+  }
+
+  @Override public SelectAliasLookup isSelectAlias() {
+    return SqlConformanceEnum.DEFAULT.isSelectAlias();
+  }
+
+  @Override public boolean isNonStrictGroupBy() {
+    return SqlConformanceEnum.DEFAULT.isNonStrictGroupBy();
   }
 
   @Override public boolean isGroupByOrdinal() {
@@ -89,6 +101,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
 
+  @Override public boolean allowNiladicConstantWithoutParentheses() {
+    return SqlConformanceEnum.DEFAULT.allowNiladicConstantWithoutParentheses();
+  }
+
   @Override public boolean allowExplicitRowValueConstructor() {
     return SqlConformanceEnum.DEFAULT.allowExplicitRowValueConstructor();
   }
@@ -103,10 +119,6 @@ public abstract class SqlAbstractConformance implements SqlConformance {
 
   @Override public boolean isOffsetLimitAllowed() {
     return SqlConformanceEnum.DEFAULT.isOffsetLimitAllowed();
-  }
-
-  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
-    return SqlConformanceEnum.DEFAULT.isRegexReplaceCaptureGroupDollarIndexed();
   }
 
   @Override public boolean isPercentRemainderAllowed() {
@@ -147,5 +159,13 @@ public abstract class SqlAbstractConformance implements SqlConformance {
 
   @Override public boolean allowLenientCoercion() {
     return SqlConformanceEnum.DEFAULT.allowLenientCoercion();
+  }
+
+  @Override public boolean checkedArithmetic() {
+    return SqlConformanceEnum.DEFAULT.checkedArithmetic();
+  }
+
+  @Override public boolean supportsUnsignedTypes() {
+    return SqlConformanceEnum.DEFAULT.supportsUnsignedTypes();
   }
 }

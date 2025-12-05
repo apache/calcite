@@ -102,12 +102,11 @@ public class SqlOverOperator extends SqlBinaryOperator {
     SqlNode window = call.operand(1);
     SqlWindow w = validator.resolveWindow(window, scope);
 
-    final int groupCount = w.isAlwaysNonEmpty() ? 1 : 0;
     final SqlCall aggCall = (SqlCall) agg;
 
     SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
-      @Override public int getGroupCount() {
-        return groupCount;
+      @Override public boolean hasEmptyGroup() {
+        return !w.isAlwaysNonEmpty();
       }
     };
 

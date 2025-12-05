@@ -31,7 +31,7 @@ jobs:
   cherry-pick-to-site:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: site
@@ -50,13 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: cherry-pick-to-site
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           ref: site
       - name: Build site
         working-directory: site
         run: |
-          docker compose run -e JEKYLL_UID=$(id -u) -e JEKYLL_GID=$(id -g) build-site
+          docker compose run build-site
       - name: Push site
         working-directory: site/target
         env:

@@ -188,7 +188,7 @@ public class FilesTableFunction {
                 switch (osName) {
                 case "Mac OS X":
                   // Strip leading "./"
-                  String path = (String) current[14];
+                  String path = requireNonNull((String) current[14]);
                   if (".".equals(path)) {
                     current[14] = path = "";
                     current[3] = 0; // depth

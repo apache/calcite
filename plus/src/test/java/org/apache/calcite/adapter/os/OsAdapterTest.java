@@ -49,7 +49,6 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
@@ -107,7 +106,7 @@ class OsAdapterTest {
       Process process = new ProcessBuilder().command(command).start();
       assertNotNull(process);
       int errCode = process.waitFor();
-      assertEquals(0, errCode);
+      assertThat(errCode, is(0));
       return true;
     } catch (AssertionError | IOException | InterruptedException e) {
       return false;

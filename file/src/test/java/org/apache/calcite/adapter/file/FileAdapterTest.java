@@ -51,7 +51,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -626,9 +625,9 @@ class FileAdapterTest {
         .checking(resultSet -> {
           try {
             ResultSetMetaData metaData = resultSet.getMetaData();
-            assertEquals("DECIMAL", metaData.getColumnTypeName(1));
-            assertEquals(18, metaData.getPrecision(1));
-            assertEquals(2, metaData.getScale(1));
+            assertThat(metaData.getColumnTypeName(1), is("DECIMAL"));
+            assertThat(metaData.getPrecision(1), is(18));
+            assertThat(metaData.getScale(1), is(2));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -641,8 +640,8 @@ class FileAdapterTest {
         .checking(resultSet -> {
           try {
             resultSet.next();
-            assertEquals(0,
-                resultSet.getBigDecimal(1).compareTo(new BigDecimal("200")));
+            final BigDecimal bd200 = new BigDecimal("200");
+            assertThat(resultSet.getBigDecimal(1).compareTo(bd200), is(0));
             assertFalse(resultSet.next());
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
@@ -653,8 +652,8 @@ class FileAdapterTest {
         .checking(resultSet -> {
           try {
             resultSet.next();
-            assertEquals(0,
-                resultSet.getBigDecimal(1).compareTo(new BigDecimal("0")));
+            final BigDecimal bd0 = BigDecimal.ZERO;
+            assertThat(resultSet.getBigDecimal(1).compareTo(bd0), is(0));
             assertFalse(resultSet.next());
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
@@ -665,8 +664,8 @@ class FileAdapterTest {
         .checking(resultSet -> {
           try {
             resultSet.next();
-            assertEquals(0,
-                resultSet.getBigDecimal(1).compareTo(new BigDecimal("1")));
+            final BigDecimal bd1 = new BigDecimal("1");
+            assertThat(resultSet.getBigDecimal(1).compareTo(bd1), is(0));
             assertFalse(resultSet.next());
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
@@ -677,8 +676,8 @@ class FileAdapterTest {
         .checking(resultSet -> {
           try {
             resultSet.next();
-            assertEquals(0,
-                resultSet.getBigDecimal(1).compareTo(new BigDecimal("1")));
+            final BigDecimal bd1 = new BigDecimal("1");
+            assertThat(resultSet.getBigDecimal(1).compareTo(bd1), is(0));
             assertFalse(resultSet.next());
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
@@ -697,19 +696,19 @@ class FileAdapterTest {
           connection.getMetaData().getColumns(null, null,
               "DATE", "JOINEDAT");
       res.next();
-      assertEquals(res.getInt("DATA_TYPE"), Types.DATE);
+      assertThat(Types.DATE, is(res.getInt("DATA_TYPE")));
 
       res =
           connection.getMetaData().getColumns(null, null,
               "DATE", "JOINTIME");
       res.next();
-      assertEquals(res.getInt("DATA_TYPE"), Types.TIME);
+      assertThat(Types.TIME, is(res.getInt("DATA_TYPE")));
 
       res =
           connection.getMetaData().getColumns(null, null,
               "DATE", "JOINTIMES");
       res.next();
-      assertEquals(res.getInt("DATA_TYPE"), Types.TIMESTAMP);
+      assertThat(Types.TIMESTAMP, is(res.getInt("DATA_TYPE")));
 
       Statement statement = connection.createStatement();
       final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
@@ -718,17 +717,17 @@ class FileAdapterTest {
       resultSet.next();
 
       // date
-      assertEquals(Date.class, resultSet.getDate(1).getClass());
-      assertEquals(Date.valueOf("1996-08-03"), resultSet.getDate(1));
+      assertThat(resultSet.getDate(1).getClass(), is(Date.class));
+      assertThat(resultSet.getDate(1), is(Date.valueOf("1996-08-03")));
 
       // time
-      assertEquals(Time.class, resultSet.getTime(2).getClass());
-      assertEquals(Time.valueOf("00:01:02"), resultSet.getTime(2));
+      assertThat(resultSet.getTime(2).getClass(), is(Time.class));
+      assertThat(resultSet.getTime(2), is(Time.valueOf("00:01:02")));
 
       // timestamp
-      assertEquals(Timestamp.class, resultSet.getTimestamp(3).getClass());
-      assertEquals(Timestamp.valueOf("1996-08-03 00:01:02"),
-          resultSet.getTimestamp(3));
+      assertThat(resultSet.getTimestamp(3).getClass(), is(Timestamp.class));
+      assertThat(resultSet.getTimestamp(3),
+          is(Timestamp.valueOf("1996-08-03 00:01:02")));
     }
   }
 
@@ -844,7 +843,7 @@ class FileAdapterTest {
 
       final Schema schema =
           FileSchemaFactory.INSTANCE
-              .create(calciteConnection.getRootSchema(), null,
+              .create(calciteConnection.getRootSchema(), "x",
                   ImmutableMap.of("directory",
                       FileAdapterTests.resourcePath("sales-csv"), "flavor", "scannable"));
       calciteConnection.getRootSchema().add("TEST", schema);

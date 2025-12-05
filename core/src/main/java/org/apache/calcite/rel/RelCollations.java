@@ -270,7 +270,7 @@ public class RelCollations {
     for (RelFieldCollation fc : collation.getFieldCollations()) {
       fieldCollations.add(fc.shift(offset));
     }
-    return new RelCollationImpl(fieldCollations.build());
+    return RelCollationTraitDef.INSTANCE.canonize(new RelCollationImpl(fieldCollations.build()));
   }
 
   /** Creates a copy of this collation that changes the ordinals of input

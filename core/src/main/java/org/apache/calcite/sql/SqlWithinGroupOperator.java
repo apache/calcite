@@ -25,9 +25,9 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import java.util.Objects;
-
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An operator that applies a sort operation before rows are included in an aggregate function.
@@ -71,8 +71,8 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       throw validator.newValidationError(call, RESOURCE.withinGroupNotAllowed(operator.getName()));
     }
 
-    for (SqlNode order : Objects.requireNonNull(flat.orderList)) {
-      Objects.requireNonNull(validator.deriveType(scope, order));
+    for (SqlNode order : requireNonNull(flat.orderList)) {
+      requireNonNull(validator.deriveType(scope, order));
     }
     validator.validateAggregateParams(flat.aggregateCall, flat.filter,
         flat.distinctList, flat.orderList, scope);

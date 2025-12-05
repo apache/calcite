@@ -22,12 +22,14 @@ import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
+import org.apache.calcite.util.TryThreadLocal;
 
 import com.google.common.collect.ImmutableList;
 
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -36,9 +38,13 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
 import static org.apache.calcite.sql.type.SqlTypeUtil.convertTypeToSpec;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsCollectionSansNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
+import static org.apache.calcite.sql.type.SqlTypeUtil.integerBound;
+import static org.apache.calcite.sql.type.SqlTypeUtil.integerRangeContains;
+import static org.apache.calcite.test.Matchers.isListOf;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test of {@link org.apache.calcite.sql.type.SqlTypeUtil}.
@@ -108,29 +114,42 @@ class SqlTypeUtilTest {
         is(false));
   }
 
+  private RelDataType struct(RelDataType...relDataTypes) {
+    final RelDataTypeFactory.Builder builder = f.typeFactory.builder();
+    for (int i = 0; i < relDataTypes.length; i++) {
+      builder.add("field" + i, relDataTypes[i]);
+    }
+    return builder.build();
+  }
+
   @Test void testModifyTypeCoercionMappings() {
     SqlTypeMappingRules.Builder builder = SqlTypeMappingRules.builder();
     final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
     builder.addAll(defaultRules.getTypeMapping());
     // Do the tweak, for example, if we want to add a rule to allow
-    // coerce BOOLEAN to TIMESTAMP.
+    // coercion of BOOLEAN to TIMESTAMP.
     builder.add(SqlTypeName.TIMESTAMP,
         builder.copyValues(SqlTypeName.TIMESTAMP)
             .add(SqlTypeName.BOOLEAN).build());
 
-    // Initialize a SqlTypeCoercionRules with the new builder mappings.
-    SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
-        is(false));
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, defaultRules),
-        is(false));
-    SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
-        is(true));
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, typeCoercionRules),
-        is(true));
-    // Recover the mappings to default.
-    SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
+    // Try converting with both default rules and the new rule set.
+    checkConvert(defaultRules, is(false));
+    final SqlTypeCoercionRule typeCoercionRules =
+        SqlTypeCoercionRule.instance(builder.map);
+    try (TryThreadLocal.Memo ignored =
+             SqlTypeCoercionRule.THREAD_PROVIDERS.push(typeCoercionRules)) {
+      checkConvert(typeCoercionRules, is(true));
+    }
+  }
+
+  private void checkConvert(SqlTypeCoercionRule rules,
+      Matcher<Boolean> matcher) {
+    assertThat(
+        SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
+        matcher);
+    assertThat(
+        SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, rules),
+        matcher);
   }
 
   @Test void testEqualAsCollectionSansNullability() {
@@ -187,22 +206,61 @@ class SqlTypeUtilTest {
         .map(f -> f.getTypeName().getSimple())
         .collect(Collectors.toList());
     assertThat(rowSpec.getTypeName().getSimple(), is("ROW"));
-    assertThat(fieldNames, is(Arrays.asList("i", "j")));
-    assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
+    assertThat(fieldNames, isListOf("i", "j"));
+    assertThat(fieldTypeNames, isListOf("INTEGER", "INTEGER"));
+  }
+
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7186">[CALCITE-7186]</a>
+   * Add mapping from Character[] to VARCHAR in Java UDF.
+   */
+  @Test void testJavaToSqlCharacterArrayAndByteArrayMapping() {
+    SqlTypeName sqlTypeName = JavaToSqlTypeConversionRules.instance().lookup(Character[].class);
+    assertThat("Character[].class should map to SqlTypeName.VARCHAR",
+        sqlTypeName, is(SqlTypeName.VARCHAR));
+  }
+
+  @Test void testIntegerRangeContainsForSignedAndUnsigned() {
+    RelDataType uTinyInt = f.typeFactory.createSqlType(SqlTypeName.UTINYINT);
+    RelDataType tinyInt = f.typeFactory.createSqlType(SqlTypeName.TINYINT);
+    RelDataType smallInt = f.typeFactory.createSqlType(SqlTypeName.SMALLINT);
+    RelDataType intType = f.typeFactory.createSqlType(SqlTypeName.INTEGER);
+
+    assertThat(integerRangeContains(intType, smallInt), is(true));
+    assertThat(integerRangeContains(intType, tinyInt), is(true));
+    assertThat(integerRangeContains(intType, uTinyInt), is(true));
+    assertThat(integerRangeContains(tinyInt, uTinyInt), is(false));
+    assertThrows(IllegalArgumentException.class,
+        () -> integerRangeContains(f.sqlVarchar, intType));
+  }
+
+  @Test void testIntegerRangeContainsWithDecimal() {
+    RelDataType intType = f.typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType dec9 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 9, 0);
+    RelDataType dec10 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 0);
+    RelDataType dec10Scale1 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 1);
+
+    assertThat(integerRangeContains(intType, dec9), is(true));
+    assertThat(integerRangeContains(intType, dec10), is(false));
+    assertThat(integerRangeContains(intType, dec10Scale1), is(false));
+  }
+
+  @Test void testIntegerBound() {
+    RelDataType intType = f.typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType uIntType = f.typeFactory.createSqlType(SqlTypeName.UINTEGER);
+    RelDataType dec10 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 0);
+    RelDataType dec10Scale1 = f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 1);
+
+    assertThat(integerBound(intType, false), is(BigInteger.valueOf(Integer.MIN_VALUE)));
+    assertThat(integerBound(intType, true), is(BigInteger.valueOf(Integer.MAX_VALUE)));
+    assertThat(integerBound(uIntType, true), is(BigInteger.valueOf((1L << 32) - 1)));
+    assertThat(integerBound(dec10, true), is(BigInteger.valueOf(9_999_999_999L)));
+    assertThat(integerBound(dec10Scale1, true), is((BigInteger) null));
   }
 
   @Test void testGetMaxPrecisionScaleDecimal() {
     RelDataType decimal = SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory);
     assertThat(decimal, is(f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 9)));
-  }
-
-
-  private RelDataType struct(RelDataType...relDataTypes) {
-    final RelDataTypeFactory.Builder builder = f.typeFactory.builder();
-    for (int i = 0; i < relDataTypes.length; i++) {
-      builder.add("field" + i, relDataTypes[i]);
-    }
-    return builder.build();
   }
 
   private void compareTypesIgnoringNullability(

@@ -194,3 +194,7 @@ site/_sass/_mixins.scss
 site/_sass/_pygments.scss
 * normalize:normalize:3.0.2
 site/_sass/_normalize.scss
+
+SIL Open Font License
+* lato-fonts:lato
+site/_sass/_lato.scss

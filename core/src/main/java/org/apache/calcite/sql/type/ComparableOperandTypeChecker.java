@@ -22,7 +22,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Type checking strategy which verifies that types have the required attributes
@@ -46,7 +46,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       RelDataTypeComparability requiredComparability, Consistency consistency) {
     super(nOperands);
     this.requiredComparability = requiredComparability;
-    this.consistency = Objects.requireNonNull(consistency, "consistency");
+    this.consistency = requireNonNull(consistency, "consistency");
   }
 
   //~ Methods ----------------------------------------------------------------

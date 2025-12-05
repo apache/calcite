@@ -18,7 +18,7 @@ package org.apache.calcite.util.graph;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of Edge.
@@ -28,8 +28,8 @@ public class DefaultEdge {
   public final Object target;
 
   public DefaultEdge(Object source, Object target) {
-    this.source = Objects.requireNonNull(source, "source");
-    this.target = Objects.requireNonNull(target, "target");
+    this.source = requireNonNull(source, "source");
+    this.target = requireNonNull(target, "target");
   }
 
   @Override public int hashCode() {

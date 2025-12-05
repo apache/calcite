@@ -44,7 +44,8 @@ import com.google.common.collect.ImmutableMap;
 import org.immutables.value.Value;
 
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that pushes
@@ -131,7 +132,7 @@ public class SortProjectTransposeRule
       if (node.isA(SqlKind.CAST)) {
         // Check whether it is a monotonic preserving cast, otherwise we cannot push
         final RexCall cast = (RexCall) node;
-        RelFieldCollation newFc = Objects.requireNonNull(RexUtil.apply(map, fc));
+        RelFieldCollation newFc = requireNonNull(RexUtil.apply(map, fc));
         final RexCallBinding binding =
             RexCallBinding.create(cluster.getTypeFactory(), cast,
                 ImmutableList.of(RelCollations.of(newFc)));

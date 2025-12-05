@@ -32,9 +32,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static java.util.Objects.requireNonNull;
 
 /** Space within which lattices exist. */
 class LatticeSpace {
@@ -51,7 +52,8 @@ class LatticeSpace {
   final Map<LatticeTable, List<RexNode>> tableExpressions = new HashMap<>();
 
   LatticeSpace(SqlStatisticProvider statisticProvider) {
-    this.statisticProvider = Objects.requireNonNull(statisticProvider, "statisticProvider");
+    this.statisticProvider =
+        requireNonNull(statisticProvider, "statisticProvider");
   }
 
   /** Derives a unique name for a table, qualifying with schema name only if
@@ -168,7 +170,9 @@ class LatticeSpace {
       return fieldList.get(field).getName();
     } else {
       List<RexNode> rexNodes = tableExpressions.get(table);
-      assert rexNodes != null : "no expressions found for table " + table;
+      if (rexNodes == null) {
+        throw new AssertionError("no expressions found for table " + table);
+      }
       return rexNodes.get(field - fieldCount).toString();
     }
   }

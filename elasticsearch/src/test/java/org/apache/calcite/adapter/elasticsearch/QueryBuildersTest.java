@@ -16,9 +16,14 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
+import org.apache.calcite.test.Unsafe;
+
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -31,7 +36,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.matchesQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.rangeQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termsQuery;
+import static org.apache.calcite.adapter.elasticsearch.QueryBuildersTest.JsonMatcher.hasJson;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Check that internal queries are correctly converted to ES search query (as
@@ -39,149 +52,171 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class QueryBuildersTest {
 
-  private final ObjectMapper mapper = new ObjectMapper();
-
   /**
    * Test for simple scalar terms (boolean, int etc.)
    *
-   * @throws Exception not expected
    */
-  @Test void term() throws Exception {
-    assertEquals("{\"term\":{\"foo\":\"bar\"}}",
-        toJson(QueryBuilders.termQuery("foo", "bar")));
-    assertEquals("{\"term\":{\"bar\":\"foo\"}}",
-        toJson(QueryBuilders.termQuery("bar", "foo")));
-    assertEquals("{\"term\":{\"foo\":\"A\"}}",
-        toJson(QueryBuilders.termQuery("foo", 'A')));
-    assertEquals("{\"term\":{\"foo\":true}}",
-        toJson(QueryBuilders.termQuery("foo", true)));
-    assertEquals("{\"term\":{\"foo\":false}}",
-        toJson(QueryBuilders.termQuery("foo", false)));
-    assertEquals("{\"term\":{\"foo\":0}}",
-        toJson(QueryBuilders.termQuery("foo", (byte) 0)));
-    assertEquals("{\"term\":{\"foo\":123}}",
-        toJson(QueryBuilders.termQuery("foo", (long) 123)));
-    assertEquals("{\"term\":{\"foo\":41}}",
-        toJson(QueryBuilders.termQuery("foo", (short) 41)));
-    assertEquals("{\"term\":{\"foo\":42.42}}",
-        toJson(QueryBuilders.termQuery("foo", 42.42D)));
-    assertEquals("{\"term\":{\"foo\":1.1}}",
-        toJson(QueryBuilders.termQuery("foo", 1.1F)));
-    assertEquals("{\"term\":{\"foo\":1}}",
-        toJson(QueryBuilders.termQuery("foo", new BigDecimal(1))));
-    assertEquals("{\"term\":{\"foo\":121}}",
-        toJson(QueryBuilders.termQuery("foo", new BigInteger("121"))));
-    assertEquals("{\"term\":{\"foo\":111}}",
-        toJson(QueryBuilders.termQuery("foo", new AtomicLong(111))));
-    assertEquals("{\"term\":{\"foo\":222}}",
-        toJson(QueryBuilders.termQuery("foo", new AtomicInteger(222))));
-    assertEquals("{\"term\":{\"foo\":true}}",
-        toJson(QueryBuilders.termQuery("foo", new AtomicBoolean(true))));
+  @Test void term() {
+    assertThat(termQuery("foo", "bar"),
+        hasJson("{\"term\":{\"foo\":\"bar\"}}"));
+    assertThat(termQuery("bar", "foo"),
+        hasJson("{\"term\":{\"bar\":\"foo\"}}"));
+    assertThat(termQuery("foo", 'A'),
+        hasJson("{\"term\":{\"foo\":\"A\"}}"));
+    assertThat(termQuery("foo", true),
+        hasJson("{\"term\":{\"foo\":true}}"));
+    assertThat(termQuery("foo", false),
+        hasJson("{\"term\":{\"foo\":false}}"));
+    assertThat(termQuery("foo", (byte) 0),
+        hasJson("{\"term\":{\"foo\":0}}"));
+    assertThat(termQuery("foo", (long) 123),
+        hasJson("{\"term\":{\"foo\":123}}"));
+    assertThat(termQuery("foo", (short) 41),
+        hasJson("{\"term\":{\"foo\":41}}"));
+    assertThat(termQuery("foo", 42.42D),
+        hasJson("{\"term\":{\"foo\":42.42}}"));
+    assertThat(termQuery("foo", 1.1F),
+        hasJson("{\"term\":{\"foo\":1.1}}"));
+    assertThat(termQuery("foo", new BigDecimal(1)),
+        hasJson("{\"term\":{\"foo\":1}}"));
+    assertThat(termQuery("foo", new BigInteger("121")),
+        hasJson("{\"term\":{\"foo\":121}}"));
+    assertThat(termQuery("foo", new AtomicLong(111)),
+        hasJson("{\"term\":{\"foo\":111}}"));
+    assertThat(termQuery("foo", new AtomicInteger(222)),
+        hasJson("{\"term\":{\"foo\":222}}"));
+    assertThat(termQuery("foo", new AtomicBoolean(true)),
+        hasJson("{\"term\":{\"foo\":true}}"));
   }
 
-  @Test void terms() throws Exception {
-    assertEquals("{\"terms\":{\"foo\":[]}}",
-        toJson(QueryBuilders.termsQuery("foo", Collections.emptyList())));
+  @Test void terms() {
+    assertThat(termsQuery("foo", Collections.emptyList()),
+        hasJson("{\"terms\":{\"foo\":[]}}"));
 
-    assertEquals("{\"terms\":{\"bar\":[]}}",
-        toJson(QueryBuilders.termsQuery("bar", Collections.emptySet())));
+    assertThat(termsQuery("bar", Collections.emptySet()),
+        hasJson("{\"terms\":{\"bar\":[]}}"));
 
-    assertEquals("{\"terms\":{\"singleton\":[0]}}",
-        toJson(QueryBuilders.termsQuery("singleton", Collections.singleton(0))));
+    assertThat(termsQuery("singleton", Collections.singleton(0)),
+        hasJson("{\"terms\":{\"singleton\":[0]}}"));
 
-    assertEquals("{\"terms\":{\"foo\":[true]}}",
-        toJson(QueryBuilders.termsQuery("foo", Collections.singleton(true))));
+    assertThat(termsQuery("foo", Collections.singleton(true)),
+        hasJson("{\"terms\":{\"foo\":[true]}}"));
 
-    assertEquals("{\"terms\":{\"foo\":[\"bar\"]}}",
-        toJson(QueryBuilders.termsQuery("foo", Collections.singleton("bar"))));
+    assertThat(termsQuery("foo", Collections.singleton("bar")),
+        hasJson("{\"terms\":{\"foo\":[\"bar\"]}}"));
 
-    assertEquals("{\"terms\":{\"foo\":[\"bar\"]}}",
-        toJson(QueryBuilders.termsQuery("foo", Collections.singletonList("bar"))));
+    assertThat(termsQuery("foo", Collections.singletonList("bar")),
+        hasJson("{\"terms\":{\"foo\":[\"bar\"]}}"));
 
-    assertEquals("{\"terms\":{\"foo\":[true,false]}}",
-        toJson(QueryBuilders.termsQuery("foo", Arrays.asList(true, false))));
+    assertThat(termsQuery("foo", Arrays.asList(true, false)),
+        hasJson("{\"terms\":{\"foo\":[true,false]}}"));
 
-    assertEquals("{\"terms\":{\"foo\":[1,2,3]}}",
-        toJson(QueryBuilders.termsQuery("foo", Arrays.asList(1, 2, 3))));
+    assertThat(termsQuery("foo", Arrays.asList(1, 2, 3)),
+        hasJson("{\"terms\":{\"foo\":[1,2,3]}}"));
 
-    assertEquals("{\"terms\":{\"foo\":[1.1,2.2,3.3]}}",
-        toJson(QueryBuilders.termsQuery("foo", Arrays.asList(1.1, 2.2, 3.3))));
+    assertThat(termsQuery("foo", Arrays.asList(1.1, 2.2, 3.3)),
+        hasJson("{\"terms\":{\"foo\":[1.1,2.2,3.3]}}"));
   }
 
-  @Test void boolQuery() throws Exception {
-    QueryBuilders.QueryBuilder q1 = QueryBuilders.boolQuery()
-        .must(QueryBuilders.termQuery("foo", "bar"));
+  @Test void bool() {
+    assertThat(boolQuery()
+            .must(termQuery("foo", "bar")),
+        hasJson("{\"bool\":{\"must\":{\"term\":{\"foo\":\"bar\"}}}}"));
 
-    assertEquals("{\"bool\":{\"must\":{\"term\":{\"foo\":\"bar\"}}}}",
-        toJson(q1));
+    assertThat(boolQuery()
+            .must(termQuery("f1", "v1"))
+            .must(termQuery("f2", "v2")),
+        hasJson("{\"bool\":{\"must\":[{\"term\":{\"f1\":\"v1\"}},"
+            + "{\"term\":{\"f2\":\"v2\"}}]}}"));
 
-    QueryBuilders.QueryBuilder q2 = QueryBuilders.boolQuery()
-        .must(QueryBuilders.termQuery("f1", "v1")).must(QueryBuilders.termQuery("f2", "v2"));
-
-    assertEquals("{\"bool\":{\"must\":[{\"term\":{\"f1\":\"v1\"}},{\"term\":{\"f2\":\"v2\"}}]}}",
-        toJson(q2));
-
-    QueryBuilders.QueryBuilder q3 = QueryBuilders.boolQuery()
-        .mustNot(QueryBuilders.termQuery("f1", "v1"));
-
-    assertEquals("{\"bool\":{\"must_not\":{\"term\":{\"f1\":\"v1\"}}}}",
-        toJson(q3));
-
+    assertThat(boolQuery()
+            .mustNot(termQuery("f1", "v1")),
+        hasJson("{\"bool\":{\"must_not\":{\"term\":{\"f1\":\"v1\"}}}}"));
   }
 
-  @Test void exists() throws Exception {
-    assertEquals("{\"exists\":{\"field\":\"foo\"}}",
-        toJson(QueryBuilders.existsQuery("foo")));
+  @Test void exists() {
+    assertThat(QueryBuilders.existsQuery("foo"),
+        hasJson("{\"exists\":{\"field\":\"foo\"}}"));
   }
 
-  @Test void range() throws Exception {
-    assertEquals("{\"range\":{\"f\":{\"lt\":0}}}",
-        toJson(QueryBuilders.rangeQuery("f").lt(0)));
-    assertEquals("{\"range\":{\"f\":{\"gt\":0}}}",
-        toJson(QueryBuilders.rangeQuery("f").gt(0)));
-    assertEquals("{\"range\":{\"f\":{\"gte\":0}}}",
-        toJson(QueryBuilders.rangeQuery("f").gte(0)));
-    assertEquals("{\"range\":{\"f\":{\"lte\":0}}}",
-        toJson(QueryBuilders.rangeQuery("f").lte(0)));
-    assertEquals("{\"range\":{\"f\":{\"gt\":1,\"lt\":2}}}",
-        toJson(QueryBuilders.rangeQuery("f").gt(1).lt(2)));
-    assertEquals("{\"range\":{\"f\":{\"gt\":11,\"lt\":0}}}",
-        toJson(QueryBuilders.rangeQuery("f").lt(0).gt(11)));
-    assertEquals("{\"range\":{\"f\":{\"gt\":1,\"lte\":2}}}",
-        toJson(QueryBuilders.rangeQuery("f").gt(1).lte(2)));
-    assertEquals("{\"range\":{\"f\":{\"gte\":1,\"lte\":\"zz\"}}}",
-        toJson(QueryBuilders.rangeQuery("f").gte(1).lte("zz")));
-    assertEquals("{\"range\":{\"f\":{\"gte\":1}}}",
-        toJson(QueryBuilders.rangeQuery("f").gte(1)));
-    assertEquals("{\"range\":{\"f\":{\"gte\":\"zz\"}}}",
-        toJson(QueryBuilders.rangeQuery("f").gte("zz")));
-    assertEquals("{\"range\":{\"f\":{\"gt\":\"a\",\"lt\":\"z\"}}}",
-        toJson(QueryBuilders.rangeQuery("f").gt("a").lt("z")));
-    assertEquals("{\"range\":{\"f\":{\"gte\":3}}}",
-        toJson(QueryBuilders.rangeQuery("f").gt(1).gt(2).gte(3)));
-    assertEquals("{\"range\":{\"f\":{\"lte\":3}}}",
-        toJson(QueryBuilders.rangeQuery("f").lt(1).lt(2).lte(3)));
+  @Test void range() {
+    assertThat(rangeQuery("f").lt(0),
+        hasJson("{\"range\":{\"f\":{\"lt\":0}}}"));
+    assertThat(rangeQuery("f").gt(0),
+        hasJson("{\"range\":{\"f\":{\"gt\":0}}}"));
+    assertThat(rangeQuery("f").gte(0),
+        hasJson("{\"range\":{\"f\":{\"gte\":0}}}"));
+    assertThat(rangeQuery("f").lte(0),
+        hasJson("{\"range\":{\"f\":{\"lte\":0}}}"));
+    assertThat(rangeQuery("f").gt(1).lt(2),
+        hasJson("{\"range\":{\"f\":{\"gt\":1,\"lt\":2}}}"));
+    assertThat(rangeQuery("f").lt(0).gt(11),
+        hasJson("{\"range\":{\"f\":{\"gt\":11,\"lt\":0}}}"));
+    assertThat(rangeQuery("f").gt(1).lte(2),
+        hasJson("{\"range\":{\"f\":{\"gt\":1,\"lte\":2}}}"));
+    assertThat(rangeQuery("f").gte(1).lte("zz"),
+        hasJson("{\"range\":{\"f\":{\"gte\":1,\"lte\":\"zz\"}}}"));
+    assertThat(rangeQuery("f").gte(1),
+        hasJson("{\"range\":{\"f\":{\"gte\":1}}}"));
+    assertThat(rangeQuery("f").gte("zz"),
+        hasJson("{\"range\":{\"f\":{\"gte\":\"zz\"}}}"));
+    assertThat(rangeQuery("f").gt("a").lt("z"),
+        hasJson("{\"range\":{\"f\":{\"gt\":\"a\",\"lt\":\"z\"}}}"));
+    assertThat(rangeQuery("f").gt(1).gt(2).gte(3),
+        hasJson("{\"range\":{\"f\":{\"gte\":3}}}"));
+    assertThat(rangeQuery("f").lt(1).lt(2).lte(3),
+        hasJson("{\"range\":{\"f\":{\"lte\":3}}}"));
   }
 
-  @Test void matchAll() throws IOException {
-    assertEquals("{\"match_all\":{}}",
-        toJson(QueryBuilders.matchAll()));
+  @Test void matchAll() {
+    assertThat(QueryBuilders.matchAll(),
+        hasJson("{\"match_all\":{}}"));
   }
 
-  @Test void match() throws IOException {
-    assertEquals("{\"match\":{\"foo\":[\"bar\"]}}",
-        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton("bar"))));
+  @Test void match() {
+    assertThat(matchesQuery("foo", Collections.singleton("bar")),
+        hasJson("{\"match\":{\"foo\":[\"bar\"]}}"));
 
-    assertEquals("{\"match\":{\"foo\":[true]}}",
-        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton(true))));
+    assertThat(matchesQuery("foo", Collections.singleton(true)),
+        hasJson("{\"match\":{\"foo\":[true]}}"));
   }
 
-  private String toJson(QueryBuilders.QueryBuilder builder) throws IOException {
-    StringWriter writer = new StringWriter();
-    JsonGenerator gen = mapper.getFactory().createGenerator(writer);
-    builder.writeJson(gen);
-    gen.flush();
-    gen.close();
-    return writer.toString();
+  /** Matcher that succeeds if a
+   * {@link org.apache.calcite.adapter.elasticsearch.QueryBuilders.QueryBuilder}
+   * yields JSON that matches a given string. */
+  static class JsonMatcher extends TypeSafeMatcher<QueryBuilders.QueryBuilder> {
+    private final Matcher<String> matcher;
+
+    protected JsonMatcher(Matcher<String> matcher) {
+      super(QueryBuilders.QueryBuilder.class);
+      this.matcher = matcher;
+    }
+
+    static Matcher<QueryBuilders.QueryBuilder> hasJson(String s) {
+      return new JsonMatcher(is(s));
+    }
+
+    private static String toJson(QueryBuilders.QueryBuilder builder,
+        ObjectMapper mapper) {
+      try {
+        StringWriter writer = new StringWriter();
+        JsonGenerator gen = mapper.getFactory().createGenerator(writer);
+        builder.writeJson(gen);
+        gen.flush();
+        gen.close();
+        return writer.toString();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override protected boolean matchesSafely(QueryBuilders.QueryBuilder builder) {
+      final String json = toJson(builder, new ObjectMapper());
+      return Unsafe.matches(matcher, json);
+    }
+
+    @Override public void describeTo(Description description) {
+      description.appendText("json ").appendDescriptionOf(matcher);
+    }
   }
 }

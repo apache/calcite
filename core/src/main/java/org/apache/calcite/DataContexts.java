@@ -109,8 +109,8 @@ public class DataContexts {
 
   /** Implementation of {@link DataContext} backed by a Map. */
   private static class DataContextImpl extends MapDataContext {
-    private CalciteConnection connection;
-    private @Nullable SchemaPlus rootSchema;
+    private final CalciteConnection connection;
+    private final @Nullable SchemaPlus rootSchema;
 
     DataContextImpl(CalciteConnection connection,
         @Nullable SchemaPlus rootSchema, Map<String, Object> map) {

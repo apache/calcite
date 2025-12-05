@@ -30,10 +30,11 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkState;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Manages embedded Geode instance using native {@link ServerLauncher}.
@@ -43,9 +44,8 @@ public class GeodeEmbeddedPolicy implements BeforeAllCallback, AfterAllCallback 
   private final ServerLauncher launcher;
 
   private GeodeEmbeddedPolicy(final ServerLauncher launcher) {
-    Objects.requireNonNull(launcher, "launcher");
+    this.launcher = requireNonNull(launcher, "launcher");
     checkState(!launcher.isRunning(), "Launcher process is already running");
-    this.launcher = launcher;
   }
 
   @Override public void beforeAll(ExtensionContext context) {
@@ -123,7 +123,7 @@ public class GeodeEmbeddedPolicy implements BeforeAllCallback, AfterAllCallback 
     private final GeodeEmbeddedPolicy policy;
 
     RefCountPolicy(final GeodeEmbeddedPolicy policy) {
-      super(Objects.requireNonNull(policy, "policy").launcher);
+      super(requireNonNull(policy, "policy").launcher);
       this.policy = policy;
       this.refCount = new AtomicInteger();
     }

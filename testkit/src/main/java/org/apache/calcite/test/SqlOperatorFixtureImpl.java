@@ -41,7 +41,7 @@ import static org.apache.calcite.sql.test.ResultCheckers.isSingle;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import static java.util.Objects.requireNonNull;
@@ -137,7 +137,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
       final RelDataType rowType =
           validator.getValidatedNodeType(validatedNode);
       final List<RelDataTypeField> fields = rowType.getFieldList();
-      assertEquals(1, fields.size(), "expected query to return 1 field");
+      assertThat("expected query to return 1 field", fields, hasSize(1));
       final RelDataType actualType = fields.get(0).getType();
       String actual = SqlTests.getTypeString(actualType);
       assertThat("Query: " + sql.sql, actual, matcher);
@@ -156,15 +156,16 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkFails(StringAndPos sap, String expectedError,
       boolean runtime) {
-    final String sql = "values (" + sap.addCarets() + ")";
     if (runtime) {
       // We need to test that the expression fails at runtime.
       // Ironically, that means that it must succeed at prepare time.
+      final String sql = "values (" + sap.sql + ")";
       SqlValidator validator = factory.createValidator();
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
       tester.checkFails(factory, sap, expectedError, runtime);
     } else {
+      final String sql = "values (" + sap.addCarets() + ")";
       checkQueryFails(StringAndPos.of(sql),
           expectedError);
     }
@@ -194,9 +195,21 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkAgg(String expr, String[] inputValues,
       SqlTester.ResultChecker checker) {
+    checkAgg(expr, inputValues, SqlTests.ANY_TYPE_CHECKER, checker);
+  }
+
+  @Override public void checkAgg(String expr, String[] inputValues,
+      String type, SqlTester.ResultChecker checker) {
+    final SqlTester.TypeChecker typeChecker =
+        new SqlTests.StringTypeChecker(type);
+    checkAgg(expr, inputValues, typeChecker, checker);
+  }
+
+  private void checkAgg(String expr, String[] inputValues,
+      SqlTester.TypeChecker typeChecker, SqlTester.ResultChecker resultChecker) {
     String query =
         SqlTests.generateAggQuery(expr, inputValues);
-    tester.check(factory, query, SqlTests.ANY_TYPE_CHECKER, checker);
+    tester.check(factory, query, typeChecker, resultChecker);
   }
 
   @Override public void checkAggWithMultipleArgs(
@@ -214,9 +227,11 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
       String windowSpec,
       String type,
       SqlTester.ResultChecker resultChecker) {
+    final SqlTester.TypeChecker typeChecker =
+        new SqlTests.StringTypeChecker(type);
     String query =
         SqlTests.generateWinAggQuery(expr, windowSpec, inputValues);
-    tester.check(factory, query, SqlTests.ANY_TYPE_CHECKER, resultChecker);
+    tester.check(factory, query, typeChecker, resultChecker);
   }
 
   @Override public void checkScalar(String expression,
@@ -272,6 +287,6 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkNull(String expression) {
     tester.forEachQuery(factory, expression, sql ->
-        tester.check(factory, sql, SqlTests.ANY_TYPE_CHECKER, isNullValue()));
+        tester.check(factory, sql, SqlTests.ANY_NULLABLE_TYPE_CHECKER, isNullValue()));
   }
 }

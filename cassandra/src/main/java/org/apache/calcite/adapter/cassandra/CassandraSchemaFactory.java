@@ -34,6 +34,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Factory that creates a {@link CassandraSchema}.
  */
@@ -107,7 +109,7 @@ public class CassandraSchemaFactory implements SchemaFactory {
     if (map.containsKey("port")) {
       Object portObj = map.get("port");
       if (portObj instanceof String) {
-        return Integer.parseInt((String) portObj);
+        return parseInt((String) portObj);
       } else {
         return (int) portObj;
       }

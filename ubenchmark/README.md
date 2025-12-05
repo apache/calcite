@@ -24,35 +24,20 @@ the [jmh](https://openjdk.java.net/projects/code-tools/jmh/) framework.
 The benchmarks are tools for development and are not distributed as
 Calcite artifacts. (Besides, jmh's license does not allow that.)
 
-## Running all benchmark from the command line
-
 To run all benchmarks:
+```bash
+./gradlew :ubenchmark:jmh
+```
 
-    cd calcite
-    ./gradlew :ubenchmark:jmh
-
-## Running one benchmark from the command line
-
-To run just one benchmark, modify `ubenchmark/build.gradle.kts` and add the
-following task:
-
-```kotlin
-jmh {
-    include = listOf("removeAllVertices.*Benchmark")
+To run one (or few) benchmark(s):
+```bash
+./gradlew :ubenchmark:jmh -Pjmh.includes=ParserInstantiationBenchmark
 }
 ```
 
-and run
-
-    ./gradlew :ubenchmark:jmh
-
-as before. In this case, `removeAllVertices.*Benchmark` is a
-regular expression that matches a few methods -- benchmarks -- in
-`class DefaultDirectedGraphBenchmark`.
-
-The `jmd-gradle-plugin` has
-[many other options](https://github.com/melix/jmh-gradle-plugin#configuration-options)
-but you will need to translate them from Groovy syntax to our Kotlin syntax.
+The `jmh.includes` property accepts a regular expression for benchmarks to be executed. The property maps to the
+`includes` [configuration option](https://github.com/melix/jmh-gradle-plugin#configuration-options) provided by the
+`jmh-gradle-plugin`.
 
 ## Recording results
 

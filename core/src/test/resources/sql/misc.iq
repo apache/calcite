@@ -18,6 +18,177 @@
 !use post
 !set outputformat mysql
 
+# [CALCITE-7060] Enable dumping high-level plans in quidem tests
+SELECT * FROM EMP WHERE DEPTNO > 20;
+SELECT "EMP"."ENAME", "EMP"."DEPTNO", "EMP"."GENDER"
+FROM "POST"."EMP" AS "EMP"
+WHERE "EMP"."DEPTNO" > 20
+!explain-validated-on Calcite
+
+# [CALCITE-6751] Reduction of CAST from string to interval is incorrect
+SELECT TIME '10:00:00' + CAST('1' AS INTERVAL SECOND);
++----------+
+| EXPR$0   |
++----------+
+| 10:00:01 |
++----------+
+(1 row)
+
+!ok
+
+# Due to CALCITE-6752 the following test crashes:
+# SELECT TIME '10:00:00' + CAST('1.1' AS INTERVAL SECOND);
+# +------------+
+# | EXPR$0     |
+# +------------+
+# | 11:00:00.1 |
+# +------------+
+# (1 row)
+#
+# !ok
+
+SELECT TIME '10:00:00' + CAST('1' AS INTERVAL HOUR);
++----------+
+| EXPR$0   |
++----------+
+| 11:00:00 |
++----------+
+(1 row)
+
+!ok
+
+SELECT TIME '10:00:00' + CAST('1' AS INTERVAL MINUTE);
++----------+
+| EXPR$0   |
++----------+
+| 10:01:00 |
++----------+
+(1 row)
+
+!ok
+
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000';
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST('123e4567-e89b-12d3-a456-426655440000' AS UUID);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST('123e4567e89b12d3a456426655440000' AS UUID);
+java.lang.IllegalArgumentException: Invalid UUID string: 123e4567e89b12d3a456426655440000
+!error
+
+SELECT CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS VARCHAR);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS VARBINARY);
++----------------------------------+
+| EXPR$0                           |
++----------------------------------+
+| 123e4567e89b12d3a456426655440000 |
++----------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(x'123e4567e89b12d3a456426655440000' AS UUID);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 123e4567-e89b-12d3-a456-426655440000 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+SELECT CAST(x'00' AS UUID);
+java.lang.IllegalArgumentException: Need at least 16 bytes for UUID
+!error
+
+SELECT UUID '123e4567-e89b-12d3-a456-426655440000' = '123e4567-e89b-12d3-a456-426655440000';
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CAST(NULL AS UUID);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT UUID NULL;
+java.sql.SQLException: Error while executing SQL "SELECT UUID NULL": parse failed: Incorrect syntax near the keyword 'UUID' at line 1, column 8.
+!error
+
+# Compare varchar to number (uses an implicit cast from VARCHAR to INTEGER)
+SELECT '1' > 0 AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# [CALCITE-6735] Type coercion for comparisons does not coerce ROW types
+# These are compared in the same way as '1' > 0
+SELECT ROW('1') > ROW(0) AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# [CALCITE-6735] Type coercion for comparisons does not coerce ROW types
+# These are compared in the same way as x'10' > 0, which throws
+SELECT ROW(x'10') > ROW(0) AS C;
+java.sql.SQLException: Error while executing SQL "SELECT ROW(x'10') > ROW(0) AS C": From line 1, column 11 to line 1, column 26: Cannot apply '>' to arguments of type '<RECORDTYPE(BINARY(1) EXPR$0)> > <RECORDTYPE(INTEGER EXPR$0)>'.
+!error
+
+# [CALCITE-6733] Type inferred by coercion for comparisons with decimal is too narrow
+SELECT ASCII('8') >= ABS(1.1806236821);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
 # [CALCITE-356] Allow column references of the form schema.table.column
 select "hr"."emps"."empid"
 from "hr"."emps";
@@ -403,7 +574,7 @@ EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
     EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
       EnumerableTableScan(table=[[hr, depts]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], i=[$t5], $condition=[$t7])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[0], expr#8=[<($t6, $t7)], i=[$t5], $condition=[$t8])
         EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -425,7 +596,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condi
     EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
       EnumerableTableScan(table=[[hr, depts]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], i=[$t5], $condition=[$t7])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[0], expr#8=[<($t6, $t7)], i=[$t5], $condition=[$t8])
         EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -1522,6 +1693,18 @@ order by empno;
 
 !ok
 
+# [CALCITE-6581] INTERVAL with WEEK and QUARTER
+select timestamp '1970-01-01' + interval '2' week as w,
+  timestamp '1970-01-01 00:00:00' + interval '2' quarter as q;
++---------------------+---------------------+
+| W                   | Q                   |
++---------------------+---------------------+
+| 1970-01-15 00:00:00 | 1970-07-01 00:00:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
+
 # [CALCITE-1486] Invalid "Invalid literal" error for complex expression
 select 8388608/(60+27.39);
 +-------------------+
@@ -1734,272 +1917,6 @@ select (case when (true) then 1 end) from (values(1));
 EXPR$0 INTEGER(10)
 !type
 
-# Cast a character literal to a timestamp; note: the plan does not contain CAST
-values cast('1969-07-21 12:34:56' as timestamp);
-+---------------------+
-| EXPR$0              |
-+---------------------+
-| 1969-07-21 12:34:56 |
-+---------------------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 1969-07-21 12:34:56 }]])
-!plan
-
-# Cast a character literal without time to a timestamp; note: the plan does not contain CAST
-values cast('1969-07-21' as timestamp);
-+---------------------+
-| EXPR$0              |
-+---------------------+
-| 1969-07-21 00:00:00 |
-+---------------------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 1969-07-21 00:00:00 }]])
-!plan
-
-# Cast a character literal to a date; note: the plan does not contain CAST
-values cast('1969-07-21' as date);
-+------------+
-| EXPR$0     |
-+------------+
-| 1969-07-21 |
-+------------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 1969-07-21 }]])
-!plan
-
-# Slightly different format
-# (Incidentally, this format is not allowed in date literals, per the standard)
-values cast('1989-7-4' as date);
-+------------+
-| EXPR$0     |
-+------------+
-| 1989-07-04 |
-+------------+
-(1 row)
-
-!ok
-
-# Cast a character literal to an integer; note: the plan does not contain CAST
-values cast('196907' as integer);
-+--------+
-| EXPR$0 |
-+--------+
-| 196907 |
-+--------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 196907 }]])
-!plan
-
-# Cast an integer literal to a bigint; note: the plan does not contain CAST
-values cast(123 as bigint);
-+--------+
-| EXPR$0 |
-+--------+
-|    123 |
-+--------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 123 }]])
-!plan
-
-# Cast an integer literal to a decimal; note: the plan does not contain CAST
-values cast('123.45' as decimal(5, 2));
-+--------+
-| EXPR$0 |
-+--------+
-| 123.45 |
-+--------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 123.45 }]])
-!plan
-
-# Cast a character literal to a decimal; note: the plan does not contain CAST
-values cast('123.45' as decimal(5, 2));
-+--------+
-| EXPR$0 |
-+--------+
-| 123.45 |
-+--------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ 123.45 }]])
-!plan
-
-# Cast a character literal to a double; note: the plan does not contain CAST
-values cast('-123.45' as double);
-+---------+
-| EXPR$0  |
-+---------+
-| -123.45 |
-+---------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ -1.2345E2 }]])
-!plan
-
-values cast('false' as boolean);
-+--------+
-| EXPR$0 |
-+--------+
-| false  |
-+--------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ false }]])
-!plan
-
-values cast('TRUE' as boolean);
-+--------+
-| EXPR$0 |
-+--------+
-| true   |
-+--------+
-(1 row)
-
-!ok
-EnumerableValues(tuples=[[{ true }]])
-!plan
-
-values cast('TR' || 'UE' as boolean);
-+--------+
-| EXPR$0 |
-+--------+
-| true   |
-+--------+
-(1 row)
-
-!ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, $t2)], expr#4=[CAST($t3):BOOLEAN NOT NULL], EXPR$0=[$t4])
-  EnumerableValues(tuples=[[{ 0 }]])
-!plan
-
-!if (fixed.calcite2539) {
-
-# In the following, that we get an error at run time,
-# and that the plan shows that the expression has not been reduced.
-values cast('null' as boolean);
-Invalid character for cast
-!error
-EnumerableCalc(expr#0=[{inputs}], expr#1=['null'], expr#2=[CAST($t1):BOOLEAN NOT NULL], EXPR$0=[$t2])
-  EnumerableValues(tuples=[[{ 0 }]])
-!plan
-
-# The following throw give an error (good!)
-# but throw java.lang.ExceptionInInitializerError (not great).
-values cast('' as date);
-Caused by: java.lang.NumberFormatException: For input string: ""
-!error
-
-values cast('' as timestamp);
-Caused by: java.lang.NumberFormatException: For input string: ""
-!error
-
-values cast('' as integer);
-Caused by: java.lang.NumberFormatException: For input string: ""
-!error
-
-values cast('' as boolean);
-Caused by: java.lang.RuntimeException: Invalid character for cast
-!error
-
-values cast('' as double);
-Caused by: java.lang.NumberFormatException: empty String
-!error
-
-# Postgres fails:
-#  ERROR:  invalid input syntax for integer: "1.56"
-values cast('15.6' as integer);
-Caused by: java.lang.NumberFormatException: For input string: "15.6"
-!error
-
-# Postgres fails:
-#  ERROR:  invalid input syntax for integer: " - 5 "
-values cast(' - 5 ' as double);
-Caused by: java.lang.NumberFormatException: For input string: "- 5"
-!error
-
-# Out of TINYINT range (max 127)
-values cast('200' as tinyint);
-Caused by: java.lang.NumberFormatException: Value out of range. Value:"200" Radix:10
-!error
-
-# Out of SMALLINT range (max 32767)
-values cast('50000' as smallint);
-Caused by: java.lang.NumberFormatException: Value out of range. Value:"50000" Radix:10
-!error
-
-# Out of INTEGER range (max 2.1e9)
-values cast('4567891234' as integer);
-Caused by: java.lang.NumberFormatException: For input string: "4567891234"
-!error
-
-# Out of BIGINT range (max 9.2e18)
-values cast('12345678901234567890' as bigint);
-Caused by: java.lang.NumberFormatException: For input string: "12345678901234567890"
-!error
-!}
-
-# Out of REAL range
-# (Should give an error, not infinity.)
-values cast('12.34e56' as real);
-+----------+
-| EXPR$0   |
-+----------+
-| Infinity |
-+----------+
-(1 row)
-
-!ok
-
-# Out of FLOAT range
-# (Should give an error, not infinity.)
-values cast('12.34e5678' as float);
-+----------+
-| EXPR$0   |
-+----------+
-| Infinity |
-+----------+
-(1 row)
-
-!ok
-
-# Out of DOUBLE range
-# (Should give an error, not infinity.)
-values cast('12.34e5678' as double);
-+----------+
-| EXPR$0   |
-+----------+
-| Infinity |
-+----------+
-(1 row)
-
-!ok
-
-# Postgres succeeds
-values cast(' -5 ' as double);
-+--------+
-| EXPR$0 |
-+--------+
-|   -5.0 |
-+--------+
-(1 row)
-
-!ok
-
 # RAND_INTEGER with seed
 select i, rand_integer(1, 5) as r
 from (values 1, 2, 3, 4, 5) as t(i);
@@ -2084,6 +2001,16 @@ from (values 1, 2, 3, 4, 5) as t(i);
 values pi;
 +-------------------+
 | PI                |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+values pi();
++-------------------+
+| EXPR$0            |
 +-------------------+
 | 3.141592653589793 |
 +-------------------+
@@ -2261,7 +2188,8 @@ where extract(YEAR from "sqlTimestamp") IN (1969, 1970);
 
 !ok
 
-!if (false) {
+!use scott
+
 # [CALCITE-2032] Error when implicitly converting character literal to date literal
 select *
 from "scott".emp
@@ -2274,7 +2202,23 @@ WHERE hiredate = '1980-12-17';
 (1 row)
 
 !ok
-!}
+
+select *
+from "scott".emp
+WHERE hiredate >= '1980-12-17'
+AND deptno = 20;
++-------+-------+---------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+---------+------+------------+---------+------+--------+
+|  7369 | SMITH | CLERK   | 7902 | 1980-12-17 |  800.00 |      |     20 |
+|  7566 | JONES | MANAGER | 7839 | 1981-02-04 | 2975.00 |      |     20 |
+|  7788 | SCOTT | ANALYST | 7566 | 1987-04-19 | 3000.00 |      |     20 |
+|  7876 | ADAMS | CLERK   | 7788 | 1987-05-23 | 1100.00 |      |     20 |
+|  7902 | FORD  | ANALYST | 7566 | 1981-12-03 | 3000.00 |      |     20 |
++-------+-------+---------+------+------------+---------+------+--------+
+(5 rows)
+
+!ok
 
 # [CALCITE-2002] DISTINCT applied to VALUES returns wrong result
 SELECT DISTINCT T.B
@@ -2422,13 +2366,13 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 8),
    (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
 V
-13.0
-9.5
-1.75
-1.875
+13.00000000
+9.50000000
+1.75000000
+1.87500000
 null
-0
-14
+0E-8
+14.00000000
 !ok
 
 # TIMESTAMP literals without a time part are OK.
@@ -2445,125 +2389,7 @@ TS
 1969-07-21 00:00:00
 !ok
 
-!use scott
 !set outputformat mysql
-
-# [CALCITE-5769] Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'
-
-# Test CAST(e as t) IS NOT NULL when CAST is lossless And e IS NOT NULL
-select cast(deptno as integer) IS NOT NULL from "scott".dept;
-+--------+
-| EXPR$0 |
-+--------+
-| true   |
-| true   |
-| true   |
-| true   |
-+--------+
-(4 rows)
-
-!ok
-EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], EXPR$0=[$t3])
-  EnumerableTableScan(table=[[scott, DEPT]])
-!plan
-
-# Test CAST(e as t) IS NULL when CAST is lossless And e IS NOT NULL
-select cast(deptno as integer) IS NULL from "scott".dept;
-+--------+
-| EXPR$0 |
-+--------+
-| false  |
-| false  |
-| false  |
-| false  |
-+--------+
-(4 rows)
-
-!ok
-EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], EXPR$0=[$t3])
-  EnumerableTableScan(table=[[scott, DEPT]])
-!plan
-
-# Test CAST(e as t) IS NOT NULL when CAST is lossless And e is nullable
-select cast(mgr as integer) IS NOT NULL from "scott".emp;
-+--------+
-| EXPR$0 |
-+--------+
-| false  |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-| true   |
-+--------+
-(14 rows)
-
-!ok
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], EXPR$0=[$t8])
-  EnumerableTableScan(table=[[scott, EMP]])
-!plan
-
-# Test CAST(e as t) IS NULL when CAST is lossless And e is nullable
-select cast(mgr as integer) IS NULL from "scott".emp;
-+--------+
-| EXPR$0 |
-+--------+
-| false  |
-| true   |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-+--------+
-(14 rows)
-
-!ok
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t3)], EXPR$0=[$t8])
-  EnumerableTableScan(table=[[scott, EMP]])
-!plan
-
-# Test CAST(e as t) IS NOT NULL when CAST is not lossless And e is nullable
-select cast(comm as integer) IS NOT NULL from "scott".emp;
-+--------+
-| EXPR$0 |
-+--------+
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| false  |
-| true   |
-| true   |
-| true   |
-| true   |
-+--------+
-(14 rows)
-
-!ok
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):INTEGER], expr#9=[IS NOT NULL($t8)], EXPR$0=[$t9])
-  EnumerableTableScan(table=[[scott, EMP]])
-!plan
 
 # [CALCITE-5870] Allow literals like DECIMAL '12.3' (consistent with Postgres)
 # Test a decimal value between decimal logic for range checking.
@@ -2640,5 +2466,210 @@ FROM "hr"."emps";
 (4 rows)
 
 !ok
+
+# [CALCITE-6566] JDBC adapter should generate PI function with parentheses in most dialects
+
+!use scott-mysql
+
+# PI function
+values pi;
+No match found for function signature PI()
+!error
+
+values pi();
++-------------------+
+| EXPR$0            |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+!use scott
+
+# PI function
+values pi;
++-------------------+
+| PI                |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+values pi();
++-------------------+
+| EXPR$0            |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+!use scott-babel
+# Tests for https://issues.apache.org/jira/browse/CALCITE-6939
+# [CALCITE-6939] Add support for Lateral Column Alias
+# These need the BABEL conformance level.
+
+select empno as x, x as y from emp;
++------+------+
+| X    | Y    |
++------+------+
+| 7369 | 7369 |
+| 7499 | 7499 |
+| 7521 | 7521 |
+| 7566 | 7566 |
+| 7654 | 7654 |
+| 7698 | 7698 |
+| 7782 | 7782 |
+| 7788 | 7788 |
+| 7839 | 7839 |
+| 7844 | 7844 |
+| 7876 | 7876 |
+| 7900 | 7900 |
+| 7902 | 7902 |
+| 7934 | 7934 |
++------+------+
+(14 rows)
+
+!ok
+
+select empno as x, x+1 as y from emp
+group by empno, empno+1;
++------+------+
+| X    | Y    |
++------+------+
+| 7369 | 7370 |
+| 7499 | 7500 |
+| 7521 | 7522 |
+| 7566 | 7567 |
+| 7654 | 7655 |
+| 7698 | 7699 |
+| 7782 | 7783 |
+| 7788 | 7789 |
+| 7839 | 7840 |
+| 7844 | 7845 |
+| 7876 | 7877 |
+| 7900 | 7901 |
+| 7902 | 7903 |
+| 7934 | 7935 |
++------+------+
+(14 rows)
+
+!ok
+
+# group by lateral aliases introduced
+select empno as x, x+1 as y from emp
+group by x, y;
++------+------+
+| X    | Y    |
++------+------+
+| 7369 | 7370 |
+| 7499 | 7500 |
+| 7521 | 7522 |
+| 7566 | 7567 |
+| 7654 | 7655 |
+| 7698 | 7699 |
+| 7782 | 7783 |
+| 7788 | 7789 |
+| 7839 | 7840 |
+| 7844 | 7845 |
+| 7876 | 7877 |
+| 7900 | 7901 |
+| 7902 | 7903 |
+| 7934 | 7935 |
++------+------+
+(14 rows)
+
+!ok
+
+# group by a mix of expressions and aliases
+select empno as x, x+1 as y from emp
+group by empno, y;
++------+------+
+| X    | Y    |
++------+------+
+| 7369 | 7370 |
+| 7499 | 7500 |
+| 7521 | 7522 |
+| 7566 | 7567 |
+| 7654 | 7655 |
+| 7698 | 7699 |
+| 7782 | 7783 |
+| 7788 | 7789 |
+| 7839 | 7840 |
+| 7844 | 7845 |
+| 7876 | 7877 |
+| 7900 | 7901 |
+| 7902 | 7903 |
+| 7934 | 7935 |
++------+------+
+(14 rows)
+
+!ok
+
+# having with lateral aliases
+select empno as x, x+1 as y from emp
+group by x, y
+having x > 7800;
++------+------+
+| X    | Y    |
++------+------+
+| 7839 | 7840 |
+| 7844 | 7845 |
+| 7876 | 7877 |
+| 7900 | 7901 |
+| 7902 | 7903 |
+| 7934 | 7935 |
++------+------+
+(6 rows)
+
+!ok
+
+# expression using new alias used in group by, and also used laterally
+select empno + deptno as z, count(z) as w, w+1 as x from emp
+group by z;
++------+---+---+
+| Z    | W | X |
++------+---+---+
+| 7389 | 1 | 2 |
+| 7529 | 1 | 2 |
+| 7551 | 1 | 2 |
+| 7586 | 1 | 2 |
+| 7684 | 1 | 2 |
+| 7728 | 1 | 2 |
+| 7792 | 1 | 2 |
+| 7808 | 1 | 2 |
+| 7849 | 1 | 2 |
+| 7874 | 1 | 2 |
+| 7896 | 1 | 2 |
+| 7922 | 1 | 2 |
+| 7930 | 1 | 2 |
+| 7944 | 1 | 2 |
++------+---+---+
+(14 rows)
+
+!ok
+
+# [CALCITE-7001] Cast of malformed literal to TIMESTAMP WITH LOCAL TIME ZONE
+select cast ('malformed' AS TIMESTAMP WITH LOCAL TIME ZONE);
+Illegal TIMESTAMP WITH LOCAL TIME ZONE literal 'malformed'
+!error
+
+# [CALCITE-7001] Cast of malformed literal to TIMESTAMP WITH LOCAL TIME ZONE
+select cast ('0000-01-01 00:00:00' AS TIMESTAMP WITH LOCAL TIME ZONE);
+Illegal TIMESTAMP WITH LOCAL TIME ZONE literal '0000-01-01 00:00:00'
+!error
+
+select TIMESTAMP WITH LOCAL TIME ZONE 'malformed';
+From line 1, column 8 to line 1, column 49: Illegal TIMESTAMP WITH LOCAL TIME ZONE literal 'malformed'
+!error
+
+select TIMESTAMP WITH LOCAL TIME ZONE '0000-01-01 00:00:00';
+From line 1, column 8 to line 1, column 59: Illegal TIMESTAMP WITH LOCAL TIME ZONE literal '0000-01-01 00:00:00'
+!error
 
 # End misc.iq

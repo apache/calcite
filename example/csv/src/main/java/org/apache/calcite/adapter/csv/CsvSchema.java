@@ -24,6 +24,8 @@ import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.util.Map;
 
@@ -34,7 +36,7 @@ import java.util.Map;
 public class CsvSchema extends AbstractSchema {
   private final File directoryFile;
   private final CsvTable.Flavor flavor;
-  private Map<String, Table> tableMap;
+  private @Nullable Map<String, Table> tableMap;
 
   /**
    * Creates a CSV schema.
@@ -60,7 +62,7 @@ public class CsvSchema extends AbstractSchema {
   /** Looks for a suffix on a string and returns
    * either the string with the suffix removed
    * or null. */
-  private static String trimOrNull(String s, String suffix) {
+  private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;

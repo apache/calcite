@@ -20,4 +20,5 @@ dependencies {
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
+    implementation("org.jooq:joou-java-6")
 }

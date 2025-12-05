@@ -150,52 +150,46 @@ select deptno, (select sum(empno) from "scott".emp where 1 = 0 group by ()) as x
 !ok
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
-select deptno, (select sum(empno) from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
-+--------+----------------------+
-| DEPTNO |          X           |
-+--------+----------------------+
-| 10     | 23555                |
-| 20     | 38501                |
-| 30     | 46116                |
-| 40     | null                 |
-+--------+----------------------+
+select deptno, (select sum(cast(empno as bigint)) from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
++--------+-------+
+| DEPTNO | X     |
++--------+-------+
+|     10 | 23555 |
+|     20 | 38501 |
+|     30 | 46116 |
+|     40 |       |
++--------+-------+
 (4 rows)
 
 !ok
-!}
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
 select deptno, (select sum(empno) from "scott".emp where deptno = dept.deptno limit 0) as x from "scott".dept;
-+--------+----------------------+
-| DEPTNO |          X           |
-+--------+----------------------+
-| 10     | 23555                |
-| 20     | 38501                |
-| 30     | 46116                |
-| 40     | null                 |
-+--------+----------------------+
++--------+---+
+| DEPTNO | X |
++--------+---+
+|     10 |   |
+|     20 |   |
+|     30 |   |
+|     40 |   |
++--------+---+
 (4 rows)
 
 !ok
-!}
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
 select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 1) as x from "scott".dept;
-+--------+------+
-| DEPTNO |  X   |
-+--------+------+
-| 10     | 10   |
-| 20     | 20   |
-| 30     | 30   |
-| 40     | null |
-+--------+------+
++--------+----+
+| DEPTNO | X  |
++--------+----+
+|     10 | 10 |
+|     20 | 20 |
+|     30 | 30 |
+|     40 |    |
++--------+----+
 (4 rows)
 
 !ok
-!}
 
 select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 0) as x from "scott".dept;
 +--------+---+
@@ -211,20 +205,18 @@ select deptno, (select deptno from "scott".emp where deptno = dept.deptno limit 
 !ok
 
 # [CALCITE-709] Errors with LIMIT inside scalar sub-query
-!if (false) {
 select deptno, (select empno from "scott".emp where deptno = dept.deptno order by empno limit 1) as x from "scott".dept;
-+--------+--------+
-| DEPTNO |   X    |
-+--------+--------+
-| 10     | 7369   |
-| 20     | 7369   |
-| 30     | 7369   |
-| 40     | 7369   |
-+--------+--------+
++--------+------+
+| DEPTNO | X    |
++--------+------+
+|     10 | 7782 |
+|     20 | 7369 |
+|     30 | 7499 |
+|     40 |      |
++--------+------+
 (4 rows)
 
 !ok
-!}
 
 select deptno, (select empno from "scott".emp order by empno limit 1) as x from "scott".dept;
 +--------+------+
@@ -235,6 +227,85 @@ select deptno, (select empno from "scott".emp order by empno limit 1) as x from 
 |     30 | 7369 |
 |     40 | 7369 |
 +--------+------+
+(4 rows)
+
+!ok
+
+# Scalar subquery on VALUES; based on a query mentioned in
+# [CALCITE-3244] RelDecorrelator unable to decorrelate expression with filter and aggregate on top
+select
+    (select count(t2.id)
+        from (values (1), (2)) t2(id)
+        where t2.id = t1.id) as c
+from (values (1), (2)) t1(id);
++---+
+| C |
++---+
+| 1 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+
+select
+    (select count(t2.id)
+        from (values (1), (2), (2), (4)) t2(id)
+        where t2.id = t1.id) as c
+from (values (1), (3)) t1(id);
++---+
+| C |
++---+
+| 1 |
+| 0 |
++---+
+(2 rows)
+
+!ok
+
+# Scalar subquery using EXISTS on VALUES
+select exists (select count(t2.id)
+               from (values (1), (2), (2), (4)) t2(id)
+               where t2.id = t1.id) as e
+from (values (1), (3)) t1(id);
++------+
+| E    |
++------+
+| true |
+| true |
++------+
+(2 rows)
+
+!ok
+
+# Variation on previous query
+select exists (select *
+               from (values (1), (2), (2), (4)) t2(id)
+               where t2.id = t1.id) as e
+from (values (1), (3)) t1(id);
++-------+
+| E     |
++-------+
+| false |
+| true  |
++-------+
+(2 rows)
+
+!ok
+
+# Several scalar sub-queries reference different tables in FROM list
+select
+    (select ename from emp where empno = empnos.empno) as emp_name,
+    (select dname from dept where deptno = deptnos.deptno) as dept_name
+  from (values (7369), (7499)) as empnos(empno), (values (10), (20)) as deptnos(deptno) order by 1, 2;
++----------+------------+
+| EMP_NAME | DEPT_NAME  |
++----------+------------+
+| ALLEN    | ACCOUNTING |
+| ALLEN    | RESEARCH   |
+| SMITH    | ACCOUNTING |
+| SMITH    | RESEARCH   |
++----------+------------+
 (4 rows)
 
 !ok

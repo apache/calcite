@@ -28,7 +28,8 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a Geode Region.
@@ -41,8 +42,8 @@ public class GeodeSchema extends AbstractSchema {
 
   public GeodeSchema(final GemFireCache gemFireCache, final Iterable<String> regionNames) {
     super();
-    this.cache = Objects.requireNonNull(gemFireCache, "gemFireCache");
-    this.regionNames = ImmutableList.copyOf(Objects.requireNonNull(regionNames, "regionNames"));
+    this.cache = requireNonNull(gemFireCache, "gemFireCache");
+    this.regionNames = ImmutableList.copyOf(regionNames);
   }
 
   @Override protected Map<String, Table> getTableMap() {

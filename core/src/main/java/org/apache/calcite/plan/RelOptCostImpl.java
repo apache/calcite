@@ -113,11 +113,7 @@ public class RelOptCostImpl implements RelOptCost {
 
   // implement RelOptCost
   @Override public String toString() {
-    if (value == Double.MAX_VALUE) {
-      return "huge";
-    } else {
-      return Double.toString(value);
-    }
+    return RelOptCost.toString(value);
   }
 
   /** Implementation of {@link RelOptCostFactory} that creates

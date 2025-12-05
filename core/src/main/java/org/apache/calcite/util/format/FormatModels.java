@@ -22,18 +22,23 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.format.FormatElementEnum.AMPM;
+import static org.apache.calcite.util.format.FormatElementEnum.AM_PM;
 import static org.apache.calcite.util.format.FormatElementEnum.CC;
 import static org.apache.calcite.util.format.FormatElementEnum.D;
 import static org.apache.calcite.util.format.FormatElementEnum.DAY;
 import static org.apache.calcite.util.format.FormatElementEnum.DD;
 import static org.apache.calcite.util.format.FormatElementEnum.DDD;
 import static org.apache.calcite.util.format.FormatElementEnum.DY;
+import static org.apache.calcite.util.format.FormatElementEnum.Day;
+import static org.apache.calcite.util.format.FormatElementEnum.Dy;
 import static org.apache.calcite.util.format.FormatElementEnum.E;
 import static org.apache.calcite.util.format.FormatElementEnum.FF1;
 import static org.apache.calcite.util.format.FormatElementEnum.FF2;
@@ -41,22 +46,40 @@ import static org.apache.calcite.util.format.FormatElementEnum.FF3;
 import static org.apache.calcite.util.format.FormatElementEnum.FF4;
 import static org.apache.calcite.util.format.FormatElementEnum.FF5;
 import static org.apache.calcite.util.format.FormatElementEnum.FF6;
+import static org.apache.calcite.util.format.FormatElementEnum.FF7;
+import static org.apache.calcite.util.format.FormatElementEnum.FF8;
+import static org.apache.calcite.util.format.FormatElementEnum.FF9;
 import static org.apache.calcite.util.format.FormatElementEnum.HH12;
 import static org.apache.calcite.util.format.FormatElementEnum.HH24;
+import static org.apache.calcite.util.format.FormatElementEnum.ID;
 import static org.apache.calcite.util.format.FormatElementEnum.IW;
+import static org.apache.calcite.util.format.FormatElementEnum.IYY;
+import static org.apache.calcite.util.format.FormatElementEnum.IYYYY;
 import static org.apache.calcite.util.format.FormatElementEnum.MI;
 import static org.apache.calcite.util.format.FormatElementEnum.MM;
 import static org.apache.calcite.util.format.FormatElementEnum.MON;
 import static org.apache.calcite.util.format.FormatElementEnum.MONTH;
 import static org.apache.calcite.util.format.FormatElementEnum.MS;
+import static org.apache.calcite.util.format.FormatElementEnum.Mon;
+import static org.apache.calcite.util.format.FormatElementEnum.Month;
 import static org.apache.calcite.util.format.FormatElementEnum.PM;
 import static org.apache.calcite.util.format.FormatElementEnum.Q;
 import static org.apache.calcite.util.format.FormatElementEnum.SS;
+import static org.apache.calcite.util.format.FormatElementEnum.SSSSS;
 import static org.apache.calcite.util.format.FormatElementEnum.TZR;
 import static org.apache.calcite.util.format.FormatElementEnum.W;
 import static org.apache.calcite.util.format.FormatElementEnum.WW;
+import static org.apache.calcite.util.format.FormatElementEnum.Y;
 import static org.apache.calcite.util.format.FormatElementEnum.YY;
+import static org.apache.calcite.util.format.FormatElementEnum.YYY;
 import static org.apache.calcite.util.format.FormatElementEnum.YYYY;
+import static org.apache.calcite.util.format.FormatElementEnum.am_pm;
+import static org.apache.calcite.util.format.FormatElementEnum.ampm;
+import static org.apache.calcite.util.format.FormatElementEnum.day;
+import static org.apache.calcite.util.format.FormatElementEnum.dy;
+import static org.apache.calcite.util.format.FormatElementEnum.mon;
+import static org.apache.calcite.util.format.FormatElementEnum.month;
+import static org.apache.calcite.util.format.FormatElementEnum.pctY;
 
 import static java.util.Objects.requireNonNull;
 
@@ -98,13 +121,13 @@ public class FormatModels {
     DEFAULT = create(map);
 
     map.clear();
-    map.put("%A", DAY);
-    map.put("%a", DY);
-    map.put("%B", MONTH);
-    map.put("%b", MON);
+    map.put("%A", Day);
+    map.put("%a", Dy);
+    map.put("%B", Month);
+    map.put("%b", Mon);
     map.put("%c",
         compositeElement("The date and time representation (English);",
-            DY, literalElement(" "), MON, literalElement(" "),
+            Dy, literalElement(" "), Mon, literalElement(" "),
             DD, literalElement(" "), HH24, literalElement(":"),
             MI, literalElement(":"), SS, literalElement(" "),
             YYYY));
@@ -119,6 +142,8 @@ public class FormatModels {
     map.put("%F",
         compositeElement("The date in the format %Y-%m-%d.", YYYY, literalElement("-"), MM,
             literalElement("-"), DD));
+    map.put("%G", IYYYY);
+    map.put("%g", IYY);
     map.put("%H", HH24);
     map.put("%I", HH12);
     map.put("%j", DDD);
@@ -133,19 +158,20 @@ public class FormatModels {
     map.put("%T",
         compositeElement("The time in the format %H:%M:%S.",
             HH24, literalElement(":"), MI, literalElement(":"), SS));
-    map.put("%u", D);
+    map.put("%u", ID);
     map.put("%V", IW);
     map.put("%W", WW);
     map.put("%x",
         compositeElement("The date representation in MM/DD/YY format",
             MM, literalElement("/"), DD, literalElement("/"), YY));
-    map.put("%Y", YYYY);
+    map.put("%Y", pctY);
     map.put("%y", YY);
     map.put("%Z", TZR);
 
     map.put("HH12", HH12);
     map.put("HH24", HH24);
     map.put("MI", MI);
+    map.put("SSSSS", SSSSS);
     map.put("SS", SS);
     map.put("MS", MS);
     map.put("FF1", FF1);
@@ -154,14 +180,26 @@ public class FormatModels {
     map.put("FF4", FF4);
     map.put("FF5", FF5);
     map.put("FF6", FF6);
+    map.put("FF7", FF7);
+    map.put("FF8", FF8);
+    map.put("FF9", FF9);
     map.put("YYYY", YYYY);
+    map.put("YYY", YYY);
     map.put("YY", YY);
-    map.put("Day", DAY);
+    map.put("Y", Y);
+    map.put("RRRR", YYYY);
+    map.put("RR", YY);
     map.put("DAY", DAY);
+    map.put("Day", Day);
+    map.put("day", day);
     map.put("DY", DY);
-    map.put("Month", MONTH);
+    map.put("Dy", Dy);
+    map.put("dy", dy);
+    map.put("month", month);
+    map.put("Month", Month);
     map.put("MONTH", MONTH);
-    map.put("Mon", MON);
+    map.put("mon", mon);
+    map.put("Mon", Mon);
     map.put("MON", MON);
     map.put("MM", MM);
     map.put("CC", CC);
@@ -172,10 +210,28 @@ public class FormatModels {
     map.put("W", W);
     map.put("IW", IW);
     map.put("Q", Q);
+    map.put("AM", AMPM);
+    map.put("A.M.", AM_PM);
+    map.put("am", ampm);
+    map.put("a.m.", am_pm);
+    map.put("PM", AMPM);
+    map.put("P.M.", AM_PM);
+    map.put("pm", ampm);
+    map.put("p.m.", am_pm);
+
     // Our implementation of TO_CHAR does not support TIMESTAMPTZ
     // As PostgreSQL, we will skip the timezone when formatting TIMESTAMP values
     map.put("TZ", TZR);
 
+    // Add lowercase mappings for formats that can also work case-insensitive.
+    final Map<String, FormatElement> lowercaseMap = new LinkedHashMap<>();
+    map.forEach((key, value) -> {
+      String lowerKey = key.toLowerCase(Locale.ROOT);
+      if (!map.containsKey(lowerKey)) {
+        lowercaseMap.put(lowerKey, value);
+      }
+    });
+    map.putAll(lowercaseMap);
     BIG_QUERY = create(map);
     POSTGRESQL = create(map);
   }

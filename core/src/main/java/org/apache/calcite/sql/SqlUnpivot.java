@@ -26,10 +26,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree node that represents UNPIVOT applied to a table reference
@@ -65,11 +66,11 @@ public class SqlUnpivot extends SqlCall {
   public SqlUnpivot(SqlParserPos pos, SqlNode query, boolean includeNulls,
       SqlNodeList measureList, SqlNodeList axisList, SqlNodeList inList) {
     super(pos);
-    this.query = Objects.requireNonNull(query, "query");
+    this.query = requireNonNull(query, "query");
     this.includeNulls = includeNulls;
-    this.measureList = Objects.requireNonNull(measureList, "measureList");
-    this.axisList = Objects.requireNonNull(axisList, "axisList");
-    this.inList = Objects.requireNonNull(inList, "inList");
+    this.measureList = requireNonNull(measureList, "measureList");
+    this.axisList = requireNonNull(axisList, "axisList");
+    this.inList = requireNonNull(inList, "inList");
   }
 
   //~ Methods ----------------------------------------------------------------

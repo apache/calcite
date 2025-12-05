@@ -358,7 +358,7 @@ class TableFunctionTest {
       CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      SchemaPlus schema = rootSchema.getSubSchema("s");
+      SchemaPlus schema = rootSchema.subSchemas().get("s");
       final TableFunction table =
           TableFunctionImpl.create(Smalls.GENERATE_STRINGS_METHOD);
       schema.add("GenerateStrings", table);

@@ -84,6 +84,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
@@ -201,7 +203,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Extra roots for explorations.
    */
-  Set<RelSubset> explorationRoots = new HashSet<>();
+  final Set<RelSubset> explorationRoots = new HashSet<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -310,8 +312,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    assert root != null : "root";
-    assert originalRoot != null : "originalRoot";
+    requireNonNull(root, "root");
+    requireNonNull(originalRoot, "originalRoot");
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
@@ -362,11 +364,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * registered
    */
   public @Nullable RelSet getSet(RelNode rel) {
-    assert rel != null : "pre: rel != null";
+    requireNonNull(rel, "rel");
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
-      assert subset.set != null;
-      return subset.set;
+      return requireNonNull(subset.set, "subset.set");
     }
     return null;
   }
@@ -420,14 +421,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return false;
     }
 
+    final boolean isTransFormRule = rule instanceof TransformationRule;
     // Each of this rule's operands is an 'entry point' for a rule call.
     // Register each operand against all concrete sub-classes that could match
     // it.
     for (RelOptRuleOperand operand : rule.getOperands()) {
       for (Class<? extends RelNode> subClass
           : subClasses(operand.getMatchedClass())) {
-        if (PhysicalNode.class.isAssignableFrom(subClass)
-            && rule instanceof TransformationRule) {
+        if (isTransFormRule && PhysicalNode.class.isAssignableFrom(subClass)) {
           continue;
         }
         classOperands.put(subClass, operand);
@@ -517,7 +518,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   @Override public RelNode findBestExp() {
-    assert root != null : "root must not be null";
+    requireNonNull(root, "root");
     ensureRootConverters();
     registerMaterializations();
 
@@ -561,7 +562,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   void ensureRootConverters() {
     final Set<RelSubset> subsets = new HashSet<>();
     for (RelNode rel : root.getRels()) {
-      if (rel instanceof AbstractConverter) {
+      if (rel instanceof AbstractConverter && !topDownOpt) {
         subsets.add((RelSubset) ((AbstractConverter) rel).getInput());
       }
     }
@@ -719,7 +720,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
-    assert rel != null : "pre-condition: rel != null";
+    requireNonNull(rel, "rel");
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
     }
@@ -752,7 +753,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @return Subset it belongs to, or null if it is not registered
    */
   public @Nullable RelSubset getSubset(RelNode rel) {
-    assert rel != null : "pre: rel != null";
+    requireNonNull(rel, "rel");
     if (rel instanceof RelSubset) {
       return (RelSubset) rel;
     } else {
@@ -921,10 +922,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // Remove rel from its subset. (This may leave the subset
         // empty, but if so, that will be dealt with when the sets
         // get merged.)
-        final RelSubset subset = mapRel2Subset.put(rel, equivRelSubset);
-        assert subset != null;
+        final RelSubset subset =
+            requireNonNull(mapRel2Subset.put(rel, equivRelSubset));
         boolean existed = subset.set.rels.remove(rel);
-        assert existed : "rel was not known to its set";
+        checkArgument(existed, "rel was not known to its set");
         final RelSubset equivSubset = getSubsetNonNull(equivRel);
         for (RelSubset s : subset.set.subsets) {
           if (s.best == rel) {
@@ -982,11 +983,25 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         if (!relNode.getTraitSet().satisfies(subset.getTraitSet())) {
           continue;
         }
-        if (!cost.isLt(subset.bestCost)) {
+
+        // Update subset best and best's cost when we find a cheaper rel
+        if (relNode != subset.best && !cost.isLt(subset.bestCost)) {
           continue;
         }
-        // Update subset best cost when we find a cheaper rel or the current
-        // best's cost is changed
+
+        // The cost of the RelNode is updated when a change is detected.
+
+        // The reason for this update is that when one of the subsets in RelSet finds a RelNode
+        // with a lower cost, it is necessary to update the parents of the subset to
+        // have the best RelNode and best cost.
+        // In theory, this cost should become smaller.
+        // However, according to the SQL added in the JdbcAdapterTest {@link testVolcanoPlannerInternalValid},
+        // it is observed that the cost of RelNode can sometimes increase.
+        // Therefore, an update is performed.
+        if (relNode == subset.best && cost.equals(subset.bestCost)) {
+          continue;
+        }
+
         subset.timestamp++;
         LOGGER.trace("Subset cost changed: subset [{}] cost was {} now {}",
             subset, subset.bestCost, cost);
@@ -1255,8 +1270,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Now is a good time to ensure that the relational expression
     // implements the interface required by its calling convention.
     final RelTraitSet traits = rel.getTraitSet();
-    final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
-    assert convention != null;
+    final Convention convention =
+        requireNonNull(traits.getTrait(ConventionTraitDef.INSTANCE));
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
       throw new AssertionError("Relational expression " + rel

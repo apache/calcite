@@ -47,13 +47,16 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.MultiJoin;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -91,6 +94,8 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql2rel.RexRewritingRelShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -121,6 +126,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -135,6 +141,8 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 
 import static java.util.Objects.requireNonNull;
@@ -147,6 +155,15 @@ public abstract class RelOptUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final double EPSILON = 1.0e-5;
+
+  /** Default amount by which the complexity of a {@link Project} or
+   * {@link Filter} may increase when applying a rule. (Complexity is,
+   * roughly, the number of {@link RexNode}s in all expressions.)
+   *
+   * @see ProjectMergeRule.Config#bloat()
+   * @see FilterProjectTransposeRule.Config#bloat()
+   * @see RelBuilder.Config#bloat() */
+  public static final int DEFAULT_BLOAT = 100;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -174,10 +191,10 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Whether this node is a sort without limit specification.
+   * Whether this node is a sort with neither limit nor offset specification.
    */
   public static boolean isPureOrder(RelNode rel) {
-    return !isLimit(rel) && isOrder(rel);
+    return !isLimit(rel) && !isOffset(rel) && isOrder(rel);
   }
 
   /**
@@ -195,7 +212,7 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Whether this node contains a offset specification.
+   * Whether this node contains an offset specification.
    */
   public static boolean isOffset(RelNode rel) {
     return (rel instanceof Sort) && ((Sort) rel).offset != null;
@@ -254,11 +271,11 @@ public abstract class RelOptUtil {
   public static List<CorrelationId> getVariablesSetAndUsed(RelNode rel0,
       RelNode rel1) {
     Set<CorrelationId> set = getVariablesSet(rel0);
-    if (set.size() == 0) {
+    if (set.isEmpty()) {
       return ImmutableList.of();
     }
     Set<CorrelationId> used = getVariablesUsed(rel1);
-    if (used.size() == 0) {
+    if (used.isEmpty()) {
       return ImmutableList.of();
     }
     final List<CorrelationId> result = new ArrayList<>();
@@ -412,7 +429,7 @@ public abstract class RelOptUtil {
     String s = "Cannot add expression of different type to set:\n"
         + "set type is " + expectedRowType.getFullTypeString()
         + "\nexpression type is " + actualRowType.getFullTypeString()
-        + "\nset is " + equivalenceClass.toString()
+        + "\nset is " + equivalenceClass
         + "\nexpression is " + RelOptUtil.toString(newRel)
         + getFullTypeDifferenceString("rowtype of original rel", expectedRowType,
         "rowtype of new rel", actualRowType);
@@ -450,7 +467,7 @@ public abstract class RelOptUtil {
   @Experimental
   public static RelNode propagateRelHints(RelNode originalRel, RelNode equiv) {
     if (!(originalRel instanceof Hintable)
-        || ((Hintable) originalRel).getHints().size() == 0) {
+        || ((Hintable) originalRel).getHints().isEmpty()) {
       return equiv;
     }
     final RelShuttle shuttle =
@@ -510,7 +527,7 @@ public abstract class RelOptUtil {
 
     if (originalRel instanceof Hintable
         && newRel instanceof Hintable
-        && ((Hintable) originalRel).getHints().size() > 0) {
+        && !((Hintable) originalRel).getHints().isEmpty()) {
       final List<RelHint> hints = ((Hintable) originalRel).getHints();
       if (filterHints) {
         HintStrategyTable hintStrategies = originalRel.getCluster().getHintStrategies();
@@ -612,7 +629,7 @@ public abstract class RelOptUtil {
     assert extraExpr == null || extraName != null;
     RelNode ret = seekRel;
 
-    if ((conditions != null) && (conditions.size() > 0)) {
+    if (conditions != null && !conditions.isEmpty()) {
       RexNode conditionExp =
           RexUtil.composeConjunction(
               cluster.getRexBuilder(), conditions, true);
@@ -808,7 +825,7 @@ public abstract class RelOptUtil {
   @Deprecated // to be removed before 2.0
   public static RelNode createNullFilter(
       RelNode rel,
-      Integer[] fieldOrdinals) {
+      Integer @Nullable [] fieldOrdinals) {
     RexNode condition = null;
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     RelDataType rowType = rel.getRowType();
@@ -900,7 +917,7 @@ public abstract class RelOptUtil {
       RelDataType castRowType,
       boolean rename,
       RelFactories.ProjectFactory projectFactory) {
-    assert projectFactory != null;
+    requireNonNull(projectFactory, "projectFactory");
     RelDataType rowType = rel.getRowType();
     if (areRowTypesEqual(rowType, castRowType, rename)) {
       // nothing to do
@@ -950,8 +967,7 @@ public abstract class RelOptUtil {
   /** Gets all fields in an aggregate. */
   public static Set<Integer> getAllFields2(ImmutableBitSet groupSet,
       List<AggregateCall> aggCallList) {
-    final Set<Integer> allFields = new TreeSet<>();
-    allFields.addAll(groupSet.asList());
+    final Set<Integer> allFields = new TreeSet<>(groupSet.asList());
     for (AggregateCall aggregateCall : aggCallList) {
       allFields.addAll(aggregateCall.getArgList());
       if (aggregateCall.filterArg >= 0) {
@@ -982,7 +998,7 @@ public abstract class RelOptUtil {
       aggCalls.add(
           AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
               false, ImmutableList.of(), ImmutableList.of(i), -1,
-              null, RelCollations.EMPTY, 0, rel, null, null));
+              null, RelCollations.EMPTY, true, rel, null, null));
     }
 
     return LogicalAggregate.create(rel, ImmutableList.of(), ImmutableBitSet.of(),
@@ -1124,7 +1140,7 @@ public abstract class RelOptUtil {
         rightKeys,
         filterNulls,
         nonEquiList);
-    return nonEquiList.size() == 0;
+    return nonEquiList.isEmpty();
   }
 
   /**
@@ -1733,32 +1749,35 @@ public abstract class RelOptUtil {
    * and
    * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
    *
-   * <p>If the given expr <code>call</code> is an expanded version of
+   * <p>If the given expr <code>rexCall</code> contains an expanded version of
    * {@code IS NOT DISTINCT FROM} function call, collapses it and return a
    * {@code IS NOT DISTINCT FROM} function call.
    *
    * <p>For example: {@code t1.key IS NOT DISTINCT FROM t2.key}
-   * can rewritten in expanded form as
+   * can be rewritten in expanded form as
    * {@code t1.key = t2.key OR (t1.key IS NULL AND t2.key IS NULL)}.
    *
-   * @param call       Function expression to try collapsing
+   * @param rexCall       Function expression to try collapsing
    * @param rexBuilder {@link RexBuilder} instance to create new {@link RexCall} instances.
-   * @return If the given function is an expanded IS NOT DISTINCT FROM function call,
-   *         return a IS NOT DISTINCT FROM function call. Otherwise return the input
-   *         function call as it is.
+   * @return A function where all IS NOT DISTINCT FROM are collapsed.
    */
-  public static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
+  public static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall rexCall,
       final RexBuilder rexBuilder) {
-    switch (call.getKind()) {
-    case OR:
-      return doCollapseExpandedIsNotDistinctFromOrExpr(call, rexBuilder);
+    final RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitCall(RexCall call) {
+        RexCall recursivelyExpanded = (RexCall) super.visitCall(call);
 
-    case CASE:
-      return doCollapseExpandedIsNotDistinctFromCaseExpr(call, rexBuilder);
-
-    default:
-      return call;
-    }
+        switch (recursivelyExpanded.getKind()) {
+        case OR:
+          return doCollapseExpandedIsNotDistinctFromOrExpr(recursivelyExpanded, rexBuilder);
+        case CASE:
+          return doCollapseExpandedIsNotDistinctFromCaseExpr(recursivelyExpanded, rexBuilder);
+        default:
+          return recursivelyExpanded;
+        }
+      }
+    };
+    return (RexCall) rexCall.accept(shuttle);
   }
 
   private static RexCall doCollapseExpandedIsNotDistinctFromOrExpr(final RexCall call,
@@ -2114,7 +2133,7 @@ public abstract class RelOptUtil {
       SqlExplainLevel detailLevel) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
-    if (!header.equals("")) {
+    if (!header.isEmpty()) {
       pw.println(header);
     }
     RelWriter planWriter;
@@ -2201,6 +2220,45 @@ public abstract class RelOptUtil {
     }
 
     if (!type1.equals(type2)) {
+      return litmus.fail("type mismatch:\n{}:\n{}\n{}:\n{}",
+          desc1, type1.getFullTypeString(),
+          desc2, type2.getFullTypeString());
+    }
+    return litmus.succeed();
+  }
+
+  /**
+   * Returns whether two types are equal, perhaps ignoring nullability.
+   *
+   * @param ignoreNullability If true the types must be equal ignoring the (top-level) nullability.
+   * @param desc1 Description of first type
+   * @param type1 First type
+   * @param desc2 Description of second type
+   * @param type2 Second type
+   * @param litmus What to do if an error is detected (types are not equal)
+   * @return Whether the types are equal
+   */
+  public static boolean eqUpToNullability(
+      boolean ignoreNullability,
+      final String desc1,
+      RelDataType type1,
+      final String desc2,
+      RelDataType type2,
+      Litmus litmus) {
+    // if any one of the types is ANY return true
+    if (type1.getSqlTypeName() == SqlTypeName.ANY
+        || type2.getSqlTypeName() == SqlTypeName.ANY) {
+      return litmus.succeed();
+    }
+
+    boolean success;
+    if (ignoreNullability) {
+      success = SqlTypeUtil.equalSansNullability(type1, type2);
+    } else {
+      success = type1.equals(type2);
+    }
+
+    if (!success) {
       return litmus.fail("type mismatch:\n{}:\n{}\n{}:\n{}",
           desc1, type1.getFullTypeString(),
           desc2, type2.getFullTypeString());
@@ -2344,8 +2402,8 @@ public abstract class RelOptUtil {
 
     // The result of IS DISTINCT FROM is NOT NULL because it can
     // only return TRUE or FALSE.
-    assert ret != null;
-    assert !ret.getType().isNullable();
+    requireNonNull(ret, "ret");
+    checkArgument(!ret.getType().isNullable());
 
     return ret;
   }
@@ -2386,19 +2444,31 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Converts a relational expression to a string, showing just basic
+   * attributes, and doesn't expand detail info for {@code rel}.
+   */
+  public static String toString(
+      final RelNode rel,
+      SqlExplainLevel detailLevel) {
+    return toString(rel, detailLevel, false);
+  }
+
+  /**
    * Converts a relational expression to a string;
-   * returns null if and only if {@code rel} is null.
+   * returns null if and only if {@code rel} is null,
+   * returns expanded detail info for {@code rel} if {@code expand} is true.
    */
   public static @PolyNull String toString(
       final @PolyNull RelNode rel,
-      SqlExplainLevel detailLevel) {
+      SqlExplainLevel detailLevel,
+      boolean expand) {
     if (rel == null) {
       return null;
     }
     final StringWriter sw = new StringWriter();
     final RelWriter planWriter =
         new RelWriterImpl(
-            new PrintWriter(sw), detailLevel, false);
+            new PrintWriter(sw), detailLevel, false, expand);
     rel.explain(planWriter);
     return sw.toString();
   }
@@ -2621,6 +2691,33 @@ public abstract class RelOptUtil {
       left = rexBuilder.makeLiteral(true);
     }
     return left;
+  }
+
+  /**
+   * Updates instances of correlated variables with provided {@link CorrelationId} in a given
+   * subquery. That is, updates referenced row type with a new one, as well as remaps field indexes
+   * with according to provided {@link Mapping inputMapping}.
+   *
+   * @param rexBuilder A builder for constructing new RexNodes.
+   * @param node A subquery expression to update.
+   * @param correlationId The ID of the correlation variable to update.
+   * @param newRowType The new row type for the correlate reference.
+   * @param inputMapping Mapping to transform field indices.
+   * @return An updated subquery expression.
+   */
+  public static RexSubQuery remapCorrelatesInSuqQuery(
+      RexBuilder rexBuilder,
+      RexSubQuery node,
+      CorrelationId correlationId,
+      RelDataType newRowType,
+      Mapping inputMapping) {
+    RelNode subQuery = node.rel;
+    RexCorrelVariableMapShuttle rexVisitor =
+        new RexCorrelVariableMapShuttle(correlationId, newRowType, inputMapping, rexBuilder);
+    RelNode newSubQuery =
+        subQuery.accept(new RexRewritingRelShuttle(rexVisitor));
+
+    return node.clone(newSubQuery);
   }
 
   /** Decomposes the WHERE clause of a view into predicates that constraint
@@ -3067,6 +3164,20 @@ public abstract class RelOptUtil {
     }
   }
 
+  /**
+   * Strips all wrapper nodes from the specified relational expression.
+   *
+   * @param node a relational expression which may have wrapper nodes
+   * @return the stripped relational expression
+   */
+  public static RelNode stripAll(RelNode node) {
+    return node.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(final RelNode other) {
+        return super.visit(other.stripped());
+      }
+    });
+  }
+
   @Deprecated // to be removed before 2.0
   public static boolean checkProjAndChildInputs(
       Project project,
@@ -3166,6 +3277,16 @@ public abstract class RelOptUtil {
   public static List<RexNode> pushPastProject(List<? extends RexNode> nodes,
       Project project) {
     return pushShuttle(project).visitList(nodes);
+  }
+
+  public static @Nullable RexNode pushPastProjectUnlessBloat(RexNode node,
+      Project project, int bloat) {
+    List<RexNode> newConditions =
+        pushPastProjectUnlessBloat(Collections.singletonList(node), project, bloat);
+    if (newConditions == null || newConditions.size() != 1) {
+      return null;
+    }
+    return newConditions.get(0);
   }
 
   /** As {@link #pushPastProject}, but returns null if the resulting expressions
@@ -3679,7 +3800,7 @@ public abstract class RelOptUtil {
     return !calc.containsOver();
   }
 
-  /** Predicate for if a {@link Filter} does not windowed aggregates. */
+  /** Predicate for if a {@link Filter} does not contain windowed aggregates. */
   public static boolean notContainsWindowedAgg(Filter filter) {
     return !filter.containsOver();
   }
@@ -3826,9 +3947,18 @@ public abstract class RelOptUtil {
 
     final RelNode right = relBuilder.build();
     final RelNode left = relBuilder.build();
-    relBuilder.push(
-        originalJoin.copy(originalJoin.getTraitSet(),
-            joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
+    if (joinType == JoinRelType.ASOF || joinType == JoinRelType.LEFT_ASOF) {
+      LogicalAsofJoin ljoin = (LogicalAsofJoin) originalJoin;
+      RexNode match =
+          RexUtil.shift(ljoin.getMatchCondition(), leftCount, extraLeftExprs.size());
+      RelNode copy =
+          ljoin.copy(originalJoin.getTraitSet(), joinCond, match, left, right);
+      relBuilder.push(copy);
+    } else {
+      relBuilder.push(
+          originalJoin.copy(originalJoin.getTraitSet(),
+              joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
+    }
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
       final int totalFields = joinType.projectsRight()
           ? leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size()
@@ -3983,10 +4113,7 @@ public abstract class RelOptUtil {
     if (before == after) {
       return;
     }
-    for (int i = 0; i < operands.size(); i++) {
-      RexNode node = operands.get(i);
-      operands.set(i, RexUtil.shift(node, before, after - before));
-    }
+    operands.replaceAll(e -> RexUtil.shift(e, before, after - before));
   }
 
   /**
@@ -4142,7 +4269,7 @@ public abstract class RelOptUtil {
      */
     private RelNode visitHintable(RelNode node) {
       final List<RelHint> topHints = ((Hintable) node).getHints();
-      final boolean hasHints = topHints != null && topHints.size() > 0;
+      final boolean hasHints = !topHints.isEmpty();
       final boolean hasQueryHints = hasHints && !(node instanceof TableScan);
       if (hasQueryHints) {
         inheritPaths.push(Pair.of(topHints, new ArrayDeque<>()));
@@ -4156,7 +4283,7 @@ public abstract class RelOptUtil {
 
     private RelNode attachHints(RelNode original) {
       assert original instanceof Hintable;
-      if (inheritPaths.size() > 0) {
+      if (!inheritPaths.isEmpty()) {
         final List<RelHint> hints = inheritPaths.stream()
             .sorted(Comparator.comparingInt(o -> o.right.size()))
             .map(path -> copyWithInheritPath(path.left, path.right))
@@ -4165,7 +4292,7 @@ public abstract class RelOptUtil {
               return acc;
             });
         final List<RelHint> filteredHints = hintStrategies.apply(hints, original);
-        if (filteredHints.size() > 0) {
+        if (!filteredHints.isEmpty()) {
           return ((Hintable) original).attachHints(filteredHints);
         }
       }
@@ -4271,7 +4398,7 @@ public abstract class RelOptUtil {
      */
     private RelNode visitHintable(RelNode node) {
       final List<RelHint> topHints = ((Hintable) node).getHints();
-      final boolean hasHints = topHints != null && topHints.size() > 0;
+      final boolean hasHints = !topHints.isEmpty();
       if (hasHints) {
         // This node is definitely not created by the planner, returns early.
         return node;
@@ -4289,7 +4416,7 @@ public abstract class RelOptUtil {
           .map(hint -> copyWithAppendPath(hint, appendPath))
           .collect(Collectors.toList());
       final List<RelHint> filteredHints = hintStrategies.apply(hints, original);
-      if (filteredHints.size() > 0) {
+      if (!filteredHints.isEmpty()) {
         return ((Hintable) original).attachHints(filteredHints);
       }
       return original;
@@ -4297,7 +4424,7 @@ public abstract class RelOptUtil {
 
     private static RelHint copyWithAppendPath(RelHint hint,
         List<Integer> appendPaths) {
-      if (appendPaths.size() == 0) {
+      if (appendPaths.isEmpty()) {
         return hint;
       } else {
         List<Integer> newPath = new ArrayList<>(hint.inheritPath);
@@ -4334,14 +4461,14 @@ public abstract class RelOptUtil {
     }
 
     private static RelNode resetHints(Hintable hintable) {
-      if (hintable.getHints().size() > 0) {
-        final List<RelHint> resetHints = hintable.getHints().stream()
-            .filter(hint -> hint.inheritPath.size() == 0)
-            .collect(Collectors.toList());
-        return hintable.withHints(resetHints);
-      } else {
+      if (hintable.getHints().isEmpty()) {
         return (RelNode) hintable;
       }
+      final List<RelHint> resetHints =
+          hintable.getHints().stream()
+              .filter(hint -> hint.inheritPath.isEmpty())
+              .collect(Collectors.toList());
+      return hintable.withHints(resetHints);
     }
   }
 
@@ -4464,6 +4591,54 @@ public abstract class RelOptUtil {
         pw.print(" ");
         accept(field.getType());
       }
+    }
+  }
+
+  /**
+   * Updates correlate references in {@link RexNode} expressions.
+   */
+  public static class RexCorrelVariableMapShuttle extends RexShuttle {
+    private final CorrelationId correlationId;
+    private final Mapping mapping;
+    private final RelDataType newCorrelRowType;
+    private final RexBuilder rexBuilder;
+
+
+    /**
+     * Constructs a RexCorrelVariableMapShuttle.
+     *
+     * @param correlationId The ID of the correlation variable to update.
+     * @param newCorrelRowType The new row type for the correlate reference.
+     * @param mapping Mapping to transform field indices.
+     * @param rexBuilder A builder for constructing new RexNodes.
+     */
+    public RexCorrelVariableMapShuttle(final CorrelationId correlationId,
+        RelDataType newCorrelRowType, Mapping mapping, RexBuilder rexBuilder) {
+      this.correlationId = correlationId;
+      this.newCorrelRowType = newCorrelRowType;
+      this.mapping = mapping;
+      this.rexBuilder = rexBuilder;
+    }
+
+    @Override public RexNode visitFieldAccess(final RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        RexCorrelVariable referenceExpr =
+            (RexCorrelVariable) fieldAccess.getReferenceExpr();
+        if (referenceExpr.id.equals(correlationId)) {
+          int oldIndex = fieldAccess.getField().getIndex();
+          int newIndex = mapping.getTarget(oldIndex);
+          RexNode newCorrel =
+              rexBuilder.makeCorrel(newCorrelRowType, referenceExpr.id);
+          return rexBuilder.makeFieldAccess(newCorrel, newIndex);
+        }
+      }
+      return super.visitFieldAccess(fieldAccess);
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+      return remapCorrelatesInSuqQuery(
+          rexBuilder, subQuery, correlationId, newCorrelRowType, mapping);
     }
   }
 

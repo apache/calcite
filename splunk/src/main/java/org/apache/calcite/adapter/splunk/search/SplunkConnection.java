@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.splunk.search;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -26,8 +28,8 @@ import java.util.Map;
  */
 public interface SplunkConnection {
   void getSearchResults(String search, Map<String, String> otherArgs,
-      List<String> fieldList, SearchResultListener srl);
+      @Nullable List<String> fieldList, SearchResultListener srl);
 
   Enumerator<Object> getSearchResultEnumerator(String search,
-      Map<String, String> otherArgs, List<String> fieldList);
+      Map<String, String> otherArgs, @Nullable List<String> fieldList);
 }

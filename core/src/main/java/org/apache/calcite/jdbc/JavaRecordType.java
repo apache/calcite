@@ -24,6 +24,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Record type based on a Java class. The fields of the type are the fields
  * of the class.
@@ -36,7 +38,7 @@ public class JavaRecordType extends RelRecordType {
 
   public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
     super(fields);
-    this.clazz = Objects.requireNonNull(clazz, "clazz");
+    this.clazz = requireNonNull(clazz, "clazz");
   }
 
   @Override public boolean equals(@Nullable Object obj) {

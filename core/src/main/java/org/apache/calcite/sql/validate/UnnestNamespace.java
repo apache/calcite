@@ -24,6 +24,8 @@ import org.apache.calcite.sql.SqlUnnestOperator;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace for UNNEST.
  */
@@ -41,10 +43,9 @@ class UnnestNamespace extends AbstractNamespace {
       SqlValidatorScope scope,
       SqlNode enclosingNode) {
     super(validator, enclosingNode);
-    assert scope != null;
-    assert unnest.getOperator() instanceof SqlUnnestOperator;
     this.unnest = unnest;
-    this.scope = scope;
+    this.scope = requireNonNull(scope, "scope");
+    assert unnest.getOperator() instanceof SqlUnnestOperator;
   }
 
   //~ Methods ----------------------------------------------------------------

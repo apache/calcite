@@ -206,7 +206,7 @@ public class SqlSelectOperator extends SqlOperator {
     }
     if (select.groupBy != null) {
       SqlNodeList groupBy =
-          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+          select.groupBy.isEmpty() ? SqlNodeList.SINGLETON_EMPTY
               : select.groupBy;
       // if the DISTINCT keyword of GROUP BY is present it can be the only item
       if (groupBy.size() == 1 && groupBy.get(0) != null
@@ -224,7 +224,7 @@ public class SqlSelectOperator extends SqlOperator {
       writer.sep("HAVING");
       select.having.unparse(writer, 0, 0);
     }
-    if (select.windowDecls.size() > 0) {
+    if (!select.windowDecls.isEmpty()) {
       writer.sep("WINDOW");
       writer.list(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST, SqlWriter.COMMA,
           select.windowDecls);
@@ -233,7 +233,7 @@ public class SqlSelectOperator extends SqlOperator {
       writer.sep("QUALIFY");
       select.qualify.unparse(writer, 0, 0);
     }
-    if (select.orderBy != null && select.orderBy.size() > 0) {
+    if (select.orderBy != null && !select.orderBy.isEmpty()) {
       writer.sep("ORDER BY");
       writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
           select.orderBy);

@@ -164,7 +164,7 @@ public class RelRoot {
     if (isRefTrivial()
         && (SqlKind.DML.contains(kind)
             || !force
-            || rel instanceof LogicalProject)) {
+            || (rel instanceof LogicalProject && isNameTrivial()))) {
       return rel;
     }
     final List<RexNode> projects = new ArrayList<>(fields.size());
@@ -174,11 +174,60 @@ public class RelRoot {
         ImmutableSet.of());
   }
 
+  /**
+   * Returns true if the field names defined in this RelRoot are the same as the names of the
+   * embedded relation, otherwise false.
+   *
+   * <p>Positive example (same names):
+   *
+   * <blockquote><code>RelRoot: {
+   *   rel: Project(empno)
+   *          TableScan(EMP)
+   *   fields: [0 -&gt; empno]
+   *   collation: []
+   * }</code></blockquote>
+   *
+   * <p>Negative example (different names):
+   *
+   * <blockquote><code>RelRoot: {
+   *   rel: Project(empno)
+   *          TableScan(EMP)
+   *   fields: [0 -&gt; empid]
+   *   collation: []
+   * }</code></blockquote>
+   *
+   * @return true if the field names are the same as in the embedded relation, otherwise false
+   */
   public boolean isNameTrivial() {
     final RelDataType inputRowType = rel.getRowType();
     return fields.rightList().equals(inputRowType.getFieldNames());
   }
 
+  /**
+   * Returns true if the embedded relation is either a DML relation or if the field order defined
+   * in this RelRoot is the same as the field order of the embedded relation, otherwise false.
+   *
+   * <p>Positive example (same order):
+   *
+   * <blockquote><code>RelRoot: {
+   *   rel: Project(name, empno)
+   *          TableScan(EMP)
+   *   fields: [0 -&gt; name, 1 -&gt; empno]
+   *   collation: []
+   * }</code></blockquote>
+   *
+   * <p>Negative example (different order):
+   *
+   * <blockquote><code>RelRoot: {
+   *   rel: Project(name, empno)
+   *          TableScan(EMP)
+   *   fields: [0 -&gt; empno, 1 -&gt; name]
+   *   collation: []
+   * }</code></blockquote>
+   *
+   * @return true if the embedded relation is a DML relation or if the field names of the RelRoot
+   *   are in the same order as in the embedded relation, otherwise false
+   */
   public boolean isRefTrivial() {
     if (SqlKind.DML.contains(kind)) {
       // DML statements return a single count column.
@@ -190,6 +239,13 @@ public class RelRoot {
     return Mappings.isIdentity(fields.leftList(), inputRowType.getFieldCount());
   }
 
+  /**
+   * Returns true if the embedded relation has a single collation defined which matches the
+   * collation of this RelRoot, otherwise false.
+   *
+   * @return true if the embedded relation has a single collation which matches the collation
+   *   of this RelRoot, otherwise false
+   */
   public boolean isCollationTrivial() {
     final List<RelCollation> collations = rel.getTraitSet()
         .getTraits(RelCollationTraitDef.INSTANCE);

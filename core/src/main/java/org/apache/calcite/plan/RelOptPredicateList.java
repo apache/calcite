@@ -18,9 +18,11 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,7 +31,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Predicates that are known to hold in the output of a particular relational
@@ -44,7 +47,7 @@ import java.util.Objects;
  * expression that has a predicate {@code y < 10} then the pulled up predicates
  * for the Filter are {@code [y < 10, x > 1]}.
  *
- * <p><b>Inferred predicates</b> only apply to joins. If there there is a
+ * <p><b>Inferred predicates</b> only apply to joins. If there is a
  * predicate on the left input to a join, and that predicate is over columns
  * used in the join condition, then a predicate can be inferred on the right
  * input to the join. (And vice versa.)
@@ -92,16 +95,50 @@ public class RelOptPredicateList {
    * {@link #pulledUpPredicates}. */
   public final ImmutableMap<RexNode, RexNode> constantMap;
 
+  // Please keep this constructor private; if you add additional constructors,
+  // please check the invariants similar to this constructor.
   private RelOptPredicateList(ImmutableList<RexNode> pulledUpPredicates,
       ImmutableList<RexNode> leftInferredPredicates,
       ImmutableList<RexNode> rightInferredPredicates,
       ImmutableMap<RexNode, RexNode> constantMap) {
-    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates, "pulledUpPredicates");
+    this.pulledUpPredicates =
+        requireNonNull(pulledUpPredicates, "pulledUpPredicates");
     this.leftInferredPredicates =
-        Objects.requireNonNull(leftInferredPredicates, "leftInferredPredicates");
+        requireNonNull(leftInferredPredicates, "leftInferredPredicates");
     this.rightInferredPredicates =
-        Objects.requireNonNull(rightInferredPredicates, "rightInferredPredicates");
-    this.constantMap = Objects.requireNonNull(constantMap, "constantMap");
+        requireNonNull(rightInferredPredicates, "rightInferredPredicates");
+    this.constantMap = requireNonNull(constantMap, "constantMap");
+
+    // Validate invariants required
+    // (unfortunately the style rules don't allow us to move this to a separate function).
+    // Do not allow comparisons with null literals in pulledUpPredicates
+    for (RexNode predicate : this.pulledUpPredicates) {
+      switch (predicate.getKind()) {
+        // note that IS_DISTINCT_FROM is not in this list
+      case EQUALS:
+      case NOT_EQUALS:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+        final RexCall call = (RexCall) predicate;
+        final RexNode left = call.getOperands().get(0);
+        if (left.getKind() == SqlKind.LITERAL) {
+          RexLiteral literal = (RexLiteral) left;
+          Litmus.THROW.check(literal.getValue() != null,
+              "Comparison with NULL in pulledUpPredicates");
+        }
+        final RexNode right = call.getOperands().get(1);
+        if (right.getKind() == SqlKind.LITERAL) {
+          RexLiteral literal = (RexLiteral) right;
+          Litmus.THROW.check(literal.getValue() != null,
+              "Comparison with NULL in pulledUpPredicates");
+        }
+        break;
+      default:
+        break;
+      }
+    }
   }
 
   /** Creates a RelOptPredicateList with only pulled-up predicates, no inferred
@@ -229,9 +266,16 @@ public class RelOptPredicateList {
       return true;
     }
     for (RexNode p : pulledUpPredicates) {
-      if (p.getKind() == SqlKind.IS_NOT_NULL
-          && ((RexCall) p).getOperands().get(0).equals(e)) {
-        return true;
+      if (p.getKind() == SqlKind.IS_NOT_NULL) {
+        // if e IS NOT NULL and e is TINYINT then cast(e as INTEGER) IS NOT NULL
+        if (RexUtil.isLosslessCast(e)) {
+          if (isEffectivelyNotNull(((RexCall) e).getOperands().get(0))) {
+            return true;
+          }
+        }
+        if (((RexCall) p).getOperands().get(0).equals(e)) {
+          return true;
+        }
       }
     }
     if (SqlKind.COMPARISON.contains(e.getKind())) {

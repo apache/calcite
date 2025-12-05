@@ -32,9 +32,10 @@ import org.checkerframework.dataflow.qual.Pure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.
@@ -115,15 +116,23 @@ public abstract class SqlCall extends SqlNode {
         getOperandList());
   }
 
+  private boolean needsParentheses(SqlWriter writer, int leftPrec, int rightPrec) {
+    if (getKind() == SqlKind.SET_SEMANTICS_TABLE) {
+      return false;
+    }
+    final SqlOperator operator = getOperator();
+    return leftPrec > operator.getLeftPrec()
+        || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
+        || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)
+        || (operator.getRightPrec() <= rightPrec + 1 && isA(SqlKind.COMPARISON));
+  }
+
   @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    final SqlOperator operator = getOperator();
     final SqlDialect dialect = writer.getDialect();
-    if (leftPrec > operator.getLeftPrec()
-        || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
-        || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)) {
+    if (needsParentheses(writer, leftPrec, rightPrec)) {
       final SqlWriter.Frame frame = writer.startList("(", ")");
       dialect.unparseCall(writer, this, 0, 0);
       writer.endList(frame);
@@ -197,8 +206,7 @@ public abstract class SqlCall extends SqlNode {
     List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
       final RelDataType argType =
-          validator.deriveType(Objects.requireNonNull(scope, "scope"),
-              operand);
+          validator.deriveType(requireNonNull(scope, "scope"), operand);
       if (null == argType) {
         continue;
       }

@@ -190,7 +190,9 @@ public abstract class Values extends AbstractRelNode implements Hintable {
   }
 
   @Override protected RelDataType deriveRowType() {
-    assert rowType != null : "rowType must not be null for " + this;
+    if (rowType == null) {
+      throw new AssertionError("rowType must not be null for " + this);
+    }
     return rowType;
   }
 

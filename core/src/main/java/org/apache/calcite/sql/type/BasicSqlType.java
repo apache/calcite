@@ -23,9 +23,10 @@ import org.apache.calcite.util.SerializableCharset;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval
@@ -102,7 +103,7 @@ public class BasicSqlType extends AbstractSqlType {
       @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
+    this.typeSystem = requireNonNull(typeSystem, "typeSystem");
     this.precision = precision;
     this.scale = scale;
     this.collation = collation;
@@ -125,7 +126,7 @@ public class BasicSqlType extends AbstractSqlType {
   /**
    * Constructs a type with nullablity.
    */
-  BasicSqlType createWithNullability(boolean nullable) {
+  public BasicSqlType createWithNullability(boolean nullable) {
     if (nullable == this.isNullable) {
       return this;
     }
@@ -160,6 +161,10 @@ public class BasicSqlType extends AbstractSqlType {
       case SMALLINT:
       case INTEGER:
       case BIGINT:
+      case UTINYINT:
+      case USMALLINT:
+      case UINTEGER:
+      case UBIGINT:
       case DECIMAL:
         return 0;
       default:
@@ -182,7 +187,13 @@ public class BasicSqlType extends AbstractSqlType {
     // Called to make the digest, which equals() compares;
     // so equivalent data types must produce identical type strings.
 
-    sb.append(typeName.name());
+    if (SqlTypeName.UNSIGNED_TYPES.contains(typeName)) {
+      // All these type names start with U
+      String name = typeName.name().substring(1);
+      sb.append(name).append(" UNSIGNED");
+    } else {
+      sb.append(typeName.name());
+    }
     boolean printPrecision = precision != PRECISION_NOT_SPECIFIED;
     boolean printScale = scale != SCALE_NOT_SPECIFIED;
 

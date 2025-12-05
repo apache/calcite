@@ -24,8 +24,9 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for any join whose condition is based on column equality.
@@ -55,8 +56,8 @@ public abstract class EquiJoin extends Join {
       RelNode right, RexNode condition, Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
-    this.leftKeys = Objects.requireNonNull(joinInfo.leftKeys);
-    this.rightKeys = Objects.requireNonNull(joinInfo.rightKeys);
+    this.leftKeys = requireNonNull(joinInfo.leftKeys);
+    this.rightKeys = requireNonNull(joinInfo.rightKeys);
     assert joinInfo.isEqui() : "Create EquiJoin with non-equi join condition.";
   }
 
@@ -67,8 +68,8 @@ public abstract class EquiJoin extends Join {
       ImmutableIntList rightKeys, Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
-    this.leftKeys = Objects.requireNonNull(leftKeys, "leftKeys");
-    this.rightKeys = Objects.requireNonNull(rightKeys, "rightKeys");
+    this.leftKeys = requireNonNull(leftKeys, "leftKeys");
+    this.rightKeys = requireNonNull(rightKeys, "rightKeys");
   }
 
   @Deprecated // to be removed before 2.0

@@ -304,18 +304,18 @@ ORDER BY 1, 2;
 !}
 
 SELECT deptno,
-  avg(sal) AS avg_sal,
-  avg(sal) WITHIN DISTINCT (job) AS avg_job_sal
+  avg(CAST(sal AS DECIMAL(10, 2))) AS avg_sal,
+  avg(CAST(sal AS DECIMAL(10, 2))) WITHIN DISTINCT (job) AS avg_job_sal
 from emp3
 group by deptno
 order by deptno;
-+--------+---------+-------------------+
-| DEPTNO | AVG_SAL | AVG_JOB_SAL       |
-+--------+---------+-------------------+
-|     10 | 2750.00 |           2750.00 |
-|     20 | 2010.00 | 2083.333333333333 |
-|     30 | 1375.00 |           1500.00 |
-+--------+---------+-------------------+
++--------+---------+-------------+
+| DEPTNO | AVG_SAL | AVG_JOB_SAL |
++--------+---------+-------------+
+|     10 | 2750.00 |     2750.00 |
+|     20 | 2010.00 |     2083.33 |
+|     30 | 1375.00 |     1500.00 |
++--------+---------+-------------+
 (3 rows)
 
 !ok
@@ -344,17 +344,18 @@ select * from job_salary order by job;
 
 # Query on the normalized (emp, job_salary) tables give same result as the query on the
 # denormalized emp table. Of course.
-select e.deptno, avg(j.sal) as avg_sal, avg(j.sal) within distinct (j.job) as avg_job_sal
+select e.deptno, avg(CAST(j.sal AS DECIMAL(10, 2))) as avg_sal,
+       avg(CAST(j.sal AS DECIMAL(10, 2))) within distinct (j.job) as avg_job_sal
 from emp as e join job_salary as j on e.job = j.job
 group by deptno
 order by deptno;
-+--------+---------+-------------------+
-| DEPTNO | AVG_SAL | AVG_JOB_SAL       |
-+--------+---------+-------------------+
-|     10 | 2750.00 |           2750.00 |
-|     20 | 2010.00 | 2083.333333333333 |
-|     30 | 1375.00 |           1500.00 |
-+--------+---------+-------------------+
++--------+---------+-------------+
+| DEPTNO | AVG_SAL | AVG_JOB_SAL |
++--------+---------+-------------+
+|     10 | 2750.00 |     2750.00 |
+|     20 | 2010.00 |     2083.33 |
+|     30 | 1375.00 |     1500.00 |
++--------+---------+-------------+
 (3 rows)
 
 !ok
@@ -428,9 +429,9 @@ select * from orders;
 +----------+-------------+---------+----------+
 | ORDER_ID | CUSTOMER_ID | PAYMENT | SHIPPING |
 +----------+-------------+---------+----------+
-|        1 |         100 | cash    |       10 |
-|        2 |         100 | visa    |       20 |
-|        3 |         101 | cash    |       12 |
+|        1 |         100 | cash    |    10.00 |
+|        2 |         100 | visa    |    20.00 |
+|        3 |         101 | cash    |    12.00 |
 +----------+-------------+---------+----------+
 (3 rows)
 
@@ -445,12 +446,12 @@ order by order_id, product, units;
 +-------------+----------+---------+----------+---------+-------+-------+-----+-------+
 | CUSTOMER_ID | ORDER_ID | PAYMENT | SHIPPING | PRODUCT | UNITS | NAME  | AGE | STATE |
 +-------------+----------+---------+----------+---------+-------+-------+-----+-------+
-|         100 |        1 | cash    |       10 | apple   |     3 | Fred  |  25 | CA    |
-|         100 |        1 | cash    |       10 | orange  |     1 | Fred  |  25 | CA    |
-|         100 |        2 | visa    |       20 | banana  |     2 | Fred  |  25 | CA    |
-|         100 |        2 | visa    |       20 | banana  |     6 | Fred  |  25 | CA    |
-|         100 |        2 | visa    |       20 | orange  |     5 | Fred  |  25 | CA    |
-|         101 |        3 | cash    |       12 | mango   |     7 | Velma |  17 | NV    |
+|         100 |        1 | cash    |    10.00 | apple   |     3 | Fred  |  25 | CA    |
+|         100 |        1 | cash    |    10.00 | orange  |     1 | Fred  |  25 | CA    |
+|         100 |        2 | visa    |    20.00 | banana  |     2 | Fred  |  25 | CA    |
+|         100 |        2 | visa    |    20.00 | banana  |     6 | Fred  |  25 | CA    |
+|         100 |        2 | visa    |    20.00 | orange  |     5 | Fred  |  25 | CA    |
+|         101 |        3 | cash    |    12.00 | mango   |     7 | Velma |  17 | NV    |
 +-------------+----------+---------+----------+---------+-------+-------+-----+-------+
 (6 rows)
 
@@ -466,7 +467,7 @@ join order_items using (order_id);
 +-------+--------------+-----------+
 | count | sum_shipping | sum_units |
 +-------+--------------+-----------+
-|     6 |           92 |        24 |
+|     6 |        92.00 |        24 |
 +-------+--------------+-----------+
 (1 row)
 
@@ -486,10 +487,10 @@ order by product;
 +---------+-------+--------------+-----------+
 | PRODUCT | count | sum_shipping | sum_units |
 +---------+-------+--------------+-----------+
-| apple   |     1 |           10 |         3 |
-| banana  |     2 |           40 |         8 |
-| mango   |     1 |           12 |         7 |
-| orange  |     2 |           30 |         6 |
+| apple   |     1 |        10.00 |         3 |
+| banana  |     2 |        40.00 |         8 |
+| mango   |     1 |        12.00 |         7 |
+| orange  |     2 |        30.00 |         6 |
 +---------+-------+--------------+-----------+
 (4 rows)
 
@@ -507,10 +508,10 @@ order by product;
 +---------+-------+--------------+-----------+
 | PRODUCT | count | sum_shipping | sum_units |
 +---------+-------+--------------+-----------+
-| apple   |     1 |           10 |         3 |
-| banana  |     2 |           20 |         8 |
-| mango   |     1 |           12 |         7 |
-| orange  |     2 |           30 |         6 |
+| apple   |     1 |        10.00 |         3 |
+| banana  |     2 |        20.00 |         8 |
+| mango   |     1 |        12.00 |         7 |
+| orange  |     2 |        30.00 |         6 |
 +---------+-------+--------------+-----------+
 (4 rows)
 
@@ -535,10 +536,10 @@ order by product;
 +---------+-------+--------------+-----------+
 | PRODUCT | count | sum_shipping | sum_units |
 +---------+-------+--------------+-----------+
-| apple   |     1 |           10 |         3 |
-| banana  |     2 |           20 |         8 |
-| mango   |     1 |           12 |         7 |
-| orange  |     2 |           30 |         6 |
+| apple   |     1 |        10.00 |         3 |
+| banana  |     2 |        20.00 |         8 |
+| mango   |     1 |        12.00 |         7 |
+| orange  |     2 |        30.00 |         6 |
 +---------+-------+--------------+-----------+
 (4 rows)
 
@@ -558,8 +559,8 @@ order by payment;
 +---------+-------+-------------+--------------+-----------+
 | PAYMENT | count | order_count | sum_shipping | sum_units |
 +---------+-------+-------------+--------------+-----------+
-| cash    |     3 |           2 |           32 |        11 |
-| visa    |     3 |           1 |           60 |        13 |
+| cash    |     3 |           2 |        32.00 |        11 |
+| visa    |     3 |           1 |        60.00 |        13 |
 +---------+-------+-------------+--------------+-----------+
 (2 rows)
 
@@ -606,8 +607,8 @@ group by payment;
 +---------+-------+-------------+--------------+-----------+
 | PAYMENT | count | order_count | sum_shipping | sum_units |
 +---------+-------+-------------+--------------+-----------+
-| cash    |     3 |           2 |           22 |        11 |
-| visa    |     2 |           1 |           20 |        13 |
+| cash    |     3 |           2 |        22.00 |        11 |
+| visa    |     2 |           1 |        20.00 |        13 |
 +---------+-------+-------------+--------------+-----------+
 (2 rows)
 
@@ -639,8 +640,8 @@ group by payment;
 +---------+-------+-------------+--------------+-----------+
 | PAYMENT | count | order_count | sum_shipping | sum_units |
 +---------+-------+-------------+--------------+-----------+
-| cash    |     3 |           2 |           22 |        11 |
-| visa    |     2 |           1 |           20 |        13 |
+| cash    |     3 |           2 |        22.00 |        11 |
+| visa    |     2 |           1 |        20.00 |        13 |
 +---------+-------+-------------+--------------+-----------+
 (2 rows)
 
@@ -691,8 +692,8 @@ group by payment;
 +---------+-------+-------------+--------------+-----------+
 | PAYMENT | count | order_count | sum_shipping | sum_units |
 +---------+-------+-------------+--------------+-----------+
-| cash    |     3 |           2 |           22 |        11 |
-| visa    |     2 |           1 |           20 |        13 |
+| cash    |     3 |           2 |        22.00 |        11 |
+| visa    |     2 |           1 |        20.00 |        13 |
 +---------+-------+-------------+--------------+-----------+
 (2 rows)
 
@@ -743,10 +744,10 @@ order by product;
 +---------+-------+-------------+--------------+-----------+
 | PRODUCT | count | order_count | sum_shipping | sum_units |
 +---------+-------+-------------+--------------+-----------+
-| apple   |     1 |           1 |           10 |         3 |
-| banana  |     2 |           1 |           20 |         8 |
-| mango   |     1 |           1 |           12 |         7 |
-| orange  |     2 |           2 |           30 |         6 |
+| apple   |     1 |           1 |        10.00 |         3 |
+| banana  |     2 |           1 |        20.00 |         8 |
+| mango   |     1 |           1 |        12.00 |         7 |
+| orange  |     2 |           2 |        30.00 |         6 |
 +---------+-------+-------------+--------------+-----------+
 (4 rows)
 
@@ -792,8 +793,8 @@ order by o.payment;
 +---------+----------------+-------------+------------------+---------+--------------+-----------+
 | PAYMENT | customer_count | order_count | order_item_count | sum_age | sum_shipping | sum_units |
 +---------+----------------+-------------+------------------+---------+--------------+-----------+
-| cash    |              2 |           2 |                3 |      67 |           32 |        11 |
-| visa    |              1 |           1 |                3 |      75 |           60 |        13 |
+| cash    |              2 |           2 |                3 |      67 |        32.00 |        11 |
+| visa    |              1 |           1 |                3 |      75 |        60.00 |        13 |
 +---------+----------------+-------------+------------------+---------+--------------+-----------+
 (2 rows)
 
@@ -934,6 +935,30 @@ FROM FriendStates;
 +------+-----+
 |   25 |   2 |
 +------+-----+
+(1 row)
+
+!ok
+
+#####################################################################
+# Test case for [CALCITE-6595]: AggregateExpandWithinDistinctRule preserves collation on non-distinct aggregates with a
+# WITHIN GROUP clause in a query that also includes a distinct aggregate.
+
+WITH FriendStates
+AS (SELECT * FROM (VALUES
+  ('Alice', 789, 'UT'),
+  ('Bob', 25, 'UT'),
+  ('Carlos', 25, 'UT'),
+  ('Dan', 678, 'UT'),
+  ('Erin', 567, 'WY'),
+  ('Forest', NULL, 'WY')) AS FriendStates (name, age, state))
+SELECT SUM(age) WITHIN DISTINCT (name) as sum_age,
+REPLACE(LISTAGG(name, ',') WITHIN GROUP (ORDER BY name DESC), ' ', '') as ordered_name
+FROM FriendStates;
++---------+----------------------------------+
+| SUM_AGE | ORDERED_NAME                     |
++---------+----------------------------------+
+|    2084 | Forest,Erin,Dan,Carlos,Bob,Alice |
++---------+----------------------------------+
 (1 row)
 
 !ok

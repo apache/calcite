@@ -406,6 +406,12 @@ class DateRangeRulesTest {
             + " <($8, 2011-06-01)))"));
   }
 
+  @Test void testExtractBetweenRewrite() {
+    final Fixture2 f = new Fixture2();
+    checkDateRange(f, f.between(f.exYearD, f.literal(2010), f.literal(2015)),
+        is("AND(>=($8, 2010-01-01), AND(>=($8, 2010-01-01), <($8, 2016-01-01)))"));
+  }
+
   @Test void testFloorEqRewrite() {
     final Calendar c = Util.calendar();
     c.clear();
@@ -512,6 +518,19 @@ class DateRangeRulesTest {
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
         is(">=($9, 2010-01-01 00:00:00)"));
+  }
+
+  @Test void testFloorBetweenRewrite() {
+    final Calendar c = Util.calendar();
+    final Fixture2 f = new Fixture2();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    RexNode ts2010_02_10 = f.timestampLiteral(TimestampString.fromCalendarFields(c));
+    c.clear();
+    c.set(2015, Calendar.OCTOBER, 12, 10, 12, 05);
+    RexNode ts2015_10_12 = f.timestampLiteral(TimestampString.fromCalendarFields(c));
+    checkDateRange(f, f.between(f.floorYear, ts2010_02_10, ts2015_10_12),
+        is("AND(>=($9, 2011-01-01 00:00:00), <($9, 2016-01-01 00:00:00))"));
   }
 
   @Test void testFloorExtractBothRewrite() {
@@ -656,6 +675,19 @@ class DateRangeRulesTest {
         is(">($9, 2009-01-01 00:00:00)"));
   }
 
+  @Test void testCeilBetweenRewrite() {
+    final Calendar c = Util.calendar();
+    final Fixture2 f = new Fixture2();
+    c.clear();
+    c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
+    RexNode ts2010_02_10 = f.timestampLiteral(TimestampString.fromCalendarFields(c));
+    c.clear();
+    c.set(2015, Calendar.OCTOBER, 12, 10, 12, 05);
+    RexNode ts2015_10_12 = f.timestampLiteral(TimestampString.fromCalendarFields(c));
+    checkDateRange(f, f.between(f.ceilYear, ts2010_02_10, ts2015_10_12),
+        is("AND(>($9, 2010-01-01 00:00:00), <=($9, 2015-01-01 00:00:00))"));
+  }
+
   @Test void testFloorRewriteWithTimezone() {
     final Calendar c = Util.calendar();
     c.clear();
@@ -728,51 +760,51 @@ class DateRangeRulesTest {
           rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
       exMonthTs =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
       exDayTs =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
       exYearD =
           rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), d));
       exMonthD =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), d));
       exDayD =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
               ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), d));
 
       floorYear =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          rexBuilder.makeCall(SqlStdOperatorTable.FLOOR,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
       floorMonth =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          rexBuilder.makeCall(SqlStdOperatorTable.FLOOR,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
       floorDay =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          rexBuilder.makeCall(SqlStdOperatorTable.FLOOR,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
       floorHour =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          rexBuilder.makeCall(SqlStdOperatorTable.FLOOR,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
       floorMinute =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+          rexBuilder.makeCall(SqlStdOperatorTable.FLOOR,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
 
       ceilYear =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          rexBuilder.makeCall(SqlStdOperatorTable.CEIL,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
       ceilMonth =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          rexBuilder.makeCall(SqlStdOperatorTable.CEIL,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
       ceilDay =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          rexBuilder.makeCall(SqlStdOperatorTable.CEIL,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
       ceilHour =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          rexBuilder.makeCall(SqlStdOperatorTable.CEIL,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
       ceilMinute =
-          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+          rexBuilder.makeCall(SqlStdOperatorTable.CEIL,
               ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
     }
   }

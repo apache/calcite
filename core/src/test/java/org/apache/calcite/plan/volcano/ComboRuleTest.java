@@ -44,7 +44,8 @@ import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit test for {@link VolcanoPlanner}.
@@ -68,7 +69,7 @@ class ComboRuleTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof IntermediateNode);
+    assertThat(result, instanceOf(IntermediateNode.class));
   }
 
   /** Intermediate node, the cost decreases as it is pushed up the tree

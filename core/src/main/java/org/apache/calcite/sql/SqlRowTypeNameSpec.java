@@ -25,8 +25,9 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A sql type name specification of row type.
@@ -66,11 +67,9 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
       List<SqlIdentifier> fieldNames,
       List<SqlDataTypeSpec> fieldTypes) {
     super(new SqlIdentifier(SqlTypeName.ROW.getName(), pos), pos);
-    Objects.requireNonNull(fieldNames, "fieldNames");
-    Objects.requireNonNull(fieldTypes, "fieldTypes");
-    assert fieldNames.size() > 0; // there must be at least one field.
-    this.fieldNames = fieldNames;
-    this.fieldTypes = fieldTypes;
+    this.fieldNames = requireNonNull(fieldNames, "fieldNames");
+    this.fieldTypes = requireNonNull(fieldTypes, "fieldTypes");
+    assert !fieldNames.isEmpty(); // there must be at least one field.
   }
 
   public List<SqlIdentifier> getFieldNames() {

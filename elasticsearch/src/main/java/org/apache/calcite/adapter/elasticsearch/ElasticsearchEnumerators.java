@@ -23,7 +23,8 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Util functions which convert
@@ -103,7 +104,7 @@ class ElasticsearchEnumerators {
 
   static Function1<ElasticsearchJson.SearchHit, Object> getter(
       List<Map.Entry<String, Class>> fields, Map<String, String> mapping) {
-    Objects.requireNonNull(fields, "fields");
+    requireNonNull(fields, "fields");
     //noinspection unchecked
     final Function1 getter;
     if (fields.size() == 1) {

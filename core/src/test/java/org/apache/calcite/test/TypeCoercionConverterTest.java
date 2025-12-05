@@ -76,6 +76,22 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "from (values (true, true, true))").ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6485">[CALCITE-6485]
+   * AssertionError When an IN list containing NULL
+   * has an implicit coercion type converter</a>. */
+  @Test void testInOperationWithNull() {
+    sql("select\n"
+        + "1 in (null, '2', '3') as f0,\n"
+        + "1 in ('1', null, '3') as f1,\n"
+        + "(1, 2) in ((null, '2')) as f2,\n"
+        + "(1, 2) in (('1', null)) as f3,\n"
+        + "(1, 2) in (('1', '2'), ('1', cast(null as char))) as f4,\n"
+        + "(1, 2) in (('1', '3'), ('1', cast(null as char))) as f5\n"
+        + "from (values (null, true, null, null, true, null))").ok();
+  }
+
   @Test void testNotInOperation() {
     sql("select\n"
         + "1 not in ('1', '2', '3') as f0,\n"
@@ -83,6 +99,23 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "(1, 2) not in (('1', '2'), ('3', '4')) as f2\n"
         + "from (values (false, false, false))").ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6485">[CALCITE-6485]
+   * AssertionError When an IN list containing NULL
+   * has an implicit coercion type converter</a>. */
+  @Test void testNotInOperationWithNull() {
+    sql("select\n"
+        + "1 not in (null, '2', '3') as f0,\n"
+        + "1 not in ('1', null, '3') as f1,\n"
+        + "(1, 2) not in ((null, '2')) as f2,\n"
+        + "(1, 2) not in (('1', null)) as f3,\n"
+        + "(1, 2) not in (('1', '2'), ('1', cast(null as char))) as f4,\n"
+        + "(1, 2) not in (('2', '3'), ('1', cast(null as char))) as f5\n"
+        + "from (values (null, false, null, null, false, null))").ok();
+  }
+
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
   @Test void testInDateTimestamp() {
@@ -94,10 +127,6 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
   /** Test case for
    * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.{@code booleanEquality}. */
   @Test void testBooleanEquality() {
-    // REVIEW Danny 2018-05-16: Now we do not support cast between numeric <-> boolean for
-    // Calcite execution runtime, but we still add cast in the plan so other systems
-    // using Calcite can rewrite Cast operator implementation.
-    // for this case, we replace the boolean literal with numeric 1.
     sql("select\n"
         + "1=true as f0,\n"
         + "1.0=true as f1,\n"
@@ -122,20 +151,40 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  @Test void testIntegerImplicitTypeCast1() {
+    sql("with\n"
+        + "t1(x) as (select * from  (values (cast(1 as bigint)),(cast(2 as bigint))) as t1),\n"
+        + "t2(x) as (select * from  (values (3),(4)) as t2)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where t1.x in (select t2.x from t2)")
+        .ok();
+  }
+
+  @Test void testIntegerImplicitTypeCast2() {
+    sql("with\n"
+        + "t1(x) as (select * from  (values (cast(1 as tinyint)),(cast(2 as tinyint))) as t1),\n"
+        + "t2(x) as (select * from  (values (3),(4)) as t2)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where t1.x in (select t2.x from t2)")
+        .ok();
+  }
+
   @Test void testSetOperation() {
     // int decimal smallint double
     // char decimal float bigint
     // char decimal float double
     // char decimal smallint double
     final String sql = "select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
-        + "union select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 "
-        + "union select t1_varchar20, t1_decimal, t1_float, t1_double from t1 "
+        + "union select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 "
+        + "union select t1_varchar20, t1_decimal, t1_real, t1_double from t1 "
         + "union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2";
     sql(sql).ok();
   }
 
   @Test void testInsertQuerySourceCoercion() {
-    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_real,\n"
         + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
     sql(sql).ok();
   }

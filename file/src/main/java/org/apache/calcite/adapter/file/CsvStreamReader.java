@@ -25,6 +25,8 @@ import org.apache.commons.io.input.TailerListenerAdapter;
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringReader;
@@ -36,10 +38,10 @@ import java.util.Queue;
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
 class CsvStreamReader extends CSVReader implements Closeable {
-  protected CSVParser parser;
-  protected int skipLines;
-  protected Tailer tailer;
-  protected Queue<String> contentQueue;
+  protected final CSVParser parser;
+  protected final int skipLines;
+  protected final Tailer tailer;
+  protected final Queue<String> contentQueue;
 
   /**
    * The default line to start reading.
@@ -108,7 +110,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @throws IOException if bad things happen during the read
    */
-  @Override public String[] readNext() throws IOException {
+  @Override public String @Nullable[] readNext() throws IOException {
     String[] result = null;
     do {
       String nextLine = getNextLine();
@@ -135,18 +137,15 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @return the next line from the file without trailing newline
    *
-   * @throws IOException if bad things happen during the read
    */
-  private String getNextLine() throws IOException {
+  private @Nullable String getNextLine() {
     return contentQueue.poll();
   }
 
   /**
    * Closes the underlying reader.
-   *
-   * @throws IOException if the close fails
    */
-  @Override public void close() throws IOException {
+  @Override public void close() {
   }
 
   /** Watches for content being appended to a CSV file. */

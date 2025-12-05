@@ -26,6 +26,7 @@ import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -105,7 +106,9 @@ public class JdbcToEnumerableConverter
     final JdbcConvention jdbcConvention =
         (JdbcConvention) requireNonNull(child.getConvention(),
             () -> "child.getConvention() is null for " + child);
-    SqlString sqlString = generateSql(jdbcConvention.dialect);
+    JdbcCorrelationDataContextBuilderImpl dataContextBuilder =
+        new JdbcCorrelationDataContextBuilderImpl(implementor, builder0, DataContext.ROOT);
+    SqlString sqlString = generateSql(jdbcConvention.dialect, dataContextBuilder);
     String sql = sqlString.getSql();
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("[" + sql + "]");
@@ -131,7 +134,13 @@ public class JdbcToEnumerableConverter
     default:
       calendar_ = null;
     }
-    if (fieldCount == 1) {
+    if (fieldCount == 0) {
+      // return (Object) null;
+      final ParameterExpression value_ =
+          Expressions.parameter(Object.class, builder.newName("value"));
+      builder.add(Expressions.declare(Modifier.FINAL, value_, null));
+      builder.add(Expressions.return_(null, value_));
+    } else if (fieldCount == 1) {
       final ParameterExpression value_ =
           Expressions.parameter(Object.class, builder.newName("value"));
       builder.add(Expressions.declare(Modifier.FINAL, value_, null));
@@ -153,22 +162,53 @@ public class JdbcToEnumerableConverter
     }
     final ParameterExpression e_ =
         Expressions.parameter(SQLException.class, builder.newName("e"));
+    BlockStatement valueBlock;
+    if (fieldCount == 0) {
+      // For some queries, we don't need to rely on a specific column value in the data source,
+      // we only need to know the number of rows in the table.
+      // For example: "select row_number() over () from dept"
+      // we can't push down the "row_number() over ()"
+      // So the generated code should be:
+      // public org.apache.calcite.linq4j.function.Function0 apply(
+      //    final java.sql.ResultSet resultSet) {
+      //  return new org.apache.calcite.linq4j.function.Function0() {
+      //    public Object apply() {
+      //      return (Object) null;
+      //    }
+      //  };
+      //  }
+      valueBlock = builder.toBlock();
+    } else {
+      // public org.apache.calcite.linq4j.function.Function0 apply(
+      //    final java.sql.ResultSet resultSet) {
+      //  return new org.apache.calcite.linq4j.function.Function0() {
+      //    public Object apply() {
+      //      try {
+      //        return resultSet.getString(1);
+      //      } catch (java.sql.SQLException e) {
+      //        throw new RuntimeException(
+      //            e);
+      //      }
+      //    }
+      //  };
+      //  }
+      valueBlock =
+          Expressions.block(
+              Expressions.tryCatch(
+              builder.toBlock(),
+              Expressions.catch_(
+                  e_,
+                  Expressions.throw_(
+                      Expressions.new_(
+                          RuntimeException.class,
+                          e_)))));
+    }
     final Expression rowBuilderFactory_ =
         builder0.append("rowBuilderFactory",
             Expressions.lambda(
                 Expressions.block(
                     Expressions.return_(null,
-                        Expressions.lambda(
-                            Expressions.block(
-                                Expressions.tryCatch(
-                                    builder.toBlock(),
-                                    Expressions.catch_(
-                                        e_,
-                                        Expressions.throw_(
-                                            Expressions.new_(
-                                                RuntimeException.class,
-                                                e_)))))))),
-                resultSet_));
+                        Expressions.lambda(valueBlock))), resultSet_));
 
     final Expression enumerable;
 
@@ -179,7 +219,7 @@ public class JdbcToEnumerableConverter
               Expressions.call(BuiltInMethod.CREATE_ENRICHER.method,
                   Expressions.newArrayInit(Integer.class, 1,
                       toIndexesTableExpression(sqlString)),
-                  DataContext.ROOT));
+                  dataContextBuilder.build()));
 
       enumerable =
           builder0.append("enumerable",
@@ -238,7 +278,7 @@ public class JdbcToEnumerableConverter
     boolean offset = false;
     switch (calendarPolicy) {
     case LOCAL:
-      assert calendar_ != null : "calendar must not be null";
+      requireNonNull(calendar_, "calendar_");
       dateTimeArgs.add(calendar_);
       break;
     case NULL:
@@ -356,10 +396,11 @@ public class JdbcToEnumerableConverter
         : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));
   }
 
-  private SqlString generateSql(SqlDialect dialect) {
+  private SqlString generateSql(SqlDialect dialect,
+      JdbcCorrelationDataContextBuilder dataContextBuilder) {
     final JdbcImplementor jdbcImplementor =
         new JdbcImplementor(dialect,
-            (JavaTypeFactory) getCluster().getTypeFactory());
+            (JavaTypeFactory) getCluster().getTypeFactory(), dataContextBuilder);
     final JdbcImplementor.Result result =
         jdbcImplementor.visitRoot(this.getInput());
     return result.asStatement().toSqlString(dialect);

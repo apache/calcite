@@ -28,6 +28,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
 
+import java.math.BigDecimal;
+
 /**
  * This rule try to merge the double {@link Sort},one is Limit semantics,
  * another sort is Limit or TOPN semantics.
@@ -92,18 +94,18 @@ public class SortMergeRule
 
     final RelBuilder builder = call.builder();
 
-    final int topFetch = topSort.fetch instanceof RexLiteral
-        ? RexLiteral.intValue(topSort.fetch) : -1;
+    final Number topFetch = topSort.fetch instanceof RexLiteral
+        ? RexLiteral.numberValue(topSort.fetch) : null;
 
-    final int bottomFetch = bottomSort.fetch instanceof RexLiteral
-        ? RexLiteral.intValue(bottomSort.fetch) : -1;
+    final Number bottomFetch = bottomSort.fetch instanceof RexLiteral
+        ? RexLiteral.numberValue(bottomSort.fetch) : null;
 
-    if (topFetch == -1 || bottomFetch == -1) {
+    if (topFetch == null || bottomFetch == null) {
       return;
     }
 
     // Get the minimum limit value from parent and child sort RelNode
-    final int minFetch = Math.min(topFetch, bottomFetch);
+    final Number minFetch = ((BigDecimal) topFetch).min((BigDecimal) bottomFetch);
 
     builder.push(bottomSort.getInput());
 

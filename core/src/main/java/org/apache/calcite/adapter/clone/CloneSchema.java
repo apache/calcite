@@ -33,6 +33,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.lookup.LikePattern;
+import org.apache.calcite.schema.lookup.Lookup;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -68,8 +70,9 @@ public class CloneSchema extends AbstractSchema {
 
   @Override protected Map<String, Table> getTableMap() {
     final Map<String, Table> map = new LinkedHashMap<>();
-    for (String name : sourceSchema.getTableNames()) {
-      final Table table = sourceSchema.getTable(name);
+    final Lookup<Table> tables = sourceSchema.tables();
+    for (String name : tables.getNames(LikePattern.any())) {
+      final Table table = tables.get(name);
       if (table instanceof QueryableTable) {
         final QueryableTable sourceTable = (QueryableTable) table;
         map.put(name,

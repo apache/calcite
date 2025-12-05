@@ -121,7 +121,7 @@ public class ProjectWindowTransposeRule
           boolean[] update = {false};
           final List<RexNode> clonedOperands = visitList(call.operands, update);
           if (update[0]) {
-            return new Window.RexWinAggCall(
+            return new Window.RexWinAggCall(call.getParserPosition(),
                 (SqlAggFunction) call.getOperator(), call.getType(),
                 clonedOperands, aggCall.ordinal, aggCall.distinct,
                 aggCall.ignoreNulls);
@@ -168,7 +168,7 @@ public class ProjectWindowTransposeRule
 
       groups.add(
           new Window.Group(keys.build(), group.isRows, group.lowerBound,
-              group.upperBound, RelCollations.of(orderKeys), aggCalls));
+              group.upperBound, group.exclude, RelCollations.of(orderKeys), aggCalls));
     }
 
     final LogicalWindow newLogicalWindow =
@@ -216,6 +216,9 @@ public class ProjectWindowTransposeRule
           beReferred.set(index);
         }
       }
+
+      group.lowerBound.accept(referenceFinder);
+      group.upperBound.accept(referenceFinder);
 
       // Reference in Order-By
       for (RelFieldCollation relFieldCollation : group.orderKeys.getFieldCollations()) {
