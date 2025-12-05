@@ -596,7 +596,8 @@ public class SubQueryRemoveRule
     //   cross join (select distinct deptno, true as i from emp)) as dt
     //   on e.deptno = dt.deptno
     //
-    // If keys are not null we can remove "ct" and simplify to
+    // If both keys (e.deptno) and subquery columns (deptno) are NOT NULL,
+    // we can remove "ct" and simplify to:
     //
     // select e.deptno,
     //   case
@@ -607,26 +608,17 @@ public class SubQueryRemoveRule
     // left join (select distinct deptno, true as i from emp) as dt
     //   on e.deptno = dt.deptno
     //
-    // We could further simplify to
+    // NULL-safety checks (ct) are required if either the keys or
+    // the subquery columns are nullable, due to SQL three-valued logic.
     //
-    // select e.deptno,
-    //   dt.i is not null
-    // from emp as e
-    // left join (select distinct deptno, true as i from emp) as dt
-    //   on e.deptno = dt.deptno
-    //
-    // but have not yet.
-    //
-    // If the logic is TRUE we can just kill the record if the condition
-    // evaluates to FALSE or UNKNOWN. Thus the query simplifies to an inner
-    // join:
+    // If the logic is TRUE (as opposed to TRUE_FALSE_UNKNOWN), we only care about
+    // matches, so the query simplifies to an inner join regardless of nullability:
     //
     // select e.deptno,
     //   true
     // from emp as e
     // inner join (select distinct deptno from emp) as dt
     //   on e.deptno = dt.deptno
-    //
 
     builder.push(e.rel);
     final List<RexNode> fields = new ArrayList<>(builder.fields());
@@ -720,10 +712,15 @@ public class SubQueryRemoveRule
       expressionOperands.clear();
       fields.clear();
     } else {
+      boolean anyFieldNullable = fields.stream()
+          .anyMatch(field -> field.getType().isNullable());
+
+      // we can skip NULL-safety checks only if both keys
+      // and subquery columns are NOT NULL
       needsNullSafety =
           (logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN
            || logic == RelOptUtil.Logic.UNKNOWN_AS_TRUE)
-          && !keyIsNulls.isEmpty();
+          && (!keyIsNulls.isEmpty() || anyFieldNullable);
 
       switch (logic) {
       case TRUE:
