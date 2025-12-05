@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -103,4 +104,9 @@ public class LogicalSnapshot extends Snapshot {
   @Override public RelNode withHints(final List<RelHint> hintList) {
     return new LogicalSnapshot(getCluster(), traitSet, hintList, input, getPeriod());
   }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
 }
