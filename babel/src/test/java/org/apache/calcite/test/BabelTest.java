@@ -96,7 +96,7 @@ class BabelTest {
       checkInfixCast(statement, "double", Types.DOUBLE);
       checkInfixCast(statement, "bigint", Types.BIGINT);
       checkInfixCast(statement, "decimal", Types.DECIMAL);
-      checkInfixCast(statement, "numeric", Types.NUMERIC);
+      checkInfixCast(statement, "numeric", Types.DECIMAL);
     }
   }
 

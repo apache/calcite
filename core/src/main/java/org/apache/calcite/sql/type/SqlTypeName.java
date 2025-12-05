@@ -64,8 +64,6 @@ public enum SqlTypeName {
   UBIGINT(PrecScale.NO_NO, false, Types.DECIMAL, SqlTypeFamily.NUMERIC),
   DECIMAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, false,
       Types.DECIMAL, SqlTypeFamily.NUMERIC),
-  NUMERIC(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, false,
-      Types.NUMERIC, SqlTypeFamily.NUMERIC),
   FLOAT(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
   REAL(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.NUMERIC),
   DOUBLE(PrecScale.NO_NO, false, Types.DOUBLE, SqlTypeFamily.NUMERIC),
