@@ -2101,6 +2101,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7311">[CALCITE-7311]
+   * Support the syntax ROW(*) to create a nested ROW type with all columns</a>. */
+  @Test void testRowWildcardExpansion() {
+    sql("select row(*) from emp").ok();
+    sql("select row(emp.*) from emp").ok();
+    sql("select row(emp.*, dept.*) from emp join dept on emp.deptno = dept.deptno").ok();
+  }
+
   @Test void testRowWithValidDot() {
     sql("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept")
         .columnType("INTEGER NOT NULL");
