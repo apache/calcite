@@ -2003,7 +2003,10 @@ SqlNode SelectExpression() :
                 throw SqlUtil.newContextException(excludeList.getParserPosition(),
                     RESOURCE.selectExcludeRequiresStar());
             }
-            return new SqlStarExclude(sqlIdentifier, excludeList);
+            final SqlParserPos pos = SqlParserPos.sum(
+                ImmutableList.of(sqlIdentifier.getParserPosition(),
+                    excludeList.getParserPosition()));
+            return new SqlStarExclude(pos, sqlIdentifier, excludeList);
         }
     |
         { return e; }

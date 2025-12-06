@@ -17,7 +17,8 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.ImmutableNullableList;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -31,22 +32,25 @@ import static java.util.Objects.requireNonNull;
 public class SqlStarExclude extends SqlCall {
   public static final SqlOperator OPERATOR =
       new SqlSpecialOperator("SELECT_STAR_EXCLUDE", SqlKind.OTHER) {
+        @SuppressWarnings("argument.type.incompatible")
         @Override public SqlCall createCall(
             @Nullable SqlLiteral functionQualifier,
             SqlParserPos pos,
-            SqlNode... operands) {
+            @Nullable SqlNode... operands) {
           return new SqlStarExclude(
-              (SqlIdentifier) requireNonNull(operands[0], "starIdentifier"),
-              (SqlNodeList) requireNonNull(operands[1], "excludeList"));
+              pos,
+              (SqlIdentifier) operands[0],
+              (SqlNodeList) operands[1]);
         }
       };
 
   private final SqlIdentifier starIdentifier;
   private final SqlNodeList excludeList;
 
-  public SqlStarExclude(SqlIdentifier starIdentifier, SqlNodeList excludeList) {
-    super(requireNonNull(starIdentifier, "starIdentifier").getParserPosition());
-    this.starIdentifier = starIdentifier;
+  public SqlStarExclude(SqlParserPos pos, SqlIdentifier starIdentifier,
+      SqlNodeList excludeList) {
+    super(pos);
+    this.starIdentifier = requireNonNull(starIdentifier, "starIdentifier");
     this.excludeList = requireNonNull(excludeList, "excludeList");
   }
 
@@ -67,24 +71,14 @@ public class SqlStarExclude extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(starIdentifier, excludeList);
-  }
-
-  @Override public SqlNode clone(SqlParserPos pos) {
-    return new SqlStarExclude((SqlIdentifier) starIdentifier.clone(pos),
-        excludeList.clone(pos));
+    return ImmutableList.of(starIdentifier, excludeList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     starIdentifier.unparse(writer, leftPrec, rightPrec);
     writer.sep("EXCLUDE");
-    writer.print("(");
-    for (int i = 0; i < excludeList.size(); i++) {
-      if (i > 0) {
-        writer.sep(",");
-      }
-      excludeList.get(i).unparse(writer, 0, 0);
-    }
-    writer.print(")");
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    excludeList.unparse(writer, 0, 0);
+    writer.endList(frame);
   }
 }
