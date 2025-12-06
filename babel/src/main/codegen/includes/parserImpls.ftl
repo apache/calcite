@@ -145,7 +145,7 @@ void ColumnWithType(List<SqlNode> list) :
     ]
     {
         list.add(SqlDdlNodes.column(s.add(id).end(this), id,
-            type.withNullable(nullable), null, null));
+            type.withNullable(nullable), null, ColumnStrategy.DEFAULT));
     }
 }
 

@@ -19,11 +19,12 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
@@ -51,8 +52,16 @@ public class SqlCreateForeignSchema extends SqlCreate {
   private final @Nullable SqlNodeList optionList;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE FOREIGN SCHEMA",
-          SqlKind.CREATE_FOREIGN_SCHEMA);
+      SqlBasicOperator.create("CREATE FOREIGN SCHEMA", SqlKind.CREATE_FOREIGN_SCHEMA)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlCreateForeignSchema(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  ((SqlLiteral) requireNonNull(operands[1])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[2]),
+                  operands[3],
+                  operands[4],
+                  (SqlNodeList) operands[5]));
 
   /** Creates a SqlCreateForeignSchema. */
   SqlCreateForeignSchema(SqlParserPos pos, boolean replace, boolean ifNotExists,
@@ -69,7 +78,8 @@ public class SqlCreateForeignSchema extends SqlCreate {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, type, library, optionList);
+    return ImmutableNullableList.of(SqlLiteral.createBoolean(getReplace(), pos),
+        SqlLiteral.createBoolean(ifNotExists, pos), name, type, library, optionList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

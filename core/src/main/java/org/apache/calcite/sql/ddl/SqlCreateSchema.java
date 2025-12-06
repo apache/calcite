@@ -19,10 +19,11 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -37,7 +38,13 @@ public class SqlCreateSchema extends SqlCreate {
   public final SqlIdentifier name;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE SCHEMA", SqlKind.CREATE_SCHEMA);
+      SqlBasicOperator.create("CREATE SCHEMA", SqlKind.CREATE_SCHEMA)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlCreateSchema(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  ((SqlLiteral) requireNonNull(operands[1])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[2])));
 
   /** Creates a SqlCreateSchema. */
   SqlCreateSchema(SqlParserPos pos, boolean replace, boolean ifNotExists,
@@ -47,7 +54,8 @@ public class SqlCreateSchema extends SqlCreate {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name);
+    return ImmutableNullableList.of(SqlLiteral.createBoolean(getReplace(), pos),
+        SqlLiteral.createBoolean(ifNotExists, pos), name);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

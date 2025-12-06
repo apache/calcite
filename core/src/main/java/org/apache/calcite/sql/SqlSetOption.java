@@ -143,7 +143,7 @@ public class SqlSetOption extends SqlAlter {
     } else {
       operandList.add(new SqlIdentifier(scope, SqlParserPos.ZERO));
     }
-    operandList.add(name);
+    operandList.add(nameAsSqlNode);
     operandList.add(value);
     return ImmutableNullableList.copyOf(operandList);
   }

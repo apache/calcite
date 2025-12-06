@@ -23,23 +23,30 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-
-import com.google.common.collect.ImmutableList;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for SqlAttributeDefinition,
  * which is part of a {@link SqlCreateType}.
  */
 public class SqlAttributeDefinition extends SqlCall {
-  private static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("ATTRIBUTE_DEF", SqlKind.ATTRIBUTE_DEF);
+  private static final SqlOperator OPERATOR =
+      SqlBasicOperator.create("ATTRIBUTE_DEF", SqlKind.ATTRIBUTE_DEF)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlAttributeDefinition(
+                  pos,
+                  (SqlIdentifier) requireNonNull(operands[0]),
+                  (SqlDataTypeSpec) requireNonNull(operands[1]),
+                  operands[2], null));
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
@@ -60,8 +67,9 @@ public class SqlAttributeDefinition extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name, dataType);
+    return ImmutableNullableList.of(name, dataType, expression);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
