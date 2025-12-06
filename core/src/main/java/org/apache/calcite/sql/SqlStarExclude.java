@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -27,8 +29,17 @@ import static java.util.Objects.requireNonNull;
  * Represents {@code SELECT * EXCLUDE(...)}.
  */
 public class SqlStarExclude extends SqlCall {
-  public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("SELECT_STAR_EXCLUDE", SqlKind.OTHER);
+  public static final SqlOperator OPERATOR =
+      new SqlSpecialOperator("SELECT_STAR_EXCLUDE", SqlKind.OTHER) {
+        @Override public SqlCall createCall(
+            @Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos,
+            SqlNode... operands) {
+          return new SqlStarExclude(
+              (SqlIdentifier) requireNonNull(operands[0], "starIdentifier"),
+              (SqlNodeList) requireNonNull(operands[1], "excludeList"));
+        }
+      };
 
   private final SqlIdentifier starIdentifier;
   private final SqlNodeList excludeList;
