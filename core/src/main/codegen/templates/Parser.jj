@@ -91,6 +91,7 @@ import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlStarExclude;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlTableRef;
@@ -1974,6 +1975,65 @@ void AddSelectItem(List<SqlNode> list) :
     )
 }
 
+<#if (parser.includeStarExclude!default.parser.includeStarExclude)>
+/**
+ * Parses one unaliased expression in a select list.
+ */
+SqlNode SelectExpression() :
+{
+    SqlNode e;
+    SqlNodeList excludeList;
+}
+{
+    (
+        <STAR> {
+            e = SqlIdentifier.star(getPos());
+        }
+    |
+        e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    )
+    (
+        excludeList = StarExcludeList() {
+            if (!(e instanceof SqlIdentifier)) {
+                throw SqlUtil.newContextException(excludeList.getParserPosition(),
+                    RESOURCE.selectExcludeRequiresStar());
+            }
+            final SqlIdentifier sqlIdentifier = (SqlIdentifier) e;
+            if (!sqlIdentifier.isStar()) {
+                throw SqlUtil.newContextException(excludeList.getParserPosition(),
+                    RESOURCE.selectExcludeRequiresStar());
+            }
+            final SqlParserPos pos = SqlParserPos.sum(
+                ImmutableList.of(sqlIdentifier.getParserPosition(),
+                    excludeList.getParserPosition()));
+            return new SqlStarExclude(pos, sqlIdentifier, excludeList);
+        }
+    |
+        { return e; }
+    )
+}
+
+SqlNodeList StarExcludeList() :
+{
+    final Span s;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    SqlIdentifier id;
+}
+{
+    <EXCLUDE> <LPAREN> { s = span(); }
+    id = CompoundIdentifier() {
+        list.add(id);
+    }
+    (
+        <COMMA> id = CompoundIdentifier() {
+            list.add(id);
+        }
+    )*
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+<#else>
 /**
  * Parses one unaliased expression in a select list.
  */
@@ -1990,6 +2050,7 @@ SqlNode SelectExpression() :
         return e;
     }
 }
+</#if>
 
 SqlLiteral Natural() :
 {

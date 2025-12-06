@@ -136,6 +136,31 @@ class BabelParserTest extends SqlParserTest {
             + "FROM \"t\"");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7310">
+   * [CALCITE-7310] Support the syntax SELECT * EXCLUDE(columns)</a>. */
+  @Test void testStarExclude() {
+    final String sql = "select * exclude(empno) from emp";
+    final String expected = "SELECT * EXCLUDE (`EMPNO`)\n"
+        + "FROM `EMP`";
+    sql(sql).ok(expected);
+
+    final String sql2 = "select e.* exclude(e.empno, e.ename, e.job, e.mgr, d.deptno)"
+        + " from emp e join dept d on e.deptno = d.deptno";
+    final String expected2 = "SELECT `E`.* EXCLUDE (`E`.`EMPNO`, `E`.`ENAME`,"
+        + " `E`.`JOB`, `E`.`MGR`, `D`.`DEPTNO`)\n"
+        + "FROM `EMP` AS `E`\n"
+        + "INNER JOIN `DEPT` AS `D` ON (`E`.`DEPTNO` = `D`.`DEPTNO`)";
+    sql(sql2).ok(expected2);
+
+    final String sql3 = "select e.* exclude(e.empno, e.ename, e.job, e.mgr, d.deptno),"
+        + " d.* exclude(d.dname) from emp e join dept d on e.deptno = d.deptno";
+    final String expected3 = "SELECT `E`.* EXCLUDE (`E`.`EMPNO`, `E`.`ENAME`,"
+        + " `E`.`JOB`, `E`.`MGR`, `D`.`DEPTNO`), `D`.* EXCLUDE (`D`.`DNAME`)\n"
+        + "FROM `EMP` AS `E`\n"
+        + "INNER JOIN `DEPT` AS `D` ON (`E`.`DEPTNO` = `D`.`DEPTNO`)";
+    sql(sql3).ok(expected3);
+  }
+
   /** Tests that there are no reserved keywords. */
   @Disabled
   @Test void testKeywords() {
