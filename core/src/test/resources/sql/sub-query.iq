@@ -2023,7 +2023,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS NOT NULL($t2)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], expr#9=[OR($t4, $t8)], SAL=[$t1], $condition=[$t9])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)], expr#6=[OR($t4, $t5)], expr#7=[IS NOT TRUE($t6)], expr#8=[IS NULL($t3)], expr#9=[OR($t7, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -2128,7 +2128,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS NOT NULL($t2)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], expr#9=[OR($t4, $t8)], SAL=[$t1], $condition=[$t9])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)], expr#6=[OR($t4, $t5)], expr#7=[IS NOT TRUE($t6)], expr#8=[IS NULL($t3)], expr#9=[OR($t7, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -3920,7 +3920,7 @@ select * from "scott".emp where empno not in (null, 7782);
 
 !ok
 
-EnumerableCalc(expr#0..12=[{inputs}], expr#13=[0], expr#14=[=($t8, $t13)], expr#15=[IS NULL($t12)], expr#16=[>=($t9, $t8)], expr#17=[AND($t15, $t16)], expr#18=[OR($t14, $t17)], proj#0..7=[{exprs}], $condition=[$t18])
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[IS NULL($t12)], expr#14=[>=($t9, $t8)], expr#15=[AND($t13, $t14)], expr#16=[0], expr#17=[=($t8, $t16)], expr#18=[OR($t15, $t17)], proj#0..7=[{exprs}], $condition=[$t18])
   EnumerableMergeJoin(condition=[=($10, $11)], joinType=[left])
     EnumerableSort(sort0=[$10], dir0=[ASC])
       EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t0):INTEGER NOT NULL], proj#0..10=[{exprs}])

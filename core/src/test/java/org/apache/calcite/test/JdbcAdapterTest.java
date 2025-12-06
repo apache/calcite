@@ -248,7 +248,7 @@ class JdbcAdapterTest {
         .query("select * from dept where deptno not in (select deptno from emp)")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
-            + "    JdbcFilter(condition=[OR(=($3, 0), AND(IS NULL($6), >=($4, $3)))])\n"
+            + "    JdbcFilter(condition=[OR(AND(IS NULL($6), >=($4, $3)), =($3, 0))])\n"
             + "      JdbcJoin(condition=[=($0, $5)], joinType=[left])\n"
             + "        JdbcJoin(condition=[true], joinType=[inner])\n"
             + "          JdbcTableScan(table=[[SCOTT, DEPT]])\n"
@@ -263,7 +263,7 @@ class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "LEFT JOIN (SELECT \"DEPTNO\", TRUE AS \"i\"\n"
             + "FROM \"SCOTT\".\"EMP\"\nGROUP BY \"DEPTNO\") AS \"t0\" ON \"DEPT\".\"DEPTNO\" = \"t0\".\"DEPTNO\"\n"
-            + "WHERE \"t\".\"c\" = 0 OR \"t0\".\"i\" IS NULL AND \"t\".\"ck\" >= \"t\".\"c\"");
+            + "WHERE \"t0\".\"i\" IS NULL AND \"t\".\"ck\" >= \"t\".\"c\" OR \"t\".\"c\" = 0");
   }
 
   @Test void testNotPushDownNotIn() {
