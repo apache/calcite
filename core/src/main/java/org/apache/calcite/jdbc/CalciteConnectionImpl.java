@@ -67,6 +67,7 @@ import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.RuleMatchVisualizerHook;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -186,6 +187,18 @@ abstract class CalciteConnectionImpl
       for (Lattice.Tile tile : lattice.computeTiles()) {
         service.defineTile(lattice, tile.bitSet(), tile.measures, e.schema,
             true, true);
+      }
+    }
+
+    // Enable RuleMatchVisualizer if configured
+    CalciteConnectionConfig cfg = config();
+    String vizDir = cfg.ruleVisualizerDir();
+    if (vizDir != null && !vizDir.isEmpty()) {
+      try {
+        RuleMatchVisualizerHook.INSTANCE.enableFromConnection(this);
+      } catch (Exception e) {
+        // Log but don't fail connection if visualizer setup fails
+        System.err.println("Warning: Failed to enable RuleMatchVisualizer: " + e.getMessage());
       }
     }
   }
