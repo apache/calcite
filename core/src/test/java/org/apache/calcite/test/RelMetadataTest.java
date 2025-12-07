@@ -3765,6 +3765,19 @@ public class RelMetadataTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4525">[CALCITE-4525]
+   * Pull up predicate will lose some predicates when project contains same RexInputRef</a>. */
+  @Test public void testPullUpPredicatesFromProject6() {
+    final String sql = "select MGR, MGR as manager, MGR as manager1"
+        + " from (select * from emp where MGR = 0)";
+    final RelNode rel = sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, 0), =($1, 0), =($2, 0)]"));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6599">[CALCITE-6599]
    * RelMdPredicates should pull up more predicates from VALUES
    * when there are several literals</a>. */
