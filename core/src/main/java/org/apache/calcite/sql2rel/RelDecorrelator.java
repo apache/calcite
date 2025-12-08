@@ -1217,9 +1217,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // If this Project has correlated reference, create value generator
     // and produce the correlated variables in the new output.
-    if (cm.mapRefRelToCorRef.containsKey(rel)) {
-      frame = decorrelateInputWithValueGenerator(rel, frame);
-    }
+    frame = maybeAddValueGenerator(rel, frame);
 
     // Project projects the original expressions
     final Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
@@ -1609,13 +1607,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // If this Filter has correlated reference, create value generator
     // and produce the correlated variables in the new output.
-    if (false) {
-      if (cm.mapRefRelToCorRef.containsKey(rel)) {
-        frame = decorrelateInputWithValueGenerator(rel, frame);
-      }
-    } else {
-      frame = maybeAddValueGenerator(rel, frame);
-    }
+    frame = maybeAddValueGenerator(rel, frame);
 
     final CorelMap cm2 = new CorelMapBuilder().build(rel);
 

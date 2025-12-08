@@ -356,6 +356,75 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7297">[CALCITE-7297]
+   * The result is incorrect when the GROUP BY key in a subquery is a RexFieldAccess</a>. */
+  @Test void testSkipsRedundantValueGenerator() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT *,\n"
+        + "    (SELECT COUNT(*)\n"
+        + "    FROM \n"
+        + "        (\n"
+        + "        SELECT empno, ename, job\n"
+        + "        FROM emp\n"
+        + "        WHERE emp.deptno = dept.deptno) AS sub\n"
+        + "    GROUP BY deptno) AS num_dept_groups\n"
+        + "FROM dept";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "  LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "    LogicalProject(EXPR$0=[$1])\n"
+        + "      LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "        LogicalProject($f0=[$cor1.DEPTNO])\n"
+        + "          LogicalFilter(condition=[=($7, $cor1.DEPTNO)])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f1=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "      LogicalProject(DEPTNO=[$1], EXPR$0=[$2])\n"
+        + "        LogicalAggregate(group=[{0, 1}], EXPR$0=[COUNT()])\n"
+        + "          LogicalProject($f0=[$7], DEPTNO=[$7])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6468">[CALCITE-6468] RelDecorrelator
