@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -25,6 +26,8 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
@@ -35,8 +38,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -157,6 +162,52 @@ class BabelTest {
     // Postgres cast is invalid with core parser
     p.sql("select 1 ^:^: integer as x")
         .fails("(?s).*Encountered \":\" at .*");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7310">
+   * [CALCITE-7310] Support the syntax SELECT * EXCLUDE(columns)</a>. */
+  @Test void testStarExcludeValidation() {
+    final SqlValidatorFixture fixture = Fixtures.forValidator()
+        .withParserConfig(p -> p.withParserFactory(SqlBabelParserImpl.FACTORY));
+
+    fixture.withSql("select * exclude(empno, deptno) from emp")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("ENAME", "JOB", "MGR", "HIREDATE", "SAL", "COMM", "SLACKER")));
+        });
+
+    fixture.withSql("select * exclude (empno, ^foo^) from emp")
+        .fails("SELECT \\* EXCLUDE list contains unknown column\\(s\\): FOO");
+
+    fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER")));
+        });
+
+    fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr, ^d.deptno^)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .fails("SELECT \\* EXCLUDE list contains unknown column\\(s\\): D.DEPTNO");
+
+    fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr), d.* exclude(d.name)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER", "DEPTNO0")));
+        });
   }
 
   /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
