@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
@@ -35,6 +36,9 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -69,7 +73,8 @@ public class EnumerableFilter
   }
 
   @Override public EnumerableFilter copy(RelTraitSet traitSet, RelNode input,
-      RexNode condition) {
+      RexNode condition, Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new EnumerableFilter(getCluster(), traitSet, input, condition);
   }
 
