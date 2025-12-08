@@ -107,4 +107,57 @@ select 1.0 % 2;
 
 !ok
 
+# [CALCITE-7310] Support the syntax SELECT * EXCLUDE(columns)
+select * exclude(empno, ename, job, mgr) from emp limit 1;
++------------+--------+------+--------+
+| HIREDATE   | SAL    | COMM | DEPTNO |
++------------+--------+------+--------+
+| 1980-12-17 | 800.00 |      |     20 |
++------------+--------+------+--------+
+(1 row)
+
+!ok
+
+select * exclude(empno, ename, job, mgr, mgr) from emp limit 1;
++------------+--------+------+--------+
+| HIREDATE   | SAL    | COMM | DEPTNO |
++------------+--------+------+--------+
+| 1980-12-17 | 800.00 |      |     20 |
++------------+--------+------+--------+
+(1 row)
+
+!ok
+
+select e.*, d.* from emp e join dept d on e.deptno = d.deptno limit 1;
++-------+-------+---------+------+------------+---------+------+--------+---------+------------+----------+
+| EMPNO | ENAME | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |
++-------+-------+---------+------+------------+---------+------+--------+---------+------------+----------+
+|  7782 | CLARK | MANAGER | 7839 | 1981-06-09 | 2450.00 |      |     10 |      10 | ACCOUNTING | NEW YORK |
++-------+-------+---------+------+------------+---------+------+--------+---------+------------+----------+
+(1 row)
+
+!ok
+
+select e.* exclude(e.empno, e.ename, e.job, e.mgr)
+from emp e join dept d on e.deptno = d.deptno limit 1;
++------------+--------+------+--------+
+| HIREDATE   | SAL    | COMM | DEPTNO |
++------------+--------+------+--------+
+| 1980-12-17 | 800.00 |      |     20 |
++------------+--------+------+--------+
+(1 row)
+
+!ok
+
+select e.* exclude(e.empno, e.ename, e.job, e.mgr), d.* exclude(d.dname)
+from emp e join dept d on e.deptno = d.deptno limit 1;
++------------+---------+------+--------+---------+----------+
+| HIREDATE   | SAL     | COMM | DEPTNO | DEPTNO0 | LOC      |
++------------+---------+------+--------+---------+----------+
+| 1981-06-09 | 2450.00 |      |     10 |      10 | NEW YORK |
++------------+---------+------+--------+---------+----------+
+(1 row)
+
+!ok
+
 # End select.iq

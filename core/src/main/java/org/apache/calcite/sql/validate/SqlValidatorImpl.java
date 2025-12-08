@@ -79,6 +79,7 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSnapshot;
+import org.apache.calcite.sql.SqlStarExclude;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.SqlUnknownLiteral;
@@ -639,13 +640,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private boolean expandStar(List<SqlNode> selectItems, Set<String> aliases,
       PairList<String, RelDataType> fields, boolean includeSystemVars,
       SelectScope scope, SqlNode node) {
-    if (!(node instanceof SqlIdentifier)) {
+    final SqlIdentifier identifier;
+    final SqlNodeList excludeList;
+    if (node instanceof SqlStarExclude) {
+      final SqlStarExclude starExclude = (SqlStarExclude) node;
+      identifier = starExclude.getStarIdentifier();
+      excludeList = starExclude.getExcludeList();
+    } else if (node instanceof SqlIdentifier) {
+      identifier = (SqlIdentifier) node;
+      excludeList = null;
+    } else {
       return false;
     }
-    final SqlIdentifier identifier = (SqlIdentifier) node;
     if (!identifier.isStar()) {
       return false;
     }
+    final List<SqlIdentifier> excludeIdentifiers =
+        excludeList == null ? Collections.emptyList() : extractExcludeIdentifiers(excludeList);
+    final boolean[] excludeMatched = new boolean[excludeIdentifiers.size()];
+    final SqlNameMatcher nameMatcher =
+        scope.validator.catalogReader.nameMatcher();
     final int originalSize = selectItems.size();
     final SqlParserPos startPosition = identifier.getParserPosition();
     switch (identifier.names.size()) {
@@ -687,6 +701,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 new SqlIdentifier(
                     ImmutableList.of(child.name, columnName),
                     startPosition);
+            recordExcludeMatches(excludeIdentifiers, exp, nameMatcher, excludeMatched);
+            if (shouldExcludeField(excludeList, exp, nameMatcher)) {
+              continue;
+            }
             // Don't add expanded rolled up columns
             if (!isRolledUpColumn(exp, scope)) {
               addOrExpandField(
@@ -720,15 +738,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         int offset = Math.min(calculatePermuteOffset(selectItems), originalSize);
         new Permute(from, offset).permute(selectItems, fields);
       }
+      throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched);
       return true;
 
     default:
       final SqlIdentifier prefixId = identifier.skipLast(1);
       final SqlValidatorScope.ResolvedImpl resolved =
           new SqlValidatorScope.ResolvedImpl();
-      final SqlNameMatcher nameMatcher =
+      final SqlNameMatcher resolvedNameMatcher =
           scope.validator.catalogReader.nameMatcher();
-      scope.resolve(prefixId.names, nameMatcher, true, resolved);
+      scope.resolve(prefixId.names, resolvedNameMatcher, true, resolved);
       if (resolved.count() == 0) {
         // e.g. "select s.t.* from e"
         // or "select r.* from e"
@@ -749,6 +768,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         for (RelDataTypeField field : rowType.getFieldList()) {
           String columnName = field.getName();
 
+          final SqlIdentifier columnId =
+              prefixId.plus(columnName, startPosition);
+          recordExcludeMatches(excludeIdentifiers, columnId, resolvedNameMatcher,
+              excludeMatched);
+          if (shouldExcludeField(excludeList, columnId, resolvedNameMatcher)) {
+            continue;
+          }
           // TODO: do real implicit collation here
           addOrExpandField(
               selectItems,
@@ -756,12 +782,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               fields,
               includeSystemVars,
               scope,
-              prefixId.plus(columnName, startPosition),
+              columnId,
               field);
         }
       } else {
         throw newValidationError(prefixId, RESOURCE.starRequiresRecordType());
       }
+      throwIfUnknownExcludeColumns(excludeIdentifiers, excludeMatched);
       return true;
     }
   }
@@ -776,6 +803,86 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     return 0;
+  }
+
+  private static boolean matchesExcludeNames(List<String> identifierNames,
+      List<String> excludedIdentifierNames, SqlNameMatcher nameMatcher) {
+    if (excludedIdentifierNames.size() > identifierNames.size()) {
+      return false;
+    }
+    final int offset = identifierNames.size() - excludedIdentifierNames.size();
+    for (int i = 0; i < excludedIdentifierNames.size(); i++) {
+      if (!nameMatcher.matches(identifierNames.get(offset + i),
+          excludedIdentifierNames.get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean shouldExcludeField(@Nullable SqlNodeList excludeList,
+      SqlIdentifier columnId, SqlNameMatcher nameMatcher) {
+    if (excludeList == null) {
+      return false;
+    }
+    for (SqlNode node : excludeList) {
+      assert node instanceof SqlIdentifier;
+      if (matchesExcludeIdentifier(columnId, (SqlIdentifier) node, nameMatcher)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean matchesExcludeIdentifier(SqlIdentifier columnId,
+      SqlIdentifier excludeIdentifier, SqlNameMatcher nameMatcher) {
+    return matchesExcludeNames(columnId.names, excludeIdentifier.names, nameMatcher);
+  }
+
+  private static List<SqlIdentifier> extractExcludeIdentifiers(@Nullable SqlNodeList excludeList) {
+    if (excludeList == null) {
+      return ImmutableList.of();
+    }
+    final ImmutableList.Builder<SqlIdentifier> builder = ImmutableList.builder();
+    for (SqlNode node : excludeList) {
+      if (node instanceof SqlIdentifier) {
+        builder.add((SqlIdentifier) node);
+      }
+    }
+    return builder.build();
+  }
+
+  private static void recordExcludeMatches(List<SqlIdentifier> excludeIdentifiers,
+      SqlIdentifier columnId, SqlNameMatcher nameMatcher, boolean[] matched) {
+    for (int i = 0; i < excludeIdentifiers.size(); i++) {
+      if (!matched[i]
+          && matchesExcludeIdentifier(columnId, excludeIdentifiers.get(i), nameMatcher)) {
+        matched[i] = true;
+      }
+    }
+  }
+
+  private void throwIfUnknownExcludeColumns(List<SqlIdentifier> excludeIdentifiers,
+      boolean[] excludeMatched) {
+    if (excludeIdentifiers.isEmpty()) {
+      return;
+    }
+    final List<String> unknownExcludeNames = new ArrayList<>();
+    int firstUnknownIndex = -1;
+    for (int i = 0; i < excludeIdentifiers.size(); i++) {
+      if (!excludeMatched[i]) {
+        if (firstUnknownIndex < 0) {
+          firstUnknownIndex = i;
+        }
+        unknownExcludeNames.add(excludeIdentifiers.get(i).toString());
+      }
+    }
+    if (firstUnknownIndex >= 0) {
+      throw newValidationError(
+          excludeIdentifiers.get(firstUnknownIndex),
+          RESOURCE.selectStarExcludeListContainsUnknownColumns(
+              String.join(", ", unknownExcludeNames)));
+    }
   }
 
   private SqlNode maybeCast(SqlNode node, RelDataType currentType,
@@ -801,7 +908,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           scope,
           starExp);
       return true;
-
     default:
       addToSelectList(
           selectItems,
