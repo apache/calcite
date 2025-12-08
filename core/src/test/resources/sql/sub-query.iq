@@ -5544,4 +5544,79 @@ WHERE EXISTS
 
 !ok
 
+# [CALCITE-7297] The result is incorrect when the GROUP BY key in a subquery is a RexFieldAccess
+SELECT *,
+    (SELECT COUNT(*)
+    FROM
+        (
+        SELECT empno, ename, job
+        FROM emp
+        WHERE emp.deptno = dept.deptno) AS sub
+    GROUP BY deptno) AS num_dept_groups
+FROM dept;
++--------+------------+----------+-----------------+
+| DEPTNO | DNAME      | LOC      | NUM_DEPT_GROUPS |
++--------+------------+----------+-----------------+
+|     10 | ACCOUNTING | NEW YORK |               3 |
+|     20 | RESEARCH   | DALLAS   |               5 |
+|     30 | SALES      | CHICAGO  |               6 |
+|     40 | OPERATIONS | BOSTON   |                 |
++--------+------------+----------+-----------------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7297] The result is incorrect when the GROUP BY key in a subquery is a RexFieldAccess
+SELECT *,
+    (SELECT COUNT(*)
+    FROM
+        (
+        SELECT empno, ename, job, comm
+        FROM emp
+        WHERE emp.deptno = dept.deptno
+        ORDER BY empno LIMIT 1
+        ) AS sub
+    GROUP BY sub.comm
+    ) AS num_dept_groups
+FROM dept;
++--------+------------+----------+-----------------+
+| DEPTNO | DNAME      | LOC      | NUM_DEPT_GROUPS |
++--------+------------+----------+-----------------+
+|     10 | ACCOUNTING | NEW YORK |               1 |
+|     20 | RESEARCH   | DALLAS   |               1 |
+|     30 | SALES      | CHICAGO  |               1 |
+|     40 | OPERATIONS | BOSTON   |                 |
++--------+------------+----------+-----------------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7297] The result is incorrect when the GROUP BY key in a subquery is a RexFieldAccess
+select * from (values (4, 5)) as t(c, d)
+cross join lateral
+(select c, a*c as f
+from (values 2) as s(a)
+where c+d=a*c);
++---+---+----+---+
+| C | D | C0 | F |
++---+---+----+---+
++---+---+----+---+
+(0 rows)
+
+!ok
+
+# [CALCITE-7297] The result is incorrect when the GROUP BY key in a subquery is a RexFieldAccess
+select * from (values (2,2), (2,2)) as t(c,d)
+cross join lateral
+(select c,a*c as f from (values 2) as s(a)
+where c+d=a*c);
++---+---+----+---+
+| C | D | C0 | F |
++---+---+----+---+
+| 2 | 2 |  2 | 4 |
+| 2 | 2 |  2 | 4 |
++---+---+----+---+
+(2 rows)
+
+!ok
 # End sub-query.iq
