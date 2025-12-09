@@ -56,6 +56,7 @@ public class SqlSelect extends SqlCall {
   @Nullable SqlNode offset;
   @Nullable SqlNode fetch;
   @Nullable SqlNodeList hints;
+  @Nullable SqlNodeList by;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -71,7 +72,8 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNodeList orderBy,
       @Nullable SqlNode offset,
       @Nullable SqlNode fetch,
-      @Nullable SqlNodeList hints) {
+      @Nullable SqlNodeList hints,
+      @Nullable SqlNodeList by) {
     super(pos);
     this.keywordList = requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
@@ -87,6 +89,44 @@ public class SqlSelect extends SqlCall {
     this.offset = offset;
     this.fetch = fetch;
     this.hints = hints;
+    this.by = by;
+  }
+
+  /** Convenience constructor without {@code by}. */
+  public SqlSelect(SqlParserPos pos,
+      @Nullable SqlNodeList keywordList,
+      SqlNodeList selectList,
+      @Nullable SqlNode from,
+      @Nullable SqlNode where,
+      @Nullable SqlNodeList groupBy,
+      @Nullable SqlNode having,
+      @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNode qualify,
+      @Nullable SqlNodeList orderBy,
+      @Nullable SqlNode offset,
+      @Nullable SqlNode fetch,
+      @Nullable SqlNodeList hints) {
+    this(pos, keywordList, selectList, from, where, groupBy, having,
+        windowDecls, qualify, orderBy, offset, fetch, hints, null);
+  }
+
+  /** Creates a SELECT node after parser-level BY transformation. */
+  public static SqlSelect create(SqlParserPos pos,
+      @Nullable SqlNodeList keywordList,
+      SqlNodeList selectList,
+      @Nullable SqlNode from,
+      @Nullable SqlNode where,
+      @Nullable SqlNodeList groupBy,
+      @Nullable SqlNode having,
+      @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNode qualify,
+      @Nullable SqlNodeList orderBy,
+      @Nullable SqlNode offset,
+      @Nullable SqlNode fetch,
+      @Nullable SqlNodeList hints,
+      @Nullable SqlNodeList by) {
+    return new SqlSelect(pos, keywordList, selectList, from, where, groupBy,
+        having, windowDecls, qualify, orderBy, offset, fetch, hints, by);
   }
 
   /** deprecated, without {@code qualify}. */
@@ -120,7 +160,7 @@ public class SqlSelect extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints);
+        groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints, by);
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
@@ -157,6 +197,12 @@ public class SqlSelect extends SqlCall {
       break;
     case 10:
       fetch = operand;
+      break;
+    case 11:
+      hints = (SqlNodeList) operand;
+      break;
+    case 12:
+      by = (SqlNodeList) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -243,6 +289,20 @@ public class SqlSelect extends SqlCall {
 
   public void setOrderBy(@Nullable SqlNodeList orderBy) {
     this.orderBy = orderBy;
+  }
+
+  @Pure
+  public final @Nullable SqlNodeList getBy() {
+    return by;
+  }
+
+  public void setBy(@Nullable SqlNodeList by) {
+    this.by = by;
+  }
+
+  /** Returns true when the parser attached a BY clause to this select. */
+  public boolean hasByClause() {
+    return by != null && !by.isEmpty();
   }
 
   @Pure

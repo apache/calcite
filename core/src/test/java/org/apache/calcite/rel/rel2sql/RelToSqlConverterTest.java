@@ -9006,6 +9006,82 @@ class RelToSqlConverterTest {
         .withDuckDB().ok(expectedDuckDB);
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5347">[CALCITE-5347]
+   * Add 'SELECT ... BY', a syntax extension that is shorthand for GROUP BY and ORDER BY</a>. */
+  @Test void testByClause() {
+    // Test basic BY clause: SELECT a BY b is sugar for SELECT b, a GROUP BY b ORDER BY b
+    final String sql = "select ename, empno by deptno from emp";
+    final String expected = "SELECT \"DEPTNO\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .ok(expected);
+
+    // Test BY clause with alias
+    final String sql2 = "select ename, empno by deptno as dept from emp";
+    final String expected2 = "SELECT \"DEPTNO\" AS \"DEPT\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\"";
+    sql(sql2)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .ok(expected2);
+
+    // Test BY clause with DESC modifier
+    final String sql3 = "select ename, empno by deptno DESC from emp";
+    final String expected3 = "SELECT \"DEPTNO\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\" DESC";
+    sql(sql3)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .ok(expected3);
+
+    // Test BY clause with multiple columns
+    final String sql4 = "select ename, empno by deptno, job from emp";
+    final String expected4 = "SELECT \"DEPTNO\", \"JOB\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\", \"JOB\"\n"
+        + "ORDER BY \"DEPTNO\", \"JOB\"";
+    sql(sql4)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .ok(expected4);
+
+    // Test complex BY clause example from the feature proposal
+    final String sql5 = "SELECT e.ename, e.empno BY d.dname AS dept DESC, e.job AS title\n"
+        + "FROM emp AS e\n"
+        + "  JOIN dept AS d ON e.deptno = d.deptno\n"
+        + "WHERE d.loc = 'CHICAGO'";
+    final String expected5 = "SELECT \"DEPT\".\"DNAME\" AS \"DEPT\","
+        + " \"EMP\".\"JOB\" AS \"TITLE\","
+        + " ANY_VALUE(\"EMP\".\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMP\".\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
+        + "WHERE \"DEPT\".\"LOC\" = 'CHICAGO'\n"
+        + "GROUP BY \"DEPT\".\"DNAME\", \"EMP\".\"JOB\"\n"
+        + "ORDER BY \"DEPT\".\"DNAME\" DESC, \"EMP\".\"JOB\"";
+    sql(sql5)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .ok(expected5);
+  }
+
   @Test void testRowValueExpression() {
     String sql = "insert into \"DEPT\"\n"
         + "values ROW(1,'Fred', 'San Francisco'),\n"

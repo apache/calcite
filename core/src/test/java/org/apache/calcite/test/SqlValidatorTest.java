@@ -13723,6 +13723,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER S) NOT NULL");
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5347">[CALCITE-5347]
+   * Add 'SELECT ... BY', a syntax extension that is shorthand for GROUP BY and ORDER BY</a>. */
+  @Test void testByClause() {
+    // Test basic BY clause: SELECT a BY b is sugar for SELECT b, a GROUP BY b ORDER BY b
+    sql("select ename, empno by deptno from emp").ok();
+    // Test BY clause with alias
+    sql("select ename, empno by deptno as dept from emp").ok();
+    // Test BY clause with DESC modifier
+    sql("select ename, empno by deptno DESC from emp").ok();
+    // Test BY clause with multiple columns
+    sql("select ename, empno by deptno, job from emp").ok();
+    // Test complex BY clause example from the feature proposal
+    sql("select e.ename, e.empno by d.name as dept DESC, e.job as title "
+        + "from emp as e join dept as d on e.deptno = d.deptno where d.name = 'SALES'")
+        .ok();
+  }
+
   /** Validator that rewrites columnar sql identifiers 'UNEXPANDED'.'Something'
    * to 'DEPT'.'Something', where 'Something' is any string. */
   private static class UnexpandedToDeptValidator extends SqlValidatorImpl {

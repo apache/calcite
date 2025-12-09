@@ -253,6 +253,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final Set<SqlNode> cursorSet = Sets.newIdentityHashSet();
 
   /**
+   * Set of SELECT statements that have a BY clause.
+   * Used to enable non-strict GROUP BY behavior for these statements.
+   */
+  private final Set<SqlSelect> selectsWithBy = Sets.newIdentityHashSet();
+
+  /**
    * Stack of objects that maintain information about function calls. A stack
    * is needed to handle nested function calls. The function call currently
    * being validated is at the top of the stack.
@@ -489,9 +495,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       selectScope = getSelectScope(select);
       expanded = expandSelectExpr(selectItem, scope, select, expansions);
 
-      // Non-strict GROUP BY: wrap non-aggregated, non-grouped columns in ANY_VALUE()
+      // Non-strict GROUP BY or BY clause: wrap non-aggregated, non-grouped columns in ANY_VALUE()
       if (isAggregate(select)
-          && config.conformance().isNonStrictGroupBy()
+          && (config.conformance().isNonStrictGroupBy()
+          || select.hasByClause()
+          || selectsWithBy.contains(select))
           && isNonAggregatedNonGroupedColumn(expanded, select)) {
         expanded =
             SqlStdOperatorTable.ANY_VALUE.createCall(expanded.getParserPosition(), expanded);
@@ -550,11 +558,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return groupList.getList().stream()
           .noneMatch(groupItem -> groupItem != null
-              && node.equalsDeep(groupItem, Litmus.IGNORE));
+              && node.equalsDeep(stripAs(groupItem), Litmus.IGNORE));
     }
 
     if (node instanceof SqlCall) {
-      return ((SqlCall) node).getOperandList().stream()
+      final SqlCall call = (SqlCall) node;
+      if (call.getKind() == SqlKind.AS) {
+        return isNonAggregatedNonGroupedColumn(call.operand(0), select);
+      }
+      return call.getOperandList().stream()
           .anyMatch(operand -> isNonAggregatedNonGroupedColumn(operand, select));
     } else if (node instanceof SqlLiteral) {
       return true;
@@ -1539,6 +1551,46 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
+   * Rewrites SELECT ... BY syntax into SELECT, GROUP BY, ORDER BY.
+   */
+  private void rewriteSelectBy(SqlSelect select) {
+    final SqlNodeList by = select.getBy();
+    if (by == null) {
+      return;
+    }
+    // Mark this select as having a BY clause, so that we can enable
+    // non-strict GROUP BY behavior (wrapping non-grouped columns in ANY_VALUE).
+    selectsWithBy.add(select);
+
+    final SqlNodeList selectList = select.getSelectList();
+    final SqlNodeList groupBy = new SqlNodeList(by.getParserPosition());
+    final SqlNodeList orderBy = new SqlNodeList(by.getParserPosition());
+
+    // Process BY items
+    List<SqlNode> extraSelectItems = new ArrayList<>();
+    for (SqlNode node : by) {
+      // 1. selectItem: strip sort modifiers
+      SqlNode selectItem = SqlUtil.stripOrderModifiers(node);
+      extraSelectItems.add(selectItem);
+
+      // 2. groupItem: strip sort modifiers and AS
+      SqlNode groupItem = stripAs(selectItem);
+      groupBy.add(groupItem.clone(groupItem.getParserPosition()));
+
+      // 3. orderItem: strip AS, keep sort modifiers
+      SqlNode orderItem = SqlUtil.stripAsFromOrder(node);
+      orderBy.add(orderItem.clone(orderItem.getParserPosition()));
+    }
+
+    // Prepend extraSelectItems to selectList
+    selectList.addAll(0, extraSelectItems);
+
+    select.setGroupBy(groupBy);
+    select.setOrderBy(orderBy);
+    select.setBy(null);
+  }
+
+  /**
    * Performs expression rewrites which are always used unconditionally. These
    * rewrites massage the expression tree into a standard form so that the
    * rest of the validation logic can be simpler.
@@ -1554,6 +1606,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean underFrom) {
     if (node == null) {
       return null;
+    }
+
+    if (node instanceof SqlSelect) {
+      rewriteSelectBy((SqlSelect) node);
     }
 
     // first transform operands and invoke generic call rewrite
@@ -7580,8 +7636,41 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
 
+      final SqlNode byAliasExpansion = expandByAlias(id);
+      if (byAliasExpansion != null) {
+        return byAliasExpansion;
+      }
+
       // No match. Return identifier unchanged.
       return getScope().fullyQualify(id).identifier;
+    }
+
+    private @Nullable SqlNode expandByAlias(SqlIdentifier id) {
+      if (!id.isSimple()) {
+        return null;
+      }
+      final SqlNodeList byList = select.getBy();
+      if (byList == null) {
+        return null;
+      }
+      final String alias = id.getSimple();
+      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+      for (SqlNode byNode : byList) {
+        final SqlNode stripped = SqlUtil.stripOrderModifiers(byNode);
+        if (stripped instanceof SqlCall) {
+          final SqlCall call = (SqlCall) stripped;
+          if (call.getOperator().getKind() == SqlKind.AS) {
+            final SqlNode aliasNode = call.operand(1);
+            if (aliasNode instanceof SqlIdentifier) {
+              final SqlIdentifier aliasId = (SqlIdentifier) aliasNode;
+              if (nameMatcher.matches(aliasId.getSimple(), alias)) {
+                return call.operand(0).clone(id.getParserPosition());
+              }
+            }
+          }
+        }
+      }
+      return null;
     }
 
     @Override protected @Nullable SqlNode visitScoped(SqlCall call) {

@@ -750,12 +750,13 @@ public class SqlParserTest {
    */
   @Test void testExceptionCleanup() {
     sql("select 0.5e1^.1^ from sales.emps")
-        .fails("(?s).*Encountered \".1\" at line 1, column 13.\n"
-            + "Was expecting one of:\n"
-            + "    <EOF> \n"
-            + "    \"AS\" \\.\\.\\.\n"
-            + "    \"EXCEPT\" \\.\\.\\.\n"
-            + ".*");
+            .fails("(?s).*Encountered \".1\" at line 1, column 13.\n"
+                + "Was expecting one of:\n"
+                + "    <EOF> \n"
+                + "    \"AS\" \\.\\.\\.\n"
+                + "    \"BY\" \\.\\.\\.\n"
+                + "    \"EXCEPT\" \\.\\.\\.\n"
+                + ".*");
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5997">[CALCITE-5997]

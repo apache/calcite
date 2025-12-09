@@ -1294,6 +1294,46 @@ public abstract class SqlUtil {
     }
   }
 
+  /**
+   * Strips sort modifiers (DESC, NULLS FIRST/LAST) from a node.
+   */
+  public static SqlNode stripOrderModifiers(SqlNode node) {
+    SqlNode expr = node;
+    while (expr instanceof SqlCall) {
+      final SqlCall call = (SqlCall) expr;
+      final SqlKind kind = call.getKind();
+      if (kind == SqlKind.DESCENDING
+          || kind == SqlKind.NULLS_FIRST
+          || kind == SqlKind.NULLS_LAST) {
+        expr = call.operand(0);
+      } else {
+        break;
+      }
+    }
+    return expr;
+  }
+
+  /**
+   * Strips AS from an ORDER BY item, but keeps sort modifiers.
+   */
+  public static SqlNode stripAsFromOrder(SqlNode node) {
+    if (node instanceof SqlCall) {
+      SqlCall call = (SqlCall) node;
+      SqlKind kind = call.getKind();
+      if (kind == SqlKind.DESCENDING
+          || kind == SqlKind.NULLS_FIRST
+          || kind == SqlKind.NULLS_LAST) {
+        SqlNode operand = call.operand(0);
+        SqlNode stripped = stripAsFromOrder(operand);
+        if (stripped != operand) {
+          return call.getOperator().createCall(call.getParserPosition(), stripped);
+        }
+        return node;
+      }
+    }
+    return stripAs(node);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
