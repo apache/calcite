@@ -5621,6 +5621,39 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
+   * SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when
+   * both the keys and the subquery columns are NOT NULL</a>. */
+  @Test void testInOptimizationBothNotNull() {
+    final String sql = "select * from emp as e1\n"
+        + "where empno in (\n"
+        + "  select empno from emp e2)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
+   * SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when
+   * both the keys and the subquery columns are NOT NULL</a>. */
+  @Test void testNotInNullableSubqueryColumn() {
+    final String sql = "select * from empnullables as e1\n"
+        + "where coalesce(deptno, 0) not in (\n"
+        + "  select deptno from empnullables e2)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
+   * SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when
+   * both the keys and the subquery columns are NOT NULL</a>. */
+  @Test void testNotInNullableKey() {
+    final String sql = "select * from empnullables as e1\n"
+        + "where deptno not in (\n"
+        + "  select coalesce(deptno, 0) from empnullables e2)";
+    sql(sql).withSubQueryRules().check();
+  }
+
   @Test void testSomeWithGreaterThanNoRowSubQuery() {
     final String sql = "select * from dept as d\n"
         + "where deptno > some(\n"

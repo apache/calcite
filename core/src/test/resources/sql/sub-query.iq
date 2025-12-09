@@ -2023,7 +2023,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS NOT NULL($t2)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], expr#9=[OR($t4, $t8)], SAL=[$t1], $condition=[$t9])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)], expr#6=[OR($t4, $t5)], expr#7=[IS NOT TRUE($t6)], expr#8=[IS NULL($t3)], expr#9=[OR($t7, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -2128,7 +2128,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS NOT NULL($t2)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], expr#9=[OR($t4, $t8)], SAL=[$t1], $condition=[$t9])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)], expr#6=[OR($t4, $t5)], expr#7=[IS NOT TRUE($t6)], expr#8=[IS NULL($t3)], expr#9=[OR($t7, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
@@ -2609,6 +2609,44 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
 !plan
 
 !use scott
+
+# [CALCITE-7317] SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when both keys and subquery columns are NOT NULL
+select * from emp as e1 where empno in (select empno from emp e2);
+ EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO
+-------+--------+-----------+------+------------+---------+---------+--------
+  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20
+  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30
+  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30
+  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20
+  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30
+  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30
+  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10
+  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20
+  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10
+  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30
+  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20
+  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30
+  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20
+  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10
+(14 rows)
+
+!ok
+
+# [CALCITE-7317] SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when both keys and subquery columns are NOT NULL
+select * from emp as e1 where coalesce(deptno, 0) not in (select deptno from emp e2);
+ EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO
+-------+-------+-----+-----+----------+-----+------+--------
+(0 rows)
+
+!ok
+
+# [CALCITE-7317] SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when both keys and subquery columns are NOT NULL
+select * from emp as e1 where deptno not in (select coalesce(deptno, 0) from emp e2);
+ EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO
+-------+-------+-----+-----+----------+-----+------+--------
+(0 rows)
+
+!ok
 
 # [CALCITE-1513] Correlated NOT IN query throws AssertionError
 select count(*) as c
@@ -3920,7 +3958,7 @@ select * from "scott".emp where empno not in (null, 7782);
 
 !ok
 
-EnumerableCalc(expr#0..12=[{inputs}], expr#13=[0], expr#14=[=($t8, $t13)], expr#15=[IS NULL($t12)], expr#16=[>=($t9, $t8)], expr#17=[AND($t15, $t16)], expr#18=[OR($t14, $t17)], proj#0..7=[{exprs}], $condition=[$t18])
+EnumerableCalc(expr#0..12=[{inputs}], expr#13=[IS NULL($t12)], expr#14=[>=($t9, $t8)], expr#15=[AND($t13, $t14)], expr#16=[0], expr#17=[=($t8, $t16)], expr#18=[OR($t15, $t17)], proj#0..7=[{exprs}], $condition=[$t18])
   EnumerableMergeJoin(condition=[=($10, $11)], joinType=[left])
     EnumerableSort(sort0=[$10], dir0=[ASC])
       EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t0):INTEGER NOT NULL], proj#0..10=[{exprs}])
@@ -5505,4 +5543,5 @@ WHERE EXISTS
 (2 rows)
 
 !ok
+
 # End sub-query.iq
