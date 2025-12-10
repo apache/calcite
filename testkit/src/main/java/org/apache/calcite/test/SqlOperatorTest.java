@@ -825,6 +825,18 @@ public class SqlOperatorTest {
     f.checkNull("CAST(CAST(NULL AS VARCHAR) AS VARBINARY)");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7323">
+   * Result of cast Number to Boolean is not correct</a>. */
+  @Test public void testNumbericBooleanCast() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalar("CAST(1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(1.2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0.0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+  }
+
   @ParameterizedTest
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {

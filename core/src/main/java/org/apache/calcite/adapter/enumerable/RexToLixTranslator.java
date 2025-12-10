@@ -430,6 +430,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         return Expressions.call(BuiltInMethod.STRING_TO_BOOLEAN.method, operand);
 
       default:
+        if (sourceType.getFamily() == SqlTypeFamily.NUMERIC) {
+          return Expressions.call(BuiltInMethod.STRING_TO_BOOLEAN.method, operand);
+        }
         return defaultExpression.get();
       }
     case UUID:
