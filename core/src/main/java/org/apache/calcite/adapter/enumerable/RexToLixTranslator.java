@@ -428,6 +428,20 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case CHAR:
       case VARCHAR:
         return Expressions.call(BuiltInMethod.STRING_TO_BOOLEAN.method, operand);
+      // Numberic type handle
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+      case BIGINT:
+      case UTINYINT:
+      case USMALLINT:
+      case UINTEGER:
+      case UBIGINT:
+      case DECIMAL:
+      case FLOAT:
+      case REAL:
+      case DOUBLE:
+        return Expressions.call(BuiltInMethod.NUMBER_TO_BOOLEAN.method, operand);
 
       default:
         return defaultExpression.get();

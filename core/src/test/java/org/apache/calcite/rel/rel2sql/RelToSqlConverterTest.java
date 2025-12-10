@@ -771,6 +771,10 @@ class RelToSqlConverterTest {
     query = "select FALSE = 0.0e0";
     expected = "SELECT *\nFROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")";
     sql(query).ok(expected);
+
+    query = "select cast(\"product_id\" as BOOLEAN) from \"product\"";
+    expected = "SELECT \"product_id\" <> 0\nFROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
   }
 
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
