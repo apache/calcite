@@ -3093,8 +3093,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope2);
       clauseScopes.put(IdPair.of(select, Clause.MEASURE),
           new MeasureScope(selectScope, select));
-      if (select.getGroup() != null || select.getBy() != null) {
-        SqlNodeList groupList = first(select.getBy(), select.getGroup());
+      SqlNodeList groupList = first(select.getBy(), select.getGroup());
+      if (groupList != null) {
         GroupByScope groupByScope =
             new GroupByScope(selectScope, groupList, select);
         clauseScopes.put(IdPair.of(select, Clause.GROUP_BY), groupByScope);
