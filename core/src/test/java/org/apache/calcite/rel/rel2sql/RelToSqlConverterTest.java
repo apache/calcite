@@ -11025,6 +11025,35 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7319">[CALCITE-7319]
+   * FILTER_INTO_JOIN rule loses correlation variable context in HepPlanner</a>. */
+  @Test void testFilterIntoJoinMissingVariableCor() {
+    final String sql = "SELECT E.EMPNO\n"
+        + "FROM EMP E\n"
+        + "JOIN DEPT D ON E.DEPTNO = D.DEPTNO\n"
+        + "WHERE D.DEPTNO = (\n"
+        + "  SELECT MIN(D_INNER.DEPTNO)\n"
+        + "  FROM DEPT D_INNER\n"
+        + "  WHERE D_INNER.DEPTNO = E.DEPTNO)";
+    final String expected = "SELECT \"EMP\".\"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = (((SELECT MIN(\"DEPTNO\")\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")))";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.FilterIntoJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_INTO_JOIN);
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .optimize(rules, hepPlanner)
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

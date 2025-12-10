@@ -84,6 +84,11 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       return;
     }
 
+    if (filter != null
+        && RexUtil.containsCorrelation(filter.getCondition())) {
+      return;
+    }
+
     final List<RexNode> aboveFilters =
         filter != null
             ? getConjunctions(filter)
