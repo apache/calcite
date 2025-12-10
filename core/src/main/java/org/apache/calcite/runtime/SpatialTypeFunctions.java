@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Hints;
+import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.runtime.SpatialTypeUtils.SpatialType;
@@ -89,6 +90,7 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
+import static org.apache.calcite.sql.type.ExtraSqlTypes.GEOMETRY;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -124,39 +126,48 @@ public class SpatialTypeFunctions {
 
   // Geometry conversion functions (2D)
 
-  public static @Nullable ByteString ST_AsBinary(Geometry geometry) {
+  public static @Nullable ByteString ST_AsBinary(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return ST_AsWKB(geometry);
   }
 
-  public static @Nullable String ST_AsEWKT(Geometry geometry) {
+  public static @Nullable String ST_AsEWKT(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return asEwkt(geometry);
   }
 
-  public static @Nullable String ST_AsGeoJSON(Geometry geometry) {
+  public static @Nullable String ST_AsGeoJSON(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return asGeoJson(geometry);
   }
 
-  public static @Nullable String ST_AsGML(Geometry geometry) {
+  public static @Nullable String ST_AsGML(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return asGml(geometry);
   }
 
-  public static @Nullable String ST_AsText(Geometry geometry) {
+  public static @Nullable String ST_AsText(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return ST_AsWKT(geometry);
   }
 
-  public static @Nullable ByteString ST_AsEWKB(Geometry geometry) {
+  public static @Nullable ByteString ST_AsEWKB(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return ST_AsWKB(geometry);
   }
 
-  public static @Nullable ByteString ST_AsWKB(Geometry geometry) {
+  public static @Nullable ByteString ST_AsWKB(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return asWkb(geometry);
   }
 
-  public static @Nullable String ST_AsWKT(Geometry geometry) {
+  public static @Nullable String ST_AsWKT(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return asWkt(geometry);
   }
 
-  public static @Nullable Geometry ST_Force2D(Geometry geometry) {
+  public static @Nullable Geometry ST_Force2D(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     Function<Coordinate, Coordinate> transform =
         coordinate -> new Coordinate(coordinate.getX(), coordinate.getY());
     CoordinateTransformer transformer = new CoordinateTransformer(transform);
@@ -306,7 +317,9 @@ public class SpatialTypeFunctions {
   /**
    * Reduces the precision of a {@code geom} to the provided {@code gridSize}.
    */
-  public static Geometry ST_ReducePrecision(Geometry geom, BigDecimal gridSize) {
+  public static Geometry ST_ReducePrecision(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal gridSize) {
     PrecisionModel precisionModel = new PrecisionModel(1 / gridSize.doubleValue());
     GeometryPrecisionReducer reducer = new GeometryPrecisionReducer(precisionModel);
     reducer.setPointwise(true);
@@ -316,7 +329,8 @@ public class SpatialTypeFunctions {
   /**
    * Converts the coordinates of a {@code geom} into a MULTIPOINT.
    */
-  public static @Nullable Geometry ST_ToMultiPoint(Geometry geom) {
+  public static @Nullable Geometry ST_ToMultiPoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     CoordinateSequence coordinateSequence = GEOMETRY_FACTORY
         .getCoordinateSequenceFactory().create(geom.getCoordinates());
     return GEOMETRY_FACTORY.createMultiPoint(coordinateSequence);
@@ -325,7 +339,8 @@ public class SpatialTypeFunctions {
   /**
    * Converts the a {@code geom} into a MULTILINESTRING.
    */
-  public static @Nullable Geometry ST_ToMultiLine(Geometry geom) {
+  public static @Nullable Geometry ST_ToMultiLine(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     GeometryFactory factory = geom.getFactory();
     ArrayList<LineString> lines = new ArrayList<>();
     geom.apply((GeometryComponentFilter) inputGeom -> {
@@ -343,7 +358,8 @@ public class SpatialTypeFunctions {
   /**
    * Converts a {@code geom} into a set of distinct segments stored in a MULTILINESTRING.
    */
-  public static @Nullable Geometry ST_ToMultiSegments(Geometry geom) {
+  public static @Nullable Geometry ST_ToMultiSegments(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     GeometryFactory factory = geom.getFactory();
     ArrayList<LineString> lines = new ArrayList<>();
     geom.apply((GeometryComponentFilter) inputGeom -> {
@@ -364,7 +380,8 @@ public class SpatialTypeFunctions {
 
   // Geometry conversion functions (3D)
 
-  public static @Nullable Geometry ST_Force3D(Geometry geometry) {
+  public static @Nullable Geometry ST_Force3D(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     Function<Coordinate, Coordinate> transform =
         coordinate -> new Coordinate(
             coordinate.getX(),
@@ -379,7 +396,8 @@ public class SpatialTypeFunctions {
   /**
    * Calculates a regular grid of polygons based on {@code geom}.
    */
-  private static void ST_MakeGrid(final Geometry geom,
+  private static void ST_MakeGrid(
+      final @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
       final BigDecimal deltaX, final BigDecimal deltaY) {
     // This is a dummy function. We cannot include table functions in this
     // package, because they have too many dependencies. See the real definition
@@ -389,7 +407,8 @@ public class SpatialTypeFunctions {
   /**
    * Calculates a regular grid of points based on {@code geom}.
    */
-  private static void ST_MakeGridPoints(final Geometry geom,
+  private static void ST_MakeGridPoints(
+      final @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
       final BigDecimal deltaX, final BigDecimal deltaY) {
     // This is a dummy function. We cannot include table functions in this
     // package, because they have too many dependencies. See the real definition
@@ -401,14 +420,17 @@ public class SpatialTypeFunctions {
   /**
    * Returns the minimum bounding circle of {@code geom}.
    */
-  public static Geometry ST_BoundingCircle(Geometry geom) {
+  public static Geometry ST_BoundingCircle(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return new MinimumBoundingCircle(geom).getCircle();
   }
 
   /**
    * Expands {@code geom}'s envelope.
    */
-  public static Geometry ST_Expand(Geometry geom, BigDecimal distance) {
+  public static Geometry ST_Expand(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal distance) {
     Envelope envelope = geom.getEnvelopeInternal().copy();
     envelope.expandBy(distance.doubleValue());
     return geom.getFactory().toGeometry(envelope);
@@ -417,8 +439,9 @@ public class SpatialTypeFunctions {
   /**
    * Makes an ellipse.
    */
-  public static @Nullable Geometry ST_MakeEllipse(Geometry point, BigDecimal width,
-      BigDecimal height) {
+  public static @Nullable Geometry ST_MakeEllipse(
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point,
+      BigDecimal width, BigDecimal height) {
     if (!(point instanceof Point)) {
       return null;
     }
@@ -432,22 +455,27 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell) {
     return makePolygon(shell);
   }
 
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell, Geometry hole0) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0) {
     return makePolygon(shell, hole0);
   }
 
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1) {
     return makePolygon(shell,
         hole0, hole1);
   }
@@ -455,8 +483,11 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2) {
     return makePolygon(shell,
         hole0, hole1, hole2);
   }
@@ -464,8 +495,12 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3);
   }
@@ -473,8 +508,13 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3,
+      @Parameter(name = "hole4", sqlType = GEOMETRY) Geometry hole4) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3, hole4);
   }
@@ -482,9 +522,14 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
-      Geometry hole5) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3,
+      @Parameter(name = "hole4", sqlType = GEOMETRY) Geometry hole4,
+      @Parameter(name = "hole5", sqlType = GEOMETRY) Geometry hole5) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3, hole4,
         hole5);
@@ -493,9 +538,15 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
-      Geometry hole5, Geometry hole6) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3,
+      @Parameter(name = "hole4", sqlType = GEOMETRY) Geometry hole4,
+      @Parameter(name = "hole5", sqlType = GEOMETRY) Geometry hole5,
+      @Parameter(name = "hole6", sqlType = GEOMETRY) Geometry hole6) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3, hole4,
         hole5, hole6);
@@ -504,9 +555,16 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
-      Geometry hole5, Geometry hole6, Geometry hole7) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3,
+      @Parameter(name = "hole4", sqlType = GEOMETRY) Geometry hole4,
+      @Parameter(name = "hole5", sqlType = GEOMETRY) Geometry hole5,
+      @Parameter(name = "hole6", sqlType = GEOMETRY) Geometry hole6,
+      @Parameter(name = "hole7", sqlType = GEOMETRY) Geometry hole7) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3, hole4,
         hole5, hole6, hole7);
@@ -515,9 +573,17 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
-      Geometry hole5, Geometry hole6, Geometry hole7, Geometry hole8) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3,
+      @Parameter(name = "hole4", sqlType = GEOMETRY) Geometry hole4,
+      @Parameter(name = "hole5", sqlType = GEOMETRY) Geometry hole5,
+      @Parameter(name = "hole6", sqlType = GEOMETRY) Geometry hole6,
+      @Parameter(name = "hole7", sqlType = GEOMETRY) Geometry hole7,
+      @Parameter(name = "hole8", sqlType = GEOMETRY) Geometry hole8) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3, hole4,
         hole5, hole6, hole7, hole8);
@@ -526,9 +592,18 @@ public class SpatialTypeFunctions {
   /**
    * Makes a polygon.
    */
-  public static @Nullable Geometry ST_MakePolygon(Geometry shell,
-      Geometry hole0, Geometry hole1, Geometry hole2, Geometry hole3, Geometry hole4,
-      Geometry hole5, Geometry hole6, Geometry hole7, Geometry hole8, Geometry hole9) {
+  public static @Nullable Geometry ST_MakePolygon(
+      @Parameter(name = "shell", sqlType = GEOMETRY) Geometry shell,
+      @Parameter(name = "hole0", sqlType = GEOMETRY) Geometry hole0,
+      @Parameter(name = "hole1", sqlType = GEOMETRY) Geometry hole1,
+      @Parameter(name = "hole2", sqlType = GEOMETRY) Geometry hole2,
+      @Parameter(name = "hole3", sqlType = GEOMETRY) Geometry hole3,
+      @Parameter(name = "hole4", sqlType = GEOMETRY) Geometry hole4,
+      @Parameter(name = "hole5", sqlType = GEOMETRY) Geometry hole5,
+      @Parameter(name = "hole6", sqlType = GEOMETRY) Geometry hole6,
+      @Parameter(name = "hole7", sqlType = GEOMETRY) Geometry hole7,
+      @Parameter(name = "hole8", sqlType = GEOMETRY) Geometry hole8,
+      @Parameter(name = "hole9", sqlType = GEOMETRY) Geometry hole9) {
     return makePolygon(shell,
         hole0, hole1, hole2, hole3, hole4,
         hole5, hole6, hole7, hole8, hole9);
@@ -560,28 +635,33 @@ public class SpatialTypeFunctions {
   /**
    * Returns the minimum diameter of {@code geom}.
    */
-  public static @Nullable Geometry ST_MinimumDiameter(Geometry geom) {
+  public static @Nullable Geometry ST_MinimumDiameter(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return new MinimumDiameter(geom).getDiameter();
   }
 
   /**
    * Returns the minimum rectangle enclosing {@code geom}.
    */
-  public static @Nullable Geometry ST_MinimumRectangle(Geometry geom) {
+  public static @Nullable Geometry ST_MinimumRectangle(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return new MinimumDiameter(geom).getMinimumRectangle();
   }
 
   /**
    * Returns the octagonal envelope of {@code geom}.
    */
-  public static @Nullable Geometry ST_OctagonalEnvelope(Geometry geom) {
+  public static @Nullable Geometry ST_OctagonalEnvelope(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return new OctagonalEnvelope(geom).toGeometry(geom.getFactory());
   }
 
   /**
    * Expands {@code geom}'s envelope.
    */
-  public static Geometry ST_Expand(Geometry geom, BigDecimal deltaX, BigDecimal deltaY) {
+  public static Geometry ST_Expand(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal deltaX, BigDecimal deltaY) {
     Envelope envelope = geom.getEnvelopeInternal().copy();
     envelope.expandBy(deltaX.doubleValue(), deltaY.doubleValue());
     return geom.getFactory().toGeometry(envelope);
@@ -612,16 +692,21 @@ public class SpatialTypeFunctions {
   /**
    * Creates a line-string from the given POINTs (or MULTIPOINTs).
    */
-  @Hints({"SqlKind:ST_MAKE_LINE"})
-  public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2) {
+  @Hints({"SqlKind:ST_MAKELINE"})
+  public static Geometry ST_MakeLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
         geom2.getCoordinate(),
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
-  public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3) {
+  @Hints({"SqlKind:ST_MAKELINE"})
+  public static Geometry ST_MakeLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      @Parameter(name = "geom3", sqlType = GEOMETRY) Geometry geom3) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
         geom2.getCoordinate(),
@@ -629,9 +714,12 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
-  public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3,
-      Geometry geom4) {
+  @Hints({"SqlKind:ST_MAKELINE"})
+  public static Geometry ST_MakeLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      @Parameter(name = "geom3", sqlType = GEOMETRY) Geometry geom3,
+      @Parameter(name = "geom4", sqlType = GEOMETRY) Geometry geom4) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
         geom2.getCoordinate(),
@@ -640,9 +728,13 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
-  public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3,
-      Geometry geom4, Geometry geom5) {
+  @Hints({"SqlKind:ST_MAKELINE"})
+  public static Geometry ST_MakeLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      @Parameter(name = "geom3", sqlType = GEOMETRY) Geometry geom3,
+      @Parameter(name = "geom4", sqlType = GEOMETRY) Geometry geom4,
+      @Parameter(name = "geom5", sqlType = GEOMETRY) Geometry geom5) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
         geom2.getCoordinate(),
@@ -652,9 +744,14 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
-  public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3,
-      Geometry geom4, Geometry geom5, Geometry geom6) {
+  @Hints({"SqlKind:ST_MAKELINE"})
+  public static Geometry ST_MakeLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      @Parameter(name = "geom3", sqlType = GEOMETRY) Geometry geom3,
+      @Parameter(name = "geom4", sqlType = GEOMETRY) Geometry geom4,
+      @Parameter(name = "geom5", sqlType = GEOMETRY) Geometry geom5,
+      @Parameter(name = "geom6", sqlType = GEOMETRY) Geometry geom6) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
         geom2.getCoordinate(),
@@ -676,7 +773,7 @@ public class SpatialTypeFunctions {
   /**
    * Alias for {@link #ST_Point(BigDecimal, BigDecimal, BigDecimal)}.
    */
-  @Hints({"SqlKind:ST_POINT3"})
+  @Hints({"SqlKind:ST_POINT"})
   public static Geometry ST_MakePoint(BigDecimal x, BigDecimal y, BigDecimal z) {
     return ST_Point(x, y, z);
   }
@@ -693,7 +790,7 @@ public class SpatialTypeFunctions {
   /**
    * Constructs a 3D point from coordinates.
    */
-  @Hints({"SqlKind:ST_POINT3"})
+  @Hints({"SqlKind:ST_POINT"})
   public static Geometry ST_Point(BigDecimal x, BigDecimal y, BigDecimal z) {
     final Geometry g =
         GEOMETRY_FACTORY.createPoint(
@@ -706,7 +803,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the minimum bounding box that encloses geom as a Geometry.
    */
-  public static @Nullable Geometry ST_Extent(Geometry geom) {
+  public static @Nullable Geometry ST_Extent(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     // Note: check whether the extent and the envelope are the same.
     return geom.getEnvelope();
   }
@@ -714,7 +812,9 @@ public class SpatialTypeFunctions {
   /**
    * Returns the nth geometry of a geometry collection.
    */
-  public static @Nullable Geometry ST_GeometryN(Geometry geom, int n) {
+  public static @Nullable Geometry ST_GeometryN(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int n) {
     if (!(geom instanceof GeometryCollection)) {
       return null;
     }
@@ -724,7 +824,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the exterior ring of {@code geom}, or null if {@code geom} is not a polygon.
    */
-  public static @Nullable Geometry ST_ExteriorRing(Geometry geom) {
+  public static @Nullable Geometry ST_ExteriorRing(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     if (geom instanceof Polygon) {
       return ((Polygon) geom).getExteriorRing();
     }
@@ -734,14 +835,17 @@ public class SpatialTypeFunctions {
   /**
    * Returns the first point of {@code geom}.
    */
-  public static Geometry ST_EndPoint(Geometry geom) {
+  public static Geometry ST_EndPoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_PointN(geom, -1);
   }
 
   /**
    * Returns the nth interior ring of {@code geom}, or null if {@code geom} is not a polygon.
    */
-  public static @Nullable Geometry ST_InteriorRing(Geometry geom, int n) {
+  public static @Nullable Geometry ST_InteriorRing(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int n) {
     if (geom instanceof Polygon) {
       return ((Polygon) geom).getInteriorRingN(n);
     }
@@ -751,7 +855,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns whether {@code geom} is a closed LINESTRING or MULTILINESTRING.
    */
-  public static boolean ST_IsClosed(Geometry geom) {
+  public static boolean ST_IsClosed(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     if (geom instanceof LineString) {
       return ((LineString) geom).isClosed();
     }
@@ -764,28 +869,32 @@ public class SpatialTypeFunctions {
   /**
    * Returns whether {@code geom} has at least one z-coordinate.
    */
-  public static boolean ST_Is3D(Geometry geom) {
+  public static boolean ST_Is3D(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_CoordDim(geom) == 3;
   }
 
   /**
    * Returns true if geom is empty.
    */
-  public static boolean ST_IsEmpty(Geometry geom) {
+  public static boolean ST_IsEmpty(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.isEmpty();
   }
 
   /**
    * Returns true if geom is rectangle.
    */
-  public static boolean ST_IsRectangle(Geometry geom) {
+  public static boolean ST_IsRectangle(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.isRectangle();
   }
 
   /**
    * Returns whether {@code geom} is a closed and simple linestring or multi-linestring.
    */
-  public static boolean ST_IsRing(Geometry geom) {
+  public static boolean ST_IsRing(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     if (geom instanceof LineString) {
       return ((LineString) geom).isClosed() && geom.isSimple();
     }
@@ -798,42 +907,48 @@ public class SpatialTypeFunctions {
   /**
    * Returns true if geom is simple.
    */
-  public static boolean ST_IsSimple(Geometry geom) {
+  public static boolean ST_IsSimple(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.isSimple();
   }
 
   /**
    * Returns true if geom is valid.
    */
-  public static boolean ST_IsValid(Geometry geom) {
+  public static boolean ST_IsValid(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.isValid();
   }
 
   /**
    * Returns the number of points in {@code geom}.
    */
-  public static int ST_NPoints(Geometry geom) {
+  public static int ST_NPoints(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_NumPoints(geom);
   }
 
   /**
    * Returns the number of geometries in {@code geom} (1 if it is not a GEOMETRYCOLLECTION).
    */
-  public static int ST_NumGeometries(Geometry geom) {
+  public static int ST_NumGeometries(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getNumGeometries();
   }
 
   /**
    * Returns the number of interior rings of {@code geom}.
    */
-  public static int ST_NumInteriorRing(Geometry geom) {
+  public static int ST_NumInteriorRing(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_NumInteriorRings(geom);
   }
 
   /**
    * Returns the number of interior rings of {@code geom}.
    */
-  public static int ST_NumInteriorRings(Geometry geom) {
+  public static int ST_NumInteriorRings(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     int[] num = new int[]{0};
     geom.apply(new GeometryFilter() {
       @Override public void filter(Geometry geom) {
@@ -848,14 +963,17 @@ public class SpatialTypeFunctions {
   /**
    * Returns the number of points in {@code geom}.
    */
-  public static int ST_NumPoints(Geometry geom) {
+  public static int ST_NumPoints(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getCoordinates().length;
   }
 
   /**
    * Returns the nth point of a {@code geom}.
    */
-  public static Geometry ST_PointN(Geometry geom, int n) {
+  public static Geometry ST_PointN(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int n) {
     Coordinate[] coordinates = geom.getCoordinates();
     int i = (coordinates.length + (n % coordinates.length)) % coordinates.length;
     return geom.getFactory().createPoint(coordinates[i]);
@@ -864,70 +982,80 @@ public class SpatialTypeFunctions {
   /**
    * Returns an interior or boundary point of {@code geom}.
    */
-  public static Geometry ST_PointOnSurface(Geometry geom) {
+  public static Geometry ST_PointOnSurface(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getFactory().createPoint(InteriorPoint.getInteriorPoint(geom));
   }
 
   /**
    * Returns SRID value or 0 if input Geometry does not have one.
    */
-  public static int ST_SRID(Geometry geom) {
+  public static int ST_SRID(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getSRID();
   }
 
   /**
    * Returns the first point of {@code geom}.
    */
-  public static Geometry ST_StartPoint(Geometry geom) {
+  public static Geometry ST_StartPoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_PointN(geom, 0);
   }
 
   /**
    * Return the X coordinate of the point, or NULL if not available. Input must be a point..
    */
-  public static @Nullable Double ST_X(Geometry geom) {
+  public static @Nullable Double ST_X(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom instanceof Point ? ((Point) geom).getX() : null;
   }
 
   /**
    * Returns the X maxima of a 2D or 3D bounding box or a geometry.
    */
-  public static @Nullable Double ST_XMax(Geometry geom) {
+  public static @Nullable Double ST_XMax(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getEnvelopeInternal().getMaxX();
   }
 
   /**
    * Returns the X minima of a 2D or 3D bounding box or a geometry.
    */
-  public static @Nullable Double ST_XMin(Geometry geom) {
+  public static @Nullable Double ST_XMin(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getEnvelopeInternal().getMinX();
   }
 
   /**
    * Returns the y-value of the first coordinate of {@code geom}.
    */
-  public static @Nullable Double ST_Y(Geometry geom) {
+  public static @Nullable Double ST_Y(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom instanceof Point ? ((Point) geom).getY() : null;
   }
 
   /**
    * Returns the Y maxima of a 2D or 3D bounding box or a geometry.
    */
-  public static @Nullable Double ST_YMax(Geometry geom) {
+  public static @Nullable Double ST_YMax(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getEnvelopeInternal().getMaxY();
   }
 
   /**
    * Returns the Y minima of a 2D or 3D bounding box or a geometry.
    */
-  public static @Nullable Double ST_YMin(Geometry geom) {
+  public static @Nullable Double ST_YMin(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getEnvelopeInternal().getMinY();
   }
 
   /**
    * Returns the z-value of the first coordinate of {@code geom}.
    */
-  public static Double ST_Z(Geometry geom) {
+  public static Double ST_Z(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     if (geom.getCoordinate() != null) {
       return geom.getCoordinate().getZ();
     } else {
@@ -938,7 +1066,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the maximum z-value of {@code geom}.
    */
-  public static Double ST_ZMax(Geometry geom) {
+  public static Double ST_ZMax(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return Arrays.stream(geom.getCoordinates())
         .filter(c -> !Double.isNaN(c.getZ()))
         .map(c -> c.getZ())
@@ -949,7 +1078,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the minimum z-value of {@code geom}.
    */
-  public static Double ST_ZMin(Geometry geom) {
+  public static Double ST_ZMin(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return Arrays.stream(geom.getCoordinates())
         .filter(c -> !Double.isNaN(c.getZ()))
         .map(c -> c.getZ())
@@ -962,21 +1092,24 @@ public class SpatialTypeFunctions {
   /**
    * Returns the boundary of {@code geom}.
    */
-  public static Geometry ST_Boundary(Geometry geom) {
+  public static Geometry ST_Boundary(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getBoundary();
   }
 
   /**
    * Returns the centroid of {@code geom}.
    */
-  public static Geometry ST_Centroid(Geometry geom) {
+  public static Geometry ST_Centroid(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getCentroid();
   }
 
   /**
    * Returns the dimension of the coordinates of {@code geom}.
    */
-  public static int ST_CoordDim(Geometry geom) {
+  public static int ST_CoordDim(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     Coordinate coordinate = geom.getCoordinate();
     if (coordinate != null && !Double.isNaN(coordinate.getZ())) {
       return 3;
@@ -987,35 +1120,41 @@ public class SpatialTypeFunctions {
   /**
    * Returns the dimension of {@code geom}.
    */
-  public static int ST_Dimension(Geometry geom) {
+  public static int ST_Dimension(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getDimension();
   }
 
   /**
    * Returns the distance between {@code geom1} and {@code geom2}.
    */
-  public static double ST_Distance(Geometry geom1, Geometry geom2) {
+  public static double ST_Distance(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.distance(geom2);
   }
 
   /**
    * Returns the type of {@code geom}.
    */
-  public static String ST_GeometryType(Geometry geom) {
+  public static String ST_GeometryType(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return SpatialType.fromGeometry(geom).name();
   }
 
   /**
    * Returns the OGC SFS type code of {@code geom}.
    */
-  public static int ST_GeometryTypeCode(Geometry geom) {
+  public static int ST_GeometryTypeCode(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return SpatialType.fromGeometry(geom).code();
   }
 
   /**
    * Returns the minimum bounding box of {@code geom} (which may be a GEOMETRYCOLLECTION).
    */
-  public static Geometry ST_Envelope(Geometry geom) {
+  public static Geometry ST_Envelope(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getEnvelope();
   }
 
@@ -1034,14 +1173,18 @@ public class SpatialTypeFunctions {
    * Returns whether {@code geom1} contains {@code geom2}.
    */
   @Hints({"SqlKind:ST_CONTAINS"})
-  public static boolean ST_Contains(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Contains(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.contains(geom2);
   }
 
   /**
    * Returns whether {@code geom1} contains {@code geom2} but does not intersect its boundary.
    */
-  public static boolean ST_ContainsProperly(Geometry geom1, Geometry geom2) {
+  public static boolean ST_ContainsProperly(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.contains(geom2)
         && !geom1.crosses(geom2);
   }
@@ -1049,35 +1192,45 @@ public class SpatialTypeFunctions {
   /**
    * Returns whether no point in {@code geom1} is outside {@code geom2}.
    */
-  public static boolean ST_CoveredBy(Geometry geom1, Geometry geom2) {
+  public static boolean ST_CoveredBy(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.coveredBy(geom2);
   }
 
   /**
    * Returns whether no point in {@code geom2} is outside {@code geom1}.
    */
-  public static boolean ST_Covers(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Covers(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.covers(geom2);
   }
 
   /**
    * Returns whether {@code geom1} crosses {@code geom2}.
    */
-  public static boolean ST_Crosses(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Crosses(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.crosses(geom2);
   }
 
   /**
    * Returns whether {@code geom1} and {@code geom2} are disjoint.
    */
-  public static boolean ST_Disjoint(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Disjoint(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.disjoint(geom2);
   }
 
   /**
    * Returns whether the envelope of {@code geom1} intersects the envelope of {@code geom2}.
    */
-  public static boolean ST_EnvelopesIntersect(Geometry geom1, Geometry geom2) {
+  public static boolean ST_EnvelopesIntersect(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     final Geometry e1 = geom1.getEnvelope();
     final Geometry e2 = geom2.getEnvelope();
     return e1.intersects(e2);
@@ -1086,14 +1239,18 @@ public class SpatialTypeFunctions {
   /**
    * Returns whether {@code geom1} equals {@code geom2}.
    */
-  public static boolean ST_Equals(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Equals(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.equals(geom2);
   }
 
   /**
    * Returns whether {@code geom1} intersects {@code geom2}.
    */
-  public static boolean ST_Intersects(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Intersects(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.intersects(geom2);
   }
 
@@ -1101,7 +1258,9 @@ public class SpatialTypeFunctions {
    * Returns whether {@code geom1} equals {@code geom2} and their coordinates and component
    * Geometries are listed in the same order.
    */
-  public static boolean ST_OrderingEquals(Geometry geom1, Geometry geom2) {
+  public static boolean ST_OrderingEquals(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     if (!geom1.equals(geom2)) {
       return false;
     }
@@ -1118,21 +1277,27 @@ public class SpatialTypeFunctions {
   /**
    * Returns {@code geom1} overlaps {@code geom2}.
    */
-  public static boolean ST_Overlaps(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Overlaps(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.overlaps(geom2);
   }
 
   /**
    * Returns whether {@code geom1} touches {@code geom2}.
    */
-  public static boolean ST_Touches(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Touches(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.touches(geom2);
   }
 
   /**
    * Returns whether {@code geom1} is within {@code geom2}.
    */
-  public static boolean ST_Within(Geometry geom1, Geometry geom2) {
+  public static boolean ST_Within(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.within(geom2);
   }
 
@@ -1140,7 +1305,10 @@ public class SpatialTypeFunctions {
    * Returns whether {@code geom1} and {@code geom2} are within {@code distance} of each other.
    */
   @Hints({"SqlKind:ST_DWITHIN"})
-  public static boolean ST_DWithin(Geometry geom1, Geometry geom2, double distance) {
+  public static boolean ST_DWithin(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      double distance) {
     final double distance1 = geom1.distance(geom2);
     return distance1 <= distance;
   }
@@ -1150,7 +1318,9 @@ public class SpatialTypeFunctions {
   /**
    * Computes a buffer around {@code geom}.
    */
-  public static Geometry ST_Buffer(Geometry geom, double distance, String bufferStyle) {
+  public static Geometry ST_Buffer(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      double distance, String bufferStyle) {
     BufferStyle style = new BufferStyle(bufferStyle);
     BufferParameters params = style.asBufferParameters();
     double sidedDistance = style.asSidedDistance(distance);
@@ -1161,56 +1331,71 @@ public class SpatialTypeFunctions {
   /**
    * Computes a buffer around {@code geom}.
    */
-  public static Geometry ST_Buffer(Geometry geom, double distance) {
+  public static Geometry ST_Buffer(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      double distance) {
     return geom.buffer(distance);
   }
 
   /**
    * Computes a buffer around {@code geom}.
    */
-  public static Geometry ST_Buffer(Geometry geom, double distance, int quadSegs) {
+  public static Geometry ST_Buffer(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      double distance, int quadSegs) {
     return geom.buffer(distance, quadSegs);
   }
 
   /**
    * Computes a buffer around {@code geom}.
    */
-  public static Geometry ST_Buffer(Geometry geom, double distance, int quadSegs, int endCapStyle) {
+  public static Geometry ST_Buffer(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      double distance, int quadSegs, int endCapStyle) {
     return geom.buffer(distance, quadSegs, endCapStyle);
   }
 
   /**
    * Computes the smallest convex POLYGON that contains all the points of geom.
    */
-  public static Geometry ST_ConvexHull(Geometry geom) {
+  public static Geometry ST_ConvexHull(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.convexHull();
   }
 
   /**
    * Computes the difference between geom1 and geom2.
    */
-  public static Geometry ST_Difference(Geometry geom1, Geometry geom2) {
+  public static Geometry ST_Difference(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.difference(geom2);
   }
 
   /**
    * Computes the symmetric difference between geom1 and geom2.
    */
-  public static Geometry ST_SymDifference(Geometry geom1, Geometry geom2) {
+  public static Geometry ST_SymDifference(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.symDifference(geom2);
   }
 
   /**
    * Computes the intersection between geom1 and geom2.
    */
-  public static Geometry ST_Intersection(Geometry geom1, Geometry geom2) {
+  public static Geometry ST_Intersection(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.intersection(geom2);
   }
 
   /**
    * Computes an offset line for {@code linestring}.
    */
-  public static Geometry ST_OffsetCurve(Geometry linestring, double distance, String bufferStyle) {
+  public static Geometry ST_OffsetCurve(
+      @Parameter(name = "linestring", sqlType = GEOMETRY) Geometry linestring,
+      double distance, String bufferStyle) {
     if (!(linestring instanceof LineString)) {
       throw new IllegalArgumentException("ST_OffsetCurve only accepts LineString");
     }
@@ -1225,21 +1410,28 @@ public class SpatialTypeFunctions {
   /**
    * Returns the DE-9IM intersection matrix for geom1 and geom2.
    */
-  public static String ST_Relate(Geometry geom1, Geometry geom2) {
+  public static String ST_Relate(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.relate(geom2).toString();
   }
 
   /**
    * Returns true if geom1 and geom2 are related by the intersection matrix specified by iMatrix.
    */
-  public static boolean ST_Relate(Geometry geom1, Geometry geom2, String iMatrix) {
+  public static boolean ST_Relate(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      String iMatrix) {
     return geom1.relate(geom2, iMatrix);
   }
 
   /**
    * Computes the union of {@code geom1} and {@code geom2}.
    */
-  public static Geometry ST_UnaryUnion(Geometry geom1, Geometry geom2) {
+  public static Geometry ST_UnaryUnion(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return geom1.union(geom2);
   }
 
@@ -1247,7 +1439,9 @@ public class SpatialTypeFunctions {
    * Computes the union of the geometries in {@code geomCollection}.
    */
   @SemiStrict
-  public static Geometry ST_UnaryUnion(Geometry geomCollection) {
+  public static Geometry ST_UnaryUnion(
+      @Parameter(name = "geomCollection", sqlType = GEOMETRY)
+      Geometry geomCollection) {
     return geomCollection.union();
   }
 
@@ -1257,7 +1451,9 @@ public class SpatialTypeFunctions {
    * Transforms {@code geom} from one coordinate reference system (CRS) to the CRS specified by
    * {@code srid}.
    */
-  public static Geometry ST_Transform(Geometry geom, int srid) {
+  public static Geometry ST_Transform(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int srid) {
     try {
       ProjectionTransformer projectionTransformer = new ProjectionTransformer(geom.getSRID(), srid);
       return projectionTransformer.transform(geom);
@@ -1269,7 +1465,9 @@ public class SpatialTypeFunctions {
   /**
    * Returns a copy of {@code geom} with a new SRID.
    */
-  public static Geometry ST_SetSRID(Geometry geom, int srid) {
+  public static Geometry ST_SetSRID(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int srid) {
     geom.setSRID(srid);
     return geom;
   }
@@ -1279,7 +1477,8 @@ public class SpatialTypeFunctions {
   /**
    * Merges a collection of linear components to form a line-string of maximal length.
    */
-  public static Geometry ST_LineMerge(Geometry geom) {
+  public static Geometry ST_LineMerge(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     LineMerger merger = new LineMerger();
     merger.add(geom);
     LineString[] geometries = ((Stream<Object>) merger.getMergedLineStrings().stream())
@@ -1291,14 +1490,16 @@ public class SpatialTypeFunctions {
   /**
    * Makes a valid geometry of a given invalid geometry.
    */
-  public static Geometry ST_MakeValid(Geometry geometry) {
+  public static Geometry ST_MakeValid(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     return new GeometryFixer(geometry).getResult();
   }
 
   /**
    * Creates a multipolygon from the geometry.
    */
-  public static Geometry ST_Polygonize(Geometry geometry) {
+  public static Geometry ST_Polygonize(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry) {
     Polygonizer polygonizer = new Polygonizer(true);
     polygonizer.add(geometry);
     return polygonizer.getGeometry();
@@ -1307,7 +1508,9 @@ public class SpatialTypeFunctions {
   /**
    * Reduces the geometry's precision to n decimal places.
    */
-  public static Geometry ST_PrecisionReducer(Geometry geometry, BigDecimal decimal) {
+  public static Geometry ST_PrecisionReducer(
+      @Parameter(name = "geometry", sqlType = GEOMETRY) Geometry geometry,
+      BigDecimal decimal) {
     double scale = Math.pow(10, decimal.doubleValue());
     PrecisionModel precisionModel = new PrecisionModel(scale);
     GeometryPrecisionReducer precisionReducer = new GeometryPrecisionReducer(precisionModel);
@@ -1315,9 +1518,11 @@ public class SpatialTypeFunctions {
   }
 
   /**
-   * Simplifies geom a geometry using the Douglas-Peuker algorithm.
+   * Simplifies a geometry using the Douglas-Peuker algorithm.
    */
-  public static Geometry ST_Simplify(Geometry geom, BigDecimal distance) {
+  public static Geometry ST_Simplify(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal distance) {
     DouglasPeuckerSimplifier simplifier = new DouglasPeuckerSimplifier(geom);
     simplifier.setDistanceTolerance(distance.doubleValue());
     return simplifier.getResultGeometry();
@@ -1326,7 +1531,9 @@ public class SpatialTypeFunctions {
   /**
    * Simplifies a geometry and preserves its topology.
    */
-  public static Geometry ST_SimplifyPreserveTopology(Geometry geom, BigDecimal distance) {
+  public static Geometry ST_SimplifyPreserveTopology(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal distance) {
     TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(geom);
     simplifier.setDistanceTolerance(distance.doubleValue());
     return simplifier.getResultGeometry();
@@ -1335,7 +1542,10 @@ public class SpatialTypeFunctions {
   /**
    * Snaps geom1 and geom2 together with the given snapTolerance.
    */
-  public static Geometry ST_Snap(Geometry geom1, Geometry geom2, BigDecimal snapTolerance) {
+  public static Geometry ST_Snap(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2,
+      BigDecimal snapTolerance) {
     GeometrySnapper snapper = new GeometrySnapper(geom1);
     return snapper.snapTo(geom2, snapTolerance.doubleValue());
   }
@@ -1343,7 +1553,9 @@ public class SpatialTypeFunctions {
   /**
    * Splits {@code geom} by {@code blade}.
    */
-  public static Geometry ST_Split(Geometry geom, Geometry blade) {
+  public static Geometry ST_Split(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      @Parameter(name = "blade", sqlType = GEOMETRY) Geometry blade) {
     return new SplitOperation(geom, blade).split();
   }
 
@@ -1353,7 +1565,9 @@ public class SpatialTypeFunctions {
   /**
    * Rotates geom counter-clockwise by angle (in radians) about the point origin.
    */
-  public static Geometry ST_Rotate(Geometry geom, BigDecimal angle) {
+  public static Geometry ST_Rotate(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal angle) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.rotate(angle.doubleValue());
     return transformation.transform(geom);
@@ -1362,7 +1576,10 @@ public class SpatialTypeFunctions {
   /**
    * Rotates geom counter-clockwise by angle (in radians) about the point origin.
    */
-  public static Geometry ST_Rotate(Geometry geom, BigDecimal angle, Geometry origin) {
+  public static Geometry ST_Rotate(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal angle,
+      @Parameter(name = "origin", sqlType = GEOMETRY) Geometry origin) {
     // Note: check whether we can add support for the Point type.
     if (!(origin instanceof Point)) {
       throw new RuntimeException("The origin must be a point");
@@ -1376,7 +1593,9 @@ public class SpatialTypeFunctions {
   /**
    * Rotates geom counter-clockwise by angle (in radians) about the point origin.
    */
-  public static Geometry ST_Rotate(Geometry geom, BigDecimal angle, BigDecimal x, BigDecimal y) {
+  public static Geometry ST_Rotate(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal angle, BigDecimal x, BigDecimal y) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.rotate(angle.doubleValue(), x.doubleValue(), y.doubleValue());
     return transformation.transform(geom);
@@ -1385,7 +1604,9 @@ public class SpatialTypeFunctions {
   /**
    * Scales geom Geometry by multiplying the ordinates by the indicated scale factors.
    */
-  public static Geometry ST_Scale(Geometry geom, BigDecimal xFactor, BigDecimal yFactor) {
+  public static Geometry ST_Scale(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal xFactor, BigDecimal yFactor) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.scale(xFactor.doubleValue(), yFactor.doubleValue());
     return transformation.transform(geom);
@@ -1394,7 +1615,9 @@ public class SpatialTypeFunctions {
   /**
    * Translates geom by the vector (x, y).
    */
-  public static Geometry ST_Translate(Geometry geom, BigDecimal x, BigDecimal y) {
+  public static Geometry ST_Translate(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal x, BigDecimal y) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.translate(x.doubleValue(), y.doubleValue());
     Geometry translated = transformation.transform(geom);
@@ -1406,7 +1629,9 @@ public class SpatialTypeFunctions {
   /**
    * Adds {@code point} to {@code linestring} at the end.
    */
-  public static Geometry ST_AddPoint(Geometry linestring, Geometry point) {
+  public static Geometry ST_AddPoint(
+      @Parameter(name = "linestring", sqlType = GEOMETRY) Geometry linestring,
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point) {
     if (!(linestring instanceof LineString)) {
       throw new RuntimeException("Only supports LINESTRING.");
     }
@@ -1421,7 +1646,10 @@ public class SpatialTypeFunctions {
   /**
    * Adds {@code point} to {@code linestring} at a given {@code index}.
    */
-  public static Geometry ST_AddPoint(Geometry linestring, Geometry point, int index) {
+  public static Geometry ST_AddPoint(
+      @Parameter(name = "linestring", sqlType = GEOMETRY) Geometry linestring,
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point,
+      int index) {
     if (!(linestring instanceof LineString)) {
       throw new RuntimeException("Only supports LINESTRING.");
     }
@@ -1434,14 +1662,17 @@ public class SpatialTypeFunctions {
   /**
    * Densifies a {@code geom} by inserting extra vertices along the line segments.
    */
-  public static Geometry ST_Densify(Geometry geom, BigDecimal tolerance) {
+  public static Geometry ST_Densify(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal tolerance) {
     return Densifier.densify(geom, tolerance.doubleValue());
   }
 
   /**
    * Flips the X and Y coordinates of the {@code geom}.
    */
-  public static Geometry ST_FlipCoordinates(Geometry geom) {
+  public static Geometry ST_FlipCoordinates(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     FlipCoordinatesTransformer transformer = new FlipCoordinatesTransformer();
     return transformer.transform(geom);
   }
@@ -1449,10 +1680,11 @@ public class SpatialTypeFunctions {
   /**
    * Returns the holes in the {@code geom} (which may be a GEOMETRYCOLLECTION).
    */
-  public static Geometry ST_Holes(Geometry geom) {
+  public static Geometry ST_Holes(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     List<Geometry> acc = new ArrayList<>();
     extractGeometryHoles(geom, acc);
-    Geometry[] array = acc.toArray(new Geometry[acc.size()]);
+    Geometry[] array = acc.toArray(new Geometry[0]);
     return GEOMETRY_FACTORY.createGeometryCollection(array);
   }
 
@@ -1479,28 +1711,33 @@ public class SpatialTypeFunctions {
   /**
    * Converts the {@code geom} to normal form.
    */
-  public static Geometry ST_Normalize(Geometry geom) {
+  public static Geometry ST_Normalize(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.norm();
   }
 
   /**
    * Removes duplicated coordinates from the {@code geom}.
    */
-  public static Geometry ST_RemoveRepeatedPoints(Geometry geom) {
+  public static Geometry ST_RemoveRepeatedPoints(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return new RemoveRepeatedPointsTransformer().transform(geom);
   }
 
   /**
    * Removes duplicated coordinates from the {@code geom}.
    */
-  public static Geometry ST_RemoveRepeatedPoints(Geometry geom, BigDecimal tolerance) {
+  public static Geometry ST_RemoveRepeatedPoints(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal tolerance) {
     return new RemoveRepeatedPointsTransformer(tolerance.doubleValue()).transform(geom);
   }
 
   /**
    * Removes the holes of the {@code geom}.
    */
-  public static Geometry ST_RemoveHoles(Geometry geom) {
+  public static Geometry ST_RemoveHoles(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     RemoveHoleTransformer transformer = new RemoveHoleTransformer();
     return transformer.transform(geom);
   }
@@ -1508,7 +1745,9 @@ public class SpatialTypeFunctions {
   /**
    * Remove {@code point} at given {@code index} in {@code linestring}.
    */
-  public static Geometry ST_RemovePoint(Geometry linestring, int index) {
+  public static Geometry ST_RemovePoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry linestring,
+      int index) {
     if (!(linestring instanceof LineString)) {
       throw new RuntimeException("Only supports LINESTRING.");
     }
@@ -1518,7 +1757,8 @@ public class SpatialTypeFunctions {
   /**
    * Reverses the order of the coordinates of the {@code geom}.
    */
-  public static Geometry ST_Reverse(Geometry geom) {
+  public static Geometry ST_Reverse(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.reverse();
   }
 
@@ -1527,7 +1767,9 @@ public class SpatialTypeFunctions {
   /**
    * Adds {@code zToAdd} to the z-coordinate of the {@code geom}.
    */
-  public static Geometry ST_AddZ(Geometry geom, BigDecimal zToAdd) {
+  public static Geometry ST_AddZ(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal zToAdd) {
     return new AddZTransformer(zToAdd.doubleValue()).transform(geom);
   }
 
@@ -1536,14 +1778,17 @@ public class SpatialTypeFunctions {
   /**
    * Returns the area of the {@code geom}.
    */
-  public static @Nullable Double ST_Area(Geometry geom) {
+  public static @Nullable Double ST_Area(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getArea();
   }
 
   /**
    * Returns the coordinate(s) of {@code geom} closest to {@code point}.
    */
-  public static @Nullable Geometry ST_ClosestCoordinate(Geometry point, Geometry geom) {
+  public static @Nullable Geometry ST_ClosestCoordinate(
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point,
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     List<Coordinate> closestCoordinates = new ArrayList<>();
     double minDistance = Double.MAX_VALUE;
     for (Coordinate coordinate : geom.getCoordinates()) {
@@ -1567,14 +1812,18 @@ public class SpatialTypeFunctions {
   /**
    * Returns the point of {@code geom1} closest to {@code geom2}.
    */
-  public static @Nullable Geometry ST_ClosestPoint(Geometry geom1, Geometry geom2) {
+  public static @Nullable Geometry ST_ClosestPoint(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return GEOMETRY_FACTORY.createPoint(DistanceOp.nearestPoints(geom1, geom2)[0]);
   }
 
   /**
    * Returns the coordinate(s) of {@code geom} furthest from {@code point}.
    */
-  public static @Nullable Geometry ST_FurthestCoordinate(Geometry point, Geometry geom) {
+  public static @Nullable Geometry ST_FurthestCoordinate(
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point,
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     List<Coordinate> closestCoordinates = new ArrayList<>();
     double maxDistance = Double.MIN_VALUE;
     for (Coordinate coordinate : geom.getCoordinates()) {
@@ -1598,7 +1847,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the length of the {@code geom}.
    */
-  public static @Nullable Double ST_Length(Geometry geom) {
+  public static @Nullable Double ST_Length(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getLength();
   }
 
@@ -1606,7 +1856,9 @@ public class SpatialTypeFunctions {
    * Returns a MULTIPOINT containing points along the line segments of {@code geom}
    * at {@code segmentLengthFraction} and {@code offsetDistance}.
    */
-  public static @Nullable Geometry ST_LocateAlong(Geometry geom, BigDecimal segmentLengthFraction,
+  public static @Nullable Geometry ST_LocateAlong(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal segmentLengthFraction,
       BigDecimal offsetDistance) {
     List<Coordinate> coordinates = new ArrayList<>();
     for (int i = 0; i < geom.getNumGeometries(); i++) {
@@ -1630,7 +1882,9 @@ public class SpatialTypeFunctions {
    * Returns the 2-dimensional longest line-string between the points
    * of {@code geom1} and {@code geom2}.
    */
-  public static @Nullable Geometry ST_LongestLine(Geometry geom1, Geometry geom2) {
+  public static @Nullable Geometry ST_LongestLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     double maxDistance = Double.MIN_VALUE;
     Coordinate c1 = null;
     Coordinate c2 = null;
@@ -1653,7 +1907,9 @@ public class SpatialTypeFunctions {
   /**
    * Computes the maximum distance between {@code geom1} and {@code geom2}.
    */
-  public static @Nullable Double ST_MaxDistance(Geometry geom1, Geometry geom2) {
+  public static @Nullable Double ST_MaxDistance(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     double maxDistance = Double.MIN_VALUE;
     for (Coordinate coordinate1 : geom1.getCoordinates()) {
       for (Coordinate coordinate2 : geom2.getCoordinates()) {
@@ -1669,7 +1925,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON).
    */
-  public static @Nullable Double ST_Perimeter(Geometry geom) {
+  public static @Nullable Double ST_Perimeter(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     double perimeter = 0;
     for (int i = 0; i < geom.getNumGeometries(); i++) {
       Geometry geometry = geom.getGeometryN(i);
@@ -1683,7 +1940,9 @@ public class SpatialTypeFunctions {
   /**
    * Projects {@code point} onto a {@code lineString} (which may be a MULTILINESTRING).
    */
-  public static @Nullable Geometry ST_ProjectPoint(Geometry point, Geometry lineString) {
+  public static @Nullable Geometry ST_ProjectPoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry point,
+      @Parameter(name = "lineString", sqlType = GEOMETRY) Geometry lineString) {
     if (lineString.getDimension() > 1) {
       return null;
     }
@@ -1698,14 +1957,17 @@ public class SpatialTypeFunctions {
   /**
    * Computes a constrained Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_ConstrainedDelaunay(Geometry geom) {
+  public static Geometry ST_ConstrainedDelaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_ConstrainedDelaunay(geom, 0);
   }
 
   /**
    * Computes a constrained Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_ConstrainedDelaunay(Geometry geom, int flag) {
+  public static Geometry ST_ConstrainedDelaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int flag) {
     GeometryFactory factory = geom.getFactory();
     ConstrainedDelaunayTriangulator cdt = new ConstrainedDelaunayTriangulator(geom);
     List<Tri> tris = cdt.getTriangles();
@@ -1725,14 +1987,17 @@ public class SpatialTypeFunctions {
   /**
    * Computes a Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_Delaunay(Geometry geom) {
+  public static Geometry ST_Delaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_Delaunay(geom, 0);
   }
 
   /**
    * Computes a Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_Delaunay(Geometry geom, int flag) {
+  public static Geometry ST_Delaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int flag) {
     GeometryFactory factory = geom.getFactory();
     DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
     builder.setSites(geom);
@@ -1776,7 +2041,8 @@ public class SpatialTypeFunctions {
    * point.
    */
   @Hints({"SqlKind:HILBERT"})
-  public static @Nullable Long hilbert(Geometry geom) {
+  public static @Nullable Long hilbert(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     if (geom instanceof Point) {
       final double x = ((Point) geom).getX();
       final double y = ((Point) geom).getY();

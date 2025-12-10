@@ -1246,21 +1246,425 @@ public enum SqlKind {
   // is convenient to have a "kind" so that we can quickly match them in planner
   // rules.
 
-  /** The {@code ST_DWithin} geo-spatial function. */
+  /** The {@code ST_AddPoint} function. */
+  ST_ADDPOINT,
+
+  /** The {@code ST_AddZ} function. */
+  ST_ADDZ,
+
+  /** The {@code ST_Area} function. */
+  ST_AREA,
+
+  /** The {@code ST_AsBinary} function. */
+  ST_ASBINARY,
+
+  /** The {@code ST_AsEWKB} function. */
+  ST_ASEWKB,
+
+  /** The {@code ST_AsEWKT} function. */
+  ST_ASEWKT,
+
+  /** The {@code ST_AsGML} function. */
+  ST_ASGML,
+
+  /** The {@code ST_AsGeoJSON} function. */
+  ST_ASGEOJSON,
+
+  /** The {@code ST_AsText} function. */
+  ST_ASTEXT,
+
+  /** The {@code ST_AsWKB} function. */
+  ST_ASWKB,
+
+  /** The {@code ST_AsWKT} function. */
+  ST_ASWKT,
+
+  /** The {@code ST_Boundary} function. */
+  ST_BOUNDARY,
+
+  /** The {@code ST_BoundingCircle} function. */
+  ST_BOUNDINGCIRCLE,
+
+  /** The {@code ST_Buffer} function. */
+  ST_BUFFER,
+
+  /** The {@code ST_Centroid} function. */
+  ST_CENTROID,
+
+  /** The {@code ST_ClosestCoordinate} function. */
+  ST_CLOSESTCOORDINATE,
+
+  /** The {@code ST_ClosestPoint} function. */
+  ST_CLOSESTPOINT,
+
+  /** The {@code ST_ConstrainedDelaunay} function. */
+  ST_CONSTRAINEDDELAUNAY,
+
+  /** The {@code ST_Contains} function. */
+  ST_CONTAINS,
+
+  /** The {@code ST_ContainsProperly} function. */
+  ST_CONTAINSPROPERLY,
+
+  /** The {@code ST_ConvexHull} function. */
+  ST_CONVEXHULL,
+
+  /** The {@code ST_CoordDim} function. */
+  ST_COORDDIM,
+
+  /** The {@code ST_CoveredBy} function. */
+  ST_COVEREDBY,
+
+  /** The {@code ST_Covers} function. */
+  ST_COVERS,
+
+  /** The {@code ST_Crosses} function. */
+  ST_CROSSES,
+
+  /** The {@code ST_DWithin} function. */
   ST_DWITHIN,
+
+  /** The {@code ST_Delaunay} function. */
+  ST_DELAUNAY,
+
+  /** The {@code ST_Densify} function. */
+  ST_DENSIFY,
+
+  /** The {@code ST_Difference} function. */
+  ST_DIFFERENCE,
+
+  /** The {@code ST_Dimension} function. */
+  ST_DIMENSION,
+
+  /** The {@code ST_Disjoint} function. */
+  ST_DISJOINT,
+
+  /** The {@code ST_Distance} function. */
+  ST_DISTANCE,
+
+  /** The {@code ST_EndPoint} function. */
+  ST_ENDPOINT,
+
+  /** The {@code ST_Envelope} function. */
+  ST_ENVELOPE,
+
+  /** The {@code ST_EnvelopesIntersect} function. */
+  ST_ENVELOPESINTERSECT,
+
+  /** The {@code ST_Equals} function. */
+  ST_EQUALS,
+
+  /** The {@code ST_Expand} function. */
+  ST_EXPAND,
+
+  /** The {@code ST_Explode} function. */
+  ST_EXPLODE,
+
+  /** The {@code ST_Extent} function. */
+  ST_EXTENT,
+
+  /** The {@code ST_ExteriorRing} function. */
+  ST_EXTERIORRING,
+
+  /** The {@code ST_FlipCoordinates} function. */
+  ST_FLIPCOORDINATES,
+
+  /** The {@code ST_Force2D} function. */
+  ST_FORCE2D,
+
+  /** The {@code ST_Force3D} function. */
+  ST_FORCE3D,
+
+  /** The {@code ST_FurthestCoordinate} function. */
+  ST_FURTHESTCOORDINATE,
+
+  /** The {@code ST_GeomFromEWKB} function. */
+  ST_GEOMFROMEWKB,
+
+  /** The {@code ST_GeomFromEWKT} function. */
+  ST_GEOMFROMEWKT,
+
+  /** The {@code ST_GeomFromGML} function. */
+  ST_GEOMFROMGML,
+
+  /** The {@code ST_GeomFromGeoJSON} function. */
+  ST_GEOMFROMGEOJSON,
+
+  /** The {@code ST_GeomFromText} function. */
+  ST_GEOMFROMTEXT,
+
+  /** The {@code ST_GeomFromWKB} function. */
+  ST_GEOMFROMWKB,
+
+  /** The {@code ST_GeomFromWKT} function. */
+  ST_GEOMFROMWKT,
+
+  /** The {@code ST_GeometryN} function. */
+  ST_GEOMETRYN,
+
+  /** The {@code ST_GeometryType} function. */
+  ST_GEOMETRYTYPE,
+
+  /** The {@code ST_GeometryTypeCode} function. */
+  ST_GEOMETRYTYPECODE,
+
+  /** The {@code ST_Holes} function. */
+  ST_HOLES,
+
+  /** The {@code ST_InteriorRing} function. */
+  ST_INTERIORRING,
+
+  /** The {@code ST_Intersection} function. */
+  ST_INTERSECTION,
+
+  /** The {@code ST_Intersects} function. */
+  ST_INTERSECTS,
+
+  /** The {@code ST_Is3D} function. */
+  ST_IS3D,
+
+  /** The {@code ST_IsClosed} function. */
+  ST_ISCLOSED,
+
+  /** The {@code ST_IsEmpty} function. */
+  ST_ISEMPTY,
+
+  /** The {@code ST_IsRectangle} function. */
+  ST_ISRECTANGLE,
+
+  /** The {@code ST_IsRing} function. */
+  ST_ISRING,
+
+  /** The {@code ST_IsSimple} function. */
+  ST_ISSIMPLE,
+
+  /** The {@code ST_IsValid} function. */
+  ST_ISVALID,
+
+  /** The {@code ST_Length} function. */
+  ST_LENGTH,
+
+  /** The {@code ST_LineFromText} function. */
+  ST_LINEFROMTEXT,
+
+  /** The {@code ST_LineFromWKB} function. */
+  ST_LINEFROMWKB,
+
+  /** The {@code ST_LineMerge} function. */
+  ST_LINEMERGE,
+
+  /** The {@code ST_LocateAlong} function. */
+  ST_LOCATEALONG,
+
+  /** The {@code ST_LongestLine} function. */
+  ST_LONGESTLINE,
+
+  /** The {@code ST_MLineFromText} function. */
+  ST_MLINEFROMTEXT,
+
+  /** The {@code ST_MPointFromText} function. */
+  ST_MPOINTFROMTEXT,
+
+  /** The {@code ST_MPolyFromText} function. */
+  ST_MPOLYFROMTEXT,
+
+  /** The {@code ST_MakeEllipse} function. */
+  ST_MAKEELLIPSE,
+
+  /** The {@code ST_MakeEnvelope} function. */
+  ST_MAKEENVELOPE,
+
+  /** The {@code ST_MakeGrid} function. */
+  ST_MAKEGRID,
+
+  /** The {@code ST_MakeGridPoints} function. */
+  ST_MAKEGRIDPOINTS,
+
+  /** The {@code ST_MakeLine} function. */
+  ST_MAKELINE,
+
+  /** The {@code ST_MakePoint} function. */
+  ST_MAKEPOINT,
+
+  /** The {@code ST_MakePolygon} function. */
+  ST_MAKEPOLYGON,
+
+  /** The {@code ST_MakeValid} function. */
+  ST_MAKEVALID,
+
+  /** The {@code ST_MaxDistance} function. */
+  ST_MAXDISTANCE,
+
+  /** The {@code ST_MinimumDiameter} function. */
+  ST_MINIMUMDIAMETER,
+
+  /** The {@code ST_MinimumRectangle} function. */
+  ST_MINIMUMRECTANGLE,
+
+  /** The {@code ST_NPoints} function. */
+  ST_NPOINTS,
+
+  /** The {@code ST_Normalize} function. */
+  ST_NORMALIZE,
+
+  /** The {@code ST_NumGeometries} function. */
+  ST_NUMGEOMETRIES,
+
+  /** The {@code ST_NumInteriorRing} function. */
+  ST_NUMINTERIORRING,
+
+  /** The {@code ST_NumInteriorRings} function. */
+  ST_NUMINTERIORRINGS,
+
+  /** The {@code ST_NumPoints} function. */
+  ST_NUMPOINTS,
+
+  /** The {@code ST_OctagonalEnvelope} function. */
+  ST_OCTAGONALENVELOPE,
+
+  /** The {@code ST_OffsetCurve} function. */
+  ST_OFFSETCURVE,
+
+  /** The {@code ST_OrderingEquals} function. */
+  ST_ORDERINGEQUALS,
+
+  /** The {@code ST_Overlaps} function. */
+  ST_OVERLAPS,
+
+  /** The {@code ST_Perimeter} function. */
+  ST_PERIMETER,
 
   /** The {@code ST_Point} function. */
   ST_POINT,
 
-  /** The {@code ST_Point} function that makes a 3D point. */
-  ST_POINT3,
+  /** The {@code ST_PointFromText} function. */
+  ST_POINTFROMTEXT,
 
-  /** The {@code ST_MakeLine} function that makes a line. */
-  ST_MAKE_LINE,
+  /** The {@code ST_PointFromWKB} function. */
+  ST_POINTFROMWKB,
 
-  /** The {@code ST_Contains} function that tests whether one geometry contains
-   * another. */
-  ST_CONTAINS,
+  /** The {@code ST_PointN} function. */
+  ST_POINTN,
+
+  /** The {@code ST_PointOnSurface} function. */
+  ST_POINTONSURFACE,
+
+  /** The {@code ST_PolyFromText} function. */
+  ST_POLYFROMTEXT,
+
+  /** The {@code ST_PolyFromWKB} function. */
+  ST_POLYFROMWKB,
+
+  /** The {@code ST_Polygonize} function. */
+  ST_POLYGONIZE,
+
+  /** The {@code ST_PrecisionReducer} function. */
+  ST_PRECISIONREDUCER,
+
+  /** The {@code ST_ProjectPoint} function. */
+  ST_PROJECTPOINT,
+
+  /** The {@code ST_ReducePrecision} function. */
+  ST_REDUCEPRECISION,
+
+  /** The {@code ST_Relate} function. */
+  ST_RELATE,
+
+  /** The {@code ST_RemoveHoles} function. */
+  ST_REMOVEHOLES,
+
+  /** The {@code ST_RemovePoint} function. */
+  ST_REMOVEPOINT,
+
+  /** The {@code ST_RemoveRepeatedPoints} function. */
+  ST_REMOVEREPEATEDPOINTS,
+
+  /** The {@code ST_Reverse} function. */
+  ST_REVERSE,
+
+  /** The {@code ST_Rotate} function. */
+  ST_ROTATE,
+
+  /** The {@code ST_SRID} function. */
+  ST_SRID,
+
+  /** The {@code ST_Scale} function. */
+  ST_SCALE,
+
+  /** The {@code ST_SetSRID} function. */
+  ST_SETSRID,
+
+  /** The {@code ST_Simplify} function. */
+  ST_SIMPLIFY,
+
+  /** The {@code ST_SimplifyPreserveTopology} function. */
+  ST_SIMPLIFYPRESERVETOPOLOGY,
+
+  /** The {@code ST_Snap} function. */
+  ST_SNAP,
+
+  /** The {@code ST_Split} function. */
+  ST_SPLIT,
+
+  /** The {@code ST_StartPoint} function. */
+  ST_STARTPOINT,
+
+  /** The {@code ST_SymDifference} function. */
+  ST_SYMDIFFERENCE,
+
+  /** The {@code ST_ToMultiLine} function. */
+  ST_TOMULTILINE,
+
+  /** The {@code ST_ToMultiPoint} function. */
+  ST_TOMULTIPOINT,
+
+  /** The {@code ST_ToMultiSegments} function. */
+  ST_TOMULTISEGMENTS,
+
+  /** The {@code ST_Touches} function. */
+  ST_TOUCHES,
+
+  /** The {@code ST_Transform} function. */
+  ST_TRANSFORM,
+
+  /** The {@code ST_Translate} function. */
+  ST_TRANSLATE,
+
+  /** The {@code ST_UnaryUnion} function. */
+  ST_UNARYUNION,
+
+  /** The {@code ST_Union} function. */
+  ST_UNION,
+
+  /** The {@code ST_Within} function. */
+  ST_WITHIN,
+
+  /** The {@code ST_X} function. */
+  ST_X,
+
+  /** The {@code ST_XMax} function. */
+  ST_XMAX,
+
+  /** The {@code ST_XMin} function. */
+  ST_XMIN,
+
+  /** The {@code ST_Y} function. */
+  ST_Y,
+
+  /** The {@code ST_YMax} function. */
+  ST_YMAX,
+
+  /** The {@code ST_YMin} function. */
+  ST_YMIN,
+
+  /** The {@code ST_Z} function. */
+  ST_Z,
+
+  /** The {@code ST_ZMax} function. */
+  ST_ZMAX,
+
+  /** The {@code ST_ZMin} function. */
+  ST_ZMIN,
 
   /** The {@code Hilbert} function that converts (x, y) to a position on a
    * Hilbert space-filling curve. */
@@ -1862,8 +2266,8 @@ public enum SqlKind {
     case CONTAINS_SUBSTR:
     case ST_DWITHIN:
     case ST_POINT:
-    case ST_POINT3:
-    case ST_MAKE_LINE:
+    case ST_POINTN:
+    case ST_MAKELINE:
     case ST_CONTAINS:
     case HILBERT:
       return OTHER_FUNCTION;

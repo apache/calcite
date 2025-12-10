@@ -74,6 +74,7 @@ import org.apache.calcite.test.schemata.bookstore.BookstoreSchema;
 import org.apache.calcite.test.schemata.countries.CountriesTableFunction;
 import org.apache.calcite.test.schemata.countries.StatesTableFunction;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
+import org.apache.calcite.test.schemata.geometry.GeometrySchema;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.lingual.LingualSchema;
 import org.apache.calcite.test.schemata.orderstream.OrdersHistoryTable;
@@ -906,7 +907,7 @@ public class CalciteAssert {
       rootSchema.add("ST_COLLECT",
           requireNonNull(AggregateFunctionImpl.create(CollectOperation.class)));
       final SchemaPlus s =
-          rootSchema.add(schema.schemaName, new AbstractSchema());
+          rootSchema.add(schema.schemaName, new ReflectiveSchema(new GeometrySchema()));
       ModelHandler.addFunctions(s, "countries", emptyPath,
           CountriesTableFunction.class.getName(), null, false);
       final String sql = "select * from table(\"countries\"(true))";

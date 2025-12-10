@@ -63,7 +63,18 @@ public interface RelDataTypeFactory {
    * @param clazz the Java class used to define the type
    * @return canonical Java type descriptor
    */
-  RelDataType createJavaType(Class clazz);
+  default RelDataType createJavaType(Class clazz) {
+    return createJavaType(clazz, null);
+  }
+
+  /**
+   * Creates a type that corresponds to a Java class, with a given family.
+   *
+   * @param clazz the Java class used to define the type
+   * @param family The family of the type, or null to infer
+   * @return canonical Java type descriptor
+   */
+  RelDataType createJavaType(Class clazz, @Nullable RelDataTypeFamily family);
 
   /**
    * Creates a cartesian product type.

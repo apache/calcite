@@ -175,7 +175,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               javaType.getJavaClass(),
               javaType.isNullable(),
               charset,
-              collation);
+              collation,
+              javaType.getFamily());
     } else {
       throw Util.needToImplement("need to implement " + type);
     }

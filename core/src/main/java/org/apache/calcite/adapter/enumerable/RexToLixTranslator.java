@@ -403,7 +403,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case CHAR:
       case VARCHAR:
         return Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand);
-
+      case BINARY:
+      case VARBINARY:
+        return Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKB.method, operand);
       default:
         return defaultExpression.get();
       }
