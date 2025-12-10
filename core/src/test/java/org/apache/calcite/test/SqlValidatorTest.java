@@ -13739,6 +13739,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select e.ename, e.empno by d.name as dept DESC, e.job as title "
         + "from emp as e join dept as d on e.deptno = d.deptno where d.name = 'SALES'")
         .ok();
+
+    // Test SELECT BY cannot be used with GROUP BY
+    sql("select ename by deptno from emp ^group by empno^")
+        .fails("SELECT BY cannot be used with GROUP BY");
+    // Test SELECT BY cannot be used with ORDER BY
+    sql("select ename by deptno from emp ^order by empno^")
+        .fails("SELECT BY cannot be used with ORDER BY");
   }
 
   /** Validator that rewrites columnar sql identifiers 'UNEXPANDED'.'Something'

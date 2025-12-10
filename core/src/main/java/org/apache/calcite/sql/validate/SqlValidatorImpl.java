@@ -1558,6 +1558,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (by == null) {
       return;
     }
+    if (select.getGroup() != null && !select.getGroup().isEmpty()) {
+      throw newValidationError(select.getGroup(), RESOURCE.selectByAndGroupBy());
+    }
+    if (select.getOrderList() != null && !select.getOrderList().isEmpty()) {
+      throw newValidationError(select.getOrderList(), RESOURCE.selectByAndOrderBy());
+    }
     // Mark this select as having a BY clause, so that we can enable
     // non-strict GROUP BY behavior (wrapping non-grouped columns in ANY_VALUE).
     selectsWithBy.add(select);
@@ -1606,10 +1612,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean underFrom) {
     if (node == null) {
       return null;
-    }
-
-    if (node instanceof SqlSelect) {
-      rewriteSelectBy((SqlSelect) node);
     }
 
     // first transform operands and invoke generic call rewrite
@@ -3091,11 +3093,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope2);
       clauseScopes.put(IdPair.of(select, Clause.MEASURE),
           new MeasureScope(selectScope, select));
-      if (select.getGroup() != null) {
+      if (select.getGroup() != null || select.getBy() != null) {
+        SqlNodeList groupList = first(select.getBy(), select.getGroup());
         GroupByScope groupByScope =
-            new GroupByScope(selectScope, select.getGroup(), select);
+            new GroupByScope(selectScope, groupList, select);
         clauseScopes.put(IdPair.of(select, Clause.GROUP_BY), groupByScope);
-        registerSubQueries(groupByScope, select.getGroup());
+        registerSubQueries(groupByScope, groupList);
       }
       registerOperandSubQueries(
           selectScope2,
@@ -3103,7 +3106,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlSelect.HAVING_OPERAND);
       registerSubQueries(selectScope2,
           SqlNonNullableAccessors.getSelectList(select));
-      final SqlNodeList orderList = select.getOrderList();
+      final SqlNodeList orderList = first(select.getBy(), select.getOrderList());
       if (orderList != null) {
         // If the query is 'SELECT DISTINCT', restrict the columns
         // available to the ORDER BY clause.
@@ -3471,7 +3474,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * <p>The node is useful context for error messages,
    * but you cannot assume that the node is the only aggregate function. */
   protected @Nullable SqlNode getAggregate(SqlSelect select) {
-    SqlNode node = select.getGroup();
+    SqlNode node = first(select.getGroup(), select.getBy());
     if (node != null) {
       return node;
     }
@@ -4282,6 +4285,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       validateFrom(from, fromType, fromScope);
     }
+
+    rewriteSelectBy(select);
 
     validateWhereClause(select);
     validateGroupClause(select);
