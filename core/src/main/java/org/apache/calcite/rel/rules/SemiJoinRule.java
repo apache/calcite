@@ -108,9 +108,9 @@ public abstract class SemiJoinRule
       final ImmutableIntList newRightKeys = ImmutableIntList.copyOf(newRightKeyBuilder);
       relBuilder.push(aggregate.getInput());
       final RexNode newCondition =
-          RelOptUtil.createEquiJoinCondition(relBuilder.peek(2, 0),
+          RelOptUtil.createHashJoinCondition(relBuilder.peek(2, 0),
               joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys,
-              rexBuilder);
+              joinInfo.nullExclusionFlags, rexBuilder);
       relBuilder.semiJoin(newCondition).hints(join.getHints());
       break;
 

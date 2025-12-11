@@ -4155,7 +4155,7 @@ public class JdbcTest {
         + "on \"t1\".\"commission\" is not distinct from \"t2\".\"commission\"";
     CalciteAssert.hr()
         .query(sql)
-        .explainContains("NestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)]")
+        .explainContains("HashJoin(condition=[IS NOT DISTINCT FROM($0, $1)]")
         .returnsUnordered("commission=1000",
             "commission=250",
             "commission=500",
