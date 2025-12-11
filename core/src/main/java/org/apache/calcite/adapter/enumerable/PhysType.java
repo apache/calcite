@@ -134,6 +134,15 @@ public interface PhysType {
    */
   Expression generateAccessorWithoutNulls(List<Integer> fields);
 
+  /**
+   * Similar to {@link #generateAccessor(List)} and {@link #generateAccessorWithoutNulls(List)},
+   * but it's null-aware. It returns a Expression which evaluates to null (if one of
+   * field is null and it isn't null-safe) or a list of
+   * fields that may contain null (no field is null, or there are fields with null but they are
+   * null-safe) at runtime.
+   */
+  Expression generateNullAwareAccessor(List<Integer> fields, List<Boolean> nullExclusionFlags);
+
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */
   Expression generateSelector(

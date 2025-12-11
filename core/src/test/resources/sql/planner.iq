@@ -54,7 +54,7 @@ select * from t as t2 where t2.i > 0;
 
 !ok
 
-EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
   EnumerableValues(tuples=[[{ 0 }, { 1 }]])
   EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[>($t0, $t1)], EXPR$0=[$t0], $condition=[$t2])
     EnumerableValues(tuples=[[{ 0 }, { 1 }]])
@@ -74,7 +74,7 @@ select * from t as t2 where t2.i > 0;
 
 !ok
 
-EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
   EnumerableValues(tuples=[[{ 0 }, { 1 }]])
   EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[>($t0, $t1)], EXPR$0=[$t0], $condition=[$t2])
     EnumerableValues(tuples=[[{ 0 }, { 1 }]])
@@ -215,14 +215,13 @@ select a from (values (1.0), (4.0), (null)) as t3 (a);
 !ok
 
 EnumerableAggregate(group=[{0}])
-  EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+  EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
     EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):DECIMAL(11, 1)], A=[$t1])
-      EnumerableAggregate(group=[{0}])
-        EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):DECIMAL(11, 1) NOT NULL], A=[$t1])
-            EnumerableValues(tuples=[[{ 1.0 }, { 2.0 }, { 3.0 }, { 4.0 }, { 5.0 }]])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):DECIMAL(11, 1) NOT NULL], A=[$t1])
-            EnumerableValues(tuples=[[{ 1 }, { 2 }]])
+      EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):DECIMAL(11, 1)], A=[$t1])
+          EnumerableValues(tuples=[[{ 1.0 }, { 2.0 }, { 3.0 }, { 4.0 }, { 5.0 }]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):DECIMAL(11, 1)], A=[$t1])
+          EnumerableValues(tuples=[[{ 1 }, { 2 }]])
     EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):DECIMAL(11, 1)], A=[$t1])
       EnumerableValues(tuples=[[{ 1.0 }, { 4.0 }, { null }]])
 !plan

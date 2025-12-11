@@ -1470,11 +1470,24 @@ public abstract class RelOptUtil {
     nonEquiList.add(condition);
   }
 
-  /** Builds an equi-join condition from a set of left and right keys. */
+  /** Builds an equi-join condition by conjoining EQUALS operator for each corresponding pair of
+   * leftKeys and rightKeys. */
   public static RexNode createEquiJoinCondition(
       final RelNode left, final List<Integer> leftKeys,
       final RelNode right, final List<Integer> rightKeys,
       final RexBuilder rexBuilder) {
+    List<Boolean> filterNulls = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
+    return createHashJoinCondition(left, leftKeys, right, rightKeys,
+        filterNulls, rexBuilder);
+  }
+
+  /** Builds an equi-join condition by conjoining operators for each corresponding pair of
+   * leftKeys and rightKeys. The operator is EQUALS if filterNulls is true for that
+   * position, otherwise IS NOT DISTINCT FROM. */
+  public static RexNode createHashJoinCondition(
+      final RelNode left, final List<Integer> leftKeys,
+      final RelNode right, final List<Integer> rightKeys,
+      final List<Boolean> filterNulls, final RexBuilder rexBuilder) {
     final List<RelDataType> leftTypes =
         RelOptUtil.getFieldTypeList(left.getRowType());
     final List<RelDataType> rightTypes =
@@ -1484,7 +1497,11 @@ public abstract class RelOptUtil {
           @Override public RexNode get(int index) {
             final int leftKey = leftKeys.get(index);
             final int rightKey = rightKeys.get(index);
-            return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            final SqlOperator operator =
+                filterNulls.get(index)
+                  ? SqlStdOperatorTable.EQUALS
+                  : SqlStdOperatorTable.IS_NOT_DISTINCT_FROM;
+            return rexBuilder.makeCall(operator,
                 rexBuilder.makeInputRef(leftTypes.get(leftKey), leftKey),
                 rexBuilder.makeInputRef(rightTypes.get(rightKey),
                     leftTypes.size() + rightKey));

@@ -642,6 +642,21 @@ public class PhysTypeImpl implements PhysType {
     }
   }
 
+  private static Expression getListExpressionAllowSingleElement(
+      Expressions.FluentList<Expression> list) {
+    assert list.size() > 0;
+
+    if (list.size() == 1) {
+      return Expressions.call(
+          List.class,
+          null,
+          BuiltInMethod.LIST1.method,
+          list);
+    } else {
+      return getListExpression(list);
+    }
+  }
+
   private static Expression getListExpression(Expressions.FluentList<Expression> list) {
     assert list.size() >= 2;
 
@@ -709,6 +724,41 @@ public class PhysTypeImpl implements PhysType {
               Expressions.equal(list.get(i), Expressions.constant(null)),
               Expressions.constant(null),
               exp);
+    }
+    return Expressions.lambda(Function1.class, exp, v1);
+  }
+
+  @Override public Expression generateNullAwareAccessor(
+      List<Integer> fields,
+      List<Boolean> nullExclusionFlags) {
+    assert fields.size() == nullExclusionFlags.size();
+    ParameterExpression v1 = Expressions.parameter(javaRowClass, "v1");
+    if (fields.isEmpty()) {
+      return Expressions.lambda(
+          Function1.class,
+          Expressions.field(
+              null,
+              BuiltInMethod.COMPARABLE_EMPTY_LIST.field),
+          v1);
+    }
+    Expressions.FluentList<Expression> list = Expressions.list();
+    for (int field : fields) {
+      list.add(fieldReference(v1, field));
+    }
+
+    // in the HashJoin key selector scenario, when there is exactly one join key and it is
+    // null-safe, a row whose join key is null must still be correctly recognized and extracted.
+    // Therefore, when list.size() == 1, this method returns a list containing a single
+    // element (which may be null) rather than returning the element directly.
+    Expression exp = getListExpressionAllowSingleElement(list);
+    for (int i = list.size() - 1; i >= 0; i--) {
+      if (nullExclusionFlags.get(i)) {
+        exp =
+            Expressions.condition(
+                Expressions.equal(list.get(i), Expressions.constant(null)),
+                Expressions.constant(null),
+                exp);
+      }
     }
     return Expressions.lambda(Function1.class, exp, v1);
   }
