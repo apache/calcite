@@ -558,7 +558,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return groupList.getList().stream()
           .noneMatch(groupItem -> groupItem != null
-              && node.equalsDeep(stripAs(groupItem), Litmus.IGNORE));
+              && node.equalsDeep(groupItem, Litmus.IGNORE));
     }
 
     if (node instanceof SqlCall) {
@@ -1576,7 +1576,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> extraSelectItems = new ArrayList<>();
     for (SqlNode node : by) {
       // 1. selectItem: strip sort modifiers
-      SqlNode selectItem = SqlUtil.stripOrderModifiers(node);
+      SqlNode selectItem = SqlUtil.withoutOrderModifiers(node);
       extraSelectItems.add(selectItem);
 
       // 2. groupItem: strip sort modifiers and AS
@@ -1584,7 +1584,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       groupBy.add(groupItem.clone(groupItem.getParserPosition()));
 
       // 3. orderItem: strip AS, keep sort modifiers
-      SqlNode orderItem = SqlUtil.stripAsFromOrder(node);
+      SqlNode orderItem = SqlUtil.withoutAsFromOrder(node);
       orderBy.add(orderItem.clone(orderItem.getParserPosition()));
     }
 
@@ -7661,7 +7661,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final String alias = id.getSimple();
       final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
       for (SqlNode byNode : byList) {
-        final SqlNode stripped = SqlUtil.stripOrderModifiers(byNode);
+        final SqlNode stripped = SqlUtil.withoutOrderModifiers(byNode);
         if (stripped instanceof SqlCall) {
           final SqlCall call = (SqlCall) stripped;
           if (call.getOperator().getKind() == SqlKind.AS) {
