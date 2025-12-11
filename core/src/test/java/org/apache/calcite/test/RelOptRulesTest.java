@@ -114,6 +114,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -126,6 +127,7 @@ import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql2rel.RelDecorrelator;
@@ -140,6 +142,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -6184,6 +6187,32 @@ class RelOptRulesTest extends RelOptTestBase {
         + " sum(case when deptno = -1 then 3 else -1 end) as sum_no_match3\n"
         + "from emp";
     sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7330">[CALCITE-7330]
+   * AggregateCaseToFilterRule should not be applied on aggregate functions that
+   * don't skip NULL inputs</a>. */
+  @Test void testAggregateCaseToFilterWithCustomNullAwareUdaf() {
+    final SqlAggFunction nullAwareAgg =
+        new SqlAggFunction("NULL_AWARE_SUM", null, SqlKind.SUM, ReturnTypes.ARG0_NULLABLE, null,
+        OperandTypes.NUMERIC, SqlFunctionCategory.NUMERIC, false, false,
+        Optionality.FORBIDDEN) {
+      @Override public boolean skipsNullInputs() {
+        return false; // NULL values are semantically relevant
+      }
+    };
+
+    final String sql = "select null_aware_sum(case when deptno > 10 then sal else null end)\n"
+        + "from emp";
+
+    sql(sql)
+        .withFactory(t ->
+            t.withOperatorTable(opTab ->
+                SqlOperatorTables.chain(opTab,
+                    SqlOperatorTables.of(ImmutableList.of(nullAwareAgg)))))
+        .withRule(CoreRules.AGGREGATE_CASE_TO_FILTER)
+        .checkUnchanged();
   }
 
   @Test void testPullAggregateThroughUnion() {
