@@ -13373,7 +13373,14 @@ public class SqlOperatorTest {
             + "<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<ANY>\\]\n"
             + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
-            + "<VARIANT>\\[<ANY>\\]",
+            + "<VARIANT>\\[<CHARACTER>\\|<INTEGER>\\]",
+        false);
+    f.checkFails("^CAST(MAP[4.2, 1] AS VARIANT)[4.2]^",
+        "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<VARIANT>, <DECIMAL\\(2, 1\\)>\\)'\\. "
+            + "Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
+            + "<MAP>\\[<ANY>\\]\n"
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
+            + "<VARIANT>\\[<CHARACTER>\\|<INTEGER>\\]",
         false);
 
     // Array of INTEGER NOT NULL is interesting because we might be tempted
