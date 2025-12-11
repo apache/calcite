@@ -1394,7 +1394,7 @@ SqlSelect SqlSelect() :
         }
     )
     {
-        final SqlSelect select = SqlSelect.create(s.end(this), keywordList,
+        final SqlSelect select = new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, windowDecls, qualify,
             null, null, null, new SqlNodeList(hints, getPos()));

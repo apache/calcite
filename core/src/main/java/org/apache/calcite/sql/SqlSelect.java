@@ -91,24 +91,6 @@ public class SqlSelect extends SqlCall {
     this.hasByClause = false;
   }
 
-  /** Creates a SELECT node after parser-level BY transformation. */
-  public static SqlSelect create(SqlParserPos pos,
-      @Nullable SqlNodeList keywordList,
-      SqlNodeList selectList,
-      @Nullable SqlNode from,
-      @Nullable SqlNode where,
-      @Nullable SqlNodeList groupBy,
-      @Nullable SqlNode having,
-      @Nullable SqlNodeList windowDecls,
-      @Nullable SqlNode qualify,
-      @Nullable SqlNodeList orderBy,
-      @Nullable SqlNode offset,
-      @Nullable SqlNode fetch,
-      @Nullable SqlNodeList hints) {
-    return new SqlSelect(pos, keywordList, selectList, from, where, groupBy,
-        having, windowDecls, qualify, orderBy, offset, fetch, hints);
-  }
-
   /** deprecated, without {@code qualify}. */
   @Deprecated // to be removed before 2.0
   public SqlSelect(SqlParserPos pos,
@@ -177,9 +159,6 @@ public class SqlSelect extends SqlCall {
       break;
     case 10:
       fetch = operand;
-      break;
-    case 11:
-      hints = (SqlNodeList) operand;
       break;
     default:
       throw new AssertionError(i);

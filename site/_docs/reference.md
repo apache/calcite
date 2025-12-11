@@ -219,9 +219,7 @@ The optional, non-standard `BY` clause groups and orders the query by
 the specified expressions, and automatically adds them to the SELECT list
 for naming and positional reference. But `SELECT ... BY` cannot be combined
 with an explicit `GROUP BY` or `ORDER BY` clause in the same query.
-
-Note:
-* `SELECT ... BY` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeSelectBy` to `true` (the standard parser leaves that flag `false`).
+`SELECT ... BY` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeSelectBy` to `true`.
 
 For example:
 
