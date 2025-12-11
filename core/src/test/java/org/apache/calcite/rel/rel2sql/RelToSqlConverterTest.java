@@ -38,8 +38,10 @@ import org.apache.calcite.rel.rules.AggregateGroupingSetsToUnionRule;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.FilterCorrelateRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FullToLeftAndRightJoinRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectOverSumToSum0Rule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -11047,6 +11049,37 @@ class RelToSqlConverterTest {
     builder.addRuleClass(FilterJoinRule.FilterIntoJoinRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
     RuleSet rules = RuleSets.ofList(CoreRules.FILTER_INTO_JOIN);
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .optimize(rules, hepPlanner)
+        .ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7326">[CALCITE-7326]
+   * FILTER_CORRELATE rule loses correlation variable context in HepPlanner</a>. */
+  @Test void testFilterCorrelateMissingVariableCor() {
+    final String sql = "SELECT E.EMPNO\n"
+        + "FROM EMP E\n"
+        + "JOIN DEPT D ON E.DEPTNO = D.DEPTNO\n"
+        + "WHERE D.DEPTNO = (\n"
+        + "  SELECT MIN(D_INNER.DEPTNO)\n"
+        + "  FROM DEPT D_INNER\n"
+        + "  WHERE D_INNER.DEPTNO = E.DEPTNO)";
+    final String expected = "SELECT \"$cor1\".\"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"$cor1\",\n"
+        + "LATERAL (SELECT *\nFROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"$cor1\".\"DEPTNO\" = \"DEPTNO\") AS \"t\"\n"
+        + "WHERE \"t\".\"DEPTNO\" = (((SELECT MIN(\"DEPTNO\")\n"
+        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"$cor1\".\"DEPTNO\")))";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(JoinToCorrelateRule.class);
+    builder.addRuleClass(FilterCorrelateRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.JOIN_TO_CORRELATE,
+            CoreRules.FILTER_CORRELATE);
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withCalcite()

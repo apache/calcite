@@ -70,11 +70,23 @@ public class FilterCorrelateRule
     final Filter filter = call.rel(0);
     final Correlate corr = call.rel(1);
 
-    final List<RexNode> aboveFilters =
+    List<RexNode> aboveFilters =
         RelOptUtil.conjunctions(filter.getCondition());
 
     final List<RexNode> leftFilters = new ArrayList<>();
     final List<RexNode> rightFilters = new ArrayList<>();
+
+    // Do not consider moving predicates that contain correlation variables
+    final List<RexNode> ineligible = new ArrayList<>();
+    final List<RexNode> eligible = new ArrayList<>();
+    for (RexNode f : aboveFilters) {
+      if (RexUtil.containsCorrelation(f)) {
+        ineligible.add(f);
+      } else {
+        eligible.add(f);
+      }
+    }
+    aboveFilters = eligible;
 
     // Try to push down above filters. These are typically where clause
     // filters. They can be pushed down if they are not on the NULL
@@ -88,6 +100,9 @@ public class FilterCorrelateRule
         aboveFilters,
         leftFilters,
         rightFilters);
+
+    // Add back the ineligible filters
+    aboveFilters.addAll(ineligible);
 
     if (leftFilters.isEmpty()
         && rightFilters.isEmpty()) {
