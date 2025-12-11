@@ -297,7 +297,7 @@ public class SqlSimpleParser {
         ++pos;
         if (c == closeQuote) {
           if (pos < sql.length() && sql.charAt(pos) == closeQuote) {
-            // Double close means escaped closing quote is a part of identifer
+            // Double close means escaped closing quote is a part of identifier
             ++pos;
             continue;
           }

@@ -2860,7 +2860,7 @@ select cast(cast("1985-12-02" as date) as varchar format "\"free text\"");
 No datetime tokens provided.
 !error
 
-# FX modifier not at the begining of the format.
+# FX modifier not at the beginning of the format.
 select cast("2001-03-01 00:10:02" as timestamp format
     "YYYY-MM-DD FXHH12:MI:SS");
 FX modifier should be at the beginning of the format string.

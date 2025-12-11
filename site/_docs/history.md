@@ -1577,7 +1577,7 @@ other software versions as specified in gradle.properties.
   `AssertionError`: "Conversion to relational algebra failed to preserve datatypes"
   when union `VARCHAR` literal and `CAST(null AS INTEGER)`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6178">CALCITE-6178</a>]
-  `WITH RECURSIVE` query when cloned using `SqlShuttle` looses `RECURSIVE` property
+  `WITH RECURSIVE` query when cloned using `SqlShuttle` loses `RECURSIVE` property
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6332">CALCITE-6332</a>]
   Optimization `CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN` produces
   incorrect results for aggregates with groupSets

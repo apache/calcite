@@ -81,7 +81,7 @@ public class Db2SqlDialect extends SqlDialect {
     // A duration is a positive or negative number representing an interval of time.
     // If one operand is a date, the other labeled duration of YEARS, MONTHS, or DAYS.
     // If one operand is a time, the other must be labeled duration of HOURS, MINUTES, or SECONDS.
-    // If one operand is a timestamp, the other operand can be any of teh duration.
+    // If one operand is a timestamp, the other operand can be any duration.
 
     SqlIntervalLiteral.IntervalValue interval =
         literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
