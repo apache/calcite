@@ -5597,6 +5597,46 @@ LogicalFilter(condition=[<($0, 20)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterIntoJoinMissingVariableCor">
+    <Resource name="sql">
+      <![CDATA[SELECT E.EMPNO
+FROM EMP E
+JOIN DEPT D ON E.DEPTNO = D.DEPTNO
+WHERE  E.EMPNO > 10 AND D.DEPTNO = (
+  SELECT MIN(D_INNER.DEPTNO)
+  FROM DEPT D_INNER
+  WHERE D_INNER.DEPTNO = E.DEPTNO)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(>($0, 10), =($9, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject(DEPTNO=[$0])
+    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})))], variablesSet=[[$cor0]])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=($9, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject(DEPTNO=[$0])
+    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalFilter(condition=[>($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterJoinRuleAndIsNotNull">
     <Resource name="sql">
       <![CDATA[select * from
