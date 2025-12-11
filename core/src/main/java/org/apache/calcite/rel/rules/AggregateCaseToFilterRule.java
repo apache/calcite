@@ -230,7 +230,8 @@ public class AggregateCaseToFilterRule
           false, call.rexList, ImmutableList.of(), newProjects.size() - 1, null,
           RelCollations.EMPTY, dataType, call.getName());
     } else if ((RexLiteral.isNullLiteral(arg2) // Case A1
-            && call.getAggregation().allowsFilter())
+            && call.getAggregation().allowsFilter()
+            && call.getAggregation().skipsNullInputs())
         || (kind == SqlKind.SUM0 // Case A2
             && isIntLiteral(arg2, BigDecimal.ZERO))) {
       newProjects.add(arg1);

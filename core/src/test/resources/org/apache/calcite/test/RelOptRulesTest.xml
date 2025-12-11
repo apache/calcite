@@ -88,6 +88,19 @@ LogicalAggregate(group=[{}], SUM_NO_MATCH=[SUM($0)], SUM_NO_MATCH2=[SUM($1)], SU
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateCaseToFilterWithCustomNullAwareUdaf">
+    <Resource name="sql">
+      <![CDATA[select null_aware_sum(case when deptno > 10 then sal else null end)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[NULL_AWARE_SUM($0)])
+  LogicalProject($f0=[CASE(>($7, 10), $5, null:INTEGER)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateConstantKeyRule">
     <Resource name="sql">
       <![CDATA[select count(*) as c
