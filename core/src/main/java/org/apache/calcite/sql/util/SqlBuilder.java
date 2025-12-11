@@ -30,7 +30,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>Using this class helps to prevent SQL injection attacks, incorrectly
  * quoted identifiers and strings. These problems occur when you build SQL by
- * concatenating strings, and you forget to treat identifers and string literals
+ * concatenating strings, and you forget to treat identifiers and string literals
  * correctly. SqlBuilder has special methods for appending identifiers and
  * literals.
  */
