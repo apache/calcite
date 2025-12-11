@@ -60,7 +60,10 @@ class EnumerableMergeJoinRule extends ConverterRule {
 
   @Override public @Nullable RelNode convert(RelNode rel) {
     Join join = (Join) rel;
-    final JoinInfo info = join.analyzeCondition();
+    // EnumerableMergeJoin cannot use IS NOT DISTINCT FROM condition as join keys. More details
+    // in EnumerableMergeJoin.java.
+    final JoinInfo info =
+        JoinInfo.createWithStrictEquality(join.getLeft(), join.getRight(), join.getCondition());
     if (!EnumerableMergeJoin.isMergeJoinSupported(join.getJoinType())) {
       // EnumerableMergeJoin only supports certain join types.
       return null;

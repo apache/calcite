@@ -306,6 +306,7 @@ public enum BuiltInMethod {
       FlatProductInputType[].class),
   FLAT_LIST(SqlFunctions.class, "flatList"),
   LIST_N(FlatLists.class, "copyOf", Comparable[].class),
+  LIST1(FlatLists.class, "ofSingle", Object.class),
   LIST2(FlatLists.class, "of", Object.class, Object.class),
   LIST3(FlatLists.class, "of", Object.class, Object.class, Object.class),
   LIST4(FlatLists.class, "of", Object.class, Object.class, Object.class,

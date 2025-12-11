@@ -29,6 +29,7 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -36,9 +37,10 @@ import static java.util.Objects.requireNonNull;
 /** An analyzed join condition.
  *
  * <p>It is useful for the many algorithms that care whether a join has an
- * equi-join condition.
+ * equi-join condition (contains EQUALS and IS NOT DISTINCT FROM).
  *
- * <p>You can create one using {@link #createWithStrictEquality}, or call
+ * <p>You can create one using {@link #of(RelNode, RelNode, RexNode)},
+ * {@link #createWithStrictEquality}, or call
  * {@link Join#analyzeCondition()}; many kinds of join cache their
  * join info, especially those that are equi-joins.
  *
@@ -46,16 +48,18 @@ import static java.util.Objects.requireNonNull;
 public class JoinInfo {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;
+  public final ImmutableList<Boolean> filterNulls;
   public final ImmutableList<RexNode> nonEquiConditions;
 
   /** Creates a JoinInfo. */
   protected JoinInfo(ImmutableIntList leftKeys, ImmutableIntList rightKeys,
-      ImmutableList<RexNode> nonEquiConditions) {
+      ImmutableList<Boolean> filterNulls, ImmutableList<RexNode> nonEquiConditions) {
     this.leftKeys = requireNonNull(leftKeys, "leftKeys");
     this.rightKeys = requireNonNull(rightKeys, "rightKeys");
+    this.filterNulls = requireNonNull(filterNulls, "filterNulls");
     this.nonEquiConditions =
         requireNonNull(nonEquiConditions, "nonEquiConditions");
-    assert leftKeys.size() == rightKeys.size();
+    assert leftKeys.size() == rightKeys.size() && leftKeys.size() == filterNulls.size();
   }
 
   /** Creates a {@code JoinInfo} by analyzing a condition. */
@@ -67,7 +71,8 @@ public class JoinInfo {
     RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys,
         filterNulls, nonEquiList);
     return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
-        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(nonEquiList));
+        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(filterNulls),
+        ImmutableList.copyOf(nonEquiList));
   }
 
   /** Creates a {@code JoinInfo} by analyzing a condition.
@@ -82,14 +87,17 @@ public class JoinInfo {
     final List<RexNode> nonEquiList = new ArrayList<>();
     RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys,
         null, nonEquiList);
+    List<Boolean> filterNulls = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
     return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
-        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(nonEquiList));
+        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(filterNulls),
+        ImmutableList.copyOf(nonEquiList));
   }
 
-  /** Creates an equi-join. */
+  /** Creates an equi-join (only considers EQUALS operations). */
   public static JoinInfo of(ImmutableIntList leftKeys,
       ImmutableIntList rightKeys) {
-    return new JoinInfo(leftKeys, rightKeys, ImmutableList.of());
+    List<Boolean> filterNulls = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
+    return new JoinInfo(leftKeys, rightKeys, ImmutableList.copyOf(filterNulls), ImmutableList.of());
   }
 
   /** Returns whether this is an equi-join. */
@@ -117,7 +125,7 @@ public class JoinInfo {
 
   public RexNode getEquiCondition(RelNode left, RelNode right,
       RexBuilder rexBuilder) {
-    return RelOptUtil.createEquiJoinCondition(left, leftKeys, right, rightKeys,
+    return RelOptUtil.createHashJoinCondition(left, leftKeys, right, rightKeys, filterNulls,
         rexBuilder);
   }
 

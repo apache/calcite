@@ -1543,18 +1543,15 @@ public abstract class EnumerableDefaults {
               }
               final TSource outer = outers.current();
               final Enumerable<TInner> innerEnumerable;
-              if (outer == null) {
+              // if the key is null-safe, still extract outerKey and probe even if outer is NULL.
+              final TKey outerKey = outerKeySelector.apply(outer);
+              if (outerKey == null) {
                 innerEnumerable = null;
               } else {
-                final TKey outerKey = outerKeySelector.apply(outer);
-                if (outerKey == null) {
-                  innerEnumerable = null;
-                } else {
-                  if (unmatchedKeys != null) {
-                    unmatchedKeys.remove(outerKey);
-                  }
-                  innerEnumerable = innerLookup.get(outerKey);
+                if (unmatchedKeys != null) {
+                  unmatchedKeys.remove(outerKey);
                 }
+                innerEnumerable = innerLookup.get(outerKey);
               }
               if (innerEnumerable == null
                   || !innerEnumerable.any()) {
@@ -1639,30 +1636,27 @@ public abstract class EnumerableDefaults {
               }
               final TSource outer = outers.current();
               Enumerable<TInner> innerEnumerable;
-              if (outer == null) {
+              // if the key is null-safe, still extract outerKey and probe even if outer is NULL.
+              final TKey outerKey = outerKeySelector.apply(outer);
+              if (outerKey == null) {
                 innerEnumerable = null;
               } else {
-                final TKey outerKey = outerKeySelector.apply(outer);
-                if (outerKey == null) {
-                  innerEnumerable = null;
-                } else {
-                  innerEnumerable = innerLookup.get(outerKey);
-                  // apply predicate to filter per-row
-                  if (innerEnumerable != null) {
-                    final List<TInner> matchedInners = new ArrayList<>();
-                    try (Enumerator<TInner> innerEnumerator =
-                        innerEnumerable.enumerator()) {
-                      while (innerEnumerator.moveNext()) {
-                        final TInner inner = innerEnumerator.current();
-                        if (predicate.apply(outer, inner)) {
-                          matchedInners.add(inner);
-                        }
+                innerEnumerable = innerLookup.get(outerKey);
+                // apply predicate to filter per-row
+                if (innerEnumerable != null) {
+                  final List<TInner> matchedInners = new ArrayList<>();
+                  try (Enumerator<TInner> innerEnumerator =
+                      innerEnumerable.enumerator()) {
+                    while (innerEnumerator.moveNext()) {
+                      final TInner inner = innerEnumerator.current();
+                      if (predicate.apply(outer, inner)) {
+                        matchedInners.add(inner);
                       }
                     }
-                    innerEnumerable = Linq4j.asEnumerable(matchedInners);
-                    if (innersUnmatched != null) {
-                      innersUnmatched.removeAll(matchedInners);
-                    }
+                  }
+                  innerEnumerable = Linq4j.asEnumerable(matchedInners);
+                  if (innersUnmatched != null) {
+                    innersUnmatched.removeAll(matchedInners);
                   }
                 }
               }

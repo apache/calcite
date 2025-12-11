@@ -58,6 +58,19 @@ public class FlatLists {
     return new Flat1List<>(t0);
   }
 
+  /**
+   * Creates a flat list with 1 element. This is different from {@link #of(Object)}, because
+   * it prevents overload from {@link #of(List)}. This may be useful when you create a flat list
+   * with 1 element of List type.
+   *
+   * @param t0  Element
+   * @param <T> Element type
+   * @return    List containing the given members
+   */
+  public static <T> List<T> ofSingle(T t0) {
+    return new Flat1List<>(t0);
+  }
+
   /** Creates a flat list with 2 elements. */
   public static <T> List<T> of(T t0, T t1) {
     return new Flat2List<>(t0, t1);

@@ -134,6 +134,13 @@ public interface PhysType {
    */
   Expression generateAccessorWithoutNulls(List<Integer> fields);
 
+  /**
+   * Similar to {@link #generateAccessor(List)} and {@link #generateAccessorWithoutNulls(List)},
+   * but it's null-aware. If one of the fields is <code>null</code> and this field is marked as
+   * TRUE in filterNulls, it will return <code>null</code>.
+   */
+  Expression generateNullAwareAccessor(List<Integer> fields, List<Boolean> filterNulls);
+
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */
   Expression generateSelector(

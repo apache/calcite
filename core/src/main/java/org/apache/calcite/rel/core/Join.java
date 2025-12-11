@@ -104,7 +104,7 @@ public abstract class Join extends BiRel implements Hintable {
     this.condition = requireNonNull(condition, "condition");
     this.variablesSet = ImmutableSet.copyOf(variablesSet);
     this.joinType = requireNonNull(joinType, "joinType");
-    this.joinInfo = JoinInfo.createWithStrictEquality(left, right, condition);
+    this.joinInfo = JoinInfo.of(left, right, condition);
     this.hints = ImmutableList.copyOf(hints);
   }
 
