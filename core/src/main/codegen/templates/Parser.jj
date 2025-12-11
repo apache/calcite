@@ -1364,7 +1364,11 @@ SqlSelect SqlSelect() :
     }
     AddSelectItem(selectList)
     ( <COMMA> AddSelectItem(selectList) )*
+<#if parser.includeSelectBy!false>
     ( by = SqlSelectBy() | { by = null; } )
+<#else>
+    { by = null; }
+</#if>
     (
         <FROM> fromClause = FromClause()
         ( where = Where() | { where = null; } )
@@ -2977,6 +2981,7 @@ SqlNodeList OrderBy(boolean accept) :
     }
 }
 
+<#if parser.includeSelectBy!false>
 /**
  * Parses a BY clause for SELECT (syntactic sugar for GROUP BY ... ORDER BY).
  */
@@ -2992,6 +2997,8 @@ SqlNodeList SqlSelectBy() :
         return new SqlNodeList(list, s.addAll(list).pos());
     }
 }
+</#if>
+
 
 /**
  * Parses a list of ORDER BY items.
