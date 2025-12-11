@@ -183,7 +183,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
       return "<ARRAY>[<INTEGER>]\n"
           + "<MAP>[<ANY>]\n"
           + "<ROW>[<CHARACTER>|<INTEGER>]\n"
-          + "<VARIANT>[<ANY>]";
+          + "<VARIANT>[<CHARACTER>|<INTEGER>]";
     } else {
       return "<ARRAY>[" + name + "(<INTEGER>)]";
     }

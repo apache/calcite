@@ -9331,7 +9331,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             +  "<INTEGER>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<ANY>\\]\n"
             + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
-            + "<VARIANT>\\[<ANY>\\].*");
+            + "<VARIANT>\\[<CHARACTER>\\|<INTEGER>\\].*");
   }
 
   /** Test case for
