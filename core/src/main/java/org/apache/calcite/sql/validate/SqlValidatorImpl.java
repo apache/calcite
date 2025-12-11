@@ -253,12 +253,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final Set<SqlNode> cursorSet = Sets.newIdentityHashSet();
 
   /**
-   * Set of SELECT statements that have a BY clause.
-   * Used to enable non-strict GROUP BY behavior for these statements.
-   */
-  private final Set<SqlSelect> selectsWithBy = Sets.newIdentityHashSet();
-
-  /**
    * Stack of objects that maintain information about function calls. A stack
    * is needed to handle nested function calls. The function call currently
    * being validated is at the top of the stack.
@@ -498,8 +492,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Non-strict GROUP BY or BY clause: wrap non-aggregated, non-grouped columns in ANY_VALUE()
       if (isAggregate(select)
           && (config.conformance().isNonStrictGroupBy()
-          || select.hasByClause()
-          || selectsWithBy.contains(select))
+          || select.hasByClause())
           && isNonAggregatedNonGroupedColumn(expanded, select)) {
         expanded =
             SqlStdOperatorTable.ANY_VALUE.createCall(expanded.getParserPosition(), expanded);
@@ -1548,52 +1541,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       setValidatedNodeType(fetch,
           typeFactory.createSqlType(SqlTypeName.INTEGER));
     }
-  }
-
-  /**
-   * Rewrites SELECT ... BY syntax into SELECT, GROUP BY, ORDER BY.
-   */
-  private void rewriteSelectBy(SqlSelect select) {
-    final SqlNodeList by = select.getBy();
-    if (by == null) {
-      return;
-    }
-    if (select.getGroup() != null && !select.getGroup().isEmpty()) {
-      throw newValidationError(select.getGroup(), RESOURCE.selectByAndGroupBy());
-    }
-    if (select.getOrderList() != null && !select.getOrderList().isEmpty()) {
-      throw newValidationError(select.getOrderList(), RESOURCE.selectByAndOrderBy());
-    }
-    // Mark this select as having a BY clause, so that we can enable
-    // non-strict GROUP BY behavior (wrapping non-grouped columns in ANY_VALUE).
-    selectsWithBy.add(select);
-
-    final SqlNodeList selectList = select.getSelectList();
-    final SqlNodeList groupBy = new SqlNodeList(by.getParserPosition());
-    final SqlNodeList orderBy = new SqlNodeList(by.getParserPosition());
-
-    // Process BY items
-    List<SqlNode> extraSelectItems = new ArrayList<>();
-    for (SqlNode node : by) {
-      // 1. selectItem: strip sort modifiers
-      SqlNode selectItem = SqlUtil.withoutOrderModifiers(node);
-      extraSelectItems.add(selectItem);
-
-      // 2. groupItem: strip sort modifiers and AS
-      SqlNode groupItem = stripAs(selectItem);
-      groupBy.add(groupItem.clone(groupItem.getParserPosition()));
-
-      // 3. orderItem: strip AS, keep sort modifiers
-      SqlNode orderItem = SqlUtil.withoutAsFromOrder(node);
-      orderBy.add(orderItem.clone(orderItem.getParserPosition()));
-    }
-
-    // Prepend extraSelectItems to selectList
-    selectList.addAll(0, extraSelectItems);
-
-    select.setGroupBy(groupBy);
-    select.setOrderBy(orderBy);
-    select.setBy(null);
   }
 
   /**
@@ -3093,12 +3040,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope2);
       clauseScopes.put(IdPair.of(select, Clause.MEASURE),
           new MeasureScope(selectScope, select));
-      SqlNodeList groupList = first(select.getBy(), select.getGroup());
-      if (groupList != null) {
+      if (select.getGroup() != null) {
         GroupByScope groupByScope =
-            new GroupByScope(selectScope, groupList, select);
+            new GroupByScope(selectScope, select.getGroup(), select);
         clauseScopes.put(IdPair.of(select, Clause.GROUP_BY), groupByScope);
-        registerSubQueries(groupByScope, groupList);
+        registerSubQueries(groupByScope, select.getGroup());
       }
       registerOperandSubQueries(
           selectScope2,
@@ -3106,7 +3052,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlSelect.HAVING_OPERAND);
       registerSubQueries(selectScope2,
           SqlNonNullableAccessors.getSelectList(select));
-      final SqlNodeList orderList = first(select.getBy(), select.getOrderList());
+      final SqlNodeList orderList = select.getOrderList();
       if (orderList != null) {
         // If the query is 'SELECT DISTINCT', restrict the columns
         // available to the ORDER BY clause.
@@ -3474,7 +3420,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * <p>The node is useful context for error messages,
    * but you cannot assume that the node is the only aggregate function. */
   protected @Nullable SqlNode getAggregate(SqlSelect select) {
-    SqlNode node = first(select.getGroup(), select.getBy());
+    SqlNode node = select.getGroup();
     if (node != null) {
       return node;
     }
@@ -4285,8 +4231,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       validateFrom(from, fromType, fromScope);
     }
-
-    rewriteSelectBy(select);
 
     validateWhereClause(select);
     validateGroupClause(select);
@@ -7641,41 +7585,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
 
-      final SqlNode byAliasExpansion = expandByAlias(id);
-      if (byAliasExpansion != null) {
-        return byAliasExpansion;
-      }
-
       // No match. Return identifier unchanged.
       return getScope().fullyQualify(id).identifier;
-    }
-
-    private @Nullable SqlNode expandByAlias(SqlIdentifier id) {
-      if (!id.isSimple()) {
-        return null;
-      }
-      final SqlNodeList byList = select.getBy();
-      if (byList == null) {
-        return null;
-      }
-      final String alias = id.getSimple();
-      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      for (SqlNode byNode : byList) {
-        final SqlNode stripped = SqlUtil.withoutOrderModifiers(byNode);
-        if (stripped instanceof SqlCall) {
-          final SqlCall call = (SqlCall) stripped;
-          if (call.getOperator().getKind() == SqlKind.AS) {
-            final SqlNode aliasNode = call.operand(1);
-            if (aliasNode instanceof SqlIdentifier) {
-              final SqlIdentifier aliasId = (SqlIdentifier) aliasNode;
-              if (nameMatcher.matches(aliasId.getSimple(), alias)) {
-                return call.operand(0).clone(id.getParserPosition());
-              }
-            }
-          }
-        }
-      }
-      return null;
     }
 
     @Override protected @Nullable SqlNode visitScoped(SqlCall call) {

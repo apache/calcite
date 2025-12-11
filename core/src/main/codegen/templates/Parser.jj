@@ -90,6 +90,7 @@ import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlByRewriter;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlStarExclude;
 import org.apache.calcite.sql.SqlSetOption;
@@ -724,6 +725,12 @@ SqlNode OrderByLimitOpt(SqlNode e) :
     ]
     {
         if (orderBy != null || offsetFetch[0] != null || offsetFetch[1] != null) {
+            if (orderBy != null
+                && e instanceof SqlSelect
+                && ((SqlSelect) e).hasByClause()) {
+              throw SqlUtil.newContextException(orderBy.getParserPosition(),
+                  RESOURCE.selectByAndOrderBy());
+            }
             return new SqlOrderBy(getPos(), e,
                 Util.first(orderBy, SqlNodeList.EMPTY),
                 offsetFetch[0], offsetFetch[1]);
@@ -1387,10 +1394,12 @@ SqlSelect SqlSelect() :
         }
     )
     {
-        return SqlSelect.create(s.end(this), keywordList,
+        final SqlSelect select = SqlSelect.create(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, windowDecls, qualify,
-            null, null, null, new SqlNodeList(hints, getPos()), by);
+            null, null, null, new SqlNodeList(hints, getPos()));
+        SqlByRewriter.rewrite(select, by);
+        return select;
     }
 }
 
