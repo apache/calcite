@@ -16,8 +16,23 @@
  */
 package org.apache.calcite.adapter.tpch;
 
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelConversionException;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -28,6 +43,8 @@ import org.junit.jupiter.api.Timeout;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.calcite.test.Matchers.containsStringLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -831,6 +848,74 @@ class TpchTest {
           String s = RelOptUtil.toString(relNode);
           assertThat(s, not(containsString("Correlator")));
         });
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7319">[CALCITE-7319]
+   * FILTER_INTO_JOIN rule loses correlation variable context in HepPlanner</a>. */
+  @Test public void optimizeQuery2()
+      throws SqlParseException, ValidationException, RelConversionException {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    TpchSchema tpchSchema = new TpchSchema(1.0, 0, 1, false);
+    rootSchema.add("TPCH", tpchSchema);
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .build();
+
+    Planner planner = Frameworks.getPlanner(config);
+
+    SqlNode parsed = planner.parse(QUERY_ARRAY[1]);
+    SqlNode validated = planner.validate(parsed);
+    RelRoot root = planner.rel(validated);
+
+    final HepProgramBuilder builder = HepProgram.builder();
+    builder.addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+    builder.addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+    builder.addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE);
+    builder.addRuleInstance(CoreRules.FILTER_CORRELATE);
+    // We are checking that this rule can push some predicates into joins
+    // Prior to fixing [CALCITE-7319] (second improvement) many joins below
+    // had a condition=[true].
+    builder.addRuleInstance(CoreRules.FILTER_INTO_JOIN);
+
+    RelOptPlanner optPlanner = new HepPlanner(builder.build());
+    optPlanner.setRoot(root.rel);
+    RelNode rel = optPlanner.findBestExp();
+    final String expected = "LogicalSort(sort0=[$0], sort1=[$2], sort2=[$1], sort3=[$3], "
+        + "dir0=[DESC], dir1=[ASC], dir2=[ASC], dir3=[ASC], fetch=[100])\n"
+        + "  LogicalProject(S_ACCTBAL=[$14], S_NAME=[$10], N_NAME=[$22], P_PARTKEY=[$0], "
+        + "P_MFGR=[$2], S_ADDRESS=[$11], S_PHONE=[$13], S_COMMENT=[$15])\n"
+        + "    LogicalProject(P_PARTKEY=[$0], P_NAME=[$1], P_MFGR=[$2], P_BRAND=[$3], P_TYPE=[$4], "
+        + "P_SIZE=[$5], P_CONTAINER=[$6], P_RETAILPRICE=[$7], P_COMMENT=[$8], S_SUPPKEY=[$9], "
+        + "S_NAME=[$10], S_ADDRESS=[$11], S_NATIONKEY=[$12], S_PHONE=[$13], S_ACCTBAL=[$14], "
+        + "S_COMMENT=[$15], PS_PARTKEY=[$16], PS_SUPPKEY=[$17], PS_AVAILQTY=[$18], "
+        + "PS_SUPPLYCOST=[$19], PS_COMMENT=[$20], N_NATIONKEY=[$21], N_NAME=[$22], "
+        + "N_REGIONKEY=[$23], N_COMMENT=[$24], R_REGIONKEY=[$25], R_NAME=[$26], R_COMMENT=[$27])\n"
+        + "      LogicalFilter(condition=[=($19, $28)])\n"
+        + "        LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "          LogicalJoin(condition=[=($23, $25)], joinType=[inner])\n"
+        + "            LogicalJoin(condition=[=($12, $21)], joinType=[inner])\n"
+        + "              LogicalJoin(condition=[AND(=($0, $16), =($9, $17))], joinType=[inner])\n"
+        + "                LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "                  LogicalFilter(condition=[AND(=(CAST($5):INTEGER, 41), "
+        + "LIKE($4, '%NICKEL'))])\n"
+        + "                    LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "                  LogicalTableScan(table=[[TPCH, SUPPLIER]])\n"
+        + "                LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "              LogicalTableScan(table=[[TPCH, NATION]])\n"
+        + "            LogicalFilter(condition=[=(CAST($1):VARCHAR, 'EUROPE')])\n"
+        + "              LogicalTableScan(table=[[TPCH, REGION]])\n"
+        + "          LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])\n"
+        + "            LogicalProject(PS_SUPPLYCOST=[$3])\n"
+        + "              LogicalFilter(condition=[=($cor0.P_PARTKEY, $0)])\n"
+        + "                LogicalJoin(condition=[=($14, $16)], joinType=[inner])\n"
+        + "                  LogicalJoin(condition=[=($8, $12)], joinType=[inner])\n"
+        + "                    LogicalJoin(condition=[=($5, $1)], joinType=[inner])\n"
+        + "                      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                      LogicalTableScan(table=[[TPCH, SUPPLIER]])\n"
+        + "                    LogicalTableScan(table=[[TPCH, NATION]])\n"
+        + "                  LogicalFilter(condition=[=(CAST($1):VARCHAR, 'EUROPE')])\n"
+        + "                    LogicalTableScan(table=[[TPCH, REGION]])";
+    assertThat(rel.explain(), containsStringLinux(expected));
   }
 
   @Test void testQuery03() {
