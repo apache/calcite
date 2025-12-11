@@ -30,6 +30,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -66,6 +67,8 @@ public interface RelShuttle {
   RelNode visit(LogicalMatch match);
 
   RelNode visit(LogicalSort sort);
+
+  RelNode visit(LogicalSnapshot snapshot);
 
   RelNode visit(LogicalExchange exchange);
 

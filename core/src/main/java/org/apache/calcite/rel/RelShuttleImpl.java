@@ -31,6 +31,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -129,6 +130,10 @@ public class RelShuttleImpl implements RelShuttle {
 
   @Override public RelNode visit(LogicalSort sort) {
     return visitChildren(sort);
+  }
+
+  @Override public RelNode visit(LogicalSnapshot snapshot) {
+    return visitChildren(snapshot);
   }
 
   @Override public RelNode visit(LogicalExchange exchange) {
