@@ -4737,7 +4737,15 @@ public class SqlFunctions {
   public static boolean toBoolean(Number number) {
     if (number instanceof BigDecimal) {
       BigDecimal decimal = (BigDecimal) number;
-      return !(decimal.compareTo(BigDecimal.ZERO) == 0);
+      return decimal.compareTo(BigDecimal.ZERO) != 0;
+    }
+    if (number instanceof Double) {
+      Double d = (Double) number;
+      return !(d.equals(new Double(0)));
+    }
+    if (number instanceof Float) {
+      Float f = (Float) number;
+      return !(f.equals(new Float(0)));
     }
     return !number.equals(0);
   }

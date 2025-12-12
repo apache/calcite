@@ -769,6 +769,10 @@ class RelToSqlConverterTest {
     query = "select FALSE = 0.0e0";
     expected = "SELECT *\nFROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")";
     sql(query).ok(expected);
+
+    query = "select cast(\"product_id\" as BOOLEAN) from \"product\"";
+    expected = "SELECT \"product_id\" <> 0\nFROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
   }
 
   @Test void testSelectQueryWithWhereClauseOfBasicOperators() {
@@ -4067,6 +4071,15 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+  }
+
+  @Test void testMySqlSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated1() {
+    final String query = "select cast(\"product_id\" as BOOLEAN) from \"product\"\n"
+        + "order by \"product_id\" desc nulls first";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
+    sql(query).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {

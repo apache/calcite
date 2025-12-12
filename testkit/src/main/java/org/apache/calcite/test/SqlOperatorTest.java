@@ -832,9 +832,20 @@ public class SqlOperatorTest {
     SqlOperatorFixture f = fixture();
     f.checkScalar("CAST(1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
-    f.checkScalar("CAST(0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(-1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(1.2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(CAST(100.5e0 AS DECIMAL(4, 1)) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(0.0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0.0e0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0.01e0 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0e0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(-0e0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkNull("CAST(NULL AS BOOLEAN)");
+    f.checkScalar("CAST(CAST(1.2 AS FLOAT) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(CAST(1.2 AS Double) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(cast(1 as INTEGER UNSIGNED) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(cast(1 as TINYINT UNSIGNED) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
   }
 
   @ParameterizedTest
