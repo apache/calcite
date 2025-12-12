@@ -810,7 +810,7 @@ public interface CalciteResource {
   @BaseMessage("EXCLUDE clause must follow a STAR expression")
   ExInst<CalciteException> selectExcludeRequiresStar();
 
-  @BaseMessage("SELECT * EXCLUDE list contains unknown column(s): {0}")
+  @BaseMessage("SELECT * EXCLUDE/EXCEPT list contains unknown column(s): {0}")
   ExInst<SqlValidatorException> selectStarExcludeListContainsUnknownColumns(String columns);
 
   @BaseMessage("SELECT * EXCLUDE list cannot exclude all columns")
