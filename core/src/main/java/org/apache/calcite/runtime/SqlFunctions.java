@@ -4741,11 +4741,11 @@ public class SqlFunctions {
     }
     if (number instanceof Double) {
       Double d = (Double) number;
-      return !(d.equals(Double.valueOf(0)));
+      return !d.equals(Double.valueOf(0));
     }
     if (number instanceof Float) {
       Float f = (Float) number;
-      return !(f.equals(Float.valueOf(0)));
+      return !f.equals(Float.valueOf(0));
     }
     return !number.equals(0);
   }
