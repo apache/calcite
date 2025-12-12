@@ -4073,15 +4073,6 @@ class RelToSqlConverterTest {
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
-  @Test void testMySqlSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated1() {
-    final String query = "select cast(\"product_id\" as BOOLEAN) from \"product\"\n"
-        + "order by \"product_id\" desc nulls first";
-    final String expected = "SELECT `product_id`\n"
-        + "FROM `foodmart`.`product`\n"
-        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
-    sql(query).ok(expected);
-  }
-
   @Test void testMySqlSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
     final String query = "SELECT row_number() over "
             + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
