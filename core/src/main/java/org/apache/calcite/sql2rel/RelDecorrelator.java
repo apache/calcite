@@ -574,9 +574,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     if (isCorVarDefined && (rel.fetch != null || rel.offset != null)) {
-      if (rel.fetch != null
-          && rel.offset == null
-          && RexLiteral.intValue(rel.fetch) == 1) {
+      if (rel.fetch != null && rel.offset == null) {
         return decorrelateFetchOneSort(rel, frame);
       }
       // Can not decorrelate if the sort has per-correlate-key attributes like
@@ -1099,25 +1097,48 @@ public class RelDecorrelator implements ReflectiveVisitor {
     for (RelDataTypeField field : sort.getRowType().getFieldList()) {
       final int newIdx =
           requireNonNull(frame.oldToNewOutputs.get(field.getIndex()));
-
-      RelBuilder.AggCall aggCall =
-          relBuilder.aggregateCall(SqlStdOperatorTable.FIRST_VALUE,
-              RexInputRef.of(newIdx, fieldList));
-
-      // Convert each field from the sorted output to a window function that partitions by
-      // correlated variables, orders by the collation, and return the first_value.
-      RexNode winCall = aggCall.over()
-          .orderBy(sortExprs)
-          .partitionBy(corVarProjects.leftList())
-          .toRex();
       mapOldToNewOutputs.put(newProjExprs.size(), newProjExprs.size());
-      newProjExprs.add(winCall, field.getName());
+      newProjExprs.add(RexInputRef.of(newIdx, fieldList), field.getName());
     }
     newProjExprs.addAll(corVarProjects);
-    RelNode result = relBuilder.push(frame.r)
-        .project(newProjExprs.leftList(), newProjExprs.rightList())
-        .distinct().build();
 
+    relBuilder.push(frame.r);
+
+    RexNode rowNumberCall = relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+        .over()
+        .partitionBy(corVarProjects.leftList())
+        .orderBy(sortExprs)
+        .toRex();
+    newProjExprs.add(rowNumberCall, "rn"); // Add the row number column
+    relBuilder.project(newProjExprs.leftList(), newProjExprs.rightList());
+
+    List<RexNode> conditions = new ArrayList<>();
+    if (sort.offset != null) {
+      RexNode greaterThenLowerBound =
+          relBuilder.call(
+              SqlStdOperatorTable.GREATER_THAN,
+              relBuilder.field(newProjExprs.size() - 1),
+              sort.offset);
+      conditions.add(greaterThenLowerBound);
+    }
+    if (sort.fetch != null) {
+      RexNode upperBound = sort.offset == null
+          ? sort.fetch
+          : relBuilder.call(SqlStdOperatorTable.PLUS, sort.offset, sort.fetch);
+      RexNode lessThenOrEqualUpperBound =
+          relBuilder.call(
+              SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+              relBuilder.field(newProjExprs.size() - 1),
+              upperBound);
+      conditions.add(lessThenOrEqualUpperBound);
+    }
+
+    RelNode result;
+    if (!conditions.isEmpty()) {
+      result = relBuilder.filter(conditions).build();
+    } else {
+      result = relBuilder.build();
+    }
     return register(sort, result, mapOldToNewOutputs, corDefOutputs);
   }
 
