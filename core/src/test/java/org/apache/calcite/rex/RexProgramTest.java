@@ -3152,7 +3152,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(cast(literal(1), varcharType), "'1':VARCHAR(10)");
     checkSimplifyUnchanged(cast(literalAbc, booleanType));
     checkSimplify(cast(literal(1), booleanType),
-        "true"); // different from Hive
+        "true");
     checkSimplify(cast(literal(0), booleanType),
         "false");
     checkSimplifyUnchanged(cast(literalAbc, dateType));
