@@ -165,6 +165,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.checkedArithmetic();
   }
 
+  @Override public boolean nullableDivide() {
+    return SqlConformanceEnum.DEFAULT.nullableDivide();
+  }
+
   @Override public boolean supportsUnsignedTypes() {
     return SqlConformanceEnum.DEFAULT.supportsUnsignedTypes();
   }
