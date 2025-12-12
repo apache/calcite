@@ -441,7 +441,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case FLOAT:
       case REAL:
       case DOUBLE:
-        return Expressions.call(BuiltInMethod.Number_TO_BOOLEAN.method, operand);
+        return Expressions.call(BuiltInMethod.NUMBER_TO_BOOLEAN.method, operand);
 
       default:
         return defaultExpression.get();
