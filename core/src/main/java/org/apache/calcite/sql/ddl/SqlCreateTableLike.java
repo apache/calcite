@@ -23,9 +23,9 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.Symbolizable;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -36,12 +36,23 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree for {@code CREATE TABLE LIKE} statement.
  */
 public class SqlCreateTableLike extends SqlCreate {
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE LIKE", SqlKind.CREATE_TABLE_LIKE);
+      SqlBasicOperator.create("CREATE TABLE LIKE", SqlKind.CREATE_TABLE_LIKE)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlCreateTableLike(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  ((SqlLiteral) requireNonNull(operands[1])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[2]),
+                  (SqlIdentifier) requireNonNull(operands[3]),
+                  (SqlNodeList) requireNonNull(operands[4]),
+                  (SqlNodeList) requireNonNull(operands[5])));
 
   /**
    * The LikeOption specify which additional properties of the original table to copy.
@@ -83,7 +94,8 @@ public class SqlCreateTableLike extends SqlCreate {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, sourceTable, includingOptions,
+    return ImmutableNullableList.of(SqlLiteral.createBoolean(getReplace(), pos),
+        SqlLiteral.createBoolean(ifNotExists, pos), name, sourceTable, includingOptions,
         excludingOptions);
   }
 

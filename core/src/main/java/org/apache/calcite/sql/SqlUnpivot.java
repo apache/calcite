@@ -67,10 +67,10 @@ public class SqlUnpivot extends SqlCall {
       SqlNodeList measureList, SqlNodeList axisList, SqlNodeList inList) {
     super(pos);
     this.query = requireNonNull(query, "query");
-    this.includeNulls = includeNulls;
     this.measureList = requireNonNull(measureList, "measureList");
     this.axisList = requireNonNull(axisList, "axisList");
     this.inList = requireNonNull(inList, "inList");
+    this.includeNulls = includeNulls;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -80,7 +80,8 @@ public class SqlUnpivot extends SqlCall {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(query, measureList, axisList, inList);
+    return ImmutableNullableList.of(query, measureList, axisList, inList,
+        SqlLiteral.createBoolean(includeNulls, SqlParserPos.ZERO));
   }
 
   @SuppressWarnings("nullness")
@@ -175,6 +176,17 @@ public class SqlUnpivot extends SqlCall {
   static class Operator extends SqlSpecialOperator {
     Operator(SqlKind kind) {
       super(kind.name(), kind);
+    }
+
+    @Override public SqlCall createCall(
+        @Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos,
+        @Nullable SqlNode... operands) {
+      return new SqlUnpivot(pos, requireNonNull(operands[0]),
+          requireNonNull((SqlLiteral) operands[4]).booleanValue(),
+          requireNonNull((SqlNodeList) operands[1]),
+          requireNonNull((SqlNodeList) operands[2]),
+          requireNonNull((SqlNodeList) operands[3]));
     }
   }
 }
