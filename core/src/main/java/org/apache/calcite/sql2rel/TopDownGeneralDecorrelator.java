@@ -83,6 +83,30 @@ import static java.util.Objects.requireNonNull;
  *   Improving Unnesting of Complex Queries</a>. It's an improved version of the paper:
  * <a href="https://dl.gi.de/items/137d6917-d8fe-43aa-940b-e27da7c01625">
  *   Unnesting Arbitrary Queries</a>.
+ *
+ * <p> Usage notes for TopDownGeneralDecorrelator:
+ * <p> TopDownGeneralDecorrelator is not yet integrated into other modules and needs to be called
+ * separately. If you want to use it to replace {@link RelDecorrelator}, we recommend:
+ *
+ * <ol>
+ *   <li>When generating the initial plan by {@link SqlToRelConverter}, do not remove subqueries
+ *   and do not enable decorrelation.</li>
+ *
+ *   <li>Build a {@link HepPlanner} and apply rules for removing subqueries to the initial plan.
+ *   With subqueries removed correctly, TopDownGeneralDecorrelator can in theory eliminate all
+ *   correlation. We recommend using {@link CoreRules#FILTER_SUB_QUERY_TO_MARK_CORRELATE}
+ *   and {@link CoreRules#PROJECT_SUB_QUERY_TO_MARK_CORRELATE} to remove subqueries from Filter and
+ *   Project. These rules produce LEFT MARK Join/Correlate which are better suited for
+ *   TopDownGeneralDecorrelator. There is not yet a corresponding, specially tailored rule for
+ *   Join; you may choose to use {@link CoreRules#JOIN_SUB_QUERY_TO_CORRELATE}. Alternatively, for
+ *   greater stability, you can run TopDownGeneralDecorrelator first and then apply
+ *   {@link CoreRules#JOIN_SUB_QUERY_TO_CORRELATE} together with {@link RelDecorrelator}.</li>
+ *
+ *   <li>Call {@link TopDownGeneralDecorrelator#decorrelateQuery(RelNode, RelBuilder)} to obtain
+ *   the decorrelated plan.</li>
+ *
+ *   <li>Continue with other optimizations.</li>
+ * </ol>
  */
 @Experimental
 public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
