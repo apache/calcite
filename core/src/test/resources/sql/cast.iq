@@ -1978,4 +1978,28 @@ SELECT ARRAY[cast(null as integer), cast(null as integer), cast(null as integer)
 EXPR$0 INTEGER ARRAY NOT NULL
 !type
 
+# [CALCITE-7323] Result of cast Number to Boolean is not correct
+select cast(mod(deptno, 3) as BOOLEAN), mod(deptno, 3) from emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+| false  |      0 |
+| false  |      0 |
+| false  |      0 |
+| false  |      0 |
+| false  |      0 |
+| false  |      0 |
+| true   |      1 |
+| true   |      1 |
+| true   |      1 |
+| true   |      2 |
+| true   |      2 |
+| true   |      2 |
+| true   |      2 |
+| true   |      2 |
++--------+--------+
+(14 rows)
+
+!ok
+
 # End cast.iq
