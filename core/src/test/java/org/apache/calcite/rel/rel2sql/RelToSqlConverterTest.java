@@ -3600,11 +3600,19 @@ class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7322">[CALCITE-7322]
+   * The POSITION function in MySQL is missing the FROM clause</a>. */
   @Test void testPositionFunctionForMySql() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
-    final String expected = "SELECT INSTR('ABC', 'A')\n"
+    final String expected = "SELECT LOCATE('A', 'ABC')\n"
         + "FROM `foodmart`.`product`";
     sql(query).withMysql().ok(expected);
+
+    final String query1 = "select position('A' IN 'ABC' FROM '2') from \"product\"";
+    final String expected1 = "SELECT LOCATE('A', 'ABC', 2)\n"
+        + "FROM `foodmart`.`product`";
+    sql(query1).withMysql().ok(expected1);
   }
 
   @Test void testPositionFunctionForBigQuery() {
