@@ -205,14 +205,36 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-  SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
-  { starWithExclude | projectItem [, projectItem ]* }
+      SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
+          { starWithExclude | projectItem [, projectItem ]* }
+      [ BY expression [, expression ]* ]
       FROM tableExpression
       [ WHERE booleanExpression ]
       [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
       [ QUALIFY booleanExpression ]
+
+The optional, non-standard `BY` clause groups and orders the query by
+the specified expressions, and automatically adds them to the SELECT list
+for naming and positional reference. But `SELECT ... BY` cannot be combined
+with an explicit `GROUP BY` or `ORDER BY` clause in the same query.
+`SELECT ... BY` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeSelectBy` to `true`.
+
+For example:
+
+{% highlight sql %}
+SELECT ename, empno BY deptno FROM emp
+{% endhighlight %}
+
+is equivalent to:
+
+{% highlight sql %}
+SELECT deptno, ename, empno
+FROM emp
+GROUP BY deptno
+ORDER BY deptno
+{% endhighlight %}
 
 selectWithoutFrom:
       SELECT [ ALL | DISTINCT ]

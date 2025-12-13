@@ -272,6 +272,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
   private static final List<String> ORDER_KEYWORDS =
       Arrays.asList(
           "KEYWORD(,)",
+          "KEYWORD(AS)",
           "KEYWORD(ASC)",
           "KEYWORD(DESC)",
           "KEYWORD(NULLS)");

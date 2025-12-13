@@ -119,7 +119,7 @@ data: {
       "BOOLEAN"
       "BOTH"
       "BREADTH"
-      "BY"
+#     "BY"
 #     "CALL"
       "CALLED"
       "CARDINALITY"
@@ -618,6 +618,7 @@ data: {
     includeParsingStringLiteralAsArrayLiteral: true
     includeIntervalWithoutQualifier: true
     includeStarExclude: true
+    includeSelectBy: true
   }
 }
 
