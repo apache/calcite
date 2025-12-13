@@ -1772,8 +1772,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return null;
     }
 
+    Frame newLeftFrame = getNewChildFrame(rel, oldLeft, leftFrame, isCorVarDefined);
+
     RelNode newJoin = relBuilder
-        .push(leftFrame.r)
+        .push(newLeftFrame.r)
         .push(rightFrame.r)
         .join(rel.getJoinType(),
             decorrelateExpr(castNonNull(currentRel), map, cm, rel.getCondition()),
@@ -1785,7 +1787,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
 
     int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
-    int newLeftFieldCount = leftFrame.r.getRowType().getFieldCount();
+    int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
     //noinspection AssertWithSideEffects
@@ -1793,8 +1795,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         == oldLeftFieldCount + oldRightFieldCount;
 
     // Left input positions are not changed.
-    mapOldToNewOutputs.putAll(leftFrame.oldToNewOutputs);
-
+    mapOldToNewOutputs.putAll(newLeftFrame.oldToNewOutputs);
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
@@ -1802,8 +1803,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final NavigableMap<CorDef, Integer> corDefOutputs =
-        new TreeMap<>(leftFrame.corDefOutputs);
-
+        new TreeMap<>(newLeftFrame.corDefOutputs);
     // Right input positions are shifted by newLeftFieldCount.
     for (Map.Entry<CorDef, Integer> entry
         : rightFrame.corDefOutputs.entrySet()) {
@@ -1811,6 +1811,46 @@ public class RelDecorrelator implements ReflectiveVisitor {
           entry.getValue() + newLeftFieldCount);
     }
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
+  }
+
+  private Frame getNewChildFrame(Join rel, RelNode oldChildRel, Frame oldChildFrame,
+      boolean isCorVarDefined) {
+    Frame newChildFrame = oldChildFrame;
+    boolean joinConditionContainsFieldAccess = RexUtil.containsFieldAccess(rel.getCondition());
+    if (joinConditionContainsFieldAccess && isCorVarDefined) {
+      final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
+      final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
+      Collections.sort(corVarList);
+
+      // 1. Build valueGen and a new corDefOutputs based on corVarList.
+      final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
+      final RelNode valueGen =
+          requireNonNull(createValueGenerator(corVarList, 0, corDefOutputs));
+      int valueGenFieldCount = valueGen.getRowType().getFieldCount();
+      RelNode newChildRel = relBuilder
+          .push(valueGen)
+          .push(oldChildFrame.r)
+          .join(JoinRelType.INNER, relBuilder.literal(true))
+          .build();
+
+      // 3. Merge oldChildFrame.corDefOutputs into corDefOutputs, with valueGenFieldCount offset
+      for (Map.Entry<CorDef, Integer> e : oldChildFrame.corDefOutputs.entrySet()) {
+        corDefOutputs.put(e.getKey(), valueGenFieldCount + e.getValue());
+      }
+
+      // 4. Compute the new positions of oldChildRel's oldToNewOutputs in newChildRel.
+      final Map<Integer, Integer> oldToNewOutputs = new HashMap<>();
+      for (Map.Entry<Integer, Integer> e : oldChildFrame.oldToNewOutputs.entrySet()) {
+        oldToNewOutputs.put(e.getKey(), valueGenFieldCount + e.getValue());
+      }
+
+      // 5. Build a new Frame with oldChildRel, newChildRel, and the mappings above.
+      newChildFrame = new Frame(oldChildRel, newChildRel, corDefOutputs, oldToNewOutputs);
+
+      // 6. Update map so that oldChildRel is associated with the new Frame.
+      map.put(oldChildRel, newChildFrame);
+    }
+    return newChildFrame;
   }
 
   private static RexInputRef getNewForOldInputRef(RelNode currentRel,
