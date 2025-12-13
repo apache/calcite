@@ -813,6 +813,9 @@ public interface CalciteResource {
   @BaseMessage("SELECT * EXCLUDE list contains unknown column(s): {0}")
   ExInst<SqlValidatorException> selectStarExcludeListContainsUnknownColumns(String columns);
 
+  @BaseMessage("SELECT * EXCLUDE list cannot exclude all columns")
+  ExInst<SqlValidatorException> selectStarExcludeCannotExcludeAllColumns();
+
   @BaseMessage("Group function ''{0}'' can only appear in GROUP BY clause")
   ExInst<SqlValidatorException> groupFunctionMustAppearInGroupByClause(String funcName);
 

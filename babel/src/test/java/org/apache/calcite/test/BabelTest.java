@@ -210,6 +210,27 @@ class BabelTest {
         });
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7332">[CALCITE-7332]
+   * SELECT * EXCLUDE list should error when it excludes all columns</a>. */
+  @Test void testStarExcludeWithEmptyColumn() {
+    final SqlValidatorFixture fixture = Fixtures.forValidator()
+        .withParserConfig(p -> p.withParserFactory(SqlBabelParserImpl.FACTORY));
+
+    // To verify the scenario where all columns in the exclude list exist
+    // and the number of columns in the list is equal to the number of columns in the table.
+    fixture.withSql("select * exclude(deptno, deptno) from dept")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(names, is(ImmutableList.of("NAME")));
+        });
+
+    // To verify that the exclude list contains all columns in the table
+    fixture.withSql("select ^*^ exclude(deptno, name) from dept")
+        .fails("SELECT \\* EXCLUDE list cannot exclude all columns");
+  }
+
   /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
    * frames. */
   @Test void testTimeFrames() {
