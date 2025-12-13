@@ -258,7 +258,7 @@ class BabelTest {
 
     // To verify that the exclude list contains all columns in the table
     fixture.withSql("select ^*^ exclude(deptno, name) from dept")
-        .fails("SELECT \\* EXCLUDE list cannot exclude all columns");
+        .fails("SELECT \\* EXCLUDE/EXCEPT list cannot exclude all columns");
   }
 
   /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
