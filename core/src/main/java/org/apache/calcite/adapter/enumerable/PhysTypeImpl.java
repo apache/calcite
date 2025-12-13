@@ -646,14 +646,13 @@ public class PhysTypeImpl implements PhysType {
       Expressions.FluentList<Expression> list) {
     assert list.size() > 0;
 
-    switch (list.size()) {
-    case 1:
+    if (list.size() == 1) {
       return Expressions.call(
           List.class,
           null,
           BuiltInMethod.LIST1.method,
           list);
-    default:
+    } else {
       return getListExpression(list);
     }
   }

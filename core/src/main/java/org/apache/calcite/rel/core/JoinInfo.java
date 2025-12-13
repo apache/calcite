@@ -48,7 +48,10 @@ import static java.util.Objects.requireNonNull;
 public class JoinInfo {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;
+  // for each join key, whether it filters nulls. If TRUE, the join key uses EQUALS semantics
+  // (not null-safe); if FALSE, it uses IS NOT DISTINCT FROM semantics (null-safe).
   public final ImmutableList<Boolean> filterNulls;
+  // non-equi parts of join condition.
   public final ImmutableList<RexNode> nonEquiConditions;
 
   /** Creates a JoinInfo. */

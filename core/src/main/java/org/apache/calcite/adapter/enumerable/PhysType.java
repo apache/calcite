@@ -136,8 +136,10 @@ public interface PhysType {
 
   /**
    * Similar to {@link #generateAccessor(List)} and {@link #generateAccessorWithoutNulls(List)},
-   * but it's null-aware. If one of the fields is <code>null</code> and this field is marked as
-   * TRUE in filterNulls, it will return <code>null</code>.
+   * but it's null-aware. It returns a Expression which evaluates to null (if one of
+   * field is null and it isn't null-safe) or a list of
+   * fields that may contain null (no field is null, or there are fields with null but they are
+   * null-safe) at runtime.
    */
   Expression generateNullAwareAccessor(List<Integer> fields, List<Boolean> filterNulls);
 
