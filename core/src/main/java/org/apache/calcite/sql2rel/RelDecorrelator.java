@@ -1384,17 +1384,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
   /** Adds a value generator to satisfy the correlating variables used by
    * a relational expression, if those variables are not already provided by
    * its input. */
-  private Frame maybeAddValueGenerator(RelNode rel, Frame frame) {
-    final CorelMap cm1 = new CorelMapBuilder().build(frame.r, rel);
+  private Frame maybeAddValueGenerator(RelNode rel, Frame inputFrame) {
+    final CorelMap cm1 = new CorelMapBuilder().build(inputFrame.r, rel);
     if (!cm1.mapRefRelToCorRef.containsKey(rel)) {
-      return frame;
+      return inputFrame;
     }
     final Collection<CorRef> needs = cm1.mapRefRelToCorRef.get(rel);
-    final ImmutableSortedSet<CorDef> haves = frame.corDefOutputs.keySet();
+    final ImmutableSortedSet<CorDef> haves = inputFrame.corDefOutputs.keySet();
     if (hasAll(needs, haves)) {
-      return frame;
+      return inputFrame;
     }
-    return decorrelateInputWithValueGenerator(rel, frame);
+    return decorrelateInputWithValueGenerator(rel, inputFrame);
   }
 
   /** Returns whether all of a collection of {@link CorRef}s are satisfied
@@ -1420,13 +1420,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return false;
   }
 
-  private Frame decorrelateInputWithValueGenerator(RelNode rel, Frame frame) {
+  private Frame decorrelateInputWithValueGenerator(RelNode rel, Frame inputFrame) {
     // currently only handles one input
     assert rel.getInputs().size() == 1;
-    RelNode oldInput = frame.r;
+    RelNode oldInput = inputFrame.r;
 
     final NavigableMap<CorDef, Integer> corDefOutputs =
-        new TreeMap<>(frame.corDefOutputs);
+        new TreeMap<>(inputFrame.corDefOutputs);
 
     final Collection<CorRef> corVarList = cm.mapRefRelToCorRef.get(rel);
 
@@ -1447,8 +1447,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
           if (node instanceof RexInputRef) {
             map.put(def, ((RexInputRef) node).getIndex());
           } else {
-            map.put(def,
-                frame.r.getRowType().getFieldCount() + projects.size());
+            map.put(def, inputFrame.r.getRowType().getFieldCount() + projects.size());
             projects.add((RexNode) node);
           }
         }
@@ -1456,7 +1455,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // If all correlation variables are now satisfied, skip creating a value
       // generator.
       if (map.size() == corVarList.size()) {
-        map.putAll(frame.corDefOutputs);
+        map.putAll(inputFrame.corDefOutputs);
         final RelNode r;
         if (!projects.isEmpty()) {
           relBuilder.push(oldInput)
@@ -1465,17 +1464,40 @@ public class RelDecorrelator implements ReflectiveVisitor {
         } else {
           r = oldInput;
         }
-        return register(rel.getInput(0), r,
-            frame.oldToNewOutputs, map);
+        return register(rel.getInput(0), r, inputFrame.oldToNewOutputs, map);
       }
     }
 
-    int leftInputOutputCount = frame.r.getRowType().getFieldCount();
+    return createFrameWithValueGenerator(rel.getInput(0), inputFrame, corVarList, corDefOutputs);
+  }
+
+  /**
+   * Creates a new {@link Frame} for the given rel by joining its current
+   * decorrelated rel with a value generator that produces the required
+   * correlation variables.
+   *
+   * <p>The value generator is built from {@code corVarList} and joined with
+   * {@code frame.r} using an INNER join. The provided
+   * {@code corDefOutputs} map is updated to reflect the positions of all
+   * correlation definitions in the join output, and the resulting frame is
+   * registered for {@code rel}.
+   *
+   * @param rel       target RelNode whose frame is updated to use the join of
+   *                  {@code frame.r} and the value generator
+   * @param frame     existing Frame of the rel
+   * @param corVarList     correlated variables that still need to be produced
+   * @param corDefOutputs  mapping from {@link CorDef} to output positions; updated in place
+   *                       to include positions in the new join
+   * @return a new Frame describing {@code rel} after attaching the value generator
+   */
+  private Frame createFrameWithValueGenerator(RelNode rel, Frame frame,
+      Collection<CorRef> corVarList, NavigableMap<CorDef, Integer> corDefOutputs) {
+    int leftFieldCount = frame.r.getRowType().getFieldCount();
 
     // can directly add positions into corDefOutputs since join
     // does not change the output ordering from the inputs.
     final RelNode valueGen =
-        createValueGenerator(corVarList, leftInputOutputCount, corDefOutputs);
+        createValueGenerator(corVarList, leftFieldCount, corDefOutputs);
     requireNonNull(valueGen, "valueGen");
 
     RelNode join =
@@ -1488,8 +1510,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Join or Filter does not change the old input ordering. All
     // input fields from newLeftInput (i.e. the original input to the old
     // Filter) are in the output and in the same position.
-    return register(rel.getInput(0), join, frame.oldToNewOutputs,
-        corDefOutputs);
+    return register(rel, join, frame.oldToNewOutputs, corDefOutputs);
   }
 
   /** Finds a {@link RexInputRef} that is equivalent to a {@link CorRef},
@@ -1772,8 +1793,19 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return null;
     }
 
+    Frame newLeftFrame = leftFrame;
+    boolean joinConditionContainsFieldAccess = RexUtil.containsFieldAccess(rel.getCondition());
+    if (joinConditionContainsFieldAccess && isCorVarDefined) {
+      final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
+      final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
+      Collections.sort(corVarList);
+
+      final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
+      newLeftFrame = createFrameWithValueGenerator(oldLeft, leftFrame, corVarList, corDefOutputs);
+    }
+
     RelNode newJoin = relBuilder
-        .push(leftFrame.r)
+        .push(newLeftFrame.r)
         .push(rightFrame.r)
         .join(rel.getJoinType(),
             decorrelateExpr(castNonNull(currentRel), map, cm, rel.getCondition()),
@@ -1785,7 +1817,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
 
     int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
-    int newLeftFieldCount = leftFrame.r.getRowType().getFieldCount();
+    int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
 
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
     //noinspection AssertWithSideEffects
@@ -1793,8 +1825,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         == oldLeftFieldCount + oldRightFieldCount;
 
     // Left input positions are not changed.
-    mapOldToNewOutputs.putAll(leftFrame.oldToNewOutputs);
-
+    mapOldToNewOutputs.putAll(newLeftFrame.oldToNewOutputs);
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
@@ -1802,8 +1833,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final NavigableMap<CorDef, Integer> corDefOutputs =
-        new TreeMap<>(leftFrame.corDefOutputs);
-
+        new TreeMap<>(newLeftFrame.corDefOutputs);
     // Right input positions are shifted by newLeftFieldCount.
     for (Map.Entry<CorDef, Integer> entry
         : rightFrame.corDefOutputs.entrySet()) {
