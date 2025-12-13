@@ -830,8 +830,15 @@ public class SqlOperatorTest {
    * Result of cast Number to Boolean is not correct</a>. */
   @Test public void testNumbericBooleanCast() {
     SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.MAX, VM_EXPAND);
+    String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    f.checkAgg("cast(max(x) as BOOLEAN)", values, isSingle(true));
+    String[] values1 = {"0", "CAST(null AS INTEGER)", "0", "-2"};
+    f.checkAgg("cast(max(x) as BOOLEAN)", values1, isSingle(false));
     f.checkScalar("CAST(1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(abs(2) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(abs(0) AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(-1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(1.2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
     f.checkScalar("CAST(CAST(100.5e0 AS DECIMAL(4, 1)) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
