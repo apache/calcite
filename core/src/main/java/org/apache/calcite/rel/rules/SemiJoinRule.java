@@ -110,7 +110,7 @@ public abstract class SemiJoinRule
       final RexNode newCondition =
           RelOptUtil.createHashJoinCondition(relBuilder.peek(2, 0),
               joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys,
-              joinInfo.filterNulls, rexBuilder);
+              joinInfo.nullExclusionFlags, rexBuilder);
       relBuilder.semiJoin(newCondition).hints(join.getHints());
       break;
 

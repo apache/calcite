@@ -730,8 +730,8 @@ public class PhysTypeImpl implements PhysType {
 
   @Override public Expression generateNullAwareAccessor(
       List<Integer> fields,
-      List<Boolean> filterNulls) {
-    assert fields.size() == filterNulls.size();
+      List<Boolean> nullExclusionFlags) {
+    assert fields.size() == nullExclusionFlags.size();
     ParameterExpression v1 = Expressions.parameter(javaRowClass, "v1");
     if (fields.isEmpty()) {
       return Expressions.lambda(
@@ -752,7 +752,7 @@ public class PhysTypeImpl implements PhysType {
     // element (which may be null) rather than returning the element directly.
     Expression exp = getListExpressionAllowSingleElement(list);
     for (int i = list.size() - 1; i >= 0; i--) {
-      if (filterNulls.get(i)) {
+      if (nullExclusionFlags.get(i)) {
         exp =
             Expressions.condition(
                 Expressions.equal(list.get(i), Expressions.constant(null)),

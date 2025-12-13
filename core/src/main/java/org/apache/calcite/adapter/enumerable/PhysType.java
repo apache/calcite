@@ -141,7 +141,7 @@ public interface PhysType {
    * fields that may contain null (no field is null, or there are fields with null but they are
    * null-safe) at runtime.
    */
-  Expression generateNullAwareAccessor(List<Integer> fields, List<Boolean> filterNulls);
+  Expression generateNullAwareAccessor(List<Integer> fields, List<Boolean> nullExclusionFlags);
 
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */

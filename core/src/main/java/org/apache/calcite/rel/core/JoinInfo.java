@@ -48,33 +48,35 @@ import static java.util.Objects.requireNonNull;
 public class JoinInfo {
   public final ImmutableIntList leftKeys;
   public final ImmutableIntList rightKeys;
-  // for each join key, whether it filters nulls. If TRUE, the join key uses EQUALS semantics
+  // for each join key, whether it filters out nulls. If TRUE, the join key uses EQUALS semantics
   // (not null-safe); if FALSE, it uses IS NOT DISTINCT FROM semantics (null-safe).
-  public final ImmutableList<Boolean> filterNulls;
+  public final ImmutableList<Boolean> nullExclusionFlags;
   // non-equi parts of join condition.
+  // after CALCITE-7327, IS NOT DISTINCT FROM can be treated as a hash join key and is no longer
+  // part of nonEquiConditions.
   public final ImmutableList<RexNode> nonEquiConditions;
 
   /** Creates a JoinInfo. */
   protected JoinInfo(ImmutableIntList leftKeys, ImmutableIntList rightKeys,
-      ImmutableList<Boolean> filterNulls, ImmutableList<RexNode> nonEquiConditions) {
+      ImmutableList<Boolean> nullExclusionFlags, ImmutableList<RexNode> nonEquiConditions) {
     this.leftKeys = requireNonNull(leftKeys, "leftKeys");
     this.rightKeys = requireNonNull(rightKeys, "rightKeys");
-    this.filterNulls = requireNonNull(filterNulls, "filterNulls");
+    this.nullExclusionFlags = requireNonNull(nullExclusionFlags, "nullExclusionFlags");
     this.nonEquiConditions =
         requireNonNull(nonEquiConditions, "nonEquiConditions");
-    assert leftKeys.size() == rightKeys.size() && leftKeys.size() == filterNulls.size();
+    assert leftKeys.size() == rightKeys.size() && leftKeys.size() == nullExclusionFlags.size();
   }
 
   /** Creates a {@code JoinInfo} by analyzing a condition. */
   public static JoinInfo of(RelNode left, RelNode right, RexNode condition) {
     final List<Integer> leftKeys = new ArrayList<>();
     final List<Integer> rightKeys = new ArrayList<>();
-    final List<Boolean> filterNulls = new ArrayList<>();
+    final List<Boolean> nullExclusionFlags = new ArrayList<>();
     final List<RexNode> nonEquiList = new ArrayList<>();
     RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys,
-        filterNulls, nonEquiList);
+        nullExclusionFlags, nonEquiList);
     return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
-        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(filterNulls),
+        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(nullExclusionFlags),
         ImmutableList.copyOf(nonEquiList));
   }
 
@@ -90,17 +92,18 @@ public class JoinInfo {
     final List<RexNode> nonEquiList = new ArrayList<>();
     RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys,
         null, nonEquiList);
-    List<Boolean> filterNulls = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
+    List<Boolean> nullExclusionFlags = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
     return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
-        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(filterNulls),
+        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(nullExclusionFlags),
         ImmutableList.copyOf(nonEquiList));
   }
 
   /** Creates an equi-join (only considers EQUALS operations). */
   public static JoinInfo of(ImmutableIntList leftKeys,
       ImmutableIntList rightKeys) {
-    List<Boolean> filterNulls = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
-    return new JoinInfo(leftKeys, rightKeys, ImmutableList.copyOf(filterNulls), ImmutableList.of());
+    List<Boolean> nullExclusionFlags = Collections.nCopies(leftKeys.size(), Boolean.TRUE);
+    return new JoinInfo(leftKeys, rightKeys,
+        ImmutableList.copyOf(nullExclusionFlags), ImmutableList.of());
   }
 
   /** Returns whether this is an equi-join. */
@@ -128,7 +131,7 @@ public class JoinInfo {
 
   public RexNode getEquiCondition(RelNode left, RelNode right,
       RexBuilder rexBuilder) {
-    return RelOptUtil.createHashJoinCondition(left, leftKeys, right, rightKeys, filterNulls,
+    return RelOptUtil.createHashJoinCondition(left, leftKeys, right, rightKeys, nullExclusionFlags,
         rexBuilder);
   }
 

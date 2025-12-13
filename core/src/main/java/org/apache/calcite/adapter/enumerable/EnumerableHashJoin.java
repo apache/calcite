@@ -219,9 +219,9 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                     leftExpression,
                     rightExpression,
                     leftResult.physType.generateNullAwareAccessor(
-                        joinInfo.leftKeys, joinInfo.filterNulls),
+                        joinInfo.leftKeys, joinInfo.nullExclusionFlags),
                     rightResult.physType.generateNullAwareAccessor(
-                        joinInfo.rightKeys, joinInfo.filterNulls),
+                        joinInfo.rightKeys, joinInfo.nullExclusionFlags),
                     Util.first(keyPhysType.comparer(),
                         Expressions.constant(null)),
                     predicate)))
@@ -267,9 +267,9 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                 Expressions.list(
                     rightExpression,
                     leftResult.physType.generateNullAwareAccessor(
-                        joinInfo.leftKeys, joinInfo.filterNulls),
+                        joinInfo.leftKeys, joinInfo.nullExclusionFlags),
                     rightResult.physType.generateNullAwareAccessor(
-                        joinInfo.rightKeys, joinInfo.filterNulls),
+                        joinInfo.rightKeys, joinInfo.nullExclusionFlags),
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
