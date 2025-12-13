@@ -648,12 +648,12 @@ public class RelDecorrelatorTest {
         + "    LogicalJoin(condition=[AND(=($1, $8), =($0, CAST($9):SMALLINT))], joinType=[inner])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
-        + "        LogicalProject(ENAME=[$0], DEPTNO=[$1])\n"
-        + "          LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "        LogicalProject(ENAME=[$3], DEPTNO=[$0])\n"
+        + "          LogicalJoin(condition=[=($3, $4)], joinType=[inner])\n"
         + "            LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
         + "              LogicalProject(ENAME=[$1])\n"
         + "                LogicalTableScan(table=[[scott, EMP]])\n"
-        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
         + "            LogicalProject(ENAME=[$0])\n"
         + "              LogicalTableScan(table=[[scott, BONUS]])\n";
     assertThat(after, hasTree(planAfter));
