@@ -1295,9 +1295,12 @@ public abstract class SqlUtil {
   }
 
   /**
-   * Returns a node without sort modifiers (DESC, NULLS FIRST/LAST).
+   * Returns a copy of the sql node with ordering modifiers removed.
+   *
+   * <p>Does not modify the input. Strips outermost {@code DESC},
+   * {@code NULLS FIRST}, and {@code NULLS LAST} modifiers recursively.
    */
-  public static SqlNode withoutOrderModifiers(SqlNode node) {
+  public static SqlNode stripOrderModifiers(SqlNode node) {
     SqlNode expr = node;
     while (expr instanceof SqlCall) {
       final SqlCall call = (SqlCall) expr;
@@ -1314,9 +1317,10 @@ public abstract class SqlUtil {
   }
 
   /**
-   * Returns a node without AS from an ORDER BY item, but keeps sort modifiers.
+   * Returns a copy of the ORDER BY item with {@code AS} alias removed,
+   * preserving sort modifiers (DESC, NULLS FIRST/LAST).
    */
-  public static SqlNode withoutAsFromOrder(SqlNode node) {
+  public static SqlNode stripAsFromOrder(SqlNode node) {
     if (node instanceof SqlCall) {
       SqlCall call = (SqlCall) node;
       SqlKind kind = call.getKind();
@@ -1324,7 +1328,7 @@ public abstract class SqlUtil {
           || kind == SqlKind.NULLS_FIRST
           || kind == SqlKind.NULLS_LAST) {
         SqlNode operand = call.operand(0);
-        SqlNode stripped = withoutAsFromOrder(operand);
+        SqlNode stripped = stripAsFromOrder(operand);
         if (stripped != operand) {
           return call.getOperator().createCall(call.getParserPosition(), stripped);
         }

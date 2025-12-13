@@ -50,13 +50,13 @@ public final class SqlByRewriter {
     final List<SqlNode> extraSelectItems = new ArrayList<>();
 
     for (SqlNode node : by) {
-      final SqlNode selectItem = SqlUtil.withoutOrderModifiers(node);
+      final SqlNode selectItem = SqlUtil.stripOrderModifiers(node);
       extraSelectItems.add(selectItem);
 
       final SqlNode groupItem = SqlUtil.stripAs(selectItem);
       groupBy.add(groupItem.clone(groupItem.getParserPosition()));
 
-      final SqlNode orderItem = SqlUtil.withoutAsFromOrder(node);
+      final SqlNode orderItem = SqlUtil.stripAsFromOrder(node);
       orderBy.add(orderItem.clone(orderItem.getParserPosition()));
     }
 
