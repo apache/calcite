@@ -825,6 +825,36 @@ public class SqlOperatorTest {
     f.checkNull("CAST(CAST(NULL AS VARCHAR) AS VARBINARY)");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7323">
+   * Result of cast Number to Boolean is not correct</a>. */
+  @Test public void testNumbericBooleanCast() {
+    SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.MAX, VM_EXPAND);
+    String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    f.checkAgg("cast(max(x) as BOOLEAN)", values, isSingle(true));
+    String[] values1 = {"0", "CAST(null AS INTEGER)", "0", "-2"};
+    f.checkAgg("cast(max(x) as BOOLEAN)", values1, isSingle(false));
+    f.checkScalar("CAST(1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(abs(2) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(abs(0) AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(-1 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(1.2 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(CAST(100.5e0 AS DECIMAL(4, 1)) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0.0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0.0e0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0.01e0 AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(0e0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(-0e0 AS BOOLEAN)", "false", "BOOLEAN NOT NULL");
+    f.checkNull("CAST(NULL AS BOOLEAN)");
+    f.checkScalar("CAST(CAST(1.2 AS FLOAT) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(CAST(1.2 AS Double) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(cast(1 as INTEGER UNSIGNED) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+    f.checkScalar("CAST(cast(1 as TINYINT UNSIGNED) AS BOOLEAN)", "true", "BOOLEAN NOT NULL");
+  }
+
   @ParameterizedTest
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {
