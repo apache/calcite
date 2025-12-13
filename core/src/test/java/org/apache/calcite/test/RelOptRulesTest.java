@@ -11699,4 +11699,267 @@ class RelOptRulesTest extends RelOptTestBase {
         })
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7031">[CALCITE-7031]
+   * Implement the general decorrelation algorithm (Neumann & Kemper)</a>. */
+  @Test void testTopDownGeneralDecorrelateForFilterExists() {
+    final String sql = "select empno from emp where "
+        + "exists(select * from dept where dept.deptno = emp.deptno)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForFilterSome() {
+    final String sql = "select empno from emp where "
+        + "empno > SOME(select empno from emp_b where emp.ename = emp_b.ename)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForFilterNotIn() {
+    final String sql = "select empno from emp where "
+            + "empno not in (select empno from emp_b where emp.ename = emp_b.ename)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForFilterNotExists() {
+    final String sql = "select empno from emp where "
+            + "not exists(select * from emp_b where emp.ename = emp_b.ename)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForFilterScalar() {
+    final String sql = "select empno from emp where "
+        + "sal > (select avg(sal) from emp_b where emp.ename = emp_b.ename)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForSubqueryWithSetOp() {
+    final String sql = "select empno, (select sum(deptno) from ("
+        + "select deptno from emp_b where emp.empno = emp_b.empno "
+        + "union all select deptno from empnullables where emp.empno = empnullables.empno))"
+        + " from emp";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForSubqueryWithJoin() {
+    final String sql = "select empno from emp where sal > SOME("
+        + "select sal from empnullables, (select empno from emp_b where emp.deptno = emp_b.deptno)"
+        + " b where empnullables.empno = b.empno)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForCountScalar() {
+    final String sql = "select deptno, "
+        + "(select count(empno) from emp where dept.deptno = emp.deptno) from dept";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForProjectScalar() {
+    final String sql = "SELECT empno, sal + "
+        + "(SELECT avg(sal) FROM empdefaults where emp.deptno = empdefaults.deptno) "
+        + "FROM emp";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForProjectExists() {
+    final String sql = "SELECT dept.deptno, EXISTS ( SELECT 1 FROM emp e "
+        + "WHERE e.deptno = dept.deptno ) AS has_employees FROM dept";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForProjectIn() {
+    final String sql = "SELECT emp.deptno, emp.deptno IN (SELECT dept.deptno FROM dept "
+        + "where dept.deptno < emp.empno ) FROM emp";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForLateralJoin() {
+    final String sql = "select empno from emp,\n"
+        + " LATERAL (select * from dept where emp.deptno = dept.deptno)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForTwoLevelCorrelate() {
+    final String sql = "select empno from emp where "
+        + "exists(select * from emp_b where emp.ename = emp_b.ename and "
+        + "exists(select * from empnullables where emp.empno = empnullables.empno and "
+        + "emp_b.deptno = empnullables.deptno))";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForTwoLevelCorrelate2() {
+    final String sql = "select empno from emp where "
+        + "exists(select * from emp_b where emp.ename = emp_b.ename and "
+        + "exists(select * from empnullables where emp.empno = empnullables.empno))";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForTwoLevelCorrelate3() {
+    final String sql = "SELECT deptno FROM emp e WHERE EXISTS (SELECT * FROM dept d WHERE EXISTS "
+        + "(SELECT * FROM bonus ea WHERE ea.ENAME = e.ENAME AND d.deptno = e.deptno))";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForCannotRemoveD() {
+    final String sql = "select empno from emp where "
+        + "exists(select * from empnullables where emp.deptno > empnullables.deptno)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForSubqueryWithSort() {
+    final String sql = "select empno from emp where "
+        + "sal > SOME(select sal from emp_b where emp.deptno = emp_b.deptno "
+        + "order by emp_b.sal limit 5)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  @Test void testTopDownGeneralDecorrelateForSubqueryWithCube() {
+    final String sql = "select empno from emp where "
+        + "sal < SOME(select avg(sal) from emp_b where emp.job = emp_b.job group by cube(deptno))";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
 }
