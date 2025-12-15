@@ -3985,7 +3985,7 @@ public class RelMetadataTest {
 
     assertThat("Lineage for expr '" + ref + "' in node '"
             + rel + "'" + " for query '" + sql + "': " + comment,
-        String.valueOf(r), is(expected));
+        Util.toLinux(String.valueOf(r)), is(expected));
   }
 
   /** Test case for
@@ -4007,6 +4007,35 @@ public class RelMetadataTest {
     String comment = "'productid' is column 0 in 'catalog.sales.products_temporal'";
     assertExpressionLineage("select productid from products_temporal\n"
         + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'", 0, expected, comment);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7328">[CALCITE-7328]
+   * Support SCALAR_QUERY in RelMdExpressionLineage</a>. */
+  @Test void testExpressionLineageScalarSubquery() {
+    final String sql = "select (select max(productid) from products_temporal) as maxValue";
+    final String expected = "[$SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
+        + "  LogicalProject(PRODUCTID=[$0])\n"
+        + "    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])\n"
+        + "})]";
+    final String comment = "lineage should report the enclosing scalar query";
+    assertExpressionLineage(sql, 0, expected, comment);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7328">[CALCITE-7328]
+   * Support SCALAR_QUERY in RelMdExpressionLineage</a>. */
+  @Test void testExpressionLineageScalarSubqueryDirectColumn() {
+    final String sql = "select (select productid from products_temporal where productid = 1)"
+        + " as productid";
+    final String expected = "[$SCALAR_QUERY({\n"
+        + "LogicalProject(PRODUCTID=[$0])\n"
+        + "  LogicalFilter(condition=[=($0, 1)])\n"
+        + "    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])\n"
+        + "})]";
+    final String comment = "lineage should report the enclosing scalar query";
+    assertExpressionLineage(sql, 0, expected, comment);
   }
 
   @Test void testExpressionLineageStar() {

@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -467,6 +468,23 @@ public class RelMdExpressionLineage
 
     // Return result
     return createAllPossibleExpressions(rexBuilder, outputExpression, mapping);
+  }
+
+  public @Nullable Set<RexNode> getExpressionLineage(Values rel,
+      RelMetadataQuery mq, RexNode outputExpression) {
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+
+    // Extract input fields referenced by expression
+    final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
+
+    if (!inputFieldsUsed.isEmpty()) {
+      // Keep lineage is null.
+      return null;
+    }
+
+    // If it's a subquery, inputFieldsUsed will be empty,
+    // and the subquery will be returned directly.
+    return createAllPossibleExpressions(rexBuilder, outputExpression, new HashMap<>());
   }
 
   /**

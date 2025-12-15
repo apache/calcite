@@ -88,6 +88,8 @@ public final class GeneratedMetadata_ExpressionLineageHandler
       return provider0.getExpressionLineage((org.apache.calcite.rel.core.TableScan) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.Union) {
       return provider0.getExpressionLineage((org.apache.calcite.rel.core.Union) r, mq, a2);
+    } else if (r instanceof org.apache.calcite.rel.core.Values) {
+      return provider0.getExpressionLineage((org.apache.calcite.rel.core.Values) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getExpressionLineage((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
