@@ -1171,4 +1171,10 @@ public interface CalciteResource {
 
   @BaseMessage("Cannot infer return type for {0}; operand types: {1}")
   ExInst<SqlValidatorException> cannotInferReturnType(String operator, String types);
+
+  @BaseMessage("SELECT BY cannot be used with GROUP BY")
+  ExInst<SqlValidatorException> selectByCannotWithGroupBy();
+
+  @BaseMessage("SELECT BY cannot be used with ORDER BY")
+  ExInst<SqlValidatorException> selectByCannotWithOrderBy();
 }

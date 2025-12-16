@@ -56,6 +56,7 @@ public class SqlSelect extends SqlCall {
   @Nullable SqlNode offset;
   @Nullable SqlNode fetch;
   @Nullable SqlNodeList hints;
+  boolean hasByClause;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -87,6 +88,7 @@ public class SqlSelect extends SqlCall {
     this.offset = offset;
     this.fetch = fetch;
     this.hints = hints;
+    this.hasByClause = false;
   }
 
   /** deprecated, without {@code qualify}. */
@@ -243,6 +245,14 @@ public class SqlSelect extends SqlCall {
 
   public void setOrderBy(@Nullable SqlNodeList orderBy) {
     this.orderBy = orderBy;
+  }
+
+  void setHasByClause(boolean hasByClause) {
+    this.hasByClause = hasByClause;
+  }
+
+  public boolean hasByClause() {
+    return hasByClause;
   }
 
   @Pure

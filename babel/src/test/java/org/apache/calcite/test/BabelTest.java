@@ -17,15 +17,27 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -42,6 +54,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -339,6 +353,133 @@ class BabelTest {
 
     v.withSql("SELECT name FROM dept LEFT ANTI JOIN emp ON emp.deptno = dept.deptno")
         .type("RecordType(VARCHAR(10) NOT NULL NAME) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5347">[CALCITE-5347]
+   * Support parse "SELECT ... BY" in Babel parser</a>. */
+  @Test void testByClause() {
+    final SqlValidatorFixture v = Fixtures.forValidator()
+        .withParserConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withConformance(SqlConformanceEnum.BABEL);
+
+    // Test basic BY clause: SELECT a BY b is sugar for SELECT b, a GROUP BY b ORDER BY b
+    v.withSql("select ename, empno by deptno from emp").ok();
+    // Test BY clause with alias
+    v.withSql("select ename, empno by deptno as dept from emp").ok();
+    // Test BY clause with DESC modifier
+    v.withSql("select ename, empno by deptno DESC from emp").ok();
+    // Test BY clause with multiple columns
+    v.withSql("select ename, empno by deptno, job from emp").ok();
+    // Test complex BY clause example from the feature proposal
+    v.withSql("select e.ename, e.empno by d.name as dept DESC, e.job as title "
+        + "from emp as e join dept as d on e.deptno = d.deptno where d.name = 'SALES'")
+        .ok();
+
+    // Test SELECT BY cannot be used with GROUP BY
+    v.withSql("select ename by deptno from emp ^group by empno^")
+        .fails("SELECT BY cannot be used with GROUP BY");
+    // Test SELECT BY cannot be used with ORDER BY
+    v.withSql("select ename by deptno from emp ^order by empno^")
+        .fails("SELECT BY cannot be used with ORDER BY");
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5347">[CALCITE-5347]
+   * Add 'SELECT ... BY', a syntax extension that is shorthand for GROUP BY and ORDER BY</a>. */
+  @Test void testByClauseConversion() {
+    // Test basic BY clause: SELECT a BY b is sugar for SELECT b, a GROUP BY b ORDER BY b
+    final String sql = "select ename, empno by deptno from emp";
+    final String expected = "SELECT \"DEPTNO\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\"";
+    checkSqlConversion(sql, expected);
+
+    // Test BY clause with alias
+    final String sql2 = "select ename, empno by deptno as dept from emp";
+    final String expected2 = "SELECT \"DEPTNO\" AS \"DEPT\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\"";
+    checkSqlConversion(sql2, expected2);
+
+    // Test BY clause with DESC modifier
+    final String sql3 = "select ename, empno by deptno DESC from emp";
+    final String expected3 = "SELECT \"DEPTNO\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\" DESC";
+    checkSqlConversion(sql3, expected3);
+
+    // Test BY clause with multiple columns
+    final String sql4 = "select ename, empno by deptno, job from emp";
+    final String expected4 = "SELECT \"DEPTNO\", \"JOB\","
+        + " ANY_VALUE(\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\", \"JOB\"\n"
+        + "ORDER BY \"DEPTNO\", \"JOB\"";
+    checkSqlConversion(sql4, expected4);
+
+    // Test complex BY clause example from the feature proposal
+    final String sql5 = "SELECT e.ename, e.empno BY d.dname AS dept DESC, e.job AS title\n"
+        + "FROM emp AS e\n"
+        + "  JOIN dept AS d ON e.deptno = d.deptno\n"
+        + "WHERE d.loc = 'CHICAGO'";
+    final String expected5 = "SELECT \"DEPT\".\"DNAME\" AS \"DEPT\","
+        + " \"EMP\".\"JOB\" AS \"TITLE\","
+        + " ANY_VALUE(\"EMP\".\"ENAME\") AS \"ENAME\","
+        + " ANY_VALUE(\"EMP\".\"EMPNO\") AS \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
+        + "WHERE \"DEPT\".\"LOC\" = 'CHICAGO'\n"
+        + "GROUP BY \"DEPT\".\"DNAME\", \"EMP\".\"JOB\"\n"
+        + "ORDER BY \"DEPT\".\"DNAME\" DESC, \"EMP\".\"JOB\"";
+    checkSqlConversion(sql5, expected5);
+  }
+
+  private void checkSqlConversion(String sql, String expected) {
+    try {
+      final SqlParser.Config parserConfig = SqlParser.config()
+          .withParserFactory(SqlBabelParserImpl.FACTORY);
+
+      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+      final SchemaPlus defaultSchema =
+          CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.JDBC_SCOTT);
+
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .parserConfig(parserConfig)
+          .defaultSchema(defaultSchema)
+          .programs(Programs.standard())
+          .build();
+
+      final Planner planner = Frameworks.getPlanner(config);
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      RelNode rel = planner.rel(validate).project();
+
+      final SqlDialect dialect = CalciteSqlDialect.DEFAULT;
+      final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+      final SqlNode sqlNode = converter.visitRoot(rel).asStatement();
+      final String actual = sqlNode.toSqlString(c ->
+          c.withDialect(dialect)
+              .withAlwaysUseParentheses(false)
+              .withSelectListItemsOnSeparateLines(false)
+              .withUpdateSetListNewline(false)
+              .withIndentation(0))
+          .getSql();
+
+      assertThat(actual, isLinux(expected));
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
   }
 
   private void checkSqlResult(String funLibrary, String query, String result) {
