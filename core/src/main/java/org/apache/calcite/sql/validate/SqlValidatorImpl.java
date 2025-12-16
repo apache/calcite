@@ -489,9 +489,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       selectScope = getSelectScope(select);
       expanded = expandSelectExpr(selectItem, scope, select, expansions);
 
-      // Non-strict GROUP BY: wrap non-aggregated, non-grouped columns in ANY_VALUE()
+      // Non-strict GROUP BY or BY clause: wrap non-aggregated, non-grouped columns in ANY_VALUE()
       if (isAggregate(select)
-          && config.conformance().isNonStrictGroupBy()
+          && (config.conformance().isNonStrictGroupBy()
+          || select.hasByClause())
           && isNonAggregatedNonGroupedColumn(expanded, select)) {
         expanded =
             SqlStdOperatorTable.ANY_VALUE.createCall(expanded.getParserPosition(), expanded);
@@ -554,7 +555,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     if (node instanceof SqlCall) {
-      return ((SqlCall) node).getOperandList().stream()
+      final SqlCall call = (SqlCall) node;
+      if (call.getKind() == SqlKind.AS) {
+        return isNonAggregatedNonGroupedColumn(call.operand(0), select);
+      }
+      return call.getOperandList().stream()
           .anyMatch(operand -> isNonAggregatedNonGroupedColumn(operand, select));
     } else if (node instanceof SqlLiteral) {
       return true;

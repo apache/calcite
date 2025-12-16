@@ -4181,9 +4181,9 @@ from emp group by deptno, sal_col;
 (12 rows)
 
 !ok
-EnumerableCalc(expr#0..8=[{inputs}], DEPTNO=[$t0], ENAME=[$t2], SAL_COL=[$t3], FULL_IDENTIFIER=[$t4], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[$t5], SAL_PLUS_CONSTANT=[$t6], CONSTANT_3=[$t7], AGG_FUNC=[$t8])
-  EnumerableAggregate(group=[{0, 1}], ENAME=[ANY_VALUE($2)], SAL_COL=[ANY_VALUE($1)], FULL_IDENTIFIER=[ANY_VALUE($3)], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[ANY_VALUE($4)], SAL_PLUS_CONSTANT=[ANY_VALUE($5)], CONSTANT_3=[ANY_VALUE($6)], AGG_FUNC=[MAX($1)])
-    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[+($t5, $t6)], expr#9=[1], expr#10=[+($t5, $t9)], expr#11=[3], DEPTNO=[$t7], SAL=[$t5], ENAME=[$t1], JOB=[$t2], $f4=[$t8], $f5=[$t10], $f6=[$t11])
+EnumerableCalc(expr#0..7=[{inputs}], DEPTNO=[$t0], ENAME=[$t2], SAL_COL=[$t1], FULL_IDENTIFIER=[$t3], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[$t4], SAL_PLUS_CONSTANT=[$t5], CONSTANT_3=[$t6], AGG_FUNC=[$t7])
+  EnumerableAggregate(group=[{0, 1}], ENAME=[ANY_VALUE($2)], FULL_IDENTIFIER=[ANY_VALUE($3)], TWO_COLS_ONLY_ONE_IN_GROUP_BY=[ANY_VALUE($4)], SAL_PLUS_CONSTANT=[ANY_VALUE($5)], CONSTANT_3=[ANY_VALUE($6)], AGG_FUNC=[MAX($1)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[+($t5, $t6)], expr#9=[1], expr#10=[+($t5, $t9)], expr#11=[3], DEPTNO=[$t7], SAL_COL=[$t5], ENAME=[$t1], JOB=[$t2], $f4=[$t8], $f5=[$t10], $f6=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
