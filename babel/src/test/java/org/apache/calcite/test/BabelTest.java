@@ -490,4 +490,32 @@ class BabelTest {
         .query(query)
         .returns(result);
   }
+
+  @Test void testAgeFunction() {
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25', timestamp '2020-01-01') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 24 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-01-01', timestamp '2023-01-01') FROM (VALUES (1)) t",
+        "EXPR$0=0 years 0 mons 0 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2020-01-01', timestamp '2023-12-25') FROM (VALUES (1)) t",
+        "EXPR$0=-3 years -11 mons -24 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-02-01', timestamp '2023-01-31') FROM (VALUES (1)) t",
+        "EXPR$0=0 years 0 mons 1 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-26 14:30:00', timestamp '2023-12-25 14:30:00') FROM (VALUES (1)) t",
+        "EXPR$0=0 years 0 mons 1 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25 00:00:00', timestamp '2020-01-01 23:59:59') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 23 days 0 hours 0 mins 1.0 secs\n");
+  }
+
+
 }

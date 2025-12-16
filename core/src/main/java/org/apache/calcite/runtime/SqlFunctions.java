@@ -99,11 +99,13 @@ import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -7444,5 +7446,65 @@ public class SqlFunctions {
     FILE,
     AUTHORITY,
     USERINFO;
+  }
+
+  /** SQL {@code AGE(timestamp1, timestamp2)} function. */
+  public static String age(long timestamp1, long timestamp2) {
+    // Convert timestamps to LocalDateTime objects
+    Instant instant1 = Instant.ofEpochMilli(timestamp1);
+    Instant instant2 = Instant.ofEpochMilli(timestamp2);
+
+    LocalDateTime dateTime1 = LocalDateTime.ofInstant(instant1, ZoneOffset.UTC);
+    LocalDateTime dateTime2 = LocalDateTime.ofInstant(instant2, ZoneOffset.UTC);
+
+    // Check if the original timestamps are in the correct order
+    boolean isNegative = timestamp1 < timestamp2;
+
+    // Ensure dateTime1 is later than dateTime2 for consistent calculation
+    if (dateTime1.isBefore(dateTime2)) {
+      LocalDateTime temp = dateTime1;
+      dateTime1 = dateTime2;
+      dateTime2 = temp;
+    }
+
+    // Calculate period (years, months, days)
+    Period period = Period.between(dateTime2.toLocalDate(), dateTime1.toLocalDate());
+
+    // Calculate duration (hours, minutes, seconds, milliseconds)
+    Duration duration = Duration.between(dateTime2, dateTime1);
+
+    // Adjust for possible day overflow when time part is negative
+    if (dateTime1.toLocalTime().isBefore(dateTime2.toLocalTime())) {
+      period = period.minusDays(1);
+      duration = duration.plusDays(1);
+    }
+
+    // Extract components
+    int years = period.getYears();
+    int months = period.getMonths();
+    int days = period.getDays();
+
+    long totalHours = duration.toHours();
+    long totalMinutes = duration.toMinutes();
+    long totalSeconds = duration.getSeconds();
+    long totalMillis = duration.toMillis();
+
+    long hours = totalHours % 24;
+    long minutes = totalMinutes % 60;
+    long seconds = totalSeconds % 60;
+    long millis = totalMillis % 1000;
+
+    // Apply negative sign if needed
+    if (isNegative) {
+      years = -years;
+      months = -months;
+      days = -days;
+      hours = -hours;
+      minutes = -minutes;
+      seconds = -seconds;
+    }
+
+    return String.format("%d years %d mons %d days %d hours %d mins %.1f secs",
+        years, months, days, hours, minutes, seconds + millis / 1000.0);
   }
 }
