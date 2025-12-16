@@ -377,4 +377,203 @@ public class RelDecorrelatorTest {
         + "            LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(decorrelatedNoRules, hasTree(planDecorrelatedNoRules));
   }
+
+  @Test void testDecorrelateCorrelatedOrderByLimitToRowNumber() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT dname FROM  dept WHERE 2000 > (\n"
+        + "SELECT emp.sal FROM  emp where dept.deptno = emp.deptno\n"
+        + "ORDER BY year(hiredate), emp.sal limit 1)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DNAME=[$1])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "    LogicalFilter(condition=[>(2000.00, CAST($3):DECIMAL(12, 2))])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalProject(SAL=[$0])\n"
+        + "          LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC], fetch=[1])\n"
+        + "            LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)])\n"
+        + "              LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalProject(DNAME=[$1])\n"
+        + "  LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalFilter(condition=[>(2000.00, CAST($0):DECIMAL(12, 2))])\n"
+        + "      LogicalProject(SAL=[$0], DEPTNO=[$2])\n"
+        + "        LogicalFilter(condition=[<=($3, 1)])\n"
+        + "          LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY EXTRACT(FLAG(YEAR), $4) NULLS LAST, $5 NULLS LAST)])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  @Test void testDecorrelateCorrelatedOrderByLimitToRowNumber2() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT *\n"
+        + "FROM dept d\n"
+        + "WHERE d.deptno IN (\n"
+        + "  SELECT e.deptno\n"
+        + "  FROM emp e\n"
+        + "  WHERE d.deptno = e.deptno\n"
+        + "  LIMIT 10\n"
+        + "  OFFSET 2\n"
+        + ")\n"
+        + "LIMIT 2\n"
+        + "OFFSET 1";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalSort(offset=[1], fetch=[2])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "      LogicalFilter(condition=[=($0, $3)])\n"
+        + "        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0}])\n"
+        + "            LogicalSort(offset=[2], fetch=[10])\n"
+        + "              LogicalProject(DEPTNO=[$7])\n"
+        + "                LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalSort(offset=[1], fetch=[2])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "    LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalFilter(condition=[=($1, $0)])\n"
+        + "        LogicalAggregate(group=[{0, 1}])\n"
+        + "          LogicalProject(DEPTNO=[$0], DEPTNO1=[$1])\n"
+        + "            LogicalFilter(condition=[AND(>($2, 2), <=($2, +(2, 10)))])\n"
+        + "              LogicalProject(DEPTNO=[$7], DEPTNO1=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7)])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  @Test void testDecorrelateCorrelatedOrderByLimitToRowNumber3() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT deptno FROM dept WHERE 1000.00 >\n"
+        + "(SELECT sal FROM emp WHERE dept.deptno = emp.deptno\n"
+        + "order by emp.sal limit 1 offset 10)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "    LogicalFilter(condition=[>(1000.00, $3)])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "        LogicalSort(sort0=[$0], dir0=[ASC], offset=[10], fetch=[1])\n"
+        + "          LogicalProject(SAL=[$5])\n"
+        + "            LogicalFilter(condition=[=($cor0.DEPTNO, $7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], SAL=[$3], DEPTNO0=[$4], rn=[CAST($5):BIGINT])\n"
+        + "    LogicalJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalFilter(condition=[>(1000.00, $0)])\n"
+        + "        LogicalFilter(condition=[AND(>($2, 10), <=($2, +(10, 1)))])\n"
+        + "          LogicalProject(SAL=[$5], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $5 NULLS LAST)])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }

@@ -49,6 +49,9 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-42-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6942">CALCITE-6942</a>]
+Rename the method `decorrelateFetchOneSort` to `decorrelateSortWithRowNumber`.
+
 #### New features
 {: #new-features-1-42-0}
 

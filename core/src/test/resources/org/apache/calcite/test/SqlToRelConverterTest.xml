@@ -931,14 +931,13 @@ FROM
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$0], ENAME=[$1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
     LogicalAggregate(group=[{0}])
       LogicalProject(DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
-      LogicalProject(ENAME=[$1], SAL=[$5])
-        LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[<=($3, 3)])
+      LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $5 DESC NULLS FIRST)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -2200,8 +2199,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
         LogicalProject(DEPTNO=[$1], $f0=[true])
-          LogicalAggregate(group=[{0, 1}])
-            LogicalProject(EXPR$0=[FIRST_VALUE(1) OVER (PARTITION BY $0)], DEPTNO=[$0])
+          LogicalFilter(condition=[<=($2, 1)])
+            LogicalProject(EXPR$0=[1], DEPTNO=[$0], rn=[ROW_NUMBER() OVER (PARTITION BY $0)])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
