@@ -654,11 +654,10 @@ SELECT dname FROM "scott".dept WHERE 2000 > (SELECT emp.sal FROM "scott".emp whe
 
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
   EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2000.00:DECIMAL(12, 2)], expr#4=[CAST($t1):DECIMAL(12, 2)], expr#5=[>($t3, $t4)], SAL=[$t1], DEPTNO=[$t0], $condition=[$t5])
-      EnumerableAggregate(group=[{1, 3, 4}])
-        EnumerableWindow(window#0=[window(partition {1} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($0), FIRST_VALUE($2)])])
-          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[IS NOT NULL($t7)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t10])
-            EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[<=($t3, $t4)], expr#6=[2000.00:DECIMAL(12, 2)], expr#7=[CAST($t0):DECIMAL(12, 2)], expr#8=[>($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
+      EnumerableWindow(window#0=[window(partition {1} order by [2, 0] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[IS NOT NULL($t7)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, EMP]])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
@@ -678,11 +677,10 @@ SELECT dname FROM "scott".dept WHERE 2000 > (SELECT emp.sal FROM "scott".emp whe
 
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
   EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2000.00:DECIMAL(12, 2)], expr#4=[CAST($t1):DECIMAL(12, 2)], expr#5=[>($t3, $t4)], SAL=[$t1], DEPTNO=[$t0], $condition=[$t5])
-      EnumerableAggregate(group=[{1, 3, 4}])
-        EnumerableWindow(window#0=[window(partition {1} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($0), FIRST_VALUE($2)])])
-          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[CAST($t3):INTEGER], expr#11=[8000], expr#12=[>($t10, $t11)], expr#13=[IS NOT NULL($t7)], expr#14=[AND($t12, $t13)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t14])
-            EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[<=($t3, $t4)], expr#6=[2000.00:DECIMAL(12, 2)], expr#7=[CAST($t0):DECIMAL(12, 2)], expr#8=[>($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
+      EnumerableWindow(window#0=[window(partition {1} order by [2, 0] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[CAST($t3):INTEGER], expr#11=[8000], expr#12=[>($t10, $t11)], expr#13=[IS NOT NULL($t7)], expr#14=[AND($t12, $t13)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t14])
+          EnumerableTableScan(table=[[scott, EMP]])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
@@ -722,16 +720,14 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
 # subquery contains null
 SELECT dname, (SELECT emp.comm FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.comm desc limit 1) FROM "scott".dept;
 
-EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
-  EnumerableMergeJoin(condition=[=($0, $3)], joinType=[left])
+EnumerableCalc(expr#0..4=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..1=[{inputs}], w0$o0=[$t1], DEPTNO=[$t0])
-        EnumerableAggregate(group=[{7, 8}])
-          EnumerableWindow(window#0=[window(partition {7} order by [6 DESC] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($6)])])
-            EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
-              EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..8=[{inputs}], expr#9=[1], expr#10=[<=($t8, $t9)], COMM=[$t6], DEPTNO=[$t7], $2=[$t8], $condition=[$t10])
+      EnumerableWindow(window#0=[window(partition {7} order by [6 DESC] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+          EnumerableTableScan(table=[[scott, EMP]])
 !plan
 +------------+--------+
 | DNAME      | EXPR$1 |
@@ -799,15 +795,13 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
 SELECT dname, (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno ORDER BY year(hiredate), emp.sal limit 1) FROM "scott".dept;
 
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
-  EnumerableMergeJoin(condition=[=($0, $3)], joinType=[left])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1], DEPTNO=[$t0])
-        EnumerableAggregate(group=[{1, 3, 4}])
-          EnumerableWindow(window#0=[window(partition {1} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($0), FIRST_VALUE($2)])])
-            EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[IS NOT NULL($t7)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t10])
-              EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[<=($t3, $t4)], proj#0..1=[{exprs}], $condition=[$t5])
+      EnumerableWindow(window#0=[window(partition {1} order by [2, 0] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[IS NOT NULL($t7)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, EMP]])
 !plan
 +------------+---------+
 | DNAME      | EXPR$1  |
@@ -826,15 +820,13 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
 SELECT dname, (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno and mgr > 8000 ORDER BY year(hiredate), emp.sal limit 1) FROM "scott".dept;
 
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
-  EnumerableMergeJoin(condition=[=($0, $3)], joinType=[left])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1], DEPTNO=[$t0])
-        EnumerableAggregate(group=[{1, 3, 4}])
-          EnumerableWindow(window#0=[window(partition {1} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($0), FIRST_VALUE($2)])])
-            EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[CAST($t3):INTEGER], expr#11=[8000], expr#12=[>($t10, $t11)], expr#13=[IS NOT NULL($t7)], expr#14=[AND($t12, $t13)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t14])
-              EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[<=($t3, $t4)], proj#0..1=[{exprs}], $condition=[$t5])
+      EnumerableWindow(window#0=[window(partition {1} order by [2, 0] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[CAST($t3):INTEGER], expr#11=[8000], expr#12=[>($t10, $t11)], expr#13=[IS NOT NULL($t7)], expr#14=[AND($t12, $t13)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t14])
+          EnumerableTableScan(table=[[scott, EMP]])
 !plan
 +------------+--------+
 | DNAME      | EXPR$1 |
@@ -2238,14 +2230,14 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[RAND()], expr#6=[CAST($t5):INTEGER NOT NULL], expr#7=[2], expr#8=[MOD($t6, $t7)], expr#9=[3], expr#10=[=($t8, $t9)], expr#11=[OR($t10, $t3)], SAL=[$t1], $condition=[$t11])
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[RAND()], expr#7=[CAST($t6):INTEGER NOT NULL], expr#8=[2], expr#9=[MOD($t7, $t8)], expr#10=[3], expr#11=[=($t9, $t10)], expr#12=[OR($t11, $t3)], SAL=[$t1], $condition=[$t12])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
     EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..1=[{inputs}], cs=[$t1], DEPTNO=[$t0])
-        EnumerableWindow(window#0=[window(partition {0} aggs [FIRST_VALUE($1)])], constants=[[false]])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], expr#3=[1], expr#4=[<=($t1, $t3)], cs=[$t2], DEPTNO=[$t0], rn=[$t1], $condition=[$t4])
+        EnumerableWindow(window#0=[window(partition {0} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])], constants=[[false]])
           EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
@@ -2328,14 +2320,14 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t3)], expr#6=[IS NOT NULL($t3)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], SAL=[$t1], $condition=[$t8])
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)], expr#8=[OR($t6, $t7)], expr#9=[IS NOT TRUE($t8)], SAL=[$t1], $condition=[$t9])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
     EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..1=[{inputs}], cs=[$t1], DEPTNO=[$t0])
-        EnumerableWindow(window#0=[window(partition {0} aggs [FIRST_VALUE($1)])], constants=[[false]])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], expr#3=[1], expr#4=[<=($t1, $t3)], cs=[$t2], DEPTNO=[$t0], rn=[$t1], $condition=[$t4])
+        EnumerableWindow(window#0=[window(partition {0} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])], constants=[[false]])
           EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
@@ -2400,16 +2392,17 @@ select sal from "scott".emp e
 (11 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t3)], expr#6=[IS NOT NULL($t3)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], SAL=[$t1], $condition=[$t8])
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)], expr#8=[OR($t6, $t7)], expr#9=[IS NOT TRUE($t8)], SAL=[$t1], $condition=[$t9])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..1=[{inputs}], cs=[$t1], DEPTNO1=[$t0])
-        EnumerableWindow(window#0=[window(partition {0} aggs [FIRST_VALUE($1)])], constants=[[true]])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER NOT NULL], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[<=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+      EnumerableSort(sort0=[$1], dir0=[ASC])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], cs=[$t2], DEPTNO1=[$t0], rn=[$t1])
+          EnumerableWindow(window#0=[window(partition {0} rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])], constants=[[true]])
+            EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER NOT NULL], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
+              EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal NOT IN nullable correlated
@@ -2433,16 +2426,17 @@ select sal from "scott".emp e
 (11 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t3)], expr#6=[IS NOT NULL($t3)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], SAL=[$t1], $condition=[$t8])
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)], expr#8=[OR($t6, $t7)], expr#9=[IS NOT TRUE($t8)], SAL=[$t1], $condition=[$t9])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableSort(sort0=[$1], dir0=[ASC])
-      EnumerableCalc(expr#0..2=[{inputs}], cs=[$t2], DEPTNO=[$t0])
-        EnumerableWindow(window#0=[window(partition {0} order by [1 DESC] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [FIRST_VALUE($1)])])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], DEPTNO=[$t0], $1=[$t8], $condition=[$t11])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[<=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+      EnumerableSort(sort0=[$1], dir0=[ASC])
+        EnumerableCalc(expr#0..2=[{inputs}], cs=[$t1], DEPTNO=[$t0], rn=[$t2])
+          EnumerableWindow(window#0=[window(partition {0} order by [1 DESC] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+            EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], DEPTNO=[$t0], $1=[$t8], $condition=[$t11])
+              EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN required is unknown correlated
@@ -6801,6 +6795,352 @@ FROM t0;
 |   2 |        |
 +-----+--------+
 (2 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+select * from emp
+where exists (
+select 1 from dept where emp.deptno=dept.deptno limit 1);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT deptno, ename
+FROM
+  (SELECT DISTINCT deptno FROM emp) t1,
+  LATERAL (
+    SELECT ename, sal
+    FROM emp
+    WHERE deptno = t1.deptno
+    ORDER BY sal
+    DESC LIMIT 3) s;
++--------+--------+
+| DEPTNO | ENAME  |
++--------+--------+
+|     10 | CLARK  |
+|     10 | KING   |
+|     10 | MILLER |
+|     20 | FORD   |
+|     20 | JONES  |
+|     20 | SCOTT  |
+|     30 | ALLEN  |
+|     30 | BLAKE  |
+|     30 | TURNER |
++--------+--------+
+(9 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE d.deptno IN (
+  SELECT e.deptno
+  FROM emp e
+  WHERE d.deptno = e.deptno
+)
+LIMIT 2
+OFFSET 1;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE d.deptno IN (
+  SELECT e.deptno
+  FROM emp e
+  WHERE d.deptno = e.deptno
+  LIMIT 10
+  OFFSET 2
+)
+LIMIT 2
+OFFSET 1;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE d.deptno IN (
+  SELECT e.deptno
+  FROM emp e
+  WHERE d.deptno = e.deptno
+)
+OFFSET 1;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE d.deptno IN (
+  SELECT e.deptno
+  FROM emp e
+  WHERE d.deptno = e.deptno
+  OFFSET 2
+)
+OFFSET 1;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE EXISTS (
+  SELECT *
+  FROM emp e
+  WHERE d.deptno = e.deptno
+  OFFSET 2
+);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
++--------+------------+----------+
+(3 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+JOIN LATERAL (
+  SELECT *
+  FROM emp e
+  WHERE e.deptno = d.deptno
+  OFFSET 2
+) s ON TRUE;
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+| DEPTNO | DNAME      | LOC      | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO0 |
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+|     10 | ACCOUNTING | NEW YORK |  7934 | MILLER | CLERK    | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|     20 | RESEARCH   | DALLAS   |  7788 | SCOTT  | ANALYST  | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|     20 | RESEARCH   | DALLAS   |  7876 | ADAMS  | CLERK    | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|     20 | RESEARCH   | DALLAS   |  7902 | FORD   | ANALYST  | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|     30 | SALES      | CHICAGO  |  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7698 | BLAKE  | MANAGER  | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|     30 | SALES      | CHICAGO  |  7844 | TURNER | SALESMAN | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7900 | JAMES  | CLERK    | 7698 | 1981-12-03 |  950.00 |         |      30 |
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+(8 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE d.deptno IN (
+  SELECT e.deptno
+  FROM emp e
+  OFFSET 2
+);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
++--------+------------+----------+
+(3 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE (
+  SELECT SUM(e.sal)
+  FROM emp e
+  WHERE e.deptno = d.deptno
+  OFFSET 2
+) > 2;
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT e.ename
+FROM   emp e
+WHERE  EXISTS (
+  SELECT MAX(d.deptno) AS a
+  FROM   dept d
+  WHERE  d.deptno = e.deptno
+  GROUP  BY d.loc
+  ORDER  BY d.loc
+  OFFSET 1
+);
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT e.ename
+FROM   emp e
+JOIN LATERAL (
+  SELECT MAX(d.deptno) AS a
+  FROM   dept d
+  WHERE  d.deptno = e.deptno
+  GROUP  BY d.loc
+  ORDER  BY d.loc
+  OFFSET 1
+) s ON TRUE;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT e.ename
+FROM   emp e
+JOIN LATERAL (
+  SELECT MAX(d.deptno) AS a
+  FROM   dept d
+  WHERE  d.deptno = e.deptno
+  GROUP  BY d.loc
+  ORDER  BY d.loc
+  LIMIT 2
+  OFFSET 1
+) s ON TRUE;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT e.ename
+FROM   emp e
+WHERE  EXISTS (
+  SELECT MAX(d.deptno) AS a
+  FROM   dept d
+  WHERE  d.deptno = e.deptno
+  GROUP  BY d.loc
+  ORDER  BY d.loc
+  LIMIT 2
+  OFFSET 1
+);
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+JOIN LATERAL (
+  SELECT *
+  FROM emp e
+  WHERE e.deptno = d.deptno
+  LIMIT 1
+  OFFSET 2
+) s ON TRUE;
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+| DEPTNO | DNAME      | LOC      | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO0 |
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+|     10 | ACCOUNTING | NEW YORK |  7934 | MILLER | CLERK    | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|     20 | RESEARCH   | DALLAS   |  7788 | SCOTT  | ANALYST  | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|     30 | SALES      | CHICAGO  |  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
++--------+------------+----------+-------+--------+----------+------+------------+---------+---------+---------+
+(3 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT *
+FROM dept d
+WHERE EXISTS (
+  SELECT *
+  FROM emp e
+  WHERE e.deptno = d.deptno
+  LIMIT 1
+  OFFSET 2
+);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
++--------+------------+----------+
+(3 rows)
+
+!ok
+
+# [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
+SELECT deptno FROM dept WHERE 1000.00 >
+(SELECT sal FROM emp WHERE dept.deptno = emp.deptno order by emp.sal limit 1 offset 10);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
 
 !ok
 
