@@ -314,6 +314,11 @@
   githubId: suez1224
   org: Uber
   role: Committer
+- name: Silun Dong
+  apacheId: silun
+  githubId: silundong
+  org:
+  role: Committer
 - name: Slim Bouguerra
   apacheId: bslim
   githubId: b-slim
