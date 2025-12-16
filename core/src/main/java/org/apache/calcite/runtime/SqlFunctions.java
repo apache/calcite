@@ -7492,7 +7492,13 @@ public class SqlFunctions {
       seconds = -seconds;
     }
 
-    return String.format("%d years %d mons %d days %d hours %d mins %.1f secs",
-        years, months, days, hours, minutes, seconds + millis / 1000.0);
+    StringBuilder sb = new StringBuilder();
+    sb.append(years).append(" years ")
+        .append(months).append(" mons ")
+        .append(days).append(" days ")
+        .append(hours).append(" hours ")
+        .append(minutes).append(" mins ")
+        .append(String.format(Locale.ROOT, "%.1f secs", seconds + millis / 1000.0));
+    return sb.toString();
   }
 }
