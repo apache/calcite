@@ -384,16 +384,16 @@
   pronouns: he/him
   org: Hikvision
   role: PMC
-- name: Yu Xu
-  apacheId: xuzifu666
-  githubId: xuzifu666
-  org:
-  role: Committer
 - name: Yong Liu
   apacheId: jackylau
   githubId: liuyongvs
   pronouns: he/him
   org: Ant Financial
+  role: Committer
+- name: Yu Xu
+  apacheId: xuzifu666
+  githubId: xuzifu666
+  org:
   role: Committer
 - name: Zhaohui Xu
   apacheId: zhaohui
