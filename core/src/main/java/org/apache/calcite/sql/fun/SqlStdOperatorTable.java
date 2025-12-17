@@ -2391,7 +2391,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlInternalOperator(
           "$SCALAR_QUERY",
           SqlKind.SCALAR_QUERY,
-          0,
+          100, // High precedence to prevent SqlCall from adding extra parentheses
           false,
           ReturnTypes.RECORD_TO_SCALAR,
           null,
@@ -2401,9 +2401,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
             SqlCall call,
             int leftPrec,
             int rightPrec) {
-          final SqlWriter.Frame frame = writer.startList("(", ")");
-          call.operand(0).unparse(writer, 0, 0);
-          writer.endList(frame);
+          final SqlNode operand = call.operand(0);
+          if (operand.getKind() == SqlKind.SELECT) {
+            operand.unparse(writer, leftPrec, rightPrec);
+          } else {
+            final SqlWriter.Frame frame =
+                writer.startList(SqlWriter.FrameTypeEnum.SUB_QUERY, "(", ")");
+            operand.unparse(writer, 0, 0);
+            writer.endList(frame);
+          }
         }
 
         @Override public boolean argumentMustBeScalar(int ordinal) {

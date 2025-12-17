@@ -8623,9 +8623,9 @@ class RelToSqlConverterTest {
         + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     final String expectedNoExpand = "SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE \"department_id\" = (((SELECT MIN(\"employee\".\"department_id\")\n"
+        + "WHERE \"department_id\" = (SELECT MIN(\"employee\".\"department_id\")\n"
         + "FROM \"foodmart\".\"department\"\n"
-        + "WHERE 1 = 2)))";
+        + "WHERE 1 = 2)";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
@@ -9798,17 +9798,17 @@ class RelToSqlConverterTest {
     final String sql0 = "update \"foodmart\".\"product\" a set \"product_id\" = "
         + "(select \"product_class_id\" from \"foodmart\".\"product_class\" b "
         + "where a.\"product_class_id\" = b.\"product_class_id\")";
-    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = (((SELECT "
+    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = (SELECT "
         + "\"product_class_id\"\nFROM \"foodmart\".\"product_class\"\nWHERE \"product\""
-        + ".\"product_class_id\" = \"product_class_id\")))";
+        + ".\"product_class_id\" = \"product_class_id\")";
     sql(sql0).ok(expected0);
 
     final String sql1 = "update \"foodmart\".\"product\" a set \"brand_name\" = "
         + "(select cast(\"product_category\" as varchar(60)) from \"foodmart\".\"product_class\" b "
         + "where a.\"product_class_id\" = b.\"product_class_id\")";
-    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"brand_name\" = (((SELECT CAST"
+    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"brand_name\" = (SELECT CAST"
         + "(\"product_category\" AS VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nFROM \"foodmart\""
-        + ".\"product_class\"\nWHERE \"product\".\"product_class_id\" = \"product_class_id\")))";
+        + ".\"product_class\"\nWHERE \"product\".\"product_class_id\" = \"product_class_id\")";
     sql(sql1).ok(expected1);
 
     final String sql2 = "update \"foodmart\".\"product\"\n"
@@ -10968,10 +10968,10 @@ class RelToSqlConverterTest {
     final String expected = "SELECT "
         + "\"DEPTNO\", "
         + "\"DNAME\", "
-        + "(((SELECT COUNT(*) AS \"COUNT\"\n"
+        + "(SELECT COUNT(*) AS \"COUNT\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"DEPTNO\"\n"
-        + "HAVING \"DEPTNO\" = \"DEPT\".\"DEPTNO\"))) AS \"$f2\"\n"
+        + "HAVING \"DEPTNO\" = \"DEPT\".\"DEPTNO\") AS \"$f2\"\n"
         + "FROM \"scott\".\"DEPT\"";
 
     relFn(relFn).ok(expected);
@@ -11049,9 +11049,9 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"EMP\".\"EMPNO\"\n"
         + "FROM \"SCOTT\".\"EMP\"\n"
         + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = (((SELECT MIN(\"DEPTNO\")\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
         + "FROM \"SCOTT\".\"DEPT\"\n"
-        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")))";
+        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterJoinRule.FilterIntoJoinRule.class);
@@ -11079,8 +11079,8 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"EMP\" AS \"$cor1\",\n"
         + "LATERAL (SELECT *\nFROM \"SCOTT\".\"DEPT\"\n"
         + "WHERE \"$cor1\".\"DEPTNO\" = \"DEPTNO\") AS \"t\"\n"
-        + "WHERE \"t\".\"DEPTNO\" = (((SELECT MIN(\"DEPTNO\")\n"
-        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"$cor1\".\"DEPTNO\")))";
+        + "WHERE \"t\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
+        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"$cor1\".\"DEPTNO\")";
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(JoinToCorrelateRule.class);
     builder.addRuleClass(FilterCorrelateRule.class);
@@ -11093,6 +11093,23 @@ class RelToSqlConverterTest {
         .withCalcite()
         .optimize(rules, hepPlanner)
         .ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7335">[CALCITE-7335]
+   * RelToSqlConverter generate sql containing Scala subqueries
+   * includes redundant parentheses</a>. */
+  @Test void testScalarSubqueryInSelectList() {
+    final String sql = "SELECT\n"
+        + "    (SELECT COUNT(*)\n"
+        + "    FROM \"employee\"\n"
+        + "    WHERE v.\"product_id\" >= 2), 3\n"
+        + "FROM \"product\" AS v";
+    final String expected = "SELECT (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"product\".\"product_id\" >= 2), 3\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(sql).ok(expected);
   }
 
   /** Fluid interface to run tests. */
