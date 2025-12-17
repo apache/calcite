@@ -223,6 +223,73 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
+  /**
+   * Wraps a nested join into a subquery with explicit column aliases.
+   *
+   * <p>This is specifically required for dialects like ClickHouse where the
+   * identifier resolver cannot resolve columns with internal table qualifiers
+   * (e.g., 'd1.loc') when they are wrapped in a subquery alias. By forcing
+   * an explicit 'AS' projection for every column, we ensure the identifiers
+   * are flattened and visible to the outer query block.
+   *
+   * @param input     The Result of the nested join branch
+   * @param inputRel  The RelNode representing the join branch to extract row types
+   * @param outerAlias The alias to be assigned to the wrapped subquery
+   * @return A new Result containing the wrapped SQL with explicit aliases
+   */
+  protected Result wrapNestedJoin(Result input, RelNode inputRel, String outerAlias) {
+    final SqlParserPos pos = SqlParserPos.ZERO;
+
+    // Extract the underlying SqlSelect from the input Result.
+    // We manipulate the Select node directly to avoid redundant nesting
+    // often introduced by Result.asSelect().
+    final SqlSelect innerSelect = input.asSelect();
+    final SqlNodeList originalSelectList = innerSelect.getSelectList();
+    final List<String> fieldNames = inputRel.getRowType().getFieldNames();
+
+    final List<SqlNode> newSelectList = new ArrayList<>();
+
+    // Iterate through the fields to build explicit projections.
+    // Example: transforms 'd1.deptno' into 'd1.deptno AS deptno'.
+    for (int i = 0; i < fieldNames.size(); i++) {
+      SqlNode expr = originalSelectList.get(i);
+      String targetName = fieldNames.get(i);
+
+      // If the expression is already aliased, strip the AS to get the raw expression.
+      if (expr.getKind() == SqlKind.AS) {
+        expr = ((SqlCall) expr).operand(0);
+      }
+
+      // Force an explicit alias. This breaks the link to the internal table
+      // qualifiers (like 'd1' or 'd2') and exports the column as a clean
+      // identifier for the outer join scope.
+      newSelectList.add(
+          SqlStdOperatorTable.AS.createCall(
+              pos,
+              expr,
+              new SqlIdentifier(targetName, pos)));
+    }
+
+    // Update the select list of the inner query with flattened aliases.
+    innerSelect.setSelectList(new SqlNodeList(newSelectList, pos));
+
+    // Wrap the modified Select node with the outer alias (e.g., AS j).
+    SqlNode wrappedNode =
+        SqlStdOperatorTable.AS.createCall(pos,
+        innerSelect,
+        new SqlIdentifier(outerAlias, pos));
+
+    // Return the new Result, resetting the internal clauses to prevent
+    // the Implementor from adding additional SELECT wrappers.
+    return new Result(
+        wrappedNode,
+        Collections.emptyList(),
+        outerAlias,
+        inputRel.getRowType(),
+        ImmutableMap.of(outerAlias, inputRel.getRowType()));
+  }
+
+
   /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {
@@ -233,7 +300,25 @@ public class RelToSqlConverter extends SqlImplementor
       break;
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
-    final Result rightResult = visitInput(e, 1).resetAlias();
+    Result rightResult = visitInput(e, 1).resetAlias();
+
+    if (dialect.shouldWrapNestedJoin(e)) {
+
+      Set<String> usedNames = new HashSet<>(e.getRowType().getFieldNames());
+      // Add both left and right aliases
+      if (leftResult.neededAlias != null) {
+        usedNames.add(leftResult.neededAlias);
+      }
+      if (rightResult.neededAlias != null) {
+        usedNames.add(rightResult.neededAlias);
+      }
+
+      String safeAlias =
+          SqlValidatorUtil.uniquify("t", usedNames, SqlValidatorUtil.EXPR_SUGGESTER);
+
+      rightResult = wrapNestedJoin(rightResult, e.getRight(), safeAlias);
+    }
+
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     parseCorrelTable(e, leftContext.implementor().joinContext(leftContext, rightContext));
