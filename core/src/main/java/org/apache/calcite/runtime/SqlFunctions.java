@@ -114,6 +114,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7500,5 +7501,14 @@ public class SqlFunctions {
         .append(minutes).append(" mins ")
         .append(String.format(Locale.ROOT, "%.1f secs", seconds + millis / 1000.0));
     return sb.toString();
+  }
+
+  /** SQL {@code AGE(timestamp)} function. */
+  public static String age(long timestamp) {
+    // Get current date at midnight
+    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    long currentTimestamp = now.toInstant(ZoneOffset.UTC).toEpochMilli();
+    // Call the two-parameter version with current timestamp and input timestamp
+    return age(currentTimestamp, timestamp);
   }
 }
