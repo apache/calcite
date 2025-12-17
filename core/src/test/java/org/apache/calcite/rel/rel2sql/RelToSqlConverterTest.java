@@ -11565,4 +11565,115 @@ class RelToSqlConverterTest {
           relFn, transforms);
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7279">[CALCITE-7279]
+   * ClickHouse dialect should wrap nested JOINs with explicit aliasing</a>. */
+  @Test void testClickHouseNestedJoin() {
+    final String query = "SELECT e.empno, j.dname, j.loc\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname, d2.loc\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String expected = "SELECT `EMP`.`EMPNO`, `t0`.`DNAME`, `t0`.`LOC`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN (SELECT `DEPT`.`DEPTNO` AS `DEPTNO`, `DEPT`.`DNAME` AS `DNAME`,"
+        + " `DEPT0`.`LOC` AS `LOC`\n"
+        + "FROM `SCOTT`.`DEPT`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`) "
+        + "AS `t0` ON `EMP`.`DEPTNO` = `t0`.`DEPTNO`";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .ok(expected);
+  }
+
+  /** Test that simple JOINs without nesting are not wrapped unnecessarily. */
+  @Test void testClickHouseSimpleJoinNotWrapped() {
+    final String query = "SELECT e.empno, d.dname\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN dept d ON e.deptno = d.deptno";
+
+    // Simple joins should remain flat as standard SQL
+    final String expected = "SELECT `EMP`.`EMPNO`, `DEPT`.`DNAME`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN `SCOTT`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .ok(expected);
+  }
+
+  /** Test nested JOIN with aggregation to ensure expressions like COUNT(*) are aliased. */
+  @Test void testClickHouseNestedJoinWithAggregation() {
+    final String query = "SELECT e.empno, j.\"EXPR$1\"\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, COUNT(*)\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + "  GROUP BY d1.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String expected = "SELECT `EMP`.`EMPNO`, `t0`.`EXPR$1`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN (SELECT `DEPT`.`DEPTNO`, COUNT(*) AS `EXPR$1`\n"
+        + "FROM `SCOTT`.`DEPT`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`\n"
+        + "GROUP BY `DEPT`.`DEPTNO`) AS `t0` ON `EMP`.`DEPTNO` = `t0`.`DEPTNO`";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .ok(expected);
+  }
+
+  /** Test three-way JOIN to ensure the converter handles linear joins normally. */
+  @Test void testClickHouseThreeWayJoin() {
+    final String query = "SELECT e.empno, d1.dname, d2.loc\n"
+        + "FROM emp e\n"
+        + "INNER JOIN dept d1 ON e.deptno = d1.deptno\n"
+        + "INNER JOIN dept d2 ON d1.deptno = d2.deptno";
+
+    // Standard multi-way joins shouldn't be forced into subqueries unless nested on the right
+    final String expected = "SELECT `EMP`.`EMPNO`, `DEPT`.`DNAME`, `DEPT0`.`LOC`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .ok(expected);
+  }
+
+  /** Regression test: Ensure MySQL dialect remains unaffected by ClickHouse-specific fix. */
+  @Test void testMysqlNestedJoinNotWrapped() {
+    final String query = "SELECT e.empno, j.dname\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    // MySQL supports nested join syntax; no additional wrapping select should be added by our fix.
+    final String expected = "SELECT `EMP`.`EMPNO`, `t`.`DNAME`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN (SELECT `DEPT`.`DEPTNO`, `DEPT`.`DNAME`\n"
+        + "FROM `SCOTT`.`DEPT`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`) AS `t` "
+        + "ON `EMP`.`DEPTNO` = `t`.`DEPTNO`";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withMysql()
+        .ok(expected);
+  }
+
 }
