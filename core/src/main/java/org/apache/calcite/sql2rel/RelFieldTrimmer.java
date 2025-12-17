@@ -634,7 +634,23 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RelOptUtil.InputFinder inputFinder =
         new RelOptUtil.InputFinder(inputExtraFields, fieldsUsed);
     conditionExpr.accept(inputFinder);
-    final ImmutableBitSet inputFieldsUsed = inputFinder.build();
+
+    // Collect all the SubQueries in the filter condition.
+    List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(filter);
+    // Get all the correlationIds present in the SubQueries
+    Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
+    ImmutableBitSet requiredColumns = ImmutableBitSet.of();
+    if (!correlationIds.isEmpty()) {
+      // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
+      requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), filter);
+    }
+
+    ImmutableBitSet finderFields = inputFinder.build();
+
+    ImmutableBitSet inputFieldsUsed = ImmutableBitSet.builder()
+        .addAll(requiredColumns)
+        .addAll(finderFields)
+        .build();
 
     // Create input with trimmed columns.
     TrimResult trimResult =
@@ -818,7 +834,22 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (matchConditionExpr != null) {
       matchConditionExpr.accept(inputFinder);
     }
-    final ImmutableBitSet fieldsUsedPlus = inputFinder.build();
+    final ImmutableBitSet fieldsUsedCondition = inputFinder.build();
+
+    // Collect all the SubQueries in the join condition.
+    List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(join);
+    // Get all the correlationIds present in the SubQueries
+    Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
+    ImmutableBitSet requiredColumns = ImmutableBitSet.of();
+    if (!correlationIds.isEmpty()) {
+      // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
+      requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), join);
+    }
+
+    ImmutableBitSet fieldsUsedPlus = ImmutableBitSet.builder()
+        .addAll(requiredColumns)
+        .addAll(fieldsUsedCondition)
+        .build();
 
     // If no system fields are used, we can remove them.
     int systemFieldUsedCount = 0;
