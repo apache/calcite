@@ -26,6 +26,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
