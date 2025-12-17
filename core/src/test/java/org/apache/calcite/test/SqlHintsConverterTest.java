@@ -58,6 +58,7 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlMerge;
@@ -256,6 +257,30 @@ class SqlHintsConverterTest {
     final String sql = "select /*+ mini_batch */ last_value(deptno)\n"
         + "over (order by empno rows 2 following) from emp";
     sql(sql).ok();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7338">[CALCITE-7338]</a>
+   * that currently fails.
+   */
+  @Test void testWindowHintsPropagateAfterProjectToWindowRule() {
+    final String sql = "select /*+ mini_batch */ last_value(deptno)\n"
+        + "over (order by empno rows 2 following) from emp";
+
+    // Build rel with the same HintStrategyTable as this class
+    final RelNode rel = sql(sql).toRel();
+
+    // Run the rule that materializes LogicalWindow
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner planner = new HepPlanner(builder.build());
+    planner.addRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    planner.setRoot(rel);
+    RelNode transformed = planner.findBestExp();
+
+    // Expect the hint to be on LogicalWindow after the rule.
+    final RelHint expected = RelHint.builder("MINI_BATCH").inheritPath(0).build();
+    new ValidateHintVisitor(expected, Window.class).go(transformed);
   }
 
   @Test void testSnapshotHints() {
