@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -50,6 +51,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
@@ -515,6 +521,16 @@ class BabelTest {
     checkSqlResult("postgresql",
         "SELECT AGE(timestamp '2023-12-25 00:00:00', timestamp '2020-01-01 23:59:59') FROM (VALUES (1)) t",
         "EXPR$0=3 years 11 mons 23 days 0 hours 0 mins 1.0 secs\n");
+
+    LocalDate date = LocalDate.parse("2023-12-25");
+    Instant instant = date.atStartOfDay(ZoneOffset.UTC).toInstant();
+    long timestampMillis = instant.toEpochMilli();
+    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    long currentTimestamp = now.toInstant(ZoneOffset.UTC).toEpochMilli();
+    String ageFunctionResult = SqlFunctions.age(currentTimestamp, timestampMillis);
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25') FROM (VALUES (1)) t",
+        "EXPR$0=" + ageFunctionResult + "\n");
   }
 
 

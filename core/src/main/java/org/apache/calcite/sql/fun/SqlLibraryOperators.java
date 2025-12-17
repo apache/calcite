@@ -2789,7 +2789,9 @@ public abstract class SqlLibraryOperators {
             // Return VARCHAR type since we're returning a formatted string
             return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
           },
-          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP),
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.TIMESTAMP),
+              OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
           SqlFunctionCategory.TIMEDATE);
 
 }
