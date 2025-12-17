@@ -256,6 +256,65 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2152">[CALCITE-2152]
+   * SQL parser unable to parse SQL with nested joins produced by RelToSqlConverter</a>. */
+  @Test public void testNestedJoin() {
+    final String query = "select *\n"
+        + "from \"sales_fact_1997\"\n"
+        + "inner join (select * from \"customer\"\n"
+        + "inner join \"employee\" on (\"customer\".\"city\" = \"employee\".\"store_id\") ) AS \"customer_employee\"\n"
+        + "on (\"sales_fact_1997\".\"store_id\" = \"customer_employee\".\"city\")";
+    String expected = "SELECT \"sales_fact_1997\".\"product_id\", \"sales_fact_1997\".\"time_id\","
+        + " \"sales_fact_1997\".\"customer_id\", \"sales_fact_1997\".\"promotion_id\","
+        + " \"sales_fact_1997\".\"store_id\", \"sales_fact_1997\".\"store_sales\","
+        + " \"sales_fact_1997\".\"store_cost\", \"sales_fact_1997\".\"unit_sales\","
+        + " \"t0\".\"customer_id\" AS \"customer_id0\", \"t0\".\"account_num\", \"t0\".\"lname\","
+        + " \"t0\".\"fname\", \"t0\".\"mi\", \"t0\".\"address1\", \"t0\".\"address2\","
+        + " \"t0\".\"address3\", \"t0\".\"address4\", \"t0\".\"city\", \"t0\".\"state_province\","
+        + " \"t0\".\"postal_code\", \"t0\".\"country\", \"t0\".\"customer_region_id\","
+        + " \"t0\".\"phone1\", \"t0\".\"phone2\", \"t0\".\"birthdate\", \"t0\".\"marital_status\","
+        + " \"t0\".\"yearly_income\", \"t0\".\"gender\", \"t0\".\"total_children\","
+        + " \"t0\".\"num_children_at_home\", \"t0\".\"education\", \"t0\".\"date_accnt_opened\","
+        + " \"t0\".\"member_card\", \"t0\".\"occupation\", \"t0\".\"houseowner\","
+        + " \"t0\".\"num_cars_owned\", \"t0\".\"fullname\", \"t0\".\"employee_id\","
+        + " \"t0\".\"full_name\", \"t0\".\"first_name\", \"t0\".\"last_name\","
+        + " \"t0\".\"position_id\", \"t0\".\"position_title\", \"t0\".\"store_id\" AS \"store_id0\","
+        + " \"t0\".\"department_id\", \"t0\".\"birth_date\", \"t0\".\"hire_date\","
+        + " \"t0\".\"end_date\", \"t0\".\"salary\", \"t0\".\"supervisor_id\","
+        + " \"t0\".\"education_level\", \"t0\".\"marital_status0\", \"t0\".\"gender0\","
+        + " \"t0\".\"management_role\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN (SELECT \"t\".\"customer_id\", \"t\".\"account_num\", \"t\".\"lname\","
+        + " \"t\".\"fname\", \"t\".\"mi\", \"t\".\"address1\", \"t\".\"address2\","
+        + " \"t\".\"address3\", \"t\".\"address4\", \"t\".\"city\", \"t\".\"state_province\","
+        + " \"t\".\"postal_code\", \"t\".\"country\", \"t\".\"customer_region_id\","
+        + " \"t\".\"phone1\", \"t\".\"phone2\", \"t\".\"birthdate\", \"t\".\"marital_status\","
+        + " \"t\".\"yearly_income\", \"t\".\"gender\", \"t\".\"total_children\","
+        + " \"t\".\"num_children_at_home\", \"t\".\"education\", \"t\".\"date_accnt_opened\","
+        + " \"t\".\"member_card\", \"t\".\"occupation\", \"t\".\"houseowner\","
+        + " \"t\".\"num_cars_owned\", \"t\".\"fullname\", \"employee\".\"employee_id\","
+        + " \"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\","
+        + " \"employee\".\"position_id\", \"employee\".\"position_title\", \"employee\".\"store_id\","
+        + " \"employee\".\"department_id\", \"employee\".\"birth_date\", \"employee\".\"hire_date\","
+        + " \"employee\".\"end_date\", \"employee\".\"salary\", \"employee\".\"supervisor_id\","
+        + " \"employee\".\"education_level\", \"employee\".\"marital_status\" AS \"marital_status0\","
+        + " \"employee\".\"gender\" AS \"gender0\", \"employee\".\"management_role\","
+        + " CAST(\"t\".\"city\" AS INTEGER) AS \"city0\"\n"
+        + "FROM (SELECT \"customer_id\","
+        + " \"account_num\", \"lname\", \"fname\", \"mi\", \"address1\", \"address2\","
+        + " \"address3\", \"address4\", \"city\", \"state_province\", \"postal_code\","
+        + " \"country\", \"customer_region_id\", \"phone1\", \"phone2\", \"birthdate\","
+        + " \"marital_status\", \"yearly_income\", \"gender\", \"total_children\","
+        + " \"num_children_at_home\", \"education\", \"date_accnt_opened\", \"member_card\","
+        + " \"occupation\", \"houseowner\", \"num_cars_owned\", \"fullname\","
+        + " CAST(\"city\" AS INTEGER) AS \"city0\"\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t\"\n"
+        + "INNER JOIN \"foodmart\".\"employee\" ON \"t\".\"city0\" = \"employee\".\"store_id\") AS \"t0\""
+        + " ON \"sales_fact_1997\".\"store_id\" = \"t0\".\"city0\"";
+    sql(query).ok(expected);
+  }
+
   /**
    * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-4723">[CALCITE-4723]</a>
    * Check whether JDBC adapter generates "GROUP BY ()" against Oracle, DB2, MSSQL.
