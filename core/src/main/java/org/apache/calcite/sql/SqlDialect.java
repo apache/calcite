@@ -1825,4 +1825,7 @@ public class SqlDialect {
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
   }
+  public boolean mustWrapNestedJoin(RelNode relNode) {
+    return false;
+  }
 }

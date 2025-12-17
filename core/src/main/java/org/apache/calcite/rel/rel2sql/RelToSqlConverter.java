@@ -113,6 +113,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -223,6 +224,69 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
+  /**
+   * Wraps a nested join Result into a subquery with a new alias.
+   * Required for dialects like ClickHouse that don't support nested JOIN syntax.
+   *
+   * @param input the Result from the nested join subtree
+   * @param outerAlias the alias to assign to the wrapped subquery
+   * @return a new Result with the wrapped SQL node
+   */
+  protected Result wrapNestedJoin(Result input, RelNode inputRel, String outerAlias) {
+    // Get the original SQL node from the input Result
+    final SqlNode original = input.asSelect();
+    // Generate inner alias (different from outer)
+    String innerAlias = "t" + inputRel.getId();
+    // Wrap: original → (SELECT * FROM (original) AS newAlias)
+    SqlNode wrapped = wrapAsSelectStar(original, innerAlias);
+
+    Map<String, RelDataType> newAliases = new LinkedHashMap<>();
+
+    // Add the outer alias with the correct row type
+    newAliases.put(outerAlias, inputRel.getRowType());
+
+    return new Result(
+        wrapped,
+        input.clauses,
+        outerAlias,
+        null,
+        newAliases);
+  }
+
+  /**
+   * Wraps a subquery into a SELECT * FROM (subQuery) AS alias structure.
+   *
+   * @param subQuery the original SQL node to wrap
+   * @param alias the alias to assign to the wrapped subquery
+   * @return a SqlSelect node representing: SELECT * FROM (subQuery) AS alias
+   */
+  protected SqlNode wrapAsSelectStar(SqlNode subQuery, String alias) {
+    final SqlParserPos pos = SqlParserPos.ZERO;
+
+    // Wrap subquery with alias: (subQuery) AS alias
+    SqlNode subQueryWithAlias =
+        SqlStdOperatorTable.AS.createCall(pos,
+        subQuery,
+        new SqlIdentifier(alias, pos));
+
+    // Build SELECT * FROM (subQuery) AS alias
+    return new SqlSelect(
+        pos,
+        null,
+        SqlNodeList.of(SqlIdentifier.star(pos)),
+        subQueryWithAlias,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null);
+  }
+
+
   /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {
@@ -233,7 +297,13 @@ public class RelToSqlConverter extends SqlImplementor
       break;
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
-    final Result rightResult = visitInput(e, 1).resetAlias();
+    Result rightResult = visitInput(e, 1).resetAlias();
+
+    if (dialect.mustWrapNestedJoin(e)) {
+      String newAlias = "t" + e.getId(); // Calcite-style alias
+      rightResult = wrapNestedJoin(rightResult, e.getRight(), newAlias);
+    }
+
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     final SqlNode sqlCondition;

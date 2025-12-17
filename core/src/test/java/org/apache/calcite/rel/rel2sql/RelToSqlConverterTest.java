@@ -123,6 +123,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11462,4 +11463,196 @@ class RelToSqlConverterTest {
           relFn, transforms);
     }
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7279">[CALCITE-7279]
+   * ClickHouse dialect should wrap nested JOINs</a>.
+   *
+   * <p>ClickHouse does not support nested JOIN syntax directly.
+   * When a JOIN's right side is another JOIN, it must be wrapped
+   * in a SELECT * FROM (...) subquery. */
+  @Test void testClickHouseNestedJoin() {
+    final String query = "SELECT e.empno, j.dname, j.loc\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname, d2.loc\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String sql = sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .exec();
+
+    assertThat(sql, containsString("LEFT JOIN (SELECT *"));
+    assertThat(sql, containsString("FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`DNAME`, `DEPT0`.`LOC`"));
+    assertThat(sql, containsString("INNER JOIN `SCOTT`.`DEPT` AS `DEPT0`"));
+    assertTrue(sql.matches("(?s).*AS `t\\d+`\\) AS `t\\d+`.*"));
+  }
+
+  /** Test that simple JOINs without nesting are not wrapped. */
+  @Test void testClickHouseSimpleJoinNotWrapped() {
+    final String query = "SELECT e.empno, d.dname\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN dept d ON e.deptno = d.deptno";
+    final String expected = "SELECT `EMP`.`EMPNO`, `DEPT`.`DNAME`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN `SCOTT`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .ok(expected);
+  }
+
+  /** Test INNER JOIN with nested right side. */
+  @Test void testClickHouseNestedInnerJoin() {
+    final String query = "SELECT e.empno, j.dname\n"
+        + "FROM emp e\n"
+        + "INNER JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String sql = sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .exec();
+
+    assertThat(sql, containsString("INNER JOIN (SELECT *"));
+    assertThat(sql, containsString("FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`DNAME`"));
+    assertThat(sql, containsString("INNER JOIN `SCOTT`.`DEPT` AS `DEPT0`"));
+    assertTrue(sql.matches("(?s).*AS `t\\d+`\\) AS `t\\d+`.*"));
+  }
+
+  /** Test three-way JOIN where optimization may create nested structure. */
+  @Test void testClickHouseThreeWayJoin() {
+    final String query = "SELECT e.empno, d1.dname, d2.loc\n"
+        + "FROM emp e\n"
+        + "INNER JOIN dept d1 ON e.deptno = d1.deptno\n"
+        + "INNER JOIN dept d2 ON d1.deptno = d2.deptno";
+    final String expected = "SELECT `EMP`.`EMPNO`, `DEPT`.`DNAME`, `DEPT0`.`LOC`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` ON `EMP`.`DEPTNO` = `DEPT`.`DEPTNO`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` "
+        + "ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .ok(expected);
+  }
+
+  /** Test nested JOIN with WHERE clause in subquery. */
+  @Test void testClickHouseNestedJoinWithWhere() {
+    final String query = "SELECT e.empno, j.dname\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + "  WHERE d1.deptno < 30\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String sql = sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .exec();
+
+    assertThat(sql, containsString("LEFT JOIN (SELECT *"));
+    assertThat(sql, containsString("FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`DNAME`"));
+    assertThat(sql, containsString("INNER JOIN `SCOTT`.`DEPT` AS `DEPT0`"));
+    assertThat(sql, containsString("WHERE"));
+    assertTrue(sql.matches("(?s).*AS `t\\d+`\\) AS `t\\d+`.*"));
+  }
+
+  /** Test nested JOIN with aggregation. */
+  @Test void testClickHouseNestedJoinWithAggregation() {
+    final String query = "SELECT e.empno, j.cnt\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, COUNT(*) as cnt\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + "  GROUP BY d1.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String sql = sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .exec();
+
+    assertThat(sql, containsString("LEFT JOIN (SELECT *"));
+    assertThat(sql, containsString("COUNT(*) AS `CNT`"));
+    assertThat(sql, containsString("INNER JOIN `SCOTT`.`DEPT` AS `DEPT0`"));
+    assertThat(sql, containsString("GROUP BY"));
+    assertTrue(sql.matches("(?s).*AS `t\\d+`\\) AS `t\\d+`.*"));
+  }
+
+  /** Test nested JOIN with multiple conditions. */
+  @Test void testClickHouseNestedJoinMultipleConditions() {
+    final String query = "SELECT e.empno, j.dname\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno "
+        + "AND d1.dname = d2.dname\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String sql = sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .exec();
+
+    assertThat(sql, containsString("LEFT JOIN (SELECT *"));
+    assertThat(sql, containsString("FROM (SELECT `DEPT`.`DEPTNO`, `DEPT`.`DNAME`"));
+    assertThat(sql, containsString("AND `DEPT`.`DNAME` = `DEPT0`.`DNAME`"));
+    assertTrue(sql.matches("(?s).*AS `t\\d+`\\) AS `t\\d+`.*"));
+  }
+
+  /** Test that MySQL dialect does not wrap nested JOINs. */
+  @Test void testMysqlNestedJoinNotWrapped() {
+    final String query = "SELECT e.empno, j.dname\n"
+        + "FROM emp e\n"
+        + "LEFT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+    // MySQL should NOT add extra wrapping for nested JOINs
+    final String expected = "SELECT `EMP`.`EMPNO`, `t`.`DNAME`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN (SELECT `DEPT`.`DEPTNO`, `DEPT`.`DNAME`\n"
+        + "FROM `SCOTT`.`DEPT`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` "
+        + "ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`) AS `t` "
+        + "ON `EMP`.`DEPTNO` = `t`.`DEPTNO`";
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withMysql()
+        .ok(expected);
+  }
+
+  /** Test RIGHT JOIN with nested structure. */
+  @Test void testClickHouseNestedRightJoin() {
+    final String query = "SELECT e.empno, j.dname\n"
+        + "FROM emp e\n"
+        + "RIGHT JOIN (\n"
+        + "  SELECT d1.deptno, d1.dname\n"
+        + "  FROM dept d1\n"
+        + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
+        + ") AS j ON e.deptno = j.deptno";
+
+    final String sql = sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withClickHouse()
+        .exec();
+
+    assertThat(sql, containsString("RIGHT JOIN (SELECT *"));
+    assertThat(sql, containsString("FROM (SELECT `DEPT`.`DEPTNO`"));
+    assertThat(sql, containsString("INNER JOIN `SCOTT`.`DEPT` AS `DEPT0`"));
+    assertTrue(sql.matches("(?s).*AS `t\\d+`\\) AS `t\\d+`.*"));
+  }
+
 }

@@ -18,6 +18,13 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -404,4 +411,37 @@ public class ClickHouseSqlDialect extends SqlDialect {
     call.operand(0).unparse(writer, 0, 0);
     writer.endList(frame);
   }
+
+  @Override public boolean mustWrapNestedJoin(RelNode rel) {
+    if (!(rel instanceof Join)) {
+      return false;
+    }
+    Join join = (Join) rel;
+
+    // ClickHouse primarily requires wrapping the right side of a JOIN
+    // when it contains a nested JOIN
+    return containsJoinRecursive(join.getRight());
+  }
+
+  /**
+   * Recursively checks if a RelNode contains a JOIN, looking through
+   * transparent single-input operators.
+   */
+  private static boolean containsJoinRecursive(RelNode rel) {
+    if (rel instanceof Join || rel instanceof Correlate) {
+      return true;
+    }
+
+    // Look through transparent single-input operators
+    // These don't create subquery boundaries in the SQL
+    if (rel instanceof Project
+        || rel instanceof Filter
+        || rel instanceof Sort
+        || rel instanceof Aggregate) {  // Add Aggregate here
+      return containsJoinRecursive(rel.getInput(0));
+    }
+
+    return false;
+  }
+
 }
