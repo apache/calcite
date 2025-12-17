@@ -160,4 +160,78 @@ from emp e join dept d on e.deptno = d.deptno limit 1;
 
 !ok
 
+# Test basic BY clause: SELECT a BY b is sugar for SELECT b, a GROUP BY b ORDER BY b
+select ename, empno by deptno from emp;
++--------+--------+-------+
+| DEPTNO | ENAME  | EMPNO |
++--------+--------+-------+
+|     10 | MILLER |  7934 |
+|     20 | SMITH  |  7902 |
+|     30 | WARD   |  7900 |
++--------+--------+-------+
+(3 rows)
+
+!ok
+
+# Test BY clause with alias
+select ename, empno by deptno as dept from emp;
++------+--------+-------+
+| DEPT | ENAME  | EMPNO |
++------+--------+-------+
+|   10 | MILLER |  7934 |
+|   20 | SMITH  |  7902 |
+|   30 | WARD   |  7900 |
++------+--------+-------+
+(3 rows)
+
+!ok
+
+# Test BY clause with DESC modifier
+select ename, empno by deptno DESC from emp;
++--------+--------+-------+
+| DEPTNO | ENAME  | EMPNO |
++--------+--------+-------+
+|     30 | WARD   |  7900 |
+|     20 | SMITH  |  7902 |
+|     10 | MILLER |  7934 |
++--------+--------+-------+
+(3 rows)
+
+!ok
+
+# Test BY clause with multiple columns
+select ename, empno by deptno, job from emp;
++--------+-----------+--------+-------+
+| DEPTNO | JOB       | ENAME  | EMPNO |
++--------+-----------+--------+-------+
+|     10 | CLERK     | MILLER |  7934 |
+|     10 | MANAGER   | CLARK  |  7782 |
+|     10 | PRESIDENT | KING   |  7839 |
+|     20 | ANALYST   | SCOTT  |  7902 |
+|     20 | CLERK     | SMITH  |  7876 |
+|     20 | MANAGER   | JONES  |  7566 |
+|     30 | CLERK     | JAMES  |  7900 |
+|     30 | MANAGER   | BLAKE  |  7698 |
+|     30 | SALESMAN  | WARD   |  7844 |
++--------+-----------+--------+-------+
+(9 rows)
+
+!ok
+
+# Test complex BY clause example from the feature proposal
+SELECT e.ename, e.empno BY d.dname AS dept DESC, e.job AS title
+FROM emp AS e
+  JOIN dept AS d ON e.deptno = d.deptno
+WHERE d.loc = 'CHICAGO';
++-------+----------+-------+-------+
+| DEPT  | TITLE    | ENAME | EMPNO |
++-------+----------+-------+-------+
+| SALES | CLERK    | JAMES |  7900 |
+| SALES | MANAGER  | BLAKE |  7698 |
+| SALES | SALESMAN | WARD  |  7844 |
++-------+----------+-------+-------+
+(3 rows)
+
+!ok
+
 # End select.iq

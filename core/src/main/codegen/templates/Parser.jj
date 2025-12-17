@@ -90,6 +90,7 @@ import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlByRewriter;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlStarExclude;
 import org.apache.calcite.sql.SqlSetOption;
@@ -724,6 +725,12 @@ SqlNode OrderByLimitOpt(SqlNode e) :
     ]
     {
         if (orderBy != null || offsetFetch[0] != null || offsetFetch[1] != null) {
+            if (orderBy != null
+                && e instanceof SqlSelect
+                && ((SqlSelect) e).hasByClause()) {
+              throw SqlUtil.newContextException(orderBy.getParserPosition(),
+                  RESOURCE.selectByCannotWithOrderBy());
+            }
             return new SqlOrderBy(getPos(), e,
                 Util.first(orderBy, SqlNodeList.EMPTY),
                 offsetFetch[0], offsetFetch[1]);
@@ -1343,6 +1350,7 @@ SqlSelect SqlSelect() :
     final SqlNode having;
     final SqlNodeList windowDecls;
     final SqlNode qualify;
+    final SqlNodeList by;
     final List<SqlNode> hints = new ArrayList<SqlNode>();
     final Span s;
 }
@@ -1363,6 +1371,11 @@ SqlSelect SqlSelect() :
     }
     AddSelectItem(selectList)
     ( <COMMA> AddSelectItem(selectList) )*
+<#if parser.includeSelectBy!false>
+    ( by = SqlSelectBy() | { by = null; } )
+<#else>
+    { by = null; }
+</#if>
     (
         <FROM> fromClause = FromClause()
         ( where = Where() | { where = null; } )
@@ -1381,10 +1394,12 @@ SqlSelect SqlSelect() :
         }
     )
     {
-        return new SqlSelect(s.end(this), keywordList,
+        final SqlSelect select = new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, windowDecls, qualify,
             null, null, null, new SqlNodeList(hints, getPos()));
+        SqlByRewriter.rewrite(select, by);
+        return select;
     }
 }
 
@@ -2969,15 +2984,42 @@ SqlNodeList OrderBy(boolean accept) :
             throw SqlUtil.newContextException(s.pos(), RESOURCE.illegalOrderBy());
         }
     }
-    <BY> AddOrderItem(list)
-    (
-        // NOTE jvs 6-Feb-2004:  See comments at top of file for why
-        // hint is necessary here.
-        LOOKAHEAD(2) <COMMA> AddOrderItem(list)
-    )*
+    <BY> OrderItemList(list)
     {
         return new SqlNodeList(list, s.addAll(list).pos());
     }
+}
+
+<#if parser.includeSelectBy!false>
+/**
+ * Parses a BY clause for SELECT (syntactic sugar for GROUP BY ... ORDER BY).
+ */
+SqlNodeList SqlSelectBy() :
+{
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    final Span s;
+}
+{
+    <BY> { s = span(); }
+    OrderItemList(list)
+    {
+        return new SqlNodeList(list, s.addAll(list).pos());
+    }
+}
+</#if>
+
+
+/**
+ * Parses a list of ORDER BY items.
+ */
+void OrderItemList(List<SqlNode> list) :
+{
+}
+{
+    AddOrderItem(list)
+    (
+        LOOKAHEAD(2) <COMMA> AddOrderItem(list)
+    )*
 }
 
 /**
@@ -2986,9 +3028,21 @@ SqlNodeList OrderBy(boolean accept) :
 void AddOrderItem(List<SqlNode> list) :
 {
     SqlNode e;
+    final SqlIdentifier id;
 }
 {
     e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    (
+        [ <AS>
+            (
+                id = SimpleIdentifier()
+            |
+                LOOKAHEAD(1)
+                id = SimpleIdentifierFromStringLiteral()
+            )
+            { e = SqlStdOperatorTable.AS.createCall(span().end(e), e, id); }
+        ]
+    )
     (
         <ASC>
     |   <DESC> {
