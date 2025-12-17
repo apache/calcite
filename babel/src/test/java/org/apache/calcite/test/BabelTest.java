@@ -22,10 +22,10 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -497,6 +497,9 @@ class BabelTest {
         .returns(result);
   }
 
+  /**
+   * Test AGE function with timestamp arguments.
+   */
   @Test void testAgeFunction() {
     checkSqlResult("postgresql",
         "SELECT AGE(timestamp '2023-12-25', timestamp '2020-01-01') FROM (VALUES (1)) t",
