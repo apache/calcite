@@ -256,6 +256,65 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2152">[CALCITE-2152]
+   * SQL parser unable to parse SQL with nested joins produced by RelToSqlConverter</a>. */
+  @Test public void testNestedJoin() {
+    final String query = "select *\n"
+        + "from \"sales_fact_1997\"\n"
+        + "inner join (select * from \"customer\"\n"
+        + "inner join \"employee\" on (\"customer\".\"city\" = \"employee\".\"store_id\") ) AS \"customer_employee\"\n"
+        + "on (\"sales_fact_1997\".\"store_id\" = \"customer_employee\".\"city\")";
+    String expected = "SELECT \"sales_fact_1997\".\"product_id\", \"sales_fact_1997\".\"time_id\","
+        + " \"sales_fact_1997\".\"customer_id\", \"sales_fact_1997\".\"promotion_id\","
+        + " \"sales_fact_1997\".\"store_id\", \"sales_fact_1997\".\"store_sales\","
+        + " \"sales_fact_1997\".\"store_cost\", \"sales_fact_1997\".\"unit_sales\","
+        + " \"t0\".\"customer_id\" AS \"customer_id0\", \"t0\".\"account_num\", \"t0\".\"lname\","
+        + " \"t0\".\"fname\", \"t0\".\"mi\", \"t0\".\"address1\", \"t0\".\"address2\","
+        + " \"t0\".\"address3\", \"t0\".\"address4\", \"t0\".\"city\", \"t0\".\"state_province\","
+        + " \"t0\".\"postal_code\", \"t0\".\"country\", \"t0\".\"customer_region_id\","
+        + " \"t0\".\"phone1\", \"t0\".\"phone2\", \"t0\".\"birthdate\", \"t0\".\"marital_status\","
+        + " \"t0\".\"yearly_income\", \"t0\".\"gender\", \"t0\".\"total_children\","
+        + " \"t0\".\"num_children_at_home\", \"t0\".\"education\", \"t0\".\"date_accnt_opened\","
+        + " \"t0\".\"member_card\", \"t0\".\"occupation\", \"t0\".\"houseowner\","
+        + " \"t0\".\"num_cars_owned\", \"t0\".\"fullname\", \"t0\".\"employee_id\","
+        + " \"t0\".\"full_name\", \"t0\".\"first_name\", \"t0\".\"last_name\","
+        + " \"t0\".\"position_id\", \"t0\".\"position_title\", \"t0\".\"store_id\" AS \"store_id0\","
+        + " \"t0\".\"department_id\", \"t0\".\"birth_date\", \"t0\".\"hire_date\","
+        + " \"t0\".\"end_date\", \"t0\".\"salary\", \"t0\".\"supervisor_id\","
+        + " \"t0\".\"education_level\", \"t0\".\"marital_status0\", \"t0\".\"gender0\","
+        + " \"t0\".\"management_role\"\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "INNER JOIN (SELECT \"t\".\"customer_id\", \"t\".\"account_num\", \"t\".\"lname\","
+        + " \"t\".\"fname\", \"t\".\"mi\", \"t\".\"address1\", \"t\".\"address2\","
+        + " \"t\".\"address3\", \"t\".\"address4\", \"t\".\"city\", \"t\".\"state_province\","
+        + " \"t\".\"postal_code\", \"t\".\"country\", \"t\".\"customer_region_id\","
+        + " \"t\".\"phone1\", \"t\".\"phone2\", \"t\".\"birthdate\", \"t\".\"marital_status\","
+        + " \"t\".\"yearly_income\", \"t\".\"gender\", \"t\".\"total_children\","
+        + " \"t\".\"num_children_at_home\", \"t\".\"education\", \"t\".\"date_accnt_opened\","
+        + " \"t\".\"member_card\", \"t\".\"occupation\", \"t\".\"houseowner\","
+        + " \"t\".\"num_cars_owned\", \"t\".\"fullname\", \"employee\".\"employee_id\","
+        + " \"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\","
+        + " \"employee\".\"position_id\", \"employee\".\"position_title\", \"employee\".\"store_id\","
+        + " \"employee\".\"department_id\", \"employee\".\"birth_date\", \"employee\".\"hire_date\","
+        + " \"employee\".\"end_date\", \"employee\".\"salary\", \"employee\".\"supervisor_id\","
+        + " \"employee\".\"education_level\", \"employee\".\"marital_status\" AS \"marital_status0\","
+        + " \"employee\".\"gender\" AS \"gender0\", \"employee\".\"management_role\","
+        + " CAST(\"t\".\"city\" AS INTEGER) AS \"city0\"\n"
+        + "FROM (SELECT \"customer_id\","
+        + " \"account_num\", \"lname\", \"fname\", \"mi\", \"address1\", \"address2\","
+        + " \"address3\", \"address4\", \"city\", \"state_province\", \"postal_code\","
+        + " \"country\", \"customer_region_id\", \"phone1\", \"phone2\", \"birthdate\","
+        + " \"marital_status\", \"yearly_income\", \"gender\", \"total_children\","
+        + " \"num_children_at_home\", \"education\", \"date_accnt_opened\", \"member_card\","
+        + " \"occupation\", \"houseowner\", \"num_cars_owned\", \"fullname\","
+        + " CAST(\"city\" AS INTEGER) AS \"city0\"\n"
+        + "FROM \"foodmart\".\"customer\") AS \"t\"\n"
+        + "INNER JOIN \"foodmart\".\"employee\" ON \"t\".\"city0\" = \"employee\".\"store_id\") AS \"t0\""
+        + " ON \"sales_fact_1997\".\"store_id\" = \"t0\".\"city0\"";
+    sql(query).ok(expected);
+  }
+
   /**
    * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-4723">[CALCITE-4723]</a>
    * Check whether JDBC adapter generates "GROUP BY ()" against Oracle, DB2, MSSQL.
@@ -8627,9 +8686,9 @@ class RelToSqlConverterTest {
         + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     final String expectedNoExpand = "SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE \"department_id\" = (((SELECT MIN(\"employee\".\"department_id\")\n"
+        + "WHERE \"department_id\" = (SELECT MIN(\"employee\".\"department_id\")\n"
         + "FROM \"foodmart\".\"department\"\n"
-        + "WHERE 1 = 2)))";
+        + "WHERE 1 = 2)";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
@@ -9802,17 +9861,17 @@ class RelToSqlConverterTest {
     final String sql0 = "update \"foodmart\".\"product\" a set \"product_id\" = "
         + "(select \"product_class_id\" from \"foodmart\".\"product_class\" b "
         + "where a.\"product_class_id\" = b.\"product_class_id\")";
-    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = (((SELECT "
+    final String expected0 = "UPDATE \"foodmart\".\"product\" SET \"product_id\" = (SELECT "
         + "\"product_class_id\"\nFROM \"foodmart\".\"product_class\"\nWHERE \"product\""
-        + ".\"product_class_id\" = \"product_class_id\")))";
+        + ".\"product_class_id\" = \"product_class_id\")";
     sql(sql0).ok(expected0);
 
     final String sql1 = "update \"foodmart\".\"product\" a set \"brand_name\" = "
         + "(select cast(\"product_category\" as varchar(60)) from \"foodmart\".\"product_class\" b "
         + "where a.\"product_class_id\" = b.\"product_class_id\")";
-    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"brand_name\" = (((SELECT CAST"
+    final String expected1 = "UPDATE \"foodmart\".\"product\" SET \"brand_name\" = (SELECT CAST"
         + "(\"product_category\" AS VARCHAR(60) CHARACTER SET \"ISO-8859-1\")\nFROM \"foodmart\""
-        + ".\"product_class\"\nWHERE \"product\".\"product_class_id\" = \"product_class_id\")))";
+        + ".\"product_class\"\nWHERE \"product\".\"product_class_id\" = \"product_class_id\")";
     sql(sql1).ok(expected1);
 
     final String sql2 = "update \"foodmart\".\"product\"\n"
@@ -10972,10 +11031,10 @@ class RelToSqlConverterTest {
     final String expected = "SELECT "
         + "\"DEPTNO\", "
         + "\"DNAME\", "
-        + "(((SELECT COUNT(*) AS \"COUNT\"\n"
+        + "(SELECT COUNT(*) AS \"COUNT\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"DEPTNO\"\n"
-        + "HAVING \"DEPTNO\" = \"DEPT\".\"DEPTNO\"))) AS \"$f2\"\n"
+        + "HAVING \"DEPTNO\" = \"DEPT\".\"DEPTNO\") AS \"$f2\"\n"
         + "FROM \"scott\".\"DEPT\"";
 
     relFn(relFn).ok(expected);
@@ -11053,9 +11112,9 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"EMP\".\"EMPNO\"\n"
         + "FROM \"SCOTT\".\"EMP\"\n"
         + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = (((SELECT MIN(\"DEPTNO\")\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
         + "FROM \"SCOTT\".\"DEPT\"\n"
-        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")))";
+        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterJoinRule.FilterIntoJoinRule.class);
@@ -11083,8 +11142,8 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"EMP\" AS \"$cor1\",\n"
         + "LATERAL (SELECT *\nFROM \"SCOTT\".\"DEPT\"\n"
         + "WHERE \"$cor1\".\"DEPTNO\" = \"DEPTNO\") AS \"t\"\n"
-        + "WHERE \"t\".\"DEPTNO\" = (((SELECT MIN(\"DEPTNO\")\n"
-        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"$cor1\".\"DEPTNO\")))";
+        + "WHERE \"t\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
+        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"$cor1\".\"DEPTNO\")";
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(JoinToCorrelateRule.class);
     builder.addRuleClass(FilterCorrelateRule.class);
@@ -11097,6 +11156,23 @@ class RelToSqlConverterTest {
         .withCalcite()
         .optimize(rules, hepPlanner)
         .ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7335">[CALCITE-7335]
+   * RelToSqlConverter generate sql containing Scala subqueries
+   * includes redundant parentheses</a>. */
+  @Test void testScalarSubqueryInSelectList() {
+    final String sql = "SELECT\n"
+        + "    (SELECT COUNT(*)\n"
+        + "    FROM \"employee\"\n"
+        + "    WHERE v.\"product_id\" >= 2), 3\n"
+        + "FROM \"product\" AS v";
+    final String expected = "SELECT (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"product\".\"product_id\" >= 2), 3\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(sql).ok(expected);
   }
 
   /** Fluid interface to run tests. */
