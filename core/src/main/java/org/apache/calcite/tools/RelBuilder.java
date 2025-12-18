@@ -1967,6 +1967,12 @@ public class RelBuilder {
     return project(ImmutableList.copyOf(nodes));
   }
 
+  /** Creates a {@link Project} of a list of correlation variables and the given
+   * expressions. */
+  public RelBuilder project(Iterable<CorrelationId> variablesSet, RexNode... nodes) {
+    return project(ImmutableList.copyOf(nodes), ImmutableList.of(), false, variablesSet);
+  }
+
   /** Creates a {@link Project} of the given list
    * of expressions.
    *

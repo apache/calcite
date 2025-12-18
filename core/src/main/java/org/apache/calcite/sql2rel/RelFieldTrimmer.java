@@ -673,7 +673,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Build new filter with trimmed input and condition.
     relBuilder.push(newInput)
-        .filter(filter.getVariablesSet(), newConditionExpr);
+        .filter(correlationIds, newConditionExpr);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -977,7 +977,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           requireNonNull(newMatchConditionExpr, "newMatchConditionExpr"));
       break;
     default:
-      relBuilder.join(join.getJoinType(), newConditionExpr);
+      relBuilder.join(join.getJoinType(), newConditionExpr, correlationIds);
       break;
     }
     return result(relBuilder.build(), mapping, join);

@@ -42,6 +42,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -685,7 +686,7 @@ class RelFieldTrimmerTest {
         .filter(
             builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(5),
             builder.literal(10)))
-        .project(
+        .project(ImmutableSet.of(v.get().id),
             builder.field(0),
             builder.scalarQuery(
                 b2 -> builder.scan("EMP").filter(
@@ -697,7 +698,7 @@ class RelFieldTrimmerTest {
         .build();
 
     String origTree = ""
-        + "LogicalProject(EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
         + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
         + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n})])\n"
@@ -761,7 +762,7 @@ class RelFieldTrimmerTest {
         + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
         + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
-        + "}))])\n"
+        + "}))], variablesSet=[[$cor0]])\n"
         + "    LogicalProject(EMPNO=[$0], MGR=[$3], SAL=[$5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
@@ -812,7 +813,7 @@ class RelFieldTrimmerTest {
         + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
         + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
-        + "})))], joinType=[inner])\n"
+        + "})))], joinType=[inner], variablesSet=[[$cor0]])\n"
         + "    LogicalProject(EMPNO=[$0], ENAME=[$1], MGR=[$3], DEPTNO=[$7])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "    LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
