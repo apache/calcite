@@ -170,6 +170,20 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private Casing quotedCasing;
     private int identifierMaxLength;
     private SqlConformance conformance;
+    private int rowValueStarCount;
+
+    private void pushRowValueStar() {
+        rowValueStarCount++;
+    }
+
+    private void popRowValueStar() {
+        assert rowValueStarCount > 0;
+        rowValueStarCount--;
+    }
+
+    private boolean allowRowValueStar() {
+        return rowValueStarCount > 0;
+    }
 
     /**
      * {@link SqlParserImplFactory} implementation for creating parser.
@@ -4040,27 +4054,38 @@ SqlNode Expression3(ExprContext exprContext) :
     LOOKAHEAD(3)
     <ROW> {
         s = span();
+        pushRowValueStar();
     }
     list = ParenthesizedQueryOrCommaList(exprContext) {
-        if (exprContext != ExprContext.ACCEPT_ALL
-            && exprContext != ExprContext.ACCEPT_CURSOR
-            && !this.conformance.allowExplicitRowValueConstructor())
-        {
-            throw SqlUtil.newContextException(s.end(list),
-                RESOURCE.illegalRowExpression());
+        try {
+            if (exprContext != ExprContext.ACCEPT_ALL
+                && exprContext != ExprContext.ACCEPT_CURSOR
+                && !this.conformance.allowExplicitRowValueConstructor())
+            {
+                throw SqlUtil.newContextException(s.end(list),
+                    RESOURCE.illegalRowExpression());
+            }
+            return SqlStdOperatorTable.ROW.createCall(list);
+        } finally {
+            popRowValueStar();
         }
-        return SqlStdOperatorTable.ROW.createCall(list);
     }
 |
     (
-        <ROW> { rowSpan = span(); }
+        <ROW> { rowSpan = span(); pushRowValueStar(); }
     |   { rowSpan = null; }
     )
     list1 = ParenthesizedQueryOrCommaList(exprContext) {
-        if (rowSpan != null) {
-            // interpret as row constructor
-            return SqlStdOperatorTable.ROW.createCall(rowSpan.end(list1),
-                (List<SqlNode>) list1);
+        try {
+            if (rowSpan != null) {
+                // interpret as row constructor
+                return SqlStdOperatorTable.ROW.createCall(rowSpan.end(list1),
+                    (List<SqlNode>) list1);
+            }
+        } finally {
+            if (rowSpan != null) {
+                popRowValueStar();
+            }
         }
     }
     [
@@ -4391,6 +4416,9 @@ SqlNode AtomicRowExpression() :
         e = ContextVariable()
     |
         e = CompoundIdentifier()
+    |
+        LOOKAHEAD({ allowRowValueStar() })
+        <STAR> { return SqlIdentifier.star(getPos()); }
     |
         e = NewSpecification()
     |
