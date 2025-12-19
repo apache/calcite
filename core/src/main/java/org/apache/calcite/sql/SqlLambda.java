@@ -107,6 +107,13 @@ public class SqlLambda extends SqlCall {
       super("->", SqlKind.LAMBDA);
     }
 
+    @Override public SqlCall createCall(
+        @Nullable SqlLiteral functionQualifier, SqlParserPos pos, @Nullable SqlNode... operands) {
+      return new SqlLambda(pos,
+          (SqlNodeList) requireNonNull(operands[0], "parameters"),
+          requireNonNull(operands[1], "expression"));
+    }
+
     @Override public RelDataType deriveType(
         SqlValidator validator, SqlValidatorScope scope, SqlCall call) {
       final SqlLambda lambdaExpr = (SqlLambda) call;

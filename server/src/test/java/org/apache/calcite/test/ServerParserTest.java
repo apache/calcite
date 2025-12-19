@@ -16,11 +16,35 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.ddl.SqlCreateFunction;
+import org.apache.calcite.sql.ddl.SqlCreateSchema;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateType;
+import org.apache.calcite.sql.ddl.SqlDropFunction;
+import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
+import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlDropTable;
+import org.apache.calcite.sql.ddl.SqlDropType;
+import org.apache.calcite.sql.ddl.SqlDropView;
+import org.apache.calcite.sql.ddl.SqlTruncateTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserFixture;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.sql.util.SqlShuttle;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
+
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests SQL parser extensions for DDL.
@@ -84,6 +108,83 @@ class ServerParserTest extends SqlParserTest {
         + " `quoted.id` TIMESTAMP '1970-03-21 12:4:56.78',"
         + " `ASTRING` 'foo''bar')";
     sql(sql).ok(expected);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7339">[CALCITE-7339]
+   * Most classes in SqlDdlNodes use an incorrect SqlCallFactory</a>. */
+  @Test void testShuttle() throws SqlParseException {
+    // A shuttle which modified a SqlCall's position
+    final SqlShuttle shuttle = new SqlShuttle() {
+      @Override public @Nullable SqlNode visit(SqlCall call) {
+        SqlNode newCall = super.visit(call);
+        return requireNonNull(newCall, "newCall").clone(SqlParserPos.ZERO);
+      }
+    };
+
+    BiConsumer<SqlParserFixture, Function<SqlNode, Boolean>> tester =
+        (fixture, function) -> {
+          SqlNode node = fixture.node();
+          assertTrue(function.apply(node));
+          SqlNode newNode = shuttle.visitNode(node);
+          assertTrue(function.apply(newNode));
+        };
+
+    String sql = "CREATE TYPE T AS (x INT)";
+    SqlParserFixture fixture = sql(sql);
+    fixture.ok("CREATE TYPE `T` AS (`X` INTEGER)");
+    tester.accept(fixture, n -> n instanceof SqlCreateType);
+
+    // The following also checks SqlCheckConstraint, SqlColumnDeclaration, SqlAttributeDefinition
+    sql = "CREATE TABLE X (I INTEGER NOT NULL, CONSTRAINT C1 CHECK (I < 10), J INTEGER)";
+    fixture = sql(sql);
+    fixture.ok("CREATE TABLE `X` (`I` INTEGER NOT NULL, "
+        + "CONSTRAINT `C1` CHECK (`I` < 10), `J` INTEGER)");
+    tester.accept(fixture, n -> n instanceof SqlCreateTable);
+
+    sql = "CREATE FUNCTION F AS 'a.b'";
+    fixture = sql(sql);
+    fixture.ok("CREATE FUNCTION `F` AS 'a.b'");
+    tester.accept(fixture, n -> n instanceof SqlCreateFunction);
+
+    sql = "CREATE SCHEMA F";
+    fixture = sql(sql);
+    fixture.ok("CREATE SCHEMA `F`");
+    tester.accept(fixture, n -> n instanceof SqlCreateSchema);
+
+    sql = "DROP FUNCTION IF EXISTS F";
+    fixture = sql(sql);
+    fixture.ok("DROP FUNCTION IF EXISTS `F`");
+    tester.accept(fixture, n -> n instanceof SqlDropFunction);
+
+    sql = "DROP VIEW IF EXISTS V";
+    fixture = sql(sql);
+    fixture.ok("DROP VIEW IF EXISTS `V`");
+    tester.accept(fixture, n -> n instanceof SqlDropView);
+
+    sql = "DROP TABLE T";
+    fixture = sql(sql);
+    fixture.ok("DROP TABLE `T`");
+    tester.accept(fixture, n -> n instanceof SqlDropTable);
+
+    sql = "DROP SCHEMA IF EXISTS S";
+    fixture = sql(sql);
+    fixture.ok("DROP SCHEMA IF EXISTS `S`");
+    tester.accept(fixture, n -> n instanceof SqlDropSchema);
+
+    sql = "DROP TYPE IF EXISTS T";
+    fixture = sql(sql);
+    fixture.ok("DROP TYPE IF EXISTS `T`");
+    tester.accept(fixture, n -> n instanceof SqlDropType);
+
+    sql = "DROP MATERIALIZED VIEW IF EXISTS V";
+    fixture = sql(sql);
+    fixture.ok("DROP MATERIALIZED VIEW IF EXISTS `V`");
+    tester.accept(fixture, n -> n instanceof SqlDropMaterializedView);
+
+    sql = "TRUNCATE TABLE T CONTINUE IDENTITY";
+    fixture = sql(sql);
+    fixture.ok("TRUNCATE TABLE `T` CONTINUE IDENTITY");
+    tester.accept(fixture, n -> n instanceof SqlTruncateTable);
   }
 
   @Test void testCreateForeignSchema2() {

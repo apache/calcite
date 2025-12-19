@@ -387,7 +387,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
           RESOURCE.tableNotFound(pair.right));
     }
 
-    if (!truncate.continueIdentify) {
+    if (!truncate.continueIdentity) {
       // Calcite not support RESTART IDENTIFY
       throw new UnsupportedOperationException("RESTART IDENTIFY is not supported");
     }
@@ -519,7 +519,12 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         if (d.strategy != ColumnStrategy.VIRTUAL) {
           storedBuilder.add(d.name.getSimple(), type);
         }
-        b.add(ColumnDef.of(d.expression, type, d.strategy));
+        final ColumnStrategy strategy = d.strategy != null
+            ? d.strategy
+            : type.isNullable()
+                ? ColumnStrategy.NULLABLE
+                : ColumnStrategy.NOT_NULLABLE;
+        b.add(ColumnDef.of(d.expression, type, strategy));
       } else if (c.e instanceof SqlIdentifier) {
         final SqlIdentifier id = (SqlIdentifier) c.e;
         if (queryRowType == null) {
