@@ -155,7 +155,6 @@ straight, you can remove expressions from the stack. For example, here we are
 building a bushy join:
 
 {% highlight text %}
-.
                join
              /      \
         join          join
@@ -212,8 +211,8 @@ each of the scalar expressions.
 
 The field names of an operator are guaranteed to be unique, but sometimes that
 means that the names are not exactly what you expect. For example, when you
-join EMP to DEPT, one of the output fields will be called DEPTNO and another
-will be called something like DEPTNO_1.
+join `EMP` to `DEPT`, one of the output fields will be called `DEPTNO` and another
+will be called something like `DEPTNO_1`.
 
 Some relational expression methods give you more control over field names:
 
@@ -239,39 +238,39 @@ When you are building a relational expression that accepts multiple inputs,
 you need to build field references that take that into account. This occurs
 most often when building join conditions.
 
-Suppose you are building a join on EMP,
-which has 8 fields [EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO]
-and DEPT,
-which has 3 fields [DEPTNO, DNAME, LOC].
+Suppose you are building a join on `EMP`,
+which has 8 fields [`EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`]
+and `DEPT`,
+which has 3 fields [`DEPTNO`, `DNAME`, `LOC`].
 Internally, Calcite represents those fields as offsets into
 a combined input row with 11 fields: the first field of the left input is
-field #0 (0-based, remember), and the first field of the right input is
-field #8.
+field `#0 (0-based, remember)`, and the first field of the right input is
+field `#8`.
 
 But through the builder API, you specify which field of which input.
-To reference "SAL", internal field #5,
+To reference `SAL`, internal field `#5`,
 write `builder.field(2, 0, "SAL")`, `builder.field(2, "EMP", "SAL")`,
 or `builder.field(2, 0, 5)`.
-This means "the field #5 of input #0 of two inputs".
+This means "the field `#5` of input `#0` of two inputs".
 (Why does it need to know that there are two inputs? Because they are stored on
-the stack; input #1 is at the top of the stack, and input #0 is below it.
+the stack; input `#1` is at the top of the stack, and input `#0` is below it.
 If we did not tell the builder that were two inputs, it would not know how deep
-to go for input #0.)
+to go for input `#0`.)
 
-Similarly, to reference "DNAME", internal field #9 (8 + 1),
+Similarly, to reference `DNAME`, internal field `#9 (8 + 1)`,
 write `builder.field(2, 1, "DNAME")`, `builder.field(2, "DEPT", "DNAME")`,
 or `builder.field(2, 1, 1)`.
 
 ### Recursive Queries
 
 Warning: The current API is experimental and subject to change without notice.
-A SQL recursive query, e.g. this one that generates the sequence 1, 2, 3, ...10:
+A SQL recursive query, e.g. this one that generates the sequence 1, 2, 3, ..., 10:
 
 {% highlight sql %}
 WITH RECURSIVE aux(i) AS (
   VALUES (1)
   UNION ALL
-  SELECT i+1 FROM aux WHERE i < 10
+  SELECT i + 1 FROM aux WHERE i < 10
 )
 SELECT * FROM aux
 {% endhighlight %}
@@ -413,7 +412,7 @@ The following methods return a scalar expression
 ([RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)).
 
 Many of them use the contents of the stack. For example, `field("DEPTNO")`
-returns a reference to the "DEPTNO" field of the relational expression just
+returns a reference to the `DEPTNO` field of the relational expression just
 added to the stack.
 
 | Method              | Description
@@ -448,7 +447,7 @@ added to the stack.
 
 The following methods convert a sub-query into a scalar value (a `BOOLEAN` in
 the case of `in`, `exists`, `some`, `all`, `unique`;
-any scalar type for `scalarQuery`).
+any scalar type for `scalarQuery`),
 an `ARRAY` for `arrayQuery`,
 a `MAP` for `mapQuery`,
 and a `MULTISET` for `multisetQuery`).

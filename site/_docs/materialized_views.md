@@ -77,7 +77,7 @@ To produce a larger number of rewritings, the rule relies on the information exp
 
 Let us illustrate with some examples the coverage of the view rewriting algorithm implemented in `MaterializedViewRule`. The examples are based on the following database schema.
 
-```sql
+{% highlight sql %}
 CREATE TABLE depts(
   deptno INT NOT NULL,
   deptname VARCHAR(20),
@@ -98,7 +98,7 @@ CREATE TABLE emps(
   FOREIGN KEY (deptno) REFERENCES depts(deptno),
   FOREIGN KEY (locationid) REFERENCES locations(locationid)
 );
-```
+{% endhighlight %}
 
 ###### Join rewriting
 
@@ -106,7 +106,7 @@ The rewriting can handle different join orders in the query and the view definit
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT empid
 FROM depts
 JOIN (
@@ -114,80 +114,80 @@ JOIN (
   FROM emps
   WHERE empid = 1) AS subq
 ON depts.deptno = subq.deptno
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid
 FROM emps
 JOIN depts USING (deptno)
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT empid
 FROM mv
 WHERE empid = 1
-```
+{% endhighlight %}
 
 
 ###### Aggregate rewriting
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT deptno
 FROM emps
 WHERE deptno > 10
 GROUP BY deptno
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptno
 FROM emps
 WHERE deptno > 5
 GROUP BY empid, deptno
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT deptno
 FROM mv
 WHERE deptno > 10
 GROUP BY deptno
-```
+{% endhighlight %}
 
 
 ###### Aggregate rewriting (with aggregation rollup)
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 GROUP BY deptno
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 GROUP BY empid, deptno
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT deptno, SUM(c), SUM(s)
 FROM mv
 GROUP BY deptno
-```
+{% endhighlight %}
 
 
 ###### Query partial rewriting
@@ -196,84 +196,84 @@ Through the declared constraints, the rule can detect joins that only append col
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT deptno, COUNT(*)
 FROM emps
 GROUP BY deptno
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid, depts.deptno, COUNT(*) AS c, SUM(salary) AS s
 FROM emps
 JOIN depts USING (deptno)
 GROUP BY empid, depts.deptno
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT deptno, SUM(c)
 FROM mv
 GROUP BY deptno
-```
+{% endhighlight %}
 
 
 ###### View partial rewriting
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT deptname, state, SUM(salary) AS s
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
 JOIN locations ON emps.locationid = locations.locationid
 GROUP BY deptname, state
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptno, state, SUM(salary) AS s
 FROM emps
 JOIN locations ON emps.locationid = locations.locationid
 GROUP BY empid, deptno, state
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT deptname, state, SUM(s)
 FROM mv
 JOIN depts ON mv.deptno = depts.deptno
 GROUP BY deptname, state
-```
+{% endhighlight %}
 
 
 ###### Union rewriting
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptname
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 10000
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptname
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 12000
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptname
 FROM mv
 UNION ALL
@@ -281,34 +281,34 @@ SELECT empid, deptname
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 10000 AND salary <= 12000
-```
+{% endhighlight %}
 
 
 ###### Union rewriting with aggregate
 
 * Query:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptname, SUM(salary) AS s
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 10000
 GROUP BY empid, deptname
-```
+{% endhighlight %}
 
 * Materialized view definition:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptname, SUM(salary) AS s
 FROM emps
 JOIN depts ON emps.deptno = depts.deptno
 WHERE salary > 12000
 GROUP BY empid, deptname
-```
+{% endhighlight %}
 
 * Rewriting:
 
-```sql
+{% highlight sql %}
 SELECT empid, deptname, SUM(s)
 FROM (
   SELECT empid, deptname, s
@@ -320,7 +320,7 @@ FROM (
   WHERE salary > 10000 AND salary <= 12000
   GROUP BY empid, deptname) AS subq
 GROUP BY empid, deptname
-```
+{% endhighlight %}
 
 
 ##### Limitations
