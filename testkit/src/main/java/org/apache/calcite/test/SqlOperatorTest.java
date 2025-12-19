@@ -17688,9 +17688,6 @@ public class SqlOperatorTest {
     }
   }
 
-
-
-
   private Throwable findMostDescriptiveCause(Throwable ex) {
     if (ex instanceof CalciteException
         || ex instanceof CalciteContextException
