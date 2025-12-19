@@ -1113,4 +1113,83 @@ WHERE "t"."EMPNO" = "t2"."EMPNO" AND "t"."EMPNO" > "t2"."EMPNO");
 
 !ok
 
+# [CALCITE-7274] RexFieldAccess has wrong index when use trim unused fields
+!use scott
+SELECT empno
+      FROM emp AS e
+      LEFT JOIN dept AS d
+        ON d.deptno = e.deptno
+          AND (EXISTS (
+            SELECT e2.deptno FROM emp AS e2
+            WHERE e2.deptno = d.deptno
+            GROUP BY e2.deptno
+            HAVING SUM(e2.sal) > 1000000));
+EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+SELECT empno
+      FROM emp AS e
+      LEFT JOIN dept AS d
+          ON EXISTS (
+            SELECT e2.deptno FROM emp AS e2
+            WHERE e2.deptno = d.deptno
+            GROUP BY e2.deptno
+            HAVING SUM(e2.sal) > 1000000);
+EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableMergeJoin(condition=[=($0, $1)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1000000.00:DECIMAL(19, 2)], expr#3=[>($t1, $t2)], DEPTNO2=[$t0], $condition=[$t3])
+          EnumerableAggregate(group=[{7}], agg#0=[SUM($5)])
+            EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
+              EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
 # End join.iq

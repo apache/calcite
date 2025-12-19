@@ -634,7 +634,23 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RelOptUtil.InputFinder inputFinder =
         new RelOptUtil.InputFinder(inputExtraFields, fieldsUsed);
     conditionExpr.accept(inputFinder);
-    final ImmutableBitSet inputFieldsUsed = inputFinder.build();
+
+    // Collect all the SubQueries in the filter condition.
+    List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(filter);
+    // Get all the correlationIds present in the SubQueries
+    Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
+    ImmutableBitSet requiredColumns = ImmutableBitSet.of();
+    if (!correlationIds.isEmpty()) {
+      // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
+      requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), filter);
+    }
+
+    ImmutableBitSet finderFields = inputFinder.build();
+
+    ImmutableBitSet inputFieldsUsed = ImmutableBitSet.builder()
+        .addAll(requiredColumns)
+        .addAll(finderFields)
+        .build();
 
     // Create input with trimmed columns.
     TrimResult trimResult =
@@ -657,7 +673,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Build new filter with trimmed input and condition.
     relBuilder.push(newInput)
-        .filter(filter.getVariablesSet(), newConditionExpr);
+        .filter(correlationIds, newConditionExpr);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -818,7 +834,22 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (matchConditionExpr != null) {
       matchConditionExpr.accept(inputFinder);
     }
-    final ImmutableBitSet fieldsUsedPlus = inputFinder.build();
+    final ImmutableBitSet fieldsUsedCondition = inputFinder.build();
+
+    // Collect all the SubQueries in the join condition.
+    List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(join);
+    // Get all the correlationIds present in the SubQueries
+    Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
+    ImmutableBitSet requiredColumns = ImmutableBitSet.of();
+    if (!correlationIds.isEmpty()) {
+      // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
+      requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), join);
+    }
+
+    ImmutableBitSet fieldsUsedPlus = ImmutableBitSet.builder()
+        .addAll(requiredColumns)
+        .addAll(fieldsUsedCondition)
+        .build();
 
     // If no system fields are used, we can remove them.
     int systemFieldUsedCount = 0;
@@ -946,7 +977,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           requireNonNull(newMatchConditionExpr, "newMatchConditionExpr"));
       break;
     default:
-      relBuilder.join(join.getJoinType(), newConditionExpr);
+      relBuilder.join(join.getJoinType(), newConditionExpr, correlationIds);
       break;
     }
     return result(relBuilder.build(), mapping, join);

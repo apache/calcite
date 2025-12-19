@@ -3171,7 +3171,8 @@ public class RexUtil {
   }
 
   /** Visitor that collects all the top level SubQueries {@link RexSubQuery}
-   *  in a projection list of a given {@link Project}.*/
+   *  in projection list of a given {@link Project},
+   *  the condition of a given {@link Filter} or the condition of a given {@link Join}.*/
   public static class SubQueryCollector extends RexVisitorImpl<Void> {
     private final List<RexSubQuery> subQueries;
     private SubQueryCollector() {
@@ -3191,6 +3192,19 @@ public class RexUtil {
       }
       return subQueryCollector.subQueries;
     }
+
+    public static List<RexSubQuery> collect(Filter filter) {
+      SubQueryCollector subQueryCollector = new SubQueryCollector();
+      filter.getCondition().accept(subQueryCollector);
+      return subQueryCollector.subQueries;
+    }
+
+    public static List<RexSubQuery> collect(Join join) {
+      SubQueryCollector subQueryCollector = new SubQueryCollector();
+      join.getCondition().accept(subQueryCollector);
+      return subQueryCollector.subQueries;
+    }
+
   }
 
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
