@@ -117,6 +117,13 @@ component provides a SQL interface to
 <a href="https://www.dremio.com">Dremio</a>
 uses Calcite for SQL parsing and cost-based query optimization.
 
+### Feldera
+
+<a href="https://www.feldera.com">Feldera</a>'s incremental view
+maintenance engine uses Calcite for SQL parsing and high-level plan
+optimizations.  The Feldera SQL compiler generates Rust programs,
+which then are run continuously in streaming mode.
+
 ### HerdDB
 
 <a href="https://herddb.org">HerdDB</a>
