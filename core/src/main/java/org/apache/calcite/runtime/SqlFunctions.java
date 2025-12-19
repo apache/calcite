@@ -7451,19 +7451,19 @@ public class SqlFunctions {
 
   /** SQL {@code AGE(timestamp1, timestamp2)} function. */
   public static String age(long timestamp1, long timestamp2) {
-    // Convert timestamps to LocalDateTime objects
+    // Convert timestamps to ZonedDateTime objects using UTC to avoid timezone issues
     Instant instant1 = Instant.ofEpochMilli(timestamp1);
     Instant instant2 = Instant.ofEpochMilli(timestamp2);
 
-    LocalDateTime dateTime1 = LocalDateTime.ofInstant(instant1, ZoneOffset.UTC);
-    LocalDateTime dateTime2 = LocalDateTime.ofInstant(instant2, ZoneOffset.UTC);
+    ZonedDateTime dateTime1 = ZonedDateTime.ofInstant(instant1, ZoneOffset.UTC);
+    ZonedDateTime dateTime2 = ZonedDateTime.ofInstant(instant2, ZoneOffset.UTC);
 
     // Check if the original timestamps are in the correct order
     boolean isNegative = timestamp1 < timestamp2;
 
     // Ensure dateTime1 is later than dateTime2 for consistent calculation
     if (dateTime1.isBefore(dateTime2)) {
-      LocalDateTime temp = dateTime1;
+      ZonedDateTime temp = dateTime1;
       dateTime1 = dateTime2;
       dateTime2 = temp;
     }
@@ -7517,9 +7517,13 @@ public class SqlFunctions {
 
   /** SQL {@code AGE(timestamp)} function. */
   public static String age(long timestamp) {
-    // Get current date at midnight
-    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    long currentTimestamp = now.toInstant(ZoneOffset.UTC).toEpochMilli();
+    // Get current date at midnight in UTC
+    long currentTimestamp = Instant.now()
+        .atZone(ZoneOffset.UTC)
+        .truncatedTo(ChronoUnit.DAYS)
+        .toInstant()
+        .toEpochMilli();
+
     // Call the two-parameter version with current timestamp and input timestamp
     return age(currentTimestamp, timestamp);
   }
