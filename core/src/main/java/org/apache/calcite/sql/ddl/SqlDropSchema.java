@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDrop;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -28,7 +29,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code DROP SCHEMA} statement.
@@ -38,7 +43,15 @@ public class SqlDropSchema extends SqlDrop {
   public final SqlIdentifier name;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("DROP SCHEMA", SqlKind.DROP_SCHEMA);
+      new SqlSpecialOperator("DROP SCHEMA", SqlKind.DROP_SCHEMA) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlDropSchema(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "foreign")).booleanValue(),
+              ((SqlLiteral) requireNonNull(operands[1], "ifExists")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[2], "name"));
+        }
+      };
 
   /** Creates a SqlDropSchema. */
   SqlDropSchema(SqlParserPos pos, boolean foreign, boolean ifExists,
@@ -50,7 +63,9 @@ public class SqlDropSchema extends SqlDrop {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(
-        SqlLiteral.createBoolean(foreign, SqlParserPos.ZERO), name);
+        SqlLiteral.createBoolean(foreign, SqlParserPos.ZERO),
+        SqlLiteral.createBoolean(ifExists, SqlParserPos.ZERO),
+        name);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

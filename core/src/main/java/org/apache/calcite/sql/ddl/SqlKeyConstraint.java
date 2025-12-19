@@ -19,6 +19,7 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -31,17 +32,33 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.
  *
  * <p>And {@code FOREIGN KEY}, when we support it.
  */
 public class SqlKeyConstraint extends SqlCall {
-  private static final SqlSpecialOperator UNIQUE =
-      new SqlSpecialOperator("UNIQUE", SqlKind.UNIQUE);
+  private static final SqlOperator UNIQUE =
+      new SqlSpecialOperator("UNIQUE", SqlKind.UNIQUE) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return unique(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "name"),
+              (SqlNodeList) requireNonNull(operands[1], "columnList"));
+        }
+      };
 
-  protected static final SqlSpecialOperator PRIMARY =
-      new SqlSpecialOperator("PRIMARY KEY", SqlKind.PRIMARY_KEY);
+  protected static final SqlOperator PRIMARY =
+      new SqlSpecialOperator("PRIMARY KEY", SqlKind.PRIMARY_KEY) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return primary(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "name"),
+              (SqlNodeList) requireNonNull(operands[1], "columnList"));
+        }
+      };
 
   private final @Nullable SqlIdentifier name;
   private final SqlNodeList columnList;

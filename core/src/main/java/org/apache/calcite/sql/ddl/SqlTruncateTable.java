@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -27,7 +29,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code TRUNCATE TABLE} statement.
@@ -35,32 +41,39 @@ import java.util.List;
 public class SqlTruncateTable extends SqlTruncate {
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("TRUNCATE TABLE", SqlKind.TRUNCATE_TABLE);
+      new SqlSpecialOperator("TRUNCATE TABLE", SqlKind.TRUNCATE_TABLE) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlTruncateTable(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "name"),
+              ((SqlLiteral) requireNonNull(operands[1], "continueIdentity")).booleanValue());
+        }
+      };
+
   public final SqlIdentifier name;
-  public final boolean continueIdentify;
+  public final boolean continueIdentity;
 
   /**
    * Creates a SqlTruncateTable.
    */
-  public SqlTruncateTable(SqlParserPos pos, SqlIdentifier name, boolean continueIdentify) {
+  public SqlTruncateTable(SqlParserPos pos, SqlIdentifier name, boolean continueIdentity) {
     super(OPERATOR, pos);
     this.name = name;
-    this.continueIdentify = continueIdentify;
+    this.continueIdentity = continueIdentity;
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name);
+    return ImmutableList.of(name, SqlLiteral.createBoolean(continueIdentity, SqlParserPos.ZERO));
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("TRUNCATE");
     writer.keyword("TABLE");
     name.unparse(writer, leftPrec, rightPrec);
-    if (continueIdentify) {
+    if (continueIdentity) {
       writer.keyword("CONTINUE IDENTITY");
     } else {
       writer.keyword("RESTART IDENTITY");
-
     }
   }
 }

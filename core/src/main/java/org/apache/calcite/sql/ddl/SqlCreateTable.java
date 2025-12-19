@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -42,7 +44,17 @@ public class SqlCreateTable extends SqlCreate {
   public final @Nullable SqlNode query;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
+      new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCreateTable(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
+              ((SqlLiteral) requireNonNull(operands[1], "ifNotExists")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[2], "name"),
+              (SqlNodeList) requireNonNull(operands[3], "columnList"),
+              operands[4]);
+        }
+      };
 
   /** Creates a SqlCreateTable. */
   protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
@@ -55,7 +67,10 @@ public class SqlCreateTable extends SqlCreate {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query);
+    return ImmutableNullableList.of(
+        SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),
+        SqlLiteral.createBoolean(ifNotExists, SqlParserPos.ZERO),
+        name, columnList, query);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

@@ -30,6 +30,7 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.util.IdPair;
@@ -56,6 +57,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.util.Assert;
 
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -2959,6 +2961,16 @@ class UtilTest {
     assertThat(s2, instanceOf(NlsString.class));
     assertThat(s2, not(sameInstance((Object) s)));
     assertThat(s2, hasToString(s.toString()));
+  }
+
+  @Test void testCollationEncoding() {
+    SqlCollation collation =
+        new SqlCollation(
+            SqlCollation.Coercibility.COERCIBLE, Locale.ENGLISH,
+            Util.getDefaultCharset(), "primary");
+    SqlNodeList list = collation.asList();
+    SqlCollation decoded = SqlCollation.fromSqlList(list);
+    Assert.equals(collation, decoded);
   }
 
   @Test void testXmlOutput() {

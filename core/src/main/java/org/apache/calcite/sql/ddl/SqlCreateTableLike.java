@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -29,6 +30,8 @@ import org.apache.calcite.sql.Symbolizable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,12 +39,25 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree for {@code CREATE TABLE LIKE} statement.
  */
 public class SqlCreateTableLike extends SqlCreate {
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE LIKE", SqlKind.CREATE_TABLE_LIKE);
+      new SqlSpecialOperator("CREATE TABLE LIKE", SqlKind.CREATE_TABLE_LIKE) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCreateTableLike(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
+              ((SqlLiteral) requireNonNull(operands[1], "ifNotExists")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[2], "name"),
+              (SqlIdentifier) requireNonNull(operands[3], "sourceTable"),
+              (SqlNodeList) requireNonNull(operands[4], "includingOptions"),
+              (SqlNodeList) requireNonNull(operands[5], "excludingOptions"));
+        }
+      };
 
   /**
    * The LikeOption specify which additional properties of the original table to copy.
@@ -83,7 +99,10 @@ public class SqlCreateTableLike extends SqlCreate {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, sourceTable, includingOptions,
+    return ImmutableNullableList.of(
+        SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),
+        SqlLiteral.createBoolean(ifNotExists, SqlParserPos.ZERO),
+        name, sourceTable, includingOptions,
         excludingOptions);
   }
 

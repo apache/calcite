@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -43,7 +45,16 @@ public class SqlCreateType extends SqlCreate {
   public final @Nullable SqlDataTypeSpec dataType;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TYPE", SqlKind.CREATE_TYPE);
+      new SqlSpecialOperator("CREATE TYPE", SqlKind.CREATE_TYPE) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCreateType(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[1], "name"),
+              (SqlNodeList) operands[2],
+              (SqlDataTypeSpec) operands[3]);
+        }
+      };
 
   /** Creates a SqlCreateType. */
   SqlCreateType(SqlParserPos pos, boolean replace, SqlIdentifier name,
@@ -56,7 +67,9 @@ public class SqlCreateType extends SqlCreate {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, attributeDefs);
+    return ImmutableNullableList.of(
+        SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),
+        name, attributeDefs, dataType);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

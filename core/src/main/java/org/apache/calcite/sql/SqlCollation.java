@@ -17,8 +17,10 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.util.Glossary;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
@@ -36,6 +38,8 @@ import java.text.Collator;
 import java.util.Locale;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlCollation</code> is an object representing a <code>Collate</code>
@@ -111,6 +115,25 @@ public class SqlCollation implements Serializable {
     this.locale = parseValues.getLocale();
     this.strength = parseValues.getStrength().toLowerCase(Locale.ROOT);
     this.collationName = generateCollationName(charset);
+  }
+
+  /** Encode all the information require to reconstruct a SqlCollection in a SqlList object. */
+  public SqlNodeList asList() {
+    return new SqlNodeList(
+        ImmutableNullableList.of(
+            SqlLiteral.createCharString(this.getCollationName(), SqlParserPos.ZERO),
+            SqlLiteral.createSymbol(coercibility, SqlParserPos.ZERO)),
+        SqlParserPos.ZERO);
+  }
+
+  /** The inverse of the {@link #asList} function. */
+  public static SqlCollation fromSqlList(SqlNodeList list) {
+    assert list.size() == 2;
+    String name = ((SqlLiteral) list.get(0)).getValueAs(String.class);
+    Coercibility coercibility = ((SqlLiteral) list.get(1)).symbolValue(Coercibility.class);
+    return new SqlCollation(
+        name,
+        requireNonNull(coercibility, "coercibility"));
   }
 
   /**

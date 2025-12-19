@@ -19,6 +19,7 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -30,14 +31,23 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.
  *
  * <p>And {@code FOREIGN KEY}, when we support it.
  */
 public class SqlCheckConstraint extends SqlCall {
-  private static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("CHECK", SqlKind.CHECK);
+  private static final SqlOperator OPERATOR =
+      new SqlSpecialOperator("CHECK", SqlKind.CHECK) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCheckConstraint(pos,
+              (SqlIdentifier) operands[0],
+              requireNonNull(operands[1], "expression"));
+        }
+      };
 
   private final @Nullable SqlIdentifier name;
   private final SqlNode expression;
