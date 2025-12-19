@@ -497,9 +497,9 @@ class BabelTest {
         .returns(result);
   }
 
-  /**
-   * Test AGE function with timestamp arguments.
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
+   * AGE function with timestamp arguments</a>. */
   @Test void testAgeFunction() {
     checkSqlResult("postgresql",
         "SELECT AGE(timestamp '2023-12-25', timestamp '2020-01-01') FROM (VALUES (1)) t",
