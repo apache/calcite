@@ -6948,6 +6948,45 @@ public class SqlOperatorTest {
     f.checkNull("json_storage_size(cast(null as varchar))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
+   * AGE function with timestamp arguments</a>. */
+  @Test void testAgePg() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.checkFails("^age(timestamp '2023-12-25', timestamp '2020-01-01')^",
+        "No match found for function signature AGE\\(<TIMESTAMP>, <TIMESTAMP>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
+
+    // Test two timestamp arguments
+    f.checkScalar("age(timestamp '2023-12-25', timestamp '2020-01-01')",
+        "3 years 11 mons 24 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2023-01-01', timestamp '2023-01-01')",
+        "0 years 0 mons 0 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2020-01-01', timestamp '2023-12-25')",
+        "-3 years -11 mons -24 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2023-02-01', timestamp '2023-01-31')",
+        "0 years 0 mons 1 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2023-12-26 14:30:00', timestamp '2023-12-25 14:30:00')",
+        "0 years 0 mons 1 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2023-12-25 00:00:00', timestamp '2020-01-01 23:59:59')",
+        "3 years 11 mons 23 days 0 hours 0 mins 1.0 secs",
+        "VARCHAR NOT NULL");
+
+    // Test single timestamp argument (relative to current time)
+    f.checkType("age(timestamp '2023-12-25')", "VARCHAR NOT NULL");
+  }
+
   @Test void testJsonType() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.JSON_TYPE, VmName.EXPAND);
@@ -17648,6 +17687,9 @@ public class SqlOperatorTest {
       }
     }
   }
+
+
+
 
   private Throwable findMostDescriptiveCause(Throwable ex) {
     if (ex instanceof CalciteException
