@@ -1028,7 +1028,7 @@ public class RexImpTable {
       define(FORMAT_TIME, datetimeFormatImpl);
       define(FORMAT_TIMESTAMP, datetimeFormatImpl);
 
-      defineMethod(AGE_PG, BuiltInMethod.AGE.method, NullPolicy.STRICT);
+      defineReflective(AGE_PG, BuiltInMethod.AGE.method, BuiltInMethod.AGE_ONE_PARAM.method);
 
       // Boolean operators
       define(IS_NULL, new IsNullImplementor());
