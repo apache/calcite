@@ -6985,6 +6985,66 @@ public class SqlOperatorTest {
 
     // Test single timestamp argument (relative to current time)
     f.checkType("age(timestamp '2023-12-25')", "VARCHAR NOT NULL");
+
+
+    // NULL value tests
+    f.checkNull("age(null, timestamp '2023-12-25')");
+    f.checkNull("age(timestamp '2023-12-25', null)");
+    f.checkNull("age(null, null)");
+    f.checkNull("age(null)");
+
+    // Boundary date tests (Unix epoch time)
+    f.checkScalar("age(timestamp '1970-01-01', timestamp '1970-01-01')",
+        "0 years 0 mons 0 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '1970-01-02', timestamp '1970-01-01')",
+        "0 years 0 mons 1 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    // Time boundary tests (start and end of day)
+    f.checkScalar("age(timestamp '2023-12-25 23:59:59', timestamp '2023-12-25 00:00:00')",
+        "0 years 0 mons 0 days 23 hours 59 mins 59.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2023-12-26 00:00:00', timestamp '2023-12-25 23:59:59')",
+        "0 years 0 mons 0 days 0 hours 0 mins 1.0 secs",
+        "VARCHAR NOT NULL");
+
+    // Leap year tests
+    f.checkScalar("age(timestamp '2024-02-29', timestamp '2023-02-28')",
+        "1 years 0 mons 1 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2024-03-01', timestamp '2023-02-28')",
+        "1 years 0 mons 2 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    // Month boundary tests (across months)
+    f.checkScalar("age(timestamp '2023-03-01', timestamp '2023-02-01')",
+        "0 years 1 mons 0 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2023-03-31', timestamp '2023-02-28')",
+        "0 years 1 mons 3 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    // Year boundary tests
+    f.checkScalar("age(timestamp '2024-01-01', timestamp '2023-01-01')",
+        "1 years 0 mons 0 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    f.checkScalar("age(timestamp '2024-01-01', timestamp '2023-12-31')",
+        "0 years 0 mons 1 days 0 hours 0 mins 0.0 secs",
+        "VARCHAR NOT NULL");
+
+    // Actual execution test for single parameter version
+    f.checkType("age(timestamp '1970-01-01')", "VARCHAR NOT NULL");
+
+    // Millisecond precision tests
+    f.checkScalar("age(timestamp '2023-12-25 12:00:00.500', timestamp '2023-12-25 12:00:00.000')",
+        "0 years 0 mons 0 days 0 hours 0 mins 0.5 secs",
+        "VARCHAR NOT NULL");
   }
 
   @Test void testJsonType() {
