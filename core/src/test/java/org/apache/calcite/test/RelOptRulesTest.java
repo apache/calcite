@@ -6455,6 +6455,17 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2274">[CALCITE-2274]
+   * Filter predicates aren't inferred while using dynamic star in subquery</a>. */
+  @Test void testTransitiveInferenceJoinUsingStar() {
+    final String sql = "SELECT * FROM sales.emp d JOIN\n"
+        + "(SELECT * FROM sales.emp WHERE deptno = 4) e\n"
+        + "ON e.deptno = d.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
+  }
+
   /** Tests propagation of a filter derived from an "IS NOT DISTINCT FROM"
    * predicate.
    *
