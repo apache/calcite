@@ -262,7 +262,7 @@ public abstract class MutableRels {
     case WINDOW: {
       final MutableWindow window = (MutableWindow) node;
       final RelNode child = fromMutable(window.getInput(), relBuilder);
-      return LogicalWindow.create(child.getTraitSet(),
+      return LogicalWindow.create(child.getTraitSet(), ImmutableList.of(),
           child, window.constants, window.rowType, window.groups);
     }
     case MATCH: {

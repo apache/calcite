@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -88,6 +90,7 @@ public abstract class CalcRelSplitter {
   //~ Instance fields --------------------------------------------------------
 
   protected final RexProgram program;
+  protected final List<RelHint> hints;
   private final RelDataTypeFactory typeFactory;
 
   private final List<RelType> relTypes;
@@ -108,6 +111,7 @@ public abstract class CalcRelSplitter {
   CalcRelSplitter(Calc calc, RelBuilder relBuilder, RelType[] relTypes) {
     this.relBuilder = relBuilder;
     this.program = calc.getProgram();
+    this.hints = calc.getHints();
     this.cluster = calc.getCluster();
     this.traits = calc.getTraitSet();
     this.typeFactory = calc.getCluster().getTypeFactory();
@@ -224,8 +228,35 @@ public abstract class CalcRelSplitter {
               projectExprOrdinals,
               conditionExprOrdinal,
               outputRowType);
+
+      // Propagate hints to each level. Since CalcRelSplitter builds a vertical stack of
+      // relational expressions (bottom-up), the relative depth of a level from the
+      // original top-level Calc determines how many '0's must be appended to the
+      // hint's inheritPath to maintain correct mapping.
+      //
+      // Example: SELECT /*+ Hint message */ SUM(v1) OVER(P1), SUM(v2) OVER(P2) FROM t
+      // split into 3 levels:
+      // LogicalProject, relativeDepth = 0, path = []
+      //   LogicalWindow (P2), relativeDepth = 1, path = [0]
+      //     LogicalWindow (P1), relativeDepth = 2, path = [0, 0]
+      final List<RelHint> levelHints;
+      final int relativeDepth = (levelCount - 1) - level;
+      if (hints.isEmpty() || relativeDepth == 0) {
+        levelHints = hints;
+      } else {
+        levelHints = new ArrayList<>(hints.size());
+        for (RelHint hint : hints) {
+          List<Integer> newPath = new ArrayList<>(hint.inheritPath.size() + relativeDepth);
+          newPath.addAll(hint.inheritPath);
+          for (int i = 0; i < relativeDepth; i++) {
+            newPath.add(0);
+          }
+          levelHints.add(hint.copy(newPath));
+        }
+      }
+
       rel =
-          relType.makeRel(cluster, traits, relBuilder, rel, program1);
+          relType.makeRel(cluster, traits, relBuilder, rel, program1, levelHints);
 
       // Sometimes a level's program merely projects its inputs. We don't
       // want these. They cause an explosion in the search space.
@@ -757,10 +788,24 @@ public abstract class CalcRelSplitter {
       return true;
     }
 
+    @Deprecated  // to be removed before 2.0
     protected RelNode makeRel(RelOptCluster cluster,
         RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
         RexProgram program) {
-      return LogicalCalc.create(input, program);
+      return makeRel(cluster, traitSet, relBuilder, input, program, ImmutableList.of());
+    }
+
+    protected RelNode makeRel(RelOptCluster cluster,
+        RelTraitSet traitSet,
+        RelBuilder relBuilder,
+        RelNode input,
+        RexProgram program,
+        List<RelHint> hints) {
+      RelNode rel = LogicalCalc.create(input, program);
+      if (!hints.isEmpty()) {
+        rel = ((Hintable) rel).withHints(hints);
+      }
+      return rel;
     }
 
     /**

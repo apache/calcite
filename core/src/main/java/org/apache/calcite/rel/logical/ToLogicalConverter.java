@@ -144,8 +144,8 @@ public class ToLogicalConverter extends RelShuttleImpl {
     if (relNode instanceof Window) {
       final Window window = (Window) relNode;
       final RelNode input = visit(window.getInput());
-      return LogicalWindow.create(input.getTraitSet(), input, window.constants,
-          window.getRowType(), window.groups);
+      return LogicalWindow.create(input.getTraitSet(), window.getHints(),
+          input, window.constants, window.getRowType(), window.groups);
     }
 
     if (relNode instanceof Calc) {

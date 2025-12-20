@@ -172,8 +172,8 @@ public class ProjectWindowTransposeRule
     }
 
     final LogicalWindow newLogicalWindow =
-        LogicalWindow.create(window.getTraitSet(), projectBelowWindow,
-            window.constants, outputBuilder.build(), groups);
+        LogicalWindow.create(window.getTraitSet(), window.getHints(),
+            projectBelowWindow, window.constants, outputBuilder.build(), groups);
 
     // Modify the top LogicalProject
     final List<RexNode> topProjExps =

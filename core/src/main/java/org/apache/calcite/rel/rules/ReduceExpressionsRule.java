@@ -625,7 +625,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       }
       if (reduced) {
         call.transformTo(LogicalWindow
-            .create(window.getTraitSet(), window.getInput(),
+            .create(window.getTraitSet(), window.getHints(), window.getInput(),
                 window.getConstants(), window.getRowType(), groups));
         call.getPlanner().prune(window);
       }
