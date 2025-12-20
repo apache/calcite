@@ -249,7 +249,8 @@
   apacheId: mbudiu
   githubId: mihaibudiu
   org: Feldera.com
-  role: PMC
+  role: PMC Chair
+  homepage: https://mihaibudiu.github.io/work/index.html
 - name: Milinda Pathirage
   apacheId: milinda
   githubId: milinda
@@ -292,7 +293,7 @@
   apacheId: rubenql
   githubId: rubenada
   org: Voltron Data
-  role: PMC Chair
+  role: PMC
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia
