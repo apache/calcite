@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rex.RexBiVisitorImpl;
@@ -156,7 +157,9 @@ public abstract class ProjectToWindowRule
               project.getRowType(),
               project.getCluster().getRexBuilder());
       // temporary LogicalCalc, never registered
-      final LogicalCalc calc = LogicalCalc.create(input, program);
+      final LogicalCalc calc =
+          new LogicalCalc(project.getCluster(), project.getTraitSet(),
+              project.getHints(), input, program);
       final CalcRelSplitter transform =
           new WindowedAggRelSplitter(calc, call.builder()) {
             @Override protected RelNode handle(RelNode rel) {
@@ -226,11 +229,11 @@ public abstract class ProjectToWindowRule
 
             @Override protected RelNode makeRel(RelOptCluster cluster,
                 RelTraitSet traitSet, RelBuilder relBuilder, RelNode input,
-                RexProgram program) {
+                RexProgram program, List<RelHint> hints) {
               assert !program.containsAggs();
               program = program.normalize(cluster.getRexBuilder(), null);
               return super.makeRel(cluster, traitSet, relBuilder, input,
-                  program);
+                  program, hints);
             }
         },
         new RelType("WinAggRelType") {
@@ -255,11 +258,11 @@ public abstract class ProjectToWindowRule
           }
 
           @Override protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
-              RelBuilder relBuilder, RelNode input, RexProgram program) {
+              RelBuilder relBuilder, RelNode input, RexProgram program, List<RelHint> hints) {
             checkArgument(program.getCondition() == null,
                 "WindowedAggregateRel cannot accept a condition");
             return LogicalWindow.create(cluster, traitSet, relBuilder, input,
-                program);
+                program, hints);
           }
         }
     };
