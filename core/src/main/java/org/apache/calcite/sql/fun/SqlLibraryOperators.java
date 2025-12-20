@@ -2786,8 +2786,17 @@ public abstract class SqlLibraryOperators {
   public static final SqlBasicFunction AGE_PG =
       SqlBasicFunction.create("AGE",
           (SqlOperatorBinding opBinding) -> {
+            RelDataType varcharType = opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+            // Check if any input parameter is null
+            boolean nullable = false;
+            for (int i = 0; i < opBinding.getOperandCount(); i++) {
+              if (opBinding.isOperandNull(i, true)) {
+                nullable = true;
+                break;
+              }
+            }
             // Return VARCHAR type since we're returning a formatted string
-            return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+            return opBinding.getTypeFactory().createTypeWithNullability(varcharType, nullable);
           },
           OperandTypes.or(
               OperandTypes.family(SqlTypeFamily.TIMESTAMP),
