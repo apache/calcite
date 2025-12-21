@@ -113,7 +113,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -225,65 +224,69 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   /**
-   * Wraps a nested join Result into a subquery with a new alias.
-   * Required for dialects like ClickHouse that don't support nested JOIN syntax.
+   * Wraps a nested join into a subquery with explicit column aliases.
    *
-   * @param input the Result from the nested join subtree
-   * @param outerAlias the alias to assign to the wrapped subquery
-   * @return a new Result with the wrapped SQL node
+   * <p>This is specifically required for dialects like ClickHouse where the
+   * identifier resolver cannot resolve columns with internal table qualifiers
+   * (e.g., 'd1.loc') when they are wrapped in a subquery alias. By forcing
+   * an explicit 'AS' projection for every column, we ensure the identifiers
+   * are flattened and visible to the outer query block.
+   *
+   * @param input     The Result of the nested join branch
+   * @param inputRel  The RelNode representing the join branch to extract row types
+   * @param outerAlias The alias to be assigned to the wrapped subquery
+   * @return A new Result containing the wrapped SQL with explicit aliases
    */
   protected Result wrapNestedJoin(Result input, RelNode inputRel, String outerAlias) {
-    // Get the original SQL node from the input Result
-    final SqlNode original = input.asSelect();
-    // Generate inner alias (different from outer)
-    String innerAlias = "t" + inputRel.getId();
-    // Wrap: original → (SELECT * FROM (original) AS newAlias)
-    SqlNode wrapped = wrapAsSelectStar(original, innerAlias);
-
-    Map<String, RelDataType> newAliases = new LinkedHashMap<>();
-
-    // Add the outer alias with the correct row type
-    newAliases.put(outerAlias, inputRel.getRowType());
-
-    return new Result(
-        wrapped,
-        input.clauses,
-        outerAlias,
-        null,
-        newAliases);
-  }
-
-  /**
-   * Wraps a subquery into a SELECT * FROM (subQuery) AS alias structure.
-   *
-   * @param subQuery the original SQL node to wrap
-   * @param alias the alias to assign to the wrapped subquery
-   * @return a SqlSelect node representing: SELECT * FROM (subQuery) AS alias
-   */
-  protected SqlNode wrapAsSelectStar(SqlNode subQuery, String alias) {
     final SqlParserPos pos = SqlParserPos.ZERO;
 
-    // Wrap subquery with alias: (subQuery) AS alias
-    SqlNode subQueryWithAlias =
-        SqlStdOperatorTable.AS.createCall(pos,
-        subQuery,
-        new SqlIdentifier(alias, pos));
+    // Extract the underlying SqlSelect from the input Result.
+    // We manipulate the Select node directly to avoid redundant nesting
+    // often introduced by Result.asSelect().
+    final SqlSelect innerSelect = (SqlSelect) input.asSelect();
+    final SqlNodeList originalSelectList = innerSelect.getSelectList();
+    final List<String> fieldNames = inputRel.getRowType().getFieldNames();
 
-    // Build SELECT * FROM (subQuery) AS alias
-    return new SqlSelect(
-        pos,
-        null,
-        SqlNodeList.of(SqlIdentifier.star(pos)),
-        subQueryWithAlias,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null);
+    final List<SqlNode> newSelectList = new ArrayList<>();
+
+    // Iterate through the fields to build explicit projections.
+    // Example: transforms 'd1.deptno' into 'd1.deptno AS deptno'.
+    for (int i = 0; i < fieldNames.size(); i++) {
+      SqlNode expr = originalSelectList.get(i);
+      String targetName = fieldNames.get(i);
+
+      // If the expression is already aliased, strip the AS to get the raw expression.
+      if (expr.getKind() == SqlKind.AS) {
+        expr = ((SqlCall) expr).operand(0);
+      }
+
+      // Force an explicit alias. This breaks the link to the internal table
+      // qualifiers (like 'd1' or 'd2') and exports the column as a clean
+      // identifier for the outer join scope.
+      newSelectList.add(
+          SqlStdOperatorTable.AS.createCall(
+              pos,
+              expr,
+              new SqlIdentifier(targetName, pos)));
+    }
+
+    // Update the select list of the inner query with flattened aliases.
+    innerSelect.setSelectList(new SqlNodeList(newSelectList, pos));
+
+    // Wrap the modified Select node with the outer alias (e.g., AS j).
+    SqlNode wrappedNode =
+        SqlStdOperatorTable.AS.createCall(pos,
+        innerSelect,
+        new SqlIdentifier(outerAlias, pos));
+
+    // Return the new Result, resetting the internal clauses to prevent
+    // the Implementor from adding additional SELECT wrappers.
+    return new Result(
+        wrappedNode,
+        Collections.emptyList(),
+        outerAlias,
+        inputRel.getRowType(),
+        ImmutableMap.of(outerAlias, inputRel.getRowType()));
   }
 
 
@@ -299,7 +302,7 @@ public class RelToSqlConverter extends SqlImplementor
     final Result leftResult = visitInput(e, 0).resetAlias();
     Result rightResult = visitInput(e, 1).resetAlias();
 
-    if (dialect.mustWrapNestedJoin(e)) {
+    if (dialect.supportWrapNestedJoin(e)) {
       String newAlias = "t" + e.getId(); // Calcite-style alias
       rightResult = wrapNestedJoin(rightResult, e.getRight(), newAlias);
     }

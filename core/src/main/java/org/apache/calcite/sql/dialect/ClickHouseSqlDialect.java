@@ -412,7 +412,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
-  @Override public boolean mustWrapNestedJoin(RelNode rel) {
+  @Override public boolean supportWrapNestedJoin(RelNode rel) {
     if (!(rel instanceof Join)) {
       return false;
     }
@@ -424,8 +424,16 @@ public class ClickHouseSqlDialect extends SqlDialect {
   }
 
   /**
-   * Recursively checks if a RelNode contains a JOIN, looking through
-   * transparent single-input operators.
+   * Checks whether the given RelNode contains a JOIN that is directly exposed
+   * at the JOIN boundary, possibly wrapped by a small number of transparent
+   * single-input operators (e.g. Project, Filter, Sort).
+   *
+   * <p>This method intentionally does NOT perform a full tree traversal.
+   * ClickHouse only requires wrapping when a JOIN appears directly as a JOIN input;
+   * JOINs deeper in the subtree do not trigger the restriction.
+   *
+   * <p>Therefore, a full RelVisitor is avoided here to prevent over-detection
+   * and unnecessary wrapping.
    */
   private static boolean containsJoinRecursive(RelNode rel) {
     if (rel instanceof Join || rel instanceof Correlate) {
