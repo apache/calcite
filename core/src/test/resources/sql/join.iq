@@ -1113,4 +1113,28 @@ WHERE "t"."EMPNO" = "t2"."EMPNO" AND "t"."EMPNO" > "t2"."EMPNO");
 
 !ok
 
+# [CALCITE-3128] Joining two tables producing only NULLs will return 0 rows
+SELECT * FROM (SELECT NULLIF(5, 5)) a , (SELECT NULLIF(5, 5)) b;
++--------+---------+
+| EXPR$0 | EXPR$00 |
++--------+---------+
+|        |         |
++--------+---------+
+(1 row)
+
+!ok
+
+SELECT * FROM (VALUES (NULLIF(5, 5)), (NULLIF(5, 5))) a, (VALUES (NULLIF(5, 5)), (NULLIF(5, 5))) b;
++---+---+
+| A | B |
++---+---+
+|   |   |
+|   |   |
+|   |   |
+|   |   |
++---+---+
+(4 rows)
+
+!ok
+
 # End join.iq
