@@ -2795,7 +2795,6 @@ public abstract class SqlLibraryOperators {
                 break;
               }
             }
-            // Return VARCHAR type since we're returning a formatted string
             return opBinding.getTypeFactory().createTypeWithNullability(varcharType, nullable);
           },
           OperandTypes.or(
