@@ -1844,7 +1844,7 @@ public class SqlDialect {
    * @param relNode Relational expression representing a JOIN input
    * @return whether an extra subquery wrapper is required for nested JOINs
    */
-  public boolean supportWrapNestedJoin(RelNode relNode) {
+  public boolean shouldWrapNestedJoin(RelNode relNode) {
     return false;
   }
 

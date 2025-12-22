@@ -412,7 +412,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
-  @Override public boolean supportWrapNestedJoin(RelNode rel) {
+  @Override public boolean shouldWrapNestedJoin(RelNode rel) {
     if (!(rel instanceof Join)) {
       return false;
     }

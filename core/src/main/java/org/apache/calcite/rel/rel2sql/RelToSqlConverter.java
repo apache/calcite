@@ -243,7 +243,7 @@ public class RelToSqlConverter extends SqlImplementor
     // Extract the underlying SqlSelect from the input Result.
     // We manipulate the Select node directly to avoid redundant nesting
     // often introduced by Result.asSelect().
-    final SqlSelect innerSelect = (SqlSelect) input.asSelect();
+    final SqlSelect innerSelect = input.asSelect();
     final SqlNodeList originalSelectList = innerSelect.getSelectList();
     final List<String> fieldNames = inputRel.getRowType().getFieldNames();
 
@@ -302,8 +302,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Result leftResult = visitInput(e, 0).resetAlias();
     Result rightResult = visitInput(e, 1).resetAlias();
 
-    if (dialect.supportWrapNestedJoin(e)) {
-      String newAlias = "t" + e.getId(); // Calcite-style alias
+    if (dialect.shouldWrapNestedJoin(e)) {
+      String newAlias = "t" + e.getId(); // alias
       rightResult = wrapNestedJoin(rightResult, e.getRight(), newAlias);
     }
 
