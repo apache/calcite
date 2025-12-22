@@ -499,7 +499,7 @@ class BabelTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
-   * There is no age function that supports pgSQL</a>. */
+   * There is no age function that supports pgSQL.</a>. */
   @Test void testAgeFunction() {
     checkSqlResult("postgresql",
         "SELECT AGE(timestamp '2023-12-25', timestamp '2020-01-01') FROM (VALUES (1)) t",
