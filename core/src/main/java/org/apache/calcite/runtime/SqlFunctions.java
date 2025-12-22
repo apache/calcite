@@ -2242,7 +2242,11 @@ public class SqlFunctions {
     return Functions.compareLists(b0, b1) < 0;
   }
 
-  public static boolean lt(Object[] b0, Object[] b1) {
+  public static boolean lt(Map<?, ?> b0, Map<?, ?> b1) {
+    return Functions.compareMaps(b0, b1) < 0;
+  }
+
+  public static boolean lt(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
     return Functions.compareObjectArrays(b0, b1) < 0;
   }
 
@@ -2292,7 +2296,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>&le;</code> operator applied to Object[] values. */
-  public static boolean le(Object[] b0, Object[] b1) {
+  public static boolean le(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
     return Functions.compareObjectArrays(b0, b1) <= 0;
   }
 
@@ -2375,7 +2379,11 @@ public class SqlFunctions {
     return Functions.compareLists(b0, b1) > 0;
   }
 
-  public static boolean gt(Object[] b0, Object[] b1) {
+  public static boolean gt(Map<?, ?> b0, Map<?, ?> b1) {
+    return Functions.compareMaps(b0, b1) > 0;
+  }
+
+  public static boolean gt(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
     return Functions.compareObjectArrays(b0, b1) > 0;
   }
 
@@ -2426,7 +2434,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>&ge;</code> operator applied to Object[] values. */
-  public static boolean ge(Object[] b0, Object[] b1) {
+  public static boolean ge(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
     return Functions.compareObjectArrays(b0, b1) >= 0;
   }
 
@@ -4641,8 +4649,7 @@ public class SqlFunctions {
     return b0 > b1 ? b1 : b0;
   }
 
-  public static @Nullable <T extends Comparable<T>> List<T> lesser(
-      @Nullable List<T> b0, @Nullable List<T> b1) {
+  public static @Nullable List lesser(@Nullable List b0, @Nullable List b1) {
     if (b0 == null) {
       return b1;
     }
@@ -4652,8 +4659,47 @@ public class SqlFunctions {
     return lt(b0, b1) ? b0 : b1;
   }
 
-  public static @Nullable <T extends Comparable<T>> List<T> greater(
-      @Nullable List<T> b0, @Nullable List<T> b1) {
+  public static @Nullable Map lesser(@Nullable Map b0, @Nullable Map b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return lt(b0, b1) ? b0 : b1;
+  }
+
+  public static @Nullable Object[] lesser(@Nullable Object[] b0, @Nullable Object[] b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return lt(b0, b1) ? b0 : b1;
+  }
+
+  public static @Nullable List greater(@Nullable List b0, @Nullable List b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return gt(b0, b1) ? b0 : b1;
+  }
+
+  public static @Nullable Map greater(@Nullable Map b0, @Nullable Map b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return gt(b0, b1) ? b0 : b1;
+  }
+
+  public static @Nullable Object[] greater(@Nullable Object[] b0, @Nullable Object[] b1) {
     if (b0 == null) {
       return b1;
     }
