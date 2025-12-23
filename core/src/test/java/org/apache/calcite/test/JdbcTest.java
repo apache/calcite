@@ -975,6 +975,7 @@ public class JdbcTest {
     assertTrue(names.contains("SCHEMA"));
     assertTrue(names.contains("TIME_ZONE"));
     assertTrue(names.contains("MATERIALIZATIONS_ENABLED"));
+    assertTrue(names.contains("RULE_VISUALIZER_DIR"));
   }
 
   /**

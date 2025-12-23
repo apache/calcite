@@ -80,6 +80,8 @@ public class RuleMatchVisualizer implements RelOptListener {
   private static final String INITIAL = "INITIAL";
   private static final String FINAL = "FINAL";
   public static final String DEFAULT_SET = "default";
+  public static final String HTML_FILE_PREFIX = "planner-viz";
+  public static final String DATA_FILE_PREFIX = "planner-viz-data";
 
   // default HTML template can be edited at
   // core/src/main/resources/org/apache/calcite/plan/visualizer/viz-template.html
@@ -393,10 +395,10 @@ public class RuleMatchVisualizer implements RelOptListener {
           requireNonNull(cl.getResourceAsStream(templatePath));
       String htmlTemplate = IOUtils.toString(resourceAsStream, UTF_8);
 
-      String htmlFileName = "planner-viz" + outputSuffix + ".html";
-      String dataFileName = "planner-viz-data" + outputSuffix + ".js";
+      String htmlFileName = HTML_FILE_PREFIX + outputSuffix + ".html";
+      String dataFileName = DATA_FILE_PREFIX + outputSuffix + ".js";
 
-      String replaceString = "src=\"planner-viz-data.js\"";
+      String replaceString = "src=\"" + DATA_FILE_PREFIX + ".js\"";
       int replaceIndex = htmlTemplate.indexOf(replaceString);
       String htmlContent = htmlTemplate.substring(0, replaceIndex)
           + "src=\"" + dataFileName + "\""
