@@ -29,6 +29,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -89,6 +90,10 @@ public class RelHomogeneousShuttle extends RelShuttleImpl {
 
   @Override public RelNode visit(LogicalSort sort) {
     return visit((RelNode) sort);
+  }
+
+  @Override public RelNode visit(LogicalSnapshot snapshot) {
+    return visit((RelNode) snapshot);
   }
 
   @Override public RelNode visit(LogicalExchange exchange) {
