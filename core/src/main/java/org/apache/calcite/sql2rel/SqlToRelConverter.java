@@ -3966,6 +3966,9 @@ public class SqlToRelConverter {
   }
 
   protected RelNode decorrelateQuery(RelNode rootRel) {
+    if (config.isTopDownGeneralDecorrelationEnabled()) {
+      return TopDownGeneralDecorrelator.decorrelateQuery(rootRel, relBuilder);
+    }
     return RelDecorrelator.decorrelateQuery(rootRel, relBuilder);
   }
 
@@ -6495,6 +6498,14 @@ public class SqlToRelConverter {
 
     /** Sets {@link #isDecorrelationEnabled()}. */
     Config withDecorrelationEnabled(boolean decorrelationEnabled);
+
+    /** Returns whether to use the top-down general decorrelator. */
+    @Value.Default default boolean isTopDownGeneralDecorrelationEnabled() {
+      return false;
+    }
+
+    /** Sets {@link #isTopDownGeneralDecorrelationEnabled()}. */
+    Config withTopDownGeneralDecorrelationEnabled(boolean topDownGeneralDecorrelationEnabled);
 
     /** Returns the {@code trimUnusedFields} option. Controls whether to trim
      * unused fields as part of the conversion process. */

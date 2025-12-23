@@ -215,6 +215,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Override public boolean topDownGeneralDecorrelationEnabled() {
+    return CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED.wrap(properties)
+        .getBoolean();
+  }
+
   @Override public <T> @PolyNull T metaTableFactory(
       Class<T> metaTableFactoryClass,
       @PolyNull T defaultMetaTableFactory) {

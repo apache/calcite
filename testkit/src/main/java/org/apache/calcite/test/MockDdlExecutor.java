@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -207,6 +208,7 @@ public class MockDdlExecutor extends DdlExecutorImpl {
             requireNonNull(
                 Schemas.subSchema(context.getRootSchema(),
                     context.getDefaultSchemaPath())).plus())
+        .context(Contexts.of(context.config()))
         .build();
     final Planner planner = Frameworks.getPlanner(config);
     try {

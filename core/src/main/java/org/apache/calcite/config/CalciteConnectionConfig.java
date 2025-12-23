@@ -110,6 +110,9 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean lenientOperatorLookup();
   /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
   boolean topDownOpt();
+  /** Returns the value of
+   * {@link CalciteConnectionProperty#TOPDOWN_GENERAL_DECORRELATION_ENABLED}. */
+  boolean topDownGeneralDecorrelationEnabled();
 
   /** Returns the value of {@link CalciteConnectionProperty#META_TABLE_FACTORY},
    * or a default meta table factory if not set. If
