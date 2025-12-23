@@ -19,11 +19,14 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
+import org.apache.calcite.sql.fun.SqlCallFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
@@ -31,17 +34,33 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.
  *
  * <p>And {@code FOREIGN KEY}, when we support it.
  */
 public class SqlKeyConstraint extends SqlCall {
-  private static final SqlSpecialOperator UNIQUE =
-      new SqlSpecialOperator("UNIQUE", SqlKind.UNIQUE);
+  private static final SqlCallFactory CALL_FACTORY =
+      (operator, functionQualifier, pos, operands) ->
+          new SqlKeyConstraint(
+              pos,
+              (SqlIdentifier) operands[0],
+              (SqlNodeList) requireNonNull(operands[1]));
+
+  private static final SqlOperator UNIQUE =
+      SqlBasicOperator.create("UNIQUE", SqlKind.UNIQUE)
+          .withCallFactory(CALL_FACTORY);
 
   protected static final SqlSpecialOperator PRIMARY =
-      new SqlSpecialOperator("PRIMARY KEY", SqlKind.PRIMARY_KEY);
+      new SqlSpecialOperator("PRIMARY KEY", SqlKind.PRIMARY_KEY) {
+        @Override public SqlCall createCall(final @Nullable SqlLiteral functionQualifier,
+            final SqlParserPos pos,
+            final @Nullable SqlNode... operands) {
+          return CALL_FACTORY.create(this, functionQualifier, pos, operands);
+        }
+      };
 
   private final @Nullable SqlIdentifier name;
   private final SqlNodeList columnList;

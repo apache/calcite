@@ -23,8 +23,8 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -44,8 +44,16 @@ public class SqlCreateFunction extends SqlCreate {
   private final SqlNode className;
   private final SqlNodeList usingList;
 
-  private static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("CREATE FUNCTION", SqlKind.CREATE_FUNCTION);
+  private static final SqlOperator OPERATOR =
+      SqlBasicOperator.create("CREATE FUNCTION", SqlKind.CREATE_FUNCTION)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlCreateFunction(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  ((SqlLiteral) requireNonNull(operands[1])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[2]),
+                  requireNonNull(operands[3]),
+                  (SqlNodeList) requireNonNull(operands[4])));
 
   /** Creates a SqlCreateFunction. */
   public SqlCreateFunction(SqlParserPos pos, boolean replace,
@@ -91,6 +99,7 @@ public class SqlCreateFunction extends SqlCreate {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return Arrays.asList(name, className, usingList);
+    return Arrays.asList(SqlLiteral.createBoolean(getReplace(), pos),
+        SqlLiteral.createBoolean(ifNotExists, pos), name, className, usingList);
   }
 }

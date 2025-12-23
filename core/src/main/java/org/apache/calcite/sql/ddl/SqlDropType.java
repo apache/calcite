@@ -18,16 +18,24 @@ package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code DROP TYPE} statement.
  */
 public class SqlDropType extends SqlDropObject {
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("DROP TYPE", SqlKind.DROP_TYPE);
+      SqlBasicOperator.create("DROP TYPE", SqlKind.DROP_TYPE)
+          .withCallFactory((operator, functionQualifier, pos, operands) ->
+              new SqlDropType(
+                  pos,
+                  ((SqlLiteral) requireNonNull(operands[0])).booleanValue(),
+                  (SqlIdentifier) requireNonNull(operands[1])));
 
   SqlDropType(SqlParserPos pos, boolean ifExists, SqlIdentifier name) {
     super(OPERATOR, pos, ifExists, name);

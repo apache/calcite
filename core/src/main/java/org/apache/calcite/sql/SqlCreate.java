@@ -51,5 +51,4 @@ public abstract class SqlCreate extends SqlDdl {
   public void setReplace(boolean replace) {
     this.replace = replace;
   }
-
 }
