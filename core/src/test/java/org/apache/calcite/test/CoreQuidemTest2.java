@@ -62,12 +62,7 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
         .with(CalciteConnectionProperty.TOPDOWN_GENERAL_DECORRELATION_ENABLED, true);
   }
 
-  @Override protected void checkRun(String path) throws Exception {
-    System.setProperty("calcite.test.disable_new_decorrelator", "false");
-    try {
-      super.checkRun(path);
-    } finally {
-      System.clearProperty("calcite.test.disable_new_decorrelator");
-    }
+  @Override protected boolean isNewDecorrelatorDisabled() {
+    return false;
   }
 }

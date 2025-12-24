@@ -144,12 +144,16 @@ public abstract class QuidemTest {
   private static final Pattern PATTERN = Pattern.compile("\\.iq$");
 
   // Saved original planner rules
-  private static @Nullable List<RelOptRule> originalRules;
+  private @Nullable List<RelOptRule> originalRules;
 
-  private static @Nullable Object getEnv(String varName) {
+  protected boolean isNewDecorrelatorDisabled() {
+    return true;
+  }
+
+  private @Nullable Object getEnv(String varName) {
     switch (varName) {
     case "disable_new_decorrelator":
-      return Boolean.getBoolean("calcite.test.disable_new_decorrelator");
+      return isNewDecorrelatorDisabled();
     case "jdk18":
       return System.getProperty("java.version").startsWith("1.8");
     case "fixed":
@@ -201,7 +205,7 @@ public abstract class QuidemTest {
     final List<String> paths = new ArrayList<>();
     final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
-      paths.add(f.getAbsolutePath().substring(commonPrefixLength));
+      paths.add(n2u(f.getAbsolutePath().substring(commonPrefixLength)));
     }
     return paths;
   }
@@ -222,7 +226,7 @@ public abstract class QuidemTest {
       // outFile = "/home/fred/calcite/core/build/quidem/test/sql/agg.iq"
       final URL inUrl = QuidemTest.class.getResource("/" + n2u(path));
       inFile = Sources.of(requireNonNull(inUrl, "inUrl")).file();
-      outFile = replaceDir(inFile, "resources", "quidem");
+      outFile = replaceDir(inFile, "resources", "quidem/" + getClass().getSimpleName());
     }
     Util.discard(outFile.getParentFile().mkdirs());
     try (Reader reader = Util.reader(inFile);
@@ -256,7 +260,7 @@ public abstract class QuidemTest {
             // - Reset defaults: "original"
             if (propertyName.equals("planner-rules")) {
               if (value.equals("original")) {
-                closer.add(Hook.PLANNER.addThread(QuidemTest::resetPlanner));
+                closer.add(Hook.PLANNER.addThread(this::resetPlanner));
               } else {
                 closer.add(
                     Hook.PLANNER.addThread((Consumer<RelOptPlanner>)
@@ -304,7 +308,7 @@ public abstract class QuidemTest {
               }
             }
           })
-          .withEnv(QuidemTest::getEnv)
+          .withEnv(this::getEnv)
           .build();
       new Quidem(config).execute();
     }
@@ -327,7 +331,7 @@ public abstract class QuidemTest {
     rulesAdd.forEach(planner::addRule);
   }
 
-  private static void resetPlanner(RelOptPlanner planner) {
+  private void resetPlanner(RelOptPlanner planner) {
     if (originalRules != null) {
       planner.getRules().forEach(planner::removeRule);
       originalRules.forEach(planner::addRule);

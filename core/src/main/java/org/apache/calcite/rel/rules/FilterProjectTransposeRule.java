@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
@@ -178,11 +177,8 @@ public class FilterProjectTransposeRule
           .replaceIfs(RelCollationTraitDef.INSTANCE,
               () -> input.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE))
           .replaceIfs(RelDistributionTraitDef.INSTANCE,
-              () -> {
-                RelDistribution distribution =
-                    input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE);
-                return distribution == null ? null : Collections.singletonList(distribution);
-              });
+              () -> Collections.singletonList(
+                  input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE)));
       newCondition = RexUtil.removeNullabilityCast(relBuilder.getTypeFactory(), newCondition);
       newFilterRel = filter.copy(traitSet, input, newCondition);
     } else {
