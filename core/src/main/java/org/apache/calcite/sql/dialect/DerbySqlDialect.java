@@ -19,8 +19,7 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Derby database.
@@ -40,9 +39,7 @@ public class DerbySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case CHAR_LENGTH:
-      SqlCall lengthCall = SqlLibraryOperators.LENGTH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      RelToSqlConverterUtil.convertCharLengthToLength(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

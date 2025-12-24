@@ -37,7 +37,6 @@ import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -252,9 +251,7 @@ public class PrestoSqlDialect extends SqlDialect {
         }
         break;
       case CHAR_LENGTH:
-        SqlCall lengthCall = SqlLibraryOperators.LENGTH
-            .createCall(SqlParserPos.ZERO, call.getOperandList());
-        super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+        RelToSqlConverterUtil.convertCharLengthToLength(writer, call, leftPrec, rightPrec);
         break;
       case TRIM:
         RelToSqlConverterUtil.unparseTrimLR(writer, call, leftPrec, rightPrec);
