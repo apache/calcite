@@ -226,7 +226,8 @@ public abstract class QuidemTest {
       // outFile = "/home/fred/calcite/core/build/quidem/test/sql/agg.iq"
       final URL inUrl = QuidemTest.class.getResource("/" + n2u(path));
       inFile = Sources.of(requireNonNull(inUrl, "inUrl")).file();
-      outFile = replaceDir(inFile, "resources", "quidem/" + getClass().getSimpleName());
+      outFile = replaceDir(inFile, "resources", "quidem/"
+          + getClass().getSimpleName());
     }
     Util.discard(outFile.getParentFile().mkdirs());
     try (Reader reader = Util.reader(inFile);
