@@ -445,7 +445,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
     if (rel instanceof Project
         || rel instanceof Filter
         || rel instanceof Sort
-        || rel instanceof Aggregate) {  // Add Aggregate here
+        || rel instanceof Aggregate) {
       return containsJoinRecursive(rel.getInput(0));
     }
 
