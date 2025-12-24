@@ -121,6 +121,7 @@ Missing conversion is LogicalAggregate[convention: NONE -> ENUMERABLE]
 !set hep-rules "
 +CoreRules.PROJECT_FILTER_TRANSPOSE"
 
+!if (disable_new_decorrelator) {
 SELECT e1.mgr, e1.comm
 FROM emp e1
 WHERE e1.mgr > 12
@@ -149,6 +150,7 @@ EnumerableCalc(expr#0..3=[{inputs}], MGR=[$t1], COMM=[$t2])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t3)], expr#12=[AND($t10, $t11)], MGR=[$t3], $condition=[$t12])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 !set hep-rules original
 
 # End hep.iq

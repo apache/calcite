@@ -154,6 +154,9 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * If true (the default), Calcite de-correlates the plan. */
   FORCE_DECORRELATE("forceDecorrelate", Type.BOOLEAN, true, false),
 
+  TOPDOWN_GENERAL_DECORRELATION_ENABLED("topDownGeneralDecorrelationEnabled",
+      Type.BOOLEAN, false, false),
+
   /** Type system. The name of a class that implements
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem} and has a public
    * default constructor or an {@code INSTANCE} constant. */

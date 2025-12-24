@@ -144,10 +144,16 @@ public abstract class QuidemTest {
   private static final Pattern PATTERN = Pattern.compile("\\.iq$");
 
   // Saved original planner rules
-  private static @Nullable List<RelOptRule> originalRules;
+  private @Nullable List<RelOptRule> originalRules;
 
-  private static @Nullable Object getEnv(String varName) {
+  protected boolean isNewDecorrelatorDisabled() {
+    return true;
+  }
+
+  private @Nullable Object getEnv(String varName) {
     switch (varName) {
+    case "disable_new_decorrelator":
+      return isNewDecorrelatorDisabled();
     case "jdk18":
       return System.getProperty("java.version").startsWith("1.8");
     case "fixed":
@@ -199,7 +205,7 @@ public abstract class QuidemTest {
     final List<String> paths = new ArrayList<>();
     final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
     for (File f : Util.first(dir.listFiles(filter), new File[0])) {
-      paths.add(f.getAbsolutePath().substring(commonPrefixLength));
+      paths.add(n2u(f.getAbsolutePath().substring(commonPrefixLength)));
     }
     return paths;
   }
@@ -220,7 +226,8 @@ public abstract class QuidemTest {
       // outFile = "/home/fred/calcite/core/build/quidem/test/sql/agg.iq"
       final URL inUrl = QuidemTest.class.getResource("/" + n2u(path));
       inFile = Sources.of(requireNonNull(inUrl, "inUrl")).file();
-      outFile = replaceDir(inFile, "resources", "quidem");
+      outFile = replaceDir(inFile, "resources", "quidem/"
+          + getClass().getSimpleName());
     }
     Util.discard(outFile.getParentFile().mkdirs());
     try (Reader reader = Util.reader(inFile);
@@ -254,7 +261,7 @@ public abstract class QuidemTest {
             // - Reset defaults: "original"
             if (propertyName.equals("planner-rules")) {
               if (value.equals("original")) {
-                closer.add(Hook.PLANNER.addThread(QuidemTest::resetPlanner));
+                closer.add(Hook.PLANNER.addThread(this::resetPlanner));
               } else {
                 closer.add(
                     Hook.PLANNER.addThread((Consumer<RelOptPlanner>)
@@ -302,7 +309,7 @@ public abstract class QuidemTest {
               }
             }
           })
-          .withEnv(QuidemTest::getEnv)
+          .withEnv(this::getEnv)
           .build();
       new Quidem(config).execute();
     }
@@ -325,7 +332,7 @@ public abstract class QuidemTest {
     rulesAdd.forEach(planner::addRule);
   }
 
-  private static void resetPlanner(RelOptPlanner planner) {
+  private void resetPlanner(RelOptPlanner planner) {
     if (originalRules != null) {
       planner.getRules().forEach(planner::removeRule);
       originalRules.forEach(planner::addRule);
@@ -445,6 +452,11 @@ public abstract class QuidemTest {
             n2u('/' + replacement + '/')));
   }
 
+  /** Allows subclasses to customize the connection. */
+  protected CalciteAssert.AssertThat customize(CalciteAssert.AssertThat assertThat) {
+    return assertThat;
+  }
+
   /** Creates a command handler. */
   protected CommandHandler createCommandHandler() {
     return Quidem.EMPTY_COMMAND_HANDLER;
@@ -489,7 +501,7 @@ public abstract class QuidemTest {
   protected abstract Collection<String> getPath();
 
   /** Quidem connection factory for Calcite's built-in test schemas. */
-  protected static class QuidemConnectionFactory
+  protected class QuidemConnectionFactory
       implements Quidem.ConnectionFactory {
     public Connection connect(String name) throws Exception {
       return connect(name, false);
@@ -511,89 +523,89 @@ public abstract class QuidemTest {
       }
       switch (name) {
       case "hr":
-        return CalciteAssert.hr()
+        return customize(CalciteAssert.hr())
             .connect();
       case "aux":
-        return CalciteAssert.hr()
-            .with(CalciteAssert.Config.AUX)
+        return customize(CalciteAssert.hr()
+            .with(CalciteAssert.Config.AUX))
             .connect();
       case "foodmart":
-        return CalciteAssert.that()
-            .with(CalciteAssert.Config.FOODMART_CLONE)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.Config.FOODMART_CLONE))
             .connect();
       case "geo":
-        return CalciteAssert.that()
-            .with(CalciteAssert.Config.GEO)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.Config.GEO))
             .connect();
       case "scott":
-        return CalciteAssert.that()
-            .with(CalciteAssert.Config.SCOTT)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.Config.SCOTT))
             .connect();
       case "jdbc_scott":
-        return CalciteAssert.that()
-            .with(CalciteAssert.Config.JDBC_SCOTT)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.Config.JDBC_SCOTT))
             .connect();
       case "steelwheels":
-        return CalciteAssert.that()
-            .with(CalciteAssert.SchemaSpec.STEELWHEELS)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.STEELWHEELS))
             .connect();
       case "jdbc_steelwheels":
-        return CalciteAssert.that()
-            .with(CalciteAssert.SchemaSpec.JDBC_STEELWHEELS)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.JDBC_STEELWHEELS))
             .connect();
       case "post":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteAssert.Config.REGULAR)
-            .with(CalciteAssert.SchemaSpec.POST)
+            .with(CalciteAssert.SchemaSpec.POST))
             .connect();
       case "post-postgresql":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "standard,postgresql")
             .with(CalciteAssert.Config.REGULAR)
-            .with(CalciteAssert.SchemaSpec.POST)
+            .with(CalciteAssert.SchemaSpec.POST))
             .connect();
       case "post-big-query":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "standard,bigquery")
             .with(CalciteAssert.Config.REGULAR)
-            .with(CalciteAssert.SchemaSpec.POST)
+            .with(CalciteAssert.SchemaSpec.POST))
             .connect();
       case "mysqlfunc":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "mysql")
             .with(CalciteAssert.Config.REGULAR)
-            .with(CalciteAssert.SchemaSpec.POST)
+            .with(CalciteAssert.SchemaSpec.POST))
             .connect();
       case "sparkfunc":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "spark")
             .with(CalciteAssert.Config.REGULAR)
-            .with(CalciteAssert.SchemaSpec.POST)
+            .with(CalciteAssert.SchemaSpec.POST))
             .connect();
       case "oraclefunc":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "oracle")
-            .with(CalciteAssert.Config.REGULAR)
+            .with(CalciteAssert.Config.REGULAR))
             .connect();
       case "mssqlfunc":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "mssql")
-            .with(CalciteAssert.Config.REGULAR)
+            .with(CalciteAssert.Config.REGULAR))
             .connect();
       case "catchall":
-        return CalciteAssert.that()
+        return customize(CalciteAssert.that()
             .with(CalciteConnectionProperty.TIME_ZONE, "UTC")
             .withSchema("s",
                 new ReflectiveSchemaWithoutRowCount(
-                    new CatchallSchema()))
+                    new CatchallSchema())))
             .connect();
       case "orinoco":
-        return CalciteAssert.that()
-            .with(CalciteAssert.SchemaSpec.ORINOCO)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.ORINOCO))
             .connect();
       case "seq":
-        final Connection connection = CalciteAssert.that()
-            .withSchema("s", new AbstractSchema())
+        final Connection connection = customize(CalciteAssert.that()
+            .withSchema("s", new AbstractSchema()))
             .connect();
         connection.unwrap(CalciteConnection.class).getRootSchema()
             .subSchemas().get("s")
@@ -611,8 +623,8 @@ public abstract class QuidemTest {
                 });
         return connection;
       case "bookstore":
-        return CalciteAssert.that()
-            .with(CalciteAssert.SchemaSpec.BOOKSTORE)
+        return customize(CalciteAssert.that()
+            .with(CalciteAssert.SchemaSpec.BOOKSTORE))
             .connect();
       default:
         throw new RuntimeException("unknown connection '" + name + "'");

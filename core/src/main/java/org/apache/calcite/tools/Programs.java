@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.TopDownGeneralDecorrelator;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -425,6 +426,9 @@ public class Programs {
       if (config.forceDecorrelate()) {
         final RelBuilder relBuilder =
             RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+        if (config.topDownGeneralDecorrelationEnabled()) {
+          return TopDownGeneralDecorrelator.decorrelateQuery(rel, relBuilder);
+        }
         return RelDecorrelator.decorrelateQuery(rel, relBuilder);
       }
       return rel;

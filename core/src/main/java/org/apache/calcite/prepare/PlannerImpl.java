@@ -51,6 +51,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.TopDownGeneralDecorrelator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
@@ -263,7 +264,9 @@ public class PlannerImpl implements Planner, ViewExpander {
         RelOptCluster.create(requireNonNull(planner, "planner"),
             rexBuilder);
     final SqlToRelConverter.Config config =
-        sqlToRelConverterConfig.withTrimUnusedFields(false);
+        sqlToRelConverterConfig.withTrimUnusedFields(false)
+            .withTopDownGeneralDecorrelationEnabled(
+                connectionConfig.topDownGeneralDecorrelationEnabled());
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(this, validator,
             createCatalogReader(), cluster, convertletTable, config);
@@ -272,8 +275,9 @@ public class PlannerImpl implements Planner, ViewExpander {
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
     final RelBuilder relBuilder =
         config.getRelBuilderFactory().create(cluster, null);
-    root =
-        root.withRel(RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
+    root = config.isTopDownGeneralDecorrelationEnabled()
+        ? root.withRel(TopDownGeneralDecorrelator.decorrelateQuery(root.rel, relBuilder))
+        : root.withRel(RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
     state = State.STATE_5_CONVERTED;
     return root;
   }
@@ -315,19 +319,21 @@ public class PlannerImpl implements Planner, ViewExpander {
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
     final SqlToRelConverter.Config config =
-        sqlToRelConverterConfig.withTrimUnusedFields(false);
+        sqlToRelConverterConfig.withTrimUnusedFields(false)
+            .withTopDownGeneralDecorrelationEnabled(
+                connectionConfig.topDownGeneralDecorrelationEnabled());
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(this, validator,
             catalogReader, cluster, convertletTable, config);
 
-    final RelRoot root =
+    RelRoot root =
         sqlToRelConverter.convertQuery(sqlNode, true, false);
-    final RelRoot root2 =
-        root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
+    root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
     final RelBuilder relBuilder =
         config.getRelBuilderFactory().create(cluster, null);
-    return root2.withRel(
-        RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
+    return config.isTopDownGeneralDecorrelationEnabled()
+        ? root.withRel(TopDownGeneralDecorrelator.decorrelateQuery(root.rel, relBuilder))
+        : root.withRel(RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
   }
 
   // CalciteCatalogReader is stateless; no need to store one
