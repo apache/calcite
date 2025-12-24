@@ -418,35 +418,41 @@ public class ClickHouseSqlDialect extends SqlDialect {
     }
     Join join = (Join) rel;
 
-    // ClickHouse primarily requires wrapping the right side of a JOIN
-    // when it contains a nested JOIN
-    return containsJoinRecursive(join.getRight());
+    // ClickHouse requires wrapping the right-side input if it's a JOIN
+    // to ensure that internal table qualifiers are flattened into explicit aliases.
+    // This solves the Code 47 UNKNOWN_IDENTIFIER error.
+    RelNode right = join.getRight();
+
+    // If the right side is a Join or a Project containing a Join, it needs aliasing protection
+    return right instanceof Join || containsJoinRecursive(right);
   }
 
   /**
    * Checks whether the given RelNode contains a JOIN that is directly exposed
-   * at the JOIN boundary, possibly wrapped by a small number of transparent
-   * single-input operators (e.g. Project, Filter, Sort).
+   * to the outer scope, which could lead to "Unknown Identifier" errors in ClickHouse.
    *
-   * <p>This method intentionally does NOT perform a full tree traversal.
-   * ClickHouse only requires wrapping when a JOIN appears directly as a JOIN input;
-   * JOINs deeper in the subtree do not trigger the restriction.
+   * <p>ClickHouse (v25.x+) has strict scoping rules: when a JOIN appears on the
+   * right side of another JOIN, internal table qualifiers (e.g., 'd2.loc') are
+   * stripped and become invisible to the outer query unless they are explicitly
+   * aliased within a subquery.
    *
-   * <p>Therefore, a full RelVisitor is avoided here to prevent over-detection
-   * and unnecessary wrapping.
+   * <p>We only check for JOINs wrapped by transparent single-input operators
+   * (Project, Filter, Sort) because these operators are typically collapsed
+   * into the same SELECT block, exposing the problematic JOIN structure to
+   * the outer boundary.
    */
   private static boolean containsJoinRecursive(RelNode rel) {
     if (rel instanceof Join || rel instanceof Correlate) {
       return true;
     }
 
-    // Look through transparent single-input operators
-    // These don't create subquery boundaries in the SQL
+    // Look through transparent single-input operators.
+    // We exclude Aggregate here because it naturally triggers a subquery
+    // boundary in RelToSqlConverter, which already provides the necessary isolation.
     if (rel instanceof Project
         || rel instanceof Filter
-        || rel instanceof Sort
-        || rel instanceof Aggregate) {
-      return containsJoinRecursive(rel.getInput(0));
+        || rel instanceof Sort) {
+      return rel.getInputs().size() == 1 && containsJoinRecursive(rel.getInput(0));
     }
 
     return false;
