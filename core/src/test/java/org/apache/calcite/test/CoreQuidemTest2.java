@@ -41,6 +41,7 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
 
   @Override protected Collection<String> data() {
     final List<String> paths = new ArrayList<>(super.data());
+    paths.remove("sql/agg.iq");
     paths.remove("sql/conditions.iq");
     paths.remove("sql/planner.iq");
     paths.remove("sql/measure.iq");
