@@ -2783,7 +2783,7 @@ public abstract class SqlLibraryOperators {
    * @see <a href="https://www.postgresql.org/docs/current/functions-datetime.html">PostgreSQL AGE</a>
    */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
-  public static final SqlBasicFunction AGE_PG =
+  public static final SqlBasicFunction AGE =
       SqlBasicFunction.create("AGE",
           (SqlOperatorBinding opBinding) -> {
             RelDataType varcharType = opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
