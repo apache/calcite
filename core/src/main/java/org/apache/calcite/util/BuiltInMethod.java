@@ -981,8 +981,7 @@ public enum BuiltInMethod {
   FUNCTIONAL_DEPENDENCY_DETERMINANTS(FunctionalDependency.class, "determinants",
       ImmutableBitSet.class),
   FUNCTIONAL_DEPENDENCY_GET_FDS(FunctionalDependency.class, "getFDs"),
-  AGE(SqlFunctions.class, "age", long.class, long.class),
-  AGE_ONE_PARAM(SqlFunctions.class, "age", long.class);
+  AGE(SqlFunctions.class, "age", long[].class);
 
   @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;

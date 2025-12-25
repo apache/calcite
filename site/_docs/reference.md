@@ -3075,8 +3075,7 @@ In the following:
 | b | TO_CODE_POINTS(string)                         | Converts *string* to an array of integers that represent code points or extended ASCII character values
 | o p r h | TO_DATE(string, format)                    | Converts *string* to a date using the format *format*
 | o p r | TO_TIMESTAMP(string, format)               | Converts *string* to a timestamp using the format *format*
-| p | AGE(timestamp) | Returns the difference between the current timestamp and the specified timestamp
-| p | AGE(timestamp1, timestamp2) | Returns the difference between timestamp1 and timestamp2
+| p | AGE(timestamp1 [, timestamp2 ])                 | Returns the difference between timestamps. With one argument, returns the difference between the current timestamp and the specified timestamp. With two arguments, returns the difference between timestamp1 and timestamp2
 | b o p r s | TRANSLATE(expr, fromString, toString)  | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, integer2 ])                  | Truncates *numeric1* to optionally *integer2* (if not specified 0) places right to the decimal point
 | q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails
