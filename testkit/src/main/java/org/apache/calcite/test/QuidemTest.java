@@ -39,6 +39,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -245,6 +246,17 @@ public abstract class QuidemTest {
             if (propertyName.equals("insubquerythreshold")) {
               int thresholdValue = ((BigDecimal) value).intValue();
               closer.add(Prepare.THREAD_INSUBQUERY_THRESHOLD.push(thresholdValue));
+            }
+            if (propertyName.equals("trimfields")) {
+              final boolean b = value instanceof Boolean
+                  && (Boolean) value;
+              closer.add(
+                  Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.addThread(
+                  (Consumer<Holder<SqlToRelConverter.Config>>) configHolder ->
+                      configHolder.set(configHolder.get().withTrimUnusedFields(b))));
+              closer.add(
+                  Hook.PROGRAM.addThread((Consumer<Holder<Program>>)
+                      holder -> holder.set(Programs.standard(b))));
             }
             // Configures query planner rules via "!set planner-rules" command.
             // The value can be set as follows:
