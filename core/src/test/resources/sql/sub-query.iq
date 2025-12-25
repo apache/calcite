@@ -6798,6 +6798,367 @@ FROM t0;
 
 !ok
 
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE
+  E1.SAL > (SELECT D1.DEPTNO FROM
+      DEPT D1 JOIN EMP E2
+      ON E1.DEPTNO = E2.DEPTNO);
+more than one value in agg SINGLE_VALUE
+!error
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE
+  E1.SAL > (SELECT D1.DEPTNO FROM
+      DEPT D1 LEFT JOIN EMP E2
+      ON E1.DEPTNO = E2.DEPTNO);
+more than one value in agg SINGLE_VALUE
+!error
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT
+  E1.*
+FROM
+  EMP E1
+WHERE
+  E1.EMPNO = (
+    SELECT D1.DEPTNO FROM DEPT D1
+    WHERE E1.ENAME IN (SELECT B1.ENAME FROM BONUS B1));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE EXISTS (
+    SELECT 1
+    FROM DEPT D
+    JOIN BONUS B
+    ON D.LOC = 'NEW YORK' OR B.JOB = E1.JOB
+);
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE EXISTS (
+    SELECT 1
+    FROM DEPT D
+    LEFT JOIN BONUS B
+    ON D.LOC = 'NEW YORK' OR B.JOB = E1.JOB
+);
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.EMPNO, E1.SAL
+FROM EMP E1
+WHERE E1.COMM > (
+    SELECT COUNT(*)
+    FROM BONUS B
+    JOIN DEPT D
+    ON B.SAL > E1.SAL AND D.DEPTNO = 10
+);
++-------+---------+
+| EMPNO | SAL     |
++-------+---------+
+|  7499 | 1600.00 |
+|  7521 | 1250.00 |
+|  7654 | 1250.00 |
++-------+---------+
+(3 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.EMPNO, E1.SAL
+FROM EMP E1
+WHERE E1.COMM > (
+    SELECT COUNT(*)
+    FROM BONUS B
+    LEFT JOIN DEPT D
+    ON B.SAL > E1.SAL AND D.DEPTNO = 10
+);
++-------+---------+
+| EMPNO | SAL     |
++-------+---------+
+|  7499 | 1600.00 |
+|  7521 | 1250.00 |
+|  7654 | 1250.00 |
++-------+---------+
+(3 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE EXISTS (
+    SELECT 1
+    FROM DEPT D
+    JOIN BONUS B
+    ON D.DNAME = B.ENAME AND B.JOB = E1.JOB
+    WHERE B.ENAME IS NULL
+);
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE EXISTS (
+    SELECT 1
+    FROM DEPT D
+    LEFT JOIN BONUS B
+    ON D.DNAME = B.ENAME AND B.JOB = E1.JOB
+    WHERE B.ENAME IS NULL
+);
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE EXISTS (
+    SELECT 1
+    FROM DEPT D
+    LEFT JOIN BONUS B
+    ON D.DNAME = B.ENAME AND B.JOB = E1.JOB
+);
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE E1.SAL IN (
+    SELECT B.SAL
+    FROM BONUS B
+    JOIN DEPT D
+    ON D.DEPTNO = E1.DEPTNO
+    AND B.SAL = (CASE WHEN E1.COMM IS NULL THEN 0 ELSE E1.COMM END + 100)
+);
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.ENAME
+FROM EMP E1
+WHERE E1.SAL IN (
+    SELECT B.SAL
+    FROM BONUS B
+    LEFT JOIN DEPT D
+    ON D.DEPTNO = E1.DEPTNO
+    AND B.SAL = (CASE WHEN E1.COMM IS NULL THEN 0 ELSE E1.COMM END + 100)
+);
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.*
+FROM EMP E1
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM EMP E2
+    JOIN BONUS B
+    ON E2.SAL = E1.SAL AND B.JOB = E1.JOB
+    WHERE E2.EMPNO <> E1.EMPNO
+);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+SELECT E1.*
+FROM EMP E1
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM EMP E2
+    JOIN BONUS B
+    ON E2.SAL = E1.SAL AND B.JOB = E1.JOB
+    WHERE E2.EMPNO <> E1.EMPNO
+);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(t1c) FROM
+  (SELECT t1c
+   FROM   t1 JOIN t2 ON (t1a = t0a AND t2b = t1b))
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   1 |   1 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(t1c) FROM
+  (SELECT t1c
+   FROM   t1 JOIN t2 ON (t1a < t0a AND t2b >= t1b))
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   2 |   0 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-7257] Subqueries cannot be decorrelated if join condition contains RexFieldAccess
+WITH t0(t0a, t0b) AS (VALUES (1, 1), (2, 0)),
+     t1(t1a, t1b, t1c) AS (VALUES (1, 1, 3)),
+     t2(t2a, t2b, t2c) AS (VALUES (1, 1, 5), (2, 2, 7))
+SELECT * FROM t0 WHERE t0a <
+(SELECT sum(t1c) FROM
+  (SELECT t1c
+  FROM  t1 LEFT JOIN t2 ON (t1a = t0a AND t2b = t0b))
+);
++-----+-----+
+| T0A | T0B |
++-----+-----+
+|   1 |   1 |
+|   2 |   0 |
++-----+-----+
+(2 rows)
+
+!ok
+
 # [CALCITE-6942] Support decorrelated for sub-queries with LIMIT 1 and OFFSET
 select * from emp
 where exists (

@@ -1198,4 +1198,78 @@ public class RelDecorrelatorTest {
         + "              LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7257">[CALCITE-7257]
+   * Subqueries cannot be decorrelated if join condition contains RexFieldAccess</a>. */
+  @Test void testJoinConditionContainsRexFieldAccess() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT E1.* \n"
+        + "FROM\n"
+        + "  EMP E1\n"
+        + "WHERE\n"
+        + "  E1.EMPNO = (\n"
+        + "    SELECT D1.DEPTNO FROM DEPT D1\n"
+        + "    WHERE E1.ENAME IN (SELECT B1.ENAME FROM BONUS B1))";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "    LogicalFilter(condition=[=($0, CAST($8):SMALLINT)])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+        + "              LogicalJoin(condition=[=($cor0.ENAME, $3)], joinType=[inner])\n"
+        + "                LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "                LogicalProject(ENAME=[$0])\n"
+        + "                  LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], ENAME0=[$8], $f1=[CAST($9):TINYINT])\n"
+        + "    LogicalJoin(condition=[AND(=($1, $8), =($0, CAST($9):SMALLINT))], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "        LogicalProject(ENAME=[$3], DEPTNO=[$0])\n"
+        + "          LogicalJoin(condition=[=($3, $4)], joinType=[inner])\n"
+        + "            LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "              LogicalProject(ENAME=[$1])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n"
+        + "            LogicalProject(ENAME=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }
