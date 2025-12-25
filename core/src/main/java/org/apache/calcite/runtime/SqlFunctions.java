@@ -7450,7 +7450,7 @@ public class SqlFunctions {
   }
 
   /** SQL {@code AGE(timestamp1, timestamp2)} function. */
-  public static String age(long timestamp1, long timestamp2) {
+  private static String age(long timestamp1, long timestamp2) {
     // Convert timestamps to ZonedDateTime objects using UTC to avoid timezone issues
     Instant instant1 = Instant.ofEpochMilli(timestamp1);
     Instant instant2 = Instant.ofEpochMilli(timestamp2);
@@ -7515,16 +7515,28 @@ public class SqlFunctions {
     return sb.toString();
   }
 
-  /** SQL {@code AGE(timestamp)} function. */
-  public static String age(long timestamp) {
-    // Get current date at midnight in UTC
-    long currentTimestamp = Instant.now()
-        .atZone(ZoneOffset.UTC)
-        .truncatedTo(ChronoUnit.DAYS)
-        .toInstant()
-        .toEpochMilli();
+  /** SQL {@code AGE(timestamp1, timestamp2)} function. Supports 1 or 2 timestamp arguments. */
+  public static String age(long... timestamps) {
+    if (timestamps.length == 0) {
+      throw new IllegalArgumentException("AGE function requires at least one timestamp argument");
+    }
 
-    // Call the two-parameter version with current timestamp and input timestamp
-    return age(currentTimestamp, timestamp);
+    if (timestamps.length == 1) {
+      // Single parameter version: calculate age relative to current time
+      long timestamp = timestamps[0];
+      // Get current date at midnight in UTC
+      long currentTimestamp = Instant.now()
+          .atZone(ZoneOffset.UTC)
+          .truncatedTo(ChronoUnit.DAYS)
+          .toInstant()
+          .toEpochMilli();
+      // Call the two-parameter version with current timestamp and input timestamp
+      return age(currentTimestamp, timestamp);
+    } else if (timestamps.length == 2) {
+      // Two parameter version: calculate age between two timestamps
+      return age(timestamps[0], timestamps[1]);
+    } else {
+      throw new IllegalArgumentException("AGE function supports only 1 or 2 timestamp arguments");
+    }
   }
 }
