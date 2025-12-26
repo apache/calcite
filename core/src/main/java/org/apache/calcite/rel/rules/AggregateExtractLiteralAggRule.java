@@ -34,7 +34,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * AggregateExtractLiteralAggRule gets rid of the LITERAL_AGG into most databases can handle.
+ * Rule transforms an {@link org.apache.calcite.rel.core.Aggregate} containing
+ * {@code LITERAL_AGG} aggregate function into an {@code Aggregate} that still
+ * performs "group by" on the relevant groups, while placing a {@code Project}
+ * RelNode on top that returns the literal value.
  */
 @Value.Enclosing
 public class AggregateExtractLiteralAggRule
@@ -121,7 +124,6 @@ public class AggregateExtractLiteralAggRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableAggregateExtractLiteralAggRule.Config.of()
-        .withRelBuilderFactory(RelBuilder.proto())
         .withOperandSupplier(b0 ->
             b0.operand(Aggregate.class).anyInputs());
 
