@@ -465,6 +465,28 @@ public class RelMdUtil {
   }
 
   /**
+   * Returns the numeric value stored in a literal, throwing if it cannot be
+   * represented as a finite double.
+   */
+  public static double literalNumericValue(@Nullable RexNode node,
+      double defaultValue) {
+    if (!(node instanceof RexLiteral)) {
+      return defaultValue;
+    }
+    final Number number = RexLiteral.numberValue(node);
+    final BigDecimal decimal = NumberUtil.toBigDecimal(number);
+    if (decimal == null) {
+      throw new IllegalArgumentException(
+          "literal value " + number + " cannot be converted to BigDecimal");
+    }
+    if (decimal.abs().compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) > 0) {
+      throw new IllegalArgumentException(
+          "literal value " + decimal + " exceeds double range");
+    }
+    return decimal.doubleValue();
+  }
+
+  /**
    * Returns default estimates for selectivities, in the absence of stats.
    *
    * @param predicate predicate for which selectivity will be computed; null
