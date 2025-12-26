@@ -246,7 +246,7 @@ starWithExclude:
 
 Note:
 
-* `SELECT * EXCLUDE (...)` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeStarExclude` to `true` (the standard parser leaves that flag `false`), which allows a `STAR` token followed by `EXCLUDE` and a parenthesized identifier list to be parsed into a `SqlStarExclude` node and ensures validators respect the exclusion list when expanding the projection. Reusing the same parser configuration elsewhere enables the same syntax for other components that need it.
+* `SELECT * EXCLUDE (...)` is recognized only when the Babel parser is enabled. It sets the generated parser configuration flag `includeStarExclude` to `true` (the standard parser leaves that flag `false`), which allows a `STAR` token followed by `EXCLUDE` (or the alias `EXCEPT`) and a parenthesized identifier list to be parsed into a `SqlStarExclude` node and ensures validators respect the exclusion list when expanding the projection. Reusing the same parser configuration elsewhere enables the same syntax for other components that need it.
 
 projectItem:
       expression [ [ AS ] columnAlias ]
