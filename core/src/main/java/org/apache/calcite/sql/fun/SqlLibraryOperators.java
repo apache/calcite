@@ -2774,4 +2774,33 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction RANDOM = SqlStdOperatorTable.RAND
       .withName("RANDOM")
       .withOperandTypeChecker(OperandTypes.NILADIC);
+
+
+  /**
+   * AGE function for PostgreSQL.
+   * Returns the interval between two timestamps in DAY TO SECOND format.
+   *
+   * @see <a href="https://www.postgresql.org/docs/current/functions-datetime.html">PostgreSQL AGE</a>
+   */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlBasicFunction AGE =
+      SqlBasicFunction.create("AGE",
+          (SqlOperatorBinding opBinding) -> {
+            RelDataType varcharType = opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+            // Check if any input parameter is null
+            boolean nullable = false;
+            for (int i = 0; i < opBinding.getOperandCount(); i++) {
+              if (opBinding.isOperandNull(i, true)) {
+                nullable = true;
+                break;
+              }
+            }
+            // Return VARCHAR type since we're returning a formatted string
+            return opBinding.getTypeFactory().createTypeWithNullability(varcharType, nullable);
+          },
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.TIMESTAMP),
+              OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
+          SqlFunctionCategory.TIMEDATE);
+
 }

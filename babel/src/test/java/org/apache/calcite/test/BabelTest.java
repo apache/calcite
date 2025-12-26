@@ -22,6 +22,7 @@ import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
@@ -50,6 +51,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
@@ -490,4 +496,45 @@ class BabelTest {
         .query(query)
         .returns(result);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
+   * Add age function (enabled in Postgresql library)</a>. */
+  @Test void testAgeFunction() {
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25', timestamp '2020-01-01') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 24 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-01-01', timestamp '2023-01-01') FROM (VALUES (1)) t",
+        "EXPR$0=0 years 0 mons 0 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2020-01-01', timestamp '2023-12-25') FROM (VALUES (1)) t",
+        "EXPR$0=-3 years -11 mons -24 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-02-01', timestamp '2023-01-31') FROM (VALUES (1)) t",
+        "EXPR$0=0 years 0 mons 1 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-26 14:30:00', timestamp '2023-12-25 14:30:00') FROM (VALUES (1)) t",
+        "EXPR$0=0 years 0 mons 1 days 0 hours 0 mins 0.0 secs\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25 00:00:00', timestamp '2020-01-01 23:59:59') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 23 days 0 hours 0 mins 1.0 secs\n");
+
+    LocalDate date = LocalDate.parse("2023-12-25");
+    Instant instant = date.atStartOfDay(ZoneOffset.UTC).toInstant();
+    long timestampMillis = instant.toEpochMilli();
+    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    long currentTimestamp = now.toInstant(ZoneOffset.UTC).toEpochMilli();
+    String ageFunctionResult = SqlFunctions.age(currentTimestamp, timestampMillis);
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25') FROM (VALUES (1)) t",
+        "EXPR$0=" + ageFunctionResult + "\n");
+  }
+
+
 }
