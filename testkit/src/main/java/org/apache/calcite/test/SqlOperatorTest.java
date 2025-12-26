@@ -6950,7 +6950,7 @@ public class SqlOperatorTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
-   * There is no age function that supports pgSQL</a>. */
+   * Add age function (enabled in Postgresql library)</a>. */
   @Test void testAgePg() {
     final SqlOperatorFixture f0 = fixture();
     f0.checkFails("^age(timestamp '2023-12-25', timestamp '2020-01-01')^",
