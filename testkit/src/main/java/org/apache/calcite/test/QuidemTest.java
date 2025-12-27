@@ -154,6 +154,8 @@ public abstract class QuidemTest {
     switch (varName) {
     case "disable_new_decorrelator":
       return isNewDecorrelatorDisabled();
+    case "enable_new_decorrelator":
+      return !isNewDecorrelatorDisabled();
     case "jdk18":
       return System.getProperty("java.version").startsWith("1.8");
     case "fixed":

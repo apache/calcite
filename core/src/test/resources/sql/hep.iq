@@ -151,6 +151,36 @@ EnumerableCalc(expr#0..3=[{inputs}], MGR=[$t1], COMM=[$t2])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 !}
+
+!if (enable_new_decorrelator) {
+SELECT e1.mgr, e1.comm
+FROM emp e1
+WHERE e1.mgr > 12
+  AND EXISTS (
+    SELECT 1
+    FROM emp e2
+    WHERE e2.mgr = e1.mgr
+      AND e2.comm > 5);
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
++------+---------+
+(5 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], MGR=[$t1], COMM=[$t2])
+  EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($1, $4)], joinType=[semi])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[>($t8, $t9)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t3)], expr#12=[AND($t10, $t11)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t12])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!}
 !set hep-rules original
 
 # End hep.iq
