@@ -348,6 +348,12 @@
   githubId: tdunning
   org: MapR
   role: PMC
+- name: Thomas Rebele
+  apacheId: thomasrebele
+  githubId: thomasrebele
+  pronouns: he/him
+  org: Cloudera
+  role: Committer
 - name: TJ Banghart
   apacheId: tjbanghart
   githubId: tjbanghart
