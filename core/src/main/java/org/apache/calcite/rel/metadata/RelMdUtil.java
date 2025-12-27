@@ -465,10 +465,14 @@ public class RelMdUtil {
   }
 
   /**
-   * Returns the numeric value stored in a literal, throwing if it cannot be
-   * represented as a finite double.
+   * Returns the numeric value stored in a literal as a double.
+   *
+   * <p>Throws when the literal exceeds {@link Double#MAX_VALUE} instead of
+   * silently rounding to infinity. Doubles still approximate large integers (53
+   * bits of mantissa), so the returned value becomes only an approximation when
+   * occupancy reaches that limit.
    */
-  public static double literalNumericValue(@Nullable RexNode node,
+  public static double literalValueApproximatedByDouble(@Nullable RexNode node,
       double defaultValue) {
     if (!(node instanceof RexLiteral)) {
       return defaultValue;

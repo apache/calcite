@@ -41,7 +41,7 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import static org.apache.calcite.rel.metadata.RelMdUtil.literalNumericValue;
+import static org.apache.calcite.rel.metadata.RelMdUtil.literalValueApproximatedByDouble;
 
 /**
  * RelMdMaxRowCount supplies a default implementation of
@@ -117,10 +117,10 @@ public class RelMdMaxRowCount
       rowCount = Double.POSITIVE_INFINITY;
     }
 
-    final double offset = literalNumericValue(rel.offset, 0D);
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit = literalNumericValue(rel.fetch, rowCount);
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -130,10 +130,10 @@ public class RelMdMaxRowCount
       rowCount = Double.POSITIVE_INFINITY;
     }
 
-    final double offset = literalNumericValue(rel.offset, 0D);
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit = literalNumericValue(rel.fetch, rowCount);
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -214,7 +214,7 @@ public class RelMdMaxRowCount
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
         if (sort.fetch instanceof RexLiteral) {
-          return literalNumericValue(sort.fetch, Double.POSITIVE_INFINITY);
+          return literalValueApproximatedByDouble(sort.fetch, Double.POSITIVE_INFINITY);
         }
       }
     }
