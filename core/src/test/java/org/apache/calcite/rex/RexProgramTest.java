@@ -1922,56 +1922,6 @@ class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5733">[CALCITE-5733]
    * Simplify 'a = ARRAY[1,2] AND a = ARRAY[2,3]' to 'false'</a>. */
-  @Test void testSimplifyMapEquality() {
-    final RelDataType mapType = typeFactory.createMapType(tInt(), tInt());
-    final RexNode aRef = input(mapType, 0);
-    final RexNode map12 =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(literal(1), literal(2)));
-    final RexNode map23 =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(literal(2), literal(3)));
-    final RexNode map2Null =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(literal(2), nullInt));
-    final RexNode mapDoubleNull =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(nullInt, nullInt));
-
-    final RexNode map1234 =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(literal(1), literal(2),
-                literal(3), literal(4)));
-
-    final RexNode map3412 =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(literal(3), literal(4),
-                literal(1), literal(2)));
-
-    // a = MAP[1,2] AND a = MAP[2,3]
-    final RexNode condition = and(eq(aRef, map12), eq(aRef, map23));
-    checkSimplifyFilter(condition, "false");
-
-    // a = MAP[1,2] AND a = MAP[2,null]
-    final RexNode condition2 = and(eq(aRef, map12), eq(aRef, map2Null));
-    checkSimplifyFilter(condition2, "false");
-
-    // a = MAP[1,2] AND a = MAP[2,null]
-    final RexNode condition3 = and(eq(aRef, map12), eq(aRef, mapDoubleNull));
-    checkSimplifyFilter(condition3, "false");
-
-    // a = MAP[2,null] AND a = MAP[2,null]
-    final RexNode condition4 = and(eq(aRef, mapDoubleNull), eq(aRef, mapDoubleNull));
-    checkSimplifyFilter(condition4, "=($0, MAP(null:INTEGER, null:INTEGER))");
-
-    // a = MAP[1,2,3,4] AND a = MAP[3,4,1,2]
-    final RexNode condition5 = and(eq(aRef, map1234), eq(aRef, map3412));
-    checkSimplifyFilter(condition5, "AND(=($0, MAP(1, 2, 3, 4)), =($0, MAP(3, 4, 1, 2)))");
-  }
-
-  /** Unit test for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5733">[CALCITE-5733]
-   * Simplify 'a = ARRAY[1,2] AND a = ARRAY[2,3]' to 'false'</a>. */
   @Test void testSimplifyMultisetEquality() {
     final RelDataType multisetType = typeFactory.createMultisetType(tInt(), -1);
     final RexNode aRef = input(multisetType, 0);

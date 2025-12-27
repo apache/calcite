@@ -3041,7 +3041,6 @@ public class RexSimplify {
   private static final Set<SqlKind> CONSTANT_VALUE_CONSTRUCTOR_KINDS =
       EnumSet.of(
           SqlKind.ARRAY_VALUE_CONSTRUCTOR,
-          SqlKind.MAP_VALUE_CONSTRUCTOR,
           SqlKind.MULTISET_VALUE_CONSTRUCTOR);
 
   private static @Nullable Pair<RexNode, RexNode> constantEquality(RexCall call) {
@@ -3071,8 +3070,6 @@ public class RexSimplify {
     switch (call1.getKind()) {
     case MULTISET_VALUE_CONSTRUCTOR:
       return multisetLiteralEquals(call1, call2);
-    case MAP_VALUE_CONSTRUCTOR:
-      return mapLiteralEquals(call1, call2);
     default:
       return false;
     }
@@ -3081,19 +3078,6 @@ public class RexSimplify {
   private static boolean multisetLiteralEquals(RexCall left, RexCall right) {
     return HashMultiset.create(left.getOperands())
         .equals(HashMultiset.create(right.getOperands()));
-  }
-
-  private static boolean mapLiteralEquals(RexCall left, RexCall right) {
-    return canonicalMapEntries(left).equals(canonicalMapEntries(right));
-  }
-
-  private static HashMultiset<Pair<RexNode, RexNode>> canonicalMapEntries(RexCall call) {
-    final HashMultiset<Pair<RexNode, RexNode>> entries = HashMultiset.create();
-    final List<RexNode> operands = call.getOperands();
-    for (int i = 0; i < operands.size(); i += 2) {
-      entries.add(Pair.of(operands.get(i), operands.get(i + 1)));
-    }
-    return entries;
   }
 
   private static boolean isConstant(RexNode node) {
