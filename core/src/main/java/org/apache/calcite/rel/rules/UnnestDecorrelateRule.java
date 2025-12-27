@@ -74,10 +74,9 @@ public class UnnestDecorrelateRule extends RelRule<UnnestDecorrelateRule.Config>
     RelNode left = call.rel(2);
     int leftCount = left.getRowType().getFieldCount();
     ImmutableBitSet used = RelOptUtil.InputFinder.bits(outerProject.getProjects(), null);
-    for (int ref : used) {
-      if (ref < leftCount) {
-        return;
-      }
+    int firstUsed = used.nextSetBit(0);
+    if (firstUsed != -1 && firstUsed < leftCount) {
+      return;
     }
 
     int uncollectIndex = 3;
@@ -107,10 +106,9 @@ public class UnnestDecorrelateRule extends RelRule<UnnestDecorrelateRule.Config>
 
         RelBuilder builder = call.builder();
         builder.push(left);
-
         RexInputRef field = builder.field(fa.getField().getName());
-        builder.project(field);
-        builder.uncollect(uncollect.getItemAliases(), uncollect.withOrdinality);
+        builder.project(field)
+            .uncollect(uncollect.getItemAliases(), uncollect.withOrdinality);
         if (innerProject != null) {
           builder.project(innerProject.getProjects());
         }
