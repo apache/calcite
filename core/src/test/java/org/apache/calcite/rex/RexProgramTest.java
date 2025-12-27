@@ -1876,6 +1876,92 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2));
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5733">[CALCITE-5733]
+   * Simplify 'a = ARRAY[1,2] AND a = ARRAY[2,3]' to 'false'</a>. */
+  @Test void testSimplifyArrayEquality() {
+    final RelDataType arrayType = tArray(tInt());
+    final RexNode aRef = input(arrayType, 0);
+    final RexNode array12 =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(literal(1), literal(2)));
+    final RexNode array21 =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(literal(2), literal(1)));
+    final RexNode array23 =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(literal(2), literal(3)));
+    final RexNode array2Null =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(literal(2), nullInt));
+    final RexNode arrayDoubleNull =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(nullInt, nullInt));
+
+    // a = ARRAY[1,2] AND a = ARRAY[2,3]
+    final RexNode condition = and(eq(aRef, array12), eq(aRef, array23));
+    checkSimplifyFilter(condition, "false");
+
+    // a = ARRAY[1,2] AND a = ARRAY[2,null]
+    final RexNode condition2 = and(eq(aRef, array12), eq(aRef, array2Null));
+    checkSimplifyFilter(condition2, "false");
+
+    // a = ARRAY[1,2] AND a = ARRAY[2,null]
+    final RexNode condition3 = and(eq(aRef, array12), eq(aRef, arrayDoubleNull));
+    checkSimplifyFilter(condition3, "false");
+
+    // a = ARRAY[2,null] AND a = ARRAY[2,null]
+    final RexNode condition4 = and(eq(aRef, arrayDoubleNull), eq(aRef, arrayDoubleNull));
+    checkSimplifyFilter(condition4, "=($0, ARRAY(null:INTEGER, null:INTEGER))");
+
+    // a = ARRAY[1,2] AND a = ARRAY[2,1]
+    final RexNode condition5 = and(eq(aRef, array12), eq(aRef, array21));
+    checkSimplifyFilter(condition5, "false");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5733">[CALCITE-5733]
+   * Simplify 'a = ARRAY[1,2] AND a = ARRAY[2,3]' to 'false'</a>. */
+  @Test void testSimplifyMultisetEquality() {
+    final RelDataType multisetType = typeFactory.createMultisetType(tInt(), -1);
+    final RexNode aRef = input(multisetType, 0);
+    final RexNode multiset12 =
+        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+            ImmutableList.of(literal(1), literal(2)));
+    final RexNode multiset21 =
+        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+            ImmutableList.of(literal(2), literal(1)));
+    final RexNode multiset23 =
+        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+            ImmutableList.of(literal(2), literal(3)));
+    final RexNode multiset2Null =
+        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+            ImmutableList.of(literal(2), nullInt));
+    final RexNode multisetDoubleNull =
+        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+            ImmutableList.of(nullInt, nullInt));
+
+    // a = MULTISET[1,2] AND a = MULTISET[2,3]
+    final RexNode condition = and(eq(aRef, multiset12), eq(aRef, multiset23));
+    checkSimplifyFilter(condition, "false");
+
+    // a = MULTISET[1,2] AND a = MULTISET[2,null]
+    final RexNode condition2 = and(eq(aRef, multiset12), eq(aRef, multiset2Null));
+    checkSimplifyFilter(condition2, "false");
+
+    // a = MULTISET[1,2] AND a = MULTISET[2,null]
+    final RexNode condition3 = and(eq(aRef, multiset12), eq(aRef, multisetDoubleNull));
+    checkSimplifyFilter(condition3, "false");
+
+    // a = MULTISET[2,null] AND a = MULTISET[2,null]
+    final RexNode condition4 = and(eq(aRef, multisetDoubleNull), eq(aRef, multisetDoubleNull));
+    checkSimplifyFilter(condition4, "=($0, MULTISET(null:INTEGER, null:INTEGER))");
+
+    // a = MULTISET[1,2] AND a = MULTISET[2,1]
+    final RexNode condition5 = and(eq(aRef, multiset12), eq(aRef, multiset21));
+    checkSimplifyFilter(condition5, "AND(=($0, MULTISET(1, 2)), =($0, MULTISET(2, 1)))");
+  }
+
   @Test void testSimplifyRange() {
     final RexNode aRef = input(tInt(), 0);
     // ((0 < a and a <= 10) or a >= 15) and a <> 6 and a <> 12
