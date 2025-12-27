@@ -673,6 +673,74 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
+   * Create an optimization pass which can convert some cases of Correlate + Unnest
+   * to Unnest</a>. */
+  @Test void testUnnestDecorrelate() {
+    final String sql = "WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)\n"
+        + "SELECT array_element.id\n"
+        + "FROM t1, UNNEST(t1.arr) AS array_element(id)";
+    sql(sql)
+        .withRule(CoreRules.UNNEST_PROJECT_DECORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
+   * Create an optimization pass which can convert some cases of Correlate + Unnest
+   * to Unnest</a>. */
+  @Test void testUnnestDecorrelate2() {
+    final String sql = "WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)\n"
+        + "SELECT array_element.id, array_element.ord\n"
+        + "FROM t1, UNNEST(t1.arr) WITH ORDINALITY AS array_element(id, ord)";
+    sql(sql)
+        .withRule(CoreRules.UNNEST_PROJECT_DECORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
+   * Create an optimization pass which can convert some cases of Correlate + Unnest
+   * to Unnest</a>. */
+  @Test void testUnnestDecorrelate3() {
+    final String sql = "WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)\n"
+        + "SELECT array_element.id\n"
+        + "FROM t1, UNNEST(t1.arr) AS array_element(id)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.UNNEST_DECORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
+   * Create an optimization pass which can convert some cases of Correlate + Unnest
+   * to Unnest</a>. */
+  @Test void testUnnestDecorrelate4() {
+    final String sql = "select t2.ename\n"
+        + "from DEPT_NESTED as t1,\n"
+        + "unnest(t1.employees) as t2";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.UNNEST_DECORRELATE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
+   * Create an optimization pass which can convert some cases of Correlate + Unnest
+   * to Unnest</a>. */
+  @Test void testUnnestDecorrelate5() {
+    final String sql = "WITH t1 AS (SELECT ROW(ARRAY[1, 2, 3]) as struct_with_array_field)\n"
+        + "SELECT array_element.id\n"
+        + "FROM t1, UNNEST(t1.struct_with_array_field[1]) AS array_element(id)";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.UNNEST_DECORRELATE)
+        .check();
+  }
+
   @Test void testFilterProjectTransposeRule3() {
     final String sql = "select * from (select deptno from emp) as d\n"
         + "where NOT EXISTS (\n"

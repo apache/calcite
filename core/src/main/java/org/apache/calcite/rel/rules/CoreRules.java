@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil.Exists;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -32,6 +33,7 @@ import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -959,4 +961,14 @@ public class CoreRules {
    *  into equivalent {@link Union} ALL of GROUP BY operations. */
   public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
       AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts a {@link Correlate} after an {@link Uncollect} into a simple
+   * Uncollect, if possible. */
+  public static final RelOptRule UNNEST_DECORRELATE =
+      UnnestDecorrelateRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts a {@link Correlate} after an {@link Project} of an
+   * {@link Uncollect} into a simple Uncollect, if possible. */
+  public static final RelOptRule UNNEST_PROJECT_DECORRELATE =
+      UnnestDecorrelateRule.Config.WITH_PROJECT.toRule();
 }

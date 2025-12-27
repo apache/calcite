@@ -21566,6 +21566,133 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnnestDecorrelate">
+    <Resource name="sql">
+      <![CDATA[WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)
+SELECT array_element.id
+FROM t1, UNNEST(t1.arr) AS array_element(id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(ID=[$0])
+      Uncollect
+        LogicalProject(ARR=[$cor0.ARR])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+Uncollect
+  LogicalProject(ARR=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestDecorrelate2">
+    <Resource name="sql">
+      <![CDATA[WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)
+SELECT array_element.id, array_element.ord
+FROM t1, UNNEST(t1.arr) WITH ORDINALITY AS array_element(id, ord)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$1], ORD=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(ID=[$0], ORD=[$1])
+      Uncollect(withOrdinality=[true])
+        LogicalProject(ARR=[$cor0.ARR])
+          LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+Uncollect(withOrdinality=[true])
+  LogicalProject(ARR=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestDecorrelate3">
+    <Resource name="sql">
+      <![CDATA[WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)
+SELECT array_element.id
+FROM t1, UNNEST(t1.arr) AS array_element(id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+    Uncollect
+      LogicalProject(ARR=[$cor0.ARR])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+Uncollect
+  LogicalProject(ARR=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestDecorrelate4">
+    <Resource name="sql">
+      <![CDATA[select t2.ename
+from DEPT_NESTED as t1,
+unnest(t1.employees) as t2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  Uncollect
+    LogicalProject(EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestDecorrelate5">
+    <Resource name="sql">
+      <![CDATA[WITH t1 AS (SELECT ROW(ARRAY[1, 2, 3]) as struct_with_array_field)
+SELECT array_element.id
+FROM t1, UNNEST(t1.struct_with_array_field[1]) AS array_element(id)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ID=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(STRUCT_WITH_ARRAY_FIELD=[ROW(ARRAY(1, 2, 3))])
+      LogicalValues(tuples=[[{ 0 }]])
+    Uncollect
+      LogicalProject(EXPR$0=[$cor0.STRUCT_WITH_ARRAY_FIELD.EXPR$0])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+Uncollect
+  LogicalProject($f0=[ROW(ARRAY(1, 2, 3)).EXPR$0])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnnestInternalMissingParameter">
     <Resource name="sql">
       <![CDATA[SELECT empno FROM emp e WHERE sal > some(SELECT avg(sal) over (partition by deptno) from emp_b b where b.deptno = e.deptno)]]>
