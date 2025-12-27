@@ -1137,4 +1137,30 @@ SELECT * FROM (VALUES (NULLIF(5, 5)), (NULLIF(5, 5))) a, (VALUES (NULLIF(5, 5)),
 
 !ok
 
+# [CALCITE-7345] Quidem test support for Field Trimmer
+!use scott
+!set trimfields false
+
+select distinct dept.deptno, emp.deptno
+from "scott".emp join "scott".dept using (deptno);
+
+EnumerableAggregate(group=[{0, 10}])
+  EnumerableHashJoin(condition=[=($0, $10)], joinType=[inner])
+    EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+!set trimfields true
+
+select distinct dept.deptno, emp.deptno
+from "scott".emp join "scott".dept using (deptno);
+
+EnumerableAggregate(group=[{0, 2}])
+  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End join.iq
