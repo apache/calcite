@@ -39,6 +39,8 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static org.apache.calcite.rel.metadata.RelMdUtil.literalValueApproximatedByDouble;
+
 /**
  * RelMdMinRowCount supplies a default implementation of
  * {@link RelMetadataQuery#getMinRowCount} for the standard logical algebra.
@@ -114,11 +116,10 @@ public class RelMdMinRowCount
       rowCount = 0D;
     }
 
-    final long offset = rel.offset instanceof RexLiteral ? RexLiteral.longValue(rel.offset) : 0;
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        rel.fetch instanceof RexLiteral ? RexLiteral.longValue(rel.fetch) : rowCount;
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -128,11 +129,10 @@ public class RelMdMinRowCount
       rowCount = 0D;
     }
 
-    final long offset = rel.offset instanceof RexLiteral ? RexLiteral.longValue(rel.offset) : 0;
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        rel.fetch instanceof RexLiteral ? RexLiteral.longValue(rel.fetch) : rowCount;
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -174,7 +174,7 @@ public class RelMdMinRowCount
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
         if (sort.fetch instanceof RexLiteral) {
-          return (double) RexLiteral.longValue(sort.fetch);
+          return literalValueApproximatedByDouble(sort.fetch, Double.POSITIVE_INFINITY);
         }
       }
     }

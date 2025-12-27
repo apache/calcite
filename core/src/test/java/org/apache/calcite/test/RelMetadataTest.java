@@ -1324,6 +1324,17 @@ public class RelMetadataTest {
     fixture.assertThatRowCount(is(EMP_SIZE), is(0D), is(123456D));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7346">[CALCITE-7346]
+   * Prevent overflow in metadata row-count when LIMIT/OFFSET literal exceeds Long range</a>. */
+  @Test void testRowCountSortLimitBeyondLong() {
+    final BigDecimal fetch = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.ONE);
+    final double fetchDouble = fetch.doubleValue();
+    final String sql = "select * from emp order by ename limit " + fetchDouble;
+    final RelMetadataFixture fixture = sql(sql);
+    fixture.assertThatRowCount(is(EMP_SIZE), is(0D), is(fetchDouble));
+  }
+
   @Test void testRowCountSortHighOffset() {
     final String sql = "select * from emp order by ename offset 123456";
     final RelMetadataFixture fixture = sql(sql);

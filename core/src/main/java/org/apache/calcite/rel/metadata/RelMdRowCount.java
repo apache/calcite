@@ -36,13 +36,14 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.rel.metadata.RelMdUtil.literalValueApproximatedByDouble;
 
 /**
  * RelMdRowCount supplies a default implementation of
@@ -164,11 +165,10 @@ public class RelMdRowCount
       return null;
     }
 
-    final long offset = rel.offset instanceof RexLiteral ? RexLiteral.longValue(rel.offset) : 0;
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        rel.fetch instanceof RexLiteral ? RexLiteral.longValue(rel.fetch) : rowCount;
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
@@ -178,11 +178,10 @@ public class RelMdRowCount
       return null;
     }
 
-    final long offset = rel.offset instanceof RexLiteral ? RexLiteral.longValue(rel.offset) : 0;
+    final double offset = literalValueApproximatedByDouble(rel.offset, 0D);
     rowCount = Math.max(rowCount - offset, 0D);
 
-    final double limit =
-        rel.fetch instanceof RexLiteral ? RexLiteral.longValue(rel.fetch) : rowCount;
+    final double limit = literalValueApproximatedByDouble(rel.fetch, rowCount);
     return limit < rowCount ? limit : rowCount;
   }
 
