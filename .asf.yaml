@@ -32,4 +32,4 @@ notifications:
     commits:      commits@calcite.apache.org
     issues:       issues@calcite.apache.org
     pullrequests: commits@calcite.apache.org
-    jira_options: link label
+    jira_options: comment link label
