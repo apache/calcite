@@ -7505,4 +7505,148 @@ SELECT deptno FROM dept WHERE 1000.00 >
 
 !ok
 
+# [CALCITE-7274] RexFieldAccess has wrong index when use trim unused fields
+!set trimfields true
+
+SELECT empno
+      FROM emp AS e
+      LEFT JOIN dept AS d
+        ON d.deptno = e.deptno
+          AND (EXISTS (
+            SELECT e2.deptno FROM emp AS e2
+            WHERE e2.deptno = d.deptno
+            GROUP BY e2.deptno
+            HAVING SUM(e2.sal) > 1000000));
+EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+SELECT empno
+      FROM emp AS e
+      LEFT JOIN dept AS d
+        ON d.dname = e.ename
+          AND (EXISTS (
+            SELECT e2.deptno FROM emp AS e2
+            WHERE e2.deptno = e.deptno
+            GROUP BY e2.deptno
+            HAVING SUM(e2.sal) > 1000000));
+
+EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+# Same as previous; but don't trim fields
+!set trimfields false
+
+SELECT empno
+      FROM emp AS e
+      LEFT JOIN dept AS d
+        ON d.deptno = e.deptno
+          AND (EXISTS (
+            SELECT e2.deptno FROM emp AS e2
+            WHERE e2.deptno = d.deptno
+            GROUP BY e2.deptno
+            HAVING SUM(e2.sal) > 1000000));
+EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+SELECT empno
+      FROM emp AS e
+      LEFT JOIN dept AS d
+        ON d.dname = e.ename
+          AND (EXISTS (
+            SELECT e2.deptno FROM emp AS e2
+            WHERE e2.deptno = e.deptno
+            GROUP BY e2.deptno
+            HAVING SUM(e2.sal) > 1000000));
+
+EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
 # End sub-query.iq

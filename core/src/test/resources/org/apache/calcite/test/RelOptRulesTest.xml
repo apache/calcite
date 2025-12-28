@@ -8502,7 +8502,7 @@ LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[AND(=($0, $1), NOT(EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID)])
   LogicalValues(tuples=[[{ 3 }]])
-})))], joinType=[left])
+})))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }, { 2 }]])
     LogicalValues(tuples=[[{ 2 }]])
 ]]>
@@ -8536,7 +8536,7 @@ LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[NOT(EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID0)])
   LogicalValues(tuples=[[{ 3 }]])
-}))], joinType=[left])
+}))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 2 }]])
 ]]>
@@ -8598,7 +8598,7 @@ LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[OR(=($0, $1), EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID0)])
   LogicalValues(tuples=[[{ 3 }]])
-}))], joinType=[left])
+}))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 2 }]])
 ]]>
@@ -8632,7 +8632,7 @@ LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[OR(=($0, $1), NOT(EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID0)])
   LogicalValues(tuples=[[{ 3 }]])
-})))], joinType=[left])
+})))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 2 }]])
 ]]>

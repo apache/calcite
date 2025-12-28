@@ -3765,7 +3765,7 @@ LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
   LogicalProject(SAL=[$5])
     LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], joinType=[inner])
+})))], joinType=[inner], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -3986,7 +3986,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[OR(=($0, 1), EXISTS({
 LogicalFilter(condition=[>($0, +($cor0.DEPTNO0, 5))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-}))], joinType=[left])
+}))], joinType=[left], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>

@@ -234,6 +234,58 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   }
 
   /**
+   * Trims the fields of an input relational expression for RelNode with multiple inputs.
+   *
+   * @param rel        Relational expression
+   * @param input      Input relational expression, whose fields to trim
+   * @param startIndex Start index of the field range to process
+   * @param endIndex   End index of the field range to process (exclusive)
+   * @param fieldsUsed Bitmap of fields needed by the consumer
+   * @return New relational expression and its field mapping
+   */
+  protected TrimResult trimChild(
+      RelNode rel,
+      RelNode input,
+      int startIndex,
+      int endIndex,
+      final ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields) {
+    final ImmutableBitSet.Builder fieldsUsedBuilder = fieldsUsed.rebuild();
+
+    // Fields that define the collation cannot be discarded.
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final ImmutableList<RelCollation> collations = mq.collations(input);
+    if (collations != null) {
+      for (RelCollation collation : collations) {
+        for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+          fieldsUsedBuilder.set(fieldCollation.getFieldIndex());
+        }
+      }
+    }
+
+    // Correlating variables are a means for other relational expressions to use
+    // fields.
+    for (final CorrelationId correlation : rel.getVariablesSet()) {
+      rel.accept(
+          new CorrelationReferenceFinder() {
+            @Override protected RexNode handle(RexFieldAccess fieldAccess) {
+              final RexCorrelVariable v =
+                  (RexCorrelVariable) fieldAccess.getReferenceExpr();
+              if (v.id.equals(correlation)) {
+                if (fieldAccess.getField().getIndex() >= startIndex
+                    && fieldAccess.getField().getIndex() < endIndex) {
+                  fieldsUsedBuilder.set(fieldAccess.getField().getIndex() - startIndex);
+                }
+              }
+              return fieldAccess;
+            }
+          });
+    }
+
+    return dispatchTrimFields(input, fieldsUsedBuilder.build(), extraFields);
+  }
+
+  /**
    * Trims a child relational expression, then adds back a dummy project to
    * restore the fields that were removed.
    *
@@ -865,7 +917,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
               : combinedInputExtraFields;
       inputExtraFieldCounts.add(inputExtraFields.size());
       TrimResult trimResult =
-          trimChild(join, input, inputFieldsUsed.build(), inputExtraFields);
+          trimChild(join, input, offset, offset + inputFieldCount,
+              inputFieldsUsed.build(), inputExtraFields);
       newInputs.add(trimResult.left);
       if (trimResult.left != input) {
         ++changeCount;
@@ -946,7 +999,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           requireNonNull(newMatchConditionExpr, "newMatchConditionExpr"));
       break;
     default:
-      relBuilder.join(join.getJoinType(), newConditionExpr);
+      relBuilder.join(join.getJoinType(), newConditionExpr, join.getVariablesSet());
       break;
     }
     return result(relBuilder.build(), mapping, join);

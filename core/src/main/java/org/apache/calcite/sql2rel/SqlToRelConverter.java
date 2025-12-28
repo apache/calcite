@@ -3103,11 +3103,24 @@ public class SqlToRelConverter {
           p.id, requiredCols, joinType);
     }
 
-    final RelNode node =
+    RelNode node =
         relBuilder.push(leftRel)
             .push(rightRel)
             .join(joinType, joinCond)
             .build();
+
+    final CorrelationUse correlationUseInJoin = getCorrelationUse(bb, node);
+    if (correlationUseInJoin != null) {
+      assert correlationUseInJoin.r instanceof Join;
+      Join joinRelTemp = (Join) correlationUseInJoin.r;
+      node =
+          LogicalJoin.create(joinRelTemp.getLeft(),
+              joinRelTemp.getRight(),
+              joinRelTemp.getHints(),
+              joinRelTemp.getCondition(),
+              ImmutableSet.of(correlationUseInJoin.id),
+              joinRelTemp.getJoinType());
+    }
 
     // If join conditions are pushed down, update the leaves.
     if (node instanceof Project) {

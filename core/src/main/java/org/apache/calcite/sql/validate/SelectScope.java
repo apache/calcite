@@ -222,4 +222,15 @@ public class SelectScope extends ListScope {
   public void setExpandedSelectList(@Nullable List<SqlNode> selectList) {
     expandedSelectList = selectList;
   }
+
+  @Override public boolean isWithin(SqlValidatorScope scope2) {
+    if (this == scope2) {
+      return true;
+    }
+    // go from the JOIN to the enclosing SELECT
+    if (scope2 instanceof JoinScope) {
+      return isWithin(requireNonNull(((JoinScope) scope2).getUsingScope(), "usingScope"));
+    }
+    return false;
+  }
 }
