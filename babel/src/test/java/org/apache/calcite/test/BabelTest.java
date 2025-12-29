@@ -536,5 +536,4 @@ class BabelTest {
         "EXPR$0=" + ageFunctionResult + "\n");
   }
 
-
 }
