@@ -134,6 +134,7 @@ import static org.apache.calcite.sql.fun.SqlInternalOperators.LITERAL_AGG;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOSD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOSH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.AGE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAYS_OVERLAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAYS_ZIP;
@@ -1028,6 +1029,8 @@ public class RexImpTable {
       define(FORMAT_DATETIME, datetimeFormatImpl);
       define(FORMAT_TIME, datetimeFormatImpl);
       define(FORMAT_TIMESTAMP, datetimeFormatImpl);
+
+      defineMethod(AGE, BuiltInMethod.AGE.method, NullPolicy.STRICT);
 
       // Boolean operators
       define(IS_NULL, new IsNullImplementor());

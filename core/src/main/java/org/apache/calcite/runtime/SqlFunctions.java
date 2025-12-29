@@ -60,6 +60,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
@@ -99,11 +100,13 @@ import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -7502,5 +7505,113 @@ public class SqlFunctions {
     FILE,
     AUTHORITY,
     USERINFO;
+  }
+
+  /** SQL {@code AGE(timestamp1, timestamp2)} function. */
+  private static String age(long timestamp1, long timestamp2) {
+    // Convert timestamps to ZonedDateTime objects using UTC to avoid timezone issues
+    Instant instant1 = Instant.ofEpochMilli(timestamp1);
+    Instant instant2 = Instant.ofEpochMilli(timestamp2);
+
+    ZonedDateTime dateTime1 = ZonedDateTime.ofInstant(instant1, ZoneOffset.UTC);
+    ZonedDateTime dateTime2 = ZonedDateTime.ofInstant(instant2, ZoneOffset.UTC);
+
+    // Check if the original timestamps are in the correct order
+    boolean isNegative = timestamp1 < timestamp2;
+
+    // Ensure dateTime1 is later than dateTime2 for consistent calculation
+    if (dateTime1.isBefore(dateTime2)) {
+      ZonedDateTime temp = dateTime1;
+      dateTime1 = dateTime2;
+      dateTime2 = temp;
+    }
+
+    // Calculate period (years, months, days)
+    Period period = Period.between(dateTime2.toLocalDate(), dateTime1.toLocalDate());
+
+    // Calculate duration (hours, minutes, seconds, milliseconds)
+    Duration duration = Duration.between(dateTime2, dateTime1);
+
+    // Adjust for possible day overflow when time part is negative
+    if (dateTime1.toLocalTime().isBefore(dateTime2.toLocalTime())) {
+      period = period.minusDays(1);
+      duration = duration.plusDays(1);
+    }
+
+    // Extract components
+    int years = period.getYears();
+    int months = period.getMonths();
+    int days = period.getDays();
+
+    long hours = duration.toHours() % 24;
+    long minutes = duration.toMinutes() % 60;
+    long seconds = duration.getSeconds() % 60;
+    long millis = duration.toMillis() % 1000;
+
+    // Apply negative sign if needed
+    if (isNegative) {
+      years = -years;
+      months = -months;
+      days = -days;
+    }
+
+    StringBuilder sb = new StringBuilder();
+    if (years != 0) {
+      sb =
+          Math.abs(years) > 1 ? sb.append(years).append(" years ")
+              : sb.append(years).append(" year ");
+    }
+    if (months != 0) {
+      sb =
+          Math.abs(months) > 1 ? sb.append(months).append(" mons ")
+              : sb.append(months).append(" mon ");
+    }
+    if (days != 0) {
+      sb =
+          Math.abs(days) > 1 ? sb.append(days).append(" days ")
+              : sb.append(days).append(" day ");
+    }
+
+
+    // Add negative sign if needed for time part
+    if (isNegative && (hours != 0 || minutes != 0 || seconds != 0)) {
+      sb.append("-");
+    }
+    if (millis != 0) {
+      String millisString = BigDecimal.valueOf(millis)
+          .divide(BigDecimal.valueOf(1000))
+          .stripTrailingZeros()
+          .toPlainString().substring(2);
+      sb.append(
+          String.format(Locale.ROOT, "%02d:%02d:%02d.%s", hours, minutes, seconds,
+              millisString));
+    } else if (ObjectUtils.isNotEmpty(sb)
+        && hours == 0 && minutes == 0 && seconds == 0 && millis == 0) {
+      return sb.toString().trim();
+    } else {
+      sb.append(String.format(Locale.ROOT, "%02d:%02d:%02d", hours, minutes, seconds));
+    }
+    return sb.toString().trim();
+  }
+
+  /** SQL {@code AGE(timestamp1, timestamp2)} function. Supports 1 or 2 timestamp arguments. */
+  public static String age(long... timestamps) {
+    if (timestamps.length == 0) {
+      throw new IllegalArgumentException("AGE function requires at least one timestamp argument");
+    }
+
+    if (timestamps.length == 1) {
+      // Single parameter version: calculate age relative to current time
+      long timestamp = timestamps[0];
+      // Use the actual current timestamp (including time component) in UTC
+      long currentTimestamp = Instant.now().toEpochMilli();
+      // Call the two-parameter version with current timestamp and input timestamp
+      return age(currentTimestamp, timestamp);
+    } else if (timestamps.length == 2) {
+      // Two parameter version: calculate age between two timestamps
+      return age(timestamps[0], timestamps[1]);
+    } else {
+      throw new IllegalArgumentException("AGE function supports only 1 or 2 timestamp arguments");
+    }
   }
 }
