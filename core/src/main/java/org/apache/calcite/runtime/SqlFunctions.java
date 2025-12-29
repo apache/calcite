@@ -7524,14 +7524,14 @@ public class SqlFunctions {
     if (timestamps.length == 1) {
       // Single parameter version: calculate age relative to current time
       long timestamp = timestamps[0];
-      // Get current date at midnight in UTC
-      long currentTimestamp = Instant.now()
-          .atZone(ZoneOffset.UTC)
-          .truncatedTo(ChronoUnit.DAYS)
-          .toInstant()
-          .toEpochMilli();
+      // Use the actual current timestamp (including time component) in UTC
+      long currentTimestamp = Instant.now().toEpochMilli();
       // Call the two-parameter version with current timestamp and input timestamp
       return age(currentTimestamp, timestamp);
+    } else if (timestamps.length == 2) {
+      // Two parameter version: calculate age between two timestamps
+      return age(timestamps[0], timestamps[1]);
+    } else {
     } else if (timestamps.length == 2) {
       // Two parameter version: calculate age between two timestamps
       return age(timestamps[0], timestamps[1]);
