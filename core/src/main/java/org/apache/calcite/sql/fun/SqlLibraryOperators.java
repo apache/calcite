@@ -2786,19 +2786,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlBasicFunction AGE =
       SqlBasicFunction.create("AGE",
-          (SqlOperatorBinding opBinding) -> {
-            RelDataType varcharType = opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-            // Check if any input parameter is null
-            boolean nullable = false;
-            for (int i = 0; i < opBinding.getOperandCount(); i++) {
-              if (opBinding.isOperandNull(i, true)) {
-                nullable = true;
-                break;
-              }
-            }
-            // Return VARCHAR type since we're returning a formatted string
-            return opBinding.getTypeFactory().createTypeWithNullability(varcharType, nullable);
-          },
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.or(
               OperandTypes.family(SqlTypeFamily.TIMESTAMP),
               OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
