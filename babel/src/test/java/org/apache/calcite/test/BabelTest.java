@@ -53,9 +53,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
@@ -528,9 +526,7 @@ class BabelTest {
     LocalDate date = LocalDate.parse("2023-12-25");
     Instant instant = date.atStartOfDay(ZoneOffset.UTC).toInstant();
     long timestampMillis = instant.toEpochMilli();
-    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    long currentTimestamp = now.toInstant(ZoneOffset.UTC).toEpochMilli();
-    String ageFunctionResult = SqlFunctions.age(currentTimestamp, timestampMillis);
+    String ageFunctionResult = SqlFunctions.age(timestampMillis);
     checkSqlResult("postgresql",
         "SELECT AGE(timestamp '2023-12-25') FROM (VALUES (1)) t",
         "EXPR$0=" + ageFunctionResult + "\n");

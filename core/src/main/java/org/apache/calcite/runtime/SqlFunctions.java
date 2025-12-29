@@ -114,7 +114,6 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
-import java.time.temporal.ChronoUnit;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7528,10 +7527,6 @@ public class SqlFunctions {
       long currentTimestamp = Instant.now().toEpochMilli();
       // Call the two-parameter version with current timestamp and input timestamp
       return age(currentTimestamp, timestamp);
-    } else if (timestamps.length == 2) {
-      // Two parameter version: calculate age between two timestamps
-      return age(timestamps[0], timestamps[1]);
-    } else {
     } else if (timestamps.length == 2) {
       // Two parameter version: calculate age between two timestamps
       return age(timestamps[0], timestamps[1]);
