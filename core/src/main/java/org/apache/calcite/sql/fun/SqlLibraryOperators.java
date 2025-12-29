@@ -2775,7 +2775,6 @@ public abstract class SqlLibraryOperators {
       .withName("RANDOM")
       .withOperandTypeChecker(OperandTypes.NILADIC);
 
-
   /**
    * AGE function for PostgreSQL.
    * Returns a human-readable VARCHAR describing the interval between
