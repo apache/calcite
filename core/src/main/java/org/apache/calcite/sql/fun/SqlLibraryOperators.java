@@ -2778,7 +2778,9 @@ public abstract class SqlLibraryOperators {
 
   /**
    * AGE function for PostgreSQL.
-   * Returns the interval between two timestamps in DAY TO SECOND format.
+   * Returns a human-readable VARCHAR describing the interval between
+   * one or two timestamps (for example,
+   * "3 years 11 mons 24 days 0 hours 0 mins 0.0 secs").
    *
    * @see <a href="https://www.postgresql.org/docs/current/functions-datetime.html">PostgreSQL AGE</a>
    */
