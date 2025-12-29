@@ -490,4 +490,48 @@ class BabelTest {
         .query(query)
         .returns(result);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7337">[CALCITE-7337]
+   * Add age function (enabled in PostgreSQL library)</a>. */
+  @Test void testAgeFunction() {
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25', timestamp '2020-01-01') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 24 days\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-01-01', timestamp '2023-01-01') FROM (VALUES (1)) t",
+        "EXPR$0=00:00:00\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2020-01-01', timestamp '2023-12-25') FROM (VALUES (1)) t",
+        "EXPR$0=-3 years -11 mons -24 days\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-02-01', timestamp '2023-01-31') FROM (VALUES (1)) t",
+        "EXPR$0=1 day\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-26 14:30:00', timestamp '2023-12-25 14:30:00') FROM (VALUES (1)) t",
+        "EXPR$0=1 day\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25 00:00:00', timestamp '2020-01-01 23:59:59') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 23 days 00:00:01\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25 00:00:00.101', timestamp '2020-01-01 23:59:59.202') FROM (VALUES (1)) t",
+        "EXPR$0=3 years 11 mons 23 days 00:00:00.899\n");
+
+    checkSqlResult("postgresql",
+        "SELECT AGE(timestamp '2023-12-25 12:00:00.500', timestamp '2023-12-25 12:00:00.000') FROM (VALUES (1)) t",
+        "EXPR$0=00:00:00.5\n");
+
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.PARSER_FACTORY,
+            SqlBabelParserImpl.class.getName() + "#FACTORY")
+        .with(CalciteConnectionProperty.FUN, "postgresql")
+        .query("SELECT AGE(timestamp '2023-12-25') FROM (VALUES (1)) t")
+        .runs();
+  }
 }
