@@ -16,18 +16,32 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code DROP FUNCTION} statement.
  */
 public class SqlDropFunction extends SqlDropObject {
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("DROP FUNCTION", SqlKind.DROP_FUNCTION);
+      new SqlSpecialOperator("DROP FUNCTION", SqlKind.DROP_FUNCTION) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlDropFunction(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "ifExists")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[1], "name"));
+        }
+      };
 
   /** Creates a SqlDropFunction. */
   public SqlDropFunction(SqlParserPos pos, boolean ifExists,

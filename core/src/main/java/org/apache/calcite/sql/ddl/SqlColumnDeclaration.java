@@ -21,17 +21,19 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
-
-import com.google.common.collect.ImmutableList;
+import org.apache.calcite.util.ImmutableNullableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code UNIQUE}, {@code PRIMARY KEY} constraints.
@@ -39,18 +41,30 @@ import java.util.List;
  * <p>And {@code FOREIGN KEY}, when we support it.
  */
 public class SqlColumnDeclaration extends SqlCall {
-  private static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("COLUMN_DECL", SqlKind.COLUMN_DECL);
+  private static final SqlOperator OPERATOR =
+      new SqlSpecialOperator("COLUMN_DECL", SqlKind.COLUMN_DECL) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlColumnDeclaration(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "name"),
+              (SqlDataTypeSpec) requireNonNull(operands[1], "dataType"),
+              operands[2],
+              operands[3] != null
+                  ? ColumnStrategy.valueOf(((SqlIdentifier) operands[3]).getSimple())
+                  : null);
+        }
+      };
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
   public final @Nullable SqlNode expression;
-  public final ColumnStrategy strategy;
+  // The Babel parser can supply null for the strategy
+  public final @Nullable ColumnStrategy strategy;
 
   /** Creates a SqlColumnDeclaration; use {@link SqlDdlNodes#column}. */
   SqlColumnDeclaration(SqlParserPos pos, SqlIdentifier name,
       SqlDataTypeSpec dataType, @Nullable SqlNode expression,
-      ColumnStrategy strategy) {
+      @Nullable ColumnStrategy strategy) {
     super(pos);
     this.name = name;
     this.dataType = dataType;
@@ -62,8 +76,10 @@ public class SqlColumnDeclaration extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name, dataType);
+    return ImmutableNullableList.of(name, dataType, expression,
+        strategy != null ? new SqlIdentifier(strategy.name(), SqlParserPos.ZERO) : null);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -73,7 +89,7 @@ public class SqlColumnDeclaration extends SqlCall {
       writer.keyword("NOT NULL");
     }
     SqlNode expression = this.expression;
-    if (expression != null) {
+    if (expression != null && strategy != null) {
       switch (strategy) {
       case VIRTUAL:
       case STORED:

@@ -19,6 +19,7 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.sql.SqlDrop;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
@@ -43,7 +44,9 @@ public abstract class SqlDropObject extends SqlDrop {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableList.of(name);
+    return ImmutableList.of(
+        SqlLiteral.createBoolean(ifExists, SqlParserPos.ZERO),
+        name);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {

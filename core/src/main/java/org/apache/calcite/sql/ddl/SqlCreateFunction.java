@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -29,7 +30,10 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import java.util.Arrays;
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -44,8 +48,18 @@ public class SqlCreateFunction extends SqlCreate {
   private final SqlNode className;
   private final SqlNodeList usingList;
 
-  private static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("CREATE FUNCTION", SqlKind.CREATE_FUNCTION);
+  private static final SqlOperator OPERATOR =
+      new SqlSpecialOperator("CREATE FUNCTION", SqlKind.CREATE_FUNCTION) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCreateFunction(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
+              ((SqlLiteral) requireNonNull(operands[1], "ifNotExists")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[2], "name"),
+              requireNonNull(operands[3], "className"),
+              (SqlNodeList) requireNonNull(operands[4], "usingList"));
+        }
+      };
 
   /** Creates a SqlCreateFunction. */
   public SqlCreateFunction(SqlParserPos pos, boolean replace,
@@ -91,6 +105,9 @@ public class SqlCreateFunction extends SqlCreate {
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return Arrays.asList(name, className, usingList);
+    return ImmutableList.of(
+        SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),
+        SqlLiteral.createBoolean(ifNotExists, SqlParserPos.ZERO),
+        name, className, usingList);
   }
 }

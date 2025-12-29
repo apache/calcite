@@ -154,4 +154,81 @@ select * from table1 where j not in (select i from table2) or j = 3;
 
 !ok
 
+# [CALCITE-4813] ANY_VALUE assumes that arguments should be comparable
+select any_value(r) over(), s from(select array[f, s] r, s from (select 1 as f, 2 as s) t) t;
++--------+---+
+| EXPR$0 | S |
++--------+---+
+| [1, 2] | 2 |
++--------+---+
+(1 row)
+
+!ok
+
+select any_value(r) over(), s from(select map[f, s] r, s from (select 1 as f, 2 as s) t) t;
++--------+---+
+| EXPR$0 | S |
++--------+---+
+| {1=2}  | 2 |
++--------+---+
+(1 row)
+
+!ok
+
+select any_value(r) over(), s from(select row(f, s) r, s from (select 1 as f, 2 as s) t) t;
++--------+---+
+| EXPR$0 | S |
++--------+---+
+| {1, 2} | 2 |
++--------+---+
+(1 row)
+
+!ok
+
+
+CREATE TABLE complex_t (
+    a INTEGER ARRAY,
+    m MAP<VARCHAR, DOUBLE>,
+    r ROW(r1 VARCHAR, r2 INTEGER, r3 VARCHAR)
+);
+(0 rows modified)
+
+!update
+
+INSERT INTO complex_t VALUES (
+    ARRAY[1, 2, 3, 4, 5],
+    MAP['math', 95.5, 'science', 88.0, 'english', 92.3],
+    ROW('Alice Johnson', 30, 'a')
+),
+(
+    ARRAY[10, 20, 30, 40, 50, 60],
+    MAP['physics', 96.2, 'chemistry', 91.8, 'biology', 89.5, 'computer_science', 98.7],
+    ROW('Bob Smith', 25, 'b')
+),
+(
+    ARRAY[100, 200, 300],
+    MAP['leadership', 88.9, 'teamwork', 94.2, 'communication', 91.5, 'problem_solving', 97.8],
+    ROW('Charlie Chen', 35, 'c')
+);
+(3 rows modified)
+
+!update
+
+select
+    max(a) as max_a,
+    max(m) as max_m,
+    max(r) as max_r,
+    min(a) as min_a,
+    min(m) as min_m,
+    min(r) as min_r
+from complex_t;
++-----------------+----------------------------------------------------------------------------------------------+-----------------------+-----------------+------------------------------------------------------------------------------------------+------------------------+
+| MAX_A           | MAX_M                                                                                        | MAX_R                 | MIN_A           | MIN_M                                                                                    | MIN_R                  |
++-----------------+----------------------------------------------------------------------------------------------+-----------------------+-----------------+------------------------------------------------------------------------------------------+------------------------+
+| [100, 200, 300] | {physics         =96.2, chemistry       =91.8, biology         =89.5, computer_science=98.7} | {Charlie Chen, 35, c} | [1, 2, 3, 4, 5] | {leadership     =88.9, teamwork       =94.2, communication  =91.5, problem_solving=97.8} | {Alice Johnson, 30, a} |
++-----------------+----------------------------------------------------------------------------------------------+-----------------------+-----------------+------------------------------------------------------------------------------------------+------------------------+
+(1 row)
+
+!ok
+
 # End blank.iq

@@ -286,6 +286,11 @@ public class Programs {
     return standard(DefaultRelMetadataProvider.INSTANCE, true);
   }
 
+  /** Returns the standard program with enableFieldTrimming config. */
+  public static Program standard(Boolean enableFieldTrimming) {
+    return standard(DefaultRelMetadataProvider.INSTANCE, enableFieldTrimming);
+  }
+
   /** Returns the standard program with user metadata provider. */
   public static Program standard(RelMetadataProvider metadataProvider) {
     return standard(metadataProvider, true);

@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -51,8 +53,18 @@ public class SqlCreateForeignSchema extends SqlCreate {
   private final @Nullable SqlNodeList optionList;
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE FOREIGN SCHEMA",
-          SqlKind.CREATE_FOREIGN_SCHEMA);
+      new SqlSpecialOperator("CREATE FOREIGN SCHEMA", SqlKind.CREATE_FOREIGN_SCHEMA) {
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlCreateForeignSchema(pos,
+              ((SqlLiteral) requireNonNull(operands[0], "replace")).booleanValue(),
+              ((SqlLiteral) requireNonNull(operands[1], "ifNotExists")).booleanValue(),
+              (SqlIdentifier) requireNonNull(operands[2], "name"),
+              operands[3],
+              operands[4],
+              (SqlNodeList) operands[5]);
+        }
+      };
 
   /** Creates a SqlCreateForeignSchema. */
   SqlCreateForeignSchema(SqlParserPos pos, boolean replace, boolean ifNotExists,
@@ -69,7 +81,10 @@ public class SqlCreateForeignSchema extends SqlCreate {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, type, library, optionList);
+    return ImmutableNullableList.of(
+        SqlLiteral.createBoolean(getReplace(), SqlParserPos.ZERO),
+        SqlLiteral.createBoolean(ifNotExists, SqlParserPos.ZERO),
+        name, type, library, optionList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
