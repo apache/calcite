@@ -465,6 +465,32 @@ public class RelMdUtil {
   }
 
   /**
+   * Returns the numeric value stored in a literal as a double.
+   *
+   * <p>Throws when the literal exceeds {@link Double#MAX_VALUE} instead of
+   * silently rounding to infinity. Doubles still approximate large integers (53
+   * bits of mantissa), so the returned value becomes only an approximation
+   * when numbers are very large.
+   */
+  public static double literalValueApproximatedByDouble(@Nullable RexNode node,
+      double defaultValue) {
+    if (!(node instanceof RexLiteral)) {
+      return defaultValue;
+    }
+    final Number number = RexLiteral.numberValue(node);
+    final BigDecimal decimal = NumberUtil.toBigDecimal(number);
+    if (decimal == null) {
+      throw new IllegalArgumentException(
+          "literal value " + number + " cannot be converted to BigDecimal");
+    }
+    if (decimal.abs().compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) > 0) {
+      throw new IllegalArgumentException(
+          "literal value " + decimal + " exceeds double range");
+    }
+    return decimal.doubleValue();
+  }
+
+  /**
    * Returns default estimates for selectivities, in the absence of stats.
    *
    * @param predicate predicate for which selectivity will be computed; null
