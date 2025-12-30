@@ -33,6 +33,7 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -42,6 +43,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -680,24 +682,27 @@ class RelFieldTrimmerTest {
   @Test void testTrimCorrelatedSubquery() {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    RelNode root = builder.scan("EMP")
+    builder.scan("EMP")
         .variable(v::set)
         .filter(
             builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(5),
-            builder.literal(10)))
-        .project(
-            builder.field(0),
-            builder.scalarQuery(
-                b2 -> builder.scan("EMP").filter(
-                    builder.call(SqlStdOperatorTable.LESS_THAN,
-                        builder.field(3), builder.field(v.get(), "MGR")))
-                    .project(builder.field(0))
-                    .aggregate(builder.groupKey(), builder.countStar("c"))
-                    .build()))
-        .build();
+            builder.literal(10)));
+    final ImmutableList.Builder<RexNode> projectsNode = ImmutableList.builder();
+    projectsNode.add(builder.field(0));
+    projectsNode.add(
+        builder.scalarQuery(
+            b2 -> builder.scan("EMP").filter(
+                builder.call(SqlStdOperatorTable.LESS_THAN,
+                    builder.field(3), builder.field(v.get(), "MGR")))
+                .project(builder.field(0))
+                .aggregate(builder.groupKey(), builder.countStar("c"))
+                .build()));
+    RelNode root =
+        builder.project(projectsNode.build(),
+                ImmutableList.of(), false, ImmutableList.of(v.get().id)).build();
 
     String origTree = ""
-        + "LogicalProject(EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
         + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
         + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n})])\n"
