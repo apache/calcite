@@ -548,27 +548,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       }
     }
 
-    // Collect all the SubQueries in the projection list.
-    List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(project);
-    // Get all the correlationIds present in the SubQueries
-    Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
-    ImmutableBitSet requiredColumns = ImmutableBitSet.of();
-    if (!correlationIds.isEmpty()) {
-      assert correlationIds.size() == 1;
-      // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
-      requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), project);
-    }
-
     ImmutableBitSet finderFields = inputFinder.build();
-
-    ImmutableBitSet inputFieldsUsed = ImmutableBitSet.builder()
-        .addAll(requiredColumns)
-        .addAll(finderFields)
-        .build();
 
     // Create input with trimmed columns.
     TrimResult trimResult =
-        trimChild(project, input, inputFieldsUsed, inputExtraFields);
+        trimChild(project, input, finderFields, inputExtraFields);
     RelNode newInput = trimResult.left;
     final Mapping inputMapping = trimResult.right;
 
@@ -589,14 +573,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final List<RexNode> newProjects = new ArrayList<>();
     final RexVisitor<RexNode> shuttle;
 
-    if (!correlationIds.isEmpty()) {
-      assert correlationIds.size() == 1;
+    if (!project.getVariablesSet().isEmpty()) {
       shuttle = new RexPermuteInputsShuttle(inputMapping, newInput) {
         @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
           subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
 
           return RelOptUtil.remapCorrelatesInSuqQuery(relBuilder.getRexBuilder(),
-            subQuery, correlationIds.iterator().next(), newInput.getRowType(), inputMapping);
+            subQuery, project.getVariablesSet().iterator().next(),
+              newInput.getRowType(), inputMapping);
         }
       };
     } else {
@@ -621,7 +605,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             mapping);
 
     relBuilder.push(newInput);
-    relBuilder.project(newProjects, newRowType.getFieldNames(), false, correlationIds);
+    relBuilder.project(newProjects, newRowType.getFieldNames(), false, project.getVariablesSet());
     final RelNode newProject = relBuilder.build();
     return result(newProject, mapping, project);
   }

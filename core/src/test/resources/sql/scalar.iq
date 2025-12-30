@@ -310,4 +310,97 @@ select
 
 !ok
 
+# [CALCITE-7348] Remove redundant extraction correlation variables when Trim Project Fields
+
+!set trimfields true
+
+SELECT empno, (SELECT COUNT(*) AS c
+FROM "scott".emp
+WHERE mgr < "t".mgr) AS "$f1"
+FROM "scott".emp as "t"
+WHERE sal > 10;
++-------+-----+
+| EMPNO | $f1 |
++-------+-----+
+|  7369 |  12 |
+|  7499 |   2 |
+|  7521 |   2 |
+|  7566 |   9 |
+|  7654 |   2 |
+|  7698 |   9 |
+|  7782 |   9 |
+|  7788 |   0 |
+|  7839 |   0 |
+|  7844 |   2 |
+|  7876 |   8 |
+|  7900 |   2 |
+|  7902 |   0 |
+|  7934 |   7 |
++-------+-----+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[0:BIGINT], expr#6=[CASE($t4, $t5, $t3)], EMPNO=[$t0], $f1=[$t6])
+  EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($1, $2)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[10.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], EMPNO=[$t0], MGR=[$t3], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], MGR0=[$t0], C=[$t5])
+      EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+        EnumerableAggregate(group=[{3}])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[10.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableAggregate(group=[{2}], C=[COUNT()])
+          EnumerableNestedLoopJoin(condition=[<($1, $2)], joinType=[inner])
+            EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], MGR=[$t3])
+              EnumerableTableScan(table=[[scott, EMP]])
+            EnumerableAggregate(group=[{3}])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[10.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+                EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+!set trimfields false
+
+SELECT empno, (SELECT COUNT(*) AS c
+FROM "scott".emp
+WHERE mgr < "t".mgr) AS "$f1"
+FROM "scott".emp as "t"
+WHERE sal > 10;
++-------+-----+
+| EMPNO | $f1 |
++-------+-----+
+|  7369 |  12 |
+|  7499 |   2 |
+|  7521 |   2 |
+|  7566 |   9 |
+|  7654 |   2 |
+|  7698 |   9 |
+|  7782 |   9 |
+|  7788 |   0 |
+|  7839 |   0 |
+|  7844 |   2 |
+|  7876 |   8 |
+|  7900 |   2 |
+|  7902 |   0 |
+|  7934 |   7 |
++-------+-----+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..9=[{inputs}], expr#10=[IS NULL($t9)], expr#11=[0:BIGINT], expr#12=[CASE($t10, $t11, $t9)], EMPNO=[$t0], $f1=[$t12])
+  EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($3, $8)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[10.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], MGR0=[$t0], C=[$t5])
+      EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+        EnumerableAggregate(group=[{3}])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[10.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+            EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableAggregate(group=[{8}], C=[COUNT()])
+          EnumerableNestedLoopJoin(condition=[<($3, $8)], joinType=[inner])
+            EnumerableTableScan(table=[[scott, EMP]])
+            EnumerableAggregate(group=[{3}])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[10.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+                EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End scalar.iq
