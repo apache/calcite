@@ -141,6 +141,8 @@ WHERE e1.mgr > 12
 (5 rows)
 
 !ok
+
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], MGR=[$t1], COMM=[$t2])
   EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[>($t8, $t9)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t10])
@@ -149,6 +151,17 @@ EnumerableCalc(expr#0..3=[{inputs}], MGR=[$t1], COMM=[$t2])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t3)], expr#12=[AND($t10, $t11)], MGR=[$t3], $condition=[$t12])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
+
+!if (use_new_decorr) {
+EnumerableCalc(expr#0..2=[{inputs}], MGR=[$t1], COMM=[$t2])
+  EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($1, $4)], joinType=[semi])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[12], expr#10=[>($t8, $t9)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[5.00:DECIMAL(12, 2)], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t3)], expr#12=[AND($t10, $t11)], EMPNO=[$t0], MGR=[$t3], COMM=[$t6], $condition=[$t12])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!}
 !set hep-rules original
 
 # End hep.iq

@@ -359,6 +359,7 @@ or
 
 !ok
 
+!if (use_old_decorr) {
 EnumerableHashJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND(<($5, 255), >=($8, 344))))], joinType=[inner])
   EnumerableMergeJoin(condition=[AND(=($0, $3), OR(>($1, 11), <($5, 255)))], joinType=[inner])
     EnumerableValues(tuples=[[{ 1, 11, 111 }, { 2, 12, 122 }, { 3, 13, 133 }, { 4, 14, 144 }, { 5, 15, 155 }]])
@@ -366,6 +367,16 @@ EnumerableHashJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND(
   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[32], expr#4=[<=($t1, $t3)], expr#5=[344], expr#6=[>=($t2, $t5)], expr#7=[OR($t4, $t6)], proj#0..2=[{exprs}], $condition=[$t7])
     EnumerableValues(tuples=[[{ 1, 31, 311 }, { 2, 32, 322 }, { 3, 33, 333 }, { 4, 34, 344 }, { 5, 35, 355 }]])
 !plan
+!}
+
+!if (use_new_decorr) {
+EnumerableMergeJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND(<($5, 255), >=($8, 344))))], joinType=[inner])
+  EnumerableMergeJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableValues(tuples=[[{ 1, 11, 111 }, { 2, 12, 122 }, { 3, 13, 133 }, { 4, 14, 144 }, { 5, 15, 155 }]])
+    EnumerableValues(tuples=[[{ 1, 21, 211 }, { 2, 22, 222 }, { 3, 23, 233 }, { 4, 24, 244 }, { 5, 25, 255 }]])
+  EnumerableValues(tuples=[[{ 1, 31, 311 }, { 2, 32, 322 }, { 3, 33, 333 }, { 4, 34, 344 }, { 5, 35, 355 }]])
+!plan
+!}
 !set planner-rules original
 
 # [CALCITE-7086] Implement a rule that performs the inverse operation of AggregateCaseToFilterRule
