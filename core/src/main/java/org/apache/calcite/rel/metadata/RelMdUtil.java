@@ -1048,9 +1048,14 @@ public class RelMdUtil {
       // Cannot be determined
       return false;
     }
-    final long offsetVal = offset == null ? 0 : RexLiteral.longValue(offset);
-    final long limit = RexLiteral.longValue(fetch);
-    return (double) offsetVal + (double) limit >= rowCount;
+    final BigDecimal offsetVal = offset == null
+        ? BigDecimal.ZERO
+        : RexLiteral.bigDecimalValue(offset);
+    final BigDecimal limit = RexLiteral.bigDecimalValue(fetch);
+    if (!Double.isFinite(rowCount)) {
+      return false;
+    }
+    return offsetVal.add(limit).compareTo(BigDecimal.valueOf(rowCount)) >= 0;
   }
 
   /**

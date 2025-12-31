@@ -1290,6 +1290,12 @@ public class RexLiteral extends RexNode {
     return number.longValue();
   }
 
+  /** Returns the value of a literal, cast, or unary minus, as a BigDecimal;
+   * never null. */
+  public static BigDecimal bigDecimalValue(RexNode node) {
+    return (BigDecimal) numberValue(node);
+  }
+
   public static @Nullable String stringValue(RexNode node) {
     final Comparable value = findValue(node);
     return (value == null) ? null : ((NlsString) value).getValue();

@@ -117,6 +117,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -494,8 +495,7 @@ public class RelBuilder {
       return rexBuilder.makeApproxLiteral(
           ((Number) value).doubleValue(), getTypeFactory().createSqlType(SqlTypeName.DOUBLE));
     } else if (value instanceof Number) {
-      return rexBuilder.makeExactLiteral(
-          BigDecimal.valueOf(((Number) value).longValue()));
+      return rexBuilder.makeExactLiteral(NumberUtil.toBigDecimal((Number) value));
     } else if (value instanceof String) {
       return rexBuilder.makeLiteral((String) value);
     } else if (value instanceof Enum) {
