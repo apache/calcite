@@ -125,7 +125,7 @@ public class SortRemoveRedundantRule
     // then we could remove the redundant sort.
     if (inputMaxRowCount != null
         && Double.isFinite(inputMaxRowCount)
-        && new BigDecimal(inputMaxRowCount).compareTo(rowCountThreshold.get()) <= 0) {
+        && BigDecimal.valueOf(inputMaxRowCount).compareTo(rowCountThreshold.get()) <= 0) {
       call.transformTo(sort.getInput());
     }
   }
@@ -133,10 +133,9 @@ public class SortRemoveRedundantRule
   private static Optional<BigDecimal> getRowCountThreshold(Sort sort) {
     if (RelOptUtil.isLimit(sort)) {
       assert sort.fetch != null;
-      final BigDecimal fetch = ((RexLiteral) sort.fetch).getValueAs(BigDecimal.class);
+      final BigDecimal fetch = RexLiteral.bigDecimalValue(sort.fetch);
 
       // We don't need to deal with fetch is 0.
-      assert fetch != null;
       if (fetch.equals(BigDecimal.ZERO)) {
         return Optional.empty();
       }

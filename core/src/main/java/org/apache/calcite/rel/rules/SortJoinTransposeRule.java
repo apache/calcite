@@ -202,10 +202,12 @@ public class SortJoinTransposeRule
     if (sort.fetch == null) {
       return null;
     }
-    final long outerFetch = RexLiteral.longValue(sort.fetch);
-    final long outerOffset = sort.offset != null ? RexLiteral.longValue(sort.offset) : 0;
-    final long totalFetch = outerOffset + outerFetch;
-    return rexBuilder.makeExactLiteral(BigDecimal.valueOf(totalFetch));
+    final BigDecimal outerFetch = RexLiteral.bigDecimalValue(sort.fetch);
+    final BigDecimal outerOffset = sort.offset != null
+        ? RexLiteral.bigDecimalValue(sort.offset)
+        : BigDecimal.ZERO;
+    final BigDecimal totalFetch = outerOffset.add(outerFetch);
+    return rexBuilder.makeExactLiteral(totalFetch);
   }
 
   /** Rule configuration. */

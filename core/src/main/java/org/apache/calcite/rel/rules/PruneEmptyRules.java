@@ -47,6 +47,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -500,9 +501,8 @@ public abstract class PruneEmptyRules {
           Sort sort = call.rel(0);
           return sort.fetch != null
               && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.longValue(sort.fetch) == 0;
+              && RexLiteral.bigDecimalValue(sort.fetch).equals(BigDecimal.ZERO);
         }
-
       };
     }
   }
