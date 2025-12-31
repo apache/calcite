@@ -42,6 +42,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
@@ -65,6 +66,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1853,7 +1855,7 @@ public class RexSimplify {
         ArrayListMultimap.create();
     final Map<RexNode, Pair<Range<C>, List<RexNode>>> rangeTerms =
         new HashMap<>();
-    final Map<RexNode, RexLiteral> equalityConstantTerms = new HashMap<>();
+    final Map<RexNode, RexNode> equalityConstantTerms = new HashMap<>();
     final Set<RexNode> negatedTerms = new HashSet<>();
     final Set<RexNode> nullOperands = new HashSet<>();
     final Set<RexNode> notNullOperands = new LinkedHashSet<>();
@@ -1915,14 +1917,15 @@ public class RexSimplify {
         // is equal to different constants, this condition cannot be satisfied,
         // and hence it can be evaluated to FALSE
         if (term.getKind() == SqlKind.EQUALS) {
-          if (comparison != null) {
-            final RexLiteral literal = comparison.literal;
-            final RexLiteral prevLiteral =
-                equalityConstantTerms.put(comparison.ref, literal);
+          final Pair<RexNode, RexNode> constantEquality = constantEquality(call);
+          if (constantEquality != null) {
+            final RexNode constant = constantEquality.right;
+            final RexNode prevConstant =
+                equalityConstantTerms.put(constantEquality.left, constant);
 
-            if (prevLiteral != null
-                && literal.getType().equals(prevLiteral.getType())
-                && !literal.equals(prevLiteral)) {
+            if (prevConstant != null
+                && constant.getType().equals(prevConstant.getType())
+                && !constantsEquivalent(constant, prevConstant)) {
               return rexBuilder.makeLiteral(false);
             }
           } else if (RexUtil.isReferenceOrAccess(left, true)
@@ -1983,17 +1986,18 @@ public class RexSimplify {
     // Example #1. x=5 AND y=5 AND x=y : x=5 AND y=5
     // Example #2. x=5 AND y=6 AND x=y - not satisfiable
     for (RexNode ref1 : equalityTerms.keySet()) {
-      final RexLiteral literal1 = equalityConstantTerms.get(ref1);
-      if (literal1 == null) {
+      final RexNode constant1 = equalityConstantTerms.get(ref1);
+      if (constant1 == null) {
         continue;
       }
       Collection<Pair<RexNode, RexNode>> references = equalityTerms.get(ref1);
       for (Pair<RexNode, RexNode> ref2 : references) {
-        final RexLiteral literal2 = equalityConstantTerms.get(ref2.left);
-        if (literal2 == null) {
+        final RexNode constant2 = equalityConstantTerms.get(ref2.left);
+        if (constant2 == null) {
           continue;
         }
-        if (literal1.getType().equals(literal2.getType()) && !literal1.equals(literal2)) {
+        if (constant1.getType().equals(constant2.getType())
+            && !constantsEquivalent(constant1, constant2)) {
           // If an expression is equal to two different constants,
           // it is not satisfiable
           return rexBuilder.makeLiteral(false);
@@ -3032,6 +3036,70 @@ public class RexSimplify {
       refs.add(inputRef);
       return super.visitInputRef(inputRef);
     }
+  }
+
+  private static final Set<SqlKind> CONSTANT_VALUE_CONSTRUCTOR_KINDS =
+      EnumSet.of(
+          SqlKind.ARRAY_VALUE_CONSTRUCTOR,
+          SqlKind.MULTISET_VALUE_CONSTRUCTOR);
+
+  private static @Nullable Pair<RexNode, RexNode> constantEquality(RexCall call) {
+    final RexNode o0 = call.getOperands().get(0);
+    final RexNode o1 = call.getOperands().get(1);
+    if (RexUtil.isReferenceOrAccess(o0, true) && isConstant(o1)) {
+      return Pair.of(o0, o1);
+    }
+    if (RexUtil.isReferenceOrAccess(o1, true) && isConstant(o0)) {
+      return Pair.of(o1, o0);
+    }
+    return null;
+  }
+
+  private static boolean constantsEquivalent(RexNode node1, RexNode node2) {
+    if (Objects.equals(node1, node2)) {
+      return true;
+    }
+    if (!(node1 instanceof RexCall) || !(node2 instanceof RexCall)) {
+      return false;
+    }
+    final RexCall call1 = (RexCall) node1;
+    final RexCall call2 = (RexCall) node2;
+    if (call1.getKind() != call2.getKind()) {
+      return false;
+    }
+    switch (call1.getKind()) {
+    case MULTISET_VALUE_CONSTRUCTOR:
+      return multisetLiteralEquals(call1, call2);
+    default:
+      return false;
+    }
+  }
+
+  private static boolean multisetLiteralEquals(RexCall left, RexCall right) {
+    return canonicalMultisetLiteral(left).equals(canonicalMultisetLiteral(right));
+  }
+
+  private static HashMultiset<Object> canonicalMultisetLiteral(RexCall call) {
+    final HashMultiset<Object> canonical = HashMultiset.create();
+    for (RexNode operand : call.getOperands()) {
+      canonical.add(canonicalMultisetOperand(operand));
+    }
+    return canonical;
+  }
+
+  private static Object canonicalMultisetOperand(RexNode operand) {
+    if (operand instanceof RexCall
+        && operand.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR) {
+      return canonicalMultisetLiteral((RexCall) operand);
+    }
+    return operand;
+  }
+
+  private static boolean isConstant(RexNode node) {
+    return node instanceof RexLiteral
+        || (node instanceof RexCall
+            && CONSTANT_VALUE_CONSTRUCTOR_KINDS.contains(node.getKind())
+            && RexUtil.isConstant(node));
   }
 
   /** Represents a simple Comparison.
