@@ -127,15 +127,15 @@ class RelDataTypeSystemTest {
       return type1;
     }
 
-    @Override public int getMaxNumericPrecision() {
-      return 38;
-    }
-
     @Override public int getMaxPrecision(SqlTypeName typeName) {
-      if (typeName == SqlTypeName.TIMESTAMP) {
+      switch (typeName) {
+      case DECIMAL:
+        return 38;
+      case TIMESTAMP:
         return CUSTOM_MAX_TIMESTAMP_PRECISION;
+      default:
+        return super.getMaxPrecision(typeName);
       }
-      return super.getMaxPrecision(typeName);
     }
   }
 
@@ -209,10 +209,6 @@ class RelDataTypeSystemTest {
      * Custom type system class that overrides the default max precision and max scale.
      */
     final class CustomTypeSystem extends RelDataTypeSystemImpl {
-      @Override public int getMaxNumericPrecision() {
-        return getMaxPrecision(SqlTypeName.DECIMAL);
-      }
-
       @Override public int getMaxPrecision(SqlTypeName typeName) {
         switch (typeName) {
         case DECIMAL:
@@ -220,10 +216,6 @@ class RelDataTypeSystemTest {
         default:
           return super.getMaxPrecision(typeName);
         }
-      }
-
-      @Override public int getMaxNumericScale() {
-        return getMaxScale(SqlTypeName.DECIMAL);
       }
 
       @Override public int getMaxScale(SqlTypeName typeName) {

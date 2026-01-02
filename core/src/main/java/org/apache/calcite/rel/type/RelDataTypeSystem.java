@@ -96,53 +96,29 @@ public interface RelDataTypeSystem {
    *
    * @deprecated Replaced by {@link #getMaxScale}(DECIMAL).
    *
-   * <p>From Calcite release 1.38 onwards, instead of calling this method, you
-   * should call {@code getMaxScale(DECIMAL)}.
+   * <p>Instead of calling this method, you should call
+   * {@code getMaxScale(DECIMAL)}.
    *
-   * <p>In Calcite release 1.38, if you wish to change the maximum
-   * scale of {@link SqlTypeName#DECIMAL} values, you should do two things:
-   *
-   * <ul>
-   * <li>Override the {@link #getMaxScale(SqlTypeName)} method,
-   *     changing its behavior for {@code DECIMAL};
-   * <li>Make sure that the implementation of your
-   *     {@code #getMaxNumericScale} method calls
-   *     {@code getMaxScale(DECIMAL)}.
-   * </ul>
-   *
-   * <p>In Calcite release 1.39, Calcite will cease calling this method,
-   * and will remove the override of the method in
-   * {@link RelDataTypeSystemImpl}. You should remove all calls to
-   * and overrides of this method. */
-  @Deprecated // calcite will cease calling in 1.39, and removed before 2.0
+   * <p>If you wish to change the maximum scale of {@link SqlTypeName#DECIMAL}
+   * values, override the {@link #getMaxScale(SqlTypeName)} method,
+   * changing its behavior for {@code DECIMAL}. */
+  @Deprecated // to be removed before 2.0
   default int getMaxNumericScale() {
-    return 19;
+    return getMaxScale(SqlTypeName.DECIMAL);
   }
 
   /** Returns the maximum precision of a NUMERIC or DECIMAL type.
    * Default value is 19.
    *
-   * @deprecated Replaced by {@link #getMaxScale}(DECIMAL).
+   * @deprecated Replaced by {@link #getMaxPrecision}(DECIMAL).
    *
-   * <p>From Calcite release 1.38 onwards, instead of calling this method, you
-   * should call {@code getMaxPrecision(DECIMAL)}.
+   * <p>Instead of calling this method, you should call
+   * {@code getMaxPrecision(DECIMAL)}.
    *
-   * <p>In Calcite release 1.38, if you wish to change the maximum
-   * precision of {@link SqlTypeName#DECIMAL} values, you should do two things:
-   *
-   * <ul>
-   * <li>Override the {@link #getMaxPrecision(SqlTypeName)} method,
-   *     changing its behavior for {@code DECIMAL};
-   * <li>Make sure that the implementation of your
-   *     {@code #getMaxNumericPrecision} method calls
-   *     {@code getMaxPrecision(DECIMAL)}.
-   * </ul>
-   *
-   * <p>In Calcite release 1.39, Calcite will cease calling this method,
-   * and will remove the override of the method in
-   * {@link RelDataTypeSystemImpl}. You should remove all calls to
-   * and overrides of this method. */
-  @Deprecated // calcite will cease calling in 1.39, and removed before 2.0
+   * <p>If you wish to change the maximum precision of {@link SqlTypeName#DECIMAL}
+   * values, override the {@link #getMaxPrecision(SqlTypeName)} method,
+   * changing its behavior for {@code DECIMAL}. */
+  @Deprecated // to be removed before 2.0
   default int getMaxNumericPrecision() {
     return getMaxPrecision(SqlTypeName.DECIMAL);
   }

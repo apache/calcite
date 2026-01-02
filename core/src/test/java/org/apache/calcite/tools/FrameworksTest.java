@@ -530,11 +530,6 @@ public class FrameworksTest {
 
     private HiveLikeTypeSystem() {}
 
-    @Override public int getMaxNumericPrecision() {
-      assert super.getMaxNumericPrecision() == 19;
-      return getMaxPrecision(SqlTypeName.DECIMAL);
-    }
-
     @Override public int getMaxPrecision(SqlTypeName typeName) {
       switch (typeName) {
       case DECIMAL:
@@ -549,11 +544,6 @@ public class FrameworksTest {
    * constructor. */
   public static class HiveLikeTypeSystem2 extends RelDataTypeSystemImpl {
     public HiveLikeTypeSystem2() {}
-
-    @Override public int getMaxNumericPrecision() {
-      assert super.getMaxNumericPrecision() == 19;
-      return getMaxPrecision(SqlTypeName.DECIMAL);
-    }
 
     @Override public int getMaxPrecision(SqlTypeName typeName) {
       switch (typeName) {

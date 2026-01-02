@@ -49,10 +49,6 @@ public class RedshiftSqlDialect extends SqlDialect {
           }
         }
 
-        @Override public int getMaxNumericPrecision() {
-          return getMaxPrecision(SqlTypeName.DECIMAL);
-        }
-
         @Override public int getMaxScale(SqlTypeName typeName) {
           switch (typeName) {
           case DECIMAL:
@@ -60,10 +56,6 @@ public class RedshiftSqlDialect extends SqlDialect {
           default:
             return super.getMaxScale(typeName);
           }
-        }
-
-        @Override public int getMaxNumericScale() {
-          return getMaxScale(SqlTypeName.DECIMAL);
         }
       };
 

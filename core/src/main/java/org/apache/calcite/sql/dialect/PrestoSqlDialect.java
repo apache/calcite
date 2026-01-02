@@ -84,10 +84,6 @@ public class PrestoSqlDialect extends SqlDialect {
             return super.getMaxScale(typeName);
           }
         }
-
-        @Override public int getMaxNumericScale() {
-          return getMaxScale(SqlTypeName.DECIMAL);
-        }
       };
 
   public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
