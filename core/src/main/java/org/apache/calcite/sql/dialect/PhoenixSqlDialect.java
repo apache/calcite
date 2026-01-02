@@ -55,10 +55,6 @@ public class PhoenixSqlDialect extends SqlDialect {
             return super.getMaxScale(typeName);
           }
         }
-
-        @Override public int getMaxNumericScale() {
-          return getMaxScale(SqlTypeName.DECIMAL);
-        }
       };
 
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
