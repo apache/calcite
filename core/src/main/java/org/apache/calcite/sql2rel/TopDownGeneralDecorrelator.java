@@ -786,7 +786,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     return newSetOp;
   }
 
-  public RelNode unnestInternal(RelNode other) {
+  public RelNode unnestInternal(RelNode other, boolean allowEmptyOutputFromRewrite) {
     throw new UnsupportedOperationException("Top-down general decorrelator does not support: "
         + other.getClass().getSimpleName());
   }

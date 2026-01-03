@@ -10212,6 +10212,24 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7350">[CALCITE-7350]
+   * Missing allowEmptyOutputFromRewrite parameter
+   * in TopDownGeneralDecorrelator.unnestInternal</a>. */
+  @Test void testUnnestInternalMissingParameter() {
+    final String sql = "SELECT empno FROM emp e"
+        + " WHERE sal > some(SELECT avg(sal) over (partition by deptno) from emp_b b"
+        + " where b.deptno = e.deptno)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
