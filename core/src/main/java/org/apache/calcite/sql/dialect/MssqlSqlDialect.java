@@ -200,6 +200,20 @@ public class MssqlSqlDialect extends SqlDialect {
     unparseBoolLiteralToCondition(writer, value);
   }
 
+  @Override public SqlNode rewriteBooleanLiteral(SqlNode node) {
+    if (node instanceof SqlLiteral) {
+      SqlLiteral literal = (SqlLiteral) node;
+      if (literal.getTypeName() == SqlTypeName.BOOLEAN) {
+        Boolean value = (Boolean) literal.getValue();
+        if (value == null) {
+          return SqlLiteral.createNull(SqlParserPos.ZERO);
+        }
+        return SqlLiteral.createExactNumeric(value ? "1" : "0", SqlParserPos.ZERO);
+      }
+    }
+    return node;
+  }
+
   @Override public boolean supportsApproxCountDistinct() {
     return true;
   }

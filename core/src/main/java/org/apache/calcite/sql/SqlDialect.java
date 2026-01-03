@@ -812,6 +812,11 @@ public class SqlDialect {
     return rexNode;
   }
 
+  /** Rewrites a boolean literal before it is unparsed (used from VALUES and literals such as SELECT TRUE). */
+  public SqlNode rewriteBooleanLiteral(SqlNode node) {
+    return node;
+  }
+
   /** Returns whether this dialect supports a given function or operator.
    * It only applies to built-in scalar functions and operators, since
    * user-defined functions and procedures should be read by JdbcSchema. */

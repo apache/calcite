@@ -874,7 +874,7 @@ public class RelToSqlConverter extends SqlImplementor
       List<SqlSelect> list = new ArrayList<>();
       for (List<RexLiteral> tuple : e.getTuples()) {
         final List<SqlNode> values2 = new ArrayList<>();
-        final SqlNodeList exprList = exprList(context, tuple);
+        final SqlNodeList exprList = rewriteValuesBooleanLiterals(exprList(context, tuple));
         for (Pair<SqlNode, String> value : Pair.zip(exprList, fieldNames)) {
           values2.add(as(value.left, value.right));
         }
@@ -939,9 +939,10 @@ public class RelToSqlConverter extends SqlImplementor
                     SqlLiteral.createNull(POS))));
       } else {
         for (List<RexLiteral> tuple : e.getTuples()) {
+          final SqlNodeList exprList = rewriteValuesBooleanLiterals(exprList(context, tuple));
           selects.add(
               SqlInternalOperators.ANONYMOUS_ROW.createCall(
-                  exprList(context, tuple)));
+                  exprList));
         }
       }
       query = SqlStdOperatorTable.VALUES.createCall(selects);
@@ -959,6 +960,14 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     return result(query, clauses, e, null);
+  }
+
+  private SqlNodeList rewriteValuesBooleanLiterals(SqlNodeList exprList) {
+    final List<SqlNode> nodes = new ArrayList<>(exprList.size());
+    for (SqlNode node : exprList) {
+      nodes.add(dialect.rewriteBooleanLiteral(node));
+    }
+    return new SqlNodeList(nodes, POS);
   }
 
   /** Visits a Sample; called by {@link #dispatch} via reflection. */
