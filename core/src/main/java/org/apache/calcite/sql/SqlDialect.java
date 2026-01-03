@@ -812,7 +812,7 @@ public class SqlDialect {
     return rexNode;
   }
 
-  /** Rewrites a boolean literal before it is unparsed (used from VALUES and literals such as SELECT TRUE). */
+  /** Rewrites a boolean literal to 1 or 0. */
   public SqlNode rewriteBooleanLiteral(SqlNode node) {
     return node;
   }

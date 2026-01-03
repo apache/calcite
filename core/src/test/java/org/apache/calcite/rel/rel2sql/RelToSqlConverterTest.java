@@ -11103,11 +11103,11 @@ class RelToSqlConverterTest {
    * MSSQL dialect incorrectly translates of SELECT TRUE</a>. */
   @Test void testMysqlSelectTrue() {
     final String query = "SELECT TRUE";
-        final String expected = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
+    final String expected = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
     sql(query).withMssql().ok(expected);
 
     final String query2 = "SELECT * FROM (VALUES (TRUE))";
-        final String expected2 = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
+    final String expected2 = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
     sql(query2).withMssql().ok(expected2);
   }
 
