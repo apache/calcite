@@ -21566,6 +21566,47 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnnestInternalMissingParameter">
+    <Resource name="sql">
+      <![CDATA[SELECT empno FROM emp e WHERE sal > some(SELECT avg(sal) over (partition by deptno) from emp_b b where b.deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($5, {
+LogicalProject(EXPR$0=[CAST(/(SUM($5) OVER (PARTITION BY $7), COUNT($5) OVER (PARTITION BY $7))):INTEGER NOT NULL])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[$9])
+      LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{7}], condition=[>($5, $9)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EXPR$0=[CAST(/($10, $11)):INTEGER NOT NULL])
+          LogicalWindow(window#0=[window(partition {7} aggs [SUM($5), COUNT($5)])])
+            LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[$9])
+    LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{7}], condition=[>($5, $9)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[CAST(/($10, $11)):INTEGER NOT NULL])
+        LogicalWindow(window#0=[window(partition {7} aggs [SUM($5), COUNT($5)])])
+          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testVarianceStddevWithFilter">
     <Resource name="sql">
       <![CDATA[select name, stddev_pop(deptno) filter (where deptno > 10), stddev_samp(deptno) filter (where deptno > 20), var_pop(deptno) filter (where deptno > 30), var_samp(deptno) filter (where deptno > 40), avg(deptno) filter (where deptno > 50)
