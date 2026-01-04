@@ -2920,7 +2920,7 @@ In the following:
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o r s h | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p r | DIFFERENCE(string, string)                   | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
-| f s | ENDSWITH(string1, string2)                   | Returns whether *string2* is a suffix of *string1*
+| f s i | ENDSWITH(string1, string2)                   | Returns whether *string2* is a suffix of *string1*
 | b | ENDS_WITH(string1, string2)                    | Equivalent to `ENDSWITH(string1, string2)`
 | s | EXISTS(array, func)                            | Returns whether a predicate *func* holds for one or more elements in the *array*
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
@@ -3041,7 +3041,7 @@ In the following:
 | m s h | SPACE(integer)                               | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma).  If the *string* is empty it returns an empty array, otherwise, if the *delimiter* is empty, it returns an array containing the original *string*.
 | p | SPLIT_PART(string, delimiter, n)               | Returns the *n*th field in *string* using *delimiter*; returns empty string if *n* is less than 1 or greater than the number of fields, and the n can be negative to count from the end.
-| f s | STARTSWITH(string1, string2)                 | Returns whether *string2* is a prefix of *string1*
+| f s i | STARTSWITH(string1, string2)                 | Returns whether *string2* is a prefix of *string1*
 | b p | STARTS_WITH(string1, string2)                | Equivalent to `STARTSWITH(string1, string2)`
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b r p | STRPOS(string, substring)                  | Equivalent to `POSITION(substring IN string)`

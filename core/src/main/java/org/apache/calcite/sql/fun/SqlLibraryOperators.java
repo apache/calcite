@@ -64,6 +64,7 @@ import java.util.stream.IntStream;
 import static org.apache.calcite.sql.fun.SqlLibrary.ALL;
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.CALCITE;
+import static org.apache.calcite.sql.fun.SqlLibrary.CLICKHOUSE;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
@@ -424,7 +425,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_SAME_SAME);
 
   /** The "ENDSWITH(value1, value2)" function (Snowflake). */
-  @LibraryOperator(libraries = {SNOWFLAKE, SPARK})
+  @LibraryOperator(libraries = {SNOWFLAKE, SPARK, CLICKHOUSE})
   public static final SqlFunction ENDSWITH = ENDS_WITH.withName("ENDSWITH");
 
   /** The "STARTS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
@@ -434,7 +435,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_SAME_SAME);
 
   /** The "STARTSWITH(value1, value2)" function (Snowflake). */
-  @LibraryOperator(libraries = {SNOWFLAKE, SPARK})
+  @LibraryOperator(libraries = {SNOWFLAKE, SPARK, CLICKHOUSE})
   public static final SqlFunction STARTSWITH = STARTS_WITH.withName("STARTSWITH");
 
   /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */

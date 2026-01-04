@@ -8414,7 +8414,7 @@ class RelToSqlConverterTest {
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
     sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
-    sql(query).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expectedClickHouse);
+    sql(query).withLibrary(SqlLibrary.CLICKHOUSE).withClickHouse().ok(expectedClickHouse);
   }
 
   /** Test case for
@@ -8463,7 +8463,7 @@ class RelToSqlConverterTest {
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
     sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
-    sql(query).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expectedClickHouse);
+    sql(query).withLibrary(SqlLibrary.CLICKHOUSE).withClickHouse().ok(expectedClickHouse);
   }
 
   /** Test case for
