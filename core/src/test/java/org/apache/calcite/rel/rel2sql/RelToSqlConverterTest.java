@@ -11101,7 +11101,7 @@ class RelToSqlConverterTest {
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6829">[CALCITE-6829]
    * MSSQL dialect incorrectly translates of SELECT TRUE</a>. */
-  @Test void testMysqlSelectTrue() {
+  @Test void testMssqlSelectTrue() {
     final String query = "SELECT TRUE";
     final String expected = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
     sql(query).withMssql().ok(expected);
