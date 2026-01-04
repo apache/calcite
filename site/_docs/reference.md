@@ -2936,6 +2936,7 @@ In the following:
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
+| s i | HYPOT(numeric1, numeric2)                    | Returns sqrt(*numeric1*^2 + *numeric2*^2) without intermediate overflow or underflow
 | b o p r s h | GREATEST(expr [, expr ]*)            | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b s | IFNULL(value1, value2)                       | Equivalent to `NVL(value1, value2)`

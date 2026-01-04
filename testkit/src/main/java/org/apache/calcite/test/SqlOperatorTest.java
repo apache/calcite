@@ -10018,6 +10018,60 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.SPARK), consumer);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6066">
+   * [CALCITE-6066] Add HYPOT function (enabled in Spark library)</a>. */
+  @Test void testHypotFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.HYPOT);
+    f0.checkFails("^hypot(3, 4)^",
+        "No match found for function signature HYPOT\\(<NUMERIC>, <NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("hypot(3, 4)", "DOUBLE NOT NULL",
+          isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(3.0, cast(4 as bigint))", "DOUBLE NOT NULL",
+          isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(-2 as bigint), cast(-4 as bigint))",
+          "DOUBLE NOT NULL",
+          isWithin(4.4721d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3.0 as double), cast(4.0 as double))",
+          "DOUBLE NOT NULL",
+          isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(-2.5, cast(-4.5 as double))", "DOUBLE NOT NULL",
+          isWithin(5.1478d, 0.0001d));
+      f.checkScalarApprox("hypot(-2.5, -4.5)", "DOUBLE NOT NULL",
+          isWithin(5.1478d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as float), cast(4 as real))", "DOUBLE NOT NULL",
+          isWithin(5.0000d, 0.0001d));
+      f.checkType("hypot(cast(null as bigint), 1)", "DOUBLE");
+      f.checkNull("hypot(cast(null as bigint), 1)");
+      f.checkNull("hypot(1, cast(null as bigint))");
+      f.checkNull("hypot(cast(null as bigint), cast(null as bigint))");
+      f.checkNull("hypot(cast(null as double), cast(null as double))");
+      f.checkNull("hypot(cast(null as decimal), cast(null as decimal))");
+
+      // unsigned type
+      f.checkScalarApprox("hypot(cast(3 as integer unsigned), cast(4 as integer unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as bigint unsigned), cast(4 as integer unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as bigint unsigned), cast(4 as bigint unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as smallint unsigned), cast(4 as smallint unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as tinyint unsigned), cast(4 as tinyint unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+
+      // mixed type
+      f.checkScalarApprox("hypot(cast(3 as tinyint), cast(4 as tinyint unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as bigint), cast(4 as tinyint unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+      f.checkScalarApprox("hypot(cast(3 as double), cast(4 as tinyint unsigned))",
+          "DOUBLE NOT NULL", isWithin(5.0000d, 0.0001d));
+    };
+    f0.forEachLibrary(list(SqlLibrary.SPARK, SqlLibrary.CLICKHOUSE), consumer);
+  }
+
   @Test void testInfinity() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("cast('Infinity' as double)", "Infinity",

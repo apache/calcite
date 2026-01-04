@@ -4319,6 +4319,18 @@ public class SqlFunctions {
     return CombinatoricsUtils.factorial(b0);
   }
 
+  /** SQL <code>HYPOT</code> operator applied to double values. */
+  public static double hypot(double a, double b) {
+    return Math.hypot(a, b);
+  }
+
+  /** SQL <code>HYPOT</code> operator applied to general numeric values. */
+  public static double hypot(Object a, Object b) {
+    final Number left = (Number) a;
+    final Number right = (Number) b;
+    return hypot(left.doubleValue(), right.doubleValue());
+  }
+
   /** SQL <code>IS_INF</code> operator applied to BigDecimal values. */
   public static boolean isInf(BigDecimal b0) {
     return Double.isInfinite(b0.doubleValue());

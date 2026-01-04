@@ -598,6 +598,7 @@ public enum BuiltInMethod {
   TAND(SqlFunctions.class, "tand", double.class),
   TANH(SqlFunctions.class, "tanh", long.class),
   SINH(SqlFunctions.class, "sinh", long.class),
+  HYPOT(SqlFunctions.class, "hypot", double.class, double.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
   TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,
