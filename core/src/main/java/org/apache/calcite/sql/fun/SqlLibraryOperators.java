@@ -2562,6 +2562,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.STRING);
 
+  /** The {@code HYPOT(numeric1, numeric2)} function; returns
+   * sqrt(numeric1^2 + numeric2^2) without intermediate overflow or underflow. */
+  @LibraryOperator(libraries = {SPARK, CLICKHOUSE})
+  public static final SqlFunction HYPOT =
+      SqlBasicFunction.create("HYPOT",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL, SPARK, HIVE})
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",

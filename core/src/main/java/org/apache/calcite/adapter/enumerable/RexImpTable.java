@@ -225,6 +225,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_HEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.GETBIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.HEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.HYPOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_INF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_NAN;
@@ -880,6 +881,7 @@ public class RexImpTable {
       defineMethod(CSCH, BuiltInMethod.CSCH.method, NullPolicy.STRICT);
       defineMethod(DEGREES, BuiltInMethod.DEGREES.method, NullPolicy.STRICT);
       defineMethod(FACTORIAL, BuiltInMethod.FACTORIAL.method, NullPolicy.STRICT);
+      defineMethod(HYPOT, BuiltInMethod.HYPOT.method, NullPolicy.STRICT);
       defineMethod(IS_INF, BuiltInMethod.IS_INF.method, NullPolicy.STRICT);
       defineMethod(IS_NAN, BuiltInMethod.IS_NAN.method, NullPolicy.STRICT);
       defineMethod(POW, BuiltInMethod.POWER.method, NullPolicy.STRICT);
