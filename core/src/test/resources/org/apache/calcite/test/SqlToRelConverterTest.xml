@@ -1880,6 +1880,21 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], flattened=
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDistinctOrderByRand">
+    <Resource name="sql">
+      <![CDATA[select distinct deptno from emp order by rand()]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[RAND()])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDoNotPushDownJoinCondition">
     <Resource name="sql">
       <![CDATA[select *

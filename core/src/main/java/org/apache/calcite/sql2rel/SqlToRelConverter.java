@@ -864,6 +864,31 @@ public class SqlToRelConverter {
       throw new IllegalArgumentException("rel must not be null");
     }
     final RelNode rel = bb.root;
+    int groupCount = rel.getRowType().getFieldCount();
+    if (bb.scope != null && bb.scope.getNode() instanceof SqlSelect) {
+      groupCount = validator().getValidatedNodeType(bb.scope.getNode()).getFieldCount();
+    }
+    distinctify(bb, checkForDupExprs, groupCount);
+  }
+
+  /**
+   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
+   * a relational expression to make the results unique.
+   *
+   * <p>If the SELECT clause contains duplicate expressions, adds
+   * {@link org.apache.calcite.rel.logical.LogicalProject}s so that we are
+   * grouping on the minimal set of keys. The performance gain isn't huge, but
+   * it is difficult to detect these duplicate expressions later.
+   *
+   * @param bb               Blackboard
+   * @param checkForDupExprs Check for duplicate expressions
+   * @param groupCount       Number of fields in the SELECT clause
+   */
+  private void distinctify(
+      Blackboard bb,
+      boolean checkForDupExprs,
+      int groupCount) {
+    final RelNode rel = bb.root();
     if (checkForDupExprs && (rel instanceof LogicalProject)) {
       LogicalProject project = (LogicalProject) rel;
       final List<RexNode> projectExprs = project.getProjects();
@@ -879,8 +904,21 @@ public class SqlToRelConverter {
         }
       }
       if (dupCount == 0) {
-        distinctify(bb, false);
+        distinctify(bb, false, groupCount);
         return;
+      }
+
+      // Calculate the number of unique grouping columns in the SELECT list.
+      // 'origins.get(i)' is the index of the first occurrence of the i-th expression.
+      // If 'origins.get(i) == i', it means this is the first time we've seen this
+      // expression, so we count it as a unique grouping column.
+      // For example, SELECT DISTINCT x, y, x has groupCount 3, origins [0, 1, 0],
+      // and newGroupCount 2 (only i = 0 and i = 1 satisfy origins.get(i) == i).
+      int newGroupCount = 0;
+      for (int i = 0; i < groupCount; i++) {
+        if (origins.get(i) == i) {
+          newGroupCount++;
+        }
       }
 
       final Map<Integer, Integer> squished = new HashMap<>();
@@ -896,7 +934,7 @@ public class SqlToRelConverter {
           LogicalProject.create(rel, ImmutableList.of(),
               newProjects.leftList(), newProjects.rightList(),
               project.getVariablesSet());
-      distinctify(bb, false);
+      distinctify(bb, false, newGroupCount);
       final RelNode rel3 = bb.root();
 
       // Create the expressions to reverse the mapping.
@@ -921,12 +959,78 @@ public class SqlToRelConverter {
     }
 
     // Usual case: all expressions in the SELECT clause are different.
-    final ImmutableBitSet groupSet =
-        ImmutableBitSet.range(rel.getRowType().getFieldCount());
+    final int totalFieldCount = rel.getRowType().getFieldCount();
+    final ImmutableBitSet.Builder groupSetBuilder = ImmutableBitSet.builder();
+    // The first groupCount columns are the columns in the user's SELECT list
+    // and must be part of the group set.
+    for (int i = 0; i < groupCount; i++) {
+      groupSetBuilder.set(i);
+    }
+    // For ORDER BY columns, only deterministic expressions can be in the group set.
+    // Non-deterministic functions like RAND() would make every row unique,
+    // breaking DISTINCT semantics (e.g., SELECT DISTINCT deptno ... ORDER BY RAND()).
+    for (int i = groupCount; i < totalFieldCount; i++) {
+      RexNode expr = (rel instanceof Project)
+          ? ((Project) rel).getProjects().get(i) : null;
+      if (expr == null || RexUtil.isDeterministic(expr)) {
+        groupSetBuilder.set(i);
+      }
+    }
+    final ImmutableBitSet groupSet = groupSetBuilder.build();
+    ImmutableBitSet aggregateGroupSet = groupSet;
+    if (groupSet.cardinality() < totalFieldCount && rel instanceof Project) {
+      // Trim the input project to remove unused non-deterministic expressions.
+      // This avoids evaluating them twice (once below the aggregate and once above).
+      final Project project = (Project) rel;
+      final List<RexNode> newBottomProjects = new ArrayList<>();
+      final List<String> newBottomNames = new ArrayList<>();
+      for (int i = 0; i < totalFieldCount; i++) {
+        if (groupSet.get(i)) {
+          newBottomProjects.add(project.getProjects().get(i));
+          newBottomNames.add(rel.getRowType().getFieldNames().get(i));
+        }
+      }
+      RelNode inputRel =
+          LogicalProject.create(project.getInput(), project.getHints(),
+              newBottomProjects, newBottomNames, project.getVariablesSet());
+      bb.setRoot(inputRel, false);
+      aggregateGroupSet = ImmutableBitSet.range(newBottomProjects.size());
+    }
+
     bb.setRoot(
-        createAggregate(bb, groupSet, ImmutableList.of(groupSet),
+        createAggregate(bb, aggregateGroupSet, ImmutableList.of(aggregateGroupSet),
             ImmutableList.of()),
         false);
+
+    if (groupSet.cardinality() < totalFieldCount) {
+      final RelNode aggregate = bb.root();
+      final List<RexNode> newProjects = new ArrayList<>();
+      final List<String> newNames = rel.getRowType().getFieldNames();
+      final RexShuttle shuttle = new RexShuttle() {
+        @Override public RexNode visitInputRef(RexInputRef inputRef) {
+          int newIdx = groupSet.indexOf(inputRef.getIndex());
+          if (newIdx >= 0) {
+            return rexBuilder.makeInputRef(aggregate, newIdx);
+          }
+          return super.visitInputRef(inputRef);
+        }
+      };
+      for (int i = 0; i < totalFieldCount; i++) {
+        int newIdx = groupSet.indexOf(i);
+        if (newIdx >= 0) {
+          newProjects.add(rexBuilder.makeInputRef(aggregate, newIdx));
+        } else {
+          // If we are here, it means this column was excluded from the groupSet
+          // because it was non-deterministic. Such columns must come from a Project.
+          RexNode expr = ((Project) rel).getProjects().get(i);
+          newProjects.add(expr.accept(shuttle));
+        }
+      }
+      bb.setRoot(
+          LogicalProject.create(aggregate, ImmutableList.of(), newProjects, newNames,
+              ImmutableSet.of()),
+          false);
+    }
   }
 
   /**
