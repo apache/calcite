@@ -11175,6 +11175,29 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7355">[CALCITE-7355]
+   * RelToSqlConverter throws exception
+   * when the join condition contains a correlated subquery</a>. */
+  @Test void testCorrelateInJoinCondition() {
+    final String sql = "SELECT E.EMPNO\n"
+        + "FROM EMP E\n"
+        + "JOIN DEPT D ON E.DEPTNO = D.DEPTNO\n"
+        + "AND D.DEPTNO = (\n"
+        + "  SELECT MIN(D_INNER.DEPTNO)\n"
+        + "  FROM DEPT D_INNER\n"
+        + "  WHERE D_INNER.DEPTNO = E.DEPTNO)";
+    final String expected = "SELECT \"EMP\".\"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\""
+        + " AND \"DEPT\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
+        + "FROM \"SCOTT\".\"DEPT\"\nWHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
