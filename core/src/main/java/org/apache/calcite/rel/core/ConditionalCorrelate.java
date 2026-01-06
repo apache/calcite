@@ -22,8 +22,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
 import java.util.List;
 
@@ -68,6 +74,22 @@ public abstract class ConditionalCorrelate extends Correlate {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .itemIf("condition", condition, !condition.isAlwaysTrue());
+  }
+
+  @Override protected RelDataType deriveRowType() {
+    if (joinType == JoinRelType.LEFT_MARK) {
+      RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
+      final String markColName =
+          SqlValidatorUtil.uniquify("markCol", Sets.newHashSet(left.getRowType().getFieldNames()),
+              SqlValidatorUtil.EXPR_SUGGESTER);
+      RelDataType rightType =
+          typeFactory.createStructType(
+              ImmutableList.of(condition.getType()),
+              ImmutableList.of(markColName));
+      return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
+          rightType, joinType, typeFactory, null, ImmutableList.of());
+    }
+    return super.deriveRowType();
   }
 
   @Override public RexNode getCondition() {
