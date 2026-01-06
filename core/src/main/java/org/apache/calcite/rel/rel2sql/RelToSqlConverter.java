@@ -236,6 +236,7 @@ public class RelToSqlConverter extends SqlImplementor
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
+    parseCorrelTable(e, leftContext.implementor().joinContext(leftContext, rightContext));
     final SqlNode sqlCondition;
     final JoinConditionType condType;
     JoinType joinType = joinType(e.getJoinType());
@@ -1434,6 +1435,20 @@ public class RelToSqlConverter extends SqlImplementor
   private void parseCorrelTable(RelNode relNode, Result x) {
     for (CorrelationId id : relNode.getVariablesSet()) {
       correlTableMap.put(id, x.qualifiedContext());
+    }
+  }
+
+  /**
+   * Populate correlation table information and stores it in the correlation table map.
+   * Iterates through all variables in the relational node and maps each {@link CorrelationId}
+   * to its corresponding {@link Context} information.
+   *
+   * @param relNode The relational node containing the variable set to be parsed
+   * @param context The current context information used to establish mapping with correlation IDs
+   */
+  private void parseCorrelTable(RelNode relNode, Context context) {
+    for (CorrelationId id : relNode.getVariablesSet()) {
+      correlTableMap.put(id, context);
     }
   }
 
