@@ -5705,6 +5705,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     expr(expr).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5093">[CALCITE-5093]
+   * Quantified comparison operators (e.g. ANY) should support ARRAY arguments</a>. */
+  @Test void testArrayType() {
+    String expr = "1 = any(array[1, 2, 3])";
+    expr(expr).withExpand(false).ok();
+  }
+
   @Test void testFunctionExprInOver() {
     String sql = "select ename, row_number() over(partition by char_length(ename)\n"
         + " order by deptno desc) as rn\n"

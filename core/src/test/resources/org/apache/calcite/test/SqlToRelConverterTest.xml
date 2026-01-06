@@ -619,6 +619,16 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayType">
+    <Resource name="sql">
+      <![CDATA[1 = any(array[1, 2, 3])]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+= SOME(1, ARRAY(1, 2, 3))
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAsOfCast">
     <Resource name="sql">
       <![CDATA[SELECT * FROM (SELECT CAST(deptno % 10 AS BIGINT) as m, CAST(deptno AS BIGINT) as deptno FROM dept) D
