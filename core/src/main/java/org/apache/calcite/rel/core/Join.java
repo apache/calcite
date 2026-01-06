@@ -190,6 +190,13 @@ public abstract class Join extends BiRel implements Hintable {
             + " failures in condition " + condition);
       }
     }
+    if (joinType == JoinRelType.LEFT_MARK
+        && joinInfo.nullExclusionFlags.contains(true)
+        && !joinInfo.nonEquiConditions.isEmpty()) {
+      return litmus.fail("Left mark join is produced by rewriting IN/SOME/EXISTS "
+          + "subqueries, it will never contain both not null-safe join keys and non-equi "
+          + "predicates.");
+    }
     return litmus.succeed();
   }
 
@@ -260,6 +267,10 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   @Override protected RelDataType deriveRowType() {
+    if (joinType == JoinRelType.LEFT_MARK) {
+      return SqlValidatorUtil.createMarkJoinType(getCluster().getTypeFactory(), left.getRowType(),
+          condition.getType(), getSystemFieldList());
+    }
     return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
         right.getRowType(), joinType, getCluster().getTypeFactory(), null,
         getSystemFieldList());

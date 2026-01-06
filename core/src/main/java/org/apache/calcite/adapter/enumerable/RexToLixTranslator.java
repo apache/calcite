@@ -1211,6 +1211,13 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   public static Expression translateCondition(RexProgram program,
       JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
       Function1<String, InputGetter> correlates, SqlConformance conformance) {
+    return translateCondition(program, typeFactory, list, inputGetter,
+        correlates, conformance, false);
+  }
+
+  public static Expression translateCondition(RexProgram program,
+      JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
+      Function1<String, InputGetter> correlates, SqlConformance conformance, boolean nullable) {
     RexLocalRef condition = program.getCondition();
     if (condition == null) {
       return RexImpTable.TRUE_EXPR;
@@ -1222,7 +1229,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     translator = translator.setCorrelates(correlates);
     return translator.translate(
         condition,
-        RexImpTable.NullAs.FALSE);
+        nullable ? RexImpTable.NullAs.NULL : RexImpTable.NullAs.FALSE);
   }
 
   /** Returns whether an expression is nullable.

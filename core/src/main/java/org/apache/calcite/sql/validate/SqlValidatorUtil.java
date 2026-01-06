@@ -57,7 +57,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -557,15 +556,6 @@ public class SqlValidatorUtil {
     case ANTI:
       rightType = null;
       break;
-    case LEFT_MARK:
-      final String markColName =
-          SqlValidatorUtil.uniquify("markCol", Sets.newHashSet(leftType.getFieldNames()),
-                  SqlValidatorUtil.EXPR_SUGGESTER);
-      rightType =
-          typeFactory.createStructType(
-              ImmutableList.of(typeFactory.createSqlType(SqlTypeName.BOOLEAN)),
-              ImmutableList.of(markColName));
-      break;
     default:
       break;
     }
@@ -625,6 +615,41 @@ public class SqlValidatorUtil {
       nameList = fieldNameList;
     }
     return typeFactory.createStructType(typeList, nameList);
+  }
+
+  /**
+   * Returns the type of the result collection produced by a mark join. Taking LEFT_MARK join as an
+   * example, its output is all rows from the left side and creates a new attribute to mark a tuple
+   * as having join partners from right side or not.
+   *
+   * @param typeFactory         Type factory
+   * @param inputType           Type of lhs/rhs of the mark join
+   * @param joinConditionType   Type of the join condition
+   * @param systemFieldList     List of system fields that will be prefixed to output row type;
+   *                            typically empty but must not be null
+   * @return  mark join type
+   */
+  public static RelDataType createMarkJoinType(
+      RelDataTypeFactory typeFactory,
+      RelDataType inputType,
+      RelDataType joinConditionType,
+      List<RelDataTypeField> systemFieldList) {
+    final String markerName =
+        SqlValidatorUtil.uniquify("markCol", Sets.newHashSet(inputType.getFieldNames()),
+            SqlValidatorUtil.EXPR_SUGGESTER);
+    // conceptually the type of marker is a three-valued boolean, but it can be simplified to a
+    // two-valued boolean in specific cases (e.g., rewriting from an EXISTS subquery). Simple
+    // defining the marker type as nullable boolean might cause type mismatch errors after rewriting
+    // some subqueries (such as EXISTS subquery).
+    // When deriving the type of LEFT_MARK join, we no longer know which subquery it was
+    // rewritten from, but that information is implicit in the join condition. For example, after
+    // rewriting and decorrelating an EXISTS (correlated) subquery, the condition will only contain
+    // IS NOT DISTINCT FROM. Therefore, we derive the marker type from the condition.
+    final RelDataType markerType =
+        typeFactory.createStructType(
+            ImmutableList.of(joinConditionType),
+            ImmutableList.of(markerName));
+    return createJoinType(typeFactory, inputType, markerType, null, systemFieldList);
   }
 
   private static void addFields(List<RelDataTypeField> fieldList,
