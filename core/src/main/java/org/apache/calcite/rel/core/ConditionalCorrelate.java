@@ -22,8 +22,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -68,6 +72,12 @@ public abstract class ConditionalCorrelate extends Correlate {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .itemIf("condition", condition, !condition.isAlwaysTrue());
+  }
+
+  @Override protected RelDataType deriveRowType() {
+    assert joinType == JoinRelType.LEFT_MARK;
+    return SqlValidatorUtil.createMarkJoinType(getCluster().getTypeFactory(), left.getRowType(),
+        condition.getType(), ImmutableList.of());
   }
 
   @Override public RexNode getCondition() {

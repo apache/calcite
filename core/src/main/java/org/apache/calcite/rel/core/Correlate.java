@@ -170,7 +170,6 @@ public abstract class Correlate extends BiRel implements Hintable {
     switch (joinType) {
     case LEFT:
     case INNER:
-    case LEFT_MARK:
       return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
           right.getRowType(), joinType,
           getCluster().getTypeFactory(), null,

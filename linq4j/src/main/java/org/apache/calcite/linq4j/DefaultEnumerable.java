@@ -30,6 +30,7 @@ import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
 import org.apache.calcite.linq4j.function.NullableFloatFunction1;
 import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
 import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
@@ -427,6 +428,24 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
         generateNullsOnRight, predicate);
+  }
+
+  @Override public <TInner, TKey, TNsKey, TResult> Enumerable<TResult> leftMarkHashJoin(
+      Enumerable<TInner> inner,
+      Function1<T, TKey> outerKeyNullAwareSelector,
+      Function1<TInner, TKey> innerKeyNullAwareSelector,
+      @Nullable Function1<T, TNsKey> outerNullSafeKeySelector,
+      @Nullable Function1<TInner, TNsKey> innerNullSafeKeySelector,
+      boolean atMostOneNotNullSafeKey,
+      Function2<T, @Nullable Boolean, TResult> resultSelector,
+      @Nullable EqualityComparer<TKey> comparer,
+      @Nullable EqualityComparer<TNsKey> nullSafeComparer,
+      @Nullable NullablePredicate2<T, TInner> nonEquiPredicate,
+      NullablePredicate2<T, TInner> equiPredicate) {
+    return EnumerableDefaults.leftMarkHashJoin(getThis(), inner, outerKeyNullAwareSelector,
+        innerKeyNullAwareSelector, outerNullSafeKeySelector, innerNullSafeKeySelector,
+        atMostOneNotNullSafeKey, resultSelector, comparer, nullSafeComparer,
+        nonEquiPredicate, equiPredicate);
   }
 
   @Override public <TInner, TResult> Enumerable<TResult> correlateJoin(
