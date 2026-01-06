@@ -57,7 +57,6 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -68,7 +67,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -556,15 +554,6 @@ public class SqlValidatorUtil {
     case SEMI:
     case ANTI:
       rightType = null;
-      break;
-    case LEFT_MARK:
-      final String markColName =
-          SqlValidatorUtil.uniquify("markCol", Sets.newHashSet(leftType.getFieldNames()),
-                  SqlValidatorUtil.EXPR_SUGGESTER);
-      rightType =
-          typeFactory.createStructType(
-              ImmutableList.of(typeFactory.createSqlType(SqlTypeName.BOOLEAN)),
-              ImmutableList.of(markColName));
       break;
     default:
       break;

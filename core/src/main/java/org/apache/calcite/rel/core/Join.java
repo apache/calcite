@@ -40,6 +40,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
@@ -190,6 +191,13 @@ public abstract class Join extends BiRel implements Hintable {
             + " failures in condition " + condition);
       }
     }
+    if (joinType == JoinRelType.LEFT_MARK
+        && joinInfo.nullExclusionFlags.contains(true)
+        && !joinInfo.nonEquiConditions.isEmpty()) {
+      return litmus.fail("Left mark join is produced by rewriting IN/SOME/EXISTS "
+          + "subqueries, it will never contain both not null-safe join keys and non-equi "
+          + "predicates.");
+    }
     return litmus.succeed();
   }
 
@@ -260,9 +268,20 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   @Override protected RelDataType deriveRowType() {
+    RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
+    RelDataType rightType = right.getRowType();
+    if (joinType == JoinRelType.LEFT_MARK) {
+      final String markColName =
+          SqlValidatorUtil.uniquify("markCol", Sets.newHashSet(left.getRowType().getFieldNames()),
+              SqlValidatorUtil.EXPR_SUGGESTER);
+      rightType =
+          typeFactory.createStructType(
+              ImmutableList.of(condition.getType()),
+              ImmutableList.of(markColName));
+
+    }
     return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
-        right.getRowType(), joinType, getCluster().getTypeFactory(), null,
-        getSystemFieldList());
+        rightType, joinType, typeFactory, null, getSystemFieldList());
   }
 
   /**

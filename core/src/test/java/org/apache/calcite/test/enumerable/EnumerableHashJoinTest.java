@@ -19,15 +19,30 @@ package org.apache.calcite.test.enumerable;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql2rel.TopDownGeneralDecorrelator;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ReflectiveSchemaWithoutRowCount;
 import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Holder;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -449,6 +464,129 @@ class EnumerableHashJoinTest {
         .returnsUnordered(
             "id1=1; sal1=10",
             "id1=2; sal1=null");
+  }
+
+  @Test void testLeftMarkJoin() {
+    Program subQuery =
+        Programs.hep(
+            ImmutableList.of(CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+    Program toCalc =
+        Programs.hep(
+            ImmutableList.of(CoreRules.PROJECT_TO_CALC, CoreRules.FILTER_TO_CALC,
+                CoreRules.CALC_MERGE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+    Program topDownDecorrelator = new Program() {
+      @Override public RelNode run(RelOptPlanner planner, RelNode rel,
+          RelTraitSet requiredOutputTraits, List<RelOptMaterialization> materializations,
+          List<RelOptLattice> lattices) {
+        final RelBuilder relBuilder =
+            RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+        return TopDownGeneralDecorrelator.decorrelateQuery(rel, relBuilder);
+      }
+    };
+    Program enumerableImpl = Programs.ofRules(EnumerableRules.ENUMERABLE_RULES);
+
+    // case1: left mark join from uncorrelated IN subquery (0 null-safe key, 1 not null-safe key)
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id) as (VALUES (1), (2), (NULL)), t2(id) as (VALUES (2), (3)) "
+                + "select id, id in (select id from t2) as marker from t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableHashJoin(condition=[=($0, $1)], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1 }, { 2 }, { null }]])\n"
+                + "  EnumerableCalc(expr#0=[{inputs}], id=[$t0])\n"
+                + "    EnumerableValues(tuples=[[{ 2 }, { 3 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=true",
+            "id=null; marker=null");
+
+    // case2: left mark join from uncorrelated IN subquery (0 null-safe key, 1 not null-safe key)
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id) as (VALUES (1), (2), (3)), t2(id) as (VALUES (2), (NULL)) "
+                + "select id, id in (select id from t2) as marker from t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableHashJoin(condition=[=($0, $1)], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1 }, { 2 }, { 3 }]])\n"
+                + "  EnumerableCalc(expr#0=[{inputs}], id=[$t0])\n"
+                + "    EnumerableValues(tuples=[[{ 2 }, { null }]])\n")
+        .returnsUnordered(
+            "id=1; marker=null",
+            "id=2; marker=true",
+            "id=3; marker=null");
+
+    // case3: left mark join from uncorrelated IN subquery (0 null-safe key, 2 not null-safe key)
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, sal) as (VALUES (1, 10), (2, NULL), (3, NULL)), "
+                + "t2(id, sal) as (VALUES (1, 10), (2, NULL)) "
+                + "select id, sal, (id, sal) in (select id, sal from t2) as marker from t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1, 10 }, { 2, null }, { 3, null }]])\n"
+                + "  EnumerableCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])\n"
+                + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, null }]])\n")
+        .returnsUnordered(
+            "id=1; sal=10; marker=true",
+            "id=2; sal=null; marker=null",
+            "id=3; sal=null; marker=false");
+
+    // case4: left mark join from correlated IN subquery (1 null-safe key, 1 not null-safe key)
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, sal) as (VALUES (1, 10), (2, 20), (3, NULL)), "
+                + "t2(id, sal) as (VALUES (1, 10), (2, NULL)) "
+                + "select id, sal in (select sal from t2 where t1.id = t2.id) as marker from t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, topDownDecorrelator, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableCalc(expr#0..2=[{inputs}], id=[$t0], marker=[$t2])\n"
+                + "  EnumerableHashJoin(condition=[AND(=($1, $2), IS NOT DISTINCT FROM($0, $3))], joinType=[left_mark])\n"
+                + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { 3, null }]])\n"
+                + "    EnumerableCalc(expr#0..1=[{inputs}], EXPR$1=[$t1], EXPR$0=[$t0])\n"
+                + "      EnumerableValues(tuples=[[{ 1, 10 }, { 2, null }]])\n")
+        .returnsUnordered(
+            "id=1; marker=true",
+            "id=2; marker=null",
+            "id=3; marker=false");
+
+    // case5: left mark join from correlated SOME subquery (1 null-safe key, and non-equi predicate)
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, sal) as (VALUES (1, 10), (2, 20), (NULL, 30)), "
+                + "t2(id, sal) as (VALUES (1, 9), (2, NULL), (NULL, 31)) "
+                + "select id, sal < SOME(select sal from t2 where t1.id = t2.id or t1.id is null) "
+                + "as marker from t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, topDownDecorrelator, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableCalc(expr#0..2=[{inputs}], id=[$t0], marker=[$t2])\n"
+                + "  EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($0, $3), <($1, $2))], joinType=[left_mark])\n"
+                + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { null, 30 }]])\n"
+                + "    EnumerableCalc(expr#0..2=[{inputs}], EXPR$1=[$t1], EXPR$00=[$t2])\n"
+                + "      EnumerableNestedLoopJoin(condition=[OR(=($2, $0), IS NULL($2))], joinType=[inner])\n"
+                + "        EnumerableValues(tuples=[[{ 1, 9 }, { 2, null }, { null, 31 }]])\n"
+                + "        EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t0])\n"
+                + "          EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { null, 30 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=null",
+            "id=null; marker=true");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
