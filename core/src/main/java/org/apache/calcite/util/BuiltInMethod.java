@@ -47,6 +47,7 @@ import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
@@ -212,6 +213,17 @@ public enum BuiltInMethod {
       Function1.class,
       Function1.class, Function2.class, EqualityComparer.class,
       boolean.class, boolean.class, Predicate2.class),
+  LEFT_MARK_HASH_JOIN(ExtendedEnumerable.class, "leftMarkHashJoin", Enumerable.class,
+      Function1.class,            // outer key null aware selector
+      Function1.class,            // inner key null aware selector
+      Function1.class,            // outer null-safe key selector
+      Function1.class,            // inner null-safe key selector
+      boolean.class,              // whether there is at most one not null-safe key
+      Function2.class,            // result selector
+      EqualityComparer.class,     // join keys comparator
+      EqualityComparer.class,     // null-safe join keys comparator
+      NullablePredicate2.class,   // non-equi predicate that can return NULL
+      NullablePredicate2.class),  // equi predicate that can return NULL
   ASOF_JOIN(ExtendedEnumerable.class, "asofJoin", Enumerable.class,
       Function1.class,   // outer key selector
       Function1.class,   // inner key selector
