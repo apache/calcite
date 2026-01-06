@@ -968,5 +968,23 @@ where sal > any (4000, 2000);
 (6 rows)
 
 !ok
+
+# [CALCITE-5093] Quantified comparison operators (e.g. ANY) should support ARRAY arguments
+select 1 = any(Array [1, 2, 3]),
+  4 = any(Array [1, 2, 3]),
+  1 > any(Array [1, 2, 3]),
+  1 < any(Array [1, 2, 3]);
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| true   | false  | false  | true   |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[3], expr#4=[ARRAY($t1, $t2, $t3)], expr#5=[= SOME($t1, $t4)], expr#6=[4], expr#7=[= SOME($t6, $t4)], expr#8=[> SOME($t1, $t4)], expr#9=[< SOME($t1, $t4)], EXPR$0=[$t5], EXPR$1=[$t7], EXPR$2=[$t8], EXPR$3=[$t9])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
 # End some.iq
 
