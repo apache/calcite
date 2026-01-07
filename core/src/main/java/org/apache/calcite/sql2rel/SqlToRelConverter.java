@@ -843,7 +843,13 @@ public class SqlToRelConverter {
 
   /**
    * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
-   * a relational expression to make the results unique.
+   * an {@link org.apache.calcite.rel.core.Aggregate} to make the results unique.
+   *
+   * <p>For example, {@code SELECT DISTINCT x FROM t ORDER BY y} is converted
+   * to an {@code Aggregate} on {@code (x, y)} if {@code y} is deterministic.
+   * If {@code y} is non-deterministic (e.g. {@code RAND()}), it is converted
+   * to an {@code Aggregate} on {@code x}, and {@code y} is applied over the
+   * result.
    *
    * <p>If the SELECT clause contains duplicate expressions, adds
    * {@link org.apache.calcite.rel.logical.LogicalProject}s so that we are
@@ -873,7 +879,13 @@ public class SqlToRelConverter {
 
   /**
    * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
-   * a relational expression to make the results unique.
+   * an {@link org.apache.calcite.rel.core.Aggregate} to make the results unique.
+   *
+   * <p>For example, {@code SELECT DISTINCT x FROM t ORDER BY y} is converted
+   * to an {@code Aggregate} on {@code (x, y)} if {@code y} is deterministic.
+   * If {@code y} is non-deterministic (e.g. {@code RAND()}), it is converted
+   * to an {@code Aggregate} on {@code x}, and {@code y} is applied over the
+   * result.
    *
    * <p>If the SELECT clause contains duplicate expressions, adds
    * {@link org.apache.calcite.rel.logical.LogicalProject}s so that we are
@@ -960,6 +972,7 @@ public class SqlToRelConverter {
 
     // Usual case: all expressions in the SELECT clause are different.
     final int totalFieldCount = rel.getRowType().getFieldCount();
+    final Project project = rel instanceof Project ? (Project) rel : null;
     final ImmutableBitSet.Builder groupSetBuilder = ImmutableBitSet.builder();
     // The first groupCount columns are the columns in the user's SELECT list
     // and must be part of the group set.
@@ -970,18 +983,17 @@ public class SqlToRelConverter {
     // Non-deterministic functions like RAND() would make every row unique,
     // breaking DISTINCT semantics (e.g., SELECT DISTINCT deptno ... ORDER BY RAND()).
     for (int i = groupCount; i < totalFieldCount; i++) {
-      RexNode expr = (rel instanceof Project)
-          ? ((Project) rel).getProjects().get(i) : null;
+      RexNode expr = project != null
+          ? project.getProjects().get(i) : null;
       if (expr == null || RexUtil.isDeterministic(expr)) {
         groupSetBuilder.set(i);
       }
     }
     final ImmutableBitSet groupSet = groupSetBuilder.build();
     ImmutableBitSet aggregateGroupSet = groupSet;
-    if (groupSet.cardinality() < totalFieldCount && rel instanceof Project) {
+    if (groupSet.cardinality() < totalFieldCount && project != null) {
       // Trim the input project to remove unused non-deterministic expressions.
       // This avoids evaluating them twice (once below the aggregate and once above).
-      final Project project = (Project) rel;
       final List<RexNode> newBottomProjects = new ArrayList<>();
       final List<String> newBottomNames = new ArrayList<>();
       for (int i = 0; i < totalFieldCount; i++) {
@@ -1022,7 +1034,7 @@ public class SqlToRelConverter {
         } else {
           // If we are here, it means this column was excluded from the groupSet
           // because it was non-deterministic. Such columns must come from a Project.
-          RexNode expr = ((Project) rel).getProjects().get(i);
+          RexNode expr = castNonNull(project).getProjects().get(i);
           newProjects.add(expr.accept(shuttle));
         }
       }
