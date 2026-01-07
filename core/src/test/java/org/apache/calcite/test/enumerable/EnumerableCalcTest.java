@@ -129,4 +129,26 @@ class EnumerableCalcTest {
         .planContains("input_value != null && input_value.isEmpty()")
         .returnsUnordered("$f0=false", "$f0=true");
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7357">[CALCITE-7357]
+   * Introduce the implementation of rex operator IS DISTINCT FROM</a>. */
+  @Test public void testIsDistinctFromImplementationDirectly() {
+    CalciteAssert.that()
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
+        .withRel(
+            builder -> builder
+                .scan("s", "emps")
+                .project(
+                    builder.field("commission"),
+                    builder.call(
+                        SqlStdOperatorTable.IS_DISTINCT_FROM,
+                        builder.field("commission"),
+                        builder.literal(null)))
+                .build())
+        .returnsUnordered(
+            "commission=1000; $f1=true",
+            "commission=250; $f1=true",
+            "commission=500; $f1=true",
+            "commission=null; $f1=false");
+  }
 }

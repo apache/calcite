@@ -26,6 +26,7 @@ import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -875,11 +876,55 @@ public class EnumUtils {
       return JoinType.ASOF;
     case LEFT_ASOF:
       return JoinType.LEFT_ASOF;
+    case LEFT_MARK:
+      return JoinType.LEFT_MARK;
     default:
       break;
     }
     throw new IllegalStateException(
         "Unable to convert " + joinRelType + " to Linq4j JoinType");
+  }
+
+  /**
+   * Return the result selector of a mark join. It is a Expression that will generate a Function2 in
+   * runtime, the Function2 will concat the left/right side row and the marker.
+   *
+   * @param resultPhysType  Physical type of result
+   * @param inputPhysType   Physical type of lhs/rhs
+   * @return  the result selector of a mark join
+   */
+  static Expression markJoinSelector(PhysType resultPhysType, PhysType inputPhysType) {
+    final List<ParameterExpression> parameters = new ArrayList<>();
+    final ParameterExpression inputParameter =
+        Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "input");
+    final ParameterExpression markerParameter
+        = Expressions.parameter(Boolean.class, "marker");
+    parameters.add(inputParameter);
+    parameters.add(markerParameter);
+
+    final List<Expression> expressions = new ArrayList<>();
+    final int inputFieldCount = inputPhysType.getRowType().getFieldCount();
+    for (int i = 0; i < inputFieldCount; i++) {
+      Expression expression = inputPhysType.fieldReference(inputParameter, i);
+      expressions.add(expression);
+    }
+    expressions.add(markerParameter);
+    return Expressions.lambda(
+        Function2.class,
+        resultPhysType.record(expressions),
+        parameters);
+  }
+
+  static Expression generatePredicate(
+      EnumerableRelImplementor implementor,
+      RexBuilder rexBuilder,
+      RelNode left,
+      RelNode right,
+      PhysType leftPhysType,
+      PhysType rightPhysType,
+      RexNode condition) {
+    return generatePredicate(implementor, rexBuilder, left, right,
+        leftPhysType, rightPhysType, condition, false);
   }
 
   /** Returns a predicate expression based on a join condition. */
@@ -890,7 +935,8 @@ public class EnumUtils {
       RelNode right,
       PhysType leftPhysType,
       PhysType rightPhysType,
-      RexNode condition) {
+      RexNode condition,
+      boolean nullable) {
     final BlockBuilder builder = new BlockBuilder();
     final ParameterExpression left_ =
         Expressions.parameter(leftPhysType.getJavaRowType(), "left");
@@ -913,8 +959,10 @@ public class EnumUtils {
                     ImmutableMap.of(left_, leftPhysType,
                         right_, rightPhysType)),
                 implementor.allCorrelateVariables,
-                implementor.getConformance())));
-    return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
+                implementor.getConformance(),
+                nullable)));
+    Class clazz = nullable ? NullablePredicate2.class : Predicate2.class;
+    return Expressions.lambda(clazz, builder.toBlock(), left_, right_);
   }
 
   /**

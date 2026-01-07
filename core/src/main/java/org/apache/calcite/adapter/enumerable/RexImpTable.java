@@ -429,6 +429,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.HOP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INTERSECTION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_DISTINCT_FROM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_ARRAY;
@@ -1040,6 +1041,7 @@ public class RexImpTable {
       define(IS_FALSE, new IsFalseImplementor());
       define(IS_NOT_FALSE, new IsNotFalseImplementor());
       define(IS_NOT_DISTINCT_FROM, new IsNotDistinctFromImplementor());
+      define(IS_DISTINCT_FROM, new IsDistinctFromImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
       defineReflective(LIKE, BuiltInMethod.LIKE.method,
@@ -4816,10 +4818,64 @@ public class RexImpTable {
           Expressions.condition(left.isNullVariable,
           Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
           Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
-              Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
-                  left.valueVariable, right.valueVariable)));
+              Expressions.condition(
+                  Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
+                      left.valueVariable, right.valueVariable),
+                  BOXED_TRUE_EXPR, BOXED_FALSE_EXPR)));
 
       BlockBuilder builder = translator.getBlockBuilder();
+      final ParameterExpression valueVariable =
+          Expressions.parameter(valueExpression.getType(),
+              builder.newName(variableName + "_value"));
+      final ParameterExpression isNullVariable =
+          Expressions.parameter(Boolean.TYPE,
+              builder.newName(variableName + "_isNull"));
+
+      builder.add(
+          Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+      builder.add(
+          Expressions.declare(Modifier.FINAL, isNullVariable, FALSE_EXPR));
+
+      return new RexToLixTranslator.Result(isNullVariable, valueVariable);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      throw new IllegalStateException("This implementSafe should not be called,"
+          + " please call implement(...)");
+    }
+  }
+
+  /** Implementor for the {@code IS DISTINCT FROM} SQL operator. */
+  private static class IsDistinctFromImplementor extends AbstractRexCallImplementor {
+    IsDistinctFromImplementor() {
+      super("is_distinct_from", NullPolicy.NONE, false);
+    }
+
+    @Override public RexToLixTranslator.Result implement(
+        final RexToLixTranslator translator,
+        final RexCall call,
+        final List<RexToLixTranslator.Result> arguments) {
+      final RexToLixTranslator.Result left = arguments.get(0);
+      final RexToLixTranslator.Result right = arguments.get(1);
+
+      // Generated expression:
+      // left IS NULL ?
+      //   (right IS NULL ? FALSE : TRUE) :    -> when left is null
+      //   (right IS NULL ? TRUE :             -> when left is not null
+      //     !left.equals(right))              -> when both are not null, compare values
+      final Expression equalsExpression =
+          Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
+              left.valueVariable, right.valueVariable);
+      final Expression notEqualsExpression = Expressions.not(equalsExpression);
+      final Expression valueExpression =
+          Expressions.condition(left.isNullVariable,
+              Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR, BOXED_TRUE_EXPR),
+              Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR,
+                  Expressions.condition(notEqualsExpression,
+                      BOXED_TRUE_EXPR, BOXED_FALSE_EXPR)));
+
+      final BlockBuilder builder = translator.getBlockBuilder();
       final ParameterExpression valueVariable =
           Expressions.parameter(valueExpression.getType(),
               builder.newName(variableName + "_value"));
