@@ -195,7 +195,21 @@ class BabelTest {
         });
 
     fixture.withSql("select * exclude (empno, ^foo^) from emp")
-        .fails("SELECT \\* EXCLUDE list contains unknown column\\(s\\): FOO");
+        .fails("SELECT \\* EXCLUDE/EXCEPT list contains unknown column\\(s\\): FOO");
+
+    // Alias form: EXCEPT behaves the same as EXCLUDE
+    fixture.withSql("select * except(empno, deptno) from emp")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("ENAME", "JOB", "MGR", "HIREDATE", "SAL", "COMM", "SLACKER")));
+        });
+
+    fixture.withSql("select * except (empno, ^foo^) from emp")
+        .fails("SELECT \\* EXCLUDE/EXCEPT list contains unknown column\\(s\\): FOO");
 
     fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr)"
             + " from emp e join dept d on e.deptno = d.deptno")
@@ -210,7 +224,23 @@ class BabelTest {
 
     fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr, ^d.deptno^)"
             + " from emp e join dept d on e.deptno = d.deptno")
-        .fails("SELECT \\* EXCLUDE list contains unknown column\\(s\\): D.DEPTNO");
+        .fails("SELECT \\* EXCLUDE/EXCEPT list contains unknown column\\(s\\): D.DEPTNO");
+
+    // Alias form: EXCEPT for table-qualified star
+    fixture.withSql("select e.* except(e.empno, e.ename, e.job, e.mgr)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .type(type -> {
+          final List<String> names = type.getFieldList().stream()
+              .map(RelDataTypeField::getName)
+              .collect(Collectors.toList());
+          assertThat(
+              names, is(
+                  ImmutableList.of("HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER")));
+        });
+
+    fixture.withSql("select e.* except(e.empno, e.ename, e.job, e.mgr, ^d.deptno^)"
+            + " from emp e join dept d on e.deptno = d.deptno")
+        .fails("SELECT \\* EXCLUDE/EXCEPT list contains unknown column\\(s\\): D.DEPTNO");
 
     fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr), d.* exclude(d.name)"
             + " from emp e join dept d on e.deptno = d.deptno")
@@ -242,7 +272,7 @@ class BabelTest {
 
     // To verify that the exclude list contains all columns in the table
     fixture.withSql("select ^*^ exclude(deptno, name) from dept")
-        .fails("SELECT \\* EXCLUDE list cannot exclude all columns");
+        .fails("SELECT \\* EXCLUDE/EXCEPT list cannot exclude all columns");
   }
 
   /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
