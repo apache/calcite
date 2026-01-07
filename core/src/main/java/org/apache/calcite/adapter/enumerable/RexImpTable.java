@@ -429,6 +429,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.HOP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INTERSECTION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_DISTINCT_FROM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_ARRAY;
@@ -1040,6 +1041,7 @@ public class RexImpTable {
       define(IS_FALSE, new IsFalseImplementor());
       define(IS_NOT_FALSE, new IsNotFalseImplementor());
       define(IS_NOT_DISTINCT_FROM, new IsNotDistinctFromImplementor());
+      define(IS_DISTINCT_FROM, new IsDistinctFromImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
       defineReflective(LIKE, BuiltInMethod.LIKE.method,
@@ -4796,10 +4798,11 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code IS NOT DISTINCT FROM} SQL operator. */
-  private static class IsNotDistinctFromImplementor extends AbstractRexCallImplementor {
-    IsNotDistinctFromImplementor() {
-      super("is_not_distinct_from", NullPolicy.NONE, false);
+  /** Base implementation class for the {@code IS DISTINCT FROM}
+   * and {@code IS NOT DISTINCT FROM} operators. */
+  private abstract static class DistinctFromImplementor extends AbstractRexCallImplementor {
+    DistinctFromImplementor(String variableName, NullPolicy nullPolicy, boolean harmonize) {
+      super(variableName, nullPolicy, harmonize);
     }
 
     @Override public RexToLixTranslator.Result implement(final RexToLixTranslator translator,
@@ -4807,17 +4810,7 @@ public class RexImpTable {
       final RexToLixTranslator.Result left = arguments.get(0);
       final RexToLixTranslator.Result right = arguments.get(1);
 
-      // Generated expression:
-      // left IS NULL ?
-      //   (right IS NULL ? TRUE : FALSE) :  -> when left is null
-      //   (right IS NULL ? FALSE :          -> when left is not null
-      //     left.equals(right))             -> when both are not null, compare values
-      final Expression valueExpression =
-          Expressions.condition(left.isNullVariable,
-          Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
-          Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
-              Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
-                  left.valueVariable, right.valueVariable)));
+      final Expression valueExpression = valueExpression(left, right);
 
       BlockBuilder builder = translator.getBlockBuilder();
       final ParameterExpression valueVariable =
@@ -4835,10 +4828,46 @@ public class RexImpTable {
       return new RexToLixTranslator.Result(isNullVariable, valueVariable);
     }
 
+    protected Expression valueExpression(RexToLixTranslator.Result left,
+        RexToLixTranslator.Result right) {
+      // Generated expression:
+      // left IS NULL ?
+      //   (right IS NULL ? TRUE : FALSE) :  -> when left is null
+      //   (right IS NULL ? FALSE :          -> when left is not null
+      //     left.equals(right))             -> when both are not null, compare values
+      return Expressions.condition(left.isNullVariable,
+          Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
+          Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
+              Expressions.condition(
+                  Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
+                      left.valueVariable, right.valueVariable),
+                  BOXED_TRUE_EXPR, BOXED_FALSE_EXPR)));
+    }
+
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       throw new IllegalStateException("This implementSafe should not be called,"
           + " please call implement(...)");
+    }
+  }
+
+  /** Implementor for the {@code IS NOT DISTINCT FROM} SQL operator. */
+  private static class IsNotDistinctFromImplementor extends DistinctFromImplementor {
+    IsNotDistinctFromImplementor() {
+      super("is_not_distinct_from", NullPolicy.NONE, false);
+    }
+  }
+
+  /** Implementor for the {@code IS DISTINCT FROM} SQL operator. */
+  private static class IsDistinctFromImplementor extends DistinctFromImplementor {
+    IsDistinctFromImplementor() {
+      super("is_distinct_from", NullPolicy.NONE, false);
+    }
+
+    @Override protected Expression valueExpression(RexToLixTranslator.Result left,
+        RexToLixTranslator.Result right) {
+      return Expressions.condition(super.valueExpression(left, right),
+          BOXED_FALSE_EXPR, BOXED_TRUE_EXPR);
     }
   }
 
