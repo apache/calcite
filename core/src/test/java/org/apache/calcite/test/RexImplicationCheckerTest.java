@@ -483,13 +483,18 @@ public class RexImplicationCheckerTest {
         hasToString("TRIM('BOTH', 'a', '1111':VARCHAR)"));
   }
 
-  /** Test case for simplifier of ceil/floor. */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2178">[CALCITE-2178]
+   * Extend expression simplifier to work on datetime CEIL/FLOOR functions</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7304">[CALCITE-7304]
+   * Floor/Ceil can not simplify with WEEK TimeUnit</a>. */
   @Test void testSimplifyCeilFloor() {
     // We can add more time units here once they are supported in
     // RexInterpreter, e.g., TimeUnitRange.HOUR, TimeUnitRange.MINUTE,
     // TimeUnitRange.SECOND.
     final ImmutableList<TimeUnitRange> timeUnitRanges =
-        ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.MONTH);
+        ImmutableList.of(TimeUnitRange.YEAR, TimeUnitRange.MONTH, TimeUnitRange.WEEK,
+            TimeUnitRange.HOUR, TimeUnitRange.MINUTE, TimeUnitRange.SECOND);
     final Fixture f = new Fixture();
 
     final RexNode literalTs =

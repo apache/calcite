@@ -2663,6 +2663,7 @@ public class RexSimplify {
     switch (outer) {
     case YEAR:
     case MONTH:
+    case WEEK:
     case DAY:
     case HOUR:
     case MINUTE:
@@ -2673,6 +2674,7 @@ public class RexSimplify {
       case YEAR:
       case QUARTER:
       case MONTH:
+      case WEEK:
       case DAY:
       case HOUR:
       case MINUTE:
@@ -2681,6 +2683,12 @@ public class RexSimplify {
       case MICROSECOND:
         if (inner == TimeUnit.QUARTER) {
           return outer == TimeUnit.YEAR;
+        }
+        if (outer == TimeUnit.WEEK && inner != TimeUnit.YEAR && inner != TimeUnit.MONTH) {
+          return true;
+        }
+        if (inner == TimeUnit.WEEK && outer != TimeUnit.YEAR && outer != TimeUnit.MONTH) {
+          return false;
         }
         return outer.ordinal() <= inner.ordinal();
       default:
