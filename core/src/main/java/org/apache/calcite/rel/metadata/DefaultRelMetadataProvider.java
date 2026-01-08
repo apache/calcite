@@ -62,6 +62,7 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdSelectivity.SOURCE,
             RelMdExplainVisibility.SOURCE,
             RelMdPredicates.SOURCE,
+            RelMdInputFieldsUsed.SOURCE,
             RelMdAllPredicates.SOURCE,
             RelMdCollation.SOURCE,
             RelMdFunctionalDependency.SOURCE));
