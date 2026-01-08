@@ -3606,6 +3606,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "on emp.ename = dept.name")
         .fails(
             "ASOF JOIN MATCH_CONDITION must be a comparison between columns from the two inputs");
+    final String failMessage = "ASOF JOIN condition must be a conjunction of equality comparisons "
+        + "of columns from both sides";
     // match condition does not compare columns from both tables
     sql("select emp.empno from emp asof join dept\n"
         + "match_condition ^emp.deptno < 12^\n"
@@ -3616,29 +3618,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select emp.empno from emp asof join dept\n"
         + "match_condition emp.deptno < dept.deptno\n"
         + "on ^emp.ename < 'foo'^")
-        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+        .fails(failMessage);
     // comparison contains an equality test that does not check both tables joined
     sql("select emp.empno from emp asof join dept\n"
         + "match_condition emp.deptno < dept.deptno\n"
         + "on ^emp.ename = 'foo'^")
-        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+        .fails(failMessage);
     // comparison contains is not a conjunction
     sql("select emp.empno from emp asof join dept\n"
         + "match_condition emp.deptno < dept.deptno\n"
         + "on ^emp.ename = dept.name OR emp.deptno = dept.deptno^")
-        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+        .fails(failMessage);
     // comparison is not a conjunction
     sql("select * from (VALUES(true, false)) AS T0(b0, b1)\n"
         + "asof join (VALUES(false, false)) AS T1(b0, b1)\n"
         + "match_condition T0.b0 < T1.b0\n"
         + "on ^T0.b1 AND T1.b1^")
-        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+        .fails(failMessage);
     // Condition contains a cast that is not applied to a column
     sql("select * from (VALUES(true, false)) AS T0(b0, b1)\n"
         + "asof join (VALUES(false, 1)) AS T1(b0, b1)\n"
         + "match_condition T0.b0 < T1.b0\n"
         + "on ^T0.b1 = CAST(T1.b1 + 1 AS BOOLEAN)^")
-        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+        .fails(failMessage);
   }
 
   /** Test case for
