@@ -1151,7 +1151,7 @@ public interface CalciteResource {
   @BaseMessage("ASOF JOIN MATCH_CONDITION must be a comparison between columns from the two inputs")
   ExInst<SqlValidatorException> asofMatchMustBeComparison();
 
-  @BaseMessage("ASOF JOIN condition must be a conjunction of equality comparisons")
+  @BaseMessage("ASOF JOIN condition must be a conjunction of equality comparisons of columns from both sides")
   ExInst<SqlValidatorException> asofConditionMustBeComparison();
 
   @BaseMessage("ASOF JOIN does not support correlated subqueries")

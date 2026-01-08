@@ -18,6 +18,22 @@
 !use server
 !set outputformat mysql
 
+CREATE TABLE asof_tbl(intt INT, arr VARCHAR ARRAY );
+(0 rows modified)
+
+!update
+
+SELECT * FROM asof_tbl t1
+LEFT ASOF JOIN asof_tbl AS t2
+MATCH_CONDITION (t1.intt >= t2.intt)
+ON t1.arr[2] = t2.arr[2];
+java.sql.SQLException: Error while executing SQL "SELECT * FROM asof_tbl t1
+LEFT ASOF JOIN asof_tbl AS t2
+MATCH_CONDITION (t1.intt >= t2.intt)
+ON t1.arr[2] = t2.arr[2]": From line 4, column 4 to line 4, column 24: ASOF JOIN condition must be a conjunction of equality comparisons of columns from both sides
+
+!error
+
 create type myint1 as int;
 (0 rows modified)
 
