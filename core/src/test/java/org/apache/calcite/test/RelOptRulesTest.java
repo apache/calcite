@@ -11991,4 +11991,46 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateExtractLiteralAggRule1() {
+    final String sql = "select deptno, name = ANY (\n"
+        + "  select mgr from emp)\n"
+        + "from dept";
+    sql(sql)
+        .withSubQueryRules()
+        .withLateDecorrelate(true)
+        .withAfter((fixture, rel) -> {
+          final HepProgram program = HepProgram.builder()
+              .addRuleInstance(CoreRules.AGGREGATE_EXTRACT_LITERAL_AGG)
+              .build();
+          final HepPlanner hep = new HepPlanner(program);
+          hep.setRoot(rel);
+          return hep.findBestExp();
+        })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7242">[CALCITE-7242]
+   * Implement a rule to eliminate LITERAL_AGG so that other databases can handle it</a>. */
+  @Test void testAggregateExtractLiteralAggRule2() {
+    final String sql = "select empno\n"
+        + "from sales.emp\n"
+        + "where deptno in (select deptno from sales.emp where empno < 20)\n"
+        + "or emp.sal < 100";
+    sql(sql)
+        .withSubQueryRules()
+        .withLateDecorrelate(true)
+        .withAfter((fixture, rel) -> {
+          final HepProgram program = HepProgram.builder()
+              .addRuleInstance(CoreRules.AGGREGATE_EXTRACT_LITERAL_AGG)
+              .build();
+          final HepPlanner hep = new HepPlanner(program);
+          hep.setRoot(rel);
+          return hep.findBestExp();
+        })
+        .check();
+  }
 }
