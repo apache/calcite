@@ -812,8 +812,8 @@ public class SqlDialect {
     return rexNode;
   }
 
-  /** Rewrites a boolean literal to 1 or 0. */
-  public SqlNode rewriteBooleanLiteral(SqlNode node) {
+  /** Rewrites a boolean literal. Provides a hook for dialects to rewrite boolean literals. */
+  public SqlNode rewriteBooleanLiteral(SqlNode node, boolean expressionAllowed) {
     return node;
   }
 

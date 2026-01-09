@@ -965,7 +965,7 @@ public class RelToSqlConverter extends SqlImplementor
   private SqlNodeList rewriteValuesBooleanLiterals(SqlNodeList exprList) {
     final List<SqlNode> nodes = new ArrayList<>(exprList.size());
     for (SqlNode node : exprList) {
-      nodes.add(dialect.rewriteBooleanLiteral(node));
+      nodes.add(dialect.rewriteBooleanLiteral(node, false));
     }
     return new SqlNodeList(nodes, POS);
   }

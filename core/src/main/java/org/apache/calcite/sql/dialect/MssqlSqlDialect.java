@@ -200,7 +200,7 @@ public class MssqlSqlDialect extends SqlDialect {
     unparseBoolLiteralToCondition(writer, value);
   }
 
-  @Override public SqlNode rewriteBooleanLiteral(SqlNode node) {
+  @Override public SqlNode rewriteBooleanLiteral(SqlNode node, boolean expressionAllowed) {
     if (node instanceof SqlLiteral) {
       SqlLiteral literal = (SqlLiteral) node;
       if (literal.getTypeName() == SqlTypeName.BOOLEAN) {
