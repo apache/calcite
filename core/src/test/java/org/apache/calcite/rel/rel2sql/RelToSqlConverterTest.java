@@ -11099,6 +11099,19 @@ class RelToSqlConverterTest {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6829">[CALCITE-6829]
+   * MSSQL dialect incorrectly translates of SELECT TRUE</a>. */
+  @Test void testMssqlSelectTrue() {
+    final String query = "SELECT TRUE";
+    final String expected = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
+    sql(query).withMssql().ok(expected);
+
+    final String query2 = "SELECT * FROM (VALUES (TRUE))";
+    final String expected2 = "SELECT *\nFROM (VALUES (1)) AS [t] ([EXPR$0])";
+    sql(query2).withMssql().ok(expected2);
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7319">[CALCITE-7319]
    * FILTER_INTO_JOIN rule loses correlation variable context in HepPlanner</a>. */
   @Test void testFilterIntoJoinMissingVariableCor() {

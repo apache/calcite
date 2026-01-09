@@ -930,6 +930,10 @@ public class SqlPrettyWriter implements SqlWriter {
     return dialect;
   }
 
+  @Override public @Nullable Frame getCurrentFrame() {
+    return listStack.peek();
+  }
+
   @Override public void literal(String s) {
     print(s);
     setNeedWhitespace(true);
@@ -1134,6 +1138,10 @@ public class SqlPrettyWriter implements SqlWriter {
     final @Nullable String keyword;
     final String open;
     final String close;
+
+    @Override public @Nullable FrameType getFrameType() {
+      return frameType;
+    }
 
     private final int left;
     /**
