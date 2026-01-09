@@ -83,6 +83,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -211,6 +212,27 @@ public abstract class QuidemTest {
       paths.add(n2u(f.getAbsolutePath().substring(commonPrefixLength)));
     }
     return paths;
+  }
+
+  /** Debugging helper which returns only a subset of the files produced by {@code data(first)}.
+   *
+   * @param first       File path indicating where IQ files are searched.
+   * @param substring   Only files that contain this substring are returned.
+   * @return            The list of IQ files produced by data(first) which match the restriction.
+   *
+   * <p>I find that often when I debug quidem tests it is handy to only run the currently modified
+   * file.  By replacing the call to data(first) with a call to data(first, restricted) one
+   * can easily just run the new tests.  But do not forget to undo this change when submitting the
+   * final PR! */
+  protected static Collection<String> data(String first, String substring) {
+    List<String> result = data(first)
+        .stream()
+        .filter(s -> s.contains(substring))
+        .collect(Collectors.toList());
+    if (result.isEmpty()) {
+      throw new RuntimeException("Filter is too strict, result is empty");
+    }
+    return result;
   }
 
   protected void checkRun(String path) throws Exception {
