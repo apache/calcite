@@ -1433,6 +1433,18 @@ public class RelMetadataTest {
         .assertThatRowCount(is(EMP_SIZE * 0.2), is(0D), is(Double.POSITIVE_INFINITY));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7365">[CALCITE-7365]
+   * RelMdRowCount ignores estimateRowCount() overrides in SingleRel's subclasses</a>. */
+  @Test void testRowCountCustomSingleRel() {
+    final RelNode scan = sql("select * from emp").toRel();
+    final ExpandingRel expanding =
+        new ExpandingRel(scan.getCluster(), scan.getTraitSet(), scan);
+    final RelMetadataQuery mq = scan.getCluster().getMetadataQuery();
+    final double rowCount = mq.getRowCount(expanding);
+    assertThat(rowCount, is(140D));
+  }
+
   @Test void testRowCountAggregate() {
     final String sql = "select deptno from emp group by deptno";
     sql(sql).assertThatRowCount(is(1.4D), is(0D), is(Double.POSITIVE_INFINITY));
@@ -5406,6 +5418,23 @@ public class RelMetadataTest {
      */
     DummyRelNode(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
       super(cluster, traits, input);
+    }
+  }
+
+  /**
+   * A custom SingleRel that expands row count by a factor of 10.
+   * Used to test that estimateRowCount() overrides are respected
+   * by the metadata system.
+   */
+  private static class ExpandingRel extends SingleRel {
+    private static final double EXPANSION_FACTOR = 10.0;
+
+    ExpandingRel(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+      super(cluster, traits, input);
+    }
+
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      return mq.getRowCount(input) * EXPANSION_FACTOR;
     }
   }
 

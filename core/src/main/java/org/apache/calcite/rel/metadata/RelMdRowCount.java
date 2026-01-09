@@ -191,9 +191,10 @@ public class RelMdRowCount
     return sampleRate * inputRowCount;
   }
 
-  // Covers Converter, Interpreter
+  // Covers Converter, Interpreter, and custom SingleRel subclasses
+  // Delegates to estimateRowCount() to allow subclasses to provide custom estimates
   public @Nullable Double getRowCount(SingleRel rel, RelMetadataQuery mq) {
-    return mq.getRowCount(rel.getInput());
+    return rel.estimateRowCount(mq);
   }
 
   public @Nullable Double getRowCount(Join rel, RelMetadataQuery mq) {
