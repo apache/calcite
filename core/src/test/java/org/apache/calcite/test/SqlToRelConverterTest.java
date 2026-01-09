@@ -882,6 +882,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7366">[CALCITE-7366]
+   * RexLiteral.valueMatchesType throws for a MAP type</a>. */
+  @Test void testStringToMapCast() {
+    final String sql = "SELECT CAST('a' AS MAP<INT, INT>)";
+    sql(sql).ok();
+  }
+
   @Test void testGroupBug281b() {
     // Try to confuse it with spurious columns.
     final String sql = "select name, foo from (\n"
