@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -54,6 +55,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -599,21 +601,26 @@ public class RelMdPredicates
                 eqConstant(values, rexBuilder, i, rexLiteral));
           }
         } else {
-          RexUnknownAs rexUnknownAs = RexUnknownAs.UNKNOWN;
-          RangeSet<Comparable> rangeSet = TreeRangeSet.create();
-          for (RexLiteral rexLiteral : rexLiteralSet) {
-            if (RexUtil.isNull(rexLiteral)) {
-              rexUnknownAs = RexUnknownAs.TRUE;
-              continue;
+          final RelDataType type = values.getRowType().getFieldList().get(i).getType();
+          if (!type.isStruct()
+              && !SqlTypeUtil.isCollection(type)
+              && !SqlTypeUtil.isMap(type)) {
+            RexUnknownAs rexUnknownAs = RexUnknownAs.UNKNOWN;
+            RangeSet<Comparable> rangeSet = TreeRangeSet.create();
+            for (RexLiteral rexLiteral : rexLiteralSet) {
+              if (RexUtil.isNull(rexLiteral)) {
+                rexUnknownAs = RexUnknownAs.TRUE;
+                continue;
+              }
+              rangeSet.add(
+                  Range.singleton(requireNonNull(rexLiteral.getValueAs(Comparable.class))));
             }
-            rangeSet.add(Range.singleton(requireNonNull(rexLiteral.getValueAs(Comparable.class))));
+            final Sarg sarg = Sarg.of(rexUnknownAs, rangeSet);
+            predicates.add(
+                i, rexBuilder.makeCall(SqlStdOperatorTable.SEARCH,
+                    rexBuilder.makeInputRef(values, i),
+                    rexBuilder.makeSearchArgumentLiteral(sarg, type)));
           }
-          final Sarg sarg = Sarg.of(rexUnknownAs, rangeSet);
-          predicates.add(
-              i, rexBuilder.makeCall(SqlStdOperatorTable.SEARCH,
-                  rexBuilder.makeInputRef(values, i),
-                  rexBuilder.makeSearchArgumentLiteral(sarg,
-                      values.getRowType().getFieldList().get(i).getType())));
         }
       }
       return RelOptPredicateList.of(rexBuilder, predicates);

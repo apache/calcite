@@ -31,7 +31,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -2125,6 +2124,16 @@ public class SqlFunctions {
     return b0.equals(b1);
   }
 
+  /** SQL <code>=</code> operator applied to List values. */
+  public static boolean eq(List<?> b0, List<?> b1) {
+    return eqNullable(b0, b1);
+  }
+
+  /** SQL <code>=</code> operator applied to Map values. */
+  public static boolean eq(Map<?, ?> b0, Map<?, ?> b1) {
+    return eqNullable(b0, b1);
+  }
+
   /** SQL <code>=</code> operator applied to String values with a certain Comparator. */
   public static boolean eq(String s0, String s1, Comparator<String> comparator) {
     return comparator.compare(s0, s1) == 0;
@@ -2133,22 +2142,7 @@ public class SqlFunctions {
   /** SQL <code>=</code> operator applied to Object values (at least one operand
    * has ANY type; neither may be null). */
   public static boolean eqAny(Object b0, Object b1) {
-    if (b0.getClass().equals(b1.getClass())) {
-      // The result of SqlFunctions.eq(BigDecimal, BigDecimal) makes more sense
-      // than BigDecimal.equals(BigDecimal). So if both of types are BigDecimal,
-      // we just use SqlFunctions.eq(BigDecimal, BigDecimal).
-      if (BigDecimal.class.isInstance(b0)) {
-        return eq((BigDecimal) b0, (BigDecimal) b1);
-      } else {
-        return b0.equals(b1);
-      }
-    } else if (allAssignable(Number.class, b0, b1)) {
-      return eq(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
-    }
-    // We shouldn't rely on implementation even though overridden equals can
-    // handle other types which may create worse result: for example,
-    // a.equals(b) != b.equals(a)
-    return false;
+    return eqNullable(b0, b1);
   }
 
   /** Returns whether two objects can both be assigned to a given class. */
@@ -2169,6 +2163,21 @@ public class SqlFunctions {
     return !eq(b0, b1);
   }
 
+  /** SQL <code>&lt;gt;</code> operator applied to List values. */
+  public static boolean ne(List<?> b0, List<?> b1) {
+    return !eqNullable(b0, b1);
+  }
+
+  /** SQL <code>&lt;gt;</code> operator applied to Map values. */
+  public static boolean ne(Map<?, ?> b0, Map<?, ?> b1) {
+    return !eqNullable(b0, b1);
+  }
+
+  /** SQL <code>&lt;gt;</code> operator applied to Object[] values. */
+  public static boolean ne(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
+    return !eqNullable(b0, b1);
+  }
+
   /** SQL <code>&lt;gt;</code> operator applied to OString values with a certain Comparator. */
   public static boolean ne(String s0, String s1, Comparator<String> comparator) {
     return !eq(s0, s1, comparator);
@@ -2178,6 +2187,144 @@ public class SqlFunctions {
    * operand has ANY type, including String; neither may be null). */
   public static boolean neAny(Object b0, Object b1) {
     return !eqAny(b0, b1);
+  }
+
+  private static boolean eqNullable(@Nullable Object b0, @Nullable Object b1) {
+    if (b0 == b1) {
+      return true;
+    }
+    if (b0 == null || b1 == null) {
+      return false;
+    }
+    if (b0 instanceof List && b1 instanceof List) {
+      final List<?> l0 = (List<?>) b0;
+      final List<?> l1 = (List<?>) b1;
+      if (l0.size() != l1.size()) {
+        return false;
+      }
+      for (int i = 0; i < l0.size(); i++) {
+        if (!eqNullable(l0.get(i), l1.get(i))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (b0 instanceof Map && b1 instanceof Map) {
+      final Map<?, ?> m0 = (Map<?, ?>) b0;
+      final Map<?, ?> m1 = (Map<?, ?>) b1;
+      if (m0.size() != m1.size()) {
+        return false;
+      }
+      final Iterator<? extends Map.Entry<?, ?>> i0 = m0.entrySet().iterator();
+      final Iterator<? extends Map.Entry<?, ?>> i1 = m1.entrySet().iterator();
+      while (i0.hasNext() && i1.hasNext()) {
+        final Map.Entry<?, ?> e0 = i0.next();
+        final Map.Entry<?, ?> e1 = i1.next();
+        if (!eqNullable(e0.getKey(), e1.getKey())) {
+          return false;
+        }
+        if (!eqNullable(e0.getValue(), e1.getValue())) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (b0 instanceof Object[] && b1 instanceof Object[]) {
+      final Object[] a0 = (Object[]) b0;
+      final Object[] a1 = (Object[]) b1;
+      if (a0.length != a1.length) {
+        return false;
+      }
+      for (int i = 0; i < a0.length; i++) {
+        if (!eqNullable(a0[i], a1[i])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (b0.getClass().equals(b1.getClass())) {
+      if (b0 instanceof BigDecimal) {
+        return eq((BigDecimal) b0, (BigDecimal) b1);
+      }
+      return b0.equals(b1);
+    }
+    if (b0 instanceof Number && b1 instanceof Number) {
+      return eq(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
+    }
+    return false;
+  }
+
+  private static int compareNullable(@Nullable Object b0, @Nullable Object b1, String op) {
+    if (b0 == b1) {
+      return 0;
+    }
+    if (b0 == null) {
+      return 1;
+    }
+    if (b1 == null) {
+      return -1;
+    }
+    if (b0 instanceof List && b1 instanceof List) {
+      final List<?> l0 = (List<?>) b0;
+      final List<?> l1 = (List<?>) b1;
+      final int n0 = l0.size();
+      final int n1 = l1.size();
+      final int n = Math.min(n0, n1);
+      for (int i = 0; i < n; i++) {
+        final int c = compareNullable(l0.get(i), l1.get(i), op);
+        if (c != 0) {
+          return c;
+        }
+      }
+      return Integer.compare(n0, n1);
+    }
+    if (b0 instanceof Map && b1 instanceof Map) {
+      final Map<?, ?> m0 = (Map<?, ?>) b0;
+      final Map<?, ?> m1 = (Map<?, ?>) b1;
+      final Iterator<? extends Map.Entry<?, ?>> i0 = m0.entrySet().iterator();
+      final Iterator<? extends Map.Entry<?, ?>> i1 = m1.entrySet().iterator();
+      while (i0.hasNext() && i1.hasNext()) {
+        final Map.Entry<?, ?> e0 = i0.next();
+        final Map.Entry<?, ?> e1 = i1.next();
+        int c = compareNullable(e0.getKey(), e1.getKey(), op);
+        if (c != 0) {
+          return c;
+        }
+        c = compareNullable(e0.getValue(), e1.getValue(), op);
+        if (c != 0) {
+          return c;
+        }
+      }
+      if (i0.hasNext()) {
+        return 1;
+      }
+      if (i1.hasNext()) {
+        return -1;
+      }
+      return 0;
+    }
+    if (b0 instanceof Object[] && b1 instanceof Object[]) {
+      final Object[] a0 = (Object[]) b0;
+      final Object[] a1 = (Object[]) b1;
+      final int n0 = a0.length;
+      final int n1 = a1.length;
+      final int n = Math.min(n0, n1);
+      for (int i = 0; i < n; i++) {
+        final int c = compareNullable(a0[i], a1[i], op);
+        if (c != 0) {
+          return c;
+        }
+      }
+      return Integer.compare(n0, n1);
+    }
+    if (b0.getClass().equals(b1.getClass()) && b0 instanceof Comparable) {
+      //noinspection unchecked
+      return ((Comparable) b0).compareTo(b1);
+    }
+    if (b0 instanceof Number && b1 instanceof Number) {
+      return toBigDecimal((Number) b0).compareTo(toBigDecimal((Number) b1));
+    }
+    throw notComparable(op, b0, b1);
   }
 
   // <
@@ -2242,28 +2389,20 @@ public class SqlFunctions {
   }
 
   public static boolean lt(List<?> b0, List<?> b1) {
-    return Functions.compareLists(b0, b1) < 0;
+    return compareNullable(b0, b1, "<") < 0;
   }
 
   public static boolean lt(Map<?, ?> b0, Map<?, ?> b1) {
-    return Functions.compareMaps(b0, b1) < 0;
+    return compareNullable(b0, b1, "<") < 0;
   }
 
   public static boolean lt(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
-    return Functions.compareObjectArrays(b0, b1) < 0;
+    return compareNullable(b0, b1, "<") < 0;
   }
 
   /** SQL <code>&lt;</code> operator applied to Object values. */
   public static boolean ltAny(Object b0, Object b1) {
-    if (b0.getClass().equals(b1.getClass())
-        && b0 instanceof Comparable) {
-      //noinspection unchecked
-      return ((Comparable) b0).compareTo(b1) < 0;
-    } else if (allAssignable(Number.class, b0, b1)) {
-      return lt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
-    }
-
-    throw notComparable("<", b0, b1);
+    return compareNullable(b0, b1, "<") < 0;
   }
 
   // <=
@@ -2295,26 +2434,23 @@ public class SqlFunctions {
 
   /** SQL <code>&le;</code> operator applied to List values. */
   public static boolean le(List<?> b0, List<?> b1) {
-    return Functions.compareLists(b0, b1) <= 0;
+    return compareNullable(b0, b1, "<=") <= 0;
+  }
+
+  /** SQL <code>&le;</code> operator applied to Map values. */
+  public static boolean le(Map<?, ?> b0, Map<?, ?> b1) {
+    return compareNullable(b0, b1, "<=") <= 0;
   }
 
   /** SQL <code>&le;</code> operator applied to Object[] values. */
   public static boolean le(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
-    return Functions.compareObjectArrays(b0, b1) <= 0;
+    return compareNullable(b0, b1, "<=") <= 0;
   }
 
   /** SQL <code>&le;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean leAny(Object b0, Object b1) {
-    if (b0.getClass().equals(b1.getClass())
-        && b0 instanceof Comparable) {
-      //noinspection unchecked
-      return ((Comparable) b0).compareTo(b1) <= 0;
-    } else if (allAssignable(Number.class, b0, b1)) {
-      return le(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
-    }
-
-    throw notComparable("<=", b0, b1);
+    return compareNullable(b0, b1, "<=") <= 0;
   }
 
   // >
@@ -2379,29 +2515,21 @@ public class SqlFunctions {
   }
 
   public static boolean gt(List<?> b0, List<?> b1) {
-    return Functions.compareLists(b0, b1) > 0;
+    return compareNullable(b0, b1, ">") > 0;
   }
 
   public static boolean gt(Map<?, ?> b0, Map<?, ?> b1) {
-    return Functions.compareMaps(b0, b1) > 0;
+    return compareNullable(b0, b1, ">") > 0;
   }
 
   public static boolean gt(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
-    return Functions.compareObjectArrays(b0, b1) > 0;
+    return compareNullable(b0, b1, ">") > 0;
   }
 
   /** SQL <code>&gt;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean gtAny(Object b0, Object b1) {
-    if (b0.getClass().equals(b1.getClass())
-        && b0 instanceof Comparable) {
-      //noinspection unchecked
-      return ((Comparable) b0).compareTo(b1) > 0;
-    } else if (allAssignable(Number.class, b0, b1)) {
-      return gt(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
-    }
-
-    throw notComparable(">", b0, b1);
+    return compareNullable(b0, b1, ">") > 0;
   }
 
   // >=
@@ -2433,26 +2561,23 @@ public class SqlFunctions {
 
   /** SQL <code>&ge;</code> operator applied to List values. */
   public static boolean ge(List<?> b0, List<?> b1) {
-    return Functions.compareLists(b0, b1) >= 0;
+    return compareNullable(b0, b1, ">=") >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to Map values. */
+  public static boolean ge(Map<?, ?> b0, Map<?, ?> b1) {
+    return compareNullable(b0, b1, ">=") >= 0;
   }
 
   /** SQL <code>&ge;</code> operator applied to Object[] values. */
   public static boolean ge(@Nullable Object @Nullable [] b0, @Nullable Object @Nullable [] b1) {
-    return Functions.compareObjectArrays(b0, b1) >= 0;
+    return compareNullable(b0, b1, ">=") >= 0;
   }
 
   /** SQL <code>&ge;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean geAny(Object b0, Object b1) {
-    if (b0.getClass().equals(b1.getClass())
-        && b0 instanceof Comparable) {
-      //noinspection unchecked
-      return ((Comparable) b0).compareTo(b1) >= 0;
-    } else if (allAssignable(Number.class, b0, b1)) {
-      return ge(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
-    }
-
-    throw notComparable(">=", b0, b1);
+    return compareNullable(b0, b1, ">=") >= 0;
   }
 
   // +
