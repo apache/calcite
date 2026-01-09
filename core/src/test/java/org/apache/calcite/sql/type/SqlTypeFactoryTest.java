@@ -99,7 +99,8 @@ class SqlTypeFactoryTest {
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(
             Lists.newArrayList(f.arraySqlChar10, f.sqlChar));
-    assertNull(leastRestrictive);
+    // Some SQL dialects, like Postgres, allow casts between strings and arrays
+    assertThat(leastRestrictive, is(f.arraySqlChar10));
   }
 
   @Test void testLeastRestrictiveForArrays() {

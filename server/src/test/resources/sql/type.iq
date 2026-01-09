@@ -18,6 +18,7 @@
 !use server
 !set outputformat mysql
 
+# Test case for [CALCITE-7363] Improve error message for ASOF JOIN
 CREATE TABLE asof_tbl(intt INT, arr VARCHAR ARRAY );
 (0 rows modified)
 
@@ -31,6 +32,40 @@ java.sql.SQLException: Error while executing SQL "SELECT * FROM asof_tbl t1
 LEFT ASOF JOIN asof_tbl AS t2
 MATCH_CONDITION (t1.intt >= t2.intt)
 ON t1.arr[2] = t2.arr[2]": From line 4, column 4 to line 4, column 24: ASOF JOIN condition must be a conjunction of equality comparisons of columns from both sides
+
+!error
+
+# Test case for [CALCITE-7358] Casts involving MAP and ROW types cause compile-time exceptions
+CREATE TYPE user_def AS(i1 INT, v1 VARCHAR NULL);
+(0 rows modified)
+
+!update
+
+CREATE TABLE tbl(mapp1 MAP<user_def, ROW(v VARCHAR NULL)>);
+(0 rows modified)
+
+!update
+
+# Index in a map with a user-defined type
+SELECT mapp1[user_def(1, 'a')] as field FROM tbl;
++-------+
+| FIELD |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+# Test case for [CALCITE-7358] Casts involving MAP and ROW types cause compile-time exceptions
+SELECT CAST(mapp1[user_def(1, 'a')] AS INT) FROM tbl;
+java.sql.SQLException: Error while executing SQL "SELECT CAST(mapp1[user_def(1, 'a')] AS INT) FROM tbl": From line 1, column 8 to line 1, column 43: Cast function cannot convert value of type RecordType(VARCHAR V) to type INTEGER NOT NULL
+
+!error
+
+SELECT CAST(mapp1 AS MAP<VARCHAR, INT>) AS to_map
+FROM tbl;
+java.sql.SQLException: Error while executing SQL "SELECT CAST(mapp1 AS MAP<VARCHAR, INT>) AS to_map
+FROM tbl": From line 1, column 8 to line 1, column 39: Cast function cannot convert value of type (RecordType(INTEGER I1, VARCHAR V1) NOT NULL, RecordType(VARCHAR V)) MAP to type (VARCHAR NOT NULL, INTEGER) MAP NOT NULL
 
 !error
 

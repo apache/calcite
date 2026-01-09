@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
@@ -163,6 +164,25 @@ public class SqlItemOperator extends SqlSpecialOperator {
       if (sqlTypeName == SqlTypeName.VARIANT) {
         // Allow any key type to be used when the map keys have a VARIANT type
         return OperandTypes.family(SqlTypeFamily.ANY);
+      } else if (sqlTypeName == SqlTypeName.ROW) {
+        // Check that the type of the argument is exactly the key type
+        return new SqlSingleOperandTypeChecker() {
+          @Override public boolean checkSingleOperandType(
+              SqlCallBinding callBinding, SqlNode operand,
+              int iFormalOperand, boolean throwOnFailure) {
+            // operand 0 of ITEM is the indexed object, operand 1 is the key value
+            RelDataType operandType = callBinding.getOperandType(1);
+            boolean match = operandType.equals(keyType);
+            if (!match && throwOnFailure) {
+              throw callBinding.newValidationSignatureError();
+            }
+            return match;
+          }
+
+          @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+            return "[" + keyType.getSqlTypeName() + "]";
+          }
+        };
       }
       return OperandTypes.family(
           requireNonNull(sqlTypeName.getFamily(),
