@@ -8141,6 +8141,17 @@ LogicalDelta
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testStringToMapCast">
+    <Resource name="sql">
+      <![CDATA[SELECT CAST('a' AS MAP<INT, INT>)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST('a'):(INTEGER NOT NULL, INTEGER) MAP NOT NULL])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testStructCast">
     <Resource name="sql">
       <![CDATA[select ROW(1, 'x') = ROW('y', 1)]]>
