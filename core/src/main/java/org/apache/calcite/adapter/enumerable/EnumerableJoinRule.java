@@ -54,10 +54,6 @@ class EnumerableJoinRule extends ConverterRule {
 
   @Override public @Nullable RelNode convert(RelNode rel) {
     Join join = (Join) rel;
-    if (!Bug.TODO_FIXED && join.getJoinType() == JoinRelType.LEFT_MARK) {
-      // TODO implement LEFT MARK join
-      return null;
-    }
     List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       if (!(input.getConvention() instanceof EnumerableConvention)) {
@@ -99,6 +95,10 @@ class EnumerableJoinRule extends ConverterRule {
           condition,
           join.getVariablesSet(),
           join.getJoinType());
+    }
+    if (!Bug.TODO_FIXED && join.getJoinType() == JoinRelType.LEFT_MARK) {
+      // TODO Support LEFT MARK type for nested loop join
+      return null;
     }
     return EnumerableNestedLoopJoin.create(
         left,

@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.function.NullableDoubleFunction1;
 import org.apache.calcite.linq4j.function.NullableFloatFunction1;
 import org.apache.calcite.linq4j.function.NullableIntegerFunction1;
 import org.apache.calcite.linq4j.function.NullableLongFunction1;
+import org.apache.calcite.linq4j.function.NullablePredicate2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
@@ -1671,6 +1672,279 @@ public abstract class EnumerableDefaults {
                 inners = innerEnumerable.enumerator();
               }
             }
+          }
+
+          @Override public void reset() {
+            outers.reset();
+          }
+
+          @Override public void close() {
+            outers.close();
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Left mark join implementation based on hash. It will keep all rows from the left side and
+   * creates a new attribute to mark the rows from left input as having join partners from right
+   * side or not.
+   *
+   * <p> Left mark join is produced by rewriting IN/SOME/EXISTS subqueries, so left mark join will
+   * never contain both not null-safe join keys and non-equi predicates.
+   *
+   * @param outer                       Left input
+   * @param inner                       Right input
+   * @param outerKeyNullAwareSelector   Function that extracts keys from the row of left input
+   *                                    (return NULL when a not null-safe key has a NULL value)
+   * @param innerKeyNullAwareSelector   Function that extracts keys from the row of right input
+   *                                    (return NULL when a not null-safe key has a NULL value)
+   * @param outerNullSafeKeySelector    Function that extracts the null-safe keys from the row of
+   *                                    left input
+   * @param innerNullSafeKeySelector    Function that extracts the null-safe keys from the row of
+   *                                    right input
+   * @param atMostOneNotNullSafeKey     There is at most one not null-safe key in join keys
+   * @param resultSelector              Function that concats the row of left input and marker
+   * @param comparer                    Function that compares the keys
+   * @param nullSafeComparer            Function that compares the null-safe keys
+   * @param nonEquiPredicate            Non-equi predicate that can return NULL
+   * @param equiPredicate               Equi predicate that can return NULL
+   */
+  public static <TSource, TInner, TKey, TNsKey, TResult> Enumerable<TResult> leftMarkHashJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeyNullAwareSelector,
+      final Function1<TInner, TKey> innerKeyNullAwareSelector,
+      final @Nullable Function1<TSource, TNsKey> outerNullSafeKeySelector,
+      final @Nullable Function1<TInner, TNsKey> innerNullSafeKeySelector,
+      final boolean atMostOneNotNullSafeKey,
+      final Function2<TSource, @Nullable Boolean, TResult> resultSelector,
+      final @Nullable EqualityComparer<TKey> comparer,
+      final @Nullable EqualityComparer<TNsKey> nullSafeComparer,
+      final @Nullable NullablePredicate2<TSource, TInner> nonEquiPredicate,
+      final NullablePredicate2<TSource, TInner> equiPredicate) {
+    if (atMostOneNotNullSafeKey) {
+      return leftMarkHashJoinOptimized(outer, inner, outerKeyNullAwareSelector,
+          innerKeyNullAwareSelector, outerNullSafeKeySelector, innerNullSafeKeySelector,
+          resultSelector, comparer, nullSafeComparer, nonEquiPredicate);
+    }
+    return leftMarkHashJoinGeneral(outer, inner, outerKeyNullAwareSelector,
+        innerKeyNullAwareSelector, outerNullSafeKeySelector, innerNullSafeKeySelector,
+        resultSelector, comparer, nullSafeComparer, nonEquiPredicate, equiPredicate);
+  }
+
+  /**
+   * For other join types (especially INNER join), the hash table can be used to quickly determine
+   * which right-side rows should be joined with a given left-side row. But left mark join is more
+   * complicated. The <code>marker</code> indicates whether a left row has a join partner on the
+   * right side, it is a three-valued boolean, meaning we need to know the actual result (TRUE,
+   * FALSE, or NULL) of the join condition.
+   *
+   * <p> Join key comes in two categories:
+   * <ul>
+   *   <li>null-safe key (IS NOT DISTINCT FROM): it only produces TRUE/FALSE.</li>
+   *   <li>not null-safe key (EQUALS): it produces a three-valued boolean.</li>
+   * </ul>
+   *
+   * <p> If all join keys are null-safe, we can get the comparison result (TRUE or FALSE) based on
+   * hash table matching.
+   *
+   * <p> If there are multiple not null-safe join keys, the hash table matching alone is
+   * insufficient to determine the comparison result. However, if there is only one not null-safe
+   * key, we can record whether this key has any NULL values when constructing the hash table.
+   * During probing, if no match is found in the hash table and there are any NULL values on this
+   * unique not null-safe key, we can know that the <code>marker</code> is NULL.
+   */
+  static <TSource, TInner, TKey, TNsKey, TResult> Enumerable<TResult> leftMarkHashJoinOptimized(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeyNullAwareSelector,
+      final Function1<TInner, TKey> innerKeyNullAwareSelector,
+      final @Nullable Function1<TSource, TNsKey> outerNullSafeKeySelector,
+      final @Nullable Function1<TInner, TNsKey> innerNullSafeKeySelector,
+      final Function2<TSource, @Nullable Boolean, TResult> resultSelector,
+      final @Nullable EqualityComparer<TKey> comparer,
+      final @Nullable EqualityComparer<TNsKey> nullSafeComparer,
+      final @Nullable NullablePredicate2<TSource, TInner> nonEquiPredicate) {
+    return new AbstractEnumerable<TResult>() {
+      @Override public Enumerator<TResult> enumerator() {
+        HashTableWithNullSafeKeySet<TKey, TNsKey, TInner> ht =
+            HashTableWithNullSafeKeySet.build(inner, innerKeyNullAwareSelector,
+                innerNullSafeKeySelector, comparer, nullSafeComparer);
+
+        return new Enumerator<TResult>() {
+          Enumerator<TSource> outers = outer.enumerator();
+          @Nullable Boolean marker = false;
+
+          @Override public TResult current() {
+            return resultSelector.apply(outers.current(), marker);
+          }
+
+          @Override public boolean moveNext() {
+            if (!outers.moveNext()) {
+              return false;
+            }
+            marker = false;
+            final TSource outerRow = outers.current();
+            final TKey outerKey = outerKeyNullAwareSelector.apply(outerRow);
+            if (outerNullSafeKeySelector != null
+                && !ht.containsNullSafeKey(outerNullSafeKeySelector.apply(outerRow))) {
+              // there are null-safe keys, but there is no match in the hash table of null-safe
+              // keys. The marker is FALSE
+              return true;
+            }
+
+            if (outerKey == null) {
+              // outerRow has a NULL value on the unique not null-safe key. The marker is NULL
+              marker = null;
+            } else {
+              Enumerable<TInner> innerEnumerable = ht.lookup.get(outerKey);
+              if (innerEnumerable == null) {
+                // no match found in the hash table. If there are any NULL values on the unique
+                // not null-safe key, the marker is NULL.
+                marker = ht.lookup.containsKey(null) ? null : false;
+              } else {
+                if (nonEquiPredicate == null) {
+                  marker = true;
+                } else {
+                  try (Enumerator<TInner> innerEnumerator = innerEnumerable.enumerator()) {
+                    while (innerEnumerator.moveNext()) {
+                      final TInner innerRow = innerEnumerator.current();
+                      Boolean predicateMatched = nonEquiPredicate.apply(outerRow, innerRow);
+                      if (predicateMatched == null) {
+                        marker = null;
+                      } else if (predicateMatched) {
+                        marker = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            // if the inner is empty set, convert the NULL marker to FALSE
+            if (marker == null && ht.innerIsEmpty) {
+              marker = false;
+            }
+            return true;
+          }
+
+          @Override public void reset() {
+            outers.reset();
+          }
+
+          @Override public void close() {
+            outers.close();
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * As described in {@link #leftMarkHashJoinOptimized}, if there are multiple not null-safe join
+   * keys, the hash table matching alone is insufficient to determine the comparison result. For
+   * left rows that fail to match in the hash table, we need to apply the equi-predicate against
+   * the right-side rows one by one to determine whether the <code>marker</code> should be
+   * FALSE or NULL.
+   */
+  static <TSource, TInner, TKey, TNsKey, TResult> Enumerable<TResult> leftMarkHashJoinGeneral(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeyNullAwareSelector,
+      final Function1<TInner, TKey> innerKeyNullAwareSelector,
+      final @Nullable Function1<TSource, TNsKey> outerNullSafeKeySelector,
+      final @Nullable Function1<TInner, TNsKey> innerNullSafeKeySelector,
+      final Function2<TSource, @Nullable Boolean, TResult> resultSelector,
+      final @Nullable EqualityComparer<TKey> comparer,
+      final @Nullable EqualityComparer<TNsKey> nullSafeComparer,
+      final @Nullable NullablePredicate2<TSource, TInner> nonEquiPredicate,
+      final NullablePredicate2<TSource, TInner> equiPredicate) {
+    return new AbstractEnumerable<TResult>() {
+      @Override public Enumerator<TResult> enumerator() {
+        HashTableWithNullSafeKeySet<TKey, TNsKey, TInner> ht =
+            HashTableWithNullSafeKeySet.build(inner, innerKeyNullAwareSelector,
+                innerNullSafeKeySelector, comparer, nullSafeComparer);
+
+        return new Enumerator<TResult>() {
+          Enumerator<TSource> outers = outer.enumerator();
+          @Nullable Boolean marker = false;
+
+          @Override public TResult current() {
+            return resultSelector.apply(outers.current(), marker);
+          }
+
+          @Override public boolean moveNext() {
+            if (!outers.moveNext()) {
+              return false;
+            }
+            marker = false;
+            final TSource outerRow = outers.current();
+            final TKey outerKey = outerKeyNullAwareSelector.apply(outerRow);
+            if (outerNullSafeKeySelector != null
+                && !ht.containsNullSafeKey(outerNullSafeKeySelector.apply(outerRow))) {
+              // there are null-safe keys, but there is no match in the hash table of null-safe
+              // keys. The marker is FALSE
+              return true;
+            }
+
+            if (outerKey == null) {
+              // outerRow has NULL values on at least one not null-safe key. Need to apply the
+              // equi-predicate against all right-side rows to determine the marker is FALSE or NULL
+              flag:
+              for (Enumerable<TInner> eachInnerEnumerable : ht.lookup.values()) {
+                try (Enumerator<TInner> eachInnerEnumerator = eachInnerEnumerable.enumerator()) {
+                  while (eachInnerEnumerator.moveNext()) {
+                    TInner eachInnerRow = eachInnerEnumerator.current();
+                    Boolean equiPredicateMatched = equiPredicate.apply(outerRow, eachInnerRow);
+                    if (equiPredicateMatched == null) {
+                      marker = null;
+                      break flag;
+                    }
+                  }
+                }
+              }
+            } else {
+              Enumerable<TInner> innerEnumerable = ht.lookup.get(outerKey);
+              if (innerEnumerable == null) {
+                // no match found in the hash table. If there are any NULL values on not
+                // null-safe keys, need to apply the equi-predicate against those rows to determine
+                // the marker is FALSE or NULL.
+                Enumerable<TInner> nullValueOnNotNullSafeKey = ht.lookup.get(null);
+                if (nullValueOnNotNullSafeKey != null) {
+                  try (Enumerator<TInner> enumerator = nullValueOnNotNullSafeKey.enumerator()) {
+                    while (enumerator.moveNext()) {
+                      TInner nullValueOnNotNullSafeKeyRow = enumerator.current();
+                      Boolean equiPredicateMatched =
+                          equiPredicate.apply(outerRow, nullValueOnNotNullSafeKeyRow);
+                      if (equiPredicateMatched == null) {
+                        marker = null;
+                        break;
+                      }
+                    }
+                  }
+                }
+              } else {
+                if (nonEquiPredicate == null) {
+                  marker = true;
+                } else {
+                  try (Enumerator<TInner> innerEnumerator = innerEnumerable.enumerator()) {
+                    while (innerEnumerator.moveNext()) {
+                      final TInner innerRow = innerEnumerator.current();
+                      Boolean predicateMatched = nonEquiPredicate.apply(outerRow, innerRow);
+                      if (predicateMatched == null) {
+                        marker = null;
+                      } else if (predicateMatched) {
+                        marker = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            if (marker == null && ht.innerIsEmpty) {
+              marker = false;
+            }
+            return true;
           }
 
           @Override public void reset() {
@@ -3801,21 +4075,8 @@ public abstract class EnumerableDefaults {
       while (os.moveNext()) {
         TSource o = os.current();
         final TKey key = keySelector.apply(o);
-        @SuppressWarnings("nullness")
-        List<TElement> list = map.get(key);
-        if (list == null) {
-          // for first entry, use a singleton list to save space
-          list = Collections.singletonList(elementSelector.apply(o));
-        } else {
-          if (list.size() == 1) {
-            // when we go from 1 to 2 elements, switch to array list
-            TElement element = list.get(0);
-            list = new ArrayList<>();
-            list.add(element);
-          }
-          list.add(elementSelector.apply(o));
-        }
-        map.put(key, list);
+        final TElement data = elementSelector.apply(o);
+        updateMapDuringBuildLookup(map, key, data);
       }
     }
     return new LookupImpl<>(map);
@@ -3838,6 +4099,24 @@ public abstract class EnumerableDefaults {
         source,
         keySelector,
         elementSelector);
+  }
+
+  private static <TKey, TElement> void updateMapDuringBuildLookup(
+      Map<TKey, List<TElement>> map, TKey key, TElement row) {
+    List<TElement> list = map.get(key);
+    if (list == null) {
+      // for first entry, use a singleton list to save space
+      list = Collections.singletonList(row);
+    } else {
+      if (list.size() == 1) {
+        // when we go from 1 to 2 elements, switch to array list
+        TElement element = list.get(0);
+        list = new ArrayList<>();
+        list.add(element);
+      }
+      list.add(row);
+    }
+    map.put(key, list);
   }
 
   /**
@@ -4022,6 +4301,63 @@ public abstract class EnumerableDefaults {
     source.into(tempList);
     sink.removeAll(tempList);
     return sink;
+  }
+
+  /**
+   * Hash table with null-safe key set.
+   *
+   * @param <TKey>    key type
+   * @param <TNsKey>  null-safe key type
+   * @param <TInner>  build side row type
+   */
+  static class HashTableWithNullSafeKeySet<TKey, TNsKey, TInner> {
+    final Lookup<TKey, TInner> lookup;
+    final Set<Wrapped<TNsKey>> nullSafeKeySet;
+    final EqualityComparer<TNsKey> nullSafeComparer;
+    // whether the build side is empty set
+    final boolean innerIsEmpty;
+
+    private HashTableWithNullSafeKeySet(
+        Lookup<TKey, TInner> lookup,
+        Set<Wrapped<TNsKey>> nullSafeKeySet,
+        EqualityComparer<TNsKey> nullSafeComparer) {
+      this.lookup = lookup;
+      this.nullSafeKeySet = nullSafeKeySet;
+      this.nullSafeComparer = nullSafeComparer;
+      this.innerIsEmpty = lookup.isEmpty();
+    }
+
+    static <TKey, TNsKey, TInner> HashTableWithNullSafeKeySet<TKey, TNsKey, TInner> build(
+        Enumerable<TInner> inner,
+        Function1<TInner, TKey> innerKeyNullAwareSelector,
+        @Nullable Function1<TInner, TNsKey> innerNullSafeSelector,
+        @Nullable EqualityComparer<TKey> comparer,
+        @Nullable EqualityComparer<TNsKey> nullSafeComparer) {
+      Map<TKey, List<TInner>> map =
+          comparer == null
+              ? new HashMap<>()
+              : new WrapMap<>(() -> new HashMap<Wrapped<TKey>, List<TInner>>(), comparer);
+      Set<Wrapped<TNsKey>> nullSafeKeySet = new HashSet<>();
+      nullSafeComparer = nullSafeComparer == null ? Functions.identityComparer() : nullSafeComparer;
+
+      try (Enumerator<TInner> enumerator = inner.enumerator()) {
+        while (enumerator.moveNext()) {
+          TInner row = enumerator.current();
+          TKey nullAwareKey = innerKeyNullAwareSelector.apply(row);
+          updateMapDuringBuildLookup(map, nullAwareKey, row);
+          if (innerNullSafeSelector != null) {
+            TNsKey nullSafeKey = innerNullSafeSelector.apply(row);
+            nullSafeKeySet.add(Wrapped.upAs(nullSafeComparer, nullSafeKey));
+          }
+        }
+      }
+      Lookup<TKey, TInner> nullAwareLookup = new LookupImpl<>(map);
+      return new HashTableWithNullSafeKeySet<>(nullAwareLookup, nullSafeKeySet, nullSafeComparer);
+    }
+
+    public boolean containsNullSafeKey(TNsKey key) {
+      return nullSafeKeySet.contains(Wrapped.upAs(nullSafeComparer, key));
+    }
   }
 
   /** Enumerable that implements take-while.

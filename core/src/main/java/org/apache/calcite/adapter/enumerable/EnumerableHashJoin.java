@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -173,9 +174,108 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     case SEMI:
     case ANTI:
       return implementHashSemiJoin(implementor, pref);
+    case LEFT_MARK:
+      return implementHashMarkJoin(implementor, pref);
     default:
       return implementHashJoin(implementor, pref);
     }
+  }
+
+  private Result implementHashMarkJoin(EnumerableRelImplementor implementor, Prefer pref) {
+    assert joinType == JoinRelType.LEFT_MARK;
+    BlockBuilder builder = new BlockBuilder();
+    final Result leftResult =
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+    Expression leftExpression =
+        builder.append(
+            "left", leftResult.block);
+    final Result rightResult =
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+    Expression rightExpression =
+        builder.append(
+            "right", rightResult.block);
+    final PhysType physType =
+        PhysTypeImpl.of(
+            implementor.getTypeFactory(), getRowType(), pref.preferArray());
+
+    // convert equi and non-equi conditions to Expression
+    Expression nonEquiPredicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      RexNode nonEquiCondition =
+          RexUtil.composeConjunction(getCluster().getRexBuilder(),
+              joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        // need three-valued boolean logic
+        nonEquiPredicate =
+            EnumUtils.generatePredicate(implementor,
+                getCluster().getRexBuilder(), left, right, leftResult.physType,
+                rightResult.physType, nonEquiCondition, true);
+      }
+    }
+    RexNode equiCondition = joinInfo.getEquiCondition(left, right, getCluster().getRexBuilder());
+    // need three-valued boolean logic
+    final Expression equiPredicate =
+        EnumUtils.generatePredicate(implementor,
+            getCluster().getRexBuilder(), left, right, leftResult.physType,
+            rightResult.physType, equiCondition, true);
+
+    // create key selector and null-safe key selector
+    final Expression leftKeySelector =
+        leftResult.physType.generateNullAwareAccessor(
+            joinInfo.leftKeys, joinInfo.nullExclusionFlags);
+    final Expression rightKeySelector =
+        rightResult.physType.generateNullAwareAccessor(
+            joinInfo.rightKeys, joinInfo.nullExclusionFlags);
+
+    int notNullSafeKeyCount = 0;
+    List<Integer> leftNullSafeKeys = new ArrayList<>();
+    List<Integer> rightNullSafeKeys = new ArrayList<>();
+    for (int i = 0; i < joinInfo.nullExclusionFlags.size(); i++) {
+      if (joinInfo.nullExclusionFlags.get(i)) {
+        notNullSafeKeyCount++;
+      } else {
+        leftNullSafeKeys.add(joinInfo.leftKeys.get(i));
+        rightNullSafeKeys.add(joinInfo.rightKeys.get(i));
+      }
+    }
+    final Expression leftNullSafeKeySelector =
+        leftNullSafeKeys.isEmpty()
+            ? Expressions.constant(null)
+            : leftResult.physType.generateAccessor(ImmutableIntList.copyOf(leftNullSafeKeys));
+    final Expression rightNullSafeKeySelector =
+        rightNullSafeKeys.isEmpty()
+            ? Expressions.constant(null)
+            : rightResult.physType.generateAccessor(ImmutableIntList.copyOf(rightNullSafeKeys));
+    final boolean atMostOneNotNullSafeKey = notNullSafeKeyCount <= 1;
+
+    // create key comparator and null-safe key comparator
+    final PhysType nullSafeKeyPhysType =
+        leftResult.physType.project(leftNullSafeKeys, JavaRowFormat.LIST);
+    final Expression nullSafeKeyComparator =
+        Util.first(nullSafeKeyPhysType.comparer(), Expressions.constant(null));
+    final PhysType keyPhysType =
+        leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
+    final Expression keyComparator =
+        Util.first(keyPhysType.comparer(), Expressions.constant(null));
+
+    return implementor.result(physType,
+        builder.append(
+                Expressions.call(
+                    leftExpression,
+                    BuiltInMethod.LEFT_MARK_HASH_JOIN.method,
+                    Expressions.list(
+                            rightExpression,
+                            leftKeySelector,
+                            rightKeySelector,
+                            leftNullSafeKeySelector,
+                            rightNullSafeKeySelector,
+                            Expressions.constant(atMostOneNotNullSafeKey),
+                            EnumUtils.markJoinSelector(physType, leftResult.physType),
+                            keyComparator,
+                            nullSafeKeyComparator,
+                            nonEquiPredicate,
+                            equiPredicate)))
+            .toBlock());
   }
 
   private Result implementHashSemiJoin(EnumerableRelImplementor implementor, Prefer pref) {
