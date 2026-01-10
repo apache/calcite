@@ -197,7 +197,22 @@ public class MssqlSqlDialect extends SqlDialect {
     if (value == null) {
       return;
     }
-    unparseBoolLiteralToCondition(writer, value);
+
+    SqlWriter.Frame frame = writer.getCurrentFrame();
+    boolean expressionAllowed = true;
+    if (frame != null) {
+      SqlWriter.FrameType frameType = frame.getFrameType();
+      if (frameType == SqlWriter.FrameTypeEnum.SELECT_LIST
+          || frameType == SqlWriter.FrameTypeEnum.VALUES) {
+        expressionAllowed = false;
+      }
+    }
+
+    if (expressionAllowed) {
+      unparseBoolLiteralToCondition(writer, value);
+    } else {
+      writer.literal(value ? "1" : "0");
+    }
   }
 
   @Override public boolean supportsApproxCountDistinct() {

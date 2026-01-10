@@ -548,6 +548,11 @@ public interface SqlWriter {
    */
   boolean inQuery();
 
+  /** Returns the current frame. */
+  default @Nullable Frame getCurrentFrame() {
+    return null;
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
@@ -568,6 +573,10 @@ public interface SqlWriter {
    * the sub-frame is put onto a stack.
    */
   interface Frame {
+    /** Returns the type of this frame. */
+    default @Nullable FrameType getFrameType() {
+      return null;
+    }
   }
 
   /** Frame type. */
