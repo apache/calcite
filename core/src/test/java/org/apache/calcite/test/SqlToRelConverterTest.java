@@ -5999,7 +5999,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5597">[CALCITE-5597]
    * SELECT DISTINCT query with ORDER BY column will get error result</a>. */
   @Test void testDistinctOrderByRand() {
-    final String sql = "select distinct deptno, empno from emp order by rand(), 1";
+    final String sql = "select distinct deptno, empno, 1, 'a' from emp order by rand(), 1";
     sql(sql).ok();
   }
 }
