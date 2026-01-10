@@ -109,15 +109,21 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
       RelDataType childRecordType = result.physType.getRowType().getFieldList().get(0).getType();
 
       if (!SqlTypeUtil.sameNamedType(collectionComponentType, childRecordType)) {
-        // In the internal representation of multisets , every element must be a record. In case the
-        // result above is a scalar type we have to wrap it around a physical type capable of
-        // representing records. For this reason the following conversion is necessary.
+        // In the internal representation of multisets, every element must be a record.
+        // In case the result above is a scalar type we have to wrap it around a
+        // physical type capable of representing records.
+        // For ARRAY type with a single field, we use SCALAR format to avoid
+        // unnecessary wrapping, which allows correct comparison semantics.
         // REVIEW zabetak January 7, 2019: If we can ensure that the input to this operator
         // has the correct physical type (e.g., respecting the Prefer.ARRAY above)
         // then this conversion can be removed.
+        JavaRowFormat targetFormat =
+            collectionType == SqlTypeName.ARRAY && child.getRowType().getFieldCount() == 1
+                ? JavaRowFormat.SCALAR
+                : JavaRowFormat.ARRAY;
         conv_ =
             builder.append(
-                "converted", result.physType.convertTo(child_, JavaRowFormat.ARRAY));
+                "converted", result.physType.convertTo(child_, targetFormat));
       }
 
       collectionExpr =
