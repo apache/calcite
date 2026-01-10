@@ -842,8 +842,8 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
-   * an {@link org.apache.calcite.rel.core.Aggregate} to make the results unique.
+   * The translation of 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]' uses
+   * an {@link org.apache.calcite.rel.core.Aggregate}.
    *
    * <p>For example, {@code SELECT DISTINCT x FROM t ORDER BY y} is converted
    * to an {@code Aggregate} on {@code (x, y)} if {@code y} is deterministic.
@@ -878,8 +878,8 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Having translated 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]', adds
-   * an {@link org.apache.calcite.rel.core.Aggregate} to make the results unique.
+   * The translation of 'SELECT ... FROM ... [GROUP BY ...] [HAVING ...]' uses
+   * an {@link org.apache.calcite.rel.core.Aggregate}.
    *
    * <p>For example, {@code SELECT DISTINCT x FROM t ORDER BY y} is converted
    * to an {@code Aggregate} on {@code (x, y)} if {@code y} is deterministic.

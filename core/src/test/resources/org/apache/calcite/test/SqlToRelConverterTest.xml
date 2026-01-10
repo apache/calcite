@@ -1892,7 +1892,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], flattened=
   </TestCase>
   <TestCase name="testDistinctOrderByRand">
     <Resource name="sql">
-      <![CDATA[select distinct deptno, empno from emp order by rand(), 1]]>
+      <![CDATA[select distinct deptno, empno, 1, 'a' from emp order by rand(), 1]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
