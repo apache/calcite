@@ -478,6 +478,19 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean nullableDivide() {
+    switch (this) {
+    // The following dialects use nullable divide:
+    // sqlite, postgres, duckdb, mysql and MariaDB (non-strict mode).  Note that MYSQL is actually
+    // dynamically-typed, so Calcite cannot implement its behavior accurately, since Calcite is
+    // statically-typed.
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public boolean checkedArithmetic() {
     switch (this) {
     case DEFAULT:

@@ -99,6 +99,17 @@ public abstract class SqlTypeTransforms {
               requireNonNull(typeToTransform, "typeToTransform"), true);
 
   /**
+   * Parameter type-inference transform strategy where a derived type is
+   * transformed into the same type with nulls allowed if the result is not floating point.
+   */
+  public static final SqlTypeTransform FORCE_NULLABLE_NON_FP =
+      (opBinding, typeToTransform) -> {
+        boolean nullable = !SqlTypeName.APPROX_TYPES.contains(typeToTransform.getSqlTypeName());
+        return opBinding.getTypeFactory().createTypeWithNullability(
+            requireNonNull(typeToTransform, "typeToTransform"), nullable);
+      };
+
+  /**
    * Type-inference strategy whereby the result is NOT NULL if any of
    * the arguments is NOT NULL; otherwise the type is unchanged.
    */

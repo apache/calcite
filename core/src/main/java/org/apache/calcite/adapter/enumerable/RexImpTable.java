@@ -116,6 +116,8 @@ import static org.apache.calcite.adapter.enumerable.EnumUtils.generateCollatorEx
 import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
 import static org.apache.calcite.linq4j.tree.ExpressionType.AddChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Divide;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Divide0Null;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Divide0NullChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.DivideChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
 import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThan;
@@ -386,6 +388,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_DIVIDE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_DIVIDE_0_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_DIVIDE_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_MULTIPLY;
@@ -412,6 +415,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DEFAULT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DEGREES;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DENSE_RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_0_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE_INTEGER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ELEMENT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
@@ -481,6 +485,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MODE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD_0_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_EXCEPT_DISTINCT;
@@ -831,6 +836,7 @@ public class RexImpTable {
       defineBinary(MINUS, Subtract, NullPolicy.STRICT, "minus");
       defineBinary(MULTIPLY, Multiply, NullPolicy.STRICT, "multiply");
       defineBinary(DIVIDE, Divide, NullPolicy.STRICT, "divide");
+      defineBinary(DIVIDE_0_NULL, Divide, NullPolicy.SEMI_STRICT, "divide0Null");
       defineBinary(DIVIDE_INTEGER, Divide, NullPolicy.STRICT, "divide");
       defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT,
           BuiltInMethod.BIG_DECIMAL_NEGATE.getMethodName());
@@ -842,8 +848,13 @@ public class RexImpTable {
       defineBinary(CHECKED_DIVIDE, DivideChecked, NullPolicy.STRICT, "checkedDivide");
       defineBinary(CHECKED_DIVIDE_INTEGER, DivideChecked, NullPolicy.STRICT, "checkedDivide");
       defineUnary(CHECKED_UNARY_MINUS, NegateChecked, NullPolicy.STRICT, "checkedUnaryMinus");
+      // nullable division
+      defineBinary(DIVIDE_0_NULL, Divide0Null, NullPolicy.SEMI_STRICT, "nullableDivide");
+      defineBinary(CHECKED_DIVIDE_0_NULL, Divide0NullChecked,
+          NullPolicy.SEMI_STRICT, "checkedNullableDivide");
 
       defineMethod(MOD, BuiltInMethod.MOD.method, NullPolicy.STRICT);
+      defineMethod(MOD_0_NULL, BuiltInMethod.MOD_0_NULL.method, NullPolicy.SEMI_STRICT);
       defineMethod(EXP, BuiltInMethod.EXP.method, NullPolicy.STRICT);
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
       defineMethod(POWER_PG, BuiltInMethod.POWER_PG.method, NullPolicy.STRICT);
@@ -3354,7 +3365,10 @@ public class RexImpTable {
       }
 
       // For checked arithmetic call the method.
-      if (CHECKED_OPERATORS.contains(op)) {
+      if (CHECKED_OPERATORS.contains(op)
+          || op.kind == SqlKind.DIVIDE_0_NULL
+          || op.kind == SqlKind.MOD_0_NULL
+          || op.kind == SqlKind.CHECKED_DIVIDE_0_NULL) {
         return Expressions.call(SqlFunctions.class, backupMethodName, argValueList);
       }
 
