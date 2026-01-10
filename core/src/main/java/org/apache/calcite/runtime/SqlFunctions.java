@@ -2251,9 +2251,11 @@ public class SqlFunctions {
     if (b0 instanceof Number && b1 instanceof Number) {
       return eq(toBigDecimal((Number) b0), toBigDecimal((Number) b1));
     }
-    return false;
+    throw notComparable("=", b0, b1);
   }
 
+  /** Compares two nullable objects recursively if they are collections.
+   * Nulls are treated as larger than non-null values. */
   private static int compareNullable(@Nullable Object b0, @Nullable Object b1, String op) {
     if (b0 == b1) {
       return 0;
