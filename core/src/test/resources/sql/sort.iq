@@ -422,4 +422,47 @@ select * from "hr"."emps" limit 3000000000 offset 2500000000;
 java.lang.ArithmeticException: Integer overflow: 2500000000 is out of range for INT
 !error
 
+# [CALCITE-7367] NULLS FIRST throws ClassCastException when sorting arrays
+select * from
+(values
+    (2, array[null, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5]),
+    (5, cast(null as integer array))) as t(id, arr)
+order by arr nulls first;
++----+-----------+
+| ID | ARR       |
++----+-----------+
+|  5 |           |
+|  1 | [1, 2]    |
+|  3 | [3, 4]    |
+|  4 | [4, 5]    |
+|  2 | [null, 3] |
++----+-----------+
+(5 rows)
+
+!ok
+
+select * from
+(values
+    (2, array[null, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5]),
+    (5, cast(null as integer array))) as t(id, arr)
+order by arr desc nulls first;
++----+-----------+
+| ID | ARR       |
++----+-----------+
+|  5 |           |
+|  2 | [null, 3] |
+|  4 | [4, 5]    |
+|  3 | [3, 4]    |
+|  1 | [1, 2]    |
++----+-----------+
+(5 rows)
+
+!ok
+
 # End sort.iq
