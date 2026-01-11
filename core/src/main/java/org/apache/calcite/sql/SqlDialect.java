@@ -1825,4 +1825,27 @@ public class SqlDialect {
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
   }
+  /**
+   * Whether this dialect requires wrapping a nested JOIN in an extra subquery.
+   *
+   * <p>Some SQL dialects (for example, ClickHouse) do not support nested JOIN
+   * syntax directly. In such cases, a JOIN whose input is itself another JOIN
+   * must be wrapped as:
+   *
+   * <pre>
+   *   SELECT * FROM ( ... ) AS t
+   * </pre>
+   *
+   * <p>The default implementation returns {@code false}, meaning that nested
+   * JOINs can be emitted directly without additional wrapping. Dialects with
+   * stricter JOIN syntax rules should override this method and return
+   * {@code true} when wrapping is required for the given {@link RelNode}.
+   *
+   * @param relNode Relational expression representing a JOIN input
+   * @return whether an extra subquery wrapper is required for nested JOINs
+   */
+  public boolean shouldWrapNestedJoin(RelNode relNode) {
+    return false;
+  }
+
 }
