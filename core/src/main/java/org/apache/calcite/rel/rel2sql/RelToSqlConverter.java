@@ -304,7 +304,7 @@ public class RelToSqlConverter extends SqlImplementor
 
     if (dialect.shouldWrapNestedJoin(e)) {
 
-      Set<String> usedNames = new HashSet<>(e.getRowType().getFieldNames());
+      Set<String> usedNames = new TreeSet<>(e.getRowType().getFieldNames());
       // Add both left and right aliases
       if (leftResult.neededAlias != null) {
         usedNames.add(leftResult.neededAlias);

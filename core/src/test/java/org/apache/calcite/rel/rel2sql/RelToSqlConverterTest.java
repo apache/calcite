@@ -123,7 +123,6 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11578,25 +11577,15 @@ class RelToSqlConverterTest {
         + "  FROM dept d1\n"
         + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
         + ") AS j ON e.deptno = j.deptno";
-
-    final String sql = sql(query)
+    final String expected = "SELECT `EMP`.`EMPNO`, `t0`.`DNAME`, `t0`.`LOC`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN (SELECT `DEPT`.`DEPTNO` AS `DEPTNO`, `DEPT`.`DNAME` AS `DNAME`, `DEPT0`.`LOC` AS `LOC`\n"
+        + "FROM `SCOTT`.`DEPT`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`) AS `t0` ON `EMP`.`DEPTNO` = `t0`.`DEPTNO`";
+    sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withClickHouse()
-        .exec();
-
-    // 1. Verify that the inner join is wrapped in a subquery
-    assertThat(sql, containsString("LEFT JOIN (SELECT"));
-
-    // 2. Verify explicit aliasing which is crucial for ClickHouse scoping.
-    // We must see "source AS alias" to ensure the identifier is resolvable outer scope.
-    assertThat(sql, containsString("`DEPTNO` AS `DEPTNO`"));
-    assertThat(sql, containsString("`DNAME` AS `DNAME`"));
-    assertThat(sql, containsString("`LOC` AS `LOC`"));
-
-    // 3. Ensure we don't have redundant double-wrapping like (SELECT * FROM (SELECT...))
-    // The structure should be: LEFT JOIN (SELECT expr AS col FROM ...) AS j
-    assertFalse(sql.contains("SELECT *"),
-        "ClickHouse dialect should avoid SELECT * in nested joins");
+        .ok(expected);
   }
 
   /** Test that simple JOINs without nesting are not wrapped unnecessarily. */
@@ -11626,15 +11615,16 @@ class RelToSqlConverterTest {
         + "  INNER JOIN dept d2 ON d1.deptno = d2.deptno\n"
         + "  GROUP BY d1.deptno\n"
         + ") AS j ON e.deptno = j.deptno";
-
-    final String sql = sql(query)
+    final String expected = "SELECT `EMP`.`EMPNO`, `t0`.`EXPR$1`\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "LEFT JOIN (SELECT `DEPT`.`DEPTNO`, COUNT(*) AS `EXPR$1`\n"
+        + "FROM `SCOTT`.`DEPT`\n"
+        + "INNER JOIN `SCOTT`.`DEPT` AS `DEPT0` ON `DEPT`.`DEPTNO` = `DEPT0`.`DEPTNO`\n"
+        + "GROUP BY `DEPT`.`DEPTNO`) AS `t0` ON `EMP`.`DEPTNO` = `t0`.`DEPTNO`";
+    sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withClickHouse()
-        .exec();
-
-    // Aggregation results must be explicitly aliased for ClickHouse visibility
-    assertThat(sql, containsString("COUNT(*) AS `EXPR$1`"));
-    assertThat(sql, containsString("GROUP BY `DEPT`.`DEPTNO`"));
+        .ok(expected);
   }
 
   /** Test three-way JOIN to ensure the converter handles linear joins normally. */
@@ -11679,5 +11669,4 @@ class RelToSqlConverterTest {
         .withMysql()
         .ok(expected);
   }
-
 }
