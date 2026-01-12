@@ -246,4 +246,99 @@ where job = 'MANAGER';
 
 !ok
 
+# [CALCITE-4693] Query with Lateral Join should converted to Left Join When sub-query is aggregate query
+
+select * from "scott".dept, lateral (select count(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno);
+
+SELECT "DEPT"."DEPTNO", "DEPT"."DNAME", "DEPT"."LOC", "EXPR$0"."EXPR$0"
+FROM "scott"."DEPT" AS "DEPT"
+    LEFT JOIN (SELECT COUNT(CAST("EMP"."DEPTNO" AS INTEGER))
+        FROM "scott"."EMP" AS "EMP"
+        WHERE "EMP"."DEPTNO" = "DEPT"."DEPTNO") AS "EXPR$0" ON TRUE
+!explain-validated-on calcite
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK |      3 |
+|     20 | RESEARCH   | DALLAS   |      5 |
+|     30 | SALES      | CHICAGO  |      6 |
+|     40 | OPERATIONS | BOSTON   |      0 |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
+select * from "scott".dept, lateral (select count(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno having count(cast(deptno as integer)) > 0);
+
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK |      3 |
+|     20 | RESEARCH   | DALLAS   |      5 |
+|     30 | SALES      | CHICAGO  |      6 |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
+select * from "scott".dept, lateral (select count(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno + 10);
+
+SELECT "DEPT"."DEPTNO", "DEPT"."DNAME", "DEPT"."LOC", "EXPR$0"."EXPR$0"
+FROM "scott"."DEPT" AS "DEPT"
+    LEFT JOIN (SELECT COUNT(CAST("EMP"."DEPTNO" AS INTEGER))
+        FROM "scott"."EMP" AS "EMP"
+        WHERE CAST("EMP"."DEPTNO" AS INTEGER) = "DEPT"."DEPTNO" + 10) AS "EXPR$0" ON TRUE
+!explain-validated-on calcite
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK |      5 |
+|     20 | RESEARCH   | DALLAS   |      6 |
+|     30 | SALES      | CHICAGO  |      0 |
+|     40 | OPERATIONS | BOSTON   |      0 |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
+select * from "scott".dept, lateral (select sum(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno);
+
+SELECT "DEPT"."DEPTNO", "DEPT"."DNAME", "DEPT"."LOC", "EXPR$0"."EXPR$0"
+FROM "scott"."DEPT" AS "DEPT"
+    LEFT JOIN (SELECT SUM(CAST("EMP"."DEPTNO" AS INTEGER))
+        FROM "scott"."EMP" AS "EMP"
+        WHERE "EMP"."DEPTNO" = "DEPT"."DEPTNO") AS "EXPR$0" ON TRUE
+!explain-validated-on calcite
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK |     30 |
+|     20 | RESEARCH   | DALLAS   |    100 |
+|     30 | SALES      | CHICAGO  |    180 |
+|     40 | OPERATIONS | BOSTON   |        |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
+select * from "scott".dept, lateral (select sum(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno + 10);
+
+SELECT "DEPT"."DEPTNO", "DEPT"."DNAME", "DEPT"."LOC", "EXPR$0"."EXPR$0"
+FROM "scott"."DEPT" AS "DEPT"
+    LEFT JOIN (SELECT SUM(CAST("EMP"."DEPTNO" AS INTEGER))
+        FROM "scott"."EMP" AS "EMP"
+        WHERE CAST("EMP"."DEPTNO" AS INTEGER) = "DEPT"."DEPTNO" + 10) AS "EXPR$0" ON TRUE
+!explain-validated-on calcite
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK |    100 |
+|     20 | RESEARCH   | DALLAS   |    180 |
+|     30 | SALES      | CHICAGO  |        |
+|     40 | OPERATIONS | BOSTON   |        |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
 # End lateral.iq
