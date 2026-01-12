@@ -2438,6 +2438,21 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4743">[CALCITE-4743]
+   * Aggregates with no group and no agg-call</a>. */
+  @Test void testAggregateWithNoGroupAndNoAggCall() {
+    final RelBuilder builder = relBuilder();
+    final RelNode relRoot = builder.scan("EMP")
+        .aggregate(builder.groupKey())
+        .project(ImmutableList.of(builder.literal("hello")), ImmutableList.of("constant_field"))
+        .build();
+
+    String expected = "SELECT 'hello' AS \"constant_field\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    relFn(b -> relRoot).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3811">[CALCITE-3811]
    * JDBC adapter generates SQL with invalid field names if Filter's row type
    * is different from its input</a>. */
