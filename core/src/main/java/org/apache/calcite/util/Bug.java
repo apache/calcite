@@ -150,6 +150,11 @@ public abstract class Bug {
   public static final boolean CALCITE_3243_FIXED = false;
 
   /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3557">[CALCITE-3557]
+   * ClassCastException for using nested multiset or array inside multiset</a> is fixed. */
+  public static final boolean CALCITE_3557_FIXED = false;
+
+  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4204">[CALCITE-4204]
    * Intermittent precision in Druid results when using aggregation functions over columns of type
    * DOUBLE</a> is fixed. */
