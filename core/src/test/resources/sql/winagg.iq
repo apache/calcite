@@ -1003,7 +1003,7 @@ select gender, count(*) over(partition by gender order by ename) as count1 from 
 
 # Get the plan and result which push filter past window
 select gender, count(*) over(partition by gender order by ename) as count1 from emp where gender = 'F';
-EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], $1=[$t3])
+EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], COUNT1=[$t3])
   EnumerableWindow(window#0=[window(partition {2} order by [0] aggs [COUNT()])])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=['F'], expr#4=[=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
       EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])

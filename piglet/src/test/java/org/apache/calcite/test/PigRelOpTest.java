@@ -1665,10 +1665,10 @@ class PigRelOpTest extends PigRelTestBase {
         + " name=[$1], age=[$2], city=[$3])\n"
         + "    LogicalTableScan(table=[[emp1]])\n";
 
-    final String sql = "SELECT w0$o0 AS rank_A, id, name, age, city\n"
+    final String sql = "SELECT rank_A, id, name, age, city\n"
         + "FROM (SELECT id, name, age, city, RANK() OVER ()\n"
         + "    FROM emp1) AS t\n"
-        + "WHERE w0$o0 > 1";
+        + "WHERE rank_A > 1";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
   }

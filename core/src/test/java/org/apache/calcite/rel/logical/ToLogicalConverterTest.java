@@ -477,12 +477,12 @@ class ToLogicalConverterTest {
   @Test void testWindow() {
     String sql = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expectedPhysical = ""
-        + "EnumerableProject($0=[$17])\n"
+        + "EnumerableProject(EXPR$0=[$17])\n"
         + "  EnumerableWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    JdbcToEnumerableConverter\n"
         + "      JdbcTableScan(table=[[foodmart, employee]])\n";
     String expectedLogical = ""
-        + "LogicalProject($0=[$17])\n"
+        + "LogicalProject(EXPR$0=[$17])\n"
         + "  LogicalWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    LogicalTableScan(table=[[foodmart, employee]])\n";
     verify(rel(sql), expectedPhysical, expectedLogical);
@@ -493,13 +493,13 @@ class ToLogicalConverterTest {
     String sql = String.format(Locale.ROOT, "SELECT sum(\"salary\") over (order by \"hire_date\" "
         + "rows between unbounded preceding and current row %s) FROM \"employee\"", excludeClause);
     String expectedPhysical =
-        String.format(Locale.ROOT, "EnumerableProject($0=[$17])\n"
+        String.format(Locale.ROOT, "EnumerableProject(EXPR$0=[$17])\n"
             + "  EnumerableWindow(window#0=[window(order by [9] rows between"
             + " UNBOUNDED PRECEDING and CURRENT ROW %saggs [SUM($11)])])\n"
             + "    JdbcToEnumerableConverter\n"
             + "      JdbcTableScan(table=[[foodmart, employee]])\n", expectedExcludeString);
     String expectedLogical =
-        String.format(Locale.ROOT, "LogicalProject($0=[$17])\n"
+        String.format(Locale.ROOT, "LogicalProject(EXPR$0=[$17])\n"
             + "  LogicalWindow(window#0=[window(order by [9] rows between"
             + " UNBOUNDED PRECEDING and CURRENT ROW %saggs [SUM($11)])])\n"
             + "    LogicalTableScan(table=[[foodmart, employee]])\n", expectedExcludeString);

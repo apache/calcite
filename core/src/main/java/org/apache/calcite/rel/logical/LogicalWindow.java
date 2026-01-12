@@ -244,11 +244,12 @@ public final class LogicalWindow extends Window {
       }
     }
 
+    int callIndex = 0;
     for (Ord<Group> window : Ord.zip(groups)) {
       for (Ord<RexWinAggCall> over : Ord.zip(window.e.aggCalls)) {
         // Add the k-th over expression of
         // the i-th window to the output of the program.
-        String name = fieldNames.get(over.i);
+        String name = fieldNames.get(callIndex++);
         if (name == null || name.startsWith("$")) {
           name = "w" + window.i + "$o" + over.i;
         }
