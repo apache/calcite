@@ -5566,11 +5566,11 @@ class RelToSqlConverterTest {
    * Support Window in RelToSqlConverter</a>. */
   @Test void testConvertWindowToSql() {
     String query0 = "SELECT row_number() over (order by \"hire_date\") FROM \"employee\"";
-    String expected0 = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\") AS \"$0\"\n"
+    String expected0 = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\")\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query1 = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
-    String expected1 = "SELECT RANK() OVER (ORDER BY \"hire_date\") AS \"$0\"\n"
+    String expected1 = "SELECT RANK() OVER (ORDER BY \"hire_date\")\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query2 = "SELECT lead(\"employee_id\",1,'NA') over "
@@ -5578,14 +5578,14 @@ class RelToSqlConverterTest {
             + "FROM \"employee\"";
     String expected2 = "SELECT LEAD(\"employee_id\", 1, 'NA') OVER "
             + "(PARTITION BY \"hire_date\" "
-            + "ORDER BY \"employee_id\") AS \"$0\"\n"
+            + "ORDER BY \"employee_id\")\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query3 = "SELECT lag(\"employee_id\",1,'NA') over "
             + "(partition by \"hire_date\" order by \"employee_id\")\n"
             + "FROM \"employee\"";
     String expected3 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\"\n"
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query4 = "SELECT lag(\"employee_id\",1,'NA') "
@@ -5596,13 +5596,13 @@ class RelToSqlConverterTest {
             + "count(*) over (partition by \"birth_date\" order by \"employee_id\") as count2\n"
             + "FROM \"employee\"";
     String expected4 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\", "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"LAG1\", "
             + "LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"$1\", "
+            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"LAG2\", "
             + "COUNT(*) OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$2\", "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"COUNT1\", "
             + "COUNT(*) OVER (PARTITION BY \"birth_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$3\"\n"
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"COUNT2\"\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query5 = "SELECT lag(\"employee_id\",1,'NA') "
@@ -5613,13 +5613,13 @@ class RelToSqlConverterTest {
             + "max(sum(\"employee_id\")) over (partition by \"birth_date\" order by \"employee_id\") as count2\n"
             + "FROM \"employee\" group by \"employee_id\", \"hire_date\", \"birth_date\"";
     String expected5 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\", "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"LAG1\", "
             + "LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"$1\", "
+            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"LAG2\", "
             + "MAX(SUM(\"employee_id\")) OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$2\", "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"COUNT1\", "
             + "MAX(SUM(\"employee_id\")) OVER (PARTITION BY \"birth_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$3\"\n"
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"COUNT2\"\n"
             + "FROM \"foodmart\".\"employee\"\n"
             + "GROUP BY \"employee_id\", \"hire_date\", \"birth_date\"";
 
@@ -5635,7 +5635,7 @@ class RelToSqlConverterTest {
         + "count(distinct \"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
     String expected7 = "SELECT "
         + "COUNT(DISTINCT \"employee_id\") OVER (ORDER BY \"hire_date\""
-        + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$0\"\n"
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
         + "FROM \"foodmart\".\"employee\"";
 
     String query8 = "SELECT "
@@ -5823,9 +5823,9 @@ class RelToSqlConverterTest {
         + "FROM ( SELECT \"product_name\", "
         + "SUM(\"product_id\") OVER (PARTITION BY \"product_name\") AS \"daily_sales\" "
         + "FROM \"product\" ) subquery";
-    String expected00 = "SELECT RANK() OVER (ORDER BY \"$1\" DESC) AS \"$0\"\n"
+    String expected00 = "SELECT RANK() OVER (ORDER BY \"daily_sales\" DESC) AS \"rank1\"\n"
         + "FROM (SELECT \"product_name\", SUM(\"product_id\") OVER (PARTITION BY \"product_name\" "
-        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"$1\"\n"
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"daily_sales\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t0\"";
     String expected01 = "SELECT RANK() OVER (ORDER BY \"daily_sales\" DESC) AS \"rank1\"\n"
         + "FROM (SELECT \"product_name\", SUM(\"product_id\") OVER (PARTITION BY \"product_name\""
@@ -5840,7 +5840,7 @@ class RelToSqlConverterTest {
         + "RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\" "
         + "FROM (SELECT \"product_id\", \"product_name\" FROM \"product\") a";
     String expected10 = "SELECT \"product_id\","
-        + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"$1\"\n"
+        + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\"\n"
         + "FROM \"foodmart\".\"product\"";
     String expected11 = "SELECT \"product_id\","
         + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\"\n"

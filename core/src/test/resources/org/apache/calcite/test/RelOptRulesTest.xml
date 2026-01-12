@@ -5439,7 +5439,7 @@ from emp]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($0=[$3], $1=[$4])
+LogicalProject(SUM1=[$3], SUM2=[$4])
   LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($1), SUM($2)])])
     LogicalProject(SAL=[$5], DEPTNO=[$7], $2=[+($7, $5)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -5461,7 +5461,7 @@ ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject($0=[$1])
+LogicalProject(W_COUNT=[$1])
   LogicalWindow(window#0=[window(order by [0] rows between $1 PRECEDING and $2 PRECEDING aggs [COUNT()])], constants=[[10, 1]])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -7382,7 +7382,7 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
       <![CDATA[
 LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
   LogicalFilter(condition=[IS NULL($2)])
-    LogicalProject(EMPNO=[$0], DEPTNO=[$7], $2=[$9])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], W_COUNT=[$9])
       LogicalWindow(window#0=[window(partition {7} order by [0] aggs [COUNT($0)])])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -11836,6 +11836,31 @@ LogicalProject(DNAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectToWindowRuleForMultiOver">
+    <Resource name="sql">
+      <![CDATA[select * from (select empno, deptno, last_value(deptno) over (order by empno) f1,
+first_value(deptno) over (order by empno desc) f3,
+count(deptno) over (order by empno) f2
+from emp) where f2 > 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], F1=[$2], F3=[$3], F2=[$4])
+  LogicalFilter(condition=[>($4, 10)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[LAST_VALUE($7) OVER (ORDER BY $0)], F3=[FIRST_VALUE($7) OVER (ORDER BY $0 DESC)], F2=[COUNT($7) OVER (ORDER BY $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], F1=[$2], F3=[$3], F2=[$4])
+  LogicalFilter(condition=[>($4, 10)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[$9], F3=[$11], F2=[$10])
+      LogicalWindow(window#0=[window(order by [0] aggs [LAST_VALUE($7), COUNT($7)])], window#1=[window(order by [0 DESC] aggs [FIRST_VALUE($7)])])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectToWindowRuleForMultipleWindows">
     <Resource name="sql">
       <![CDATA[select
@@ -11847,7 +11872,7 @@ from emp]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($0=[$9], $1=[$11], $2=[$10], $3=[$12])
+LogicalProject(COUNT1=[$9], COUNT2=[$11], SUM1=[$10], SUM2=[$12])
   LogicalWindow(window#0=[window(partition {0} order by [5] aggs [COUNT(), SUM($7)])], window#1=[window(partition {7} order by [5] aggs [COUNT(), SUM($7)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -11856,6 +11881,28 @@ LogicalProject($0=[$9], $1=[$11], $2=[$10], $3=[$12])
       <![CDATA[
 LogicalProject(COUNT1=[COUNT() OVER (PARTITION BY $0 ORDER BY $5)], COUNT2=[COUNT() OVER (PARTITION BY $7 ORDER BY $5)], SUM1=[SUM($7) OVER (PARTITION BY $0 ORDER BY $5)], SUM2=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectToWindowRuleForNestedOver">
+    <Resource name="sql">
+      <![CDATA[select deptno, f1, f2 from (select *, last_value(deptno) over (order by empno) f2
+from (select *, first_value(deptno) over (order by empno) f1 from emp))
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], F1=[$9], F2=[LAST_VALUE($7) OVER (ORDER BY $0)])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], F1=[FIRST_VALUE($7) OVER (ORDER BY $0)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], F1=[$9], F2=[$10])
+  LogicalWindow(window#0=[window(order by [0] aggs [LAST_VALUE($7)])])
+    LogicalWindow(window#0=[window(order by [0] aggs [FIRST_VALUE($7)])])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -11889,7 +11936,7 @@ from (
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($0=[$2], $1=[$3])
+LogicalProject(COL1=[$2], COL2=[$3])
   LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($2), SUM($3)])], constants=[[100, 1000]])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -16459,7 +16506,7 @@ from (
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($0=[$2], $1=[$3], $2=[$4])
+LogicalProject(COL1=[$2], COL2=[$3], COL3=[$4])
   LogicalWindow(window#0=[window(partition {1} range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($2)])], window#1=[window(order by [1] aggs [SUM($2)])], window#2=[window(partition {1} range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM(5000)])], constants=[[100]])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
       LogicalFilter(condition=[=($5, 5000)])
@@ -16492,7 +16539,7 @@ LogicalProject(COL1=[SUM(100) OVER (ORDER BY $7, $0 RANGE BETWEEN CURRENT ROW AN
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($0=[$3], $1=[$4])
+LogicalProject(COL1=[$3], COL2=[$4])
   LogicalWindow(window#0=[window(order by [2, 0] range between CURRENT ROW and UNBOUNDED FOLLOWING aggs [SUM($3)])], window#1=[window(partition {2} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($3)])], constants=[[100]])
     LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
       LogicalFilter(condition=[=($5, 5000)])
@@ -22115,7 +22162,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$2], EXPR$2=[SUM($2) OVER (PARTITION BY $1 O
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[$1], EXPR$1=[$2], $2=[$3])
+LogicalProject(EXPR$0=[$1], EXPR$1=[$2], EXPR$2=[$3])
   LogicalWindow(window#0=[window(partition {1} order by [2] aggs [SUM($2)])])
     LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)], EXPR$1=[SUM($2)])
       LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
@@ -22164,11 +22211,11 @@ LogicalUnion(all=[true])
     <Resource name="planAfter">
       <![CDATA[
 LogicalUnion(all=[true])
-  LogicalProject($0=[$2])
+  LogicalProject(S=[$2])
     LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($2)])], constants=[[100]])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject($0=[$2])
+  LogicalProject(S=[$2])
     LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($2)])], constants=[[1000]])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])

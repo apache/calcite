@@ -12059,4 +12059,37 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7369">[CALCITE-7369]
+   * ProjectToWindowRule loses column alias when optimizing OVER window queries</a>. */
+  @Test void testProjectToWindowRuleForNestedOver() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+
+    final String sql =
+            "select deptno, f1, f2 from (select *, last_value(deptno) over (order by empno) f2\n"
+            + "from (select *, first_value(deptno) over (order by empno) f1 from emp))\n";
+    sql(sql).withPlanner(hepPlanner)
+            .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7369">[CALCITE-7369]
+   * ProjectToWindowRule loses column alias when optimizing OVER window queries</a>. */
+  @Test void testProjectToWindowRuleForMultiOver() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+
+    final String sql = "select * from ("
+            + "select empno, deptno, last_value(deptno) over (order by empno) f1,\n"
+            + "first_value(deptno) over (order by empno desc) f3,\n"
+            + "count(deptno) over (order by empno) f2\n"
+            + "from emp) where f2 > 10";
+    sql(sql).withPlanner(hepPlanner)
+            .check();
+  }
 }

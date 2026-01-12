@@ -605,7 +605,7 @@ public abstract class CalcRelSplitter {
       projectRefs.add(new RexLocalRef(index, expr.getType()));
 
       // Inherit meaningful field name if possible.
-      fieldNames.add(deriveFieldName(expr, i));
+      fieldNames.add(deriveFieldName(expr, projectExprOrdinal, i));
     }
     RexLocalRef conditionRef;
     if (conditionExprOrdinal >= 0) {
@@ -627,18 +627,61 @@ public abstract class CalcRelSplitter {
         outputRowType);
   }
 
-  private String deriveFieldName(RexNode expr, int ordinal) {
+  /**
+   * Derives a field name for a projected expression.
+   *
+   * <p>If {@code expr} is a {@link RexInputRef}, returns the corresponding
+   * input field name. Otherwise, attempts to retrieve the name from the
+   * original program's projections. If no meaningful name is found, or if
+   * the name looks like an auto-generated name such as {@code $n} (but not
+   * starting with {@code $EXPR}), returns a synthesized name {@code "$" + ordinal}.
+   *
+   * @param expr      Expression to derive the name for
+   * @param exprIndex Index of the expression in the program's expression list
+   * @param ordinal   Position in the projection (used to generate a fallback name)
+   * @return Derived or synthesized field name
+   */
+  private String deriveFieldName(RexNode expr, int exprIndex, int ordinal) {
+    String fieldName = null;
     if (expr instanceof RexInputRef) {
-      int inputIndex = ((RexInputRef) expr).getIndex();
-      String fieldName =
-          child.getRowType().getFieldList().get(inputIndex).getName();
-      // Don't inherit field names like '$3' from child: that's
-      // confusing.
-      if (!fieldName.startsWith("$") || fieldName.startsWith("$EXPR")) {
-        return fieldName;
+      fieldName = getInputRefName((RexInputRef) expr);
+    } else {
+      fieldName = findProjectedFieldName(exprIndex);
+    }
+    return normalizeFieldName(fieldName, ordinal);
+  }
+
+  private String getInputRefName(RexInputRef ref) {
+    int inputIndex = ref.getIndex();
+    return child.getRowType().getFieldList().get(inputIndex).getName();
+  }
+
+  /**
+   * Return the output field name corresponding to the given expression index {@code exprIndex},
+   * or {@code null} if the expression is not part of the program's projection.
+   *
+   * @param exprIndex Index of the expression in the program's expression list
+   * @return the output field name for the given expression index, or {@code null} if not projected
+   */
+  private @Nullable String findProjectedFieldName(int exprIndex) {
+    List<RexLocalRef> projects = program.getProjectList();
+    List<String> fieldNames = program.getOutputRowType().getFieldNames();
+    for (int i = 0; i < projects.size(); i++) {
+      // If the project entry refers to the given expression, return its name.
+      if (projects.get(i).getIndex() == exprIndex) {
+        return fieldNames.get(i);
       }
     }
-    return "$" + ordinal;
+    return null;
+  }
+
+  private String normalizeFieldName(@Nullable String fieldName, int ordinal) {
+    // Don't inherit field names like '$3' from child: that's confusing.
+    if (fieldName == null
+            || (fieldName.startsWith("$") && !fieldName.startsWith("$EXPR"))) {
+      return "$" + ordinal;
+    }
+    return fieldName;
   }
 
   /**
