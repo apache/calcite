@@ -45,15 +45,11 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
     // once the new decorrelator can adapt to all scenarios.
 
     // TODO: The following files involves UNNEST and LEFT_MARK JOIN
-    paths.remove("sql/agg.iq");
     paths.remove("sql/measure.iq");
     paths.remove("sql/unnest.iq");
-    paths.remove("sql/lateral.iq");
     paths.remove("sql/some.iq");
     paths.remove("sql/sub-query.iq");
     paths.remove("sql/scalar.iq");
-    paths.remove("sql/join.iq");
-    paths.remove("sql/spatial.iq");
     paths.remove("sql/measure-paper.iq");
     paths.remove("sql/misc.iq");
     return paths;
