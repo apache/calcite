@@ -680,11 +680,13 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     UnnestedQuery rightInfo;
 
     if (!leftHasCorrelation && !join.getJoinType().generatesNullsOnRight()
-        && join.getJoinType().projectsRight()) {
+        && join.getJoinType().projectsRight()
+        && rightHasCorrelation) {
       // there is no need to push down domain D to left side when both following conditions
       // are satisfied:
       // 1. there is no correlation on left side
       // 2. join type will not generate NULL values on right side and will project right
+      // 3. there is correlation on right side to carry domain D
       // In this case, the left side will start a decorrelation independently
       newLeft = decorrelateQuery(join.getLeft(), builder);
       Map<Integer, Integer> leftOldToNewOutputs = new HashMap<>();
@@ -696,11 +698,13 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       pushDownToLeft = true;
       leftInfo = requireNonNull(mapRelToUnnestedQuery.get(join.getLeft()));
     }
-    if (!rightHasCorrelation && !join.getJoinType().generatesNullsOnLeft()) {
+    if (!rightHasCorrelation && !join.getJoinType().generatesNullsOnLeft()
+        && pushDownToLeft) {
       // there is no need to push down domain D to right side when both following conditions
       // are satisfied:
       // 1. there is no correlation on right side
       // 2. join type will not generate NULL values on left side
+      // 3. there is domain D pushed down to left side
       // In this case, the right side will start a decorrelation independently
       newRight = decorrelateQuery(join.getRight(), builder);
       Map<Integer, Integer> rightOldToNewOutputs = new HashMap<>();
