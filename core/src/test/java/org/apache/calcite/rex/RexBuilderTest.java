@@ -357,6 +357,10 @@ class RexBuilderTest {
     final TimestampString ts10 = TimestampString.fromCalendarFields(c);
     assertThat(ts10, hasToString("1969-02-26 19:06:00.987"));
     assertThat(ts10.getMillisSinceEpoch(), is(c.getTimeInMillis()));
+
+    // TimestampString with all zeros fraction
+    final TimestampString ts11 = new TimestampString("2016-02-26 19:06:00.000");
+    assertThat(ts11, hasToString("2016-02-26 19:06:00"));
   }
 
   @Test void testTimeString() {

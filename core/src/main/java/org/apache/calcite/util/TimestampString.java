@@ -126,6 +126,10 @@ public class TimestampString implements Comparable<TimestampString> {
       while (v.endsWith("0")) {
         v = v.substring(0, v.length() - 1);
       }
+      // Remove trailing dot
+      if (v.endsWith(".")) {
+        v = v.substring(0, v.length() - 1);
+      }
     }
     checkArgument(PATTERN.matcher(v).matches(), v);
     return v;
