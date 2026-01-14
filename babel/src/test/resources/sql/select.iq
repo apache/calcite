@@ -234,4 +234,56 @@ WHERE d.loc = 'CHICAGO';
 
 !ok
 
+# [CALCITE-7331] Support the alias form SELECT * EXCEPT() for SELECT * EXCLUDE()
+select 1 as x, 2 as y except (select 3 as a, 4 as b);
++---+---+
+| X | Y |
++---+---+
+| 1 | 2 |
++---+---+
+(1 row)
+
+!ok
+
+with t(x, y) as (values(1, 2))
+select 1 as x, 2 as y except (y) from t;
+Non-query expression encountered in illegal context
+!error
+
+with t(x, y) as (values(1, 2))
+select x except (x) from t;
+EXCLUDE/EXCEPT clause must follow a STAR expression
+!error
+
+with t(x, y) as (values(1, 2))
+select * except (x) from t;
++---+
+| Y |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+select 1 as x, e.* except(e.empno, e.ename, e.job, e.mgr), d.* except(d.dname), 2 as y
+from emp e join dept d on e.deptno = d.deptno limit 1;
++---+------------+---------+------+--------+---------+----------+---+
+| X | HIREDATE   | SAL     | COMM | DEPTNO | DEPTNO0 | LOC      | Y |
++---+------------+---------+------+--------+---------+----------+---+
+| 1 | 1981-06-09 | 2450.00 |      |     10 |      10 | NEW YORK | 2 |
++---+------------+---------+------+--------+---------+----------+---+
+(1 row)
+
+!ok
+
+select d1.* except(d1.dname) from dept d1 except(select d2.* except(d2.dname) from dept d2);
++--------+-----+
+| DEPTNO | LOC |
++--------+-----+
++--------+-----+
+(0 rows)
+
+!ok
+
 # End select.iq
