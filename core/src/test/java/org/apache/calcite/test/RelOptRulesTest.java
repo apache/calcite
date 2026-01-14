@@ -504,6 +504,32 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7375">[CALCITE-7375]
+   * ProjectWindowTransposeRule does not correctly adjust column indices in window bounds</a>. */
+  @Test void testNestedConstantWindow() {
+    final String sql = "WITH t1 AS (\n"
+        + "  SELECT *,\n"
+        + "         FIRST_VALUE(deptno) OVER (\n"
+        + "           ORDER BY empno\n"
+        + "           ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING\n"
+        + "         ) AS f1\n"
+        + "  FROM emp\n"
+        + ")\n"
+        + "SELECT deptno,\n"
+        + "       f1,\n"
+        + "       LAST_VALUE(deptno) OVER (\n"
+        + "         ORDER BY empno\n"
+        + "         ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING\n"
+        + "       ) AS f2\n"
+        + "FROM t1";
+    sql(sql)
+            .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
+            .withRule(CoreRules.PROJECT_WINDOW_TRANSPOSE)
+            .check();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
    * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
    * and XML_EXTRACT is incorrect</a>. */

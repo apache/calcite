@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
@@ -166,9 +167,13 @@ public class ProjectWindowTransposeRule
         ++aggCallIndex;
       }
 
+      // Adjust Window Group RexWindowBound
+      RexWindowBound newLowerBound = group.lowerBound.accept(indexAdjustment);
+      RexWindowBound newUpperBound = group.upperBound.accept(indexAdjustment);
+
       groups.add(
-          new Window.Group(keys.build(), group.isRows, group.lowerBound,
-              group.upperBound, group.exclude, RelCollations.of(orderKeys), aggCalls));
+          new Window.Group(keys.build(), group.isRows, newLowerBound,
+              newUpperBound, group.exclude, RelCollations.of(orderKeys), aggCalls));
     }
 
     final LogicalWindow newLogicalWindow =
