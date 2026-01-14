@@ -10728,6 +10728,43 @@ LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNestedConstantWindow">
+    <Resource name="sql">
+      <![CDATA[WITH t1 AS (
+  SELECT *,
+         FIRST_VALUE(deptno) OVER (
+           ORDER BY empno
+           ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING
+         ) AS f1
+  FROM emp
+)
+SELECT deptno,
+       f1,
+       LAST_VALUE(deptno) OVER (
+         ORDER BY empno
+         ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING
+       ) AS f2
+FROM t1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], F1=[$2], F2=[$3])
+  LogicalWindow(window#0=[window(order by [0] rows between $3 PRECEDING and $4 FOLLOWING aggs [LAST_VALUE($1)])], constants=[[2, 1]])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[$9])
+      LogicalWindow(window#0=[window(order by [0] rows between $9 PRECEDING and $10 FOLLOWING aggs [FIRST_VALUE($7)])], constants=[[2, 1]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], F1=[$2], F2=[$3])
+  LogicalWindow(window#0=[window(order by [0] rows between $3 PRECEDING and $4 FOLLOWING aggs [LAST_VALUE($1)])], constants=[[2, 1]])
+    LogicalWindow(window#0=[window(order by [0] rows between $2 PRECEDING and $3 FOLLOWING aggs [FIRST_VALUE($1)])], constants=[[2, 1]])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNoOversimplificationBelowIsNull">
     <Resource name="sql">
       <![CDATA[select *
