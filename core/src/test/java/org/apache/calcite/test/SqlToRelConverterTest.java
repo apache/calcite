@@ -6001,4 +6001,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "and t1.ename in (select t3.ename from emp t3 )";
     sql(sql).ok();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5597">[CALCITE-5597]
+   * SELECT DISTINCT query with ORDER BY column will get error result</a>. */
+  @Test void testDistinctOrderByRand() {
+    final String sql = "select distinct deptno, deptno, empno, 1, 'a' from emp order by rand(), 1";
+    sql(sql).ok();
+  }
 }
