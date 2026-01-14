@@ -185,6 +185,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CODE_POINTS_TO_STRI
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION_MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION_WITH_NULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_MSSQL;
@@ -754,6 +755,8 @@ public class RexImpTable {
           NullPolicy.STRICT);
       define(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
+          NullPolicy.STRICT);
+      defineMethod(CONCAT_FUNCTION_MYSQL, BuiltInMethod.MULTI_STRING_CONCAT_OBJECTS.method,
           NullPolicy.STRICT);
       defineMethod(CONCAT_FUNCTION_WITH_NULL,
           BuiltInMethod.MULTI_STRING_CONCAT_WITH_NULL.method, NullPolicy.NONE);
