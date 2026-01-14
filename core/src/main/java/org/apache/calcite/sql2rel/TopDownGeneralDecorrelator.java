@@ -680,11 +680,13 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     UnnestedQuery rightInfo;
 
     if (!leftHasCorrelation && !join.getJoinType().generatesNullsOnRight()
-        && join.getJoinType().projectsRight()) {
-      // there is no need to push down domain D to left side when both following conditions
+        && join.getJoinType().projectsRight()
+        && rightHasCorrelation) {
+      // there is no need to push down domain D to left side when all following conditions
       // are satisfied:
       // 1. there is no correlation on left side
       // 2. join type will not generate NULL values on right side and will project right
+      // 3. there is correlation on right side to carry domain D
       // In this case, the left side will start a decorrelation independently
       newLeft = decorrelateQuery(join.getLeft(), builder);
       Map<Integer, Integer> leftOldToNewOutputs = new HashMap<>();
@@ -692,16 +694,23 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
           .forEach(i -> leftOldToNewOutputs.put(i, i));
       leftInfo = new UnnestedQuery(join.getLeft(), newLeft, new TreeMap<>(), leftOldToNewOutputs);
     } else {
+      // when neither the left nor the right side has correlation,
+      // but the join condition has correlation, domain D is pushed down to the left by default.
       newLeft = unnest(join.getLeft(), allowEmptyOutputFromRewrite);
       pushDownToLeft = true;
       leftInfo = requireNonNull(mapRelToUnnestedQuery.get(join.getLeft()));
     }
     if (!rightHasCorrelation && !join.getJoinType().generatesNullsOnLeft()) {
-      // there is no need to push down domain D to right side when both following conditions
+      // there is no need to push down domain D to right side when all following conditions
       // are satisfied:
       // 1. there is no correlation on right side
       // 2. join type will not generate NULL values on left side
+      // 3. there is domain D pushed down to left side
       // In this case, the right side will start a decorrelation independently
+
+      // either the left or the right side must carry domain D,
+      // and rightHasCorrelation is false, pushDownToLeft must be true here
+      assert pushDownToLeft;
       newRight = decorrelateQuery(join.getRight(), builder);
       Map<Integer, Integer> rightOldToNewOutputs = new HashMap<>();
       IntStream.range(0, newRight.getRowType().getFieldCount())
