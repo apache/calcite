@@ -1180,4 +1180,7 @@ public interface CalciteResource {
 
   @BaseMessage("SELECT BY cannot be used with ORDER BY")
   ExInst<SqlValidatorException> selectByCannotWithOrderBy();
+
+  @BaseMessage("The argument of DESCRIPTOR must be an identifier")
+  ExInst<SqlValidatorException> descriptorMustBeIdentifier();
 }
