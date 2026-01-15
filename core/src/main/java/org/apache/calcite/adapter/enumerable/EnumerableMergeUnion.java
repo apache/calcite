@@ -22,8 +22,10 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -42,17 +44,20 @@ public class EnumerableMergeUnion extends EnumerableUnion {
   protected EnumerableMergeUnion(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
-    final RelCollation collation = traitSet.getCollation();
-    if (collation == null || collation.getFieldCollations().isEmpty()) {
+    final List<RelCollation> collations = traitSet.getCollations();
+    if (collations.isEmpty() || collations.get(0).getFieldCollations().isEmpty()) {
       throw new IllegalArgumentException("EnumerableMergeUnion with no collation");
     }
     for (RelNode input : inputs) {
-      final RelCollation inputCollation = input.getTraitSet().getCollation();
-      if (inputCollation == null || !inputCollation.satisfies(collation)) {
-        throw new IllegalArgumentException("EnumerableMergeUnion input does "
-            + "not satisfy collation. EnumerableMergeUnion collation: "
-            + collation + ". Input collation: " + inputCollation + ". Input: "
-            + input);
+      final RelTrait inputCollationTrait =
+          input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+      for (RelCollation collation : collations) {
+        if (inputCollationTrait == null || !inputCollationTrait.satisfies(collation)) {
+          throw new IllegalArgumentException("EnumerableMergeUnion input does "
+              + "not satisfy collation. EnumerableMergeUnion collation: "
+              + collation + ". Input collation: " + inputCollationTrait + ". Input: "
+              + input);
+        }
       }
     }
   }
