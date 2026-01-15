@@ -11593,6 +11593,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(tumble(table orders, descriptor(^column_not_exist^), "
         + "interval '2' hour))")
         .fails("Unknown identifier 'COLUMN_NOT_EXIST'");
+    // Test case for [CALCITE-7377] Validator should reject a DESCRIPTOR in a table
+    // function when it is not an identifier
+    sql("select * from table(tumble(table orders, descriptor(^1+2^), "
+        + "interval '2' hour))")
+        .fails("The argument of DESCRIPTOR must be an identifier");
+    sql("select * from table(tumble(table orders, descriptor(^orders.rowtime^), "
+        + "interval '2' hour))")
+        .fails("The argument of DESCRIPTOR must be an identifier");
   }
 
   @Test void testTumbleTableFunction() {
@@ -11758,6 +11766,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(\n"
         + "hop(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour, interval '1' hour))")
         .fails("Object 'TABLER_NOT_EXIST' not found");
+    // Test case for [CALCITE-7377] Validator should reject a DESCRIPTOR in a table function
+    // when it is not an identifier
+    sql("select * from table(\n"
+        + "hop(table orders, descriptor(^1 + 2^), interval '2' hour, interval '1' hour))")
+        .fails("The argument of DESCRIPTOR must be an identifier");
   }
 
   @Test void testSessionTableFunction() {

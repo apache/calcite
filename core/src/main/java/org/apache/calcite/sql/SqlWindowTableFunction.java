@@ -233,11 +233,16 @@ public class SqlWindowTableFunction extends SqlFunction
     void validateColumnNames(SqlValidator validator,
         List<String> fieldNames, List<SqlNode> columnNames) {
       final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
-      Ord.forEach(SqlIdentifier.simpleNames(columnNames), (name, i) -> {
-        if (matcher.indexOf(fieldNames, name) < 0) {
+      Ord.forEach(columnNames, (name, i) -> {
+        if (!(name instanceof SqlIdentifier) || !((SqlIdentifier) name).isSimple()) {
+          throw SqlUtil.newContextException(name.getParserPosition(),
+              RESOURCE.descriptorMustBeIdentifier());
+        }
+        String simpleName = ((SqlIdentifier) name).getSimple();
+        if (matcher.indexOf(fieldNames, simpleName) < 0) {
           final SqlIdentifier columnName = (SqlIdentifier) columnNames.get(i);
           throw SqlUtil.newContextException(columnName.getParserPosition(),
-              RESOURCE.unknownIdentifier(name));
+              RESOURCE.unknownIdentifier(simpleName));
         }
       });
     }
