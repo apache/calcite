@@ -556,7 +556,8 @@ public abstract class Functions {
       } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
         return compareObjectArrays((Object[]) o1, (Object[]) o2);
       } else {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Item types do not match: "
+            + o1.getClass() + " vs " + o2.getClass());
       }
     }
   }
@@ -582,7 +583,8 @@ public abstract class Functions {
       } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
         return compareObjectArrays((Object[]) o1, (Object[]) o2);
       } else {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Item types do not match: "
+            + o1.getClass() + " vs " + o2.getClass());
       }
     }
   }
@@ -590,7 +592,7 @@ public abstract class Functions {
   /** Nulls first reverse comparator. */
   private static class NullsFirstReverseComparator
       implements Comparator<Object>, Serializable  {
-    @Override public int compare(Object o1, Object o2) {
+    @Override public int compare(@Nullable Object o1, @Nullable Object o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -608,7 +610,8 @@ public abstract class Functions {
       } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
         return -compareObjectArrays((Object[]) o1, (Object[]) o2);
       } else {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Item types do not match: "
+            + o1.getClass() + " vs " + o2.getClass());
       }
     }
   }
@@ -707,8 +710,8 @@ public abstract class Functions {
 
   /** Nulls last reverse comparator. */
   private static class NullsLastReverseComparator
-      implements Comparator<Comparable>, Serializable  {
-    @Override public int compare(Comparable o1, Comparable o2) {
+      implements Comparator<Object>, Serializable  {
+    @Override public int compare(@Nullable Object o1, @Nullable Object o2) {
       if (o1 == o2) {
         return 0;
       }
@@ -718,8 +721,17 @@ public abstract class Functions {
       if (o2 == null) {
         return -1;
       }
-      //noinspection unchecked
-      return -o1.compareTo(o2);
+      if (o1 instanceof Comparable && o2 instanceof Comparable) {
+        //noinspection unchecked
+        return -((Comparable) o1).compareTo(o2);
+      } else if (o1 instanceof List && o2 instanceof List) {
+        return -compareLists((List<?>) o1, (List<?>) o2);
+      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
+        return -compareObjectArrays((Object[]) o1, (Object[]) o2);
+      } else {
+        throw new IllegalArgumentException("Item types do not match: "
+            + o1.getClass() + " vs " + o2.getClass());
+      }
     }
   }
 

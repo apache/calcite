@@ -465,4 +465,47 @@ order by arr desc nulls first;
 
 !ok
 
+# [CALCITE-7374] NULLS LAST throws ClassCastException when sorting arrays
+select * from
+(values
+    (2, array[null, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5]),
+    (5, cast(null as integer array))) as t(id, arr)
+order by arr nulls last;
++----+-----------+
+| ID | ARR       |
++----+-----------+
+|  1 | [1, 2]    |
+|  3 | [3, 4]    |
+|  4 | [4, 5]    |
+|  2 | [null, 3] |
+|  5 |           |
++----+-----------+
+(5 rows)
+
+!ok
+
+select * from
+(values
+    (2, array[null, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5]),
+    (5, cast(null as integer array))) as t(id, arr)
+order by arr desc nulls last;
++----+-----------+
+| ID | ARR       |
++----+-----------+
+|  2 | [null, 3] |
+|  4 | [4, 5]    |
+|  3 | [3, 4]    |
+|  1 | [1, 2]    |
+|  5 |           |
++----+-----------+
+(5 rows)
+
+!ok
+
 # End sort.iq

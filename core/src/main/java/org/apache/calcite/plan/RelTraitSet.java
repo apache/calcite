@@ -393,6 +393,22 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   }
 
   /**
+   * Returns {@link RelCollation} traits defined by
+   * {@link RelCollationTraitDef#INSTANCE}.
+   */
+  @SuppressWarnings("unchecked")
+  public List<RelCollation> getCollations() {
+    RelCollation trait = getTrait(RelCollationTraitDef.INSTANCE);
+    if (trait == null) {
+      return ImmutableList.of();
+    }
+    if (trait instanceof RelCompositeTrait) {
+      return ((RelCompositeTrait<RelCollation>) trait).traitList();
+    }
+    return ImmutableList.of(trait);
+  }
+
+  /**
    * Returns the size of the RelTraitSet.
    *
    * @return the size of the RelTraitSet.
