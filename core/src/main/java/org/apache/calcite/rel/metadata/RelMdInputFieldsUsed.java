@@ -32,6 +32,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -50,7 +51,11 @@ public class RelMdInputFieldsUsed
 
   public ImmutableList<ImmutableBitSet> getInputFieldsUsed(RelNode rel,
       RelMetadataQuery mq) {
-    return ImmutableList.of();
+    ImmutableList.Builder<ImmutableBitSet> builder = ImmutableList.builder();
+    rel.getInputs().forEach(input -> {
+      builder.addAll(mq.getInputFieldsUsed(input));
+    });
+    return builder.build();
   }
 
   public ImmutableList<ImmutableBitSet> getInputFieldsUsed(TableScan scan,
