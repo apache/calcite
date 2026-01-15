@@ -7791,6 +7791,92 @@ EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
 
 !ok
 
+# [CALCITE-7378] Potential incorrect column attribution in RelToSqlConverter due to implicit table alias handling
+!use blank
+CREATE TABLE a (
+  deptno INTEGER NOT NULL,
+  ename VARCHAR(10)
+);
+(0 rows modified)
+
+!update
+
+CREATE TABLE b (
+  deptno INTEGER NOT NULL,
+  ename VARCHAR(10)
+);
+(0 rows modified)
+
+!update
+
+INSERT INTO a VALUES
+  (10, 'ALLEN'),
+  (20, 'WARD'),
+  (30, 'WARD'),
+  (40, 'SMITH');
+(4 rows modified)
+
+!update
+
+INSERT INTO b VALUES
+  (20, 'WARD'),
+  (30, 'WARD'),
+  (30, 'ALLEN'),
+  (10, 'KING');
+(4 rows modified)
+
+!update
+
+SELECT deptno
+FROM b as b1
+WHERE deptno NOT IN (
+    SELECT deptno
+    FROM a
+    WHERE deptno = b1.deptno AND ename = 'WARD' AND b1.ename = 'WARD'
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
++--------+
+(2 rows)
+
+!ok
+
+SELECT deptno
+FROM b as a
+WHERE deptno NOT IN (
+    SELECT deptno
+    FROM a
+    WHERE deptno = a.deptno AND ename = 'WARD' AND a.ename = 'WARD'
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
++--------+
+(1 row)
+
+!ok
+
+SELECT deptno
+FROM b as a
+WHERE deptno NOT IN (
+    SELECT deptno
+    FROM a as a2
+    WHERE deptno = a.deptno AND ename = 'WARD' AND a.ename = 'WARD'
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     30 |
++--------+
+(2 rows)
+
+!ok
+
 # Reset to default value 20
 !set trimfields true
 
