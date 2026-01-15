@@ -24,6 +24,11 @@ EXPR$0
 6
 !ok
 
+SELECT -CAST(200 AS INT UNSIGNED);
+java.sql.SQLException: Error while executing SQL "SELECT -CAST(200 AS INT UNSIGNED)": From line 1, column 8 to line 1, column 33: Cannot apply '-' to arguments of type '-<INTEGER UNSIGNED>'. Supported form(s): '-<INTEGER>'
+
+!error
+
 SELECT CAST(200 AS INT UNSIGNED) - 100;
 EXPR$0
 100

@@ -16747,6 +16747,28 @@ public class SqlOperatorTest {
     f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
   }
 
+  @Test void testUnsignedArithmetic() {
+    final SqlOperatorFixture f = fixture();
+    // Test case for [CALCITE-7360] The meaning of negation for unsigned numbers is not defined
+    f.checkFails("^-CAST (100 AS INT UNSIGNED)^",
+        "Cannot apply '-' to arguments of type '-<INTEGER UNSIGNED>'\\. "
+            + "Supported form\\(s\\): '-<INTEGER>'\\n"
+            + "'-<APPROXIMATE_NUMERIC>'\\n"
+            + "'-<DECIMAL>'\\n"
+            + "'-<DATETIME_INTERVAL>'", false);
+    f.checkScalar("CAST(2 AS INT UNSIGNED)", "2", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) + CAST(2 AS INT UNSIGNED)", "4",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) + CAST(2 AS TINYINT UNSIGNED)", "4",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) + 2", "4", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) - 2", "0", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) - CAST(2 AS TINYINT UNSIGNED)", "0",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) * 2", "4", "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("CAST(2 AS INT UNSIGNED) / 2", "1", "INTEGER UNSIGNED NOT NULL");
+  }
+
   /**
    * Test cases for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7109">[CALCITE-7109]

@@ -1023,7 +1023,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           80,
           ReturnTypes.ARG0,
           InferTypes.RETURN_TYPE,
-          OperandTypes.NUMERIC_OR_INTERVAL);
+          OperandTypes.SIGNED_OR_INTERVAL);
 
   /**
    * Checked version of prefix arithmetic minus operator, '<code>-</code>'.
