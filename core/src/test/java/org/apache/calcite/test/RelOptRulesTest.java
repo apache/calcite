@@ -2094,6 +2094,33 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7373">[CALCITE-7373]
+   * FILTER_INTO_JOIN should not push Filter into a join
+   * when the Filter contains non-deterministic function</a>. */
+  @Test void testPushFilterThroughJoinWithNonDeterministic() {
+    final String sql = "select * from (\n"
+        + "  select * from dept inner join\n"
+        + "     emp on dept.deptno = emp.deptno) R\n"
+        + "where 0.9 <= rand()";
+    sql(sql)
+        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH)
+        .check();
+  }
+
+  @Test void testPushJoinConditionWithNonDeterministic() {
+    final String sql = "select * from (\n"
+        + "  select * from dept inner join\n"
+        + "     emp on dept.deptno = emp.deptno and emp.mgr <= rand()) R\n";
+    sql(sql)
+        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH)
+        .checkUnchanged();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-438">[CALCITE-438]
    * Push predicates through SemiJoin</a>. */
   @Test void testPushFilterThroughSemiJoin() {
