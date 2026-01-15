@@ -402,9 +402,14 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER =
       family(SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker SIGNED =
+      family(SqlTypeFamily.INTEGER)
+          .or(family(SqlTypeFamily.APPROXIMATE_NUMERIC))
+          // Note: cannot use family(DECIMAL), because UNSIGNED can be implicitly cast to DECIMAL
+          .or(typeName(SqlTypeName.DECIMAL));
+
   public static final SqlSingleOperandTypeChecker UNSIGNED_NUMERIC_UNSIGNED_NUMERIC =
       family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.UNSIGNED_NUMERIC);
-
 
   public static final SqlSingleOperandTypeChecker INTEGER_INTEGER =
       family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
@@ -1296,6 +1301,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_INTERVAL =
       NUMERIC.or(INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker SIGNED_OR_INTERVAL =
+      SIGNED.or(INTERVAL);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_STRING =
       NUMERIC.or(STRING);
