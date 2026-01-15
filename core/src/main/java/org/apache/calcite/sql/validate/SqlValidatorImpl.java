@@ -2253,6 +2253,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       setValidatedNodeType(node, newInferredType);
     } else if (node instanceof SqlNodeList) {
       SqlNodeList nodeList = (SqlNodeList) node;
+      if (inferRowSqlNodeList(inferredType, scope, nodeList)) {
+        return;
+      }
       if (inferredType.isStruct()) {
         if (inferredType.getFieldCount() != nodeList.size()) {
           // this can happen when we're validating an INSERT
@@ -2329,6 +2332,25 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
     }
+  }
+
+  private boolean inferRowSqlNodeList(final RelDataType inferredType,
+      final SqlValidatorScope scope, final SqlNodeList nodeList) {
+    if (!inferredType.isStruct()) {
+      return false;
+    }
+    boolean inferred = false;
+    for (SqlNode child : nodeList) {
+      if (child instanceof SqlBasicCall && SqlKind.ROW == child.getKind()) {
+        List<SqlNode> operands = ((SqlBasicCall) child).getOperandList();
+        for (int index = 0; index < operands.size(); index++) {
+          RelDataType type = inferredType.getFieldList().get(index).getType();
+          inferUnknownTypes(type, scope, operands.get(index));
+        }
+        inferred = true;
+      }
+    }
+    return inferred;
   }
 
   /**
