@@ -6426,6 +6426,25 @@ class RelToSqlConverterTest {
     sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
+  /** Test cases of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7378">[CALCITE-7378]
+   * Potential incorrect column attribution in RelToSqlConverter due to implicit
+   * table alias handling</a>. */
+  @Test void testColumnAttributionWithImplicitAlias() {
+    String query = "select \"product_name\" from \"product\" t1 "
+        + "where \"product_id\" not in (select \"product_id\" "
+        + "from \"product\" t2 "
+        + "where t2.\"product_id\" = t1.\"product_id\" "
+        + "and t1.\"product_id\" = 2 and t2.\"product_id\" = 1)";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\" AS \"product0\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\" "
+        + "AND \"product\".\"product_id\" = 2 AND \"product_id\" = 1)";
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5711">[CALCITE-5711]
    * Implement the SINGLE_VALUE aggregation in PostgreSQL Dialect</a>
@@ -11126,7 +11145,7 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"EMP\"\n"
         + "INNER JOIN \"SCOTT\".\"DEPT\" ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"\n"
         + "WHERE \"DEPT\".\"DEPTNO\" = (SELECT MIN(\"DEPTNO\")\n"
-        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "FROM \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
         + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\")";
 
     HepProgramBuilder builder = new HepProgramBuilder();
