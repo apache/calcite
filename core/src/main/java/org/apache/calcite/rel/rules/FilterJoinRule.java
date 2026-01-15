@@ -72,6 +72,15 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
   protected void perform(RelOptRuleCall call, @Nullable Filter filter,
       Join join) {
+    // Skip non-deterministic filter condition
+    if (filter != null && !RexUtil.isDeterministic(filter.getCondition())) {
+      return;
+    }
+    // Skip non-deterministic join condition
+    if (!RexUtil.isDeterministic(join.getCondition())) {
+      return;
+    }
+
     List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());
     final List<RexNode> origJoinFilters = ImmutableList.copyOf(joinFilters);
