@@ -1954,7 +1954,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Frame newLeftFrame = leftFrame;
     boolean joinConditionContainsFieldAccess = RexUtil.containsFieldAccess(rel.getCondition());
-    if (joinConditionContainsFieldAccess && isCorVarDefined) {
+    if ((joinConditionContainsFieldAccess || rel.getJoinType() == JoinRelType.LEFT)
+        && isCorVarDefined) {
       final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
       final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
       Collections.sort(corVarList);
@@ -1994,10 +1995,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final NavigableMap<CorDef, Integer> corDefOutputs =
         new TreeMap<>(newLeftFrame.corDefOutputs);
     // Right input positions are shifted by newLeftFieldCount.
-    for (Map.Entry<CorDef, Integer> entry
-        : rightFrame.corDefOutputs.entrySet()) {
-      corDefOutputs.put(entry.getKey(),
-          entry.getValue() + newLeftFieldCount);
+    for (Map.Entry<CorDef, Integer> entry : rightFrame.corDefOutputs.entrySet()) {
+      if (rel.getJoinType() == JoinRelType.LEFT) {
+        corDefOutputs.putIfAbsent(entry.getKey(), entry.getValue() + newLeftFieldCount);
+      } else {
+        corDefOutputs.put(entry.getKey(), entry.getValue() + newLeftFieldCount);
+      }
     }
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
   }
