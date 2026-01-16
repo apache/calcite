@@ -7880,4 +7880,592 @@ WHERE deptno NOT IN (
 # Reset to default value 20
 !set trimfields true
 
+!use scott
+# [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
+# Correlated scalar subquery with LEFT JOIN.
+# The correlation variable (d.deptno) is used in the RHS of the join.
+SELECT
+    d.dname,
+    (
+        SELECT COUNT(sub.empno)
+        FROM emp e
+        LEFT JOIN (
+            SELECT * FROM emp e2 WHERE e2.deptno = d.deptno
+        ) sub
+        ON e.mgr = sub.mgr
+    ) as matched_subordinate_count
+FROM dept d;
++------------+---------------------------+
+| DNAME      | MATCHED_SUBORDINATE_COUNT |
++------------+---------------------------+
+| ACCOUNTING |                         4 |
+| OPERATIONS |                         0 |
+| RESEARCH   |                         9 |
+| SALES      |                        28 |
++------------+---------------------------+
+(4 rows)
+
+!ok
+
+# Correlated scalar subquery with RIGHT JOIN.
+# The correlation variable (d.deptno) is used in the LHS of the join.
+SELECT
+    d.dname,
+    (
+        SELECT COUNT(sub.empno)
+        FROM (
+            SELECT * FROM emp e2 WHERE e2.deptno = d.deptno
+        ) sub
+        RIGHT JOIN emp e
+        ON sub.mgr = e.mgr
+    ) as matched_subordinate_count
+FROM dept d;
++------------+---------------------------+
+| DNAME      | MATCHED_SUBORDINATE_COUNT |
++------------+---------------------------+
+| ACCOUNTING |                         4 |
+| OPERATIONS |                         0 |
+| RESEARCH   |                         9 |
+| SALES      |                        28 |
++------------+---------------------------+
+(4 rows)
+
+!ok
+
+# Correlated scalar subquery with FULL JOIN.
+# The correlation variable (d.deptno) is used in the LHS of the join.
+SELECT
+    d.dname,
+    (
+        SELECT COUNT(sub.empno)
+        FROM (
+            SELECT * FROM emp e2 WHERE e2.deptno = d.deptno
+        ) sub
+        FULL JOIN emp e
+        ON sub.mgr = e.mgr
+    ) as matched_subordinate_count
+FROM dept d
+order by d.dname;
++------------+---------------------------+
+| DNAME      | MATCHED_SUBORDINATE_COUNT |
++------------+---------------------------+
+| ACCOUNTING |                         5 |
+| OPERATIONS |                         0 |
+| RESEARCH   |                         9 |
+| SALES      |                        28 |
++------------+---------------------------+
+(4 rows)
+
+!ok
+
+# Correlated NOT EXISTS subquery with LEFT JOIN.
+# The correlation variable (d.deptno) is used in the RHS of the join.
+SELECT * FROM dept d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM emp e
+    LEFT JOIN (
+        SELECT * FROM emp e3 WHERE e3.deptno = d.deptno
+    ) foo
+    ON e.empno = foo.mgr
+);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+
+# Correlated NOT EXISTS subquery with RIGHT JOIN.
+# The correlation variable (d.deptno) is used in the LHS of the join.
+SELECT * FROM dept d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM emp e3 WHERE e3.deptno = d.deptno
+    ) foo
+    RIGHT JOIN emp e
+    ON foo.mgr = e.empno
+);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+
+# Correlated NOT EXISTS subquery with FULL JOIN.
+# The correlation variable (d.deptno) is used in the LHS of the join.
+SELECT * FROM dept d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM emp e3 WHERE e3.deptno = d.deptno
+    ) foo
+    FULL JOIN emp e
+    ON foo.mgr = e.empno
+);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+
+# Correlated EXISTS subquery with LEFT JOIN involving 'bonus' table.
+# The correlation variable (e.ename) is used in the RHS of the join.
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM dept d
+    LEFT JOIN (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    ON d.loc = foo.job
+);
++--------+-----------+---------+
+| ENAME  | JOB       | SAL     |
++--------+-----------+---------+
+| ADAMS  | CLERK     | 1100.00 |
+| ALLEN  | SALESMAN  | 1600.00 |
+| BLAKE  | MANAGER   | 2850.00 |
+| CLARK  | MANAGER   | 2450.00 |
+| FORD   | ANALYST   | 3000.00 |
+| JAMES  | CLERK     |  950.00 |
+| JONES  | MANAGER   | 2975.00 |
+| KING   | PRESIDENT | 5000.00 |
+| MARTIN | SALESMAN  | 1250.00 |
+| MILLER | CLERK     | 1300.00 |
+| SCOTT  | ANALYST   | 3000.00 |
+| SMITH  | CLERK     |  800.00 |
+| TURNER | SALESMAN  | 1500.00 |
+| WARD   | SALESMAN  | 1250.00 |
++--------+-----------+---------+
+(14 rows)
+
+!ok
+
+# Correlated EXISTS subquery with RIGHT JOIN involving 'bonus' table.
+# The correlation variable (e.ename) is used in the LHS of the join.
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    RIGHT JOIN dept d
+    ON foo.job = d.loc
+);
++--------+-----------+---------+
+| ENAME  | JOB       | SAL     |
++--------+-----------+---------+
+| ADAMS  | CLERK     | 1100.00 |
+| ALLEN  | SALESMAN  | 1600.00 |
+| BLAKE  | MANAGER   | 2850.00 |
+| CLARK  | MANAGER   | 2450.00 |
+| FORD   | ANALYST   | 3000.00 |
+| JAMES  | CLERK     |  950.00 |
+| JONES  | MANAGER   | 2975.00 |
+| KING   | PRESIDENT | 5000.00 |
+| MARTIN | SALESMAN  | 1250.00 |
+| MILLER | CLERK     | 1300.00 |
+| SCOTT  | ANALYST   | 3000.00 |
+| SMITH  | CLERK     |  800.00 |
+| TURNER | SALESMAN  | 1500.00 |
+| WARD   | SALESMAN  | 1250.00 |
++--------+-----------+---------+
+(14 rows)
+
+!ok
+
+# Correlated EXISTS subquery with FULL JOIN involving 'bonus' table.
+# The correlation variable (e.ename) is used in the LHS of the join.
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    FULL JOIN dept d
+    ON foo.job = d.loc
+);
++--------+-----------+---------+
+| ENAME  | JOB       | SAL     |
++--------+-----------+---------+
+| ADAMS  | CLERK     | 1100.00 |
+| ALLEN  | SALESMAN  | 1600.00 |
+| BLAKE  | MANAGER   | 2850.00 |
+| CLARK  | MANAGER   | 2450.00 |
+| FORD   | ANALYST   | 3000.00 |
+| JAMES  | CLERK     |  950.00 |
+| JONES  | MANAGER   | 2975.00 |
+| KING   | PRESIDENT | 5000.00 |
+| MARTIN | SALESMAN  | 1250.00 |
+| MILLER | CLERK     | 1300.00 |
+| SCOTT  | ANALYST   | 3000.00 |
+| SMITH  | CLERK     |  800.00 |
+| TURNER | SALESMAN  | 1500.00 |
+| WARD   | SALESMAN  | 1250.00 |
++--------+-----------+---------+
+(14 rows)
+
+!ok
+
+# Correlated EXISTS subquery with LEFT JOIN and complex correlation condition.
+# The correlation variable (e1.sal, e1.comm) is used in the RHS of the join.
+SELECT empno FROM emp e1
+WHERE EXISTS (
+    SELECT 1
+    FROM dept d
+    LEFT JOIN (
+        SELECT * FROM emp e2
+        WHERE e2.sal > (e1.sal + COALESCE(e1.comm, 0))
+    ) foo
+    ON d.deptno = foo.deptno
+);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+# Correlated EXISTS subquery with RIGHT JOIN and complex correlation condition.
+# The correlation variable (e1.sal, e1.comm) is used in the LHS of the join.
+SELECT empno FROM emp e1
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM emp e2
+        WHERE e2.sal > (e1.sal + COALESCE(e1.comm, 0))
+    ) foo
+    RIGHT JOIN dept d
+    ON foo.deptno = d.deptno
+);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+# Correlated EXISTS subquery with FULL JOIN and complex correlation condition.
+# The correlation variable (e1.sal, e1.comm) is used in the LHS of the join.
+SELECT empno FROM emp e1
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM emp e2
+        WHERE e2.sal > (e1.sal + COALESCE(e1.comm, 0))
+    ) foo
+    FULL JOIN dept d
+    ON foo.deptno = d.deptno
+);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+# Correlated EXISTS subquery with LEFT JOIN on TRUE condition.
+# The correlation variable (d.deptno) is used in the RHS of the join.
+SELECT d.deptno
+FROM dept d
+WHERE EXISTS (
+    SELECT 1
+    FROM emp e
+    LEFT JOIN (
+        SELECT deptno FROM emp WHERE deptno = d.deptno
+    ) foo
+    ON TRUE
+    WHERE foo.deptno IS NOT DISTINCT FROM d.deptno
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+# Correlated EXISTS subquery with RIGHT JOIN on TRUE condition.
+# The correlation variable (d.deptno) is used in the LHS of the join.
+SELECT d.deptno
+FROM dept d
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT deptno FROM emp WHERE deptno = d.deptno
+    ) foo
+    RIGHT JOIN emp e
+    ON TRUE
+    WHERE foo.deptno IS NOT DISTINCT FROM d.deptno
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+# Correlated EXISTS subquery with FULL JOIN on TRUE condition.
+# The correlation variable (d.deptno) is used in the LHS of the join.
+SELECT d.deptno
+FROM dept d
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT deptno FROM emp WHERE deptno = d.deptno
+    ) foo
+    FULL JOIN emp e
+    ON TRUE
+    WHERE foo.deptno IS NOT DISTINCT FROM d.deptno
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+# Correlated EXISTS subquery with LEFT JOIN.
+# The correlation variable (dept.deptno) is used in the RHS of the join.
+SELECT * FROM dept
+WHERE EXISTS (
+    SELECT * FROM emp
+    LEFT JOIN (
+        SELECT * FROM emp e_sub
+        WHERE e_sub.deptno = dept.deptno
+    ) foo
+    ON emp.deptno = foo.deptno
+);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+# Correlated EXISTS subquery with RIGHT JOIN.
+# The correlation variable (dept.deptno) is used in the LHS of the join.
+SELECT * FROM dept
+WHERE EXISTS (
+    SELECT * FROM (
+        SELECT * FROM emp e_sub
+        WHERE e_sub.deptno = dept.deptno
+    ) foo
+    RIGHT JOIN emp
+    ON foo.deptno = emp.deptno
+);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+# Correlated EXISTS subquery with FULL JOIN.
+# The correlation variable (dept.deptno) is used in the LHS of the join.
+SELECT * FROM dept
+WHERE EXISTS (
+    SELECT * FROM (
+        SELECT * FROM emp e_sub
+        WHERE e_sub.deptno = dept.deptno
+    ) foo
+    FULL JOIN emp
+    ON foo.deptno = emp.deptno
+);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+# Correlated EXISTS subquery with LEFT JOIN using VALUES clause.
+# The correlation variable (t1.a) is used in the RHS of the join.
+WITH
+  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),
+  t2(a, b, c) AS (VALUES (1, 1, 1), (3, 3, 3), (4, 4, 4)),
+  t3(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (4, 4, 4))
+SELECT * FROM t1 WHERE EXISTS (
+SELECT * FROM t2
+LEFT JOIN
+(SELECT * FROM t3 WHERE t3.a = t1.a) foo
+ON t2.a = foo.a
+);
++---+---+---+
+| A | B | C |
++---+---+---+
+| 2 | 2 | 2 |
+| 3 | 3 | 3 |
+| 4 | 4 | 4 |
++---+---+---+
+(3 rows)
+
+!ok
+
+# Correlated EXISTS subquery with LEFT JOIN using VALUES clause.
+# The correlation variable (t1.a) is used in the LHS of the join.
+WITH
+  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),
+  t2(a, b, c) AS (VALUES (1, 1, 1), (3, 3, 3), (4, 4, 4)),
+  t3(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (4, 4, 4))
+SELECT * FROM t1 WHERE EXISTS (
+SELECT * FROM (SELECT * FROM t3 WHERE t3.a = t1.a) foo
+LEFT JOIN t2
+ON foo.a = t2.a
+);
++---+---+---+
+| A | B | C |
++---+---+---+
+| 2 | 2 | 2 |
+| 4 | 4 | 4 |
++---+---+---+
+(2 rows)
+
+!ok
+
+# Correlated EXISTS subquery with RIGHT JOIN using VALUES clause.
+# The correlation variable (t1.a) is used in the LHS of the join.
+WITH
+  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),
+  t2(a, b, c) AS (VALUES (1, 1, 1), (3, 3, 3), (4, 4, 4)),
+  t3(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (4, 4, 4))
+SELECT * FROM t1 WHERE EXISTS (
+SELECT * FROM (SELECT * FROM t3 WHERE t3.a = t1.a) foo
+RIGHT JOIN t2
+ON foo.a = t2.a
+);
++---+---+---+
+| A | B | C |
++---+---+---+
+| 2 | 2 | 2 |
+| 3 | 3 | 3 |
+| 4 | 4 | 4 |
++---+---+---+
+(3 rows)
+
+!ok
+
+# Correlated EXISTS subquery with FULL JOIN using VALUES clause.
+# The correlation variable (t1.a) is used in the LHS of the join.
+WITH
+  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),
+  t2(a, b, c) AS (VALUES (1, 1, 1), (3, 3, 3), (4, 4, 4)),
+  t3(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (4, 4, 4))
+SELECT * FROM t1 WHERE EXISTS (
+SELECT * FROM (SELECT * FROM t3 WHERE t3.a = t1.a) foo
+FULL JOIN t2
+ON foo.a = t2.a
+);
++---+---+---+
+| A | B | C |
++---+---+---+
+| 2 | 2 | 2 |
+| 3 | 3 | 3 |
+| 4 | 4 | 4 |
++---+---+---+
+(3 rows)
+
+!ok
+
+# Correlated EXISTS subquery with INNER JOIN using VALUES clause.
+# The correlation variable (t1.a) is used in the RHS of the join.
+WITH
+  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),
+  t2(a, b, c) AS (VALUES (1, 1, 1), (3, 3, 3), (4, 4, 4)),
+  t3(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (4, 4, 4))
+SELECT * FROM t1 WHERE EXISTS (
+SELECT * FROM t2
+INNER JOIN
+(SELECT * FROM t3 WHERE t3.a = t1.a) foo
+ON t2.a = foo.a
+);
++---+---+---+
+| A | B | C |
++---+---+---+
+| 4 | 4 | 4 |
++---+---+---+
+(1 row)
+
+!ok
 # End sub-query.iq
