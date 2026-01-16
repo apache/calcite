@@ -65,6 +65,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.FunctionalDependency;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.InputFieldsUsed;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Measure;
@@ -911,6 +912,7 @@ public enum BuiltInMethod {
   STR_TO_MAP(SqlFunctions.class, "strToMap", String.class, String.class, String.class),
   SUBSTRING_INDEX(SqlFunctions.class, "substringIndex", String.class, String.class, int.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
+  INPUT_FIELDS_USED(InputFieldsUsed.class, "getInputFieldsUsed"),
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
   AVERAGE_ROW_SIZE(Size.class, "averageRowSize"),
   AVERAGE_COLUMN_SIZES(Size.class, "averageColumnSizes"),
