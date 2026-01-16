@@ -7650,6 +7650,137 @@ EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
 !ok
 
 # [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
+SELECT
+    d.dname,
+    (
+        SELECT COUNT(sub.empno)
+        FROM emp e
+        LEFT JOIN (
+            SELECT * FROM emp e2 WHERE e2.deptno = d.deptno
+        ) sub
+        ON e.mgr = sub.mgr
+    ) as matched_subordinate_count
+FROM dept d;
++------------+---------------------------+
+| DNAME      | MATCHED_SUBORDINATE_COUNT |
++------------+---------------------------+
+| ACCOUNTING |                         4 |
+| OPERATIONS |                         0 |
+| RESEARCH   |                         9 |
+| SALES      |                        28 |
++------------+---------------------------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
+SELECT * FROM dept d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM emp e
+    LEFT JOIN (
+        SELECT * FROM emp e3 WHERE e3.deptno = d.deptno
+    ) foo
+    ON e.empno = foo.mgr
+);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+
+# [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM dept d
+    LEFT JOIN (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    ON d.loc = foo.job
+);
++--------+-----------+---------+
+| ENAME  | JOB       | SAL     |
++--------+-----------+---------+
+| ADAMS  | CLERK     | 1100.00 |
+| ALLEN  | SALESMAN  | 1600.00 |
+| BLAKE  | MANAGER   | 2850.00 |
+| CLARK  | MANAGER   | 2450.00 |
+| FORD   | ANALYST   | 3000.00 |
+| JAMES  | CLERK     |  950.00 |
+| JONES  | MANAGER   | 2975.00 |
+| KING   | PRESIDENT | 5000.00 |
+| MARTIN | SALESMAN  | 1250.00 |
+| MILLER | CLERK     | 1300.00 |
+| SCOTT  | ANALYST   | 3000.00 |
+| SMITH  | CLERK     |  800.00 |
+| TURNER | SALESMAN  | 1500.00 |
+| WARD   | SALESMAN  | 1250.00 |
++--------+-----------+---------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
+SELECT empno FROM emp e1
+WHERE EXISTS (
+    SELECT 1
+    FROM dept d
+    LEFT JOIN (
+        SELECT * FROM emp e2
+        WHERE e2.sal > (e1.sal + COALESCE(e1.comm, 0))
+    ) foo
+    ON d.deptno = foo.deptno
+);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
+SELECT d.deptno
+FROM dept d
+WHERE EXISTS (
+    SELECT 1
+    FROM emp e
+    LEFT JOIN (
+        SELECT deptno FROM emp WHERE deptno = d.deptno
+    ) foo
+    ON TRUE
+    WHERE foo.deptno IS NOT DISTINCT FROM d.deptno
+);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+# [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
 SELECT * FROM dept
 WHERE EXISTS (
     SELECT * FROM emp
