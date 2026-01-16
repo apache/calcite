@@ -1825,4 +1825,22 @@ public class SqlDialect {
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
   }
+
+  /**
+   * Returns whether this dialect requires wrapping a nested JOIN in a subquery with <b>mandatory
+   * aliases</b> for both the table and its projected columns.
+   *
+   * <p>Example for ClickHouse (returns true):
+   * <pre>{@code
+   * // Before: ... LEFT JOIN (dept d1 INNER JOIN dept d2 ON ...) AS j ON ...
+   * // After:  ... LEFT JOIN (
+   * //           SELECT d1.deptno AS deptno, d2.loc AS loc ...
+   * //           FROM dept d1 INNER JOIN dept d2 ON ...
+   * //         ) AS t0 ON ...
+   * }</pre>
+   */
+  public boolean shouldWrapNestedJoin(RelNode relNode) {
+    return false;
+  }
+
 }
