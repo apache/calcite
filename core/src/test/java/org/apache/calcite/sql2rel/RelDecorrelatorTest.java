@@ -1350,7 +1350,7 @@ public class RelDecorrelatorTest {
         + "    LogicalProject(EXPR$00=[$0], $f1=[true])\n"
         + "      LogicalAggregate(group=[{0}])\n"
         + "        LogicalProject(EXPR$00=[$3])\n"
-        + "          LogicalJoin(condition=[=($0, $4)], joinType=[left])\n"
+        + "          LogicalJoin(condition=[AND(=($0, $4), IS NOT DISTINCT FROM($3, $7))], joinType=[left])\n"
         + "            LogicalJoin(condition=[true], joinType=[inner])\n"
         + "              LogicalValues(tuples=[[{ 1, 1, 1 }, { 3, 3, 3 }, { 4, 4, 4 }]])\n"
         + "              LogicalProject(EXPR$0=[$0])\n"

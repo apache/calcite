@@ -1953,50 +1953,76 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     Frame newLeftFrame = leftFrame;
+    final NavigableMap<CorDef, Integer> leftCorDefOutputs = new TreeMap<>();
     boolean joinConditionContainsFieldAccess = RexUtil.containsFieldAccess(rel.getCondition());
-    if ((joinConditionContainsFieldAccess || rel.getJoinType() == JoinRelType.LEFT)
-        && isCorVarDefined) {
+    boolean isLeftJoin = rel.getJoinType() == JoinRelType.LEFT;
+
+    if ((joinConditionContainsFieldAccess || isLeftJoin) && isCorVarDefined) {
       final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
       final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
       Collections.sort(corVarList);
 
-      final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
-      newLeftFrame = createFrameWithValueGenerator(oldLeft, leftFrame, corVarList, corDefOutputs);
+      newLeftFrame =
+          createFrameWithValueGenerator(oldLeft, leftFrame, corVarList, leftCorDefOutputs);
     }
+
+    // Build join conditions: original condition + correlated variable conditions
+    final List<RexNode> joinConditions = new ArrayList<>();
+
+    // Add the original join condition
+    RexNode originalCond = decorrelateExpr(castNonNull(currentRel), map, cm, rel.getCondition());
+    if (!originalCond.isAlwaysTrue()) {
+      joinConditions.add(originalCond);
+    }
+
+    int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
+
+    // For LEFT JOIN, add conditions to connect correlated variables from left and right
+    if (isLeftJoin && !leftCorDefOutputs.isEmpty()) {
+      // For each correlated variable on the right side, add a join condition
+      for (Map.Entry<CorDef, Integer> e : rightFrame.corDefOutputs.entrySet()) {
+        final CorDef corDef = e.getKey();
+        final int leftPos = requireNonNull(leftCorDefOutputs.get(corDef));
+        final int rightPos = e.getValue();
+        final RelDataType lt = newLeftFrame.r.getRowType().getFieldList().get(leftPos).getType();
+        final RelDataType rt = rightFrame.r.getRowType().getFieldList().get(rightPos).getType();
+        final RexNode leftRef = new RexInputRef(leftPos, lt);
+        final RexNode rightRef = new RexInputRef(newLeftFieldCount + rightPos, rt);
+        joinConditions.add(relBuilder.isNotDistinctFrom(leftRef, rightRef));
+      }
+    }
+
+    RexNode finalCondition = joinConditions.isEmpty()
+        ? relBuilder.literal(true)
+        : RexUtil.composeConjunction(relBuilder.getRexBuilder(), joinConditions);
 
     RelNode newJoin = relBuilder
         .push(newLeftFrame.r)
         .push(rightFrame.r)
-        .join(rel.getJoinType(),
-            decorrelateExpr(castNonNull(currentRel), map, cm, rel.getCondition()),
-            ImmutableSet.of())
+        .join(rel.getJoinType(), finalCondition, ImmutableSet.of())
         .build();
 
-    // Create the mapping between the output of the old correlation rel
-    // and the new join rel
-    Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
-
     int oldLeftFieldCount = oldLeft.getRowType().getFieldCount();
-    int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
-
     int oldRightFieldCount = oldRight.getRowType().getFieldCount();
     //noinspection AssertWithSideEffects
     assert rel.getRowType().getFieldCount()
         == oldLeftFieldCount + oldRightFieldCount;
 
+    // Create the mapping between the output of the old correlation rel and the new join rel
     // Left input positions are not changed.
-    mapOldToNewOutputs.putAll(newLeftFrame.oldToNewOutputs);
+    Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>(newLeftFrame.oldToNewOutputs);
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
           requireNonNull(rightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
     }
 
-    final NavigableMap<CorDef, Integer> corDefOutputs =
-        new TreeMap<>(newLeftFrame.corDefOutputs);
+    final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>(newLeftFrame.corDefOutputs);
     // Right input positions are shifted by newLeftFieldCount.
     for (Map.Entry<CorDef, Integer> entry : rightFrame.corDefOutputs.entrySet()) {
-      if (rel.getJoinType() == JoinRelType.LEFT) {
+      if (isLeftJoin) {
+        // For LEFT JOIN, prefer left side corDef (from value generator)
+        // because right side might be NULL
         corDefOutputs.putIfAbsent(entry.getKey(), entry.getValue() + newLeftFieldCount);
       } else {
         corDefOutputs.put(entry.getKey(), entry.getValue() + newLeftFieldCount);
