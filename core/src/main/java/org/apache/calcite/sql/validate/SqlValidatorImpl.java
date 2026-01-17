@@ -905,7 +905,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private SqlNode maybeCast(SqlNode node, RelDataType currentType,
+  protected SqlNode maybeCast(SqlNode node, RelDataType currentType,
       RelDataType desiredType) {
     return SqlTypeUtil.equalSansNullability(typeFactory, currentType, desiredType)
         ? node
