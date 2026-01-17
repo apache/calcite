@@ -969,7 +969,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final List<RexNode> conditions =
-        addCorDefJoinConditions(corDefOutputs, valueGenCorDefOutputs,
+        buildCorDefJoinConditions(corDefOutputs, valueGenCorDefOutputs,
             valueGen, newRel, valueGenFieldCount, relBuilder, true);
 
     final RexNode joinCond = RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
@@ -1279,7 +1279,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // Build join conditions: for each CorDef of this branch that belongs
       // to the current outFrameCorrId, equate valueGen(col) with branch(col).
       final List<RexNode> conditions =
-          addCorDefJoinConditions(frame.corDefOutputs, valueGenCorDefOutputs,
+          buildCorDefJoinConditions(frame.corDefOutputs, valueGenCorDefOutputs,
               valueGen, frame.r, valueGenFieldCount, relBuilder, true);
       final RexNode joinCondition =
           RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
@@ -1983,7 +1983,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if (generatesNullsOnRight && !leftCorDefOutputs.isEmpty()) {
       // Iterate over preserved right side, lookup value generators on nullable left side
       final List<RexNode> conds =
-          addCorDefJoinConditions(newRightFrame.corDefOutputs, leftCorDefOutputs,
+          buildCorDefJoinConditions(newRightFrame.corDefOutputs, leftCorDefOutputs,
               newLeftFrame.r, newRightFrame.r, newLeftFieldCount, relBuilder, true);
       joinConditions.addAll(conds);
     }
@@ -1993,7 +1993,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if (generatesNullsOnLeft && !rightCorDefOutputs.isEmpty()) {
       // Iterate over preserved left side, lookup value generators on nullable right side
       final List<RexNode> conds =
-          addCorDefJoinConditions(newLeftFrame.corDefOutputs, rightCorDefOutputs,
+          buildCorDefJoinConditions(newLeftFrame.corDefOutputs, rightCorDefOutputs,
               newLeftFrame.r, newRightFrame.r, newLeftFieldCount, relBuilder, false);
       joinConditions.addAll(conds);
     }
@@ -3770,7 +3770,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * @param relBuilder the rel builder
    * @param iterateIsRight true if iterating over right side corDefs, false if left side
    */
-  private static List<RexNode> addCorDefJoinConditions(
+  private static List<RexNode> buildCorDefJoinConditions(
       Map<CorDef, Integer> iterateCorDefs,
       Map<CorDef, Integer> lookupCorDefs,
       RelNode leftRel,
