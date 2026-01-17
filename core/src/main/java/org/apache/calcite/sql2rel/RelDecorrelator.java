@@ -959,18 +959,19 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Build join conditions
     final Map<Integer, RexNode> newProjectMap = new HashMap<>();
-    final List<RexNode> conditions = new ArrayList<>();
     for (Map.Entry<CorDef, Integer> corDefOutput : corDefOutputs.entrySet()) {
       final CorDef corDef = corDefOutput.getKey();
       final int leftPos = requireNonNull(valueGenCorDefOutputs.get(corDef));
       final int rightPos = corDefOutput.getValue();
       final RelDataType leftType = valueGen.getRowType().getFieldList().get(leftPos).getType();
-      final RelDataType rightType = newRel.getRowType().getFieldList().get(rightPos).getType();
       final RexNode leftRef = new RexInputRef(leftPos, leftType);
-      final RexNode rightRef = new RexInputRef(valueGenFieldCount + rightPos, rightType);
-      conditions.add(relBuilder.isNotDistinctFrom(leftRef, rightRef));
       newProjectMap.put(valueGenFieldCount + rightPos, leftRef);
     }
+
+    final List<RexNode> conditions =
+        addCorDefJoinConditions(corDefOutputs, valueGenCorDefOutputs,
+            valueGen, newRel, valueGenFieldCount, relBuilder, true);
+
     final RexNode joinCond = RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
 
     // Build [08] LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
@@ -1277,17 +1278,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // Build join conditions: for each CorDef of this branch that belongs
       // to the current outFrameCorrId, equate valueGen(col) with branch(col).
-      final List<RexNode> conditions = new ArrayList<>();
-      for (Map.Entry<CorDef, Integer> e : frame.corDefOutputs.entrySet()) {
-        final CorDef corDef = e.getKey();
-        final int leftPos = requireNonNull(valueGenCorDefOutputs.get(corDef));
-        final int rightPos = e.getValue();
-        final RelDataType leftType = valueGen.getRowType().getFieldList().get(leftPos).getType();
-        final RelDataType rightType = frame.r.getRowType().getFieldList().get(rightPos).getType();
-        final RexNode leftRef = new RexInputRef(leftPos, leftType);
-        final RexNode rightRef = new RexInputRef(valueGenFieldCount + rightPos, rightType);
-        conditions.add(relBuilder.isNotDistinctFrom(leftRef, rightRef));
-      }
+      final List<RexNode> conditions =
+          addCorDefJoinConditions(frame.corDefOutputs, valueGenCorDefOutputs,
+              valueGen, frame.r, valueGenFieldCount, relBuilder, true);
       final RexNode joinCondition =
           RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
       RelNode join = relBuilder.push(valueGen).push(frame.r)
@@ -1953,17 +1946,25 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     Frame newLeftFrame = leftFrame;
+    Frame newRightFrame = rightFrame;
     final NavigableMap<CorDef, Integer> leftCorDefOutputs = new TreeMap<>();
+    final NavigableMap<CorDef, Integer> rightCorDefOutputs = new TreeMap<>();
     boolean joinConditionContainsFieldAccess = RexUtil.containsFieldAccess(rel.getCondition());
-    boolean isLeftJoin = rel.getJoinType() == JoinRelType.LEFT;
+    boolean generatesNullsOnRight = rel.getJoinType().generatesNullsOnRight();
+    boolean generatesNullsOnLeft = rel.getJoinType().generatesNullsOnLeft();
 
-    if ((joinConditionContainsFieldAccess || isLeftJoin) && isCorVarDefined) {
-      final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
-      final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
-      Collections.sort(corVarList);
+    final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
+    final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
+    Collections.sort(corVarList);
 
+    if ((joinConditionContainsFieldAccess || generatesNullsOnRight) && isCorVarDefined) {
       newLeftFrame =
           createFrameWithValueGenerator(oldLeft, leftFrame, corVarList, leftCorDefOutputs);
+    }
+
+    if (generatesNullsOnLeft && isCorVarDefined) {
+      newRightFrame =
+          createFrameWithValueGenerator(oldRight, rightFrame, corVarList, rightCorDefOutputs);
     }
 
     // Build join conditions: original condition + correlated variable conditions
@@ -1977,19 +1978,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     int newLeftFieldCount = newLeftFrame.r.getRowType().getFieldCount();
 
-    // For LEFT JOIN, add conditions to connect correlated variables from left and right
-    if (isLeftJoin && !leftCorDefOutputs.isEmpty()) {
-      // For each correlated variable on the right side, add a join condition
-      for (Map.Entry<CorDef, Integer> e : rightFrame.corDefOutputs.entrySet()) {
-        final CorDef corDef = e.getKey();
-        final int leftPos = requireNonNull(leftCorDefOutputs.get(corDef));
-        final int rightPos = e.getValue();
-        final RelDataType lt = newLeftFrame.r.getRowType().getFieldList().get(leftPos).getType();
-        final RelDataType rt = rightFrame.r.getRowType().getFieldList().get(rightPos).getType();
-        final RexNode leftRef = new RexInputRef(leftPos, lt);
-        final RexNode rightRef = new RexInputRef(newLeftFieldCount + rightPos, rt);
-        joinConditions.add(relBuilder.isNotDistinctFrom(leftRef, rightRef));
-      }
+    // For joins that generate nulls on the right (LEFT, FULL, LEFT_ASOF),
+    // add conditions to connect correlated variables from left and right
+    if (generatesNullsOnRight && !leftCorDefOutputs.isEmpty()) {
+      // Iterate over preserved right side, lookup value generators on nullable left side
+      final List<RexNode> conds =
+          addCorDefJoinConditions(newRightFrame.corDefOutputs, leftCorDefOutputs,
+              newLeftFrame.r, newRightFrame.r, newLeftFieldCount, relBuilder, true);
+      joinConditions.addAll(conds);
+    }
+
+    // For joins that generate nulls on the left (RIGHT, FULL),
+    // add conditions to connect correlated variables from left and right
+    if (generatesNullsOnLeft && !rightCorDefOutputs.isEmpty()) {
+      // Iterate over preserved left side, lookup value generators on nullable right side
+      final List<RexNode> conds =
+          addCorDefJoinConditions(newLeftFrame.corDefOutputs, rightCorDefOutputs,
+              newLeftFrame.r, newRightFrame.r, newLeftFieldCount, relBuilder, false);
+      joinConditions.addAll(conds);
     }
 
     RexNode finalCondition = joinConditions.isEmpty()
@@ -1998,7 +2004,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     RelNode newJoin = relBuilder
         .push(newLeftFrame.r)
-        .push(rightFrame.r)
+        .push(newRightFrame.r)
         .join(rel.getJoinType(), finalCondition, ImmutableSet.of())
         .build();
 
@@ -2014,17 +2020,22 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
-          requireNonNull(rightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
+          requireNonNull(newRightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
     }
 
     final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>(newLeftFrame.corDefOutputs);
     // Right input positions are shifted by newLeftFieldCount.
-    for (Map.Entry<CorDef, Integer> entry : rightFrame.corDefOutputs.entrySet()) {
-      if (isLeftJoin) {
-        // For LEFT JOIN, prefer left side corDef (from value generator)
-        // because right side might be NULL
+    for (Map.Entry<CorDef, Integer> entry : newRightFrame.corDefOutputs.entrySet()) {
+      if (generatesNullsOnRight) {
+        // For joins that generate nulls on the right (LEFT, FULL, LEFT_ASOF),
+        // prefer left side corDef (from value generator) because right side might be NULL
         corDefOutputs.putIfAbsent(entry.getKey(), entry.getValue() + newLeftFieldCount);
+      } else if (generatesNullsOnLeft) {
+        // For joins that generate nulls on the left (RIGHT, FULL),
+        // prefer right side corDef (from value generator) because left side might be NULL
+        corDefOutputs.put(entry.getKey(), entry.getValue() + newLeftFieldCount);
       } else {
+        // For INNER JOIN, use right side corDef
         corDefOutputs.put(entry.getKey(), entry.getValue() + newLeftFieldCount);
       }
     }
@@ -3746,6 +3757,44 @@ public class RelDecorrelator implements ReflectiveVisitor {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Adds join conditions to connect correlated variables between left and right sides.
+   *
+   * @param iterateCorDefs the corDef outputs to iterate over
+   * @param lookupCorDefs the corDef outputs to look up positions from
+   * @param leftRel the left relation
+   * @param rightRel the right relation
+   * @param newLeftFieldCount the field count of the left relation
+   * @param relBuilder the rel builder
+   * @param iterateIsRight true if iterating over right side corDefs, false if left side
+   */
+  private static List<RexNode> addCorDefJoinConditions(
+      Map<CorDef, Integer> iterateCorDefs,
+      Map<CorDef, Integer> lookupCorDefs,
+      RelNode leftRel,
+      RelNode rightRel,
+      int newLeftFieldCount,
+      RelBuilder relBuilder,
+      boolean iterateIsRight) {
+    final List<RexNode> joinConditions = new ArrayList<>();
+    for (Map.Entry<CorDef, Integer> e : iterateCorDefs.entrySet()) {
+      final CorDef corDef = e.getKey();
+      final int iteratePos = e.getValue();
+      final int lookupPos = requireNonNull(lookupCorDefs.get(corDef));
+
+      // Determine left and right positions based on which side we're iterating
+      final int leftPos = iterateIsRight ? lookupPos : iteratePos;
+      final int rightPos = iterateIsRight ? iteratePos : lookupPos;
+
+      final RelDataType lt = leftRel.getRowType().getFieldList().get(leftPos).getType();
+      final RelDataType rt = rightRel.getRowType().getFieldList().get(rightPos).getType();
+      final RexNode leftRef = new RexInputRef(leftPos, lt);
+      final RexNode rightRef = new RexInputRef(newLeftFieldCount + rightPos, rt);
+      joinConditions.add(relBuilder.isNotDistinctFrom(leftRef, rightRef));
+    }
+    return joinConditions;
   }
 
   // -------------------------------------------------------------------------
