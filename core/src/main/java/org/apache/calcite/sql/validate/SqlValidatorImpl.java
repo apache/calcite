@@ -895,7 +895,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private void throwIfExcludeEliminatesAllColumns(List<SqlIdentifier> excludeIdentifiers,
+  protected void throwIfExcludeEliminatesAllColumns(List<SqlIdentifier> excludeIdentifiers,
       int fieldsBeforeStar, PairList<String, RelDataType> fields,
       SqlIdentifier identifier) {
     if (!excludeIdentifiers.isEmpty()
