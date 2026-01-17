@@ -1272,4 +1272,91 @@ public class RelDecorrelatorTest {
         + "              LogicalTableScan(table=[[scott, BONUS]])\n";
     assertThat(after, hasTree(planAfter));
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7379">[CALCITE-7379]
+   * LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN</a>. */
+  @Test void testDecorrelateLeftJoinCorVarShadowing() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "WITH\n"
+        + "  t1(a, b, c) AS (VALUES (2, 2, 2), (3, 3, 3), (4, 4, 4)),\n"
+        + "  t2(a, b, c) AS (VALUES (1, 1, 1), (3, 3, 3), (4, 4, 4)),\n"
+        + "  t3(a, b, c) AS (VALUES (1, 1, 1), (2, 2, 2), (4, 4, 4))\n"
+        + "SELECT * FROM t1 WHERE EXISTS (\n"
+        + "SELECT * FROM t2\n"
+        + "LEFT JOIN\n"
+        + "(SELECT * FROM t3 WHERE t3.a = t1.a) foo\n"
+        + "ON t2.a = foo.a)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(A=[$0], B=[$1], C=[$2])\n"
+        + "  LogicalProject(EXPR$0=[$0], EXPR$1=[$1], EXPR$2=[$2])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "      LogicalValues(tuples=[[{ 2, 2, 2 }, { 3, 3, 3 }, { 4, 4, 4 }]])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(i=[true])\n"
+        + "          LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "            LogicalValues(tuples=[[{ 1, 1, 1 }, { 3, 3, 3 }, { 4, 4, 4 }]])\n"
+        + "            LogicalProject(A=[$0], B=[$1], C=[$2])\n"
+        + "              LogicalFilter(condition=[=($0, $cor0.A)])\n"
+        + "                LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 4, 4, 4 }]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // The plan before fix:
+    //
+    // LogicalProject(A=[$0], B=[$1], C=[$2])
+    //  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[inner])
+    //    LogicalValues(tuples=[[{ 2, 2, 2 }, { 3, 3, 3 }, { 4, 4, 4 }]])
+    //    LogicalProject(EXPR$00=[$0], $f1=[true])
+    //      LogicalAggregate(group=[{0}])
+    //        LogicalProject(EXPR$00=[$6])
+    //          LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    //            LogicalValues(tuples=[[{ 1, 1, 1 }, { 3, 3, 3 }, { 4, 4, 4 }]])
+    //            LogicalProject(A=[$0], B=[$1], C=[$2], EXPR$0=[$0])
+    //              LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 4, 4, 4 }]])
+    final String planAfter = ""
+        + "LogicalProject(A=[$0], B=[$1], C=[$2])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "    LogicalValues(tuples=[[{ 2, 2, 2 }, { 3, 3, 3 }, { 4, 4, 4 }]])\n"
+        + "    LogicalProject(EXPR$00=[$0], $f1=[true])\n"
+        + "      LogicalAggregate(group=[{0}])\n"
+        + "        LogicalProject(EXPR$00=[$3])\n"
+        + "          LogicalJoin(condition=[AND(=($0, $4), IS NOT DISTINCT FROM($3, $7))], joinType=[left])\n"
+        + "            LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "              LogicalValues(tuples=[[{ 1, 1, 1 }, { 3, 3, 3 }, { 4, 4, 4 }]])\n"
+        + "              LogicalProject(EXPR$0=[$0])\n"
+        + "                LogicalValues(tuples=[[{ 2, 2, 2 }, { 3, 3, 3 }, { 4, 4, 4 }]])\n"
+        + "            LogicalProject(A=[$0], B=[$1], C=[$2], EXPR$0=[$0])\n"
+        + "              LogicalValues(tuples=[[{ 1, 1, 1 }, { 2, 2, 2 }, { 4, 4, 4 }]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }
