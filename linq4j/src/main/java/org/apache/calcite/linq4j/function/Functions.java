@@ -23,6 +23,7 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -548,17 +549,7 @@ public abstract class Functions {
       if (o2 == null) {
         return 1;
       }
-      if (o1 instanceof Comparable && o2 instanceof Comparable) {
-        //noinspection unchecked
-        return ((Comparable) o1).compareTo(o2);
-      } else if (o1 instanceof List && o2 instanceof List) {
-        return compareLists((List<?>) o1, (List<?>) o2);
-      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
-        return compareObjectArrays((Object[]) o1, (Object[]) o2);
-      } else {
-        throw new IllegalArgumentException("Item types do not match: "
-            + o1.getClass() + " vs " + o2.getClass());
-      }
+      return compareListItems(o1, o2);
     }
   }
 
@@ -566,26 +557,7 @@ public abstract class Functions {
   private static class NullsLastComparator
       implements Comparator<Object>, Serializable {
     @Override public int compare(@Nullable Object o1, @Nullable Object o2) {
-      if (o1 == o2) {
-        return 0;
-      }
-      if (o1 == null) {
-        return 1;
-      }
-      if (o2 == null) {
-        return -1;
-      }
-      if (o1 instanceof Comparable && o2 instanceof Comparable) {
-        //noinspection unchecked
-        return ((Comparable) o1).compareTo(o2);
-      } else if (o1 instanceof List && o2 instanceof List) {
-        return compareLists((List<?>) o1, (List<?>) o2);
-      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
-        return compareObjectArrays((Object[]) o1, (Object[]) o2);
-      } else {
-        throw new IllegalArgumentException("Item types do not match: "
-            + o1.getClass() + " vs " + o2.getClass());
-      }
+      return compareListItems(o1, o2);
     }
   }
 
@@ -602,17 +574,7 @@ public abstract class Functions {
       if (o2 == null) {
         return 1;
       }
-      if (o1 instanceof Comparable && o2 instanceof Comparable) {
-        //noinspection unchecked
-        return -((Comparable) o1).compareTo(o2);
-      } else if (o1 instanceof List && o2 instanceof List) {
-        return -compareLists((List<?>) o1, (List<?>) o2);
-      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
-        return -compareObjectArrays((Object[]) o1, (Object[]) o2);
-      } else {
-        throw new IllegalArgumentException("Item types do not match: "
-            + o1.getClass() + " vs " + o2.getClass());
-      }
+      return -compareListItems(o1, o2);
     }
   }
 
@@ -667,6 +629,13 @@ public abstract class Functions {
     return 0;
   }
 
+  private static BigDecimal toBigDecimal(Number number) {
+    return number instanceof BigDecimal ? (BigDecimal) number
+        : number instanceof BigInteger ? new BigDecimal((BigInteger) number)
+        : number instanceof Long ? new BigDecimal(number.longValue())
+        : new BigDecimal(number.doubleValue());
+  }
+
   private static int compareListItems(@Nullable Object item0, @Nullable Object item1) {
     if (item0 == item1) {
       return 0;
@@ -684,13 +653,24 @@ public abstract class Functions {
       return compareMaps((Map) item0, (Map) item1);
     } else if (item0 instanceof Object[] && item1 instanceof Object[]) {
       return compareObjectArrays((Object[]) item0, (Object[]) item1);
-    } else if (item0.getClass().equals(item1.getClass()) && item0 instanceof Comparable<?>) {
-      final Comparable b0Comparable = (Comparable) item0;
-      final Comparable b1Comparable = (Comparable) item1;
-      return b0Comparable.compareTo(b1Comparable);
+    } else if (item0 instanceof Number && item1 instanceof Number) {
+      final BigDecimal d0 = toBigDecimal((Number) item0);
+      final BigDecimal d1 = toBigDecimal((Number) item1);
+      return d0.compareTo(d1);
+    } else if (item0.getClass().equals(item1.getClass())) {
+      if (item0 instanceof Comparable<?>) {
+        final Comparable b0Comparable = (Comparable) item0;
+        final Comparable b1Comparable = (Comparable) item1;
+        //noinspection unchecked
+        return b0Comparable.compareTo(b1Comparable);
+      }
+      return Objects.equals(item0, item1)
+          ? 0
+          : Integer.compare(System.identityHashCode(item0), System.identityHashCode(item1));
     } else {
-      throw new IllegalArgumentException("Item types do not match: "
-          + item0.getClass() + " vs " + item1.getClass());
+      // comparison between objects with different types are possible,
+      // and they always return false
+      return item0.getClass().getName().compareTo(item1.getClass().getName());
     }
   }
 
@@ -721,17 +701,7 @@ public abstract class Functions {
       if (o2 == null) {
         return -1;
       }
-      if (o1 instanceof Comparable && o2 instanceof Comparable) {
-        //noinspection unchecked
-        return -((Comparable) o1).compareTo(o2);
-      } else if (o1 instanceof List && o2 instanceof List) {
-        return -compareLists((List<?>) o1, (List<?>) o2);
-      } else if (o1 instanceof Object[] && o2 instanceof Object[]) {
-        return -compareObjectArrays((Object[]) o1, (Object[]) o2);
-      } else {
-        throw new IllegalArgumentException("Item types do not match: "
-            + o1.getClass() + " vs " + o2.getClass());
-      }
+      return -compareListItems(o1, o2);
     }
   }
 
