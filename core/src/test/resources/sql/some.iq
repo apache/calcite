@@ -986,5 +986,37 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[3], expr#4=[AR
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
-# End some.iq
+# [CALCITE-7359] Support various nested type comparisons in ANY/ALL
+# Test with different operators and deeper nesting
+select
+  -- Equality for nested arrays
+  array[array[1,1],array[2,2]] = any(array[array[1,1],array[2,2]], array[array[3,3],array[4,4]]) as arr_arr_t,
+  -- Array of Row
+  array[row(1, 'a'), row(2, 'b')] = any(array[row(1, 'a'), row(2, 'b')], array[row(3, 'c')]) as arr_row_t,
+  -- Non-equality for nested arrays
+  array[1, 2] <> any(array[1, 2], array[1, 3]) as arr_ne_t,
+  -- Inequalities for nested arrays
+  array[1, 2] < any(array[1, 1], array[1, 3]) as arr_lt_t,
+  array[1, 2] <= any(array[0, 9], array[1, 2]) as arr_le_t,
+  array[1, 2] > any(array[1, 1], array[2, 0]) as arr_gt_t,
+  array[1, 2] >= any(array[1, 2], array[1, 3]) as arr_ge_t,
 
+  -- Nested structures with NULL values
+  array[1, cast(null as integer)] = any(array[1, cast(null as integer)], array[1, 2]) as arr_null_t,
+  array[1, cast(null as integer)] = any(array[1, 2], array[1, 3]) as arr_null_f,
+
+  -- Deeper nesting: Array of Row of Array
+  array[row(1, array[10, 20]), row(2, array[30])] =
+    any(array[row(1, array[10, 20]), row(2, array[30])], array[row(1, array[0])]) as deep_t,
+  array[row(1, array[10, 20]), row(2, array[30])] =
+    any(array[row(1, array[10, 21]), row(2, array[30])], array[row(1, array[0])]) as deep_f;
++-----------+-----------+----------+----------+----------+----------+----------+------------+------------+--------+--------+
+| ARR_ARR_T | ARR_ROW_T | ARR_NE_T | ARR_LT_T | ARR_LE_T | ARR_GT_T | ARR_GE_T | ARR_NULL_T | ARR_NULL_F | DEEP_T | DEEP_F |
++-----------+-----------+----------+----------+----------+----------+----------+------------+------------+--------+--------+
+| true      | true      | true     | true     | true     | true     | true     | true       | false      | true   | false  |
++-----------+-----------+----------+----------+----------+----------+----------+------------+------------+--------+--------+
+(1 row)
+
+!ok
+
+# End some.iq
