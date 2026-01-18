@@ -2267,40 +2267,68 @@ values atan2(0.5, 2);
 
 !ok
 
-!set outputformat csv
-
 # [CALCITE-1167] OVERLAPS should match even if operands are in (high, low) order
 values ((date '1999-12-01', date '2001-12-31') overlaps (date '2001-01-01' , date '2002-11-11'));
-EXPR$0
-true
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
 !ok
 
 values ((date '2001-12-31', date '1999-12-01') overlaps (date '2001-01-01' , date '2002-11-11'));
-EXPR$0
-true
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
 !ok
 
 values ((date '2001-12-31', date '1999-12-01') overlaps (date '2002-11-11', date '2001-01-01'));
-EXPR$0
-true
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
 !ok
 
 values ((date '2001-12-31', date '1999-12-01') overlaps (date '2002-01-01', date '2002-11-11'));
-EXPR$0
-false
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
 !ok
 
 # Sub-query returns a MAP, column is renamed, and enclosing query references the map.
 select mycol['b'] as x
 from (select map['a', false, 'b', true] from (values (2))) as t(mycol);
-X
-true
++------+
+| X    |
++------+
+| true |
++------+
+(1 row)
+
 !ok
 
 # JSON
 values json_exists('{"foo":"bar"}', 'strict $.foo' false on error);
-EXPR$0
-true
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
 !ok
 
 # [CALCITE-2908] Implement SQL LAST_DAY function
@@ -2313,22 +2341,32 @@ with data(c_date, c_timestamp) as (select * from (values
     (DATE'2019-06-28', TIMESTAMP '2019-06-28 17:32:01'),
     (DATE'2019-12-12', TIMESTAMP '2019-12-12 12:12:01')))
 select last_day(c_date), last_day(c_timestamp) from data;
-EXPR$0, EXPR$1
-1965-01-31, 1965-01-31
-2019-01-31, 2019-01-31
-2019-02-28, 2019-02-28
-2019-02-28, 2019-02-28
-2019-03-31, 2019-03-31
-2019-06-30, 2019-06-30
-2019-12-31, 2019-12-31
++------------+------------+
+| EXPR$0     | EXPR$1     |
++------------+------------+
+| 1965-01-31 | 1965-01-31 |
+| 2019-01-31 | 2019-01-31 |
+| 2019-02-28 | 2019-02-28 |
+| 2019-02-28 | 2019-02-28 |
+| 2019-03-31 | 2019-03-31 |
+| 2019-06-30 | 2019-06-30 |
+| 2019-12-31 | 2019-12-31 |
++------------+------------+
+(7 rows)
+
 !ok
 
 # [CALCITE-3142] An NPE when rounding a nullable numeric
 SELECT ROUND(CAST((X/Y) AS NUMERIC), 2)
 FROM (VALUES (1, 2), (NULLIF(5, 5), NULLIF(5, 5))) A(X, Y);
-EXPR$0
-0.00
-null
++--------+
+| EXPR$0 |
++--------+
+|   0.00 |
+|        |
++--------+
+(2 rows)
+
 !ok
 
 # [CALCITE-3143]Dividing NULLIF clause may cause Division by zero error
@@ -2337,17 +2375,27 @@ FROM (
   SELECT SUM("X") / NULLIF(SUM(0),0) AS Z
   FROM (VALUES (1.1, 2.5), (4.51, 32.5)) A(X, Y)
   GROUP BY "Y");
-EXPR$0
-88
-88
++--------+
+| EXPR$0 |
++--------+
+|     88 |
+|     88 |
++--------+
+(2 rows)
+
 !ok
 
 # [CALCITE-3150] NPE in UPPER when repeated and combine with LIKE
 SELECT "NAME"
 FROM (VALUES ('Bill'), NULLIF('x', 'x'), ('Eric')) A(NAME)
 WHERE UPPER("NAME") LIKE 'B%' AND UPPER("NAME") LIKE '%L';
-NAME
-Bill
++------+
+| NAME |
++------+
+| Bill |
++------+
+(1 row)
+
 !ok
 
 # [CALCITE-3717] Query fails with "division by zero" exception
@@ -2364,32 +2412,45 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 0),
    (0, 0, 0, 0),
    (1, 2, 4, 8),
-   (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
-V
-13.00000000
-9.50000000
-1.75000000
-1.87500000
-null
-0E-8
-14.00000000
+   (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D) order by V;
++-------------+
+| V           |
++-------------+
+|        0E-8 |
+|  1.75000000 |
+|  1.87500000 |
+|  9.50000000 |
+| 13.00000000 |
+| 14.00000000 |
+|             |
++-------------+
+(7 rows)
+
 !ok
 
 # TIMESTAMP literals without a time part are OK.
 SELECT TIMESTAMP '1969-07-20' AS ts;
-TS
-1969-07-20 00:00:00
++---------------------+
+| TS                  |
++---------------------+
+| 1969-07-20 00:00:00 |
++---------------------+
+(1 row)
+
 !ok
 
 # Short TIMESTAMP literals are equivalent to long TIMESTAMP literals
 SELECT TIMESTAMP '1969-07-20' + i AS ts
 FROM (VALUES (INTERVAL '1' DAY)) AS t (i)
 GROUP BY TIMESTAMP '1969-07-20 00:00:00' + i;
-TS
-1969-07-21 00:00:00
-!ok
++---------------------+
+| TS                  |
++---------------------+
+| 1969-07-21 00:00:00 |
++---------------------+
+(1 row)
 
-!set outputformat mysql
+!ok
 
 # [CALCITE-5870] Allow literals like DECIMAL '12.3' (consistent with Postgres)
 # Test a decimal value between decimal logic for range checking.

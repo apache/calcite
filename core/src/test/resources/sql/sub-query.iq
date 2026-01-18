@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 !use post
-!set outputformat psql
+!set outputformat mysql
 
 # [CALCITE-373]
 # the following should return no rows, because the IN list has a null.
@@ -27,8 +27,10 @@ t2(x) as (select * from  (values 1,case when 1 = 1 then null else 3 end))
 select *
 from t1
 where t1.x not in (select t2.x from t2);
- X
----
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
@@ -50,16 +52,20 @@ t2(x) as (select * from  (values (1),(case when 1 = 1 then null else 3 end)) as 
 select *
 from t1
 where t1.x not in (select t2.x from t2);
- X
----
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
 
 # RHS has a mixture of NULL and NOT NULL keys
 select * from dept where deptno not in (select deptno from emp);
- DEPTNO | DNAME
---------+-------
++--------+-------+
+| DEPTNO | DNAME |
++--------+-------+
++--------+-------+
 (0 rows)
 
 !ok
@@ -70,12 +76,14 @@ SELECT "hr"."emps"."empid", "hr"."emps"."deptno",
 FROM "hr"."emps"
  WHERE "hr"."emps"."empid"<"hr"."emps"."salary"
  ORDER BY 1,2,3;
- empid | deptno | EXPR$2
--------+--------+--------
-   100 |     10 |      0
-   110 |     10 |      0
-   150 |     10 |      0
-   200 |     20 |      2
++-------+--------+--------+
+| empid | deptno | EXPR$2 |
++-------+--------+--------+
+|   100 |     10 |      0 |
+|   110 |     10 |      0 |
+|   150 |     10 |      0 |
+|   200 |     20 |      2 |
++-------+--------+--------+
 (4 rows)
 
 !ok
@@ -83,62 +91,72 @@ FROM "hr"."emps"
 # [CALCITE-5638] Assertion Failure during planning correlated query
 SELECT t1.deptno FROM dept AS t0 JOIN emp AS t1 ON
 (t1.deptno = (SELECT inner_t1.deptno FROM emp AS inner_t1 WHERE inner_t1.ENAME = t0.DNAME));
- DEPTNO
---------
++--------+
+| DEPTNO |
++--------+
++--------+
 (0 rows)
 
 !ok
 
 select deptno, deptno     in (select deptno from emp) from dept;
- DEPTNO | EXPR$1
---------+--------
-     10 | true
-     20 | true
-     30 | true
-     40 | null
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | true   |
+|     20 | true   |
+|     30 | true   |
+|     40 |        |
++--------+--------+
 (4 rows)
 
 !ok
 select deptno, deptno not in (select deptno from emp) from dept;
- DEPTNO | EXPR$1
---------+--------
-     10 | false
-     20 | false
-     30 | false
-     40 | null
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | false  |
+|     20 | false  |
+|     30 | false  |
+|     40 |        |
++--------+--------+
 (4 rows)
 
 !ok
 
 # RHS has only NULL keys
 select * from dept where deptno not in (select deptno from emp where deptno is null);
- DEPTNO | DNAME
---------+-------
++--------+-------+
+| DEPTNO | DNAME |
++--------+-------+
++--------+-------+
 (0 rows)
 
 !ok
 select deptno, deptno     in (select deptno from emp where deptno is null) from dept;
- DEPTNO | EXPR$1
---------+--------
-     10 | null
-     20 | null
-     30 | null
-     40 | null
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |        |
+|     20 |        |
+|     30 |        |
+|     40 |        |
++--------+--------+
 (4 rows)
 
 !ok
 select deptno, deptno not in (select deptno from emp where deptno is null) from dept;
- DEPTNO | EXPR$1
---------+--------
-     10 | null
-     20 | null
-     30 | null
-     40 | null
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |        |
+|     20 |        |
+|     30 |        |
+|     40 |        |
++--------+--------+
 (4 rows)
 
 !ok
-
-!set outputformat mysql
 
 # RHS has only NOT NULL keys
 select * from dept where deptno not in (select deptno from emp where deptno is not null);
@@ -1314,8 +1332,6 @@ and empno in (7876, 7698, 7900);
 
 !ok
 
-!set outputformat psql
-
 # [CALCITE-2329] Enhance SubQueryRemoveRule to rewrite IN operator with the constant from the left side more optimally
 # Test project null IN null
 select sal,
@@ -1323,22 +1339,24 @@ select sal,
     select cast(null as int)
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1359,22 +1377,24 @@ select sal,
     select cast(null as int)
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1395,22 +1415,24 @@ select sal,
     select 1
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1431,22 +1453,24 @@ select sal,
     select deptno
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1467,22 +1491,24 @@ select sal,
     select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1503,22 +1529,24 @@ select sal,
     select deptno
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | true
- 1250.00 | true
- 1250.00 | true
- 1300.00 | true
- 1500.00 | true
- 1600.00 | true
- 2450.00 | true
- 2850.00 | true
- 2975.00 | true
- 3000.00 | true
- 3000.00 | true
- 5000.00 | true
-  800.00 | true
-  950.00 | true
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | true   |
+| 1250.00 | true   |
+| 1250.00 | true   |
+| 1300.00 | true   |
+| 1500.00 | true   |
+| 1600.00 | true   |
+| 2450.00 | true   |
+| 2850.00 | true   |
+| 2975.00 | true   |
+| 3000.00 | true   |
+| 3000.00 | true   |
+| 5000.00 | true   |
+|  800.00 | true   |
+|  950.00 | true   |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1537,22 +1565,24 @@ select sal,
     select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | true
- 1250.00 | true
- 1250.00 | true
- 1300.00 | true
- 1500.00 | true
- 1600.00 | true
- 2450.00 | true
- 2850.00 | true
- 2975.00 | true
- 3000.00 | true
- 3000.00 | true
- 5000.00 | true
-  800.00 | true
-  950.00 | true
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | true   |
+| 1250.00 | true   |
+| 1250.00 | true   |
+| 1300.00 | true   |
+| 1500.00 | true   |
+| 1600.00 | true   |
+| 2450.00 | true   |
+| 2850.00 | true   |
+| 2975.00 | true   |
+| 3000.00 | true   |
+| 3000.00 | true   |
+| 5000.00 | true   |
+|  800.00 | true   |
+|  950.00 | true   |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1573,22 +1603,24 @@ select sal,
     select cast(null as int)
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1609,22 +1641,24 @@ select sal,
     select cast(null as int)
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1645,22 +1679,24 @@ select sal,
     select 1
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1681,22 +1717,24 @@ select sal,
     select deptno
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1717,22 +1755,24 @@ select sal,
     select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | null
- 1250.00 | null
- 1250.00 | null
- 1300.00 | null
- 1500.00 | null
- 1600.00 | null
- 2450.00 | null
- 2850.00 | null
- 2975.00 | null
- 3000.00 | null
- 3000.00 | null
- 5000.00 | null
-  800.00 | null
-  950.00 | null
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 |        |
+| 1250.00 |        |
+| 1250.00 |        |
+| 1300.00 |        |
+| 1500.00 |        |
+| 1600.00 |        |
+| 2450.00 |        |
+| 2850.00 |        |
+| 2975.00 |        |
+| 3000.00 |        |
+| 3000.00 |        |
+| 5000.00 |        |
+|  800.00 |        |
+|  950.00 |        |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1753,22 +1793,24 @@ select sal,
     select deptno
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | false
- 1250.00 | false
- 1250.00 | false
- 1300.00 | false
- 1500.00 | false
- 1600.00 | false
- 2450.00 | false
- 2850.00 | false
- 2975.00 | false
- 3000.00 | false
- 3000.00 | false
- 5000.00 | false
-  800.00 | false
-  950.00 | false
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | false  |
+| 1250.00 | false  |
+| 1250.00 | false  |
+| 1300.00 | false  |
+| 1500.00 | false  |
+| 1600.00 | false  |
+| 2450.00 | false  |
+| 2850.00 | false  |
+| 2975.00 | false  |
+| 3000.00 | false  |
+| 3000.00 | false  |
+| 5000.00 | false  |
+|  800.00 | false  |
+|  950.00 | false  |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1787,22 +1829,24 @@ select sal,
     select case when deptno > 0 then deptno else null end
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | false
- 1250.00 | false
- 1250.00 | false
- 1300.00 | false
- 1500.00 | false
- 1600.00 | false
- 2450.00 | false
- 2850.00 | false
- 2975.00 | false
- 3000.00 | false
- 3000.00 | false
- 5000.00 | false
-  800.00 | false
-  950.00 | false
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | false  |
+| 1250.00 | false  |
+| 1250.00 | false  |
+| 1300.00 | false  |
+| 1500.00 | false  |
+| 1600.00 | false  |
+| 2450.00 | false  |
+| 2850.00 | false  |
+| 2975.00 | false  |
+| 3000.00 | false  |
+| 3000.00 | false  |
+| 5000.00 | false  |
+|  800.00 | false  |
+|  950.00 | false  |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1823,22 +1867,24 @@ select sal,
     select deptno
     from "scott".dept) is unknown
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | true
- 1250.00 | true
- 1250.00 | true
- 1300.00 | true
- 1500.00 | true
- 1600.00 | true
- 2450.00 | true
- 2850.00 | true
- 2975.00 | true
- 3000.00 | true
- 3000.00 | true
- 5000.00 | true
-  800.00 | true
-  950.00 | true
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | true   |
+| 1250.00 | true   |
+| 1250.00 | true   |
+| 1300.00 | true   |
+| 1500.00 | true   |
+| 1600.00 | true   |
+| 2450.00 | true   |
+| 2850.00 | true   |
+| 2975.00 | true   |
+| 3000.00 | true   |
+| 3000.00 | true   |
+| 5000.00 | true   |
+|  800.00 | true   |
+|  950.00 | true   |
++---------+--------+
 (14 rows)
 
 !ok
@@ -1858,8 +1904,10 @@ select sal from "scott".emp
   where cast(null as int) IN (
     select cast(null as int)
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -1871,8 +1919,10 @@ select sal from "scott".emp
   where 123 IN (
     select cast(null as int)
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -1884,8 +1934,10 @@ select sal from "scott".emp
   where cast(null as int) IN (
     select 1
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -1897,8 +1949,10 @@ select sal from "scott".emp
   where cast(null as int) IN (
     select deptno
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -1910,8 +1964,10 @@ select sal from "scott".emp
   where cast(null as int) IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -1923,22 +1979,24 @@ select sal from "scott".emp
   where 10 IN (
     select deptno
     from "scott".dept);
- SAL
----------
- 1100.00
- 1250.00
- 1250.00
- 1300.00
- 1500.00
- 1600.00
- 2450.00
- 2850.00
- 2975.00
- 3000.00
- 3000.00
- 5000.00
-  800.00
-  950.00
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1500.00 |
+| 1600.00 |
+| 2450.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+|  800.00 |
+|  950.00 |
++---------+
 (14 rows)
 
 !ok
@@ -1956,22 +2014,24 @@ select sal from "scott".emp
   where 10 IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept);
- SAL
----------
- 1100.00
- 1250.00
- 1250.00
- 1300.00
- 1500.00
- 1600.00
- 2450.00
- 2850.00
- 2975.00
- 3000.00
- 3000.00
- 5000.00
-  800.00
-  950.00
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1500.00 |
+| 1600.00 |
+| 2450.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+|  800.00 |
+|  950.00 |
++---------+
 (14 rows)
 
 !ok
@@ -1989,8 +2049,10 @@ select sal from "scott".emp
   where cast(null as int) NOT IN (
     select cast(null as int)
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2010,8 +2072,10 @@ select sal from "scott".emp
   where 123 NOT IN (
     select cast(null as int)
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2031,8 +2095,10 @@ select sal from "scott".emp
   where cast(null as int) NOT IN (
     select 1
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2052,8 +2118,10 @@ select sal from "scott".emp
   where cast(null as int) NOT IN (
     select deptno
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2073,8 +2141,10 @@ select sal from "scott".emp
   where cast(null as int) NOT IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2094,8 +2164,10 @@ select sal from "scott".emp
   where 10 NOT IN (
     select deptno
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2115,8 +2187,10 @@ select sal from "scott".emp
   where 10 NOT IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2136,22 +2210,24 @@ select sal from "scott".emp
   where cast(null as int) IN (
     select deptno
     from "scott".dept) is unknown;
- SAL
----------
- 1100.00
- 1250.00
- 1250.00
- 1300.00
- 1500.00
- 1600.00
- 2450.00
- 2850.00
- 2975.00
- 3000.00
- 3000.00
- 5000.00
-  800.00
-  950.00
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1500.00 |
+| 1600.00 |
+| 2450.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+|  800.00 |
+|  950.00 |
++---------+
 (14 rows)
 
 !ok
@@ -2173,8 +2249,10 @@ select sal from "scott".emp e
   where cast(null as int) IN (
     select cast(null as int)
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2186,8 +2264,10 @@ select sal from "scott".emp e
   where 123 IN (
     select cast(null as int)
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2199,8 +2279,10 @@ select sal from "scott".emp e
   where cast(null as int) IN (
     select 1
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2212,8 +2294,10 @@ select sal from "scott".emp e
   where cast(null as int) IN (
     select deptno
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2225,8 +2309,10 @@ select sal from "scott".emp e
   where mod(cast(rand() as int), 2) = 3 OR 123 IN (
     select cast(null as int) from "scott".dept d
       where d.deptno = e.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2247,8 +2333,10 @@ select sal from "scott".emp e
   where cast(null as int) IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2260,11 +2348,13 @@ select sal from "scott".emp e
   where 10 IN (
     select deptno
     from "scott".dept d where e.deptno=d.deptno);
- SAL
----------
- 1300.00
- 2450.00
- 5000.00
++---------+
+| SAL     |
++---------+
+| 1300.00 |
+| 2450.00 |
+| 5000.00 |
++---------+
 (3 rows)
 
 !ok
@@ -2281,11 +2371,13 @@ select sal from "scott".emp e
   where 10 IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
- SAL
----------
- 1300.00
- 2450.00
- 5000.00
++---------+
+| SAL     |
++---------+
+| 1300.00 |
+| 2450.00 |
+| 5000.00 |
++---------+
 (3 rows)
 
 !ok
@@ -2302,8 +2394,10 @@ select sal from "scott".emp e
   where cast(null as int) NOT IN (
     select cast(null as int)
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2315,8 +2409,10 @@ select sal from "scott".emp e
   where 123 NOT IN (
     select cast(null as int)
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2337,8 +2433,10 @@ select sal from "scott".emp e
   where cast(null as int) NOT IN (
     select 1
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2350,8 +2448,10 @@ select sal from "scott".emp e
   where cast(null as int) NOT IN (
     select deptno
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2363,8 +2463,10 @@ select sal from "scott".emp e
   where cast(null as int) NOT IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
- SAL
------
++-----+
+| SAL |
++-----+
++-----+
 (0 rows)
 
 !ok
@@ -2376,19 +2478,21 @@ select sal from "scott".emp e
   where 10 NOT IN (
     select deptno
     from "scott".dept d where e.deptno=d.deptno);
- SAL
----------
- 1100.00
- 1250.00
- 1250.00
- 1500.00
- 1600.00
- 2850.00
- 2975.00
- 3000.00
- 3000.00
-  800.00
-  950.00
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1500.00 |
+| 1600.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+|  800.00 |
+|  950.00 |
++---------+
 (11 rows)
 
 !ok
@@ -2410,19 +2514,21 @@ select sal from "scott".emp e
   where 10 NOT IN (
     select case when deptno > 0 then deptno else null end
     from "scott".dept d where e.deptno=d.deptno);
- SAL
----------
- 1100.00
- 1250.00
- 1250.00
- 1500.00
- 1600.00
- 2850.00
- 2975.00
- 3000.00
- 3000.00
-  800.00
-  950.00
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1500.00 |
+| 1600.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+|  800.00 |
+|  950.00 |
++---------+
 (11 rows)
 
 !ok
@@ -2444,22 +2550,24 @@ select sal from "scott".emp e
   where cast(null as int) IN (
     select deptno
     from "scott".dept d where e.deptno=d.deptno) is unknown;
- SAL
----------
- 1100.00
- 1250.00
- 1250.00
- 1300.00
- 1500.00
- 1600.00
- 2450.00
- 2850.00
- 2975.00
- 3000.00
- 3000.00
- 5000.00
-  800.00
-  950.00
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1500.00 |
+| 1600.00 |
+| 2450.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+|  800.00 |
+|  950.00 |
++---------+
 (14 rows)
 
 !ok
@@ -2474,22 +2582,24 @@ select sal,
     select case when deptno > 10 then deptno else null end
     from "scott".dept)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | true
- 1250.00 | true
- 1250.00 | true
- 1300.00 | true
- 1500.00 | true
- 1600.00 | true
- 2450.00 | true
- 2850.00 | true
- 2975.00 | true
- 3000.00 | true
- 3000.00 | true
- 5000.00 | true
-  800.00 | true
-  950.00 | true
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | true   |
+| 1250.00 | true   |
+| 1250.00 | true   |
+| 1300.00 | true   |
+| 1500.00 | true   |
+| 1600.00 | true   |
+| 2450.00 | true   |
+| 2850.00 | true   |
+| 2975.00 | true   |
+| 3000.00 | true   |
+| 3000.00 | true   |
+| 5000.00 | true   |
+|  800.00 | true   |
+|  950.00 | true   |
++---------+--------+
 (14 rows)
 
 !ok
@@ -2501,22 +2611,24 @@ select sal,
     from "scott".dept
     where deptno < 0)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | false
- 1250.00 | false
- 1250.00 | false
- 1300.00 | false
- 1500.00 | false
- 1600.00 | false
- 2450.00 | false
- 2850.00 | false
- 2975.00 | false
- 3000.00 | false
- 3000.00 | false
- 5000.00 | false
-  800.00 | false
-  950.00 | false
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | false  |
+| 1250.00 | false  |
+| 1250.00 | false  |
+| 1300.00 | false  |
+| 1500.00 | false  |
+| 1600.00 | false  |
+| 2450.00 | false  |
+| 2850.00 | false  |
+| 2975.00 | false  |
+| 3000.00 | false  |
+| 3000.00 | false  |
+| 5000.00 | false  |
+|  800.00 | false  |
+|  950.00 | false  |
++---------+--------+
 (14 rows)
 
 !ok
@@ -2528,36 +2640,40 @@ select sal,
     from "scott".dept
     where deptno < 0)
 from "scott".emp;
- SAL     | EXPR$1
----------+--------
- 1100.00 | false
- 1250.00 | false
- 1250.00 | false
- 1300.00 | false
- 1500.00 | false
- 1600.00 | false
- 2450.00 | false
- 2850.00 | false
- 2975.00 | false
- 3000.00 | false
- 3000.00 | false
- 5000.00 | false
-  800.00 | false
-  950.00 | false
++---------+--------+
+| SAL     | EXPR$1 |
++---------+--------+
+| 1100.00 | false  |
+| 1250.00 | false  |
+| 1250.00 | false  |
+| 1300.00 | false  |
+| 1500.00 | false  |
+| 1600.00 | false  |
+| 2450.00 | false  |
+| 2850.00 | false  |
+| 2975.00 | false  |
+| 3000.00 | false  |
+| 3000.00 | false  |
+| 5000.00 | false  |
+|  800.00 | false  |
+|  950.00 | false  |
++---------+--------+
 (14 rows)
 
 !ok
 
 # Test nested sub-query in PROJECT within FILTER
 select * from emp where deptno IN (select (select max(deptno) from "scott".emp t1) from "scott".emp t2);
- EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO
--------+--------+----------+------+------------+---------+---------+--------
-  7499 | ALLEN  | SALESMAN | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30
-  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30
-  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30
-  7698 | BLAKE  | MANAGER  | 7839 | 1981-01-05 | 2850.00 |         |     30
-  7844 | TURNER | SALESMAN | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30
-  7900 | JAMES  | CLERK    | 7698 | 1981-12-03 |  950.00 |         |     30
++-------+--------+----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+----------+------+------------+---------+---------+--------+
+|  7499 | ALLEN  | SALESMAN | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER  | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7844 | TURNER | SALESMAN | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7900 | JAMES  | CLERK    | 7698 | 1981-12-03 |  950.00 |         |     30 |
++-------+--------+----------+------+------------+---------+---------+--------+
 (6 rows)
 
 !ok
@@ -2572,22 +2688,24 @@ EnumerableHashJoin(condition=[=($7, $9)], joinType=[semi])
 
 # Test nested sub-query in FILTER within PROJECT
 select (select max(deptno) from "scott".emp where deptno IN (select deptno from "scott".emp)) from emp ;
- EXPR$0
---------
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
-     30
++--------+
+| EXPR$0 |
++--------+
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
 (14 rows)
 
 !ok
@@ -2606,38 +2724,44 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
 
 # [CALCITE-7317] SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when both keys and subquery columns are NOT NULL
 select * from emp as e1 where empno in (select empno from emp e2);
- EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO
--------+--------+-----------+------+------------+---------+---------+--------
-  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20
-  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30
-  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30
-  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20
-  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30
-  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30
-  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10
-  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20
-  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10
-  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30
-  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20
-  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30
-  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20
-  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
 (14 rows)
 
 !ok
 
 # [CALCITE-7317] SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when both keys and subquery columns are NOT NULL
 select * from emp as e1 where coalesce(deptno, 0) not in (select deptno from emp e2);
- EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO
--------+-------+-----+-----+----------+-----+------+--------
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
 (0 rows)
 
 !ok
 
 # [CALCITE-7317] SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when both keys and subquery columns are NOT NULL
 select * from emp as e1 where deptno not in (select coalesce(deptno, 0) from emp e2);
- EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO
--------+-------+-----+-----+----------+-----+------+--------
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
 (0 rows)
 
 !ok
@@ -2649,9 +2773,11 @@ where sal + 100 not in (
   select deptno
   from dept
   where dname = e.ename);
- C
-----
- 14
++----+
+| C  |
++----+
+| 14 |
++----+
 (1 row)
 
 !ok
@@ -2690,22 +2816,24 @@ EnumerableCalc(expr#0..6=[{inputs}], EMPNO=[$t5])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
- EMPNO
--------
-  7369
-  7499
-  7521
-  7566
-  7654
-  7698
-  7782
-  7788
-  7839
-  7844
-  7876
-  7900
-  7902
-  7934
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
 (14 rows)
 
 !ok
@@ -2727,22 +2855,24 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)]
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
- EMPNO | EXPR$1
--------+--------
-  7369 | false
-  7499 | false
-  7521 | false
-  7566 | false
-  7654 | false
-  7698 | false
-  7782 | false
-  7788 | false
-  7839 | false
-  7844 | false
-  7876 | false
-  7900 | false
-  7902 | false
-  7934 | false
++-------+--------+
+| EMPNO | EXPR$1 |
++-------+--------+
+|  7369 | false  |
+|  7499 | false  |
+|  7521 | false  |
+|  7566 | false  |
+|  7654 | false  |
+|  7698 | false  |
+|  7782 | false  |
+|  7788 | false  |
+|  7839 | false  |
+|  7844 | false  |
+|  7876 | false  |
+|  7900 | false  |
+|  7902 | false  |
+|  7934 | false  |
++-------+--------+
 (14 rows)
 
 !ok
@@ -2764,27 +2894,28 @@ EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], expr#9=[CAST($t3):INTEGER NOT NULL], expr#10=[0], expr#11=[CASE($t8, $t9, $t10)], $f8=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
- ENAME
---------
- ADAMS
- ALLEN
- BLAKE
- CLARK
- FORD
- JAMES
- JONES
- KING
- MARTIN
- MILLER
- SCOTT
- SMITH
- TURNER
- WARD
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
 (14 rows)
 
 !ok
 
-!set outputformat mysql
 # Correlated SOME sub-query with not equality
 # Both sides Not NUll.
 select empno
@@ -3063,7 +3194,6 @@ FROM tb;
 
 # [CALCITE-4486] UNIQUE predicate
 !use scott
-!set outputformat mysql
 
 # singleton keys have unique value which excludes fully or partially null rows.
 select deptno
@@ -3941,8 +4071,11 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7782], expr#9=[CAST($t0):INTEGER NO
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
-# [CALCITE-4846] IN-list that includes NULL converted to Values throws exception
+# Reset to default value 20
+!set insubquerythreshold 20
 
+# [CALCITE-4846] IN-list that includes NULL converted to Values throws exception
+!set insubquerythreshold 0
 select * from "scott".emp where empno not in (null, 7782);
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
@@ -4068,6 +4201,9 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 7369, 20 }, { 7499, 30 }]])
 !plan
+
+# Reset to default value 20
+!set insubquerythreshold 20
 
 # [CALCITE-5117] Optimize the EXISTS sub-query by Metadata RowCount
 
@@ -4740,7 +4876,7 @@ WHERE s1.total > (SELECT avg(total) FROM agg_sal s2 WHERE s1.deptno = s2.deptno)
 !ok
 
 # [CALCITE-6506] Type inference for IN list is incorrect
-
+!set insubquerythreshold 0
 # Test LHS is not nullable and RHS is not nullable
 select empno, empno in (7369, 7499, 7521) from emp;
 +-------+--------+
@@ -4852,8 +4988,11 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN
         EnumerableValues(tuples=[[{ 500.00 }, { 300.00 }, { 0.00 }, { null }]])
 !plan
 
-# Test LHS is (not nullable, not nullable) and RHS is (not nullable, not nullable)
+# Reset to default value 20
+!set insubquerythreshold 20
 
+# Test LHS is (not nullable, not nullable) and RHS is (not nullable, not nullable)
+!set insubquerythreshold 0
 select empno, (empno, empno) in ((7369, 7369), (7499, 7499), (7521, 7521)) from emp;
 +-------+--------+
 | EMPNO | EXPR$1 |
@@ -4964,6 +5103,9 @@ EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEA
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }, { null, null }]])
 !plan
+
+# Reset to default value 20
+!set insubquerythreshold 20
 
 # [CALCITE-5156] Support implicit integer types cast for IN Sub-query
 
@@ -7648,5 +7790,8 @@ EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
 (14 rows)
 
 !ok
+
+# Reset to default value 20
+!set trimfields true
 
 # End sub-query.iq
