@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
@@ -28,6 +29,7 @@ import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TryThreadLocal;
 
 import org.hsqldb.jdbcDriver;
 import org.junit.jupiter.api.Test;
@@ -181,23 +183,25 @@ class JdbcAdapterTest {
   }
 
   @Test void testInPlan() {
-    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
-        .query("select \"store_id\", \"store_name\" from \"store\"\n"
-            + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
-        .runs()
-        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"store_id\", \"store_name\"\n"
-            + "FROM \"foodmart\".\"store\"\n"
-            + "WHERE \"store_name\" IN ('Store 1', 'Store 10', 'Store 11',"
-            + " 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
-        .returns("store_id=1; store_name=Store 1\n"
-            + "store_id=3; store_name=Store 3\n"
-            + "store_id=7; store_name=Store 7\n"
-            + "store_id=10; store_name=Store 10\n"
-            + "store_id=11; store_name=Store 11\n"
-            + "store_id=15; store_name=Store 15\n"
-            + "store_id=16; store_name=Store 16\n"
-            + "store_id=24; store_name=Store 24\n");
+    try (TryThreadLocal.Memo ignore = Prepare.THREAD_INSUBQUERY_THRESHOLD.push(20)) {
+      CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+          .query("select \"store_id\", \"store_name\" from \"store\"\n"
+              + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
+          .runs()
+          .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+          .planHasSql("SELECT \"store_id\", \"store_name\"\n"
+              + "FROM \"foodmart\".\"store\"\n"
+              + "WHERE \"store_name\" IN ('Store 1', 'Store 10', 'Store 11',"
+              + " 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
+          .returns("store_id=1; store_name=Store 1\n"
+              + "store_id=3; store_name=Store 3\n"
+              + "store_id=7; store_name=Store 7\n"
+              + "store_id=10; store_name=Store 10\n"
+              + "store_id=11; store_name=Store 11\n"
+              + "store_id=15; store_name=Store 15\n"
+              + "store_id=16; store_name=Store 16\n"
+              + "store_id=24; store_name=Store 24\n");
+    }
   }
 
   @Test void testEquiJoinPlan() {
