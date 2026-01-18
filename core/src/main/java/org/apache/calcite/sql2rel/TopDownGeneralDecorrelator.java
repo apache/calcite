@@ -43,6 +43,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -598,50 +599,48 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     RelCollation shiftCollation = sort.getCollation().apply(targetMapping);
     builder.push(newInput);
 
-    if (!sort.collation.getFieldCollations().isEmpty()
-        && (sort.offset != null || sort.fetch != null)) {
-      // the Sort with ORDER BY and LIMIT or OFFSET have to be changed during rewriting because
-      // now the limit has to be enforced per value of the outer bindings instead of globally.
-      // It can be rewritten using ROW_NUMBER() window function and filtering on it,
-      // see section 4.4 in paper Improving Unnesting of Complex Queries
-      List<RexNode> partitionKeys = new ArrayList<>();
-      for (CorDef corDef : corDefs) {
-        int partitionKeyIndex = requireNonNull(inputInfo.corDefOutputs.get(corDef));
-        partitionKeys.add(builder.field(partitionKeyIndex));
-      }
-      RexNode rowNumber = builder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-          .over()
-          .partitionBy(partitionKeys)
-          .orderBy(builder.fields(shiftCollation))
-          .toRex();
-      List<RexNode> projectsWithRowNumber = new ArrayList<>(builder.fields());
-      projectsWithRowNumber.add(rowNumber);
-      builder.project(projectsWithRowNumber);
-
-      List<RexNode> conditions = new ArrayList<>();
-      if (sort.offset != null) {
-        RexNode greaterThenLowerBound =
-            builder.call(
-                SqlStdOperatorTable.GREATER_THAN,
-                builder.field(projectsWithRowNumber.size() - 1),
-                sort.offset);
-        conditions.add(greaterThenLowerBound);
-      }
-      if (sort.fetch != null) {
-        RexNode upperBound = sort.offset == null
-            ? sort.fetch
-            : builder.call(SqlStdOperatorTable.PLUS, sort.offset, sort.fetch);
-        RexNode lessThenOrEqualUpperBound =
-            builder.call(
-                SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
-                builder.field(projectsWithRowNumber.size() - 1),
-                upperBound);
-        conditions.add(lessThenOrEqualUpperBound);
-      }
-      builder.filter(conditions);
-    } else {
-      builder.sortLimit(sort.offset, sort.fetch, builder.fields(shiftCollation));
+    // the Sort have to be changed during rewriting because now the order/limit/offset has to be
+    // enforced per value of the outer bindings instead of globally. It can be rewritten using
+    // ROW_NUMBER() window function and filtering on it, see section 4.4 in paper
+    // Improving Unnesting of Complex Queries
+    List<RexNode> partitionKeys = new ArrayList<>();
+    for (CorDef corDef : corDefs) {
+      int partitionKeyIndex = requireNonNull(inputInfo.corDefOutputs.get(corDef));
+      partitionKeys.add(builder.field(partitionKeyIndex));
     }
+    RexNode rowNumber = builder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+        .over()
+        .partitionBy(partitionKeys)
+        .orderBy(builder.fields(shiftCollation))
+        .rowsFrom(RexWindowBounds.UNBOUNDED_PRECEDING)
+        .rowsTo(RexWindowBounds.CURRENT_ROW)
+        .toRex();
+    List<RexNode> projectsWithRowNumber = new ArrayList<>(builder.fields());
+    projectsWithRowNumber.add(rowNumber);
+    builder.project(projectsWithRowNumber);
+
+    List<RexNode> conditions = new ArrayList<>();
+    if (sort.offset != null) {
+      RexNode greaterThenLowerBound =
+          builder.call(
+              SqlStdOperatorTable.GREATER_THAN,
+              builder.field(projectsWithRowNumber.size() - 1),
+              sort.offset);
+      conditions.add(greaterThenLowerBound);
+    }
+    if (sort.fetch != null) {
+      RexNode upperBound = sort.offset == null
+          ? sort.fetch
+          : builder.call(SqlStdOperatorTable.PLUS, sort.offset, sort.fetch);
+      RexNode lessThenOrEqualUpperBound =
+          builder.call(
+              SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+              builder.field(projectsWithRowNumber.size() - 1),
+              upperBound);
+      conditions.add(lessThenOrEqualUpperBound);
+    }
+    builder.filter(conditions);
+
     RelNode newSort = builder.build();
     UnnestedQuery unnestedQuery
         = new UnnestedQuery(sort, newSort, inputInfo.corDefOutputs, inputInfo.oldToNewOutputs);
