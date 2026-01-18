@@ -85,6 +85,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.runtime.SqlFunctions.resetThreadSequences;
+import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
+
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.util.Objects.requireNonNull;
@@ -511,9 +514,17 @@ public abstract class QuidemTest {
         : s;
   }
 
+  private void resetThreadConfig() {
+    resetThreadSequences();
+    Prepare.THREAD_INSUBQUERY_THRESHOLD.push(DEFAULT_IN_SUB_QUERY_THRESHOLD);
+    Prepare.THREAD_EXPAND.push(false);
+    Prepare.THREAD_TRIM.push(true);
+  }
+
   @ParameterizedTest
   @MethodSource("getPath")
   public void test(String path) throws Exception {
+    resetThreadConfig();
     final Method method = findMethod(path);
     if (method != null) {
       try {

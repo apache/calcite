@@ -3710,6 +3710,9 @@ group by
 
 !ok
 
+# Reset to default value 20
+!set insubquerythreshold 20
+
 select
     deptno,
     case when deptno in (10) then 1 else 2 end as col1,

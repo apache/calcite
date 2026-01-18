@@ -403,4 +403,7 @@ EnumerableCalc(expr#0..9=[{inputs}], expr#10=[IS NULL($t9)], expr#11=[0:BIGINT],
                 EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# Reset to default value true
+!set trimfields true
+
 # End scalar.iq

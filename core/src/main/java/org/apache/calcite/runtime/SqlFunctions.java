@@ -232,6 +232,11 @@ public class SqlFunctions {
   private static final TryThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
       TryThreadLocal.withInitial(HashMap::new);
 
+  /** Resets the sequences in the current thread. */
+  public static void resetThreadSequences() {
+    THREAD_SEQUENCES.get().clear();
+  }
+
   /** A byte string consisting of a single byte that is the ASCII space
    * character (0x20). */
   private static final ByteString SINGLE_SPACE_BYTE_STRING =
