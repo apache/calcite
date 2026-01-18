@@ -42,4 +42,29 @@ SELECT * FROM t0 WHERE t0a <
 
 !ok
 
+# [CALCITE-7382] The TopDownGeneralDecorrelator returns an error result when a subquery contains a LIMIT 1
+!use scott
+SELECT dname, (SELECT emp.comm FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.comm limit 1) FROM "scott".dept;
++------------+--------+
+| DNAME      | EXPR$1 |
++------------+--------+
+| ACCOUNTING |        |
+| OPERATIONS |        |
+| RESEARCH   |        |
+| SALES      |   0.00 |
++------------+--------+
+(4 rows)
+
+!ok
+
+select dname, (select empno from emp where dept.deptno = emp.deptno limit 1) from dept where deptno = 10;
++------------+--------+
+| DNAME      | EXPR$1 |
++------------+--------+
+| ACCOUNTING |   7782 |
++------------+--------+
+(1 row)
+
+!ok
+
 # End new-decorr.iq
