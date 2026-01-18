@@ -139,6 +139,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
@@ -2242,10 +2243,35 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         return (SqlSelect) node;
       }
-      if (!dialect.hasImplicitTableAlias()) {
+      if (!dialect.hasImplicitTableAlias() || hasConflictTableAlias(node)) {
         return wrapSelect(asFrom());
       }
       return wrapSelect(node);
+    }
+
+    private boolean hasConflictTableAlias(SqlNode node) {
+      if (!(node instanceof SqlIdentifier)) {
+        return false;
+      }
+      if (correlTableMap.isEmpty()) {
+        return false;
+      }
+      if (neededAlias == null) {
+        return false;
+      }
+      SqlIdentifier identifier = (SqlIdentifier) node;
+      List<AliasContext> aliasContexts =
+          correlTableMap.values().stream()
+              .filter(context -> context instanceof AliasContext)
+              .map(context -> (AliasContext) context)
+              .collect(Collectors.toList());
+
+      for (AliasContext aliasContext : aliasContexts) {
+        if (aliasContext.aliases.containsKey(Util.last(identifier.names))) {
+          return true;
+        }
+      }
+      return false;
     }
 
     public void stripTrivialAliases(SqlNode node) {
