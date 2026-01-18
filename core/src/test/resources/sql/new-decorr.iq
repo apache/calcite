@@ -98,4 +98,30 @@ EnumerableSort(sort0=[$0], dir0=[ASC])
 !plan
 !}
 
+# [CALCITE-7382] The TopDownGeneralDecorrelator returns an error result when a subquery contains a LIMIT 1
+# This case comes from sub-query.iq [CALCITE-6652]
+!use scott
+SELECT dname, (SELECT emp.comm FROM "scott".emp WHERE dept.deptno = emp.deptno ORDER BY emp.comm LIMIT 1) FROM "scott".dept;
++------------+--------+
+| DNAME      | EXPR$1 |
++------------+--------+
+| ACCOUNTING |        |
+| OPERATIONS |        |
+| RESEARCH   |        |
+| SALES      |   0.00 |
++------------+--------+
+(4 rows)
+
+!ok
+
+SELECT dname, (SELECT empno FROM emp WHERE dept.deptno = emp.deptno LIMIT 1) FROM dept WHERE deptno = 10;
++------------+--------+
+| DNAME      | EXPR$1 |
++------------+--------+
+| ACCOUNTING |   7782 |
++------------+--------+
+(1 row)
+
+!ok
+
 # End new-decorr.iq
