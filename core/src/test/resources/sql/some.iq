@@ -895,7 +895,10 @@ where sal > some (4000, 2000);
 
 !ok
 
-# CALCITE-6786: ANY/SOME operator yields multiple rows in correlated queries
+# Reset to default value 20
+!set insubquerythreshold 20
+
+# [CALCITE-6786] ANY/SOME operator yields multiple rows in correlated queries
 
 WITH tb as (select array(SELECT * FROM (VALUES (TRUE), (NULL)) as x(a)) as a)
 SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
