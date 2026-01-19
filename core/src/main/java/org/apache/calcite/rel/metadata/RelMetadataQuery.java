@@ -110,6 +110,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
   private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
   private BuiltInMetadata.FunctionalDependency.Handler functionalDependencyHandler;
+  private BuiltInMetadata.InputFieldsUsed.Handler inputFieldsUsedHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -158,6 +159,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.lowerBoundCostHandler = provider.handler(BuiltInMetadata.LowerBoundCost.Handler.class);
     this.functionalDependencyHandler =
         provider.handler(BuiltInMetadata.FunctionalDependency.Handler.class);
+    this.inputFieldsUsedHandler = provider.handler(BuiltInMetadata.InputFieldsUsed.Handler.class);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -193,6 +195,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
     this.functionalDependencyHandler =
         initialHandler(BuiltInMetadata.FunctionalDependency.Handler.class);
+    this.inputFieldsUsedHandler = initialHandler(BuiltInMetadata.InputFieldsUsed.Handler.class);
   }
 
   private RelMetadataQuery(
@@ -225,6 +228,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.uniqueKeysHandler = prototype.uniqueKeysHandler;
     this.lowerBoundCostHandler = prototype.lowerBoundCostHandler;
     this.functionalDependencyHandler = prototype.functionalDependencyHandler;
+    this.inputFieldsUsedHandler = prototype.inputFieldsUsedHandler;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -1055,6 +1059,19 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return functionalDependencyHandler.getFDs(rel, this);
       } catch (MetadataHandlerProvider.NoHandler e) {
         functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Returns the input fields are used by a RelNode.
+   */
+  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(RelNode rel) {
+    for (;;) {
+      try {
+        return inputFieldsUsedHandler.getInputFieldsUsed(rel, this);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        inputFieldsUsedHandler = revise(BuiltInMetadata.InputFieldsUsed.Handler.class);
       }
     }
   }
