@@ -43,6 +43,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
@@ -52,6 +53,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -929,6 +931,90 @@ public class RelMetadataTest {
 
     assertThat(mq.determines(relNode, 0, 1), is(Boolean.TRUE));
     assertThat(fd2, sameInstance(fd1));
+  }
+
+  // ----------------------------------------------------------------------
+  // Tests for InputFieldsUsed metadata in RelMdInputFieldsUsed
+  // ----------------------------------------------------------------------
+
+  @Test void testInputFieldsUsedSemiJoin() {
+    final RelBuilder relBuilder = RelBuilderTest.createBuilder();
+    relBuilder.scan("EMP");
+    relBuilder.scan("DEPT");
+    // Build semi-join on DEPTNO
+    relBuilder.semiJoin(
+        relBuilder.equals(relBuilder.field(2, 0, "DEPTNO"),
+        relBuilder.field(2, 1, "DEPTNO")));
+    final Join join = (Join) relBuilder.build();
+    final RelMetadataQuery mq = join.getCluster().getMetadataQuery();
+    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(join);
+
+    // For SEMI join expect left input fields to be all columns of left input
+    // and right input fields to be empty (semi-join does not require right output).
+    final int leftCount = join.getLeft().getRowType().getFieldCount();
+    assertThat(inputFields, hasSize(2));
+    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.range(leftCount)));
+    assertThat(inputFields.get(1).isEmpty(), is(true));
+  }
+
+  @Test void testInputFieldsUsedUnionSetOp() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    builder.scan("DEPT").project(builder.field(1)); // name
+    builder.scan("EMP").project(builder.field(2)); // job
+    builder.union(true);
+    final SetOp setOp = (SetOp) builder.build();
+    final RelMetadataQuery mq = setOp.getCluster().getMetadataQuery();
+    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(setOp);
+    assertThat(
+        inputFields, equalTo(
+        ImmutableList.of(ImmutableBitSet.of(1), ImmutableBitSet.of(2))));
+  }
+
+  @Test void testInputFieldsUsedProject() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    final RelNode project = builder
+        .scan("EMP")
+        .project(builder.field(0), builder.field(2))
+        .build();
+    final RelMetadataQuery mq = project.getCluster().getMetadataQuery();
+    final java.util.List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(project);
+
+    assertThat(inputFields, hasSize(1));
+    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.of(0, 2)));
+  }
+
+  @Test void testInputFieldsUsedFilter() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    final RelNode filter = builder
+        .scan("EMP")
+        .filter(builder.equals(builder.field(2), builder.literal(10)))
+        .build();
+    final RelMetadataQuery mq = filter.getCluster().getMetadataQuery();
+    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(filter);
+
+    final int fieldCount = filter.getInput(0).getRowType().getFieldCount();
+    assertThat(inputFields, hasSize(1));
+    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.range(fieldCount)));
+  }
+
+  @Test void testInputFieldsUsedCalc() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    final RelNode proj = builder
+        .scan("EMP")
+        .project(builder.field(0), builder.field(2))
+        .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .build();
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(proj);
+    final RelNode calc = planner.findBestExp();
+    assertThat(calc, instanceOf(Calc.class));
+
+    final RelMetadataQuery mq = calc.getCluster().getMetadataQuery();
+    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(calc);
+    assertThat(inputFields, hasSize(1));
+    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.of(0, 2)));
   }
 
   // ----------------------------------------------------------------------

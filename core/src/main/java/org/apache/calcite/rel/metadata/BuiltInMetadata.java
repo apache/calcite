@@ -76,6 +76,48 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /**
+   * Metadata that identifies, per input, which fields of each
+   * input are referenced by a relational expression ({@link RelNode}).
+   * Here, "referenced" means the input field is used by the parent
+   * RelNode. Operators such as Filter, while not inherently consuming
+   * all input fields, must preserve them since parent RelNodes may depend on
+   * these fields. Thus, Filter is regarded as utilizing all fields.
+   *
+   * <p>For a relational expression with N inputs, this returns an
+   * {@link ImmutableList} of length N. Each element is an
+   * {@link ImmutableBitSet} with bits set for zero-based field ordinals of
+   * that input which are referenced by the expression.
+   *
+   * <p>Returns empty {@link ImmutableList} if information cannot be determined.
+   */
+  public interface InputFieldsUsed extends Metadata {
+    MetadataDef<InputFieldsUsed> DEF =
+        MetadataDef.of(InputFieldsUsed.class, InputFieldsUsed.Handler.class,
+            BuiltInMethod.INPUT_FIELDS_USED.method);
+
+    /**
+     * Returns, for each input of this relational expression, a bit set of the
+     * referenced field ordinals.
+     *
+     * @return an {@link ImmutableList} of {@link ImmutableBitSet} of length N
+     *         where N is the number of inputs, or empty {@link ImmutableList}
+     *         if the information is not available
+     */
+    ImmutableList<ImmutableBitSet> getInputFieldsUsed();
+
+    /** Handler API. */
+    @FunctionalInterface
+    interface Handler extends MetadataHandler<InputFieldsUsed> {
+      ImmutableList<ImmutableBitSet> getInputFieldsUsed(RelNode r,
+          RelMetadataQuery mq);
+
+      @Override default MetadataDef<InputFieldsUsed> getDef() {
+        return DEF;
+      }
+    }
+  }
+
   /** Metadata about which combinations of columns are unique identifiers. */
   public interface UniqueKeys extends Metadata {
     MetadataDef<UniqueKeys> DEF =
