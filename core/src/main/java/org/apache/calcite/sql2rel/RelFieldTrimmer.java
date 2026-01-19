@@ -836,6 +836,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Join join,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
+    // If the column "mark" is included, it needs to be excluded first.
+    if (join.getJoinType() == JoinRelType.LEFT_MARK) {
+      int markIndex = join.getRowType().getFieldCount() - 1;
+      fieldsUsed = fieldsUsed.except(ImmutableBitSet.of(markIndex));
+    }
     final int fieldCount = join.getSystemFieldList().size()
         + join.getLeft().getRowType().getFieldCount()
         + join.getRight().getRowType().getFieldCount();
@@ -957,17 +962,25 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     switch (join.getJoinType()) {
     case SEMI:
     case ANTI:
-      // For SemiJoins and AntiJoins only map fields from the left-side
+    case LEFT_MARK:
+      // For SemiJoins, AntiJoins and LeftMarkJoins only map fields from the left-side.
+      // For LeftMarkJoins, the mark column is also mapped.
       if (join.getJoinType() == JoinRelType.SEMI) {
         relBuilder.semiJoin(newConditionExpr);
-      } else {
+      } else if (join.getJoinType() == JoinRelType.ANTI) {
         relBuilder.antiJoin(newConditionExpr);
+      } else {
+        relBuilder.join(join.getJoinType(), newConditionExpr, join.getVariablesSet());
       }
       Mapping inputMapping = inputMappings.get(0);
+      int targetCount = newSystemFieldCount + inputMapping.getTargetCount();
+      if (join.getJoinType() == JoinRelType.LEFT_MARK) {
+        targetCount++;
+      }
       mapping =
           Mappings.create(MappingType.INVERSE_SURJECTION,
               join.getRowType().getFieldCount(),
-              newSystemFieldCount + inputMapping.getTargetCount());
+              targetCount);
       for (int i = 0; i < newSystemFieldCount; ++i) {
         mapping.set(i, i);
       }
@@ -975,6 +988,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       newOffset = newSystemFieldCount;
       for (IntPair pair : inputMapping) {
         mapping.set(pair.source + offset, pair.target + newOffset);
+      }
+      if (join.getJoinType() == JoinRelType.LEFT_MARK) {
+        mapping.set(join.getRowType().getFieldCount() - 1, targetCount - 1);
       }
       break;
     case ASOF:
