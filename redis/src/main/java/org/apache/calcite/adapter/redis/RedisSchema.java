@@ -20,6 +20,7 @@ import org.apache.calcite.model.JsonCustomTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.cache.CacheBuilder;
@@ -42,6 +43,11 @@ import static java.util.Objects.requireNonNull;
  * is an HTML table on a URL.
  */
 class RedisSchema extends AbstractSchema {
+  private static final String DATA_FORMAT = "dataFormat";
+  private static final String FIELDS = "fields";
+  private static final String KEY_DELIMITER = "keyDelimiter";
+  private static final String OPERAND = "operand";
+
   public final String host;
   public final int port;
   public final int database;
@@ -85,17 +91,22 @@ class RedisSchema extends AbstractSchema {
     for (JsonCustomTable jsonCustomTable : jsonCustomTables) {
       if (jsonCustomTable.name.equals(tableName)) {
         Map<String, Object> map =
-            requireNonNull(jsonCustomTable.operand, "operand");
-        if (map.get("dataFormat") == null) {
-          throw new RuntimeException("dataFormat is null");
+            requireNonNull(jsonCustomTable.operand, OPERAND);
+        if (ObjectUtils.isEmpty(map.get(DATA_FORMAT))) {
+          throw new RuntimeException("dataFormat is invalid, it must be raw, csv or json");
         }
-        if (map.get("fields") == null) {
+        RedisDataFormat dataFormatEnum =
+            RedisDataFormat.fromTypeName(map.get(DATA_FORMAT).toString());
+        if (dataFormatEnum == null) {
+          throw new RuntimeException("dataFormat is invalid, it must be raw, csv or json");
+        }
+        if (ObjectUtils.isEmpty(map.get(FIELDS))) {
           throw new RuntimeException("fields is null");
         }
-        dataFormat = map.get("dataFormat").toString();
-        fields = (List<LinkedHashMap<String, Object>>) map.get("fields");
-        if (map.get("keyDelimiter") != null) {
-          keyDelimiter = map.get("keyDelimiter").toString();
+        dataFormat = map.get(DATA_FORMAT).toString();
+        fields = (List<LinkedHashMap<String, Object>>) map.get(FIELDS);
+        if (map.get(KEY_DELIMITER) != null) {
+          keyDelimiter = map.get(KEY_DELIMITER).toString();
         }
         break;
       }
