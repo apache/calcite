@@ -124,4 +124,49 @@ SELECT dname, (SELECT empno FROM emp WHERE dept.deptno = emp.deptno LIMIT 1) FRO
 
 !ok
 
+# [CALCITE-7389] PruneJoinSingleValue rule causes type mismatch in EXISTS
+!use scott
+select count(*) as c from "scott".dept where exists (select 1);
++---+
+| C |
++---+
+| 4 |
++---+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], C=[COUNT()])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+select empno, deptno in (select 10) from emp;
++-------+--------+
+| EMPNO | EXPR$1 |
++-------+--------+
+|  7782 | true   |
+|  7839 | true   |
+|  7934 | true   |
+|  7369 | false  |
+|  7499 | false  |
+|  7521 | false  |
+|  7566 | false  |
+|  7654 | false  |
+|  7698 | false  |
+|  7788 | false  |
+|  7844 | false  |
+|  7876 | false  |
+|  7900 | false  |
+|  7902 | false  |
++-------+--------+
+(14 rows)
+
+!ok
+
+!if (use_new_decorr) {
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[10], expr#10=[=($t8, $t9)], EMPNO=[$t0], EXPR$1=[$t10])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!}
+
 # End new-decorr.iq

@@ -5341,6 +5341,35 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7389">[CALCITE-7389]
+   * PruneJoinSingleValue rule causes type mismatch in EXISTS</a>. */
+  @Test void testExistsDecorrelationProducesSingleValues() {
+    final String sql = "select empno, deptno in (select 10) from emp";
+    sql(sql)
+        .withPreRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withTopDownGeneralDecorrelate(true)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7389">[CALCITE-7389]
+   * PruneJoinSingleValue rule causes type mismatch in EXISTS</a>. */
+  @Test void testLeftMarkJoinWithSingleValues() {
+    relFn(builder -> builder
+        .scan("EMP")
+        .values(new String[]{"val"}, 1)
+        .join(JoinRelType.LEFT_MARK,
+            builder.equals(builder.field(2, 0, 0), builder.field(2, 1, 0)))
+        .build())
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
   @Test void testInnerJoinWithTimeStampSingleRowOnRight() {
     final String sql = "select e.empno, e.ename, c.t"
         + " from emp e inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono";
