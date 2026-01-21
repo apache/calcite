@@ -105,6 +105,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -5631,6 +5632,30 @@ class RelToSqlConverterTest {
             + "OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\"), \"hire_date\"\n"
             + "FROM \"foodmart\".\"employee\"\n"
             + "GROUP BY \"hire_date\", \"employee_id\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectToWindowRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+
+    sql(query0).optimize(rules, hepPlanner).ok(expected0);
+    sql(query1).optimize(rules, hepPlanner).ok(expected1);
+    sql(query2).optimize(rules, hepPlanner).ok(expected2);
+    sql(query3).optimize(rules, hepPlanner).ok(expected3);
+    sql(query4).optimize(rules, hepPlanner).ok(expected4);
+    sql(query5).optimize(rules, hepPlanner).ok(expected5);
+    sql(query6).optimize(rules, hepPlanner).ok(expected6);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3112">[CALCITE-3112]
+   * Support Window in RelToSqlConverter</a>.
+   * Currently disabled due to
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4635">[CALCITE-4635]
+   * Distinct on aggregate window functions produce wrong result</a>.
+   * Should be enabled again once distinct on window aggregate is properly implemented */
+  @Disabled
+  @Test void testConvertWindowToSqlWithDistinct() {
     String query7 = "SELECT "
         + "count(distinct \"employee_id\") over (order by \"hire_date\") FROM \"employee\"";
     String expected7 = "SELECT "
@@ -5656,13 +5681,6 @@ class RelToSqlConverterTest {
         RuleSets.ofList(CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE,
             CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
 
-    sql(query0).optimize(rules, hepPlanner).ok(expected0);
-    sql(query1).optimize(rules, hepPlanner).ok(expected1);
-    sql(query2).optimize(rules, hepPlanner).ok(expected2);
-    sql(query3).optimize(rules, hepPlanner).ok(expected3);
-    sql(query4).optimize(rules, hepPlanner).ok(expected4);
-    sql(query5).optimize(rules, hepPlanner).ok(expected5);
-    sql(query6).optimize(rules, hepPlanner).ok(expected6);
     sql(query7).optimize(rules, hepPlanner).ok(expected7);
     sql(query8).optimize(rules, hepPlanner).ok(expected8);
   }

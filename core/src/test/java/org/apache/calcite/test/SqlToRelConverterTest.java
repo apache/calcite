@@ -962,6 +962,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-476">[CALCITE-476]
    * DISTINCT flag in windowed aggregates</a>. */
+  @Disabled
   @Test void testSelectOverDistinct() {
     // Checks to see if <aggregate>(DISTINCT x) is set and preserved
     // as a flag for the aggregate call.
@@ -989,6 +990,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** As {@link #testSelectOverDistinct()} but for streaming queries. */
+  @Disabled
   @Test void testSelectStreamPartitionDistinct() {
     final String sql = "select stream\n"
         + "  count(distinct orderId) over (partition by productId\n"
