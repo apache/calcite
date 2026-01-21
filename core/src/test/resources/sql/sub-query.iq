@@ -338,6 +338,23 @@ where (gender, deptno) in (select gender, 10 from emp where gender = 'F');
 
 !use scott
 
+# [CALCITE-5223] AdjustProjectForCountAggregateRule throws ArrayIndexOutOfBoundsException
+SELECT deptno, ename, job, sal,
+    sal / (SELECT SUM(sal) FROM Emp WHERE deptno = e.deptno) AS pct_dept
+FROM Emp AS e
+WHERE job = 'CLERK'
+ORDER BY deptno;
+!ok
+
+# [CALCITE-5223] AdjustProjectForCountAggregateRule throws ArrayIndexOutOfBoundsException
+SELECT deptno, ename, job, sal,
+    sal / (SELECT SUM(sal) FROM Emp WHERE deptno = e.deptno) AS pct_dept,
+    sal / (SELECT SUM(sal) FROM Emp) AS pct_total
+FROM Emp AS e
+WHERE job = 'CLERK'
+ORDER BY deptno;
+!ok
+
 # [CALCITE-1155] Support columns for IN list
 SELECT empno, ename, mgr FROM "scott".emp WHERE 7782 IN (empno, mgr);
 +-------+--------+------+
