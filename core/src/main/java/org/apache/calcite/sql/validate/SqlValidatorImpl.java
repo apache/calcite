@@ -6079,6 +6079,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // 2. check if types at i:th position in each row are compatible
       for (int col = 0; col < columnCount; col++) {
+        if (targetRowType.isStruct() && config.typeCoercionEnabled()) {
+          // If target row type is known, try to implicit cast each value
+          // to target row type.
+          RelDataType targetType = targetRowType.getFieldList().get(col).getType();
+          for (SqlNode operand : operands) {
+            RelDataType sourceType = deriveType(scope, ((SqlCall) operand).operand(col));
+            if (SqlTypeUtil.equalSansNullability(typeFactory, sourceType, targetType)) {
+              continue;
+            }
+            if (!SqlTypeUtil.canCastFrom(targetType, sourceType, true)) {
+              throw newValidationError(node,
+                  RESOURCE.incompatibleValueType(
+                      SqlStdOperatorTable.VALUES.getName()));
+            }
+            typeCoercion.rowTypeCoercion(scope, operand, col, targetType);
+          }
+        }
+
         final int c = col;
         final RelDataType type =
             typeFactory.leastRestrictive(
