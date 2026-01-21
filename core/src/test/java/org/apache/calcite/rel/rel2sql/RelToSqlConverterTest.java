@@ -8516,6 +8516,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT LENGTH(\"brand_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query)
+        .withOracle().ok(expected)
         .withPresto().ok(expected)
         .withTrino().ok(expected);
   }
