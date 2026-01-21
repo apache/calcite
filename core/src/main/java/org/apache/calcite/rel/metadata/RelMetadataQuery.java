@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.decorateWithConstantColumnsFromPredicates;
 
 /**
  * RelMetadataQuery provides a strongly-typed facade on top of
@@ -616,8 +617,19 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       boolean ignoreNulls) {
     for (;;) {
       try {
-        return columnUniquenessHandler.areColumnsUnique(rel, this, columns,
-            ignoreNulls);
+        Boolean b = columnUniquenessHandler.areColumnsUnique(rel, this, columns, ignoreNulls);
+        if (b != null && b) {
+          return true;
+        }
+        // Second attempt: try adding the constant columns deduced from the pulled up predicates
+        ImmutableBitSet decorated = decorateWithConstantColumnsFromPredicates(columns, rel, this);
+        if (decorated != columns) {
+          Boolean b2 = columnUniquenessHandler.areColumnsUnique(rel, this, decorated, ignoreNulls);
+          if (b2 != null && b2) {
+            return true;
+          }
+        }
+        return b;
       } catch (MetadataHandlerProvider.NoHandler e) {
         columnUniquenessHandler = revise(BuiltInMetadata.ColumnUniqueness.Handler.class);
       }
