@@ -915,6 +915,49 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("'' between 2 and 3").ok();
     wholeExpr("date '2012-02-03' between 2 and 3")
         .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("1 between '0' and true")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("1 between 0.5 and 20.1")
+        .ok();
+    wholeExpr("1 between '0.5' and 20.1")
+        .ok();
+    wholeExpr("1 between date '2012-02-01' and 15")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("1 between '2012-02-01' and date '2012-03-01'")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("true between true and false")
+        .ok();
+    wholeExpr("true between 'abc' and false")
+        .ok();
+    wholeExpr("false between 'abc' and 1.2345")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("false between 1.2345 and 'abc'")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("date '2012-02-03' between '2012-01-01' and date '2012-05-01'")
+        .ok();
+    wholeExpr("date '2012-02-03' between '2012-01-01' and timestamp '2012-05-01 1:00:00'")
+        .ok();
+    wholeExpr("date '2012-02-03' between timestamp '2012-01-01 16:00:00' "
+        + "and timestamp '2012-05-01 1:00:00'")
+        .ok();
+    wholeExpr("date '2012-02-03' between '1' and 20")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("date '2012-02-03' between '1' and time '4:5:6'")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("timestamp '2012-02-03 13:00:00' between '2012-01-01 12:00:00' "
+        + "and timestamp '2012-05-01 15:00:00'")
+        .ok();
+    wholeExpr("timestamp '2012-02-03 13:00:00' between '2012-01-01 12:00:00' "
+        + "and date '2012-05-01'")
+        .ok();
+    wholeExpr("timestamp '2012-02-03 13:00:00' between date '2012-01-01' and date '2012-05-01'")
+        .ok();
+    wholeExpr("timestamp '2012-02-03 13:00:00' between '2012-01-01' and 123456")
+        .fails("(?s).*Cannot apply 'BETWEEN ASYMMETRIC' to arguments of type.*");
+    wholeExpr("null between 1 and 2")
+        .ok();
+    wholeExpr("null between null and null")
+        .ok();
   }
 
   @Test void testCharsetMismatch() {
