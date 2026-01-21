@@ -4387,6 +4387,26 @@ LogicalSortExchange(distribution=[hash[1]], collation=[[1]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExistsDecorrelationProducesSingleValues">
+    <Resource name="sql">
+      <![CDATA[select empno, deptno in (select 10) from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 10 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExistsWithAtLeastOneRowSubQuery">
     <Resource name="sql">
       <![CDATA[select * from dept as d
@@ -9158,6 +9178,21 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
 LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CASE(=($0, 7934), 7934, null:INTEGER)], $f10=[CASE(=($0, 7934), CURRENT_TIMESTAMP, null:TIMESTAMP(0))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftMarkJoinWithSingleValues">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $8)], joinType=[left_mark])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[=($0, 1)])
+  LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>

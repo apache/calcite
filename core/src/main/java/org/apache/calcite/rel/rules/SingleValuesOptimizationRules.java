@@ -34,6 +34,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
@@ -121,41 +123,38 @@ public abstract class SingleValuesOptimizationRules {
       if (!transformable.test(join)) {
         return null;
       }
-      int end = valuesAsLeftChild
-          ? join.getLeft().getRowType().getFieldCount()
-          : join.getRowType().getFieldCount();
+      final int leftCount = join.getLeft().getRowType().getFieldCount();
+      final int rightCount = join.getRight().getRowType().getFieldCount();
+      final int start = valuesAsLeftChild ? 0 : leftCount;
+      final int end = start + (valuesAsLeftChild ? leftCount : rightCount);
+      final int offset = valuesAsLeftChild ? 0 : -leftCount;
 
-      int start = valuesAsLeftChild
-          ? 0
-          : join.getLeft().getRowType().getFieldCount();
-      ImmutableBitSet bitSet = ImmutableBitSet.range(start, end);
-      RexNode trueNode = relBuilder.getRexBuilder().makeLiteral(true);
-      final RexNode filterCondition =
-          new RexNodeReplacer(bitSet,
-              literals,
-              (valuesAsLeftChild ? 0 : -1) * join.getLeft().getRowType().getFieldCount())
+      final ImmutableBitSet bitSet = ImmutableBitSet.range(start, end);
+      RexNode condition =
+          new RexNodeReplacer(bitSet, literals, offset)
               .go(join.getCondition());
 
-      RexNode fixedCondition =
-          valuesAsLeftChild
-              ? RexUtil.shift(filterCondition,
-              -1 * join.getLeft().getRowType().getFieldCount())
-              : filterCondition;
+      if (valuesAsLeftChild) {
+        condition = RexUtil.shift(condition, -leftCount);
+      }
 
-      List<RexNode> rexLiterals = litTransformer.apply(fixedCondition, literals);
-      relBuilder.push(relNode)
-          .filter(join.getJoinType().isOuterJoin() ? trueNode : fixedCondition);
+      relBuilder.push(relNode);
+      if (!join.getJoinType().isOuterJoin()
+          && join.getJoinType() != JoinRelType.LEFT_MARK) {
+        relBuilder.filter(condition);
+      }
 
-      List<RexNode> rexNodes = relNode
-          .getRowType()
-          .getFieldList()
-          .stream()
-          .map(fld -> relBuilder.field(fld.getIndex()))
-          .collect(Collectors.toList());
+      final List<RexNode> otherNodes = relBuilder.fields();
+      final List<RexNode> valuesNodes = litTransformer.apply(condition, literals);
 
-      List<RexNode> projects = new ArrayList<>();
-      projects.addAll(valuesAsLeftChild ? rexLiterals : rexNodes);
-      projects.addAll(valuesAsLeftChild ? rexNodes : rexLiterals);
+      final List<RexNode> joinLeftNodes = valuesAsLeftChild ? valuesNodes : otherNodes;
+      final List<RexNode> joinRightNodes = valuesAsLeftChild ? otherNodes : valuesNodes;
+
+      final List<RexNode> projects = new ArrayList<>(joinLeftNodes);
+      if (join.getJoinType().projectsRight()
+          || join.getJoinType() == JoinRelType.LEFT_MARK) {
+        projects.addAll(joinRightNodes);
+      }
       return relBuilder.project(projects).build();
     }
   }
@@ -216,6 +215,8 @@ public abstract class SingleValuesOptimizationRules {
         return (condition, rexLiterals) -> rexLiterals.stream().map(lit ->
             rexBuilder.makeCall(SqlStdOperatorTable.CASE, condition,
                 lit, rexBuilder.makeNullLiteral(lit.getType()))).collect(Collectors.toList());
+      case LEFT_MARK:
+        return (condition, rexLiterals) -> ImmutableList.of(condition);
       default:
         return (condition, rexLiterals) -> rexLiterals;
       }
