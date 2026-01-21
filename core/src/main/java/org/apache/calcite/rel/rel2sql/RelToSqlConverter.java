@@ -664,7 +664,7 @@ public class RelToSqlConverter extends SqlImplementor
       addSelect(selectList, aggCallSqlNode, e.getRowType());
     }
     builder.setSelect(new SqlNodeList(selectList, POS));
-    if (!groupByList.isEmpty() || e.getAggCallList().isEmpty()) {
+    if (!groupByList.isEmpty() || dialect.supportEmptyGroupBy()) {
       // Some databases don't support "GROUP BY ()". We can omit it as long
       // as there is at least one aggregate function. (We have to take care
       // if we later prune away that last aggregate function.)
