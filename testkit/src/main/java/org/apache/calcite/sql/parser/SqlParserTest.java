@@ -832,6 +832,12 @@ public class SqlParserTest {
             + "FROM `EMP`");
   }
 
+  @Test void testFloorPostgres() {
+    sql("select FLOOR(TIMESTAMP '2022-08-01' TO Year)")
+        .withDialect(POSTGRESQL)
+        .ok("SELECT FLOOR(TIMESTAMP '2022-08-01 00:00:00' TO YEAR)");
+  }
+
   @Test void testFromStarFails() {
     sql("select * from sales^.^*")
         .fails("(?s)Encountered \"\\. \\*\" at .*");
