@@ -49,9 +49,7 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
     paths.remove("sql/unnest.iq");
     paths.remove("sql/some.iq");
     paths.remove("sql/sub-query.iq");
-    paths.remove("sql/scalar.iq");
     paths.remove("sql/measure-paper.iq");
-    paths.remove("sql/misc.iq");
     return paths;
   }
 
