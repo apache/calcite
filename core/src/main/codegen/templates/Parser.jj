@@ -6254,11 +6254,11 @@ boolean NotNullOpt() :
 }
 
 /**
-* Parse a "name1 type1 [NULL | NOT NULL], name2 type2 [NULL | NOT NULL] ..." list,
+* Parse a "name1 type1, name2 type2  ..." list,
 * the field type default is not nullable.
 */
 void AddFieldNameTypes(List<SqlIdentifier> fieldNames,
-    List<SqlDataTypeSpec> fieldTypes) :
+    List<SqlTypeNameSpec> fieldTypes) :
 {
 }
 {
@@ -6267,31 +6267,31 @@ void AddFieldNameTypes(List<SqlIdentifier> fieldNames,
 }
 
 void AddFieldNameType(List<SqlIdentifier> fieldNames,
-    List<SqlDataTypeSpec> fieldTypes) :
+    List<SqlTypeNameSpec> fieldTypes) :
 {
     final SqlIdentifier fName;
-    final SqlDataTypeSpec fType;
-    final boolean nullable;
+    SqlTypeNameSpec fType;
 }
 {
     fName = SimpleIdentifier()
-    fType = DataType()
-    nullable = NullableOptDefaultFalse()
+    fType = TypeName()
+    (
+        fType = CollectionsTypeName(fType)
+    )*
     {
         fieldNames.add(fName);
-        fieldTypes.add(fType.withNullable(nullable, getPos()));
+        fieldTypes.add(fType);
     }
 }
 
 /**
 * Parse Row type with format: Row(name1 type1, name2 type2).
-* Every field type can have suffix of `NULL` or `NOT NULL` to indicate if this type is nullable.
-* i.e. Row(f0 int not null, f1 varchar null).
+* i.e. Row(f0 int, f1 varchar).
 */
 SqlTypeNameSpec RowTypeName() :
 {
     List<SqlIdentifier> fieldNames = new ArrayList<SqlIdentifier>();
-    List<SqlDataTypeSpec> fieldTypes = new ArrayList<SqlDataTypeSpec>();
+    List<SqlTypeNameSpec> fieldTypes = new ArrayList<SqlTypeNameSpec>();
 }
 {
     <ROW>
