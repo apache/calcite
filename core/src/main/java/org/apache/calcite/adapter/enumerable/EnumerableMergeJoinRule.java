@@ -73,7 +73,8 @@ class EnumerableMergeJoinRule extends ConverterRule {
       return null;
     }
     final List<RelNode> newInputs = new ArrayList<>();
-    final List<RelCollation> collations = new ArrayList<>();
+//    final List<RelCollation> collations = new ArrayList<>();
+    final List<RelFieldCollation> joinFieldCollations = new ArrayList<>();
     int offset = 0;
     for (Ord<RelNode> ord : Ord.zip(join.getInputs())) {
       RelTraitSet traits = ord.e.getTraitSet()
@@ -84,9 +85,15 @@ class EnumerableMergeJoinRule extends ConverterRule {
           fieldCollations.add(
               new RelFieldCollation(key, RelFieldCollation.Direction.ASCENDING,
                   RelFieldCollation.NullDirection.LAST));
+          joinFieldCollations.add(
+              new RelFieldCollation(key + offset, RelFieldCollation.Direction.ASCENDING,
+                  RelFieldCollation.NullDirection.LAST));
         }
         final RelCollation collation = RelCollations.of(fieldCollations);
-        collations.add(RelCollations.shift(collation, offset));
+//        collations.add(RelCollations.shift(collation, offset));
+//        if(joinCollation == null){
+//          joinCollation = RelCollations.shift(collation, offset);
+//        }
         traits = traits.replace(collation);
       }
       newInputs.add(convert(ord.e, traits));
@@ -98,8 +105,11 @@ class EnumerableMergeJoinRule extends ConverterRule {
 
     RelTraitSet traitSet = join.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
-    if (!collations.isEmpty()) {
-      traitSet = traitSet.replace(collations);
+//    if(!collations.isEmpty()) {
+//      traitSet = traitSet.replace(collations);
+//    }
+    if (!joinFieldCollations.isEmpty()) {
+      traitSet = traitSet.replace(RelCollations.of(joinFieldCollations));
     }
     // Re-arrange condition: first the equi-join elements, then the non-equi-join ones (if any);
     // this is not strictly necessary but it will be useful to avoid spurious errors in the
