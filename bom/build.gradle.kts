@@ -132,7 +132,6 @@ dependencies {
         apiv("org.codehaus.janino:commons-compiler", "janino")
         apiv("org.codehaus.janino:janino")
         apiv("org.codelibs.elasticsearch.module:lang-painless", "elasticsearch")
-        apiv("org.codelibs.elasticsearch.module:scripting-painless-spi", "elasticsearch")
         apiv("org.eclipse.jetty:jetty-http", "jetty")
         apiv("org.eclipse.jetty:jetty-security", "jetty")
         apiv("org.eclipse.jetty:jetty-server", "jetty")
