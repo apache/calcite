@@ -12493,6 +12493,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         is(false));
   }
 
+  @Test void testMapAssignment() {
+    final SqlTypeFactoryImpl typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType bigint = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType bigintNullable =
+        typeFactory.createTypeWithNullability(bigint, true);
+    final RelDataType bigintNotNull =
+        typeFactory.createTypeWithNullability(bigint, false);
+    final RelDataType bigintNullableMap =
+        typeFactory.createMapType(bigintNullable, bigintNullable);
+    final RelDataType bigintMapNullable =
+        typeFactory.createTypeWithNullability(bigintNullableMap, true);
+    final RelDataType bigintNotnullMap =
+        typeFactory.createMapType(bigintNotNull, bigintNotNull);
+    assertThat(SqlTypeUtil.canAssignFrom(bigintNullableMap, bigintNotnullMap),
+        is(true));
+    assertThat(SqlTypeUtil.canAssignFrom(bigintNullableMap, bigintMapNullable),
+        is(true));
+  }
+
   @Test void testSelectRolledUpColumn() {
     final String error = "Rolled up column 'SLACKINGMIN' is not allowed in SELECT";
 
