@@ -2099,6 +2099,19 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5740">[CALCITE-5740]
+   * Support for AggToSemiJoinRule </a>. */
+  @Test void testAggregateToSemiJoinRule() {
+    final String sql = "select distinct emp.deptno from emp\n"
+        + "join (select distinct mgr from emp) d on emp.deptno = d.mgr";
+    sql(sql)
+        .withDecorrelate(true)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_TO_SEMI_JOIN)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1495">[CALCITE-1495]
    * SemiJoinRule should not apply to RIGHT and FULL JOIN</a>. */
   @Test void testSemiJoinRuleRight() {
