@@ -21,8 +21,13 @@ on:
     tags:
       - calcite-[0-9]+.[0-9]+.[0-9]+ # Trigger only when a tag that matches calcite-X.Y.Z is pushed
 
+permissions:
+  contents: read
+
 jobs:
   sync-main-site:
+    permissions:
+      contents: write  # for Git to git push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -35,6 +40,8 @@ jobs:
           git push --force origin site
 
   publish-website:
+    permissions:
+      contents: write  # for Git to git push
     runs-on: ubuntu-latest
     needs: sync-main-site
     steps:
