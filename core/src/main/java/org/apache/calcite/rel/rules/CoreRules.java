@@ -162,6 +162,12 @@ public class CoreRules {
   public static final AggregateJoinTransposeRule AGGREGATE_JOIN_TRANSPOSE_EXTENDED =
       AggregateJoinTransposeRule.Config.EXTENDED.toRule();
 
+  /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
+   * {@link Aggregate} on top of a {@link Join} with an {@link Aggregate} as its
+   * right input. */
+  public static final SemiJoinRule.AggregateToSemiJoinRule AGGREGATE_TO_SEMI_JOIN =
+      SemiJoinRule.AggregateToSemiJoinRule.AggregateToSemiJoinRuleConfig.DEFAULT.toRule();
+
   /** Rule that pushes an {@link Aggregate}
    * past a non-distinct {@link Union}. */
   public static final AggregateUnionTransposeRule AGGREGATE_UNION_TRANSPOSE =

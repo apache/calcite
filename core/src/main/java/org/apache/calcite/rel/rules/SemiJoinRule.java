@@ -67,13 +67,15 @@ public abstract class SemiJoinRule
     super(config);
   }
 
-  protected void perform(RelOptRuleCall call, @Nullable Project project,
+  protected void perform(RelOptRuleCall call, @Nullable RelNode topRel,
       Join join, RelNode left, Aggregate aggregate) {
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
-    if (project != null) {
-      final ImmutableBitSet bits =
-          RelOptUtil.InputFinder.bits(project.getProjects(), null);
+    if (topRel != null) {
+      final ImmutableBitSet bits = getUsedFields(topRel);
+      if (bits.isEmpty()) {
+        return;
+      }
       final ImmutableBitSet rightBits =
           ImmutableBitSet.range(left.getRowType().getFieldCount(),
               join.getRowType().getFieldCount());
@@ -123,11 +125,70 @@ public abstract class SemiJoinRule
     default:
       throw new AssertionError(join.getJoinType());
     }
-    if (project != null) {
-      relBuilder.project(project.getProjects(), project.getRowType().getFieldNames());
+    if (topRel != null) {
+      if (topRel instanceof Project) {
+        Project topProject = (Project) topRel;
+        relBuilder.project(topProject.getProjects(), topProject.getRowType().getFieldNames());
+      } else if (topRel instanceof Aggregate) {
+        Aggregate topAgg = (Aggregate) topRel;
+        relBuilder.aggregate(
+            relBuilder.groupKey(topAgg.getGroupSet(), topAgg.getGroupSets()),
+            topAgg.getAggCallList());
+      }
     }
     final RelNode relNode = relBuilder.build();
     call.transformTo(relNode);
+  }
+
+  /** Returns a bit set of the input fields used by a relational expression. */
+  private static ImmutableBitSet getUsedFields(RelNode rel) {
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    return ImmutableBitSet.union(mq.getInputFieldsUsed(rel));
+  }
+
+  /** SemiJoinRule that matches a Aggregate on top of a Join with an Aggregate
+   * as its right child.
+   *
+   * @see CoreRules#AGGREGATE_TO_SEMI_JOIN */
+  public static class AggregateToSemiJoinRule extends SemiJoinRule {
+    /** Creates a AggregateToSemiJoinRule. */
+    protected AggregateToSemiJoinRule(AggregateToSemiJoinRuleConfig config) {
+      super(config);
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Aggregate topAgg = call.rel(0);
+      final Join join = call.rel(1);
+      final RelNode left = call.rel(2);
+      final Aggregate rightAgg = call.rel(3);
+      perform(call, topAgg, join, left, rightAgg);
+    }
+
+    /** Rule configuration. */
+    @Value.Immutable
+    public interface AggregateToSemiJoinRuleConfig extends SemiJoinRule.Config {
+      AggregateToSemiJoinRuleConfig DEFAULT = ImmutableAggregateToSemiJoinRuleConfig.of()
+          .withDescription("SemiJoinRule:aggregate")
+          .withOperandFor(Aggregate.class, Join.class, Aggregate.class);
+
+      @Override default AggregateToSemiJoinRule toRule() {
+        return new AggregateToSemiJoinRule(this);
+      }
+
+      /** Defines an operand tree for the given classes. */
+      default AggregateToSemiJoinRuleConfig withOperandFor(
+          Class<? extends Aggregate> topAggClass,
+          Class<? extends Join> joinClass,
+          Class<? extends Aggregate> rightAggClass) {
+        return withOperandSupplier(b ->
+            b.operand(topAggClass).oneInput(b2 ->
+                b2.operand(joinClass)
+                    .predicate(SemiJoinRule::isJoinTypeSupported).inputs(
+                        b3 -> b3.operand(RelNode.class).anyInputs(),
+                        b4 -> b4.operand(rightAggClass).anyInputs())))
+            .as(AggregateToSemiJoinRuleConfig.class);
+      }
+    }
   }
 
   /** SemiJoinRule that matches a Project on top of a Join with an Aggregate
@@ -251,8 +312,7 @@ public abstract class SemiJoinRule
       final Join join = call.rel(1);
       final RelNode left = call.rel(2);
 
-      final ImmutableBitSet bits =
-          RelOptUtil.InputFinder.bits(project.getProjects(), null);
+      final ImmutableBitSet bits = getUsedFields(project);
       final ImmutableBitSet rightBits =
           ImmutableBitSet.range(left.getRowType().getFieldCount(),
               join.getRowType().getFieldCount());
