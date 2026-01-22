@@ -51,4 +51,16 @@ public class JavaRecordType extends RelRecordType {
   @Override public int hashCode() {
     return Objects.hash(fieldList, clazz);
   }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    return this == obj
+        || obj instanceof JavaRecordType
+        && Objects.equals(fieldList, ((JavaRecordType) obj).fieldList)
+        && clazz == ((JavaRecordType) obj).clazz
+        && this.isNullable() == ((JavaRecordType) obj).isNullable();
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(fieldList, this.isNullable(), clazz);
+  }
 }

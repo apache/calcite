@@ -49,6 +49,10 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-42-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7393">CALCITE-7393</a>]
+`RelDataTypeImpl.digest` is deprecated. We recommend using `RelDataTypeImpl.innerDigest` instead.
+See system property `CalciteSystemProperty.DISABLE_GENERATE_REL_DATA_TYPE_DIGEST_STRING`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7301">CALCITE-7301</a>]
 Prior to this change, most `SqlNode`s in the `org.apache.calcite.sql.ddl` package could not be unparsed
 when created with `SqlOperator#createCall`. To fix this, those `SqlNode`s now implement their own `SqlOperator`.

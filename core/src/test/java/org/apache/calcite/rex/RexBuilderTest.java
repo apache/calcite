@@ -1473,6 +1473,7 @@ class RexBuilderTest {
 
   /** Emulate a user defined type. */
   private static class UDT extends RelDataTypeImpl {
+    @SuppressWarnings("deprecation")
     UDT() {
       this.digest = "(udt)NOT NULL";
     }
