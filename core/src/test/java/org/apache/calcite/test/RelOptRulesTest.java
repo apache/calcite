@@ -9593,6 +9593,17 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(subQueryFilterRule).withLateDecorrelate(true).check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7391">[CALCITE-7391]
+   * FILTER_REDUCE_EXPRESSIONS crashes on expression where 123 in (SELECT NULL FROM emps)</a>. */
+  @Test void testNullSelect2() {
+    final String sql = "SELECT * from emp where 123 in (select null from dept)";
+    sql(sql)
+        .withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
    * RelDecorrelator can't decorrelate query with limit 1</a>.

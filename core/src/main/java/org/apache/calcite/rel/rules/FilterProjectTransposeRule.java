@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -35,7 +36,9 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.immutables.value.Value;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Planner rule that pushes
@@ -170,6 +173,12 @@ public class FilterProjectTransposeRule
     }
 
     final RelBuilder relBuilder = call.builder();
+    List<RexNode> conjuncts = RelOptUtil.conjunctions(newCondition);
+    List<RexNode> simplified = conjuncts.stream()
+        .map(e -> RexSimplify.simplifyComparisonWithNull(e, relBuilder.getRexBuilder()))
+        .collect(Collectors.toList());
+    newCondition = RexUtil.composeConjunction(relBuilder.getRexBuilder(), simplified);
+
     RelNode newFilterRel;
     if (config.isCopyFilter()) {
       final RelNode input = project.getInput();
