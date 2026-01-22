@@ -294,4 +294,106 @@ FROM "EMP";
 
 !ok
 
+# [CALCITE-4765] Complex correlated EXISTS sub-queries used as scalar subqueries can return wrong results
+CREATE TABLE tmp_emps (
+  empid INTEGER NOT NULL,
+  deptno INTEGER NOT NULL,
+  name VARCHAR(10) NOT NULL,
+  salary DECIMAL(10, 2) NOT NULL,
+  commission INTEGER);
+(0 rows modified)
+
+!update
+INSERT INTO tmp_emps (empid, deptno, name, salary, commission) VALUES
+(100, 10, 'Bill', 10000.00, 1000),
+(200, 20, 'Eric', 8000.00, 500),
+(150, 10, 'Sebastian', 7000.00, NULL),
+(110, 10, 'Theodore', 11500.00, 250),
+(170, 30, 'Theodore', 11500.00, 250),
+(140, 10, 'Sebastian', 7000.00, NULL);
+(6 rows modified)
+
+!update
+select * from tmp_emps e1 where EXISTS(select * from (
+  select e2.deptno from tmp_emps e2
+  where e2.commission = e1.commission) as table3
+where  table3.deptno <> e1.deptno);
++-------+--------+----------+----------+------------+
+| EMPID | DEPTNO | NAME     | SALARY   | COMMISSION |
++-------+--------+----------+----------+------------+
+|   110 |     10 | Theodore | 11500.00 |        250 |
+|   170 |     30 | Theodore | 11500.00 |        250 |
++-------+--------+----------+----------+------------+
+(2 rows)
+
+!ok
+!if (use_old_decorr) {
+EnumerableHashJoin(condition=[AND(=($1, $5), =($4, $7))], joinType=[semi])
+  EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+  EnumerableNestedLoopJoin(condition=[<>($1, $0)], joinType=[inner])
+    EnumerableAggregate(group=[{1}])
+      EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t4)], DEPTNO=[$t1], COMMISSION=[$t4], $condition=[$t5])
+      EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+!plan
+!}
+
+!if (use_new_decorr) {
+EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($1, $5), IS NOT DISTINCT FROM($4, $6))], joinType=[semi])
+  EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+  EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
+    EnumerableHashJoin(condition=[AND(=($1, $3), <>($2, $0))], joinType=[inner])
+      EnumerableAggregate(group=[{1, 4}])
+        EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+      EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t1], COMMISSION=[$t4])
+        EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+!plan
+!}
+
+SELECT *, EXISTS(select * from (
+  SELECT e2.deptno FROM tmp_emps e2 where e1.commission = e2.commission) as table3
+  where table3.deptno <> e1.deptno)
+from tmp_emps e1;
++-------+--------+-----------+----------+------------+--------+
+| EMPID | DEPTNO | NAME      | SALARY   | COMMISSION | EXPR$5 |
++-------+--------+-----------+----------+------------+--------+
+|   100 |     10 | Bill      | 10000.00 |       1000 | false  |
+|   110 |     10 | Theodore  | 11500.00 |        250 | true   |
+|   140 |     10 | Sebastian |  7000.00 |            | false  |
+|   150 |     10 | Sebastian |  7000.00 |            | false  |
+|   170 |     30 | Theodore  | 11500.00 |        250 | true   |
+|   200 |     20 | Eric      |  8000.00 |        500 | false  |
++-------+--------+-----------+----------+------------+--------+
+(6 rows)
+
+!ok
+
+!if (use_old_decorr) {
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..4=[{exprs}], EXPR$5=[$t8])
+  EnumerableMergeJoin(condition=[AND(=($1, $5), =($4, $6))], joinType=[left])
+    EnumerableSort(sort0=[$1], sort1=[$4], dir0=[ASC], dir1=[ASC])
+      EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], DEPTNO0=[$t1], COMMISSION=[$t0], $f2=[$t2])
+        EnumerableAggregate(group=[{1, 2}])
+          EnumerableNestedLoopJoin(condition=[<>($0, $2)], joinType=[inner])
+            EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t4)], DEPTNO=[$t1], COMMISSION=[$t4], $condition=[$t5])
+              EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+            EnumerableAggregate(group=[{1}])
+              EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+!plan
+!}
+
+!if (use_new_decorr) {
+EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($1, $5), IS NOT DISTINCT FROM($4, $6))], joinType=[left_mark])
+  EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+  EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
+    EnumerableHashJoin(condition=[AND(=($1, $3), <>($2, $0))], joinType=[inner])
+      EnumerableAggregate(group=[{1, 4}])
+        EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+      EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t1], COMMISSION=[$t4])
+        EnumerableTableScan(table=[[BLANK, TMP_EMPS]])
+!plan
+!}
+
 # End blank.iq
