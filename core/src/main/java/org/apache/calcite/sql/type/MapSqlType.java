@@ -19,6 +19,10 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Objects;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -67,6 +71,23 @@ public class MapSqlType extends AbstractSqlType {
                 ? valueType.getFullTypeString()
                 : valueType.toString())
         .append(") MAP");
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || this.getClass() != obj.getClass()) {
+      return false;
+    }
+    MapSqlType that = (MapSqlType) obj;
+    return this.isNullable() == that.isNullable() && keyType.equals(that.keyType)
+        && valueType.equals(that.valueType);
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(SqlTypeName.MAP.ordinal(), this.isNullable, keyType.hashCode(),
+        valueType.hashCode());
   }
 
   // implement RelDataType

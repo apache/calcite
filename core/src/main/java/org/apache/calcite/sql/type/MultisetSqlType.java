@@ -20,6 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Objects;
+
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
 import static java.util.Objects.requireNonNull;
@@ -54,6 +58,21 @@ public class MultisetSqlType extends AbstractSqlType {
       sb.append(elementType);
     }
     sb.append(" MULTISET");
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || this.getClass() != obj.getClass()) {
+      return false;
+    }
+    MultisetSqlType that = (MultisetSqlType) obj;
+    return this.isNullable() == that.isNullable() && elementType.equals(that.elementType);
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(SqlTypeName.MULTISET.ordinal(), this.isNullable, elementType.hashCode());
   }
 
   // implement RelDataType

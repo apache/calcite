@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -46,8 +47,8 @@ import static java.util.Objects.requireNonNull;
  * RelDataTypeImpl is an abstract base for implementations of
  * {@link RelDataType}.
  *
- * <p>Identity is based upon the {@link #digest} field, which each derived class
- * should set during construction.
+ * <p>Identity is based upon the {@link #digest} or {@link #innerDigest} field,
+ * which each derived class should set {@link #digest} or {@link #innerDigest} during construction.
  */
 public abstract class RelDataTypeImpl
     implements RelDataType, RelDataTypeFamily {
@@ -60,7 +61,14 @@ public abstract class RelDataTypeImpl
   //~ Instance fields --------------------------------------------------------
 
   protected final @Nullable List<RelDataTypeField> fieldList;
-  protected @Nullable String digest;
+
+  /**
+   * Use {@link #innerDigest} instead.
+   *
+   * @deprecated See {@link CalciteSystemProperty#DISABLE_GENERATE_REL_DATA_TYPE_DIGEST_STRING}.
+   */
+  protected @Deprecated @Nullable String digest;
+  protected @Nullable RelDataTypeDigest innerDigest;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -232,18 +240,50 @@ public abstract class RelDataTypeImpl
     return fieldList != null;
   }
 
+  /**
+   * Gets the {@link RelDataTypeDigest} of this type.
+   * If a user has set the legacy string {@code digest} and {@code innerDigest} has not
+   * been initialized yet, this method computes and initializes it.
+   */
+  @Override public RelDataTypeDigest getDigest() {
+    if (digest != null && innerDigest == null) {
+      innerDigest = new InnerRelDataTypeDigest();
+    }
+    return requireNonNull(innerDigest, "innerDigest");
+  }
+
   @Override public boolean equals(@Nullable Object obj) {
-    return this == obj
-        || obj instanceof RelDataTypeImpl
-        && Objects.equals(this.digest, ((RelDataTypeImpl) obj).digest);
+    if (obj == this) {
+      return true;
+    }
+    if (obj instanceof RelDataTypeImpl) {
+      final RelDataTypeImpl that = (RelDataTypeImpl) obj;
+      return this.getDigest().equals(that.getDigest());
+    }
+    return false;
   }
 
   @Override public int hashCode() {
-    return Objects.hashCode(digest);
+    return getDigest().hashCode();
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || this.getClass() != obj.getClass()) {
+      return false;
+    }
+    return Objects.equals(this.getDigest().getDigestString(),
+        ((RelDataTypeImpl) obj).getDigest().getDigestString());
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hashCode(this.getDigest().getDigestString());
   }
 
   @Override public String getFullTypeString() {
-    return requireNonNull(digest, "digest");
+    return requireNonNull(this.getDigest().getDigestString(), "digest");
   }
 
   @Override public boolean isNullable() {
@@ -309,23 +349,85 @@ public abstract class RelDataTypeImpl
       boolean withDetail);
 
   /**
-   * Computes the digest field. This should be called in every non-abstract
-   * subclass constructor once the type is fully defined.
+   * Init the lazy digest computing field {@link #innerDigest}.
+   * This should be called in every non-abstract subclass
+   * constructor once the type is fully defined.
    */
   @SuppressWarnings("method.invocation.invalid")
   protected void computeDigest(@UnknownInitialization RelDataTypeImpl this) {
-    StringBuilder sb = new StringBuilder();
-    generateTypeString(sb, true);
-    if (!isNullable()) {
-      sb.append(NON_NULLABLE_SUFFIX);
+    digest = null;
+    innerDigest = new InnerRelDataTypeDigest();
+    if (!CalciteSystemProperty.DISABLE_GENERATE_REL_DATA_TYPE_DIGEST_STRING.value()) {
+      digest = this.getDigest().getDigestString();
     }
-    digest = sb.toString();
   }
 
   @Override public String toString() {
-    StringBuilder sb = new StringBuilder();
-    generateTypeString(sb, false);
-    return sb.toString();
+    return getDigest().toString();
+  }
+
+  /** Implementation of {@link RelDataTypeDigest}. */
+  private class InnerRelDataTypeDigest implements RelDataTypeDigest {
+    /** Cached hash code. */
+    private int hash = 0;
+    /** Cached type string. */
+    private @Nullable String digestWithDetail = null;  // NOTE: shorter detail will be better
+    private @Nullable String digestWithoutDetail = null;
+
+    @Override public RelDataType getType() {
+      return RelDataTypeImpl.this;
+    }
+
+    @Override public boolean equals(@Nullable Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final RelDataTypeImpl.InnerRelDataTypeDigest otherDigest =
+          (RelDataTypeImpl.InnerRelDataTypeDigest) o;
+      if (digest != null) {
+        return digest.equals(otherDigest.getDigestString());
+      }
+      return deepEquals(otherDigest.getType());
+    }
+
+    @Override public int hashCode() {
+      if (digest != null) {
+        return Objects.hashCode(digest);
+      }
+      if (hash == 0) {
+        hash = deepHashCode();
+      }
+      return hash;
+    }
+
+    @Override public String getDigestString() {
+      // return user defined digest by set legacy digest string field.
+      if (digest != null) {
+        return digest;
+      }
+
+      if (digestWithDetail == null) {
+        StringBuilder sb = new StringBuilder();
+        generateTypeString(sb, true);
+        if (!isNullable()) {
+          sb.append(NON_NULLABLE_SUFFIX);
+        }
+        digestWithDetail = sb.toString();
+      }
+      return digestWithDetail;
+    }
+
+    @Override public String toString() {
+      if (digestWithoutDetail == null || digest != null) {
+        StringBuilder sb = new StringBuilder();
+        RelDataTypeImpl.this.generateTypeString(sb, false);
+        digestWithoutDetail = sb.toString();
+      }
+      return digestWithoutDetail;
+    }
   }
 
   @Override public RelDataTypePrecedenceList getPrecedenceList() {

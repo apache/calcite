@@ -20,6 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Objects;
+
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
 import static java.util.Objects.requireNonNull;
@@ -54,6 +58,21 @@ public class ArraySqlType extends AbstractSqlType {
       sb.append(elementType.toString());
     }
     sb.append(" ARRAY");
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || this.getClass() != obj.getClass()) {
+      return false;
+    }
+    ArraySqlType that = (ArraySqlType) obj;
+    return this.isNullable() == that.isNullable() && elementType.equals(that.elementType);
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(SqlTypeName.ARRAY.ordinal(), isNullable, elementType.hashCode());
   }
 
   // implement RelDataType
