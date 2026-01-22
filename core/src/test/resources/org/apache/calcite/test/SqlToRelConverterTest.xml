@@ -2244,6 +2244,50 @@ LogicalSort(fetch=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExistsCorrelatedSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from emp e1 where exists (
+  select * from (
+    select e2.deptno from emp e2
+    where e2.comm = e1.comm) as table3
+  where table3.deptno <> e1.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{6, 7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[<>($0, $cor1.DEPTNO)])
+            LogicalProject(DEPTNO=[$7])
+              LogicalFilter(condition=[=($6, $cor1.COMM)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testExistsCorrelatedSubQuery2">
+    <Resource name="sql">
+      <![CDATA[SELECT *, EXISTS(select * from (
+  SELECT e2.deptno FROM emp e2 where e1.comm = e2.comm) as table3
+  where table3.deptno <> e1.deptno)
+from emp e1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[IS NOT NULL($9)])
+  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{6, 7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+      LogicalProject($f0=[true])
+        LogicalFilter(condition=[<>($0, $cor1.DEPTNO)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalFilter(condition=[=($cor1.COMM, $6)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExistsDecorrelateComplexCorrelationPredicate">
     <Resource name="sql">
       <![CDATA[select e1.empno from empnullables e1 where exists (

@@ -2048,6 +2048,29 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withDecorrelate(true).withExpand(false).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4765">[CALCITE-4765]
+   * Complex correlated EXISTS sub-queries used as scalar subqueries
+   * can return wrong results</a>. */
+  @Test void testExistsCorrelatedSubQuery() {
+    final String sql = "select * from emp e1 where exists (\n"
+        + "  select * from (\n"
+        + "    select e2.deptno from emp e2\n"
+        + "    where e2.comm = e1.comm) as table3\n"
+        + "  where table3.deptno <> e1.deptno)";
+    sql(sql).withDecorrelate(false).ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4765">[CALCITE-4765]
+   * Complex correlated EXISTS sub-queries used as scalar subqueries
+   * can return wrong results</a>. */
+  @Test void testExistsCorrelatedSubQuery2() {
+    final String sql = "SELECT *, EXISTS(select * from (\n"
+        + "  SELECT e2.deptno FROM emp e2 where e1.comm = e2.comm) as table3\n"
+        + "  where table3.deptno <> e1.deptno)\n"
+        + "from emp e1";
+    sql(sql).withDecorrelate(false).ok();
+  }
+
   @Test void testExistsCorrelatedLimit() {
     final String sql = "select*from emp where exists (\n"
         + "  select 1 from dept where emp.deptno=dept.deptno limit 1)";
