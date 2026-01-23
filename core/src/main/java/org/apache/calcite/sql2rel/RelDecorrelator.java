@@ -275,6 +275,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
         "Decorrelation produced a relation with a different type; before: "
             + rootRel.getRowType() + " after: " + newRootRel.getRowType());
 
+    if (SQL2REL_LOGGER.isDebugEnabled()) {
+      SQL2REL_LOGGER.debug(
+          RelOptUtil.dumpPlan("Plan after decorrelation", newRootRel,
+              SqlExplainFormat.TEXT, SqlExplainLevel.EXPPLAN_ATTRIBUTES));
+    }
+
     // Re-propagate the hints.
     newRootRel = RelOptUtil.propagateRelHints(newRootRel, true);
     return newRootRel;
