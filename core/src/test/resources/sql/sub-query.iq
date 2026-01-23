@@ -8468,4 +8468,26 @@ ON t2.a = foo.a
 (1 row)
 
 !ok
+
+# [CALCITE-7320] AggregateProjectMergeRule throws AssertionError when Project maps multiple grouping keys to the same field
+SELECT deptno,
+       (SELECT SUM(cnt)
+        FROM (
+          SELECT COUNT(*) AS cnt
+          FROM emp
+          WHERE emp.deptno = dept.deptno
+          GROUP BY GROUPING SETS ((deptno), ())
+        ))
+FROM dept;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      6 |
+|     20 |     10 |
+|     30 |     12 |
+|     40 |      0 |
++--------+--------+
+(4 rows)
+
+!ok
 # End sub-query.iq

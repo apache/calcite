@@ -1438,4 +1438,77 @@ public class RelDecorrelatorTest {
         + "                  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(after, hasTree(planAfter));
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7320">[CALCITE-7320]
+   * AggregateProjectMergeRule throws AssertionError when Project maps multiple grouping keys
+   * to the same field</a>. */
+  @Test void test7320() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT deptno,\n"
+        + "       (SELECT SUM(cnt)\n"
+        + "        FROM (\n"
+        + "          SELECT COUNT(*) AS cnt\n"
+        + "          FROM emp\n"
+        + "          WHERE emp.deptno = dept.deptno\n"
+        + "          GROUP BY GROUPING SETS ((deptno), ())\n"
+        + "))\n"
+        + "FROM dept";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DEPTNO=[$0], EXPR$1=[$3])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
+        + "      LogicalProject(CNT=[$1])\n"
+        + "        LogicalAggregate(group=[{0}], groups=[[{0}, {}]], CNT=[COUNT()])\n"
+        + "          LogicalProject(DEPTNO=[$7])\n"
+        + "            LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(DEPTNO=[$0], EXPR$1=[$4])\n"
+        + "  LogicalJoin(condition=[=($0, $3)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])\n"
+        + "      LogicalProject(DEPTNO1=[$0], CNT=[CASE(IS NOT NULL($3), $3, 0)])\n"
+        + "        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}]], CNT=[COUNT()])\n"
+        + "            LogicalProject(DEPTNO=[$7], DEPTNO1=[$7])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }
