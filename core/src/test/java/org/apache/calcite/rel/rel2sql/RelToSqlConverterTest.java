@@ -10984,6 +10984,46 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5578">[CALCITE-5578]
+   * RelOptRulesTest testAggregateCaseToFilter optimized plan not semantically
+   * equivalent to the original one after conversion</a>. */
+  @Test void testAggregateCaseToFilter() {
+    final String sql = "select\n"
+        + " sum(sal) as sum_sal,\n"
+        + " count(distinct case\n"
+        + "       when job = 'CLERK'\n"
+        + "       then deptno else null end) as count_distinct_clerk,\n"
+        + " sum(case when deptno = 10 then sal end) as sum_sal_d10,\n"
+        + " sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,\n"
+        + " sum(case when deptno = 30 then 1 else 0 end) as count_d30,\n"
+        + " count(case when deptno = 40 then 'x' end) as count_d40,\n"
+        + " sum(case when deptno = 45 then 1 end) as count_d45,\n"
+        + " sum(case when deptno = 50 then 1 else null end) as count_d50,\n"
+        + " sum(case when deptno = 60 then null end) as sum_null_d60,\n"
+        + " sum(case when deptno = 70 then null else 1 end) as sum_null_d70,\n"
+        + " count(case when deptno = 20 then 1 end) as count_d20\n"
+        + "from emp";
+    final String expected = "SELECT"
+        + " SUM(\"SAL\") AS \"SUM_SAL\","
+        + " COUNT(DISTINCT \"DEPTNO\") FILTER (WHERE \"JOB\" = 'CLERK' IS TRUE) AS \"COUNT_DISTINCT_CLERK\","
+        + " SUM(\"SAL\") FILTER (WHERE CAST(\"DEPTNO\" AS INTEGER) = 10 IS TRUE) AS \"SUM_SAL_D10\","
+        + " SUM(CASE WHEN CAST(\"DEPTNO\" AS INTEGER) = 20 THEN CAST(\"SAL\" AS DECIMAL(12, 2)) ELSE 0.00 END) AS \"SUM_SAL_D20\","
+        + " SUM(CASE WHEN CAST(\"DEPTNO\" AS INTEGER) = 30 THEN 1 ELSE 0 END) AS \"COUNT_D30\","
+        + " COUNT(*) FILTER (WHERE CAST(\"DEPTNO\" AS INTEGER) = 40 IS TRUE) AS \"COUNT_D40\","
+        + " SUM(1) FILTER (WHERE CAST(\"DEPTNO\" AS INTEGER) = 45 IS TRUE) AS \"COUNT_D45\","
+        + " SUM(1) FILTER (WHERE CAST(\"DEPTNO\" AS INTEGER) = 50 IS TRUE) AS \"COUNT_D50\","
+        + " SUM(CAST(NULL AS DECIMAL(19, 9))) AS \"SUM_NULL_D60\","
+        + " SUM(1) FILTER (WHERE CAST(\"DEPTNO\" AS INTEGER) = 70 IS NOT TRUE) AS \"SUM_NULL_D70\","
+        + " COUNT(*) FILTER (WHERE CAST(\"DEPTNO\" AS INTEGER) = 20 IS TRUE) AS \"COUNT_D20\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.SCOTT)
+        .optimize(RuleSets.ofList(CoreRules.AGGREGATE_CASE_TO_FILTER), null)
+        .ok(expected);
+  }
+
   @Test void testAggregateFilterToCase() {
     final String query = "select\n"
         + " sum(sal) filter(where deptno = 10) as sum_match,\n"
