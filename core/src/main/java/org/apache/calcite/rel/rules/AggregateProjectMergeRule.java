@@ -110,6 +110,14 @@ public class AggregateProjectMergeRule
       newGroupingSets =
           ImmutableBitSet.ORDERING.immutableSortedCopy(
               ImmutableBitSet.permute(aggregate.getGroupSets(), map));
+      for (int i = 0; i < newGroupingSets.size() - 1; i++) {
+        if (newGroupingSets.get(i).equals(newGroupingSets.get(i + 1))) {
+          // If the project merges two columns that are both in the grouping sets,
+          // we might get duplicate grouping sets. Aggregate does not allow
+          // duplicate grouping sets, so we abort the rule.
+          return null;
+        }
+      }
     }
 
     final ImmutableList.Builder<AggregateCall> aggCalls =

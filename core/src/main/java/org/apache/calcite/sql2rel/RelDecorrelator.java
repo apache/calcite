@@ -986,7 +986,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     for (int i1 = 0; i1 < oldRel.getAggCallList().size(); i1++) {
       AggregateCall aggCall = oldRel.getAggCallList().get(i1);
       if (aggCall.getAggregation() instanceof SqlCountAggFunction) {
-        int index = requireNonNull(outputMap.get(i1 + oldRel.getGroupSet().size()));
+        int index = requireNonNull(outputMap.get(i1 + oldRel.getGroupCount()));
         final RexInputRef ref = RexInputRef.of(index + valueGenFieldCount, joinRowType);
         ImmutableList<RexNode> exprs =
             ImmutableList.of(relBuilder.isNotNull(ref), ref, relBuilder.literal(0));
