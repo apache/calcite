@@ -233,4 +233,65 @@ from complex_t;
 
 !ok
 
+# Test case for [CALCITE-5578] RelOptRulesTest testAggregateCaseToFilter optimized plan not semantically equivalent to the original one after conversion
+
+CREATE TABLE EMP (
+        EMPNO INTEGER,
+        DEPTNO INTEGER,
+        ENAME VARCHAR(20),
+        JOB VARCHAR(20),
+        MGR INTEGER,
+        HIREDATE DATE,
+        SAL INTEGER,
+        COMM INTEGER,
+        SLACKER INTEGER
+);
+
+(0 rows modified)
+
+!update
+
+INSERT INTO EMP VALUES (0, 70, '-2147483649', '-6721455509335307966', 0, '1970-01-01', 0, 0, 1);
+
+(1 row modified)
+
+!update
+
+select
+ sum(sal) as sum_sal,
+ count(distinct case
+       when job = 'CLERK'
+       then deptno else null end) as count_distinct_clerk,
+ sum(case when deptno = 10 then sal end) as sum_sal_d10,
+ sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,
+ sum(case when deptno = 30 then 1 else 0 end) as count_d30,
+ count(case when deptno = 40 then 'x' end) as count_d40,
+ sum(case when deptno = 45 then 1 end) as count_d45,
+ sum(case when deptno = 50 then 1 else null end) as count_d50,
+ sum(case when deptno = 60 then null end) as sum_null_d60,
+ sum(case when deptno = 70 then null else 1 end) as sum_null_d70,
+ count(case when deptno = 20 then 1 end) as count_d20
+from emp;
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+|       0 |                    0 |             |           0 |         0 |         0 |           |           |              |              |         0 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
+
+# Test same sql after apply AGGREGATE_CASE_TO_FILTER
+
+SELECT SUM("SAL") AS "SUM_SAL", COUNT(DISTINCT "DEPTNO") FILTER (WHERE "JOB" = 'CLERK' IS TRUE) AS "COUNT_DISTINCT_CLERK", SUM("SAL") FILTER (WHERE CAST("DEPTNO" AS INTEGER) = 10 IS TRUE) AS "SUM_SAL_D10", SUM(CASE WHEN CAST("DEPTNO" AS INTEGER) = 20 THEN CAST("SAL" AS DECIMAL(12, 2)) ELSE 0.00 END) AS "SUM_SAL_D20", SUM(CASE WHEN CAST("DEPTNO" AS INTEGER) = 30 THEN 1 ELSE 0 END) AS "COUNT_D30", COUNT(*) FILTER (WHERE CAST("DEPTNO" AS INTEGER) = 40 IS TRUE) AS "COUNT_D40", SUM(1) FILTER (WHERE CAST("DEPTNO" AS INTEGER) = 45 IS TRUE) AS "COUNT_D45", SUM(1) FILTER (WHERE CAST("DEPTNO" AS INTEGER) = 50 IS TRUE) AS "COUNT_D50", SUM(CAST(NULL AS DECIMAL(19, 9))) AS "SUM_NULL_D60", SUM(1) FILTER (WHERE CAST("DEPTNO" AS INTEGER) = 70 IS NOT TRUE) AS "SUM_NULL_D70", COUNT(*) FILTER (WHERE CAST("DEPTNO" AS INTEGER) = 20 IS TRUE) AS "COUNT_D20"
+FROM "EMP";
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+|       0 |                    0 |             |        0.00 |         0 |         0 |           |           |              |              |         0 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
+
 # End blank.iq
