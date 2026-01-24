@@ -92,6 +92,13 @@ public class ProjectMergeRule
     final Project bottomProject = call.rel(1);
     final RelBuilder relBuilder = call.builder();
 
+    // Do not merge projects if any of them has correlation variables.
+    // Merging would lose the correlation context needed for proper query execution.
+    if (!topProject.getVariablesSet().isEmpty()
+        || !bottomProject.getVariablesSet().isEmpty()) {
+      return;
+    }
+
     // If one or both projects are permutations, short-circuit the complex logic
     // of building a RexProgram.
     final Permutation topPermutation = topProject.getPermutation();

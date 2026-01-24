@@ -11824,6 +11824,24 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectMergeRuleWithCorrelation">
+    <Resource name="sql">
+      <![CDATA[SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)
+FROM (SELECT ARRAY[1,2,3] as x) s]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
+LogicalProject(EXPR$0=[+($0, 1)])
+  Uncollect
+    LogicalProject(X=[$cor0.X])
+      LogicalValues(tuples=[[{ 0 }]])
+})])
+  LogicalProject(X=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectMergeShouldIgnoreOver">
     <Resource name="sql">
       <![CDATA[select row_number() over (order by deptno), col1
