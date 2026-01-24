@@ -46,7 +46,6 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
 
     // TODO: The following files involves UNNEST and LEFT_MARK JOIN
     paths.remove("sql/measure.iq");
-    paths.remove("sql/unnest.iq");
     paths.remove("sql/some.iq");
     paths.remove("sql/sub-query.iq");
     paths.remove("sql/measure-paper.iq");

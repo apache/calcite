@@ -12166,6 +12166,18 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7395">[CALCITE-7395]
+   * ProjectMergeRule incorrectly merges PROJECTs with correlation variables</a>. */
+  @Test void testProjectMergeRuleWithCorrelation() {
+    final String sql = "SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)\n"
+        + "FROM (SELECT ARRAY[1,2,3] as x) s";
+
+    sql(sql)
+        .withRule(CoreRules.PROJECT_MERGE)
+        .checkUnchanged();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7369">[CALCITE-7369]
    * ProjectToWindowRule loses column alias when optimizing OVER window queries</a>. */
   @Test void testProjectToWindowRuleForNestedOver() {
