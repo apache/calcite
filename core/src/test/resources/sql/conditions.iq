@@ -595,4 +595,21 @@ where 5 < cast(deptno as integer) OR 5 >= cast(deptno as integer) OR deptno IS N
 EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+!use scott
+
+# Test case for [CALCITE-7197] UnsupportedOperationException when using dynamic parameters inside ROW expression
+select *
+from "scott".emp
+where row(empno, ename) in ((7782, 'CLARK'), (7902, 'FORD'), (7839, 'KING'));
++-------+-------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING  | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7902 | FORD  | ANALYST   | 7566 | 1981-12-03 | 3000.00 |      |     20 |
++-------+-------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
+
 # End conditions.iq
