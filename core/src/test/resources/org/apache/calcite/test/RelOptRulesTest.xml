@@ -12090,6 +12090,30 @@ LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5)], COL2=[SUM(100
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPruneEmptyRuleForLeftMarkJoin">
+    <Resource name="sql">
+      <![CDATA[select * from dept where deptno not in (select deptno from emp where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalFilter(condition=[NOT($2)])
+      LogicalJoin(condition=[=($0, $2)], joinType=[left_mark])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalFilter(condition=[NOT($2)])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], markCol=[false])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPullAggregateThroughUnion">
     <Resource name="sql">
       <![CDATA[select deptno, job from (select deptno, job from emp as e1 group by deptno,job  union all select deptno, job from emp as e2 group by deptno,job) group by deptno,job]]>

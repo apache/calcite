@@ -42,12 +42,14 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -260,6 +262,7 @@ public abstract class PruneEmptyRules {
    * <li>Join(Scan(Emp), Empty, RIGHT) becomes Empty
    * <li>Join(Scan(Emp), Empty, SEMI) becomes Empty
    * <li>Join(Scan(Emp), Empty, ANTI) becomes Scan(Emp)
+   * <li>Join(Scan(Emp), Empty, LEFT_MARK) becomes Project(Scan(Emp), FALSE)
    * </ul>
    */
   public static final RelOptRule JOIN_RIGHT_INSTANCE =
@@ -564,6 +567,17 @@ public abstract class PruneEmptyRules {
           if (join.getJoinType() == JoinRelType.ANTI) {
             // In case of anti join: Join(X, Empty, ANTI) becomes X
             call.transformTo(join.getLeft());
+            return;
+          }
+          if (join.getJoinType() == JoinRelType.LEFT_MARK) {
+            // In case of left mark join with empty right: Join(X, Empty, LEFT_MARK)
+            // The mark column is always FALSE when right is empty
+            relBuilder.push(left);
+            List<RexNode> projects = new ArrayList<>(relBuilder.fields());
+            projects.add(relBuilder.literal(false));
+            relBuilder.project(projects)
+                .convert(join.getRowType(), true);
+            call.transformTo(relBuilder.build());
             return;
           }
           call.transformTo(relBuilder.push(join).empty().build());
