@@ -12166,6 +12166,22 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7396">[CALCITE-7396]
+   * PruneEmptyRules does not support LEFT_MARK JOIN</a>. */
+  @Test void testPruneEmptyRuleForLeftMarkJoin() {
+    final String sql = "select * from dept"
+        + " where deptno not in (select deptno from emp where false)";
+
+    sql(sql)
+        .withPreRule(
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.FILTER_REDUCE_EXPRESSIONS,
+            PruneEmptyRules.PROJECT_INSTANCE)
+        .withRule(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7395">[CALCITE-7395]
    * ProjectMergeRule incorrectly merges PROJECTs with correlation variables</a>. */
   @Test void testProjectMergeRuleWithCorrelation() {
