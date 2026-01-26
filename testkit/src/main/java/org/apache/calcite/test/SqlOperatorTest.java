@@ -1868,6 +1868,8 @@ public class SqlOperatorTest {
         "INTEGER ARRAY");
     f.checkScalar("cast(cast('abc' as VARIANT) AS VARCHAR)", "abc", "VARCHAR");
     f.checkScalar("cast(cast('abc' as VARIANT) AS CHAR(3))", "abc", "CHAR(3)");
+    // Test for [CALCITE-7398] Incorrect int cast in VariantNonNull#cast for BIGINT
+    f.checkScalar("cast(cast(2147483648 as VARIANT) as DECIMAL)", "2147483648", "DECIMAL(19, 0)");
 
     // Converting a variant to anything that does not match the runtime type returns null
     f.checkScalar("cast(cast(1 as VARIANT) as INTEGER)", "1", "INTEGER");
