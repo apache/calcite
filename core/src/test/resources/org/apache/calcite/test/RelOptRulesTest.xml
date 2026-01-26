@@ -9708,6 +9708,42 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMarkJoinMarkerColumnTypeNullableMismatch">
+    <Resource name="sql">
+      <![CDATA[select sal,
+  cast(null as int) IN (
+    select cast(null as int)
+    from dept)
+from emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[IN(null:INTEGER, {
+LogicalProject(EXPR$0=[null:INTEGER])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[$9])
+  LogicalJoin(condition=[null:BOOLEAN], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[null:INTEGER])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[$9])
+  LogicalJoin(condition=[null:BOOLEAN], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[null:INTEGER])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMaxReuseDistinctAttrWithMixedOptionality">
     <Resource name="sql">
       <![CDATA[select sum(distinct deptno), count(distinct deptno), max(deptno) from emp]]>
