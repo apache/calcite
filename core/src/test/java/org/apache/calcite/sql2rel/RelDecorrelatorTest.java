@@ -356,6 +356,138 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7394">[CALCITE-7394]
+   * Nested sub-query with multiple levels of correlation returns incorrect results</a>. */
+  @Test void testNestedSubQueryWithMultiLevelCorrelation() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "select d.dname,\n"
+        + "  (select count(*)\n"
+        + "   from emp e\n"
+        + "   where e.deptno = d.deptno\n"
+        + "   and exists (\n"
+        + "     select 1\n"
+        + "     from (values (1000), (2000), (3000)) as v(sal)\n"
+        + "     where e.sal > v.sal\n"
+        + "     and d.deptno * 100 < v.sal\n"
+        + "   )\n"
+        + "  ) as c\n"
+        + "from dept d\n"
+        + "order by d.dname";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+        + "  LogicalProject(DNAME=[$1], C=[$3])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])\n"
+        + "            LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{5}])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "              LogicalAggregate(group=[{0}])\n"
+        + "                LogicalProject(i=[true])\n"
+        + "                  LogicalFilter(condition=[AND(>(CAST($cor1.SAL):DECIMAL(12, 2), CAST($0):DECIMAL(12, 2) NOT NULL), <(*($cor0.DEPTNO, 100), $0))])\n"
+        + "                    LogicalValues(tuples=[[{ 1000 }, { 2000 }, { 3000 }]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    // before fix:
+    //
+    // LogicalSort(sort0=[$0], dir0=[ASC])
+    //  LogicalProject(DNAME=[$1], C=[$7])
+    //    LogicalJoin(condition=[AND(=($0, $5), =($4, $6))], joinType=[left])
+    //      LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO0=[$0], $f4=[*($0, 100)])
+    //        LogicalTableScan(table=[[scott, DEPT]])
+    //      LogicalProject(DEPTNO8=[$0], $f4=[$1], EXPR$0=[CASE(IS NOT NULL($5), $5, 0)])
+    //        LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $3),
+    //                                   IS NOT DISTINCT FROM($1, $4))], joinType=[left])
+    //          LogicalJoin(condition=[true], joinType=[inner])       // <---- error part
+    //            LogicalProject(DEPTNO=[$0], $f4=[*($0, 100)])
+    //              LogicalTableScan(table=[[scott, DEPT]])
+    //            LogicalAggregate(group=[{0}])                       // <---- error part
+    //              LogicalProject(SAL0=[CAST($5):DECIMAL(12, 2)])    // <---- error part
+    //                LogicalTableScan(table=[[scott, EMP]])          // <---- error part
+    //          LogicalAggregate(group=[{0, 1}], EXPR$0=[COUNT()])
+    //            LogicalProject(DEPTNO8=[$7], $f4=[$9])
+    //              LogicalFilter(condition=[IS NOT NULL($7)])
+    //                LogicalProject(..., DEPTNO=[$7], i=[$11], $f4=[$9])
+    //                  LogicalJoin(condition=[=($8, $10)], joinType=[inner])
+    //                    LogicalProject(..., SAL0=[CAST($5):DECIMAL(12, 2)])
+    //                      LogicalTableScan(table=[[scott, EMP]])
+    //                    LogicalProject($f4=[$0], SAL0=[$1], $f2=[true])
+    //                      LogicalAggregate(group=[{0, 1}])
+    //                        LogicalProject($f4=[$1], SAL0=[$2])
+    //                          LogicalJoin(condition=[AND(>($2, CAST($0):DECIMAL(12, 2) NOT NULL),
+    //                                                    <($1, $0))], joinType=[inner])
+    //                            LogicalValues(tuples=[[{ 1000 }, { 2000 }, { 3000 }]])
+    //                            LogicalJoin(condition=[true], joinType=[inner])
+    //                              LogicalAggregate(group=[{0}])
+    //                                LogicalProject($f4=[*($0, 100)])
+    //                                  LogicalTableScan(table=[[scott, DEPT]])
+    //                              LogicalAggregate(group=[{0}])
+    //                                LogicalProject(SAL0=[CAST($5):DECIMAL(12, 2)])
+    //                                  LogicalTableScan(table=[[scott, EMP]])
+    final String planAfter = ""
+        + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+        + "  LogicalProject(DNAME=[$1], C=[$7])\n"
+        + "    LogicalJoin(condition=[AND(=($0, $5), =($4, $6))], joinType=[left])\n"
+        + "      LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], DEPTNO0=[$0], $f4=[*($0, 100)])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalProject(DEPTNO8=[$0], $f4=[$1], EXPR$0=[CASE(IS NOT NULL($4), $4, 0)])\n"
+        + "        LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[left])\n"
+        + "          LogicalProject(DEPTNO=[$0], $f4=[*($0, 100)])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "          LogicalAggregate(group=[{0, 1}], EXPR$0=[COUNT()])\n"
+        + "            LogicalProject(DEPTNO8=[$7], $f4=[$9])\n"
+        + "              LogicalFilter(condition=[IS NOT NULL($7)])\n"
+        + "                LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], i=[$11], $f4=[$9])\n"
+        + "                  LogicalJoin(condition=[=($8, $10)], joinType=[inner])\n"
+        + "                    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SAL0=[CAST($5):DECIMAL(12, 2)])\n"
+        + "                      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "                    LogicalProject($f4=[$0], SAL0=[$1], $f2=[true])\n"
+        + "                      LogicalAggregate(group=[{0, 1}])\n"
+        + "                        LogicalProject($f4=[$1], SAL0=[$2])\n"
+        + "                          LogicalJoin(condition=[AND(>($2, CAST($0):DECIMAL(12, 2) NOT NULL), <($1, $0))], joinType=[inner])\n"
+        + "                            LogicalValues(tuples=[[{ 1000 }, { 2000 }, { 3000 }]])\n"
+        + "                            LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "                              LogicalAggregate(group=[{0}])\n"
+        + "                                LogicalProject($f4=[*($0, 100)])\n"
+        + "                                  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "                              LogicalAggregate(group=[{0}])\n"
+        + "                                LogicalProject(SAL0=[CAST($5):DECIMAL(12, 2)])\n"
+        + "                                  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7297">[CALCITE-7297]
    * The result is incorrect when the GROUP BY key in a subquery is a RexFieldAccess</a>. */
   @Test void testSkipsRedundantValueGenerator() {

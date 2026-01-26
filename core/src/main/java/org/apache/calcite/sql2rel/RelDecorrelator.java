@@ -954,16 +954,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
       RelNode newRel,
       Map<Integer, Integer> outputMap,
       NavigableMap<CorDef, Integer> corDefOutputs) {
-    final CorelMap localCorelMap = new CorelMapBuilder().build(oldRel);
-    final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
-    Collections.sort(corVarList);
-
+    final List<CorRef> corVarList = collectExternalCorVars(oldRel);
     final NavigableMap<CorDef, Integer> valueGenCorDefOutputs = new TreeMap<>();
     final RelNode valueGen =
         requireNonNull(createValueGenerator(corVarList, 0, valueGenCorDefOutputs));
     final int valueGenFieldCount = valueGen.getRowType().getFieldCount();
 
-    // Build join conditions
     final Map<Integer, RexNode> newProjectMap = new HashMap<>();
     for (Map.Entry<CorDef, Integer> corDefOutput : corDefOutputs.entrySet()) {
       final CorDef corDef = corDefOutput.getKey();
@@ -974,6 +970,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newProjectMap.put(valueGenFieldCount + rightPos, leftRef);
     }
 
+    // Build join conditions
     final List<RexNode> conditions =
         buildCorDefJoinConditions(valueGenCorDefOutputs, corDefOutputs,
             valueGen, newRel, relBuilder);
@@ -1260,10 +1257,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return decorrelateRel((RelNode) rel, false, parentPropagatesNullValues);
     }
 
-    final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
-    final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
-    Collections.sort(corVarList);
-
+    final List<CorRef> corVarList = collectExternalCorVars(rel);
     final NavigableMap<CorDef, Integer> valueGenCorDefOutputs = new TreeMap<>();
     final RelNode valueGen =
         requireNonNull(createValueGenerator(corVarList, 0, valueGenCorDefOutputs));
@@ -1958,9 +1952,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     // 1. Collect all CorRefs involved
-    final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
-    final List<CorRef> corVarList = new ArrayList<>(localCorelMap.mapRefRelToCorRef.values());
-    Collections.sort(corVarList);
+    final List<CorRef> corVarList = collectExternalCorVars(rel);
 
     // 2. Ensure CorVars are present in inputs (adding ValueGenerators if needed)
     Frame newLeftFrame = leftFrame;
@@ -3847,6 +3839,25 @@ public class RelDecorrelator implements ReflectiveVisitor {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Collects all correlated variables used in the given relational expression
+   * that are not defined within the expression itself.
+   *
+   * @param rel The relational expression to inspect
+   * @return A sorted list of external correlated variables
+   */
+  private static List<CorRef> collectExternalCorVars(RelNode rel) {
+    final CorelMap localCorelMap = new CorelMapBuilder().build(rel);
+    final List<CorRef> corVarList = new ArrayList<>();
+    for (CorRef corVar : localCorelMap.mapRefRelToCorRef.values()) {
+      if (!localCorelMap.mapCorToCorRel.containsKey(corVar.corr)) {
+        corVarList.add(corVar);
+      }
+    }
+    Collections.sort(corVarList);
+    return corVarList;
   }
 
   /**
