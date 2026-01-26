@@ -5617,6 +5617,181 @@ ORDER BY deptno;
 
 !ok
 
+# [CALCITE-7394] Nested sub-query with multiple levels of correlation returns incorrect results
+select d.dname,
+  (select count(*)
+   from emp e
+   where e.deptno = d.deptno
+   and e.sal > (
+     select min(s.losal)
+     from (VALUES (1, 700, 1200), (2, 1201, 1400), (3, 1401, 2000), (4, 2001, 3000), (5, 3001, 9999)) AS s(grade, losal, hisal)
+     where e.sal BETWEEN s.losal AND s.hisal
+     and s.hisal > d.deptno * 10
+   )
+  ) as high_paid_count
+from dept d
+order by d.dname;
++------------+-----------------+
+| DNAME      | HIGH_PAID_COUNT |
++------------+-----------------+
+| ACCOUNTING |               3 |
+| OPERATIONS |               0 |
+| RESEARCH   |               5 |
+| SALES      |               6 |
++------------+-----------------+
+(4 rows)
+
+!ok
+
+# [CALCITE-7394] Nested sub-query with multiple levels of correlation returns incorrect results
+select e.ename
+from emp e
+where e.sal > (
+  select avg(e2.sal)
+  from emp e2
+  where e2.deptno = e.deptno
+  and exists (
+     select 1
+     from (values (7369, 20)) as b(empno, deptno)
+     where b.empno = e2.empno
+     and b.deptno = e.deptno
+  )
+)
+and e.sal < 2000
+order by e.ename;
++-------+
+| ENAME |
++-------+
+| ADAMS |
++-------+
+(1 row)
+
+!ok
+
+# [CALCITE-7394] Nested sub-query with multiple levels of correlation returns incorrect results
+select d.deptno
+from dept d
+where exists (
+  select 1
+  from emp e
+  where e.deptno = d.deptno
+  and exists (
+    select 1
+    from (VALUES (1, 700, 1200), (2, 1201, 1400), (3, 1401, 2000), (4, 2001, 3000), (5, 3001, 9999)) AS s(grade, losal, hisal)
+    where s.grade = 1
+    and s.hisal >= e.sal
+    and s.losal <= d.deptno * 20
+  )
+)
+order by d.deptno;
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+# [CALCITE-7394] Nested sub-query with multiple levels of correlation returns incorrect results
+select e.ename
+from emp e
+where e.deptno in (
+  select d.deptno
+  from dept d
+  where d.deptno = e.deptno and d.deptno = 10
+  union
+  select d.deptno
+  from dept d
+  where d.deptno = e.deptno
+  and exists (
+    select 1
+    from emp e2
+    where e2.deptno = d.deptno
+    and e2.empno = e.empno
+    and e2.sal > 2000
+  )
+)
+order by e.ename;
++--------+
+| ENAME  |
++--------+
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JONES  |
+| KING   |
+| MILLER |
+| SCOTT  |
++--------+
+(7 rows)
+
+!ok
+
+# [CALCITE-7394] Nested sub-query with multiple levels of correlation returns incorrect results
+select e.ename
+from emp e
+where exists (
+  select 1
+  from dept d
+  join emp e2 on d.deptno = e2.deptno
+  where d.deptno = e.deptno
+  and exists (
+    select 1
+    from (values (10), (20), (30)) as v(deptno)
+    where v.deptno = e2.deptno
+    and v.deptno = e.deptno
+  )
+  and e2.empno = e.empno
+)
+order by e.ename;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-7394] Nested sub-query with multiple levels of correlation returns incorrect results
+select d.dname,
+  (select count(*)
+   from emp e
+   where e.deptno = d.deptno
+   and exists (
+     select 1
+     from (values (1000), (2000), (3000)) as v(sal)
+     where e.sal > v.sal
+     and d.deptno * 100 < v.sal
+   )
+  ) as c
+from dept d
+order by d.dname;
++------------+---+
+| DNAME      | C |
++------------+---+
+| ACCOUNTING | 2 |
+| OPERATIONS | 0 |
+| RESEARCH   | 0 |
+| SALES      | 0 |
++------------+---+
+(4 rows)
+
+!ok
+
 # [CALCITE-7303] Subqueries cannot be decorrelated if filter condition have multi CorrelationId
 SELECT deptno
 FROM emp e
