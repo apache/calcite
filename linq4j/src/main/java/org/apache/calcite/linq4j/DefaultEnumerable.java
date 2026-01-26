@@ -448,6 +448,13 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         nonEquiPredicate, equiPredicate);
   }
 
+  @Override public <TInner, TResult> Enumerable<TResult> leftMarkNestedLoopJoin(
+      Enumerable<TInner> inner,
+      NullablePredicate2<T, TInner> predicate,
+      Function2<T, @Nullable Boolean, TResult> resultSelector) {
+    return EnumerableDefaults.leftMarkNestedLoopJoin(getThis(), inner, predicate, resultSelector);
+  }
+
   @Override public <TInner, TResult> Enumerable<TResult> correlateJoin(
       JoinType joinType, Function1<T, Enumerable<TInner>> inner,
       Function2<T, TInner, TResult> resultSelector) {

@@ -259,6 +259,10 @@ public enum BuiltInMethod {
       EqualityComparer.class, Predicate2.class),
   NESTED_LOOP_JOIN(EnumerableDefaults.class, "nestedLoopJoin", Enumerable.class,
       Enumerable.class, Predicate2.class, Function2.class, JoinType.class),
+  LEFT_MARK_NESTED_LOOP_JOIN(ExtendedEnumerable.class, "leftMarkNestedLoopJoin",
+      Enumerable.class,         // inner enumerable
+      NullablePredicate2.class, // non-equi predicate that can return NULL
+      Function2.class),         // result selector
   CORRELATE_JOIN(ExtendedEnumerable.class, "correlateJoin",
       JoinType.class, Function1.class, Function2.class),
   CORRELATE_BATCH_JOIN(EnumerableDefaults.class, "correlateBatchJoin",

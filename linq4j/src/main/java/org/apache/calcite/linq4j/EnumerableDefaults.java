@@ -1966,6 +1966,61 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * The implementation of left mark join based on nested loop.
+   *
+   * @param outer           Left input
+   * @param inner           Right input
+   * @param predicate       Non-equi predicate that can return NULL
+   * @param resultSelector  Function that concats the row of left input and marker
+   */
+  public static <TSource, TInner, TResult> Enumerable<TResult> leftMarkNestedLoopJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final NullablePredicate2<TSource, TInner> predicate,
+      final Function2<TSource, @Nullable Boolean, TResult> resultSelector) {
+    return new AbstractEnumerable<TResult>() {
+      @Override public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          Enumerator<TSource> outers = outer.enumerator();
+          @Nullable Boolean marker = false;
+
+          @Override public TResult current() {
+            return resultSelector.apply(outers.current(), marker);
+          }
+
+          @Override public boolean moveNext() {
+            if (!outers.moveNext()) {
+              return false;
+            }
+            marker = false;
+            final TSource outerRow = outers.current();
+            try (Enumerator<TInner> inners = inner.enumerator()) {
+              while (inners.moveNext()) {
+                final TInner innerRow = inners.current();
+                Boolean predicateMatched = predicate.apply(outerRow, innerRow);
+                if (predicateMatched == null) {
+                  marker = null;
+                } else if (predicateMatched) {
+                  marker = true;
+                  break;
+                }
+              }
+            }
+            return true;
+          }
+
+          @Override public void reset() {
+            outers.reset();
+          }
+
+          @Override public void close() {
+            outers.close();
+          }
+        };
+      }
+    };
+  }
+
+  /**
    * For each row of the {@code outer} enumerable returns the correlated rows
    * from the {@code inner} enumerable.
    */
