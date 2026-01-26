@@ -286,7 +286,7 @@ public class VariantNonNull extends VariantSqlValue {
           break;
         }
         case BIGINT: {
-          long l = (int) value;
+          long l = (long) value;
           switch (type.getTypeName()) {
           case TINYINT:
           case SMALLINT:
