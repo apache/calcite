@@ -687,6 +687,19 @@ public interface ExtendedEnumerable<TSource> {
       NullablePredicate2<TSource, TInner> equiPredicate);
 
   /**
+   * The implementation of left mark join based on nested loop.
+   *
+   * @param inner                       Inner enumerable
+   * @param predicate                   Non-equi predicate that can return NULL
+   * @param resultSelector              Function that concat the row of the current enumerable and
+   *                                    marker
+   * @see #leftMarkHashJoin
+   */
+  <TInner, TResult> Enumerable<TResult> leftMarkNestedLoopJoin(Enumerable<TInner> inner,
+      NullablePredicate2<TSource, TInner> predicate,
+      Function2<TSource, @Nullable Boolean, TResult> resultSelector);
+
+  /**
    * For each row of the current enumerable returns the correlated rows
    * from the {@code inner} enumerable (nested loops join).
    *

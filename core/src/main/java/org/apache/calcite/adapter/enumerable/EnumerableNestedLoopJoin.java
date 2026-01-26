@@ -150,6 +150,45 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    switch (joinType) {
+    case LEFT_MARK:
+      return implementNLMarkJoin(implementor, pref);
+    default:
+      return implementNLJoin(implementor, pref);
+    }
+  }
+
+  private Result implementNLMarkJoin(EnumerableRelImplementor implementor, Prefer pref) {
+    final BlockBuilder builder = new BlockBuilder();
+    final Result leftResult =
+        implementor.visitChild(this, 0, (EnumerableRel) left, pref);
+    Expression leftExpression =
+        builder.append("left", leftResult.block);
+    final Result rightResult =
+        implementor.visitChild(this, 1, (EnumerableRel) right, pref);
+    Expression rightExpression =
+        builder.append("right", rightResult.block);
+    final PhysType physType =
+        PhysTypeImpl.of(implementor.getTypeFactory(),
+            getRowType(),
+            pref.preferArray());
+    final Expression predicate =
+        EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(), left, right,
+            leftResult.physType, rightResult.physType, condition, true);
+    return implementor.result(
+        physType,
+        builder.append(
+            Expressions.call(
+                leftExpression,
+                BuiltInMethod.LEFT_MARK_NESTED_LOOP_JOIN.method,
+                Expressions.list(
+                  rightExpression,
+                  predicate,
+                  EnumUtils.markJoinSelector(physType, leftResult.physType))))
+            .toBlock());
+  }
+
+  private Result implementNLJoin(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final Result leftResult =
         implementor.visitChild(this, 0, (EnumerableRel) left, pref);

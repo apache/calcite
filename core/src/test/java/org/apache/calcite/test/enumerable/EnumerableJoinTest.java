@@ -24,12 +24,19 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.schemata.hr.HierarchySchema;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.hr.HrSchemaBig;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.Holder;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
@@ -438,6 +445,145 @@ class EnumerableJoinTest {
         .returnsUnordered("empid=2; name=Emp2",
             "empid=3; name=Emp3",
             "empid=5; name=Emp5");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7385">[CALCITE-7385]
+   * Support LEFT_MARK type for nested loop join in enumerable convention</a>. */
+  @Test void testLeftMarkJoinBasedNestedLoop() {
+    Program subQuery =
+        Programs.hep(
+            ImmutableList.of(CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+    Program subQueryWithoutMarkJoin =
+        Programs.hep(
+            ImmutableList.of(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+    Program toCalc =
+        Programs.hep(
+            ImmutableList.of(CoreRules.PROJECT_TO_CALC, CoreRules.FILTER_TO_CALC,
+                CoreRules.CALC_MERGE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+    Program enumerableImpl = Programs.ofRules(EnumerableRules.ENUMERABLE_RULES);
+
+    // case1: left mark join from uncorrelated SOME subquery
+    CalciteAssert.AssertQuery test1 =
+        tester(false, new HrSchema()).query(
+            "WITH t1(id) as (VALUES (1), (2), (NULL)), t2(id) as (VALUES (2), (3)) "
+                + "select id, id >= SOME(select id from t2) as marker from t1");
+    // result of new subquery removal and decorrelation algorithms
+    test1
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableNestedLoopJoin(condition=[>=($0, $1)], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1 }, { 2 }, { null }]])\n"
+                + "  EnumerableCalc(expr#0=[{inputs}], id=[$t0])\n"
+                + "    EnumerableValues(tuples=[[{ 2 }, { 3 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=true",
+            "id=null; marker=null");
+    // result of the old
+    test1
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQueryWithoutMarkJoin, toCalc, enumerableImpl));
+        })
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=true",
+            "id=null; marker=null");
+
+    // case2: left mark join whose condition is simplified to a NULL constant
+    CalciteAssert.AssertQuery test2 =
+        tester(false, new HrSchema()).query(
+            "WITH t1(id) as (VALUES (1), (2), (NULL)), t2(id) as (VALUES (2), (3), (null)) "
+                + "select id, cast(null as int) = SOME(select cast(id as int) as id from t2) "
+                + "as marker from t1");
+    // result of new subquery removal and decorrelation algorithms
+    test2
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableNestedLoopJoin(condition=[null:BOOLEAN], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1 }, { 2 }, { null }]])\n"
+                + "  EnumerableCalc(expr#0=[{inputs}], id=[$t0])\n"
+                + "    EnumerableValues(tuples=[[{ 2 }, { 3 }, { null }]])\n")
+        .returnsUnordered(
+            "id=1; marker=null",
+            "id=2; marker=null",
+            "id=null; marker=null");
+    // result of the old
+    test2
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQueryWithoutMarkJoin, toCalc, enumerableImpl));
+        })
+        .returnsUnordered(
+            "id=1; marker=null",
+            "id=2; marker=null",
+            "id=null; marker=null");
+
+    // case3: left mark join from uncorrelated EXISTS subquery
+    CalciteAssert.AssertQuery test3 =
+        tester(false, new HrSchema()).query(
+            "WITH t1(id) as (VALUES (1), (2), (NULL)), t2(id) as (VALUES (2), (3), (NULL)) "
+                + "select id, EXISTS(select id from t2) as marker from t1");
+    // result of new subquery removal and decorrelation algorithms
+    test3
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableNestedLoopJoin(condition=[true], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1 }, { 2 }, { null }]])\n"
+                + "  EnumerableValues(tuples=[[{ 2 }, { 3 }, { null }]])\n")
+        .returnsUnordered(
+            "id=1; marker=true",
+            "id=2; marker=true",
+            "id=null; marker=true");
+    // result of the old
+    test3
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQueryWithoutMarkJoin, toCalc, enumerableImpl));
+        })
+        .returnsUnordered(
+            "id=1; marker=true",
+            "id=2; marker=true",
+            "id=null; marker=true");
+
+    // case4: left mark join from uncorrelated EXISTS subquery that is empty
+    CalciteAssert.AssertQuery test4 =
+        tester(false, new HrSchema()).query(
+            "WITH t1(id) as (VALUES (1), (2), (NULL)), t2(id) as (VALUES (2), (3), (NULL)) "
+                + "select id, EXISTS(select id from t2 where false) as marker from t1");
+    // result of new subquery removal and decorrelation algorithms
+    test4
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQuery, toCalc, enumerableImpl));
+        })
+        .explainHookMatches(
+            "EnumerableNestedLoopJoin(condition=[true], joinType=[left_mark])\n"
+                + "  EnumerableValues(tuples=[[{ 1 }, { 2 }, { null }]])\n"
+                + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[false], EXPR$0=[$t0], $condition=[$t1])\n"
+                + "    EnumerableValues(tuples=[[{ 2 }, { 3 }, { null }]])\n")
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=false",
+            "id=null; marker=false");
+    // result of the old
+    test4
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(Programs.sequence(subQueryWithoutMarkJoin, toCalc, enumerableImpl));
+        })
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=false",
+            "id=null; marker=false");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
