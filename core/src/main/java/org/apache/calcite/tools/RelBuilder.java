@@ -84,6 +84,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -3315,7 +3316,12 @@ public class RelBuilder {
             RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) condition,
                 getRexBuilder());
       }
-      condition = simplifier.simplifyUnknownAsFalse(condition);
+
+      condition =
+          simplifier.simplifyUnknownAs(condition,
+              joinType == JoinRelType.LEFT_MARK
+                  ? RexUnknownAs.UNKNOWN
+                  : RexUnknownAs.FALSE);
     }
     if (correlate) {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);

@@ -12178,6 +12178,23 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7397">[CALCITE-7397]
+   * Error in simplifying join condition when creating LEFT MARK JOIN</a>. */
+  @Test void testMarkJoinMarkerColumnTypeNullableMismatch() {
+    final String sql = "select sal,\n"
+        + "  cast(null as int) IN (\n"
+        + "    select cast(null as int)\n"
+        + "    from dept)\n"
+        + "from emp";
+
+    sql(sql)
+        .withRule(CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
+
+  /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7369">[CALCITE-7369]
    * ProjectToWindowRule loses column alias when optimizing OVER window queries</a>. */
   @Test void testProjectToWindowRuleForNestedOver() {
