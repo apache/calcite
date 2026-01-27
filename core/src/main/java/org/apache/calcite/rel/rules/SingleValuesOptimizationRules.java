@@ -284,9 +284,11 @@ public abstract class SingleValuesOptimizationRules {
           || jn.getJoinType() == JoinRelType.FULL;
 
       if (isLeft) {
-        return jn -> !(jn.getJoinType() == JoinRelType.LEFT || isFullOrAntiJoin.test(jn));
+        return jn -> !(jn.getJoinType() == JoinRelType.LEFT
+            || jn.getJoinType() == JoinRelType.LEFT_MARK
+            || isFullOrAntiJoin.test(jn));
       } else {
-        return jn -> !(jn.getJoinType() == JoinRelType.RIGHT  || isFullOrAntiJoin.test(jn));
+        return jn -> !(jn.getJoinType() == JoinRelType.RIGHT || isFullOrAntiJoin.test(jn));
       }
     }
 
