@@ -223,4 +223,16 @@ select * from dept where deptno not in (select deptno from emp where false);
 EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 
+# [CALCITE-7400] PruneJoinSingleValue rule causes type mismatch in IN
+# This case comes from sub-query.iq [CALCITE-4756]
+select 1 in (values(null), (null));
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
 # End new-decorr.iq
