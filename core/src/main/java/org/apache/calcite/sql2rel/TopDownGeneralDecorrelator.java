@@ -17,6 +17,7 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -66,6 +67,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -122,10 +124,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
   private final NavigableSet<CorDef> corDefs;
 
   // a map from RelNode to whether existing correlated expressions (according to corDefs).
-  private final Map<RelNode, Boolean> hasCorrelatedExpressions;
+  private final IdentityHashMap<RelNode, Boolean> hasCorrelatedExpressions;
 
   // a map from RelNode to its UnnestedQuery.
-  private final Map<RelNode, UnnestedQuery> mapRelToUnnestedQuery;
+  private final IdentityHashMap<RelNode, UnnestedQuery> mapRelToUnnestedQuery;
 
   private final boolean hasParent;
 
@@ -155,8 +157,8 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       RelBuilder builder,
       boolean hasParent,
       @Nullable Set<CorDef> parentCorDefs,
-      @Nullable Map<RelNode, Boolean> parentHasCorrelatedExpressions,
-      @Nullable Map<RelNode, UnnestedQuery> parentMapRelToUnnestedQuery) {
+      @Nullable IdentityHashMap<RelNode, Boolean> parentHasCorrelatedExpressions,
+      @Nullable IdentityHashMap<RelNode, UnnestedQuery> parentMapRelToUnnestedQuery) {
     this.builder = builder;
     this.hasParent = hasParent;
     this.corDefs = new TreeSet<>();
@@ -164,10 +166,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
       this.corDefs.addAll(parentCorDefs);
     }
     this.hasCorrelatedExpressions = parentHasCorrelatedExpressions == null
-        ? new HashMap<>()
+        ? new IdentityHashMap<>()
         : parentHasCorrelatedExpressions;
     this.mapRelToUnnestedQuery = parentMapRelToUnnestedQuery == null
-        ? new HashMap<>()
+        ? new IdentityHashMap<>()
         : parentMapRelToUnnestedQuery;
   }
 
@@ -202,7 +204,14 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
                 CoreRules.FILTER_INTO_JOIN,
                 CoreRules.FILTER_CORRELATE))
         .build();
-    HepPlanner prePlanner = new HepPlanner(preProgram);
+    // In scenarios with nested correlations, equivalent nodes at different nesting levels bind
+    // to different outer variables and therefore have different decorrelation information. We
+    // need to avoid equivalent nodes in the plan sharing the same object (in the form of a DAG)
+    // to prevent corruption of entries in mapRelToUnnestedQuery and hasCorrelatedExpressions.
+    // So we set noDag config of HepPlanner to TRUE.
+    HepPlanner prePlanner =
+        new HepPlanner(preProgram, null, true,
+            null, RelOptCostImpl.FACTORY);
     prePlanner.setRoot(rel);
     RelNode preparedRel = prePlanner.findBestExp();
 

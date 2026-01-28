@@ -235,4 +235,21 @@ select 1 in (values(null), (null));
 
 !ok
 
+# [CALCITE-7401] Multi-level correlated subqueries cause an out-of-range error in the TopDownGeneralDecorrelator
+# This case comes from sub-query.iq [CALCITE-5789]
+select deptno from dept d1 where exists (
+ select 1 from dept d2 where d2.deptno = d1.deptno and exists (
+  select 1 from dept d3 where d3.deptno = d2.deptno and d3.dname = d1.dname));
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
+
 # End new-decorr.iq
