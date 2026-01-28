@@ -1011,7 +1011,8 @@ public class MongoAdapterTest implements SchemaFactory {
         .queryContains(
             mongoChecker(
                 "{$project:{_0:{$gt:['$pop',{$literal:5000}]}}}",
-                "{$group:{_id: {},POP_RESULT:{$min:'$_0'}}}"));
+                "{$group:{_id: {},POP_RESULT:{$min:'$_0'}}}"))
+        .returns("POP_RESULT=false\n");;
   }
 
 }
