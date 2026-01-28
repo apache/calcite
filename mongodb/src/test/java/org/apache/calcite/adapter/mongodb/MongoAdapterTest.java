@@ -1001,4 +1001,15 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {CITY: 1}}"))
         .returnsOrdered("");
   }
+
+
+  @Test void testSortLimit1() {
+    assertModel(MODEL)
+        .query("select min(pop>5000) as pop_result from zips")
+        .queryContains(
+            mongoChecker(
+                "{$project:{_0:{$gt:['$pop',{$literal:5000}]}}}",
+                "{$group:{_id: {},POP_RESULT:{$min:'$_0'}}}"));
+  }
+
 }
