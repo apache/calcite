@@ -10427,7 +10427,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept)";
     sql(sql)
         .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .checkUnchanged();
+        .check();
   }
 
   /** Test case for
