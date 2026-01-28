@@ -1012,7 +1012,7 @@ public class MongoAdapterTest implements SchemaFactory {
             mongoChecker(
                 "{$project:{_0:{$gt:['$pop',{$literal:5000}]}}}",
                 "{$group:{_id: {},POP_RESULT:{$min:'$_0'}}}"))
-        .returns("POP_RESULT=false\n");;
+        .returns("POP_RESULT=false\n");
   }
 
 }
