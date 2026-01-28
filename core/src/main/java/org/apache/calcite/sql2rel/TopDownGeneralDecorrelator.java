@@ -931,7 +931,8 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
             (RexCorrelVariable) fieldAccess.getReferenceExpr();
         CorDef corDef = new CorDef(v.id, fieldAccess.getField().getIndex());
         int newIndex = requireNonNull(unnestedQuery.corDefOutputs.get(corDef));
-        return new RexInputRef(newIndex, fieldAccess.getType());
+        return new RexInputRef(
+            newIndex, unnestedQuery.r.getRowType().getFieldList().get(newIndex).getType());
       }
       return super.visitFieldAccess(fieldAccess);
     }

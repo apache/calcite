@@ -276,4 +276,28 @@ select deptno from dept d1 where exists (
 
 !ok
 
+# [CALCITE-7402] Two-level nested correlated subquery causes TopDownGeneralDecorrelator type mismatch during translation
+# This case comes from sub-query.iq [CALCITE-5716]
+!use scott
+SELECT dept.deptno, (
+  SELECT max(emp.empno)
+  FROM emp
+  WHERE empno = (SELECT max(empno) AS maxDept
+                 FROM emp e2
+                 WHERE e2.deptno = dept.deptno)
+        AND emp.deptno = dept.deptno),
+  dept.dname
+FROM dept;
++--------+--------+------------+
+| DEPTNO | EXPR$1 | DNAME      |
++--------+--------+------------+
+|     10 |   7934 | ACCOUNTING |
+|     20 |   7902 | RESEARCH   |
+|     30 |   7900 | SALES      |
+|     40 |        | OPERATIONS |
++--------+--------+------------+
+(4 rows)
+
+!ok
+
 # End new-decorr.iq
