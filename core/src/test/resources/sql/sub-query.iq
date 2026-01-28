@@ -8665,4 +8665,283 @@ FROM dept;
 (4 rows)
 
 !ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 1: Correlated scalar subquery in ON clause of INNER JOIN
+#
+# before fix return wrong result 0 rows and the wrong plan after SubQueryRemoveRule is:
+# LogicalProject(ID=[$0], ID0=[$1])
+#   LogicalProject(id=[$0], id0=[$1])
+#     LogicalJoin(condition=[=($2, $1)], joinType=[inner])
+#       LogicalTableScan(table=[[a]])
+#       LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+#         LogicalTableScan(table=[[c]])
+#         LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+#           LogicalProject(fk_c=[$2])
+#             LogicalFilter(condition=[=($cor0.id, $1)])
+#               LogicalTableScan(table=[[b]])
+#
+# after fix the plan after SubQueryRemoveRule is:
+# LogicalProject(ID=[$0], ID0=[$1])
+#   LogicalProject(id=[$0], id0=[$2])
+#     LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+#       LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+#         LogicalTableScan(table=[[a]])
+#         LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+#           LogicalProject(fk_c=[$2])
+#            LogicalFilter(condition=[=($cor0.id, $1)])
+#               LogicalTableScan(table=[[b]])
+#       LogicalTableScan(table=[[c]])
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM A
+INNER JOIN C
+ON (
+  SELECT min(B.fk_C)
+  FROM B
+  WHERE A.id = B.fk_A
+) = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 1 (Verification): Manual rewrite of Case 1 using a derived table
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM (
+  SELECT
+    *,
+    (SELECT min(B.fk_C) FROM B WHERE A.id = B.fk_A) AS fk_C
+  FROM A
+) AS A
+INNER JOIN C
+ON fk_c = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
++-----+-----+
+(1 row)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 2: Correlated scalar subquery in ON clause of LEFT JOIN
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM A
+LEFT JOIN C
+ON (
+  SELECT min(B.fk_C)
+  FROM B
+  WHERE A.id = B.fk_A
+) = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+| 102 |     |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 2 (Verification): Manual rewrite of Case 2 using a derived table
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM (
+  SELECT
+    *,
+    (SELECT min(B.fk_C) FROM B WHERE A.id = B.fk_A) AS fk_C
+  FROM A
+) AS A
+LEFT JOIN C
+ON fk_c = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+| 102 |     |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 3: Correlated scalar subquery in ON clause of RIGHT JOIN.
+# The subquery correlates to the RHS table (A), which is the PRESERVED side.
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM C
+RIGHT JOIN A
+ON (
+  SELECT min(B.fk_C)
+  FROM B
+  WHERE A.id = B.fk_A
+) = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+| 102 |     |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 3 (Verification): Manual rewrite of Case 3 using a derived table.
+# Projects the scalar subquery on the RHS (preserved side).
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM C
+RIGHT JOIN (
+  SELECT
+    *,
+    (SELECT min(B.fk_C) FROM B WHERE A.id = B.fk_A) AS fk_C
+  FROM A
+) AS A
+ON fk_c = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+| 102 |     |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 4: Correlated scalar subquery in ON clause of LEFT JOIN
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM C
+LEFT JOIN A
+ON (
+  SELECT min(B.fk_C)
+  FROM B
+  WHERE A.id = B.fk_A
+) = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+|     | 302 |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 4 (Verification): Manual rewrite of Case 4 using a derived table
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM C
+LEFT JOIN (
+  SELECT
+    *,
+    (SELECT min(B.fk_C) FROM B WHERE A.id = B.fk_A) AS fk_C
+  FROM A
+) AS A
+ON fk_c = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+|     | 302 |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 5: Correlated scalar subquery in ON clause of RIGHT JOIN
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM A
+RIGHT JOIN C
+ON (
+  SELECT min(B.fk_C)
+  FROM B
+  WHERE A.id = B.fk_A
+) = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+|     | 302 |
++-----+-----+
+(2 rows)
+
+!ok
+
+# [CALCITE-6504] JOIN_SUB_QUERY_TO_CORRELATE/Join SubQueryRemoveRule produces incorrect tree
+#                when using correlated sub-query in on clause of equi-join
+# Case 5 (Verification): Manual rewrite of Case 5 using a derived table
+WITH
+  A(id) AS (VALUES (101), (102)),
+  C(id) AS (VALUES (301), (302)),
+  B(id, fk_A, fk_C) AS (VALUES (201, 101, 301), (202, 101, 999), (203, 999, 301), (204, 999, 999))
+SELECT A.id, C.id
+FROM (
+  SELECT
+    *,
+    (SELECT min(B.fk_C) FROM B WHERE A.id = B.fk_A) AS fk_C
+  FROM A
+) AS A
+RIGHT JOIN C
+ON fk_c = C.id;
++-----+-----+
+| ID  | ID  |
++-----+-----+
+| 101 | 301 |
+|     | 302 |
++-----+-----+
+(2 rows)
+
+!ok
 # End sub-query.iq
