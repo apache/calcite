@@ -955,8 +955,6 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
    * Unnesting information.
    */
   static class UnnestedQuery extends Frame {
-    final RelNode oldRel;
-
     /**
      * Creates a UnnestedQuery.
      *
@@ -968,7 +966,6 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     UnnestedQuery(RelNode oldRel, RelNode r, NavigableMap<CorDef, Integer> corDefOutputs,
         Map<Integer, Integer> oldToNewOutputs) {
       super(oldRel, r, corDefOutputs, oldToNewOutputs);
-      this.oldRel = oldRel;
     }
 
     /**

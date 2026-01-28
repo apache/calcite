@@ -1571,6 +1571,51 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5390">[CALCITE-5390]
+   * RelDecorrelator throws NullPointerException</a>. */
+  @Test void test5390() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "select deptno,\n"
+        + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
+        + "  (select min(0) from emp where deptno = d.deptno and "
+        + "ename = 'SMITH' and d.deptno > 0) as i1\n"
+        + "from dept as d";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    System.out.println(before.explain());
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    System.out.println(after.explain());
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7320">[CALCITE-7320]
    * AggregateProjectMergeRule throws AssertionError when Project maps multiple grouping keys
    * to the same field</a>. */
