@@ -217,6 +217,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -3261,12 +3262,12 @@ public class SqlToRelConverter {
     return node;
   }
 
-  private @Nullable CorrelationUse getCorrelationUse(Blackboard bb, final RelNode r0) {
-    final Set<CorrelationId> correlatedVariables =
-        RelOptUtil.getVariablesUsed(r0);
-    if (correlatedVariables.isEmpty()) {
-      return null;
-    }
+  /** Common utility for resolving correlation names, required columns and field mappings used by
+   * both {@link #massageExpressionsForCorrelation} and {@link #getCorrelationUse}.
+   * returns null if no correlation names are detected for this scope.
+   */
+  private @Nullable ResolvedCorrelationInfo getCorrelationInfo(Blackboard bb,
+      final Set<CorrelationId> correlatedVariables) {
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     final List<CorrelationId> correlNames = new ArrayList<>();
     // Mapping from (correlId, originalFieldIndex) to projectedFieldIndex for aggregation
@@ -3350,29 +3351,92 @@ public class SqlToRelConverter {
     if (correlNames.isEmpty()) {
       // None of the correlating variables originated in this scope.
       return null;
+    } else {
+      return new ResolvedCorrelationInfo(correlNames, requiredColumns.build(), fieldMapping);
+    }
+  }
+
+  private @Nullable CorrelationUse getCorrelationUse(Blackboard bb, final RelNode r0) {
+    final Set<CorrelationId> correlatedVariables =
+        RelOptUtil.getVariablesUsed(r0);
+    if (correlatedVariables.isEmpty()) {
+      return null;
+    }
+
+    ResolvedCorrelationInfo correlationInfo = getCorrelationInfo(bb, correlatedVariables);
+    if (correlationInfo == null) {
+      // None of the correlating variables originated in this scope.
+      return null;
     }
 
     RelNode r = r0;
-    if (correlNames.size() > 1) {
+    if (correlationInfo.correlNames.size() > 1) {
       // The same table was referenced more than once.
       // So we deduplicate.
       r =
-          DeduplicateCorrelateVariables.go(rexBuilder, correlNames.get(0),
-              Util.skip(correlNames), r0);
+          DeduplicateCorrelateVariables.go(rexBuilder, correlationInfo.correlNames.get(0),
+              Util.skip(correlationInfo.correlNames), r0);
       // Add new node to leaves.
       leaves.put(r, r.getRowType().getFieldCount());
     }
 
     // If there are field mappings (due to aggregation), rewrite the RelNode tree
     // to update correlation variable row type and field indices
-    if (!fieldMapping.isEmpty()) {
+    if (!correlationInfo.fieldMapping.isEmpty()) {
       r =
           r.accept(
-              new CorrelationFieldMappingShuttle(rexBuilder, correlNames.get(0),
-                  bb.root().getRowType(), fieldMapping));
+              new CorrelationFieldMappingShuttle(rexBuilder, correlationInfo.correlNames.get(0),
+                  bb.root().getRowType(), correlationInfo.fieldMapping));
     }
 
-    return new CorrelationUse(correlNames.get(0), requiredColumns.build(), r);
+    return new CorrelationUse(correlationInfo.correlNames.get(0), correlationInfo.requiredColumns,
+        r);
+  }
+
+  /** Before building a RelNode tree with the provided expressions, detect and resolve correlation
+   * names, rewrite expressions, and return a callback to be called after the tree is built.
+   * Returns null if no correlation is detected.
+   */
+  private @Nullable MassagedCorrelationExpressions massageExpressionsForCorrelation(Blackboard bb,
+      final List<RexNode> exprs) {
+    Set<CorrelationId> correlatedVariables = new HashSet<>();
+    for (RexNode e : exprs) {
+      correlatedVariables.addAll(RelOptUtil.getVariablesUsed(e));
+    }
+    if (correlatedVariables.isEmpty()) {
+      return null;
+    }
+
+    ResolvedCorrelationInfo correlationInfo = getCorrelationInfo(bb, correlatedVariables);
+    if (correlationInfo == null) {
+      // None of the correlating variables originated in this scope.
+      return null;
+    }
+
+    List<RexNode> newExprs = new ArrayList<>(exprs);
+    Consumer<RelNode> callback = (RelNode r) -> { };
+    if (correlationInfo.correlNames.size() > 1) {
+      // The same table was referenced more than once.
+      // So we deduplicate.
+      CorrelationId canonicalId = correlationInfo.correlNames.get(0);
+      List<CorrelationId> tail = Util.skip(correlationInfo.correlNames);
+      newExprs.replaceAll(e ->
+          DeduplicateCorrelateVariables.go(rexBuilder, canonicalId, tail, e));
+      // Add new node to leaves.
+      callback = r -> leaves.put(r, r.getRowType().getFieldCount());
+    }
+
+    // If there are field mappings (due to aggregation), rewrite the RelNode tree
+    // to update correlation variable row type and field indices
+    if (!correlationInfo.fieldMapping.isEmpty()) {
+      CorrelationFieldMappingRexShuttle shuttle =
+          new CorrelationFieldMappingRexShuttle(rexBuilder, correlationInfo.correlNames.get(0),
+              bb.root().getRowType(), correlationInfo.fieldMapping);
+      newExprs.replaceAll(e -> e.accept(shuttle));
+    }
+
+    return new MassagedCorrelationExpressions(newExprs, correlationInfo.correlNames.get(0),
+        callback);
   }
 
   /**
@@ -3773,26 +3837,22 @@ public class SqlToRelConverter {
 
       final RelNode inputRel = bb.root();
 
-      // Project the expressions required by agg and having.
-      RelNode intermediateProject = relBuilder.push(inputRel)
-          .projectNamed(preExprs.leftList(), preExprs.rightList(), false)
-          .build();
-      final RelNode r2;
-      // deal with correlation
-      final CorrelationUse p = getCorrelationUse(bb, intermediateProject);
-      if (p != null) {
-        assert p.r instanceof Project;
-        // correlation variables have been normalized in p.r, we should use expressions
-        // in p.r instead of the original exprs
-        Project project1 = (Project) p.r;
-        r2 = relBuilder.push(bb.root())
-            .projectNamed(project1.getProjects(), project1.getRowType().getFieldNames(),
-                true, ImmutableSet.of(p.id))
-            .build();
+      final @Nullable MassagedCorrelationExpressions massagedResult =
+          massageExpressionsForCorrelation(bb, preExprs.leftList());
+      relBuilder.push(inputRel);
+      if (massagedResult == null) {
+        relBuilder.projectNamed(preExprs.leftList(), preExprs.rightList(), false);
       } else {
-        r2 = intermediateProject;
+        relBuilder.projectNamed(massagedResult.exprs, preExprs.rightList(), false,
+            ImmutableSet.of(massagedResult.correlId));
       }
-      bb.setRoot(r2, false);
+
+      RelNode project = relBuilder.build();
+      if (massagedResult != null) {
+        massagedResult.callback.accept(project);
+      }
+
+      bb.setRoot(project, false);
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
 
       // REVIEW jvs 31-Oct-2007:  doesn't the declaration of
@@ -5006,27 +5066,22 @@ public class SqlToRelConverter {
         SqlValidatorUtil.uniquify(fieldNames,
             catalogReader.nameMatcher().isCaseSensitive());
 
-    relBuilder.push(bb.root())
-        .projectNamed(exprs, uniqueFieldNames, true);
-
-    RelNode project = relBuilder.build();
-
-    final RelNode r;
-    final CorrelationUse p = getCorrelationUse(bb, project);
-    if (p != null) {
-      assert p.r instanceof Project;
-      // correlation variables have been normalized in p.r, we should use expressions
-      // in p.r instead of the original exprs
-      Project project1 = (Project) p.r;
-      r = relBuilder.push(bb.root())
-          .projectNamed(project1.getProjects(), uniqueFieldNames, true,
-              ImmutableSet.of(p.id))
-          .build();
+    final @Nullable MassagedCorrelationExpressions massagedResult =
+        massageExpressionsForCorrelation(bb, exprs);
+    relBuilder.push(bb.root());
+    if (massagedResult == null) {
+      relBuilder.projectNamed(exprs, uniqueFieldNames, true);
     } else {
-      r = project;
+      relBuilder.projectNamed(massagedResult.exprs, uniqueFieldNames, true,
+          ImmutableSet.of(massagedResult.correlId));
     }
 
-    bb.setRoot(r, false);
+    RelNode project = relBuilder.build();
+    if (massagedResult != null) {
+      massagedResult.callback.accept(project);
+    }
+
+    bb.setRoot(project, false);
 
     assert bb.columnMonotonicities.isEmpty();
     bb.columnMonotonicities.addAll(columnMonotonicityList);
@@ -6179,13 +6234,13 @@ public class SqlToRelConverter {
    * Shuttle that rewrites correlation field accesses to use projected field indices
    * when correlation references aggregated relations.
    */
-  private static class CorrelationFieldMappingShuttle extends RelHomogeneousShuttle {
+  private static class CorrelationFieldMappingRexShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final CorrelationId targetCorrelId;
     private final RelDataType newCorrelRowType;
     private final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping;
 
-    CorrelationFieldMappingShuttle(RexBuilder rexBuilder,
+    CorrelationFieldMappingRexShuttle(RexBuilder rexBuilder,
         CorrelationId targetCorrelId,
         RelDataType newCorrelRowType,
         Map<Pair<CorrelationId, Integer>, Integer> fieldMapping) {
@@ -6195,23 +6250,40 @@ public class SqlToRelConverter {
       this.fieldMapping = fieldMapping;
     }
 
-    @Override public RelNode visit(RelNode other) {
-      return super.visit(other).accept(new RexShuttle() {
-        @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-          if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
-            RexCorrelVariable correlVar = (RexCorrelVariable) fieldAccess.getReferenceExpr();
-            if (correlVar.id.equals(targetCorrelId)) {
-              Integer newIndex =
-                  fieldMapping.get(Pair.of(correlVar.id, fieldAccess.getField().getIndex()));
-              if (newIndex != null) {
-                return rexBuilder.makeFieldAccess(
-                    rexBuilder.makeCorrel(newCorrelRowType, correlVar.id), newIndex);
-              }
-            }
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        RexCorrelVariable correlVar = (RexCorrelVariable) fieldAccess.getReferenceExpr();
+        if (correlVar.id.equals(targetCorrelId)) {
+          Integer newIndex =
+              fieldMapping.get(Pair.of(correlVar.id, fieldAccess.getField().getIndex()));
+          if (newIndex != null) {
+            return rexBuilder.makeFieldAccess(
+                rexBuilder.makeCorrel(newCorrelRowType, correlVar.id), newIndex);
           }
-          return super.visitFieldAccess(fieldAccess);
         }
-      });
+      }
+      return super.visitFieldAccess(fieldAccess);
+    }
+  }
+
+  /**
+   * Shuttle that rewrites correlation field accesses to use projected field indices
+   * when correlation references aggregated relations.
+   */
+  private static class CorrelationFieldMappingShuttle extends RelHomogeneousShuttle {
+    private final CorrelationFieldMappingRexShuttle rexShuttle;
+
+    CorrelationFieldMappingShuttle(RexBuilder rexBuilder,
+        CorrelationId targetCorrelId,
+        RelDataType newCorrelRowType,
+        Map<Pair<CorrelationId, Integer>, Integer> fieldMapping) {
+      this.rexShuttle =
+          new CorrelationFieldMappingRexShuttle(rexBuilder, targetCorrelId, newCorrelRowType,
+              fieldMapping);
+    }
+
+    @Override public RelNode visit(RelNode other) {
+      return super.visit(other).accept(this.rexShuttle);
     }
   }
 
@@ -6578,6 +6650,37 @@ public class SqlToRelConverter {
       this.id = id;
       this.requiredColumns = requiredColumns;
       this.r = r;
+    }
+  }
+
+  /** Wrapper around information collected by {@link #getCorrelationInfo}. */
+  private static class ResolvedCorrelationInfo {
+    public final List<CorrelationId> correlNames;
+    public final ImmutableBitSet requiredColumns;
+    public final Map<Pair<CorrelationId, Integer>, Integer> fieldMapping;
+
+    ResolvedCorrelationInfo(List<CorrelationId> correlNames, ImmutableBitSet requiredColumns,
+        Map<Pair<CorrelationId, Integer>, Integer> fieldMapping) {
+      this.correlNames = correlNames;
+      this.requiredColumns = requiredColumns;
+      this.fieldMapping = fieldMapping;
+    }
+  }
+
+  /** Wrapper around optionally returned results from {@link #massageExpressionsForCorrelation}. */
+  private static class MassagedCorrelationExpressions {
+    /** Modified expressions. */
+    public final List<RexNode> exprs;
+    /** CorrelationId to use when building the relational expression. */
+    public final CorrelationId correlId;
+    /** Callback to be called after the RelNode tree which uses these expressions is built. */
+    public final Consumer<RelNode> callback;
+
+    MassagedCorrelationExpressions(List<RexNode> exprs, CorrelationId correlId,
+        Consumer<RelNode> callback) {
+      this.exprs = exprs;
+      this.correlId = correlId;
+      this.callback = callback;
     }
   }
 
