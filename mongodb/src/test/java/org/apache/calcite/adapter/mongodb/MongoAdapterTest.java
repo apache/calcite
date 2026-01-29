@@ -1004,7 +1004,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7404">[CALCITE-7404]
-   * Mongo adapter aggfunction not support condition filter</a>. */
+   * Incorrect Field Alias in MongoDB project Stage</a>. */
   @Test void testAggFunctionMinFilter() {
     assertModel(MODEL)
         .query("select min(pop>5000) as pop_result from zips")
