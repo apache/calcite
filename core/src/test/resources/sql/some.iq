@@ -128,12 +128,24 @@ from "scott".emp;
 (14 rows)
 
 !ok
+
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..10=[{inputs}], expr#11=[0], expr#12=[=($t9, $t11)], expr#13=[>($t9, $t10)], expr#14=[null:BOOLEAN], expr#15=[<=($t5, $t8)], expr#16=[IS NOT TRUE($t15)], expr#17=[AND($t13, $t14, $t16)], expr#18=[>($t5, $t8)], expr#19=[<=($t9, $t10)], expr#20=[AND($t18, $t16, $t19)], expr#21=[OR($t12, $t17, $t20)], proj#0..7=[{exprs}], X=[$t21])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
     EnumerableTableScan(table=[[scott, EMP]])
     EnumerableAggregate(group=[{}], m=[MAX($6)], c=[COUNT()], d=[COUNT($6)])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
+
+!if (use_new_decorr) {
+EnumerableCalc(expr#0..8=[{inputs}], expr#9=[NOT($t8)], proj#0..7=[{exprs}], X=[$t9])
+  EnumerableNestedLoopJoin(condition=[<=($5, $8)], joinType=[left_mark])
+    EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..7=[{inputs}], COMM=[$t6])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!}
 
 # NOT SOME; left side NOT NULL, right side nullable; converse of previous query.
 select * from "scott".emp
