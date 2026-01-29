@@ -53,7 +53,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
-import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -941,80 +940,132 @@ public class RelMetadataTest {
     final RelBuilder relBuilder = RelBuilderTest.createBuilder();
     relBuilder.scan("EMP");
     relBuilder.scan("DEPT");
-    // Build semi-join on DEPTNO
     relBuilder.semiJoin(
         relBuilder.equals(relBuilder.field(2, 0, "DEPTNO"),
-        relBuilder.field(2, 1, "DEPTNO")));
-    final Join join = (Join) relBuilder.build();
-    final RelMetadataQuery mq = join.getCluster().getMetadataQuery();
-    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(join);
+            relBuilder.field(2, 1, "DEPTNO")));
+    final RelNode rel = relBuilder.build();
+    assertThat(Util.toLinux(RelOptUtil.toString(rel)),
+        is(""
+            + "LogicalJoin(condition=[=($7, $8)], joinType=[semi])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
+
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(rel);
 
     // For SEMI join expect left input fields to be all columns of left input
-    // and right input fields to be empty (semi-join does not require right output).
-    final int leftCount = join.getLeft().getRowType().getFieldCount();
-    assertThat(inputFields, hasSize(2));
-    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.range(leftCount)));
-    assertThat(inputFields.get(1).isEmpty(), is(true));
+    assertThat(inputFields, equalTo(ImmutableBitSet.range(8)));
   }
 
-  @Test void testInputFieldsUsedUnionSetOp() {
-    final RelBuilder builder = RelBuilderTest.createBuilder();
-    builder.scan("DEPT").project(builder.field(1)); // name
-    builder.scan("EMP").project(builder.field(2)); // job
-    builder.union(true);
-    final SetOp setOp = (SetOp) builder.build();
-    final RelMetadataQuery mq = setOp.getCluster().getMetadataQuery();
-    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(setOp);
-    assertThat(
-        inputFields, equalTo(
-        ImmutableList.of(ImmutableBitSet.of(1), ImmutableBitSet.of(2))));
+  @Test void testInputFieldsUsedJoin() {
+    final RelBuilder relBuilder = RelBuilderTest.createBuilder();
+    final RelNode rel = relBuilder
+        .scan("EMP")
+        .project(relBuilder.field(0), relBuilder.field(7))
+        .scan("DEPT")
+        .project(relBuilder.field(0),  relBuilder.field(1))
+        .join(JoinRelType.INNER,
+            relBuilder.equals(relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .build();
+
+    assertThat(Util.toLinux(RelOptUtil.toString(rel)),
+        is("LogicalJoin(condition=[=($1, $2)], joinType=[inner])\n"
+            + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n"));
+
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(rel);
+
+    // For normal join expect all columns of both inputs to be used.
+    assertThat(inputFields, equalTo(ImmutableBitSet.range(4)));
+  }
+
+  @Test void testInputFieldsUsedUnion() {
+    final String sql = "select deptno from dept union all select deptno from emp";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(Util.toLinux(RelOptUtil.toString(rel)),
+        is(""
+            + "LogicalUnion(all=[true])\n"
+            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(rel);
+
+    // Expected result columns: [0, 1]
+    // this representing the sole field from input 0 and the sole field from input 1.
+    assertThat(inputFields, equalTo(ImmutableBitSet.of(0, 1)));
   }
 
   @Test void testInputFieldsUsedProject() {
-    final RelBuilder builder = RelBuilderTest.createBuilder();
-    final RelNode project = builder
-        .scan("EMP")
-        .project(builder.field(0), builder.field(2))
-        .build();
-    final RelMetadataQuery mq = project.getCluster().getMetadataQuery();
-    final java.util.List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(project);
+    final String sql = "select empno, job from emp";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(Util.toLinux(RelOptUtil.toString(rel)),
+        is(""
+            + "LogicalProject(EMPNO=[$0], JOB=[$2])\n"
+            + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
 
-    assertThat(inputFields, hasSize(1));
-    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.of(0, 2)));
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(rel);
+
+    assertThat(inputFields, equalTo(ImmutableBitSet.of(0, 2)));
   }
 
   @Test void testInputFieldsUsedFilter() {
-    final RelBuilder builder = RelBuilderTest.createBuilder();
-    final RelNode filter = builder
-        .scan("EMP")
-        .filter(builder.equals(builder.field(2), builder.literal(10)))
-        .build();
-    final RelMetadataQuery mq = filter.getCluster().getMetadataQuery();
-    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(filter);
+    final String sql = "select * from emp where sal > 1000";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(Util.toLinux(RelOptUtil.toString(rel)),
+        is(""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])\n"
+            + "  LogicalFilter(condition=[>($5, 1000)])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
 
-    final int fieldCount = filter.getInput(0).getRowType().getFieldCount();
-    assertThat(inputFields, hasSize(1));
-    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.range(fieldCount)));
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelNode filter = rel.getInput(0);
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(filter);
+
+    assertThat(inputFields, equalTo(ImmutableBitSet.range(9)));
   }
 
   @Test void testInputFieldsUsedCalc() {
-    final RelBuilder builder = RelBuilderTest.createBuilder();
-    final RelNode proj = builder
-        .scan("EMP")
-        .project(builder.field(0), builder.field(2))
-        .build();
+    final String sql = "select empno, job from emp";
+    final RelNode rel = sql(sql).toRel();
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.PROJECT_TO_CALC)
         .build();
     final HepPlanner planner = new HepPlanner(program);
-    planner.setRoot(proj);
+    planner.setRoot(rel);
     final RelNode calc = planner.findBestExp();
     assertThat(calc, instanceOf(Calc.class));
+    assertThat(Util.toLinux(RelOptUtil.toString(calc)),
+        is(""
+            + "LogicalCalc(expr#0..8=[{inputs}], EMPNO=[$t0], JOB=[$t2])\n"
+            + "  LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
 
     final RelMetadataQuery mq = calc.getCluster().getMetadataQuery();
-    final List<ImmutableBitSet> inputFields = mq.getInputFieldsUsed(calc);
-    assertThat(inputFields, hasSize(1));
-    assertThat(inputFields.get(0), equalTo(ImmutableBitSet.of(0, 2)));
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(calc);
+
+    assertThat(inputFields, equalTo(ImmutableBitSet.of(0, 2)));
+  }
+
+  @Test void testInputFieldsUsedAggregate() {
+    final String sql = "select deptno, sum(sal) from emp group by deptno";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(Util.toLinux(RelOptUtil.toString(rel)),
+        is(""
+            + "LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])\n"
+            + "  LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
+
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final ImmutableBitSet inputFields = mq.getInputFieldsUsed(rel);
+
+    assertThat(inputFields, equalTo(ImmutableBitSet.of(0, 1)));
   }
 
   // ----------------------------------------------------------------------

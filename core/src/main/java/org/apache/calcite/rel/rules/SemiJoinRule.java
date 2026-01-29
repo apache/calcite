@@ -143,7 +143,7 @@ public abstract class SemiJoinRule
   /** Returns a bit set of the input fields used by a relational expression. */
   private static ImmutableBitSet getUsedFields(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    return ImmutableBitSet.union(mq.getInputFieldsUsed(rel));
+    return mq.getInputFieldsUsed(rel);
   }
 
   /** SemiJoinRule that matches a Aggregate on top of a Join with an Aggregate

@@ -1064,9 +1064,9 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   }
 
   /**
-   * Returns the input fields are used by a RelNode.
+   * Returns which columns of its inputs are referenced by a relational expression.
    */
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(RelNode rel) {
+  public ImmutableBitSet getInputFieldsUsed(RelNode rel) {
     for (;;) {
       try {
         return inputFieldsUsedHandler.getInputFieldsUsed(rel, this);

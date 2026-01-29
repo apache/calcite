@@ -20,23 +20,41 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Set;
 
 /**
  * Metadata provider to determine which input fields are used by a RelNode.
+ *
+ * <p>A field is considered "used" if it is referenced by the relational
+ * expression. The result is an {@link ImmutableBitSet} where bits correspond to
+ * input column ordinals.
+ *
+ * <p>Examples:
+ * <ul>
+ *   <li>For an {@link Aggregate}, "used" fields are those in the group set or
+ *   referenced in aggregate functions. see {@link RelOptUtil#getAllFields}</li>
+ *   <li>For a {@link Join}, it is the union of "used" fields from both inputs
+ *   (shifted appropriately for the right input). For SEMI and ANTI joins, fields
+ *   from the right input are not considered "used" as they are not projected to
+ *   the output</li>
+ * </ul>
+ *
+ * @see BuiltInMetadata.InputFieldsUsed
+ * @see RelMetadataQuery#getInputFieldsUsed(RelNode)
  */
 public class RelMdInputFieldsUsed
     implements MetadataHandler<BuiltInMetadata.InputFieldsUsed> {
@@ -48,77 +66,115 @@ public class RelMdInputFieldsUsed
     return BuiltInMetadata.InputFieldsUsed.DEF;
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(RelNode rel,
-      RelMetadataQuery mq) {
-    ImmutableList.Builder<ImmutableBitSet> builder = ImmutableList.builder();
-    rel.getInputs().forEach(input -> {
-      builder.addAll(mq.getInputFieldsUsed(input));
-    });
-    return builder.build();
+  /** Catch-all implementation for
+   * {@link BuiltInMetadata.InputFieldsUsed#getInputFieldsUsed()},
+   * invoked using reflection.
+   *
+   * @see org.apache.calcite.rel.metadata.RelMetadataQuery#getInputFieldsUsed(RelNode)
+   */
+  public ImmutableBitSet getInputFieldsUsed(RelNode rel, RelMetadataQuery mq) {
+    // By default, a RelNode uses all of its input fields.
+    return getAllInputFieldsUsed(rel);
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(TableScan scan,
-      RelMetadataQuery mq) {
+  public ImmutableBitSet getInputFieldsUsed(TableScan scan, RelMetadataQuery mq) {
     final BuiltInMetadata.InputFieldsUsed.Handler handler =
         scan.getTable().unwrap(BuiltInMetadata.InputFieldsUsed.Handler.class);
     if (handler != null) {
       return handler.getInputFieldsUsed(scan, mq);
     }
     final int fieldCount = scan.getRowType().getFieldCount();
-    return ImmutableList.of(ImmutableBitSet.range(fieldCount));
+    return ImmutableBitSet.range(fieldCount);
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(Project project,
-      RelMetadataQuery mq) {
-    final ImmutableBitSet bits = RelOptUtil.InputFinder.bits(project.getProjects(), null);
-    return ImmutableList.of(bits);
+  public ImmutableBitSet getInputFieldsUsed(Project project, RelMetadataQuery mq) {
+    // Project involves column trimming, returning only the columns that are used.
+    return RelOptUtil.InputFinder.bits(project.getProjects(), null);
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(Filter filter,
-      RelMetadataQuery mq) {
-    return mq.getInputFieldsUsed(filter.getInput());
+  public ImmutableBitSet getInputFieldsUsed(Filter filter, RelMetadataQuery mq) {
+    return getAllFieldsUsed(filter);
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(Calc calc,
-      RelMetadataQuery mq) {
+  public ImmutableBitSet getInputFieldsUsed(Sort sort, RelMetadataQuery mq) {
+    return getAllFieldsUsed(sort);
+  }
+
+  public ImmutableBitSet getInputFieldsUsed(Window window, RelMetadataQuery mq) {
+    return getAllFieldsUsed(window);
+  }
+
+  public ImmutableBitSet getInputFieldsUsed(Calc calc, RelMetadataQuery mq) {
     final RexProgram program = calc.getProgram();
     final List<RexNode> expandedProjects = program.expandList(program.getProjectList());
     final RexNode cond = program.getCondition() == null
         ? null
         : program.expandLocalRef(program.getCondition());
-    final ImmutableBitSet bits = RelOptUtil.InputFinder.bits(expandedProjects, cond);
-    return ImmutableList.of(bits);
+
+    // Same as Project.
+    return RelOptUtil.InputFinder.bits(expandedProjects, cond);
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(Join join,
-      RelMetadataQuery mq) {
-    List<ImmutableBitSet> leftInputFieldsUsed = mq.getInputFieldsUsed(join.getLeft());
-    List<ImmutableBitSet> rightInputFieldsUsed = mq.getInputFieldsUsed(join.getRight());
-    assert leftInputFieldsUsed.size() == 1 && rightInputFieldsUsed.size() == 1;
-
-    ImmutableBitSet rightUsedBits = rightInputFieldsUsed.get(0);
+  public ImmutableBitSet getInputFieldsUsed(Join join, RelMetadataQuery mq) {
+    // Computes the union of fields used by both inputs. For SEMI and ANTI joins,
+    // fields from the right input are excluded as they are not projected to the output.
+    final ImmutableBitSet leftInputFieldsUsed = getAllFieldsUsed(join.getLeft());
     if (join.getJoinType() == JoinRelType.SEMI
-        ||  join.getJoinType() == JoinRelType.ANTI) {
-      rightUsedBits = ImmutableBitSet.of();
+        || join.getJoinType() == JoinRelType.ANTI) {
+      return leftInputFieldsUsed;
     }
 
-    return ImmutableList.of(leftInputFieldsUsed.get(0), rightUsedBits);
+    final ImmutableBitSet rightInputFieldsUsedShifted =
+        getAllFieldsUsed(join.getRight(),
+            join.getLeft().getRowType().getFieldCount());
+    return leftInputFieldsUsed.union(rightInputFieldsUsedShifted);
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(SetOp setOp,
-      RelMetadataQuery mq) {
-    final ImmutableList.Builder<ImmutableBitSet> builder = ImmutableList.builder();
-    for (RelNode input : setOp.getInputs()) {
-      ImmutableList<ImmutableBitSet> inputFieldsBits = mq.getInputFieldsUsed(input);
-      assert inputFieldsBits.size() == 1;
-      builder.add(inputFieldsBits.get(0));
+  public ImmutableBitSet getInputFieldsUsed(SetOp setOp, RelMetadataQuery mq) {
+    return getAllInputFieldsUsed(setOp);
+  }
+
+  public ImmutableBitSet getInputFieldsUsed(Aggregate agg, RelMetadataQuery mq) {
+    Set<Integer> fields = RelOptUtil.getAllFields(agg);
+    return ImmutableBitSet.of(fields);
+  }
+
+  public ImmutableBitSet getInputFieldsUsed(Correlate correlate, RelMetadataQuery mq) {
+    // Computes the union of fields referenced by both inputs. For SEMI and ANTI
+    // correlates, fields from the right input are excluded from the projection.
+    final ImmutableBitSet leftInputFieldsUsed = getAllFieldsUsed(correlate.getLeft());
+    if (correlate.getJoinType() == JoinRelType.SEMI
+        || correlate.getJoinType() == JoinRelType.ANTI) {
+      return leftInputFieldsUsed;
+    }
+
+    final ImmutableBitSet rightInputFieldsUsedShifted =
+        getAllFieldsUsed(correlate.getRight(),
+            correlate.getLeft().getRowType().getFieldCount());
+    return leftInputFieldsUsed.union(rightInputFieldsUsedShifted);
+  }
+
+  // ~ Private helper methods ------------------------------------------------
+
+  /**
+   * Returns a bitset of all fields used by all inputs of a {@link RelNode},
+   * shifted by the cumulative field count of preceding inputs.
+   */
+  private static ImmutableBitSet getAllInputFieldsUsed(RelNode rel) {
+    ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    int offset = 0;
+    for (RelNode input : rel.getInputs()) {
+      builder.addAll(getAllFieldsUsed(input, offset));
+      offset += input.getRowType().getFieldCount();
     }
     return builder.build();
   }
 
-  public ImmutableList<ImmutableBitSet> getInputFieldsUsed(Aggregate agg,
-      RelMetadataQuery mq) {
-    Set<Integer> fields =  RelOptUtil.getAllFields(agg);
-    return ImmutableList.of(ImmutableBitSet.of(fields));
+  private static ImmutableBitSet getAllFieldsUsed(RelNode rel, int offset) {
+    return ImmutableBitSet.range(rel.getRowType().getFieldCount()).shift(offset);
+  }
+
+  private static ImmutableBitSet getAllFieldsUsed(RelNode rel) {
+    return getAllFieldsUsed(rel, 0);
   }
 }
