@@ -1336,6 +1336,26 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelationInProjectionWithBloatFusion">
+    <Resource name="sql">
+      <![CDATA[select e1.sal + (select sum(e2.sal) from emp e2 where e2.deptno = d.deptno)
+from dept d join emp e1 on  d.deptno + 1 = e1.deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[+($8, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
       <![CDATA[select cardinality(arr) from (
@@ -1348,8 +1368,7 @@ LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
 }))])
-  LogicalProject(DEPTNO=[$7], ENAME=[$1])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -1389,8 +1408,7 @@ LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
 })])
-  LogicalProject(DEPTNO=[$7], ENAME=[$1])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -5383,8 +5401,7 @@ LogicalProject(DEPTNO=[$cor0.DEPTNO])
 LogicalProject(ENAME=[$cor0.ENAME])
   LogicalValues(tuples=[[{ 0 }]])
 }), 0)])
-  LogicalProject(DEPTNO=[$7], ENAME=[$1])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

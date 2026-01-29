@@ -4202,6 +4202,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).withDecorrelate(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7405">[CALCITE-7405]
+   * Correlated subquery where outer tree is affected by bloat optimization
+   * causing project fusion</a>. */
+  @Test void testCorrelationInProjectionWithBloatFusion() {
+    final String sql = "select e1.sal + "
+        + "(select sum(e2.sal) from emp e2 where e2.deptno = d.deptno)\n"
+        + "from dept d join emp e1 on  d.deptno + 1 = e1.deptno";
+    sql(sql)
+        .withExpand(false)
+        .withDecorrelate(false)
+        .withConfig(srcc ->
+            srcc.addRelBuilderConfigTransform(rbc ->
+                rbc.withBloat(100).withPushJoinCondition(true)))
+        .ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();
