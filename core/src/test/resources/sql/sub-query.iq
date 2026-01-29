@@ -8057,6 +8057,7 @@ WHERE deptno NOT IN (
 
 !use scott
 # [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
 SELECT empno
 FROM emp
 JOIN dept
@@ -8126,6 +8127,7 @@ on emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept);
 !ok
 
 # [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
 SELECT d.dname
 FROM dept d
 JOIN emp e
@@ -8146,6 +8148,7 @@ ON d.deptno = e.deptno
 !ok
 
 # [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
 SELECT *
 FROM dept d
 LEFT JOIN emp e
@@ -8178,6 +8181,7 @@ LEFT JOIN emp e
 !ok
 
 # [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
 select Header.Name
 from ( VALUES (1, 'A'), (2, 'B')) as Header(Id, Name)
 join (values (11, 1), (12, 1), (21, 2)) as Version(Id, Parent)
