@@ -41,14 +41,15 @@ public class JavaRecordType extends RelRecordType {
     this.clazz = requireNonNull(clazz, "clazz");
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     return this == obj
         || obj instanceof JavaRecordType
         && Objects.equals(fieldList, ((JavaRecordType) obj).fieldList)
-        && clazz == ((JavaRecordType) obj).clazz;
+        && clazz == ((JavaRecordType) obj).clazz
+        && this.isNullable() == ((JavaRecordType) obj).isNullable();
   }
 
-  @Override public int hashCode() {
-    return Objects.hash(fieldList, clazz);
+  @Override public int deepHashCode() {
+    return Objects.hash(fieldList, this.isNullable(), clazz);
   }
 }

@@ -29,7 +29,11 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -40,6 +44,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -449,5 +454,60 @@ class HepPlannerTest {
     planner.setRoot(root);
     final RelNode result = planner.findBestExp();
     assertThat(result, is(instanceOf(LogicalValues.class)));
+  }
+
+  @Test void testLargeTypeDigest() {
+    // if we don't support RelTypeDigest, this case will be OOM or very slow
+    int[] topFieldCounts = {1, 50, 500, 5000, 50000};
+    for (int topN : topFieldCounts) {
+      final RelBuilder builder = RelBuilderTest.createBuilder(c -> c);
+      final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+
+      RelDataType varchar =
+          typeFactory.createTypeWithCharsetAndCollation(typeFactory
+                  .createSqlType(SqlTypeName.VARCHAR, 100),
+              StandardCharsets.UTF_8, SqlCollation.IMPLICIT);
+
+      RelDataType leafObj = typeFactory.builder().add("k", varchar).add("v", varchar)
+          .add("attrs", typeFactory.createMapType(varchar, varchar))
+          .add("tags", typeFactory.createArrayType(varchar, -1)).build();
+
+      final RelDataTypeFactory.Builder root = typeFactory.builder();
+      for (int i = 0; i < topN; i++) {
+        int depth = 1 + (i % 8);
+        RelDataType t = leafObj;
+
+        for (int d = 0; d < depth; d++) {
+          RelDataType arrObj = typeFactory.createArrayType(t, -1);
+          RelDataType mapObj = typeFactory.createMapType(varchar, t);
+
+          t =
+              typeFactory.builder().add("lvl" + d, t).add("arr" + d, arrObj).add("map" + d, mapObj)
+                  .add("s" + d, varchar).build();
+
+        }
+
+        if ((i % 11) == 0) {
+          root.add("f" + i, typeFactory.createArrayType(t, -1));
+        } else if ((i % 11) == 1) {
+          root.add("f" + i, typeFactory.createMapType(varchar, t));
+        } else {
+          root.add("f" + i, t);
+        }
+      }
+
+      // cache will reuse same digest object if we don't use string as composite type digest
+      final RelDataType type = root.build();
+      final RelDataType type2 = root.build();
+
+      long start = System.currentTimeMillis();
+      boolean equals = false;
+      for (int i = 0; i < 1000; i++) {
+        equals = type.equals(type2) && type.hashCode() == type2.hashCode();
+      }
+      long end = System.currentTimeMillis();
+      System.out.println("struct topFields=" + topN + ", Time=" + (end - start) + "ms");
+      assertThat(equals, is(true));
+    }
   }
 }
