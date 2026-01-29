@@ -205,6 +205,30 @@ EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t0], EXPR$0=[$t2])
 !plan
 !}
 
+# [CALCITE-7403] Missing ENUMERABLE Convention for LogicalConditionalCorrelate
+# This case comes from some.iq [CALCITE-6786]
+WITH tb as (select array(SELECT * FROM (VALUES (TRUE), (NULL)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+!if (use_new_decorr) {
+EnumerableCalc(expr#0..1=[{inputs}], TEST=[$t1])
+  EnumerableConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{0}], condition=[$1])
+    EnumerableCollect(field=[x])
+      EnumerableValues(tuples=[[{ true }, { null }]])
+    EnumerableUncollect
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[$cor0], expr#2=[$t1.A], A=[$t2])
+        EnumerableValues(tuples=[[{ 0 }]])
+!plan
+!}
+
 # [CALCITE-7396] PruneEmptyRules does not support LEFT_MARK JOIN
 # This case comes from sub-query.iq
 !use post

@@ -263,6 +263,10 @@ public enum BuiltInMethod {
       Enumerable.class,         // inner enumerable
       NullablePredicate2.class, // non-equi predicate that can return NULL
       Function2.class),         // result selector
+  CORRELATE_LEFT_MARK_JOIN(ExtendedEnumerable.class, "correlateLeftMarkJoin",
+      Function1.class,          // function to generate inner enumerable from correlate variable
+      NullablePredicate2.class, // non-equi predicate that can return NULL
+      Function2.class),         // result selector
   CORRELATE_JOIN(ExtendedEnumerable.class, "correlateJoin",
       JoinType.class, Function1.class, Function2.class),
   CORRELATE_BATCH_JOIN(EnumerableDefaults.class, "correlateBatchJoin",

@@ -42,7 +42,7 @@ import java.util.List;
  */
 public abstract class ConditionalCorrelate extends Correlate {
 
-  private final RexNode condition;
+  protected final RexNode condition;
 
   protected ConditionalCorrelate(
       RelOptCluster cluster,
