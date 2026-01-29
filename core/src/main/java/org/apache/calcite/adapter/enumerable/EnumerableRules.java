@@ -66,6 +66,13 @@ public class EnumerableRules {
           .toRule(EnumerableCorrelateRule.class);
 
   /** Rule that converts a
+   * {@link org.apache.calcite.rel.logical.LogicalConditionalCorrelate} to
+   * {@link EnumerableConvention enumerable calling convention}. */
+  public static final RelOptRule ENUMERABLE_CONDITIONAL_CORRELATE_RULE =
+      EnumerableConditionalCorrelateRule.DEFAULT_CONFIG
+          .toRule(EnumerableConditionalCorrelateRule.class);
+
+  /** Rule that converts a
    * {@link org.apache.calcite.rel.logical.LogicalJoin} into an
    * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}. */
   public static final RelOptRule ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE =
@@ -219,6 +226,7 @@ public class EnumerableRules {
           EnumerableRules.ENUMERABLE_ASOFJOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+          EnumerableRules.ENUMERABLE_CONDITIONAL_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
           EnumerableRules.ENUMERABLE_FILTER_RULE,
           EnumerableRules.ENUMERABLE_CALC_RULE,

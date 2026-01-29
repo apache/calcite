@@ -1967,14 +1967,18 @@ public abstract class EnumerableDefaults {
 
   /**
    * The implementation of left mark join based on nested loop.
+   * This is a unified implementation supporting both correlated and non-correlated cases.
    *
    * @param outer           Left input
-   * @param inner           Right input
+   * @param innerProvider   Function that provides inner enumerable for each outer row
+   *                        (for correlated join, pass outerRow -> correlatedInner)
+   *                        (for non-correlated join, pass outerRow -> staticInner)
    * @param predicate       Non-equi predicate that can return NULL
    * @param resultSelector  Function that concats the row of left input and marker
    */
-  public static <TSource, TInner, TResult> Enumerable<TResult> leftMarkNestedLoopJoin(
-      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+  private static <TSource, TInner, TResult> Enumerable<TResult> leftMarkJoinInternal(
+      final Enumerable<TSource> outer,
+      final Function1<TSource, Enumerable<TInner>> innerProvider,
       final NullablePredicate2<TSource, TInner> predicate,
       final Function2<TSource, @Nullable Boolean, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
@@ -1993,15 +1997,18 @@ public abstract class EnumerableDefaults {
             }
             marker = false;
             final TSource outerRow = outers.current();
-            try (Enumerator<TInner> inners = inner.enumerator()) {
-              while (inners.moveNext()) {
-                final TInner innerRow = inners.current();
-                Boolean predicateMatched = predicate.apply(outerRow, innerRow);
-                if (predicateMatched == null) {
-                  marker = null;
-                } else if (predicateMatched) {
-                  marker = true;
-                  break;
+            Enumerable<TInner> innerEnumerable = innerProvider.apply(outerRow);
+            if (innerEnumerable != null) {
+              try (Enumerator<TInner> inners = innerEnumerable.enumerator()) {
+                while (inners.moveNext()) {
+                  final TInner innerRow = inners.current();
+                  Boolean predicateMatched = predicate.apply(outerRow, innerRow);
+                  if (predicateMatched == null) {
+                    marker = null;
+                  } else if (predicateMatched) {
+                    marker = true;
+                    break;
+                  }
                 }
               }
             }
@@ -2018,6 +2025,34 @@ public abstract class EnumerableDefaults {
         };
       }
     };
+  }
+
+  /**
+   * For each row of the {@code outer} enumerable returns correlated rows
+   * from the inner enumerable generated for each outer row, filtered by a predicate
+   * (correlated LEFT_MARK join).
+   */
+  public static <TSource, TInner, TResult> Enumerable<TResult> correlateLeftMarkJoin(
+      final Enumerable<TSource> outer,
+      final Function1<TSource, Enumerable<TInner>> inner,
+      final NullablePredicate2<TSource, TInner> predicate,
+      final Function2<TSource, @Nullable Boolean, TResult> resultSelector) {
+    return leftMarkJoinInternal(outer, inner, predicate, resultSelector);
+  }
+
+  /**
+   * The implementation of left mark join based on nested loop.
+   *
+   * @param outer           Left input
+   * @param inner           Right input
+   * @param predicate       Non-equi predicate that can return NULL
+   * @param resultSelector  Function that concats the row of left input and marker
+   */
+  public static <TSource, TInner, TResult> Enumerable<TResult> leftMarkNestedLoopJoin(
+      final Enumerable<TSource> outer, final Enumerable<TInner> inner,
+      final NullablePredicate2<TSource, TInner> predicate,
+      final Function2<TSource, @Nullable Boolean, TResult> resultSelector) {
+    return leftMarkJoinInternal(outer, ignored -> inner, predicate, resultSelector);
   }
 
   /**

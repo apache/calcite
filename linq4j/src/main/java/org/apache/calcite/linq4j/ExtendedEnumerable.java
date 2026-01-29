@@ -700,6 +700,19 @@ public interface ExtendedEnumerable<TSource> {
       Function2<TSource, @Nullable Boolean, TResult> resultSelector);
 
   /**
+   * For each row of the current enumerable returns correlated rows where each row
+   * from the inner enumerable satisfies the predicate (correlated LEFT_MARK join).
+   *
+   * @param inner function to generate inner enumerable from outer row
+   * @param predicate predicate that can return NULL
+   * @param resultSelector selector of the result, receives outer row and boolean marker
+   */
+  <TInner, TResult> Enumerable<TResult> correlateLeftMarkJoin(
+      Function1<TSource, Enumerable<TInner>> inner,
+      NullablePredicate2<TSource, TInner> predicate,
+      Function2<TSource, @Nullable Boolean, TResult> resultSelector);
+
+  /**
    * For each row of the current enumerable returns the correlated rows
    * from the {@code inner} enumerable (nested loops join).
    *

@@ -21,15 +21,23 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ReflectiveSchemaWithoutRowCount;
 import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.util.Holder;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -294,6 +302,170 @@ class EnumerableCorrelateTest {
                     builder.field("name"))
                 .build())
         .returnsUnordered("empid=200; name=Eric");
+  }
+
+  private static Program getConditionalCorrelateProgram() {
+    Program subQuery =
+        Programs.hep(
+            ImmutableList.of(CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+                CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+    Program toCalc =
+        Programs.hep(
+            ImmutableList.of(
+                CoreRules.PROJECT_TO_CALC,
+                CoreRules.FILTER_TO_CALC,
+                CoreRules.CALC_MERGE),
+            true,
+            DefaultRelMetadataProvider.INSTANCE);
+
+    final List<RelOptRule> enumerableRules =
+        ImmutableList.of(
+            EnumerableRules.ENUMERABLE_VALUES_RULE,
+            EnumerableRules.ENUMERABLE_CALC_RULE,
+            EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
+            EnumerableRules.ENUMERABLE_CONDITIONAL_CORRELATE_RULE);
+    Program enumerableImpl = Programs.ofRules(enumerableRules);
+    return Programs.sequence(subQuery, toCalc, enumerableImpl);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7403">[CALCITE-7403]
+   * Missing ENUMERABLE Convention for LogicalConditionalCorrelate</a>. */
+  @Test void testConditionalCorrelateForExists() {
+    // test for exists
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, val) AS (\n"
+                + "  VALUES (1, 10), (2, 20), (NULL, 30)\n"
+                + "),\n"
+                + "t2(id, val) AS (\n"
+                + "  VALUES (2, 15), (3, 25)\n"
+                + ")\n"
+                + "SELECT\n"
+                + "  t1.id,\n"
+                + "  EXISTS (\n"
+                + "    SELECT 1\n"
+                + "    FROM t2\n"
+                + "    WHERE t2.id = t1.id\n"
+                + "      AND t2.val > 10\n"
+                + "  ) AS marker\n"
+                + "FROM t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(getConditionalCorrelateProgram());
+        })
+        .explainHookMatches(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], id=[$t0], marker=[$t2])\n"
+            + "  EnumerableConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{0}])\n"
+            + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { null, 30 }]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.id], expr#4=[=($t0, $t3)], expr#5=[10], expr#6=[>($t1, $t5)], expr#7=[AND($t4, $t6)], proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "      EnumerableValues(tuples=[[{ 2, 15 }, { 3, 25 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=true",
+            "id=null; marker=false");
+
+    // test for not exists
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, val) AS (\n"
+                + "  VALUES (1, 10), (2, 20), (NULL, 30)\n"
+                + "),\n"
+                + "t2(id, val) AS (\n"
+                + "  VALUES (2, 15), (3, 25)\n"
+                + ")\n"
+                + "SELECT\n"
+                + "  t1.id,\n"
+                + "  NOT EXISTS (\n"
+                + "    SELECT 1\n"
+                + "    FROM t2\n"
+                + "    WHERE t2.id = t1.id\n"
+                + "      AND t2.val > 10\n"
+                + "  ) AS marker\n"
+                + "FROM t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(getConditionalCorrelateProgram());
+        })
+        .explainHookMatches(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[NOT($t2)], id=[$t0], marker=[$t3])\n"
+            + "  EnumerableConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{0}])\n"
+            + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { null, 30 }]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.id], expr#4=[=($t0, $t3)], expr#5=[10], expr#6=[>($t1, $t5)], expr#7=[AND($t4, $t6)], proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "      EnumerableValues(tuples=[[{ 2, 15 }, { 3, 25 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=true",
+            "id=2; marker=false",
+            "id=null; marker=true");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7403">[CALCITE-7403]
+   * Missing ENUMERABLE Convention for LogicalConditionalCorrelate</a>. */
+  @Test void testConditionalCorrelateForIn() {
+    // test in
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, val) AS (\n"
+                + "  VALUES (1, 10), (2, 20), (NULL, 30)\n"
+                + "),\n"
+                + "t2(id, val) AS (\n"
+                + "  VALUES (2, 15), (3, 25)\n"
+                + ")\n"
+                + "SELECT\n"
+                + "  t1.id,\n"
+                + "  t1.id IN (\n"
+                + "    SELECT t2.id\n"
+                + "    FROM t2\n"
+                + "    WHERE t2.id = t1.id\n"
+                + "      AND t2.val > 10\n"
+                + "  ) AS marker\n"
+                + "FROM t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(getConditionalCorrelateProgram());
+        })
+        .explainHookMatches(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], id=[$t0], marker=[$t2])\n"
+            + "  EnumerableConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{0}], condition=[=($0, $2)])\n"
+            + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { null, 30 }]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.id], expr#4=[=($t0, $t3)], expr#5=[10], expr#6=[>($t1, $t5)], expr#7=[AND($t4, $t6)], id=[$t0], $condition=[$t7])\n"
+            + "      EnumerableValues(tuples=[[{ 2, 15 }, { 3, 25 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=false",
+            "id=2; marker=true",
+            "id=null; marker=false");
+
+    // test not in
+    tester(false, new HrSchema())
+        .query(
+            "WITH t1(id, val) AS (\n"
+                + "  VALUES (1, 10), (2, 20), (NULL, 30)\n"
+                + "),\n"
+                + "t2(id, val) AS (\n"
+                + "  VALUES (2, 15), (3, 25)\n"
+                + ")\n"
+                + "SELECT\n"
+                + "  t1.id,\n"
+                + "  t1.id NOT IN (\n"
+                + "    SELECT t2.id\n"
+                + "    FROM t2\n"
+                + "    WHERE t2.id = t1.id\n"
+                + "      AND t2.val > 10\n"
+                + "  ) AS marker\n"
+                + "FROM t1")
+        .withHook(Hook.PROGRAM, (Consumer<Holder<Program>>) program -> {
+          program.set(getConditionalCorrelateProgram());
+        })
+        .explainHookMatches(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[NOT($t2)], id=[$t0], marker=[$t3])\n"
+            + "  EnumerableConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{0}], condition=[=($0, $2)])\n"
+            + "    EnumerableValues(tuples=[[{ 1, 10 }, { 2, 20 }, { null, 30 }]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.id], expr#4=[=($t0, $t3)], expr#5=[10], expr#6=[>($t1, $t5)], expr#7=[AND($t4, $t6)], id=[$t0], $condition=[$t7])\n"
+            + "      EnumerableValues(tuples=[[{ 2, 15 }, { 3, 25 }]])\n")
+        .returnsUnordered(
+            "id=1; marker=true",
+            "id=2; marker=false",
+            "id=null; marker=true");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
