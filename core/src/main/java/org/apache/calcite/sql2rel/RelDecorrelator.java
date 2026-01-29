@@ -918,7 +918,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    *                     CASE WHEN cnt0 IS NOT NULL THEN cnt0 ELSE 0 END AS cnt
    *              FROM (SELECT deptno FROM dept GROUP BY deptno) d2
    *              LEFT JOIN (
-   *                  SELECT deptno, COUNT(e.empno) cnt0
+   *                  SELECT deptno, COUNT(emp.empno) cnt0
    *                  FROM emp
    *                  WHERE deptno IS NOT NULL
    *                  GROUP BY deptno) e
@@ -1537,15 +1537,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
   /**
    * Finds the RelNode that produces the given correlation variable.
    *
-   * <p>This method implements a <b>Dynamic Scope Resolution</b> strategy to locate the source
-   * of a correlation variable. It relies on the {@link #frameStack}, which maintains the
-   * active correlation contexts during the top-down traversal.
+   * <p>This method resolves correlation variables by inspecting the {@link #frameStack},
+   * which maintains the active correlation contexts during the top-down traversal.
    *
-   * <p>The lookup logic follows these principles:
+   * <p>The lookup logic implements <b>Lexical Scoping</b> (with Shadowing):
    * <ul>
-   *   <li>Lexical Scoping (Shadowing): The {@code frameStack} is traversed from top to bottom
-   *       (most recently pushed to least recently pushed). This ensures that if multiple nested
-   *       queries use the same {@link CorrelationId}, the innermost definition takes precedence.
+   *   <li>The {@code frameStack} is traversed from top to bottom (most recently pushed to
+   *       least recently pushed). This ensures that if multiple nested queries use the same
+   *       {@link CorrelationId}, the innermost definition takes precedence, shadowing outer ones.
    *   </li>
    * </ul>
    *
@@ -3801,7 +3800,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * and where to find the output fields and correlation variables
    * among its output fields. */
   static class Frame {
+    // The original relational expression before decorrelation
     final RelNode oldRel;
+    // The decorrelated relational expression
     final RelNode r;
     final ImmutableSortedMap<CorDef, Integer> corDefOutputs;
     final ImmutableSortedMap<Integer, Integer> oldToNewOutputs;
