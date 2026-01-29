@@ -76,7 +76,9 @@ public class MongoProject extends Project implements MongoRel {
             MongoRules.mongoFieldNames(getInput().getRowType()));
     final List<String> items = new ArrayList<>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
-      final String name = pair.right;
+      final String name = pair.right.startsWith("$f")
+          ? "_" + pair.right.substring(2)
+          : pair.right;
       final String expr = pair.left.accept(translator);
       items.add(expr.equals("'$" + name + "'")
           ? MongoRules.maybeQuote(name) + ": 1"

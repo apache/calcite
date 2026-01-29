@@ -1001,4 +1001,18 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {CITY: 1}}"))
         .returnsOrdered("");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7404">[CALCITE-7404]
+   * Incorrect Field Alias in MongoDB project Stage</a>. */
+  @Test void testAggFunctionMinFilter() {
+    assertModel(MODEL)
+        .query("select min(pop>5000) as pop_result from zips")
+        .queryContains(
+            mongoChecker(
+                "{$project:{_0:{$gt:['$pop',{$literal:5000}]}}}",
+                "{$group:{_id: {},POP_RESULT:{$min:'$_0'}}}"))
+        .returns("POP_RESULT=false\n");
+  }
+
 }
