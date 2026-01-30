@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.tpch;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -27,11 +28,16 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelConversionException;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.TestUtil;
 
@@ -41,14 +47,18 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.calcite.test.Matchers.containsStringLinux;
+import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Objects.requireNonNull;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpch.TpchSchema}.
  *
@@ -999,6 +1009,208 @@ class TpchTest {
 
   @Test void testQuery22() {
     checkQuery(22);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5390">[CALCITE-5390]
+   * RelDecorrelator throws NullPointerException</a>. */
+  @Test public void test5390()
+      throws SqlParseException, ValidationException, RelConversionException {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    TpchSchema tpchSchema = new TpchSchema(1.0, 0, 1, false);
+    rootSchema.add("TPCH", tpchSchema);
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelOptCluster cluster = builder.getCluster();
+
+    Planner planner = Frameworks.getPlanner(config);
+
+    String sql = "select\n"
+        + " (select count(*) from tpch.part where p_partkey = tpch.partsupp.ps_partkey),\n"
+        + " (select count(*) from tpch.supplier\n"
+        + "  where s_suppkey = case when s_acctbal > 0\n"
+        + "  then tpch.partsupp.ps_partkey + 1\n"
+        + "  else 1234 end)\n"
+        + "from tpch.partsupp";
+
+    SqlNode parsed = planner.parse(sql);
+    SqlNode validated = planner.validate(parsed);
+    RelRoot root = planner.rel(validated);
+    final RelNode originalRel = root.rel;
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(EXPR$0=[$5], EXPR$1=[$6])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "        LogicalFilter(condition=[=($0, $cor0.PS_PARTKEY)])\n"
+        + "          LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "    LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "      LogicalFilter(condition=[=(CAST($0):BIGINT, CASE(>(CAST($5):DOUBLE, CAST(0):DOUBLE NOT NULL), +($cor0.PS_PARTKEY, 1), 1234:BIGINT))])\n"
+        + "        LogicalTableScan(table=[[TPCH, SUPPLIER]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder,
+            RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(EXPR$0=[$5], EXPR$1=[$8])\n"
+        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($6, $7)], joinType=[left])\n"
+        + "    LogicalProject(PS_PARTKEY=[$0], PS_SUPPKEY=[$1], PS_AVAILQTY=[$2], PS_SUPPLYCOST=[$3], PS_COMMENT=[$4], EXPR$0=[$6], $f6=[+($0, 1)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
+        + "        LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "        LogicalProject(P_PARTKEY=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalAggregate(group=[{0}])\n"
+        + "              LogicalProject(PS_PARTKEY=[$0])\n"
+        + "                LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "            LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "              LogicalProject(P_PARTKEY=[$0])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                  LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "    LogicalProject($f6=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject($f6=[+($0, 1)])\n"
+        + "            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
+        + "              LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "              LogicalProject(P_PARTKEY=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "                LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "                  LogicalAggregate(group=[{0}])\n"
+        + "                    LogicalProject(PS_PARTKEY=[$0])\n"
+        + "                      LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                  LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "                    LogicalProject(P_PARTKEY=[$0])\n"
+        + "                      LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                        LogicalTableScan(table=[[TPCH, PART]])\n"
+        + "        LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "          LogicalProject($f6=[$7])\n"
+        + "            LogicalJoin(condition=[=(CAST($0):BIGINT, CASE(>(CAST($5):DOUBLE, 0.0E0), $7, 1234:BIGINT))], joinType=[inner])\n"
+        + "              LogicalTableScan(table=[[TPCH, SUPPLIER]])\n"
+        + "              LogicalAggregate(group=[{0}])\n"
+        + "                LogicalProject($f6=[+($0, 1)])\n"
+        + "                  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $5)], joinType=[left])\n"
+        + "                    LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                    LogicalProject(P_PARTKEY=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "                      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "                        LogicalAggregate(group=[{0}])\n"
+        + "                          LogicalProject(PS_PARTKEY=[$0])\n"
+        + "                            LogicalTableScan(table=[[TPCH, PARTSUPP]])\n"
+        + "                        LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "                          LogicalProject(P_PARTKEY=[$0])\n"
+        + "                            LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                              LogicalTableScan(table=[[TPCH, PART]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  @Test public void test53902()
+      throws SqlParseException, ValidationException, RelConversionException {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    TpchSchema tpchSchema = new TpchSchema(1.0, 0, 1, false);
+    rootSchema.add("TPCH", tpchSchema);
+    FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(rootSchema)
+        .build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelOptCluster cluster = builder.getCluster();
+
+    Planner planner = Frameworks.getPlanner(config);
+
+    String sql = ""
+        + "SELECT *\n"
+        + "FROM tpch.customer\n"
+        + "WHERE c_mktsegment = 'AUTOMOBILE'\n"
+        + "    AND (SELECT COUNT(*)\n"
+        + "        FROM tpch.orders\n"
+        + "        WHERE o_custkey = c_custkey\n"
+        + "            AND (SELECT SUM(l_extendedprice)\n"
+        + "                FROM tpch.lineitem\n"
+        + "                WHERE l_orderkey = o_orderkey\n"
+        + "            ) > 300000\n"
+        + "    ) > 5";
+
+    SqlNode parsed = planner.parse(sql);
+    SqlNode validated = planner.validate(parsed);
+    RelRoot root = planner.rel(validated);
+    final RelNode originalRel = root.rel;
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(C_CUSTKEY=[$0], C_NAME=[$1], C_ADDRESS=[$2], C_NATIONKEY=[$3], C_PHONE=[$4], C_ACCTBAL=[$5], C_MKTSEGMENT=[$6], C_COMMENT=[$7])\n"
+        + "  LogicalProject(C_CUSTKEY=[$0], C_NAME=[$1], C_ADDRESS=[$2], C_NATIONKEY=[$3], C_PHONE=[$4], C_ACCTBAL=[$5], C_MKTSEGMENT=[$6], C_COMMENT=[$7])\n"
+        + "    LogicalFilter(condition=[AND(=(CAST($6):VARCHAR, 'AUTOMOBILE'), >($8, 5))])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "        LogicalTableScan(table=[[TPCH, CUSTOMER]])\n"
+        + "        LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        + "          LogicalProject(O_ORDERKEY=[$0], O_CUSTKEY=[$1], O_ORDERSTATUS=[$2], O_TOTALPRICE=[$3], O_ORDERDATE=[$4], O_ORDERPRIORITY=[$5], O_CLERK=[$6], O_SHIPPRIORITY=[$7], O_COMMENT=[$8])\n"
+        + "            LogicalFilter(condition=[AND(=($1, $cor0.C_CUSTKEY), >(CAST($9):DOUBLE, 300000.0E0))])\n"
+        + "              LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])\n"
+        + "                LogicalTableScan(table=[[TPCH, ORDERS]])\n"
+        + "                LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
+        + "                  LogicalProject(L_EXTENDEDPRICE=[$5])\n"
+        + "                    LogicalFilter(condition=[=($0, $cor1.O_ORDERKEY)])\n"
+        + "                      LogicalTableScan(table=[[TPCH, LINEITEM]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder,
+            RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(C_CUSTKEY=[$0], C_NAME=[$1], C_ADDRESS=[$2], C_NATIONKEY=[$3], C_PHONE=[$4], C_ACCTBAL=[$5], C_MKTSEGMENT=[$6], C_COMMENT=[$7])\n"
+        + "  LogicalProject(C_CUSTKEY=[$0], C_NAME=[$1], C_ADDRESS=[$2], C_NATIONKEY=[$3], C_PHONE=[$4], C_ACCTBAL=[$5], C_MKTSEGMENT=[$6], C_COMMENT=[$7], O_CUSTKEY9=[$8], EXPR$0=[CAST($9):BIGINT])\n"
+        + "    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $8)], joinType=[inner])\n"
+        + "      LogicalFilter(condition=[=(CAST($6):VARCHAR, 'AUTOMOBILE')])\n"
+        + "        LogicalTableScan(table=[[TPCH, CUSTOMER]])\n"
+        + "      LogicalFilter(condition=[>($1, 5)])\n"
+        + "        LogicalProject(O_CUSTKEY9=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0)])\n"
+        + "          LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "            LogicalAggregate(group=[{0}])\n"
+        + "              LogicalProject(C_CUSTKEY=[$0])\n"
+        + "                LogicalTableScan(table=[[TPCH, CUSTOMER]])\n"
+        + "            LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])\n"
+        + "              LogicalProject(O_CUSTKEY9=[$1])\n"
+        + "                LogicalJoin(condition=[=($0, $9)], joinType=[inner])\n"
+        + "                  LogicalFilter(condition=[IS NOT NULL($1)])\n"
+        + "                    LogicalTableScan(table=[[TPCH, ORDERS]])\n"
+        + "                  LogicalFilter(condition=[>(CAST($1):DOUBLE, 300000.0E0)])\n"
+        + "                    LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])\n"
+        + "                      LogicalProject(L_ORDERKEY=[$0], L_EXTENDEDPRICE=[$5])\n"
+        + "                        LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                          LogicalTableScan(table=[[TPCH, LINEITEM]])\n";
+    assertThat(after, hasTree(planAfter));
   }
 
   private void checkQuery(int i) {
