@@ -1015,4 +1015,37 @@ public class MongoAdapterTest implements SchemaFactory {
         .returns("POP_RESULT=false\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7404">[CALCITE-7404]
+   * Incorrect Field Alias in MongoDB project Stage</a>. */
+  @Test void testAliasNameOrderBy() {
+    assertModel(MODEL)
+        .query("select pop as pop_a from zips"
+            + " order by pop_a")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project:{POP_A:'$pop'}}",
+                "{$sort: {POP_A: 1}}"))
+        .returnsOrdered("POP_A=21",
+            "POP_A=17522",
+            "POP_A=22576");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7404">[CALCITE-7404]
+   * Incorrect Field Alias in MongoDB project Stage</a>. */
+  @Test void testNameOrderBy() {
+    assertModel(MODEL)
+        .query("select pop as pop_a from zips"
+            + " order by pop")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project:{POP_A:'$pop'}}",
+                "{$sort: {POP_A: 1}}"))
+        .returnsOrdered("POP_A=21",
+            "POP_A=17522",
+            "POP_A=22576");
+  }
 }
