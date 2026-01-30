@@ -322,4 +322,26 @@ public interface RelDataType {
   default boolean isMeasure() {
     return getSqlTypeName() == SqlTypeName.MEASURE;
   }
+
+  /**
+   * Returns the digest of this type.
+   *
+   * @return digest of this type
+   */
+  RelDataTypeDigest getDigest();
+
+  /**
+   * Deep equality check for RelDataType digest.
+   *
+   * @return Whether the 2 RelDataTypes are equivalent or have the same digest.
+   * @see #deepHashCode()
+   */
+  boolean deepEquals(@Nullable Object obj);
+
+  /**
+   * Compute deep hash code for RelDataType digest.
+   *
+   * @see #deepEquals(Object)
+   */
+  int deepHashCode();
 }
