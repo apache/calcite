@@ -8739,6 +8739,27 @@ LogicalProject(DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+    LogicalJoin(condition=[AND(=($7, $11), CAST(OR(AND(IS TRUE(>=(+($11, $12), $13)), IS NOT TRUE(OR(IS NULL($16), =($14, 0)))), AND(IS TRUE(>($14, $15)), null, IS NOT TRUE(OR(IS NULL($16), =($14, 0))), IS NOT TRUE(>=(+($11, $12), $13))), AND(>=(+($11, $12), $13), IS NOT TRUE(OR(IS NULL($16), =($14, 0))), IS NOT TRUE(>=(+($11, $12), $13)), IS NOT TRUE(>($14, $15))))):BOOLEAN NOT NULL)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalJoin(condition=[true], joinType=[left], variablesSet=[[$cor0]])
+          LogicalJoin(condition=[true], joinType=[inner])
+            LogicalAggregate(group=[{0}])
+              LogicalProject(DEPTNO=[$7])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(m=[$0], c=[$1], d=[$1], trueLiteral=[$2])
+            LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()], trueLiteral=[LITERAL_AGG(true)])
+              LogicalProject(DEPTNO=[$0])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
   </TestCase>
   <TestCase name="testJoinToMultiJoinDoesNotMatchAntiJoin">
     <Resource name="sql">
