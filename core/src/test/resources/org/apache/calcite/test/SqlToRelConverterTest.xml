@@ -1336,6 +1336,45 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelationInProjectionWithBloatFusion">
+    <Resource name="sql">
+      <![CDATA[select e1.sal + (select sum(e2.sal) from emp e2 where e2.deptno = d.deptno)
+from dept d join emp e1 on  d.deptno + 1 = e1.deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[+($7, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10], SLACKER=[$11])
+    LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+      LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelationInProjectionWithBloatFusionAndCompoundNonProjectedCorrelation">
+    <Resource name="sql">
+      <![CDATA[select d2.name, (select sum(e.sal) from emp e where e.deptno = d2.compound)
+from (select d.name, d.deptno + 1 as compound from dept d) as d2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], NAME=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($7, $cor0.COMPOUND)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalProject(NAME=[$1], COMPOUND=[+($0, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
       <![CDATA[select cardinality(arr) from (
