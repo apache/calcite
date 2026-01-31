@@ -151,6 +151,7 @@ public class MongoRules {
       MONGO_OPERATORS.put(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, "$gte");
       MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN, "$lt");
       MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, "$lte");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.ABS, "$abs");
     }
 
     protected RexToMongoTranslator(JavaTypeFactory typeFactory,

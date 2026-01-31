@@ -1001,4 +1001,49 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {CITY: 1}}"))
         .returnsOrdered("");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7406">[CALCITE-7406]
+   * Add abs function (enabled in Mongodb library)</a>. */
+  @Test void testAbs() {
+    assertModel(MODEL)
+        .query("select abs(pop) from zips")
+        .runs()
+        .queryContains(
+            mongoChecker(
+                "{$project:{EXPR$0:{$abs:['$pop']}}}"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7406">[CALCITE-7406]
+   * Add abs function (enabled in Mongodb library)</a>. */
+  @Test void testAbsAlias() {
+    assertModel(MODEL)
+        .query("select abs(pop) as pop_result from zips"
+            + " order by pop")
+        .limit(3)
+        .runs()
+        .queryContains(
+            mongoChecker(
+                "{$project:{POP_RESULT:{$abs:['$pop']},POP:'$pop'}}",
+                "{$sort:{POP:1}}"))
+        .returnsOrdered(
+            "POP_RESULT=21",
+            "POP_RESULT=17522",
+            "POP_RESULT=22576");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7406">[CALCITE-7406]
+   * Add abs function (enabled in Mongodb library)</a>. */
+  @Test void testAbsMin() {
+    assertModel(MODEL)
+        .query("select abs(min(pop)) from zips")
+        .returnsOrdered("EXPR$0=21")
+        .queryContains(
+            mongoChecker(
+                "{$project:{POP:'$pop'}}",
+                "{$group:{_id:{},_0:{$min:'$POP'}}}",
+                "{$project:{EXPR$0:{$abs:['$_0']}}}"));
+  }
 }
