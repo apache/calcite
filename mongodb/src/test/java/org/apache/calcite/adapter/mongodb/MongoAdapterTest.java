@@ -1011,7 +1011,7 @@ public class MongoAdapterTest implements SchemaFactory {
         .runs()
         .queryContains(
             mongoChecker(
-                "{$project:{EXPR$0: {$abs: ['$pop']}}}"));
+                "{$project:{EXPR$0:{$abs:['$pop']}}}"));
   }
 
   /** Test case for
@@ -1042,8 +1042,8 @@ public class MongoAdapterTest implements SchemaFactory {
         .returnsOrdered("EXPR$0=21")
         .queryContains(
             mongoChecker(
-                "{ $project: {   POP: '$pop' }}",
-                "{$group: { _id: {}, _0: {$min: '$POP'}}}",
-                "{$project: {EXPR$0: {$abs: ['$_0']}}}"));
+                "{$project:{POP:'$pop'}}",
+                "{$group:{_id:{},_0:{$min:'$POP'}}}",
+                "{$project:{EXPR$0:{$abs:['$_0']}}}"));
   }
 }
