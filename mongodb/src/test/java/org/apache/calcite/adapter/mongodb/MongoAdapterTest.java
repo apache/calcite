@@ -1017,7 +1017,7 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7406">[CALCITE-7406]
    * Add abs function (enabled in Mongodb library)</a>. */
-  @Test void testAbsAlisa() {
+  @Test void testAbsAlias() {
     assertModel(MODEL)
         .query("select abs(pop) as pop_result from zips"
             + " order by pop")
