@@ -39,6 +39,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -224,6 +225,20 @@ public class ClickHouseSqlDialect extends SqlDialect {
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.APPROX_COUNT_DISTINCT) {
       RelToSqlConverterUtil.specialOperatorByName("UNIQ")
+          .unparse(writer, call, 0, 0);
+      return;
+    }
+
+    // refer to https://clickhouse.com/docs/sql-reference/functions/url-functions#encodeURLComponent
+    if (call.getOperator() == SqlLibraryOperators.URL_ENCODE) {
+      RelToSqlConverterUtil.specialOperatorByName("encodeURLComponent")
+          .unparse(writer, call, 0, 0);
+      return;
+    }
+
+    // refer to https://clickhouse.com/docs/sql-reference/functions/url-functions#decodeURLComponent
+    if (call.getOperator() == SqlLibraryOperators.URL_DECODE) {
+      RelToSqlConverterUtil.specialOperatorByName("decodeURLComponent")
           .unparse(writer, call, 0, 0);
       return;
     }
