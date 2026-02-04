@@ -725,7 +725,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   /** The "URL_DECODE(string)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, CLICKHOUSE})
   public static final SqlFunction URL_DECODE =
       SqlBasicFunction.create("URL_DECODE",
           ReturnTypes.VARCHAR_NULLABLE,
@@ -733,7 +733,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "URL_ENCODE(string)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, CLICKHOUSE})
   public static final SqlFunction URL_ENCODE =
       SqlBasicFunction.create("URL_ENCODE",
           ReturnTypes.VARCHAR_NULLABLE,
