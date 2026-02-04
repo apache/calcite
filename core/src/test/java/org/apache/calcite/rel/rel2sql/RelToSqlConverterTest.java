@@ -3704,7 +3704,7 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7408">[CALCITE-7408]
    * Enable URL_ENCODE/URL_DECODE in ClickHouse Dialect</a>. */
-  @Test void testUrlencodeAndUrldecodeForClickHouse() {
+  @Test void testUrlencodeAndUrldecode() {
     final String query = "SELECT URL_ENCODE(\"product_name\") from \"product\"";
     final String expected = "SELECT encodeURLComponent(`product_name`)\nFROM `foodmart`.`product`";
     sql(query).withLibrary(SqlLibrary.CLICKHOUSE).withClickHouse().ok(expected);
