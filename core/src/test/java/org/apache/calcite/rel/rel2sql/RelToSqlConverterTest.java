@@ -3701,6 +3701,19 @@ class RelToSqlConverterTest {
     sql(query2).withSpark().ok(expected2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7408">[CALCITE-7408]
+   * URL_ENCODE/URL_DECODE is unparsed incorrectly for ClickHouseSqlDialect</a>. */
+  @Test void testUrlencodeAndUrldecode() {
+    final String query = "SELECT URL_ENCODE(\"product_name\") from \"product\"";
+    final String expected = "SELECT encodeURLComponent(`product_name`)\nFROM `foodmart`.`product`";
+    sql(query).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expected);
+
+    final String query1 = "SELECT URL_DECODE(\"product_name\") from \"product\"";
+    final String expected1 = "SELECT decodeURLComponent(`product_name`)\nFROM `foodmart`.`product`";
+    sql(query1).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expected1);
+  }
+
   @Test void testInstrFunction4Operands() {
     final String query = "SELECT INSTR('ABC', 'A', 1, 1) from \"product\"";
     final String expectedBQ = "SELECT INSTR('ABC', 'A', 1, 1)\n"
