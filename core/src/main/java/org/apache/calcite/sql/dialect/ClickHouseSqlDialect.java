@@ -228,6 +228,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
           .unparse(writer, call, 0, 0);
       return;
     }
+
     // refer to https://clickhouse.com/docs/sql-reference/functions/url-functions#encodeURLComponent
     if (call.getOperator() == SqlLibraryOperators.URL_ENCODE) {
       RelToSqlConverterUtil.specialOperatorByName("encodeURLComponent")
