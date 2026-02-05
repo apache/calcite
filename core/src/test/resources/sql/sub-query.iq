@@ -8665,4 +8665,50 @@ FROM dept;
 (4 rows)
 
 !ok
+
+# [CALCITE-7409] MERGE JOIN condition cannot contain IS NOT DISTINCT FROM
+select e.ename,
+  (select count(*)
+    from emp as f
+    where f.comm is not distinct from e.comm) as c
+from emp as e;
++--------+----+
+| ENAME  | C  |
++--------+----+
+| ALLEN  |  1 |
+| WARD   |  1 |
+| MARTIN |  1 |
+| TURNER |  1 |
+| SMITH  | 10 |
+| JONES  | 10 |
+| BLAKE  | 10 |
+| CLARK  | 10 |
+| SCOTT  | 10 |
+| KING   | 10 |
+| ADAMS  | 10 |
+| JAMES  | 10 |
+| FORD   | 10 |
+| MILLER | 10 |
++--------+----+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], expr#8=[0:BIGINT], expr#9=[CASE($t7, $t8, $t6)], ENAME=[$t1], C=[$t9])
+  EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($2, $4), =($3, $5))], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], proj#0..1=[{exprs}], COMM=[$t6], $f3=[$t8])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t4)], expr#6=[0], expr#7=[CASE($t5, $t4, $t6)], proj#0..1=[{exprs}], EXPR$0=[$t7])
+      EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[left])
+        EnumerableAggregate(group=[{0, 1}])
+          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], COMM=[$t6], $f3=[$t8])
+            EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableAggregate(group=[{0, 1}], EXPR$0=[COUNT()])
+          EnumerableNestedLoopJoin(condition=[OR(AND(IS NULL($3), $1), =($3, $0))], joinType=[inner])
+            EnumerableAggregate(group=[{0, 1}])
+              EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], COMM=[$t6], $f3=[$t8])
+                EnumerableTableScan(table=[[scott, EMP]])
+            EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], COMM=[$t6])
+              EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End sub-query.iq
