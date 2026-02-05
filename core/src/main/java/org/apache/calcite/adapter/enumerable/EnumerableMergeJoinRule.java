@@ -31,6 +31,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -60,6 +61,13 @@ class EnumerableMergeJoinRule extends ConverterRule {
 
   @Override public @Nullable RelNode convert(RelNode rel) {
     Join join = (Join) rel;
+    // TODO: support IS NOT DISTINCT FROM condition as join keys of MergeJoin.
+    //  MergeJoin cannot handle IS NOT DISTINCT FROM because it stops at NULL values
+    //  while IS NOT DISTINCT FROM treats NULL = NULL as true.
+    if (RexUtil.findOperatorCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+        join.getCondition()) != null) {
+      return null;
+    }
     // EnumerableMergeJoin cannot use IS NOT DISTINCT FROM condition as join keys. More details
     // in EnumerableMergeJoin.java.
     final JoinInfo info =
