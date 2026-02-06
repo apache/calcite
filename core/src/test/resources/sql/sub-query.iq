@@ -8711,4 +8711,22 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], expr#8=[0:BIGINT], e
               EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# Test case for [CALCITE-6452] Scalar sub-query that uses IS NOT DISTINCT FROM returns incorrect result
+select e.ename,
+  (select count(*)
+    from emp as f
+    where f.comm is not distinct from e.comm) as c
+from emp as e
+where e.deptno = 10;
++--------+----+
+| ENAME  | C  |
++--------+----+
+| CLARK  | 10 |
+| KING   | 10 |
+| MILLER | 10 |
++--------+----+
+(3 rows)
+
+!ok
+
 # End sub-query.iq
