@@ -136,4 +136,16 @@ public class SingleColumnAliasRelDataType implements RelDataType {
   @Override public boolean isDynamicStruct() {
     return original.isDynamicStruct();
   }
+
+  @Override public RelDataTypeDigest getDigest() {
+    return original.getDigest();
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    return original.deepEquals(obj);
+  }
+
+  @Override public int deepHashCode() {
+    return original.deepHashCode();
+  }
 }

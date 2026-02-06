@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -144,6 +145,39 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
       sb.append(field.getName());
     }
     sb.append(")");
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || this.getClass() != obj.getClass()) {
+      return false;
+    }
+
+    RelRecordType that = (RelRecordType) obj;
+    if (kind != that.kind || nullable != that.nullable) {
+      return false;
+    }
+
+    if (fieldList == null || that.fieldList == null) {
+      return fieldList == null && that.fieldList == null;
+    }
+
+    if (fieldList.size() != that.fieldList.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < fieldList.size(); i++) {
+      if (!fieldList.get(i).equals(that.fieldList.get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override public int deepHashCode() {
+    return Objects.hash(kind.ordinal(), nullable, fieldList);
   }
 
   /**

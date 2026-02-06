@@ -138,6 +138,14 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
       booleanProperty("calcite.planner.topdown.opt", false);
 
+
+  /** Whether to disable generate type digest string.
+   *
+   * <p> Disable generate type digest string for every type can
+   * reduce composite type's digest memory and digest relative operation's latency. */
+  public static final CalciteSystemProperty<Boolean> DISABLE_GENERATE_TYPE_DIGEST_STRING =
+      booleanProperty("calcite.disable.generate.type.digest.string", false);
+
   /**
    * Whether to run integration tests.
    */
