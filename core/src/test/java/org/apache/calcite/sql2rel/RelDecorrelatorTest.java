@@ -1492,6 +1492,94 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7278">[CALCITE-7278]
+   * Correlated subqueries in the join condition cannot reference both join inputs</a>. */
+  @Test void test7278() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "SELECT d.dname\n"
+        + "FROM dept d\n"
+        + "JOIN emp e\n"
+        + "  ON NOT EXISTS (\n"
+        + "      SELECT 1\n"
+        + "      FROM emp e2\n"
+        + "      WHERE e2.deptno = d.deptno\n"
+        + "        AND e2.empno > e.empno)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(DNAME=[$1])\n"
+        + "  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10])\n"
+        + "    LogicalJoin(condition=[AND(=($0, $11), IS NULL($13))], joinType=[inner])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalJoin(condition=[=($0, $9)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0, 1}])\n"
+        + "          LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalProject(EMPNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "          LogicalAggregate(group=[{0}])\n"
+        + "            LogicalProject(i=[true])\n"
+        + "              LogicalFilter(condition=[AND(=($7, $cor2.DEPTNO), >($0, $cor2.EMPNO))])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalProject(DNAME=[$1])\n"
+        + "  LogicalJoin(condition=[=($0, $11)], joinType=[inner])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalFilter(condition=[IS NULL($12)])\n"
+        + "      LogicalJoin(condition=[=($0, $9)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])\n"
+        + "          LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "            LogicalProject(DEPTNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "            LogicalProject(EMPNO=[$0])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "          LogicalProject(DEPTNO0=[$0], EMPNO0=[$1], $f2=[true])\n"
+        + "            LogicalAggregate(group=[{0, 1}])\n"
+        + "              LogicalProject(DEPTNO0=[$8], EMPNO0=[$9])\n"
+        + "                LogicalJoin(condition=[AND(=($7, $8), >($0, $9))], joinType=[inner])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "                  LogicalJoin(condition=[true], joinType=[inner])\n"
+        + "                    LogicalProject(DEPTNO=[$0])\n"
+        + "                      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "                    LogicalProject(EMPNO=[$0])\n"
+        + "                      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7379">[CALCITE-7379]
    * LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN</a>. */
   @Test void testDecorrelateFullJoinCorVarShadowing() {
