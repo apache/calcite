@@ -3707,11 +3707,11 @@ class RelToSqlConverterTest {
   @Test void testUrlencodeAndUrldecode() {
     final String query = "SELECT URL_ENCODE(\"product_name\") from \"product\"";
     final String expected = "SELECT encodeURLComponent(`product_name`)\nFROM `foodmart`.`product`";
-    sql(query).withLibrary(SqlLibrary.CLICKHOUSE).withClickHouse().ok(expected);
+    sql(query).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expected);
 
     final String query1 = "SELECT URL_DECODE(\"product_name\") from \"product\"";
     final String expected1 = "SELECT decodeURLComponent(`product_name`)\nFROM `foodmart`.`product`";
-    sql(query1).withLibrary(SqlLibrary.CLICKHOUSE).withClickHouse().ok(expected1);
+    sql(query1).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expected1);
   }
 
   @Test void testInstrFunction4Operands() {

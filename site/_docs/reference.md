@@ -3084,8 +3084,8 @@ In the following:
 | b s | UNIX_MILLIS(timestamp)                       | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b s | UNIX_SECONDS(timestamp)                      | Returns the number of seconds since 1970-01-01 00:00:00
 | b s | UNIX_DATE(date)                              | Returns the number of days since 1970-01-01
-| s i | URL_DECODE(string)                           | Decodes a *string* in 'application/x-www-form-urlencoded' format using a specific encoding scheme, returns original *string* when decoded error
-| s i | URL_ENCODE(string)                           | Translates a *string* into 'application/x-www-form-urlencoded' format using a specific encoding scheme
+| s | URL_DECODE(string)                             | Decodes a *string* in 'application/x-www-form-urlencoded' format using a specific encoding scheme, returns original *string* when decoded error
+| s | URL_ENCODE(string)                             | Translates a *string* into 'application/x-www-form-urlencoded' format using a specific encoding scheme
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
 
 Note:
