@@ -224,6 +224,7 @@ SELECT "prodName",
   COUNT(*) AS "count"
 FROM "Orders" AS o
 GROUP BY "prodName";
+!if (use_old_decorr) {
 +----------+--------------+-------+
 | prodName | profitMargin | count |
 +----------+--------------+-------+
@@ -234,6 +235,20 @@ GROUP BY "prodName";
 (3 rows)
 
 !ok
+!}
+
+!if (use_new_decorr) {
++----------+--------------------+-------+
+| prodName | profitMargin       | count |
++----------+--------------------+-------+
+| Acme     |               0.60 |     1 |
+| Happy    | 0.4705882352941176 |     3 |
+| Whizz    | 0.6666666666666667 |     1 |
++----------+--------------------+-------+
+(3 rows)
+
+!ok
+!}
 
 # Profit margin for 'Happy' orders for each customer
 SELECT "custName",
@@ -505,4 +520,44 @@ FROM
 !ok
 !}
 
+# [CALCITE-7411] When a SCALAR_QUERY in PROJECT contains correlated variables
+#   execution fails using TopDownGeneralDecorrelator
+!use scott
+SELECT job,
+  (SELECT
+      CAST(SUM(i.sal) - SUM(COALESCE(i.comm, 0)) AS DECIMAL(10, 2)) / SUM(i.sal)
+    FROM emp AS i
+    WHERE i.job = e.job) AS profitMargin,
+  COUNT(*) AS "count"
+FROM emp AS e
+GROUP BY job;
+!if (use_old_decorr) {
++-----------+--------------+-------+
+| JOB       | PROFITMARGIN | count |
++-----------+--------------+-------+
+| ANALYST   |     1.000000 |     2 |
+| CLERK     |     1.000000 |     4 |
+| MANAGER   |     1.000000 |     3 |
+| PRESIDENT |     1.000000 |     1 |
+| SALESMAN  |     0.607142 |     4 |
++-----------+--------------+-------+
+(5 rows)
+
+!ok
+!}
+
+!if (use_new_decorr) {
++-----------+--------------------+-------+
+| JOB       | PROFITMARGIN       | count |
++-----------+--------------------+-------+
+| ANALYST   |                  1 |     2 |
+| CLERK     |                  1 |     4 |
+| MANAGER   |                  1 |     3 |
+| PRESIDENT |                  1 |     1 |
+| SALESMAN  | 0.6071428571428571 |     4 |
++-----------+--------------------+-------+
+(5 rows)
+
+!ok
+!}
 # End measure-paper.iq

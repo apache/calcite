@@ -47,7 +47,6 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
     // TODO: Support measure
     paths.remove("sql/measure.iq");
     paths.remove("sql/sub-query.iq");
-    paths.remove("sql/measure-paper.iq");
     return paths;
   }
 
