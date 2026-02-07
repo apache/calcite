@@ -12243,4 +12243,28 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPlanner(hepPlanner)
             .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7411">[CALCITE-7411]
+   * When a SCALAR_QUERY in PROJECT contains correlated variables execution fails
+   * using TopDownGeneralDecorrelator</a>. */
+  @Test void testTopDownGeneralDecorrelateForMeasure() {
+    final String sql = "SELECT job,\n"
+        + "  (SELECT\n"
+        + "      CAST(SUM(i.sal) - SUM(COALESCE(i.comm, 0)) AS DECIMAL(10, 2)) / SUM(i.sal)\n"
+        + "    FROM emp AS i\n"
+        + "    WHERE i.job = e.job) AS profitMargin,\n"
+        + "  COUNT(*) AS \"count\"\n"
+        + "FROM emp AS e\n"
+        + "GROUP BY job";
+
+    sql(sql)
+        .withRule(
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_REMOVE)
+        .withLateDecorrelate(true)
+        .withTopDownGeneralDecorrelate(true)
+        .check();
+  }
 }
