@@ -919,10 +919,15 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
       int newIndex = requireNonNull(unnestedQuery.oldToNewOutputs.get(inputRef.getIndex()));
-      if (newIndex == inputRef.getIndex()) {
+      if (newIndex == inputRef.getIndex()
+          && inputRef.getType().equals(
+              unnestedQuery.r.getRowType().getFieldList().get(newIndex).getType())) {
         return inputRef;
       }
-      return new RexInputRef(newIndex, inputRef.getType());
+      // Use the type from the new row type to handle nullability changes
+      // (e.g., after LEFT JOIN, right-side fields become nullable)
+      return new RexInputRef(newIndex,
+          unnestedQuery.r.getRowType().getFieldList().get(newIndex).getType());
     }
 
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
