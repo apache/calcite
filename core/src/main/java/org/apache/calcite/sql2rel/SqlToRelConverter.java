@@ -3882,7 +3882,26 @@ public class SqlToRelConverter {
     // implement the SELECT list
     relBuilder.project(projects.leftList(), projects.rightList())
         .rename(projects.rightList());
-    bb.setRoot(relBuilder.build(), false);
+
+    RelNode tmpProject = relBuilder.build();
+
+    // Check for correlation variables that may be used in the SELECT list
+    final RelNode finalProject;
+    final CorrelationUse correlationUse = getCorrelationUse(bb, tmpProject);
+    if (correlationUse != null) {
+      assert correlationUse.r instanceof Project;
+      // correlation variables have been normalized in correlationUse.r,
+      // we should use expressions in correlationUse.r
+      Project project1 = (Project) correlationUse.r;
+      finalProject = relBuilder.push(tmpProject.getInput(0))
+          .project(project1.getProjects(), project1.getRowType().getFieldNames(), true,
+              ImmutableSet.of(correlationUse.id))
+          .build();
+    } else {
+      finalProject = tmpProject;
+    }
+
+    bb.setRoot(finalProject, false);
 
     // Tell bb which of group columns are sorted.
     bb.columnMonotonicities.clear();

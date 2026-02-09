@@ -20172,6 +20172,59 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTopDownGeneralDecorrelateForMeasure">
+    <Resource name="sql">
+      <![CDATA[SELECT job,
+  (SELECT
+      CAST(SUM(i.sal) - SUM(COALESCE(i.comm, 0)) AS DECIMAL(10, 2)) / SUM(i.sal)
+    FROM emp AS i
+    WHERE i.job = e.job) AS profitMargin,
+  COUNT(*) AS "count"
+FROM emp AS e
+GROUP BY job]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], JOB=[$0], PROFITMARGIN=[$SCALAR_QUERY({
+LogicalProject(EXPR$0=[/(CAST(-($0, $1)):DECIMAL(10, 2), $0)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[SUM($1)])
+    LogicalProject(SAL=[$5], $f1=[$6])
+      LogicalFilter(condition=[=($2, $cor0.JOB)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], count=[$1])
+  LogicalAggregate(group=[{0}], count=[COUNT()])
+    LogicalProject(JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(JOB=[$0], PROFITMARGIN=[$2], count=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalAggregate(group=[{0}], count=[COUNT()])
+      LogicalProject(JOB=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[/(CAST(-($0, $1)):DECIMAL(10, 2), $0)])
+      LogicalAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[SUM($1)])
+        LogicalProject(SAL=[$5], $f1=[$6])
+          LogicalFilter(condition=[=($2, $cor0.JOB)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(JOB=[$0], PROFITMARGIN=[$2], count=[$1])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[left])
+    LogicalAggregate(group=[{0}], count=[COUNT()])
+      LogicalProject(JOB=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject($f0=[/(CAST(-($1, $2)):DECIMAL(10, 2), $1)], JOB=[$0])
+      LogicalAggregate(group=[{2}], agg#0=[SUM($0)], agg#1=[SUM($1)])
+        LogicalProject(SAL=[$5], COMM=[$6], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTopDownGeneralDecorrelateForProjectExists">
     <Resource name="sql">
       <![CDATA[SELECT dept.deptno, EXISTS ( SELECT 1 FROM emp e WHERE e.deptno = dept.deptno ) AS has_employees FROM dept]]>
