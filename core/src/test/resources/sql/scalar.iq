@@ -451,4 +451,14 @@ EnumerableCalc(expr#0..10=[{inputs}], EMPNO=[$t0], $f1=[$t10])
 # Reset to default value true
 !set trimfields true
 
+# [CALCITE-7057] NPE when decorrelating query containing nested correlated subqueries
+# Nested scalar sub-queries
+select
+    (select ename || ' from dept '
+                  || (select dname from dept where deptno = emp.deptno and emp.empno = empnos.empno)
+       from emp
+    ) as ename_from_dept
+from (values (7369), (7499)) as empnos(empno) order by 1;
+more than one value in agg SINGLE_VALUE
+!error
 # End scalar.iq
