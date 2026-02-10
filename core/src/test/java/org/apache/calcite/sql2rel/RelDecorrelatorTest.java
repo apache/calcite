@@ -208,6 +208,104 @@ public class RelDecorrelatorTest {
     assertThat(after, hasTree(planAfter));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7057">[CALCITE-7057]
+   * NPE when decorrelating query containing nested correlated subqueries</a>. */
+  @Test void test7057() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = ""
+        + "select\n"
+        + " (select ename || ' from dept '\n"
+        + " || (select dname from dept where deptno = emp.deptno and emp.empno = empnos.empno)\n"
+        + "       from emp\n"
+        + "    ) as ename_from_dept\n"
+        + "from (values (7369), (7499)) as empnos(empno) order by 1";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+
+    // before fix:
+    //
+    // [01]LogicalSort(sort0=[$0], dir0=[ASC])
+    // [02] LogicalProject(ENAME_FROM_DEPT=[$1])
+    // [03]   LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])
+    // [04]     LogicalValues(tuples=[[{ 7369 }, { 7499 }]])
+    // [05]     LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+    // [06]       LogicalProject(EXPR$0=[||(||($1, ' from dept '), $8)])
+    // [07]         LogicalJoin(condition=[true], joinType=[left], variablesSet=[[$cor0, $cor2]])
+    // [08]           LogicalTableScan(table=[[scott, EMP]])
+    // [09]           LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+    // [10]             LogicalProject(DNAME=[$1])
+    // [11]               LogicalFilter(condition=[AND(=($0, $cor0.DEPTNO),
+    //                                  =(CAST($cor0.EMPNO):INTEGER NOT NULL, $cor2.EMPNO))])
+    // [12]                 LogicalTableScan(table=[[scott, DEPT]])
+    //
+    // diff is [07]LogicalJoin(condition=[true], joinType=[left], variablesSet=[[$cor0, $cor2]])
+    //             LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])
+    //
+    final String planBefore = ""
+        + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+        + "  LogicalProject(ENAME_FROM_DEPT=[$1])\n"
+        + "    LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])\n"
+        + "      LogicalValues(tuples=[[{ 7369 }, { 7499 }]])\n"
+        + "      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "        LogicalProject(EXPR$0=[||(||($1, ' from dept '), $8)])\n"
+        + "          LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 7}])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n"
+        + "            LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "              LogicalProject(DNAME=[$1])\n"
+        + "                LogicalFilter(condition=[AND(=($0, $cor0.DEPTNO), =(CAST($cor0.EMPNO):INTEGER NOT NULL, $cor2.EMPNO))])\n"
+        + "                  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Decorrelate without any rules, just "purely" decorrelation algorithm on RelDecorrelator
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = ""
+        + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+        + "  LogicalProject(ENAME_FROM_DEPT=[$2])\n"
+        + "    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "      LogicalValues(tuples=[[{ 7369 }, { 7499 }]])\n"
+        + "      LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "        LogicalProject(EMPNO1=[$12], EXPR$0=[||(||($1, ' from dept '), $13)])\n"
+        + "          LogicalJoin(condition=[AND(=($7, $10), =($9, $11))], joinType=[left])\n"
+        + "            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[$7], EMPNO0=[CAST($0):INTEGER NOT NULL])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "            LogicalAggregate(group=[{0, 1, 2}], agg#0=[SINGLE_VALUE($3)])\n"
+        + "              LogicalProject(DEPTNO0=[$3], EMPNO0=[$4], EMPNO=[$5], DNAME=[$1])\n"
+        + "                LogicalJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "                  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "                  LogicalJoin(condition=[=($1, $2)], joinType=[inner])\n"
+        + "                    LogicalAggregate(group=[{0, 1}])\n"
+        + "                      LogicalProject(DEPTNO=[$7], EMPNO0=[CAST($0):INTEGER NOT NULL])\n"
+        + "                        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "                    LogicalValues(tuples=[[{ 7369 }, { 7499 }]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
   @Test void testDecorrelateCountBug() {
     final FrameworkConfig frameworkConfig = config().build();
     final RelBuilder builder = RelBuilder.create(frameworkConfig);
