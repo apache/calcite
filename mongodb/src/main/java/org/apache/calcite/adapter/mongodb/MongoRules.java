@@ -152,6 +152,8 @@ public class MongoRules {
       MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN, "$lt");
       MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, "$lte");
       MONGO_OPERATORS.put(SqlStdOperatorTable.ABS, "$abs");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.CONCAT, "$concat");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.SUBSTRING, "$substrCP");
     }
 
     protected RexToMongoTranslator(JavaTypeFactory typeFactory,
