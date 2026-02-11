@@ -1093,4 +1093,89 @@ public class MongoAdapterTest implements SchemaFactory {
             "POP_A=17522",
             "POP_A=22576");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7413">[CALCITE-7413]
+   * Add Concat and Substring function (enabled in Mongodb library)</a>. */
+  @Test void testConcat() {
+    assertModel(MODEL)
+        .query("SELECT city || ' ' || state  from zips"
+            + " order by pop")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project: {EXPR$0:{$concat:[{$concat:['$city',{$literal: ' '}]},'$state']},POP:'$pop'}}",
+                "{$sort:{POP:1}}"))
+        .returnsOrdered("EXPR$0=PENTAGON DC",
+            "EXPR$0=BRATTLEBORO VT",
+            "EXPR$0=RUTLAND VT");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7413">[CALCITE-7413]
+   * Add Concat and Substring function (enabled in Mongodb library)</a>. */
+  @Test void testAliasNameConcat() {
+    assertModel(MODEL)
+        .query("SELECT city || ' ' || state AS full_name from zips"
+            + " order by pop")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project: {FULL_NAME:{$concat:[{$concat:['$city',{$literal: ' '}]},'$state']},POP:'$pop'}}",
+                "{$sort:{POP:1}}"))
+        .returnsOrdered("FULL_NAME=PENTAGON DC",
+            "FULL_NAME=BRATTLEBORO VT",
+            "FULL_NAME=RUTLAND VT");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7413">[CALCITE-7413]
+   * Add Concat and Substring function (enabled in Mongodb library)</a>. */
+  @Test void testAliasNameMultipleConcat() {
+    assertModel(MODEL)
+        .query("SELECT city || ',' || ',' || state AS full_name from zips"
+            + " order by pop")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project:{FULL_NAME:{$concat:[{$concat:[{$concat:['$city',{$literal:','}]},{$literal:','}]},'$state']},POP:'$pop'}}",
+                "{$sort:{POP:1}}"))
+        .returnsOrdered("FULL_NAME=PENTAGON,,DC",
+            "FULL_NAME=BRATTLEBORO,,VT",
+            "FULL_NAME=RUTLAND,,VT");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7413">[CALCITE-7413]
+   * Add Concat and Substring function (enabled in Mongodb library)</a>. */
+  @Test void testSubstring() {
+    assertModel(MODEL)
+        .query("SELECT SUBSTRING(city FROM 1 FOR 2) from zips"
+            + " order by pop")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project:{EXPR$0:{$substrCP:['$city',{$literal:1},{$literal:2}]},POP:'$pop'}}",
+                "{$sort:{POP:1}}"))
+        .returnsOrdered("EXPR$0=EN",
+            "EXPR$0=RA",
+            "EXPR$0=UT");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7413">[CALCITE-7413]
+   * Add Concat and Substring function (enabled in Mongodb library)</a>. */
+  @Test void testAliasNameSubstring() {
+    assertModel(MODEL)
+        .query("SELECT SUBSTRING(city FROM 1 FOR 2) AS city_substring from zips"
+            + " order by pop")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$project:{CITY_SUBSTRING:{$substrCP:['$city',{$literal:1},{$literal:2}]},POP:'$pop'}}",
+                "{$sort:{POP:1}}"))
+        .returnsOrdered("CITY_SUBSTRING=EN",
+            "CITY_SUBSTRING=RA",
+            "CITY_SUBSTRING=UT");
+  }
 }
