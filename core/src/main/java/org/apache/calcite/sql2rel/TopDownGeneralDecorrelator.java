@@ -53,7 +53,6 @@ import org.apache.calcite.sql2rel.RelDecorrelator.CorDef;
 import org.apache.calcite.sql2rel.RelDecorrelator.Frame;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
@@ -317,14 +316,16 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
 
     if (!hasParent) {
       // ensure that the fields are in the same order as in the original plan.
-      builder.push(unnestedRel);
       UnnestedQuery unnestedQuery =
-          UnnestedQuery.createJoinUnnestInfo(
+          UnnestedQuery.createJoinUnnestedQuery(
               leftInfo,
               rightInfo,
               correlate,
               unnestedRel,
-              correlate.getJoinType());
+              correlate.getJoinType(),
+              builder,
+              corDefs);
+      builder.push(unnestedQuery.r);
       List<RexNode> projects
           = builder.fields(new ArrayList<>(unnestedQuery.oldToNewOutputs.values()));
       unnestedRel = builder.project(projects).build();
@@ -669,10 +670,10 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     UnnestedQuery rightInfo
         = requireNonNull(subDecorrelator.mapRelToUnnestedQuery.get(correlate.getRight()));
     UnnestedQuery unnestedQuery =
-        UnnestedQuery.createJoinUnnestInfo(leftInfo, rightInfo, correlate,
-            newJoin, correlate.getJoinType());
+        UnnestedQuery.createJoinUnnestedQuery(leftInfo, rightInfo, correlate,
+            newJoin, correlate.getJoinType(), builder, corDefs);
     mapRelToUnnestedQuery.put(correlate, unnestedQuery);
-    return newJoin;
+    return unnestedQuery.r;
   }
 
   public RelNode unnestInternal(Join join, boolean allowEmptyOutputFromRewrite) {
@@ -745,14 +746,16 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
             corDefs);
     RelNode newJoin = builder.join(join.getJoinType(), newJoinCondition).build();
     UnnestedQuery unnestedQuery =
-        UnnestedQuery.createJoinUnnestInfo(
+        UnnestedQuery.createJoinUnnestedQuery(
             leftInfo,
             rightInfo,
             join,
             newJoin,
-            join.getJoinType());
+            join.getJoinType(),
+            builder,
+            corDefs);
     mapRelToUnnestedQuery.put(join, unnestedQuery);
-    return newJoin;
+    return unnestedQuery.r;
   }
 
   public RelNode unnestInternal(SetOp setOp, boolean allowEmptyOutputFromRewrite) {
@@ -989,23 +992,27 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     /**
      * Create UnnestedQuery for Join/Correlate after decorrelating.
      *
-     * @param leftInfo          UnnestedQuery of the left side
-     * @param rightInfo         UnnestedQuery of the right side
-     * @param oriJoinNode       original Join/Correlate node
-     * @param unnestedJoinNode  new node after decorrelating
-     * @param joinRelType       join type of original Join/Correlate
+     * @param leftUnnestedQuery   UnnestedQuery of the left side
+     * @param rightUnnestedQuery  UnnestedQuery of the right side
+     * @param oriJoinNode         original Join/Correlate node
+     * @param unnestedJoinNode    new node after decorrelating
+     * @param joinRelType         join type of original Join/Correlate
+     * @param builder             RelBuilder
+     * @param corDefs             the CorDef in the current decorrelator context
      * @return UnnestedQuery
      */
-    private static UnnestedQuery createJoinUnnestInfo(
-        UnnestedQuery leftInfo,
-        UnnestedQuery rightInfo,
+    private static UnnestedQuery createJoinUnnestedQuery(
+        UnnestedQuery leftUnnestedQuery,
+        UnnestedQuery rightUnnestedQuery,
         RelNode oriJoinNode,
         RelNode unnestedJoinNode,
-        JoinRelType joinRelType) {
+        JoinRelType joinRelType,
+        RelBuilder builder,
+        NavigableSet<CorDef> corDefs) {
       Map<Integer, Integer> oldToNewOutputs = new HashMap<>();
-      oldToNewOutputs.putAll(leftInfo.oldToNewOutputs);
-      int oriLeftFieldCount = leftInfo.oldRel.getRowType().getFieldCount();
-      int newLeftFieldCount = leftInfo.r.getRowType().getFieldCount();
+      oldToNewOutputs.putAll(leftUnnestedQuery.oldToNewOutputs);
+      int oriLeftFieldCount = leftUnnestedQuery.oldRel.getRowType().getFieldCount();
+      int newLeftFieldCount = leftUnnestedQuery.r.getRowType().getFieldCount();
       switch (joinRelType) {
       case SEMI:
       case ANTI:
@@ -1014,24 +1021,63 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
         oldToNewOutputs.put(oriLeftFieldCount, newLeftFieldCount);
         break;
       default:
-        rightInfo.oldToNewOutputs.forEach((oriIndex, newIndex) ->
+        rightUnnestedQuery.oldToNewOutputs.forEach((oriIndex, newIndex) ->
             oldToNewOutputs.put(
                 requireNonNull(oriIndex, "oriIndex") + oriLeftFieldCount,
                 requireNonNull(newIndex, "newIndex") + newLeftFieldCount));
         break;
       }
 
+      // we have to take the join type into account to decide which side of the join to use for
+      // mapping CorDef to output index. See section 3.3 in paper Improving Unnesting of Complex
+      // Queries
       TreeMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
-      if (!leftInfo.corDefOutputs.isEmpty()) {
-        corDefOutputs.putAll(leftInfo.corDefOutputs);
-      } else if (!rightInfo.corDefOutputs.isEmpty()) {
-        Litmus.THROW.check(joinRelType.projectsRight(),
-            "If the joinType doesn't project right, its left side must have UnnestInfo.");
-        rightInfo.corDefOutputs.forEach((corDef, index) ->
+      switch (joinRelType) {
+      case SEMI:
+      case ANTI:
+      case LEFT_MARK:
+      case LEFT:
+        // if output only includes the left, or the unmatched rows from the left,
+        // we use the left for mapping.
+        corDefOutputs.putAll(leftUnnestedQuery.corDefOutputs);
+        break;
+      case RIGHT:
+        // if the unmatched rows from the right, we use the right for mapping.
+        rightUnnestedQuery.corDefOutputs.forEach((corDef, index) ->
             corDefOutputs.put(corDef, index + newLeftFieldCount));
-      } else {
-        throw new IllegalArgumentException("The UnnestInfo for both sides of Join/Correlate that "
-            + "has correlation should not all be empty.");
+        break;
+      case FULL:
+        // when full outer join, we must use COALESCE(left_cor_index, right_cor_index) to map the
+        // CorDef, so we need to add a Project on top of the Join.
+        builder.push(unnestedJoinNode);
+        List<RexNode> projects = new ArrayList<>(builder.fields());
+        for (CorDef corDef : corDefs) {
+          int leftIndex = requireNonNull(leftUnnestedQuery.corDefOutputs.get(corDef));
+          int rightIndex = requireNonNull(rightUnnestedQuery.corDefOutputs.get(corDef));
+          RexNode coalesce =
+              builder.call(
+                  SqlStdOperatorTable.COALESCE,
+                  builder.field(leftIndex),
+                  builder.field(rightIndex + newLeftFieldCount));
+          projects.add(coalesce);
+          corDefOutputs.put(corDef, projects.size() - 1);
+        }
+        unnestedJoinNode = builder.project(projects).build();
+        break;
+      case INNER:
+        // when inner join, we can use either side that contains D for mapping.
+        if (!leftUnnestedQuery.corDefOutputs.isEmpty()) {
+          corDefOutputs.putAll(leftUnnestedQuery.corDefOutputs);
+        } else if (!rightUnnestedQuery.corDefOutputs.isEmpty()) {
+          rightUnnestedQuery.corDefOutputs.forEach((corDef, index) ->
+              corDefOutputs.put(corDef, index + newLeftFieldCount));
+        } else {
+          throw new IllegalArgumentException("The UnnestInfo for both sides of Join/Correlate that "
+              + "has correlation should not all be empty.");
+        }
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported join type : " + joinRelType);
       }
       return new UnnestedQuery(oriJoinNode, unnestedJoinNode, corDefOutputs, oldToNewOutputs);
     }

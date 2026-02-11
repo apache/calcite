@@ -300,4 +300,105 @@ FROM dept;
 
 !ok
 
+# [CALCITE-7414] Incorrect mapping of CorDef after decorrelating a Join in TopDownGeneralDecorrelator
+# These cases come from sub-query.iq [CALCITE-7379]
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    LEFT JOIN dept d
+    ON foo.job = d.loc
+);
++-------+-----+-----+
+| ENAME | JOB | SAL |
++-------+-----+-----+
++-------+-----+-----+
+(0 rows)
+
+!ok
+
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    RIGHT JOIN dept d
+    ON foo.job = d.loc
+);
++--------+-----------+---------+
+| ENAME  | JOB       | SAL     |
++--------+-----------+---------+
+| ADAMS  | CLERK     | 1100.00 |
+| ALLEN  | SALESMAN  | 1600.00 |
+| BLAKE  | MANAGER   | 2850.00 |
+| CLARK  | MANAGER   | 2450.00 |
+| FORD   | ANALYST   | 3000.00 |
+| JAMES  | CLERK     |  950.00 |
+| JONES  | MANAGER   | 2975.00 |
+| KING   | PRESIDENT | 5000.00 |
+| MARTIN | SALESMAN  | 1250.00 |
+| MILLER | CLERK     | 1300.00 |
+| SCOTT  | ANALYST   | 3000.00 |
+| SMITH  | CLERK     |  800.00 |
+| TURNER | SALESMAN  | 1500.00 |
+| WARD   | SALESMAN  | 1250.00 |
++--------+-----------+---------+
+(14 rows)
+
+!ok
+
+SELECT e.ename, e.job, e.sal
+FROM emp e
+WHERE EXISTS (
+    SELECT 1
+    FROM (
+        SELECT * FROM bonus b WHERE b.ename = e.ename
+    ) foo
+    FULL JOIN dept d
+    ON foo.job = d.loc
+);
++--------+-----------+---------+
+| ENAME  | JOB       | SAL     |
++--------+-----------+---------+
+| ADAMS  | CLERK     | 1100.00 |
+| ALLEN  | SALESMAN  | 1600.00 |
+| BLAKE  | MANAGER   | 2850.00 |
+| CLARK  | MANAGER   | 2450.00 |
+| FORD   | ANALYST   | 3000.00 |
+| JAMES  | CLERK     |  950.00 |
+| JONES  | MANAGER   | 2975.00 |
+| KING   | PRESIDENT | 5000.00 |
+| MARTIN | SALESMAN  | 1250.00 |
+| MILLER | CLERK     | 1300.00 |
+| SCOTT  | ANALYST   | 3000.00 |
+| SMITH  | CLERK     |  800.00 |
+| TURNER | SALESMAN  | 1500.00 |
+| WARD   | SALESMAN  | 1250.00 |
++--------+-----------+---------+
+(14 rows)
+
+!ok
+
+!if (use_new_decorr) {
+EnumerableCalc(expr#0..3=[{inputs}], ENAME=[$t1], JOB=[$t2], SAL=[$t3])
+  EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($1, $4)], joinType=[semi])
+    EnumerableCalc(expr#0..7=[{inputs}], proj#0..2=[{exprs}], SAL=[$t5])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..5=[{inputs}], expr#6=[COALESCE($t2, $t5)], $f10=[$t6])
+      EnumerableHashJoin(condition=[AND(=($1, $4), IS NOT DISTINCT FROM($2, $5))], joinType=[full])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):VARCHAR(13)], expr#5=[IS NOT NULL($t0)], ENAME=[$t0], JOB0=[$t4], ENAME0=[$t0], $condition=[$t5])
+          EnumerableTableScan(table=[[scott, BONUS]])
+        EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+          EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0], LOC=[$t2])
+            EnumerableTableScan(table=[[scott, DEPT]])
+          EnumerableCalc(expr#0..7=[{inputs}], ENAME=[$t1])
+            EnumerableTableScan(table=[[scott, EMP]])
+!plan
+!}
+
 # End new-decorr.iq
