@@ -220,8 +220,6 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, 
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
-!if (fixed.calcite2539) {
-
 # In the following, that we get an error at run time,
 # and that the plan shows that the expression has not been reduced.
 values cast('null' as boolean);
@@ -234,19 +232,19 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=['null'], expr#2=[CAST($t1):BOOLEAN NOT
 # The following throw give an error (good!)
 # but throw java.lang.ExceptionInInitializerError (not great).
 values cast('' as date);
-Caused by: java.lang.NumberFormatException: For input string: ""
+Caused by: java.lang.IllegalArgumentException: Invalid DATE value, ''
 !error
 
 values cast('' as timestamp);
-Caused by: java.lang.NumberFormatException: For input string: ""
+Caused by: java.lang.IllegalArgumentException: Invalid DATE value, ''
 !error
 
 values cast('' as integer);
-Caused by: java.lang.NumberFormatException: For input string: ""
+java.lang.NumberFormatException: For input string: ""
 !error
 
 values cast('' as boolean);
-Caused by: java.lang.RuntimeException: Invalid character for cast
+Caused by: org.apache.calcite.runtime.CalciteException: Invalid character for cast
 !error
 
 values cast('' as double);
@@ -256,7 +254,7 @@ Caused by: java.lang.NumberFormatException: empty String
 # Postgres fails:
 #  ERROR:  invalid input syntax for integer: "1.56"
 values cast('15.6' as integer);
-Caused by: java.lang.NumberFormatException: For input string: "15.6"
+java.lang.NumberFormatException: For input string: "15.6"
 !error
 
 # Postgres fails:
@@ -277,14 +275,13 @@ Caused by: java.lang.NumberFormatException: Value out of range. Value:"50000" Ra
 
 # Out of INTEGER range (max 2.1e9)
 values cast('4567891234' as integer);
-Caused by: java.lang.NumberFormatException: For input string: "4567891234"
+java.lang.NumberFormatException: For input string: "4567891234"
 !error
 
 # Out of BIGINT range (max 9.2e18)
 values cast('12345678901234567890' as bigint);
 Caused by: java.lang.NumberFormatException: For input string: "12345678901234567890"
 !error
-!}
 
 # Out of REAL range
 # (Should give an error, not infinity.)
