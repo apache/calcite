@@ -34,6 +34,7 @@ where t1.x not in (select t2.x from t2);
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[IS NULL($t4)], expr#8=[>=($t2, $t1)], expr#9=[IS NOT NULL($t0)], expr#10=[AND($t7, $t8, $t9)], expr#11=[OR($t6, $t10)], X=[$t0], $condition=[$t11])
   EnumerableMergeJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
@@ -43,6 +44,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[I
     EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
       EnumerableValues(tuples=[[{ 1 }, { null }]])
 !plan
+!}
 
 # Use of case is to get around issue with directly specifying null in values
 # list. Postgres gives 0 rows.
@@ -259,8 +261,10 @@ select * from dept where deptno not in (select deptno from emp where false);
 (4 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
+!}
 
 select deptno, deptno in (select deptno from emp where false) from dept;
 +--------+--------+
@@ -274,9 +278,11 @@ select deptno, deptno in (select deptno from emp where false) from dept;
 (4 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], expr#3=[CAST($t2):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t3])
   EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
+!}
 
 select deptno, deptno not in (select deptno from emp where false) from dept;
 +--------+--------+
@@ -429,6 +435,7 @@ where e.job in (
 (5 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t0])
   EnumerableHashJoin(condition=[=($2, $5)], joinType=[semi])
     EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t2], JOB=[$t3], DEPTNO=[$t4], JOB0=[$t0], DEPTNO0=[$t1])
@@ -448,6 +455,7 @@ EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t0])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # [CALCITE-6824] Subquery in join conditions rewrite fails if referencing a column from the right-hand side table
 select empno from "scott".emp where (empno not in (select dept.deptno from dept))
@@ -459,6 +467,7 @@ in (select deptno = 0 from dept);
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], EMPNO=[$t0])
   EnumerableNestedLoopJoin(condition=[=(IS NULL($2), $3)], joinType=[inner])
     EnumerableMergeJoin(condition=[=($0, $1)], joinType=[left])
@@ -472,6 +481,7 @@ EnumerableCalc(expr#0..3=[{inputs}], EMPNO=[$t0])
       EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[=($t3, $t4)], EXPR$0=[$t5])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # [CALCITE-6824] Subquery in join conditions rewrite fails if referencing a column from the right-hand side table
 SELECT empno FROM emp JOIN dept on emp.deptno <= ALL(SELECT deptno FROM dept) and emp.deptno = dept.deptno;
@@ -485,6 +495,7 @@ SELECT empno FROM emp JOIN dept on emp.deptno <= ALL(SELECT deptno FROM dept) an
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t0])
   EnumerableHashJoin(condition=[=($1, $5)], joinType=[semi])
     EnumerableNestedLoopJoin(condition=[OR(=($3, 0), AND(<=($1, $2), IS NOT TRUE(OR(>($1, $2), >($3, $4)))))], joinType=[inner])
@@ -496,6 +507,7 @@ EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t0])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # [CALCITE-6824] Subquery in join conditions rewrite fails if referencing a column from the right-hand side table
 SELECT empno FROM emp JOIN dept on emp.deptno = (SELECT min(deptno) FROM dept) and emp.deptno = dept.deptno;
@@ -509,6 +521,7 @@ SELECT empno FROM emp JOIN dept on emp.deptno = (SELECT min(deptno) FROM dept) a
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
   EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t2], EXPR$0=[$t0])
@@ -520,6 +533,7 @@ EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Correlated NOT IN sub-query in WHERE clause of JOIN
 select empno from "scott".emp as e
@@ -542,6 +556,7 @@ where e.job not in (
 (9 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..9=[{inputs}], expr#10=[0], expr#11=[=($t5, $t10)], expr#12=[IS NULL($t1)], expr#13=[IS NOT NULL($t9)], expr#14=[<($t6, $t5)], expr#15=[OR($t12, $t13, $t14)], expr#16=[IS NOT TRUE($t15)], expr#17=[OR($t11, $t16)], EMPNO=[$t0], $condition=[$t17])
   EnumerableMergeJoin(condition=[AND(=($1, $7), =($2, $8))], joinType=[left])
     EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
@@ -584,6 +599,7 @@ EnumerableCalc(expr#0..9=[{inputs}], expr#10=[0], expr#11=[=($t5, $t10)], expr#1
                 EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
                   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Condition that returns a NULL key.
 # Tested on Oracle.
@@ -603,7 +619,7 @@ where sal + 100 not in (
 
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 SELECT dname FROM "scott".dept WHERE 2000 > (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.sal limit 1);
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
   EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -613,6 +629,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+
 | DNAME      |
 +------------+
@@ -626,7 +643,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
 
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 SELECT dname FROM "scott".dept WHERE 4000 > (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.sal desc nulls last limit 1);
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
   EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -636,6 +653,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +----------+
 | DNAME    |
 +----------+
@@ -649,7 +667,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 # The case of the subquery that returns 0 rows
 SELECT dname FROM "scott".dept WHERE 2000 > (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno and mgr > 8000 ORDER BY emp.sal limit 1);
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
   EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -659,6 +677,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[8000], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | DNAME |
 +-------+
@@ -669,7 +688,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DNAME=[$t1])
 
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 SELECT dname FROM "scott".dept WHERE 2000 > (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno ORDER BY year(hiredate), emp.sal limit 1);
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
   EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
     EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[<=($t3, $t4)], expr#6=[2000.00:DECIMAL(12, 2)], expr#7=[CAST($t0):DECIMAL(12, 2)], expr#8=[>($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
@@ -679,6 +698,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +----------+
 | DNAME    |
 +----------+
@@ -692,7 +712,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 # The case of the subquery that returns 0 rows
 SELECT dname FROM "scott".dept WHERE 2000 > (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno and mgr > 8000 ORDER BY year(hiredate), emp.sal limit 1);
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
   EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
     EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[<=($t3, $t4)], expr#6=[2000.00:DECIMAL(12, 2)], expr#7=[CAST($t0):DECIMAL(12, 2)], expr#8=[>($t6, $t7)], expr#9=[AND($t5, $t8)], proj#0..1=[{exprs}], $condition=[$t9])
@@ -702,6 +722,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +-------+
 | DNAME |
 +-------+
@@ -712,7 +733,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t3])
 
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 SELECT dname, (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.sal desc nulls last limit 1) FROM "scott".dept;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
   EnumerableMergeJoin(condition=[=($0, $2)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -722,6 +743,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+---------+
 | DNAME      | EXPR$1  |
 +------------+---------+
@@ -737,7 +759,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 # subquery contains null
 SELECT dname, (SELECT emp.comm FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.comm desc limit 1) FROM "scott".dept;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
   EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -747,6 +769,7 @@ EnumerableCalc(expr#0..4=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+--------+
 | DNAME      | EXPR$1 |
 +------------+--------+
@@ -762,7 +785,7 @@ EnumerableCalc(expr#0..4=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 # subquery contains null
 SELECT dname, (SELECT emp.comm FROM "scott".emp where dept.deptno = emp.deptno ORDER BY emp.comm limit 1) FROM "scott".dept;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
   EnumerableMergeJoin(condition=[=($0, $2)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -772,6 +795,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+--------+
 | DNAME      | EXPR$1 |
 +------------+--------+
@@ -787,7 +811,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 # The case of the subquery that returns 0 rows
 SELECT dname, (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno and mgr > 8000 ORDER BY emp.sal limit 1) FROM "scott".dept;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
   EnumerableMergeJoin(condition=[=($0, $2)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -797,6 +821,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], expr#9=[8000], expr#10=[>($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+--------+
 | DNAME      | EXPR$1 |
 +------------+--------+
@@ -811,7 +836,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t3])
 
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 SELECT dname, (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno ORDER BY year(hiredate), emp.sal limit 1) FROM "scott".dept;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
   EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -821,6 +846,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[IS NOT NULL($t7)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t10])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+---------+
 | DNAME      | EXPR$1  |
 +------------+---------+
@@ -836,7 +862,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
 # [CALCITE-6652] RelDecorrelator can't decorrelate query with limit 1
 # The case of the subquery that returns 0 rows
 SELECT dname, (SELECT emp.sal FROM "scott".emp where dept.deptno = emp.deptno and mgr > 8000 ORDER BY year(hiredate), emp.sal limit 1) FROM "scott".dept;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
   EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -846,6 +872,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DNAME=[$t1], EXPR$1=[$t2])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], expr#9=[EXTRACT($t8, $t4)], expr#10=[CAST($t3):INTEGER], expr#11=[8000], expr#12=[>($t10, $t11)], expr#13=[IS NOT NULL($t7)], expr#14=[AND($t12, $t13)], SAL=[$t5], DEPTNO=[$t7], $2=[$t9], $condition=[$t14])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +------------+--------+
 | DNAME      | EXPR$1 |
 +------------+--------+
@@ -911,6 +938,7 @@ where sal + 100 not in (
 !}
 
 # [CALCITE-356] AssertionError while translating query with WITH and correlated sub-query
+!if (use_old_decorr) {
 with t (a, b) as (select * from (values (1, 2)))
 select * from t where exists (select 1 from "scott".emp where deptno = t.a);
 EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], A=[$t1], B=[$t2])
@@ -918,8 +946,10 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], A=[$t1], B=[$t2])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[1], expr#10=[=($t9, $t8)], DEPTNO0=[$t8], $condition=[$t10])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Similar query, identical plan
+!if (use_old_decorr) {
 with t as (select * from (values (1, 2)) as t(a, b))
 select * from t where exists (select 1 from "scott".emp where deptno = t.a);
 EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], A=[$t1], B=[$t2])
@@ -927,15 +957,18 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], A=[$t1], B=[$t2])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[1], expr#10=[=($t9, $t8)], DEPTNO0=[$t8], $condition=[$t10])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Uncorrelated
 with t (a, b) as (select * from (values (60, 'b')))
 select * from t where a in (select deptno from "scott".dept);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['b'], A=[$t1], B=[$t2])
   EnumerableAggregate(group=[{0}])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[60], expr#5=[=($t4, $t3)], DEPTNO=[$t3], $condition=[$t5])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +---+---+
 | A | B |
 +---+---+
@@ -946,11 +979,13 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['b'], A=[$t1], B=[$t2])
 
 with t (a, b) as (select * from (values (30, 'b')))
 select * from t where a in (select deptno from "scott".dept);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['b'], A=[$t1], B=[$t2])
   EnumerableAggregate(group=[{0}])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[30], expr#5=[=($t4, $t3)], DEPTNO=[$t3], $condition=[$t5])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +----+---+
 | A  | B |
 +----+---+
@@ -1141,7 +1176,7 @@ FROM   "scott".emp AS bosses;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], ENAME=[$t1], DEEP2SAL=[$t3])
   EnumerableMergeJoin(condition=[=($0, $2)], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}])
@@ -1157,6 +1192,7 @@ EnumerableCalc(expr#0..3=[{inputs}], ENAME=[$t1], DEEP2SAL=[$t3])
                 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], proj#0..7=[{exprs}], $condition=[$t8])
                   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # [CALCITE-1494] Inefficient plan for correlated sub-queries
 # Plan must have only one scan each of emp and dept.
@@ -1173,6 +1209,7 @@ where empno IN (
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
   EnumerableHashJoin(condition=[AND(=($2, $4), =($0, $3))], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t2):VARCHAR(14)], EMPNO=[$t0], SAL=[$t5], JOB0=[$t8])
@@ -1180,6 +1217,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[IS NOT NULL($t1)], DEPTNO=[$t3], DNAME=[$t1], $condition=[$t4])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # As above, but for EXISTS
 select *
@@ -1196,11 +1234,13 @@ where exists (
 (1 row)
 
 !ok
+!if (use_old_decorr) {
 EnumerableHashJoin(condition=[=($0, $3)], joinType=[semi])
   EnumerableTableScan(table=[[scott, DEPT]])
   EnumerableCalc(expr#0..7=[{inputs}], expr#8=['SMITH':VARCHAR(10)], expr#9=[=($t1, $t8)], expr#10=[IS NOT NULL($t7)], expr#11=[AND($t9, $t10)], DEPTNO=[$t7], $condition=[$t11])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # [DRILL-5644]
 select TJOIN1.RNUM, TJOIN1.C1,
@@ -1360,6 +1400,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t3)], expr#6=[AND($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1370,6 +1411,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project literal IN null non-correlated
 select sal,
@@ -1398,6 +1440,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEAN], expr#6=[IS NOT NULL($t3)], expr#7=[AND($t4, $t5, $t6)], expr#8=[IS NOT NULL($t2)], expr#9=[IS NOT FALSE($t2)], expr#10=[AND($t8, $t6, $t9)], expr#11=[OR($t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1408,6 +1451,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEA
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null IN literal non-correlated
 select sal,
@@ -1436,6 +1480,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t3)], expr#6=[AND($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1446,6 +1491,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null IN required
 select sal,
@@ -1474,6 +1520,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t3)], expr#6=[AND($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1484,6 +1531,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null IN nullable
 select sal,
@@ -1512,6 +1560,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t3)], expr#6=[AND($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1522,6 +1571,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], cs=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project literal IN required
 select sal,
@@ -1550,6 +1600,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], SAL=[$t1], EXPR$1=[$t3])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1558,6 +1609,7 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], SAL=[$t1], EXPR$
       EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project literal IN nullable
 select sal,
@@ -1586,6 +1638,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEAN], expr#6=[IS NOT NULL($t3)], expr#7=[AND($t4, $t5, $t6)], expr#8=[IS NOT NULL($t2)], expr#9=[IS NOT FALSE($t2)], expr#10=[AND($t8, $t6, $t9)], expr#11=[OR($t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1596,6 +1649,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS FALSE($t2)], expr#5=[null:BOOLEA
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], cs=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null NOT IN null non-correlated
 select sal,
@@ -1624,6 +1678,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN], expr#6=[OR($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1634,6 +1689,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project literal NOT IN null non-correlated
 select sal,
@@ -1662,6 +1718,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2)], expr#6=[null:BOOLEAN], expr#7=[AND($t5, $t6)], expr#8=[IS NOT FALSE($t2)], expr#9=[IS NULL($t2)], expr#10=[AND($t8, $t9)], expr#11=[OR($t4, $t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1672,6 +1729,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null NOT IN literal non-correlated
 select sal,
@@ -1700,6 +1758,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN], expr#6=[OR($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1710,6 +1769,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null NOT IN required
 select sal,
@@ -1738,6 +1798,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN], expr#6=[OR($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1748,6 +1809,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null NOT IN nullable
 select sal,
@@ -1776,6 +1838,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN], expr#6=[OR($t4, $t5)], SAL=[$t1], EXPR$1=[$t6])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1786,6 +1849,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], cs=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project literal NOT IN required
 select sal,
@@ -1814,6 +1878,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NULL($t2)], SAL=[$t1], EXPR$1=[$t3])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1822,6 +1887,7 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NULL($t2)], SAL=[$t1], EXPR$1=[$
       EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project literal NOT IN nullable
 select sal,
@@ -1850,6 +1916,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2)], expr#6=[null:BOOLEAN], expr#7=[AND($t5, $t6)], expr#8=[IS NOT FALSE($t2)], expr#9=[IS NULL($t2)], expr#10=[AND($t8, $t9)], expr#11=[OR($t4, $t7, $t10)], SAL=[$t1], EXPR$1=[$t11])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1860,6 +1927,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[IS FALSE($t2
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], cs=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test project null IN required is unknown
 select sal,
@@ -1888,6 +1956,7 @@ from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t3)], expr#6=[AND($t4, $t5)], expr#7=[IS NULL($t6)], SAL=[$t1], EXPR$1=[$t7])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -1898,6 +1967,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null IN null
 select sal from "scott".emp
@@ -1911,8 +1981,10 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal IN null non-correlated
 select sal from "scott".emp
@@ -1926,8 +1998,10 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null IN literal non-correlated
 select sal from "scott".emp
@@ -1941,8 +2015,10 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null IN required
 select sal from "scott".emp
@@ -1956,8 +2032,10 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null IN nullable
 select sal from "scott".emp
@@ -1971,8 +2049,10 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal IN required
 select sal from "scott".emp
@@ -2000,6 +2080,7 @@ select sal from "scott".emp
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2008,6 +2089,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
       EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter literal IN nullable
 select sal from "scott".emp
@@ -2035,6 +2117,7 @@ select sal from "scott".emp
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2043,6 +2126,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
       EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[0], expr#7=[>($t5, $t6)], expr#8=[null:TINYINT], expr#9=[CASE($t7, $t0, $t8)], expr#10=[CAST($t9):INTEGER], expr#11=[=($t4, $t10)], cs=[$t3], $condition=[$t11])
         EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null NOT IN null non-correlated
 select sal from "scott".emp
@@ -2056,6 +2140,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $condition=[$t4])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2066,6 +2151,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter literal NOT IN null non-correlated
 select sal from "scott".emp
@@ -2079,6 +2165,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)], expr#6=[OR($t4, $t5)], expr#7=[IS NOT TRUE($t6)], expr#8=[IS NULL($t3)], expr#9=[OR($t7, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2089,6 +2176,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null NOT IN literal non-correlated
 select sal from "scott".emp
@@ -2102,6 +2190,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $condition=[$t4])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2112,6 +2201,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null NOT IN required
 select sal from "scott".emp
@@ -2125,6 +2215,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $condition=[$t4])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2135,6 +2226,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null NOT IN nullable
 select sal from "scott".emp
@@ -2148,6 +2240,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $condition=[$t4])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2158,6 +2251,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], cs=[$t8])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter literal NOT IN required
 select sal from "scott".emp
@@ -2171,6 +2265,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], expr#6=[IS NOT NULL($t2)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], expr#9=[OR($t4, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2181,6 +2276,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], e
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[=($t4, $t5)], cs=[$t3], $condition=[$t6])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter literal NOT IN nullable
 select sal from "scott".emp
@@ -2194,6 +2290,7 @@ select sal from "scott".emp
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)], expr#6=[OR($t4, $t5)], expr#7=[IS NOT TRUE($t6)], expr#8=[IS NULL($t3)], expr#9=[OR($t7, $t8)], SAL=[$t1], $condition=[$t9])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2204,6 +2301,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[NOT($t2)], expr#5=[IS NOT NULL($t2)
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], cs=[$t8], $condition=[$t11])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null IN required is unknown
 select sal from "scott".emp
@@ -2231,6 +2329,7 @@ select sal from "scott".emp
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t3)], expr#6=[AND($t4, $t5)], expr#7=[IS NULL($t6)], SAL=[$t1], $condition=[$t7])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
@@ -2241,6 +2340,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 #-------------------------------
 
@@ -2256,8 +2356,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal IN null correlated
 select sal from "scott".emp e
@@ -2271,8 +2373,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null IN literal correlated
 select sal from "scott".emp e
@@ -2286,8 +2390,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null IN required correlated
 select sal from "scott".emp e
@@ -2301,8 +2407,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal IN null liter with query that can not be trivially simplified
 select sal from "scott".emp e
@@ -2316,6 +2424,7 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..5=[{inputs}], expr#6=[RAND()], expr#7=[CAST($t6):INTEGER NOT NULL], expr#8=[2], expr#9=[MOD($t7, $t8)], expr#10=[3], expr#11=[=($t9, $t10)], expr#12=[OR($t11, $t3)], SAL=[$t1], $condition=[$t12])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
@@ -2327,6 +2436,7 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[RAND()], expr#7=[CAST($t6):INTEGER 
           EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null IN nullable correlated
 select sal from "scott".emp e
@@ -2340,8 +2450,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal IN required correlated
 select sal from "scott".emp e
@@ -2358,6 +2470,7 @@ select sal from "scott".emp e
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
   EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -2365,6 +2478,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER NOT NULL], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter literal IN nullable correlated
 select sal from "scott".emp e
@@ -2381,6 +2495,7 @@ select sal from "scott".emp e
 (3 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
   EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
@@ -2388,6 +2503,7 @@ EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER NOT NULL], expr#5=[0], expr#6=[>($t4, $t5)], expr#7=[null:TINYINT], expr#8=[CASE($t6, $t0, $t7)], expr#9=[CAST($t8):INTEGER], expr#10=[=($t3, $t9)], DEPTNO=[$t0], $condition=[$t10])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null NOT IN null correlated
 select sal from "scott".emp e
@@ -2401,8 +2517,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal NOT IN null correlated
 select sal from "scott".emp e
@@ -2416,6 +2534,7 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)], expr#8=[OR($t6, $t7)], expr#9=[IS NOT TRUE($t8)], SAL=[$t1], $condition=[$t9])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
@@ -2427,6 +2546,7 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)
           EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null NOT IN literal correlated
 select sal from "scott".emp e
@@ -2440,8 +2560,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null NOT IN required correlated
 select sal from "scott".emp e
@@ -2455,8 +2577,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter null NOT IN nullable correlated
 select sal from "scott".emp e
@@ -2470,8 +2594,10 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Test filter literal NOT IN required correlated
 select sal from "scott".emp e
@@ -2496,6 +2622,7 @@ select sal from "scott".emp e
 (11 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)], expr#8=[OR($t6, $t7)], expr#9=[IS NOT TRUE($t8)], SAL=[$t1], $condition=[$t9])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
@@ -2508,6 +2635,7 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)
             EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[CAST($t0):INTEGER NOT NULL], expr#5=[=($t3, $t4)], DEPTNO=[$t0], $condition=[$t5])
               EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter literal NOT IN nullable correlated
 select sal from "scott".emp e
@@ -2532,6 +2660,7 @@ select sal from "scott".emp e
 (11 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)], expr#8=[OR($t6, $t7)], expr#9=[IS NOT TRUE($t8)], SAL=[$t1], $condition=[$t9])
   EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
     EnumerableSort(sort0=[$2], dir0=[ASC])
@@ -2544,6 +2673,7 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[NOT($t3)], expr#7=[IS NOT NULL($t3)
             EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[>($t3, $t4)], expr#6=[null:TINYINT], expr#7=[CASE($t5, $t0, $t6)], expr#8=[IS NOT NULL($t7)], expr#9=[CAST($t7):INTEGER], expr#10=[Sarg[10; NULL AS TRUE]], expr#11=[SEARCH($t9, $t10)], DEPTNO=[$t0], cs=[$t8], $condition=[$t11])
               EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test filter null IN required is unknown correlated
 select sal from "scott".emp e
@@ -2571,9 +2701,11 @@ select sal from "scott".emp e
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 
 # Test project constant IN an expression that is sometimes null
@@ -2677,6 +2809,7 @@ select * from emp where deptno IN (select (select max(deptno) from "scott".emp t
 (6 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableHashJoin(condition=[=($7, $9)], joinType=[semi])
   EnumerableTableScan(table=[[scott, EMP]])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
@@ -2685,6 +2818,7 @@ EnumerableHashJoin(condition=[=($7, $9)], joinType=[semi])
     EnumerableAggregate(group=[{}], EXPR$0=[MAX($7)])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Test nested sub-query in FILTER within PROJECT
 select (select max(deptno) from "scott".emp where deptno IN (select deptno from "scott".emp)) from emp ;
@@ -2709,6 +2843,7 @@ select (select max(deptno) from "scott".emp where deptno IN (select deptno from 
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
@@ -2719,6 +2854,7 @@ EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
           EnumerableTableScan(table=[[scott, EMP]])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 !use scott
 
@@ -2781,6 +2917,7 @@ where sal + 100 not in (
 (1 row)
 
 !ok
+!if (use_old_decorr) {
 EnumerableAggregate(group=[{}], C=[COUNT()])
   EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=($t1, $t8)], expr#10=[IS NULL($t0)], expr#11=[IS NOT NULL($t7)], expr#12=[<($t2, $t1)], expr#13=[OR($t10, $t11, $t12)], expr#14=[IS NOT TRUE($t13)], expr#15=[OR($t9, $t14)], proj#0..7=[{exprs}], $condition=[$t15])
     EnumerableMergeJoin(condition=[AND(=($3, $5), =($4, $6))], joinType=[left])
@@ -2800,11 +2937,13 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
         EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):DECIMAL(13, 2) NOT NULL], expr#4=[true], expr#5=[IS NOT NULL($t1)], DEPTNO=[$t3], DNAME=[$t1], i=[$t4], $condition=[$t5])
           EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Correlated ANY sub-query
 select empno from "scott".emp as e
 where e.empno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.deptno) ;
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..6=[{inputs}], EMPNO=[$t5])
   EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($4, $6), OR(AND(>($5, $0), IS NOT TRUE(OR(IS NULL($3), =($1, 0)))), AND(>($5, $0), IS NOT TRUE(OR(IS NULL($3), =($1, 0))), IS NOT TRUE(>($5, $0)), <=($1, $2))))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t3)], expr#6=[0], expr#7=[CASE($t5, $t3, $t6)], m=[$t2], c=[$t7], d=[$t7], trueLiteral=[$t4], DEPTNO=[$t0])
@@ -2816,6 +2955,7 @@ EnumerableCalc(expr#0..6=[{inputs}], EMPNO=[$t5])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | EMPNO |
 +-------+
@@ -2842,7 +2982,7 @@ EnumerableCalc(expr#0..6=[{inputs}], EMPNO=[$t5])
 select empno,
 e.deptno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.empno) from "scott".emp as e;
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)], expr#9=[IS NULL($t5)], expr#10=[0], expr#11=[=($t3, $t10)], expr#12=[OR($t9, $t11)], expr#13=[IS NOT TRUE($t12)], expr#14=[AND($t8, $t13)], expr#15=[>($t3, $t4)], expr#16=[IS TRUE($t15)], expr#17=[null:BOOLEAN], expr#18=[IS NOT TRUE($t7)], expr#19=[AND($t16, $t17, $t13, $t18)], expr#20=[IS NOT TRUE($t15)], expr#21=[AND($t7, $t13, $t18, $t20)], expr#22=[OR($t14, $t19, $t21)], EMPNO=[$t0], EXPR$1=[$t22])
   EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
@@ -2855,6 +2995,7 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)]
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +-------+--------+
 | EMPNO | EXPR$1 |
 +-------+--------+
@@ -2887,6 +3028,7 @@ where exists
 # The plan before the fix was wrong but also inefficient since it required the generation of
 # a value generator (see RelDecorrelator code). The value generator is not present in the
 # following plan (two scans of EMP table instead of three).
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
   EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], expr#9=[CAST($t3):INTEGER NOT NULL], expr#10=[0], expr#11=[CASE($t8, $t9, $t10)], proj#0..1=[{exprs}], $f3=[$t11])
@@ -2894,6 +3036,7 @@ EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], expr#9=[CAST($t3):INTEGER NOT NULL], expr#10=[0], expr#11=[CASE($t8, $t9, $t10)], $f8=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +--------+
 | ENAME  |
 +--------+
@@ -2921,6 +3064,7 @@ EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
 select empno
 from "scott".emp emp1
 where empno <> some (select emp2.empno from "scott".emp emp2 where emp2.empno = emp1.empno);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[<>($t2, $t1)], expr#8=[1], expr#9=[<=($t3, $t8)], expr#10=[<>($t0, $t4)], expr#11=[IS NULL($t5)], expr#12=[0], expr#13=[=($t1, $t12)], expr#14=[OR($t11, $t13)], expr#15=[IS NOT TRUE($t14)], expr#16=[AND($t7, $t9, $t10, $t15)], expr#17=[=($t3, $t8)], expr#18=[IS NOT NULL($t3)], expr#19=[AND($t7, $t18)], expr#20=[IS NOT TRUE($t19)], expr#21=[AND($t17, $t10, $t15, $t20)], expr#22=[AND($t7, $t9)], expr#23=[IS NOT TRUE($t22)], expr#24=[IS NOT TRUE($t17)], expr#25=[AND($t15, $t23, $t24)], expr#26=[OR($t16, $t21, $t25)], EMPNO=[$t0], $condition=[$t26])
   EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
@@ -2932,6 +3076,7 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[<>($t2, $t1)], expr#8=[1], expr#9=[
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1:BIGINT], expr#9=[true], EMPNO1=[$t0], $f1=[$t8], $f2=[$t8], EMPNO=[$t0], $f4=[$t9])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | EMPNO |
 +-------+
@@ -2969,6 +3114,7 @@ from "scott".emp emp1;
 select *
 from "scott".emp emp1
 where empno <> some (select comm from "scott".emp where deptno = emp1.deptno);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t10, $t9)], expr#15=[1], expr#16=[<=($t11, $t15)], expr#17=[AND($t14, $t16)], expr#18=[=($t11, $t15)], expr#19=[OR($t17, $t18)], expr#20=[<>($t0, $t12)], expr#21=[IS NULL($t13)], expr#22=[0], expr#23=[=($t9, $t22)], expr#24=[OR($t21, $t23)], expr#25=[IS NOT TRUE($t24)], expr#26=[AND($t19, $t20, $t25)], expr#27=[IS NOT TRUE($t19)], expr#28=[AND($t25, $t27)], expr#29=[OR($t26, $t28)], proj#0..7=[{exprs}], $condition=[$t29])
   EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($7, $8)], joinType=[left])
     EnumerableTableScan(table=[[scott, EMP]])
@@ -2983,6 +3129,7 @@ EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t10, $t9)], expr#15=[1], expr
                 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
                   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+--------+----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+----------+------+------------+---------+---------+--------+
@@ -3026,6 +3173,7 @@ from "scott".emp as emp1;
 select *
 from "scott".emp as emp1
 where empno <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t9, $t8)], expr#15=[1], expr#16=[<=($t10, $t15)], expr#17=[<>($t0, $t11)], expr#18=[IS NULL($t12)], expr#19=[0], expr#20=[=($t8, $t19)], expr#21=[OR($t18, $t20)], expr#22=[IS NOT TRUE($t21)], expr#23=[AND($t14, $t16, $t17, $t22)], expr#24=[=($t10, $t15)], expr#25=[IS NOT NULL($t10)], expr#26=[AND($t14, $t25)], expr#27=[IS NOT TRUE($t26)], expr#28=[AND($t24, $t17, $t22, $t27)], expr#29=[AND($t14, $t16)], expr#30=[IS NOT TRUE($t29)], expr#31=[IS NOT TRUE($t24)], expr#32=[AND($t22, $t30, $t31)], expr#33=[OR($t23, $t28, $t32)], proj#0..7=[{exprs}], $condition=[$t33])
   EnumerableHashJoin(condition=[=($0, $13)], joinType=[left])
     EnumerableTableScan(table=[[scott, EMP]])
@@ -3040,6 +3188,7 @@ EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t9, $t8)], expr#15=[1], expr#
                 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
                   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -3077,6 +3226,7 @@ from "scott".emp as emp1;
 select *
 from "scott".emp as emp1
 where comm <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t9, $t8)], expr#15=[1], expr#16=[<=($t10, $t15)], expr#17=[AND($t14, $t16)], expr#18=[=($t10, $t15)], expr#19=[OR($t17, $t18)], expr#20=[<>($t6, $t11)], expr#21=[IS NULL($t12)], expr#22=[IS NULL($t6)], expr#23=[0], expr#24=[=($t8, $t23)], expr#25=[OR($t21, $t22, $t24)], expr#26=[IS NOT TRUE($t25)], expr#27=[AND($t19, $t20, $t26)], expr#28=[IS NOT TRUE($t19)], expr#29=[AND($t26, $t28)], expr#30=[OR($t27, $t29)], proj#0..7=[{exprs}], $condition=[$t30])
   EnumerableHashJoin(condition=[=($0, $13)], joinType=[left])
     EnumerableTableScan(table=[[scott, EMP]])
@@ -3091,6 +3241,7 @@ EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t9, $t8)], expr#15=[1], expr#
                 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
                   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -3128,6 +3279,7 @@ from "scott".emp as emp1;
 select *
 from "scott".emp emp1
 where emp1.comm <> some (select comm from "scott".emp emp2 where emp2.sal = emp1.sal);
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t10, $t9)], expr#15=[1], expr#16=[<=($t11, $t15)], expr#17=[AND($t14, $t16)], expr#18=[=($t11, $t15)], expr#19=[OR($t17, $t18)], expr#20=[<>($t6, $t12)], expr#21=[IS NULL($t13)], expr#22=[IS NULL($t6)], expr#23=[0], expr#24=[=($t9, $t23)], expr#25=[OR($t21, $t22, $t24)], expr#26=[IS NOT TRUE($t25)], expr#27=[AND($t19, $t20, $t26)], expr#28=[IS NOT TRUE($t19)], expr#29=[AND($t26, $t28)], expr#30=[OR($t27, $t29)], proj#0..7=[{exprs}], $condition=[$t30])
   EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($5, $8)], joinType=[left])
     EnumerableTableScan(table=[[scott, EMP]])
@@ -3142,6 +3294,7 @@ EnumerableCalc(expr#0..13=[{inputs}], expr#14=[<>($t10, $t9)], expr#15=[1], expr
                 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t5)], proj#0..7=[{exprs}], $condition=[$t8])
                   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+--------+----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+----------+------+------------+---------+---------+--------+
@@ -3210,7 +3363,7 @@ where unique (select comm from "scott".emp where comm is not null);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3221,6 +3374,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select comm from "scott".emp where comm is not null) as u
@@ -3236,7 +3390,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3247,6 +3401,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, but NOT UNIQUE.
 select deptno, not unique (select comm from "scott".emp where comm is not null) as u
@@ -3262,7 +3417,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3273,6 +3428,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # singleton keys have unique value which includes partial null rows.
 select deptno
@@ -3289,7 +3445,7 @@ where unique (select comm from "scott".emp);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3300,6 +3456,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select comm from "scott".emp) as u
@@ -3315,7 +3472,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3326,6 +3483,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # singleton keys which includes fully null rows.
 select deptno
@@ -3342,10 +3500,11 @@ where unique (select comm from "scott".emp where comm is null);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select comm from "scott".emp where comm is null) as u
@@ -3361,10 +3520,11 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], DEPTNO=[$t0], U=[$t3])
   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # composite keys have unique value which excludes fully or partially null rows.
 select deptno
@@ -3381,7 +3541,7 @@ where unique (select comm, sal from "scott".emp where comm is not null);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3392,6 +3552,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select comm, sal from "scott".emp where comm is not null) as u
@@ -3407,7 +3568,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3418,7 +3579,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
-
+!}
 
 
 # composite keys have unique value which includes fully or partially null rows.
@@ -3436,7 +3597,7 @@ where unique (select comm, sal from "scott".emp);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3447,6 +3608,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select comm, sal from "scott".emp) as u
@@ -3462,7 +3624,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3473,6 +3635,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t6)], expr#9=[IS NOT NULL($t5)], expr#10=[AND($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # singleton keys have duplicate value
 select deptno
@@ -3485,7 +3648,7 @@ where unique (select deptno from "scott".emp);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3496,6 +3659,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select deptno from "scott".emp) as u
@@ -3511,7 +3675,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3522,6 +3686,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # composite keys have duplicate value.
 select deptno
@@ -3534,7 +3699,7 @@ where unique (select deptno, sal from "scott".emp where sal = 3000);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3545,6 +3710,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000.00:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select deptno, sal from "scott".emp where sal = 3000) as u
@@ -3560,7 +3726,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3571,6 +3737,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000.00:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, but NOT UNIQUE.
 select deptno, not unique (select deptno, sal from "scott".emp where sal = 3000) as u
@@ -3586,7 +3753,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3597,6 +3764,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000.00:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # as above, but sub-query empty.
 select deptno
@@ -3613,7 +3781,7 @@ where unique (select deptno from "scott".emp where deptno = 35);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condition=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3623,6 +3791,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select deptno, unique (select deptno from "scott".emp where deptno = 35) as u
@@ -3638,7 +3807,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
@@ -3648,6 +3817,7 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # singleton keys which a uniqueness constraint indicates that the relation is already unique.
 select *
@@ -3664,9 +3834,10 @@ where unique (select deptno from "scott".dept);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # as above, sub-query with limit.
 select *
@@ -3683,9 +3854,10 @@ where unique (select deptno from "scott".emp limit 1);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # as above, sub-query with distinct.
 select deptno
@@ -3702,10 +3874,11 @@ where unique (select distinct deptno, sal from "scott".emp where sal = 3000);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # as above, sub-query with group by.
 select deptno
@@ -3722,10 +3895,11 @@ where unique (select job from "scott".emp group by job);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Correlated UNIQUE predicate.
 select *
@@ -3740,7 +3914,7 @@ where unique (
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}], $condition=[$t5])
   EnumerableMergeJoin(condition=[=($0, $4)], joinType=[left])
     EnumerableTableScan(table=[[scott, DEPT]])
@@ -3750,6 +3924,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}],
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select *, unique (select 1 from "scott".emp where dept.deptno = emp.deptno) as u
@@ -3765,7 +3940,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}], U=[$t5])
   EnumerableMergeJoin(condition=[=($0, $4)], joinType=[left])
     EnumerableTableScan(table=[[scott, DEPT]])
@@ -3775,6 +3950,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}],
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # as above, but NOT UNIQUE.
 select *
@@ -3791,7 +3967,7 @@ where not unique (
 (3 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableHashJoin(condition=[=($0, $3)], joinType=[semi])
   EnumerableTableScan(table=[[scott, DEPT]])
   EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t1, $t2)], DEPTNO=[$t0], $condition=[$t3])
@@ -3799,6 +3975,7 @@ EnumerableHashJoin(condition=[=($0, $3)], joinType=[semi])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select *, not unique (select 1 from "scott".emp where dept.deptno = emp.deptno) as u
@@ -3814,7 +3991,7 @@ from "scott".dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t3)], proj#0..2=[{exprs}], U=[$t5])
   EnumerableMergeJoin(condition=[=($0, $4)], joinType=[left])
     EnumerableTableScan(table=[[scott, DEPT]])
@@ -3824,6 +4001,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t3)], proj#0..2=[{expr
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], proj#0..7=[{exprs}], $condition=[$t8])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # [CALCITE-4805] Calcite should convert a small IN-list as if the
 # user had written OR, even if the IN-list contains NULL.
@@ -3839,10 +4017,11 @@ select * from "scott".emp where comm in (300, 500, null);
 (2 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select *, comm in (300, 500, null) as i from "scott".emp;
@@ -3867,10 +4046,11 @@ select *, comm in (300, 500, null) as i from "scott".emp;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[OR($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # As above, but NOT IN.
 select * from "scott".emp where comm not in (300, 500, null);
@@ -3881,9 +4061,10 @@ select * from "scott".emp where comm not in (300, 500, null);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select *, comm not in (300, 500, null) as i from "scott".emp;
@@ -3908,10 +4089,11 @@ select *, comm not in (300, 500, null) as i from "scott".emp;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[(-∞..300.00:DECIMAL(12, 2)), (300.00:DECIMAL(12, 2)..500.00:DECIMAL(12, 2)), (500.00:DECIMAL(12, 2)..+∞)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Previous NOT IN expressions in conjunction form
 select *, (comm <> 300 and comm <> 500 and comm <> null) as i from "scott".emp;
@@ -3936,9 +4118,11 @@ select *, (comm <> 300 and comm <> 500 and comm <> null) as i from "scott".emp;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[(-∞..300.00:DECIMAL(12, 2)), (300.00:DECIMAL(12, 2)..500.00:DECIMAL(12, 2)), (500.00:DECIMAL(12, 2)..+∞)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # The IN-list only contains null value.
 select * from "scott".emp where empno in (null);
@@ -3949,9 +4133,10 @@ select * from "scott".emp where empno in (null);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select *, empno in (null) as i from "scott".emp;
@@ -3976,10 +4161,11 @@ select *, empno in (null) as i from "scott".emp;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[null:BOOLEAN], proj#0..8=[{exprs}])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # As above, but NOT IN.
 select * from "scott".emp where empno not in (null);
@@ -3990,9 +4176,10 @@ select * from "scott".emp where empno not in (null);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Previous, as scalar sub-query.
 select *, empno not in (null) as i from "scott".emp;
@@ -4017,10 +4204,11 @@ select *, empno not in (null) as i from "scott".emp;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[null:BOOLEAN], proj#0..8=[{exprs}])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # [CALCITE-4844] IN-list that references columns is wrongly converted to Values, and gives incorrect results
 
@@ -4036,10 +4224,11 @@ SELECT empno, ename, mgr FROM "scott".emp WHERE 7782 IN (empno, mgr);
 (2 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7782], expr#9=[CAST($t0):INTEGER NOT NULL], expr#10=[=($t8, $t9)], expr#11=[CAST($t3):INTEGER], expr#12=[=($t8, $t11)], expr#13=[OR($t10, $t12)], proj#0..1=[{exprs}], MGR=[$t3], $condition=[$t13])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 SELECT empno, ename, mgr FROM "scott".emp WHERE (7782, 7839) IN ((empno, mgr), (mgr, empno));
 +-------+-------+------+
@@ -4050,10 +4239,11 @@ SELECT empno, ename, mgr FROM "scott".emp WHERE (7782, 7839) IN ((empno, mgr), (
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7782], expr#9=[CAST($t0):INTEGER NOT NULL], expr#10=[=($t8, $t9)], expr#11=[7839], expr#12=[CAST($t3):INTEGER], expr#13=[=($t11, $t12)], expr#14=[AND($t10, $t13)], expr#15=[=($t8, $t12)], expr#16=[=($t11, $t9)], expr#17=[AND($t15, $t16)], expr#18=[OR($t14, $t17)], proj#0..1=[{exprs}], MGR=[$t3], $condition=[$t18])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 SELECT empno, ename, mgr FROM "scott".emp WHERE (7782, 7839) IN ((empno, 7839), (7782, mgr));
 +-------+-------+------+
@@ -4066,10 +4256,11 @@ SELECT empno, ename, mgr FROM "scott".emp WHERE (7782, 7839) IN ((empno, 7839), 
 (3 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7782], expr#9=[CAST($t0):INTEGER NOT NULL], expr#10=[=($t8, $t9)], expr#11=[7839], expr#12=[CAST($t3):INTEGER], expr#13=[=($t11, $t12)], expr#14=[OR($t10, $t13)], proj#0..1=[{exprs}], MGR=[$t3], $condition=[$t14])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Reset to default value 20
 !set insubquerythreshold 20
@@ -4084,7 +4275,7 @@ select * from "scott".emp where empno not in (null, 7782);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..12=[{inputs}], expr#13=[IS NULL($t12)], expr#14=[>=($t9, $t8)], expr#15=[AND($t13, $t14)], expr#16=[0], expr#17=[=($t8, $t16)], expr#18=[OR($t15, $t17)], proj#0..7=[{exprs}], $condition=[$t18])
   EnumerableMergeJoin(condition=[=($10, $11)], joinType=[left])
     EnumerableSort(sort0=[$10], dir0=[ASC])
@@ -4097,6 +4288,7 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[IS NULL($t12)], expr#14=[>=($t9, 
       EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
         EnumerableValues(tuples=[[{ null }, { 7782 }]])
 !plan
+!}
 
 select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null));
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -4120,7 +4312,7 @@ select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null));
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#17=[IS NULL($t14)], expr#18=[>=($t9, $t8)], expr#19=[IS NOT NULL($t7)], expr#20=[AND($t17, $t18, $t19)], expr#21=[OR($t16, $t20)], proj#0..7=[{exprs}], $condition=[$t21])
   EnumerableMergeJoin(condition=[AND(=($10, $12), =($11, $13))], joinType=[left])
     EnumerableSort(sort0=[$10], sort1=[$11], dir0=[ASC], dir1=[ASC])
@@ -4133,6 +4325,7 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 3, null }, { 1, 2 }]])
 !plan
+!}
 
 # As above, but the IN-list includes all null value
 select * from "scott".emp where (mgr, deptno) not in ((1, 2), (3, null), (cast(null as integer), cast(null as integer)));
@@ -4143,7 +4336,7 @@ select * from "scott".emp where (mgr, deptno) not in ((1, 2), (3, null), (cast(n
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#17=[IS NULL($t14)], expr#18=[>=($t9, $t8)], expr#19=[IS NOT NULL($t3)], expr#20=[IS NOT NULL($t7)], expr#21=[AND($t17, $t18, $t19, $t20)], expr#22=[OR($t16, $t21)], proj#0..7=[{exprs}], $condition=[$t22])
   EnumerableMergeJoin(condition=[AND(=($10, $12), =($11, $13))], joinType=[left])
     EnumerableSort(sort0=[$10], sort1=[$11], dir0=[ASC], dir1=[ASC])
@@ -4157,6 +4350,7 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 3, null }, { null, null }, { 1, 2 }]])
 !plan
+!}
 
 select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null), (cast(null as integer), cast(null as integer)));
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -4187,7 +4381,7 @@ select * from "scott".emp where (empno, deptno) not in ((7369, 20), (7499, 30));
 (12 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#17=[IS NULL($t14)], expr#18=[>=($t9, $t8)], expr#19=[IS NOT NULL($t7)], expr#20=[AND($t17, $t18, $t19)], expr#21=[OR($t16, $t20)], proj#0..7=[{exprs}], $condition=[$t21])
   EnumerableMergeJoin(condition=[AND(=($10, $12), =($11, $13))], joinType=[left])
     EnumerableSort(sort0=[$10], sort1=[$11], dir0=[ASC], dir1=[ASC])
@@ -4201,6 +4395,7 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 7369, 20 }, { 7499, 30 }]])
 !plan
+!}
 
 # Reset to default value 20
 !set insubquerythreshold 20
@@ -4222,9 +4417,10 @@ where EXISTS (select count(*) from emp e where d.deptno = e.deptno);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # As above, but the filter condition always false
 select *
@@ -4241,10 +4437,10 @@ where EXISTS (select count(*) from emp e where d.deptno = e.deptno and 1 = 2);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
-
+!}
 
 # As above, but the Sum aggregation function
 select *
@@ -4261,9 +4457,10 @@ where EXISTS (select sum(1) from emp e where d.deptno = e.deptno and 1 = 2);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test case about sub-query is guaranteed to produce no row
 select *
@@ -4280,9 +4477,10 @@ where NOT EXISTS (select count(*) from emp e having false);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test case about nested row
 select (select (1, 2));
@@ -4294,10 +4492,11 @@ select (select (1, 2));
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ROW($t1, $t2)], expr#4=[CAST($t3):RecordType(INTEGER EXPR$0, INTEGER EXPR$1)], EXPR$0=[$t4])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
+!}
 
 # Test case for correlated sub-query
 SELECT ARRAY(SELECT s.x) FROM (SELECT 1 as x) s;
@@ -4595,6 +4794,7 @@ select deptno from dept d1 where exists (
 (4 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t2])
   EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
@@ -4606,6 +4806,7 @@ EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t2])
     EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test case for CALCITE-5683 which throws an exception during the de-correlation phase
 SELECT d1.dname, d1.deptno + (
@@ -4901,7 +5102,7 @@ select empno, empno in (7369, 7499, 7521) from emp;
 
 !ok
 
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NOT NULL($t3)], EMPNO=[$t0], EXPR$1=[$t4])
   EnumerableMergeJoin(condition=[=($1, $2)], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], EMPNO=[$t0], EMPNO0=[$t8])
@@ -4909,6 +5110,7 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NOT NULL($t3)], EMPNO=[$t0], EXP
     EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
       EnumerableValues(tuples=[[{ 7369 }, { 7499 }, { 7521 }]])
 !plan
+!}
 
 # Test LHS is nullable and RHS is not nullable
 select comm, comm in (500, 300, 0) from emp;
@@ -4933,7 +5135,7 @@ select comm, comm in (500, 300, 0) from emp;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN], expr#9=[0], expr#10=[<>($t2, $t9)], expr#11=[AND($t7, $t8, $t10)], expr#12=[IS NOT NULL($t6)], expr#13=[IS NOT NULL($t1)], expr#14=[AND($t12, $t10, $t13)], expr#15=[<($t3, $t2)], expr#16=[IS NULL($t6)], expr#17=[AND($t15, $t8, $t10, $t13, $t16)], expr#18=[OR($t11, $t14, $t17)], COMM=[$t1], EXPR$1=[$t18])
   EnumerableMergeJoin(condition=[=($4, $5)], joinType=[left])
     EnumerableSort(sort0=[$4], dir0=[ASC])
@@ -4948,6 +5150,7 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN
       EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00 }, { 300.00 }, { 0.00 }]])
 !plan
+!}
 
 # Test LHS is nullable and RHS is nullable
 
@@ -4973,7 +5176,7 @@ select comm, comm in (500, 300, 0, null) from emp;
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN], expr#9=[0], expr#10=[<>($t2, $t9)], expr#11=[AND($t7, $t8, $t10)], expr#12=[IS NOT NULL($t6)], expr#13=[IS NOT NULL($t1)], expr#14=[AND($t12, $t10, $t13)], expr#15=[<($t3, $t2)], expr#16=[IS NULL($t6)], expr#17=[AND($t15, $t8, $t10, $t13, $t16)], expr#18=[OR($t11, $t14, $t17)], COMM=[$t1], EXPR$1=[$t18])
   EnumerableMergeJoin(condition=[=($4, $5)], joinType=[left])
     EnumerableSort(sort0=[$4], dir0=[ASC])
@@ -4987,6 +5190,7 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t1)], expr#8=[null:BOOLEAN
       EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00 }, { 300.00 }, { 0.00 }, { null }]])
 !plan
+!}
 
 # Reset to default value 20
 !set insubquerythreshold 20
@@ -5015,7 +5219,7 @@ select empno, (empno, empno) in ((7369, 7369), (7499, 7499), (7521, 7521)) from 
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NOT NULL($t5)], EMPNO=[$t0], EXPR$1=[$t6])
   EnumerableMergeJoin(condition=[AND(=($1, $3), =($2, $4))], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], EMPNO=[$t0], EMPNO0=[$t8], EMPNO1=[$t8])
@@ -5024,6 +5228,7 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NOT NULL($t5)], EMPNO=[$t0], EXP
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 7369, 7369 }, { 7499, 7499 }, { 7521, 7521 }]])
 !plan
+!}
 
 
 # Test LHS is (nullable, nullable) and RHS is (not nullable, not nullable)
@@ -5050,6 +5255,7 @@ select comm, (comm, comm) in ((500, 500), (300, 300), (0, 0)) from emp;
 
 !ok
 
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEAN], expr#11=[0], expr#12=[<>($t2, $t11)], expr#13=[AND($t9, $t10, $t12)], expr#14=[IS NOT NULL($t8)], expr#15=[IS NOT NULL($t1)], expr#16=[AND($t14, $t12, $t15)], expr#17=[<($t3, $t2)], expr#18=[IS NULL($t8)], expr#19=[AND($t17, $t10, $t12, $t15, $t18)], expr#20=[OR($t13, $t16, $t19)], COMM=[$t1], EXPR$1=[$t20])
   EnumerableMergeJoin(condition=[AND(=($4, $6), =($5, $7))], joinType=[left])
     EnumerableSort(sort0=[$4], sort1=[$5], dir0=[ASC], dir1=[ASC])
@@ -5063,6 +5269,7 @@ EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEA
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }]])
 !plan
+!}
 
 # Test LHS is (nullable, nullable) and RHS is (nullable, nullable)
 
@@ -5088,7 +5295,7 @@ select comm, (comm, comm) in ((500, 500), (300, 300), (0, 0), (null , null)) fro
 (14 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEAN], expr#11=[0], expr#12=[<>($t2, $t11)], expr#13=[AND($t9, $t10, $t12)], expr#14=[IS NOT NULL($t8)], expr#15=[IS NOT NULL($t1)], expr#16=[AND($t14, $t12, $t15)], expr#17=[<($t3, $t2)], expr#18=[IS NULL($t8)], expr#19=[AND($t17, $t10, $t12, $t15, $t18)], expr#20=[OR($t13, $t16, $t19)], COMM=[$t1], EXPR$1=[$t20])
   EnumerableMergeJoin(condition=[AND(=($4, $6), =($5, $7))], joinType=[left])
     EnumerableSort(sort0=[$4], sort1=[$5], dir0=[ASC], dir1=[ASC])
@@ -5103,6 +5310,7 @@ EnumerableCalc(expr#0..8=[{inputs}], expr#9=[IS NULL($t1)], expr#10=[null:BOOLEA
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }, { null, null }]])
 !plan
+!}
 
 # Reset to default value 20
 !set insubquerythreshold 20
@@ -5122,7 +5330,7 @@ where deptno + 20 in (select deptno from dept);
 (2 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
   EnumerableHashJoin(condition=[=($3, $4)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[20], expr#4=[+($t0, $t3)], proj#0..2=[{exprs}], $f3=[$t4])
@@ -5130,6 +5338,7 @@ EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], DEPTNO=[$t3])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test case about the IN sub-query left operand type is BIGINT and right operand type is TINYINT
 select *
@@ -5146,7 +5355,7 @@ where cast(deptno as bigint) in (select deptno from dept);
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
   EnumerableHashJoin(condition=[=($3, $4)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):BIGINT NOT NULL], proj#0..3=[{exprs}])
@@ -5154,6 +5363,7 @@ EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):BIGINT NOT NULL], DEPTNO=[$t3])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+!}
 
 # Test case about the IN sub-query left operand type is INTEGER and right operand type is BIGINT
 select *
@@ -5167,7 +5377,7 @@ where deptno + 10 in (select count(*) + 10 from emp where comm is null);
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
   EnumerableHashJoin(condition=[=($3, $4)], joinType=[semi])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[+($t0, $t3)], expr#5=[CAST($t4):BIGINT NOT NULL], proj#0..2=[{exprs}], $f3=[$t5])
@@ -5177,6 +5387,7 @@ EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
         EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], proj#0..7=[{exprs}], $condition=[$t8])
           EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Test case about the IN sub-query left operand type is SMALLINT and right operand type is TINYINT
 select *
@@ -5190,7 +5401,7 @@ where cast(empno - 7349 as smallint)  in (select deptno from emp) and ename = 'S
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
   EnumerableHashJoin(condition=[=($8, $9)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7349], expr#9=[-($t0, $t8)], expr#10=[CAST($t9):SMALLINT NOT NULL], expr#11=['SMITH':VARCHAR(10)], expr#12=[=($t1, $t11)], proj#0..7=[{exprs}], $f8=[$t10], $condition=[$t12])
@@ -5198,6 +5409,7 @@ EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):SMALLINT], DEPTNO=[$t8])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Test case about the IN sub-query left operand type is SMALLINT and right operand type is INTEGER
 select *
@@ -5211,7 +5423,7 @@ where empno in (select deptno + 7349 from emp);
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
   EnumerableHashJoin(condition=[=($8, $9)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], proj#0..8=[{exprs}])
@@ -5219,6 +5431,7 @@ EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7349], expr#9=[+($t7, $t8)], EXPR$0=[$t9])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Test case about the IN sub-query left operand type is SMALLINT and right operand type is BIGINT
 select *
@@ -5232,7 +5445,7 @@ where empno in (select cast(deptno + 7349 as bigint) from emp);
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
   EnumerableHashJoin(condition=[=($8, $9)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):BIGINT NOT NULL], proj#0..8=[{exprs}])
@@ -5240,7 +5453,7 @@ EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7349], expr#9=[+($t7, $t8)], expr#10=[CAST($t9):BIGINT], EXPR$0=[$t10])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
-
+!}
 
 # [CALCITE-6650] Optimize the IN sub-query and SOME sub-query by Metadata RowCount
 
@@ -5255,9 +5468,10 @@ select * from emp where deptno > some(select deptno from dept where false);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Same as previous; but is Scalar sub-query
 select deptno, deptno > some(select deptno from dept where false) from emp;
@@ -5277,10 +5491,11 @@ select deptno, deptno > some(select deptno from dept where false) from emp;
 (9 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
   EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
+!}
 
 # Same as previous; but LHS is NULL
 select deptno, null > some(select deptno from dept where false) from emp;
@@ -5300,10 +5515,11 @@ select deptno, null > some(select deptno from dept where false) from emp;
 (9 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
   EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
+!}
 
 # Test case about ANY sub-query when sub-query return 0 row
 select * from emp where deptno > any(select deptno from dept where false);
@@ -5314,9 +5530,10 @@ select * from emp where deptno > any(select deptno from dept where false);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Same as previous; but is Scalar sub-query
 select deptno, deptno > any(select deptno from dept where false) from emp;
@@ -5336,10 +5553,11 @@ select deptno, deptno > any(select deptno from dept where false) from emp;
 (9 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
   EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
+!}
 
 # Test case about UNIQUE sub-query when sub-query return 0 row
 select * from emp where unique (select deptno from dept where false);
@@ -5359,9 +5577,10 @@ select * from emp where unique (select deptno from dept where false);
 (9 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
+!}
 
 # Same as previous; but is Scalar sub-query
 select unique (select deptno from dept where false) from emp;
@@ -5381,10 +5600,11 @@ select unique (select deptno from dept where false) from emp;
 (9 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0=[{inputs}], expr#1=[true], EXPR$0=[$t1])
   EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
+!}
 
 
 # Test case about NOT UNIQUE sub-query when sub-query return 0 row
@@ -5396,9 +5616,10 @@ select * from emp where not unique (select deptno from dept where false);
 (0 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[]])
 !plan
+!}
 
 # Same as previous; but is Scalar sub-query
 select not unique (select deptno from dept where false) from dept;
@@ -5413,10 +5634,11 @@ select not unique (select deptno from dept where false) from dept;
 (4 rows)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], EXPR$0=[$t2])
   EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
+!}
 
 # [CALCITE-4758] When SOME sub-query is SqlNodeList and converted to VALUES, Calcite returns incorrect result
 
@@ -5450,7 +5672,7 @@ select 1 in (values(null), (null));
 (1 row)
 
 !ok
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS FALSE($t1)], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t2)], expr#6=[AND($t3, $t4, $t5)], expr#7=[IS NOT NULL($t1)], expr#8=[IS NOT FALSE($t1)], expr#9=[AND($t7, $t5, $t8)], expr#10=[OR($t6, $t9)], EXPR$0=[$t10])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableValues(tuples=[[{ 0 }]])
@@ -5460,6 +5682,7 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS FALSE($t1)], expr#4=[null:BOOLEA
           EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], cs=[$t1])
             EnumerableValues(tuples=[[{ null }, { null }]])
 !plan
+!}
 
 # [CALCITE-1583] Wrong results for query with correlated subqueries with aggregate subquery expression
 # Correlated sub-query with aggregate expression can optimized by Metadata RowCount
@@ -5480,9 +5703,10 @@ select * from emp where exists (select count(deptno) from dept where dept.deptno
 (9 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
-
+!}
 
 # Same as previous; but the sub-query with always false condition.
 select * from emp where exists (select count(deptno) from dept where dept.deptno = emp.deptno and 1 = 2);
@@ -5502,9 +5726,10 @@ select * from emp where exists (select count(deptno) from dept where dept.deptno
 (9 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
-
+!}
 
 # Same as previous; but the sub-query with true correlated condition sometimes and condition is always false.
 select * from emp where deptno <> (select count(deptno) from dept where dept.deptno = emp.deptno);
@@ -5523,6 +5748,7 @@ select * from emp where deptno <> (select count(deptno) from dept where dept.dep
 (8 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t4)], expr#6=[CAST($t1):BIGINT], expr#7=[0:BIGINT], expr#8=[<>($t6, $t7)], expr#9=[AND($t5, $t8)], expr#10=[<>($t6, $t4)], expr#11=[OR($t9, $t10)], proj#0..2=[{exprs}], $condition=[$t11])
   EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[left])
     EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
@@ -5533,6 +5759,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t4)], expr#6=[CAST($t1):BI
         EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1:BIGINT], DEPTNO=[$t0], $f1=[$t2])
           EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
+!}
 
 # Same as previous; but the sub-query with always false correlated condition and return true sometimes.
 select * from emp where deptno <> (select count(deptno) + 10  from dept where dept.deptno = emp.deptno and 1 = 2);
@@ -5549,6 +5776,7 @@ select * from emp where deptno <> (select count(deptno) + 10  from dept where de
 (6 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):BIGINT], expr#6=[IS NULL($t4)], expr#7=[0:BIGINT], expr#8=[CASE($t6, $t7, $t4)], expr#9=[10], expr#10=[+($t8, $t9)], expr#11=[<>($t5, $t10)], proj#0..2=[{exprs}], $condition=[$t11])
   EnumerableHashJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[left])
     EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
@@ -5556,6 +5784,7 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):BIGINT], expr#6=[IS NULL(
       EnumerableAggregate(group=[{0}])
         EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
+!}
 
 # [CALCITE-5421] SqlToRelConverter should populate correlateId for join with correlated query in HAVING condition
 !use scott
@@ -7834,9 +8063,11 @@ SELECT empno
             WHERE e2.deptno = d.deptno
             GROUP BY e2.deptno
             HAVING SUM(e2.sal) > 1000000));
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | EMPNO |
 +-------+
@@ -7868,10 +8099,11 @@ SELECT empno
             WHERE e2.deptno = e.deptno
             GROUP BY e2.deptno
             HAVING SUM(e2.sal) > 1000000));
-
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | EMPNO |
 +-------+
@@ -7906,9 +8138,11 @@ SELECT empno
             WHERE e2.deptno = d.deptno
             GROUP BY e2.deptno
             HAVING SUM(e2.sal) > 1000000));
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | EMPNO |
 +-------+
@@ -7941,9 +8175,11 @@ SELECT empno
             GROUP BY e2.deptno
             HAVING SUM(e2.sal) > 1000000));
 
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 +-------+
 | EMPNO |
 +-------+
@@ -8693,6 +8929,7 @@ from emp as e;
 (14 rows)
 
 !ok
+!if (use_old_decorr) {
 EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], expr#8=[0:BIGINT], expr#9=[CASE($t7, $t8, $t6)], ENAME=[$t1], C=[$t9])
   EnumerableHashJoin(condition=[AND(IS NOT DISTINCT FROM($2, $4), =($3, $5))], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t6)], proj#0..1=[{exprs}], COMM=[$t6], $f3=[$t8])
@@ -8710,6 +8947,7 @@ EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], expr#8=[0:BIGINT], e
             EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], COMM=[$t6])
               EnumerableTableScan(table=[[scott, EMP]])
 !plan
+!}
 
 # Test case for [CALCITE-6452] Scalar sub-query that uses IS NOT DISTINCT FROM returns incorrect result
 select e.ename,
