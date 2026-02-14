@@ -51,7 +51,9 @@ import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.Graphs;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -66,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -113,6 +116,30 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private final List<RelOptMaterialization> materializations =
       new ArrayList<>();
+
+  /**
+   * Cache of rules that have already been fired for a specific operand match,
+   * to avoid firing the same rule repeatedly.
+   *
+   * <p>Key: the list of matched {@link RelNode} IDs (operand match).
+   *
+   * <p>Value: the set of {@link RelOptRule}s already fired for that exact ID list.
+   */
+  private final Multimap<List<Integer>, RelOptRule> firedRulesCache = HashMultimap.create();
+
+  /**
+   * Reverse index for {@link #firedRulesCache}, used for cleanup/GC:
+   * maps a single {@link RelNode} ID to all match-key ID lists that include it,
+   * so related cache entries can be removed efficiently when a node is discarded.
+   *
+   * <p>Key: {@link RelNode} ID.
+   *
+   * <p>Value: match-key ID lists in {@link #firedRulesCache} that contain the key ID.
+   */
+  private final Multimap<Integer, List<Integer>> firedRulesCacheIndex = HashMultimap.create();
+
+
+  private boolean enableFiredRulesCache = false;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -173,6 +200,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       removeRule(rule);
     }
     this.materializations.clear();
+    this.firedRulesCache.clear();
+    this.firedRulesCacheIndex.clear();
   }
 
   @Override public RelNode changeTraits(RelNode rel, RelTraitSet toTraits) {
@@ -193,6 +222,17 @@ public class HepPlanner extends AbstractRelOptPlanner {
     collectGarbage();
     dumpRuleAttemptsInfo();
     return buildFinalPlan(requireNonNull(root, "'root' must not be null"));
+  }
+
+  /**
+   * Enables or disables the fire-rule cache.
+   *
+   * <p> If enabled, a rule will not fire twice on the same {@code RelNode::getId()}.
+   *
+   * @param enable true to enable; false is default value.
+   */
+  public void setEnableFiredRulesCache(boolean enable) {
+    enableFiredRulesCache = enable;
   }
 
   /** Top-level entry point for a program. Initializes state and then invokes
@@ -519,12 +559,27 @@ public class HepPlanner extends AbstractRelOptPlanner {
             nodeChildren,
             parents);
 
+    List<Integer> relIds = null;
+    if (enableFiredRulesCache) {
+      relIds = call.getRelList().stream().map(RelNode::getId).collect(Collectors.toList());
+      if (firedRulesCache.get(relIds).contains(rule)) {
+        return null;
+      }
+    }
+
     // Allow the rule to apply its own side-conditions.
     if (!rule.matches(call)) {
       return null;
     }
 
     fireRule(call);
+
+    if (relIds != null) {
+      firedRulesCache.put(relIds, rule);
+      for (Integer relId : relIds) {
+        firedRulesCacheIndex.put(relId, relIds);
+      }
+    }
 
     if (!call.getResults().isEmpty()) {
       return applyTransformationResults(
@@ -982,6 +1037,15 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // Clean up metadata cache too.
     sweepSet.forEach(this::clearCache);
+
+    if (enableFiredRulesCache) {
+      sweepSet.forEach(rel -> {
+        for (List<Integer> relIds : firedRulesCacheIndex.get(rel.getCurrentRel().getId())) {
+          firedRulesCache.removeAll(relIds);
+        }
+        firedRulesCacheIndex.removeAll(rel.getCurrentRel().getId());
+      });
+    }
   }
 
   private void assertNoCycles() {

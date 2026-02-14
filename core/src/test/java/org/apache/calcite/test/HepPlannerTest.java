@@ -366,11 +366,29 @@ class HepPlannerTest {
   }
 
   @Test void testRuleApplyCount() {
-    final long applyTimes1 = checkRuleApplyCount(HepMatchOrder.ARBITRARY);
-    assertThat(applyTimes1, is(316L));
+    long applyTimes = checkRuleApplyCount(HepMatchOrder.ARBITRARY, false);
+    assertThat(applyTimes, is(316L));
 
-    final long applyTimes2 = checkRuleApplyCount(HepMatchOrder.DEPTH_FIRST);
-    assertThat(applyTimes2, is(87L));
+    applyTimes = checkRuleApplyCount(HepMatchOrder.DEPTH_FIRST, false);
+    assertThat(applyTimes, is(87L));
+
+    applyTimes = checkRuleApplyCount(HepMatchOrder.TOP_DOWN, false);
+    assertThat(applyTimes, is(295L));
+
+    applyTimes = checkRuleApplyCount(HepMatchOrder.BOTTOM_UP, false);
+    assertThat(applyTimes, is(296L));
+
+    applyTimes = checkRuleApplyCount(HepMatchOrder.ARBITRARY, true);
+    assertThat(applyTimes, is(65L));
+
+    applyTimes = checkRuleApplyCount(HepMatchOrder.DEPTH_FIRST, true);
+    assertThat(applyTimes, is(65L));
+
+    applyTimes = checkRuleApplyCount(HepMatchOrder.TOP_DOWN, true);
+    assertThat(applyTimes, is(65L));
+
+    applyTimes = checkRuleApplyCount(HepMatchOrder.BOTTOM_UP, true);
+    assertThat(applyTimes, is(65L));
   }
 
   @Test void testMaterialization() {
@@ -387,7 +405,7 @@ class HepPlannerTest {
     assertThat(planner.getMaterializations(), empty());
   }
 
-  private long checkRuleApplyCount(HepMatchOrder matchOrder) {
+  private long checkRuleApplyCount(HepMatchOrder matchOrder, boolean enableFiredRulesCache) {
     final HepProgramBuilder programBuilder = HepProgram.builder();
     programBuilder.addMatchOrder(matchOrder);
     programBuilder.addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS);
@@ -397,6 +415,7 @@ class HepPlannerTest {
     HepPlanner planner = new HepPlanner(programBuilder.build());
     planner.addListener(listener);
     planner.setRoot(sql(COMPLEX_UNION_TREE).toRel());
+    planner.setEnableFiredRulesCache(enableFiredRulesCache);
     planner.findBestExp();
     return listener.getApplyTimes();
   }
