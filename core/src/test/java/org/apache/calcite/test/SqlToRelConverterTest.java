@@ -2459,6 +2459,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionTumbleConvert() {
+    final String sql = "with t as (select CAST(rowtime AS TIMESTAMP(2)) as rowtime FROM Shipments) "
+        + "select *\n"
+        + "from table(tumble(table t, descriptor(rowtime), INTERVAL '1.5' SECOND))";
+    sql(sql).ok();
+  }
+
   @Test void testTableFunctionTumbleWithParamNames() {
     final String sql = "select *\n"
         + "from table(\n"
