@@ -49,6 +49,12 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-42-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-7410">CALCITE-7410</a>]
+  Changes the type of the `WINDOW_START` and `WINDOW_END` columns for
+  the table functions `HOP`, `TUMBLE`, `SESSION` to match the original
+  type of the timestamp column.  These types used to be hardwired to
+  `TIMESTAMP(3)`.
+
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-7393">CALCITE-7393</a>]
 `RelDataTypeImpl.digest` is deprecated. We recommend using `RelDataTypeImpl.innerDigest` instead.
 See system property `CalciteSystemProperty.DISABLE_GENERATE_REL_DATA_TYPE_DIGEST_STRING`.
