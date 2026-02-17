@@ -62,6 +62,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -144,9 +145,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return config;
   }
 
-  private Collection<org.apache.calcite.schema.Function> getFunctionsFrom(
-      List<String> names) {
-    final List<org.apache.calcite.schema.Function> functions2 =
+  private Collection<Pair<SqlIdentifier, org.apache.calcite.schema.Function>> getFunctionsFrom(
+      SqlIdentifier identifier) {
+    final List<String> names = identifier.names;
+    final List<Pair<SqlIdentifier, org.apache.calcite.schema.Function>> functions2 =
         new ArrayList<>();
     final List<List<String>> schemaNameList = new ArrayList<>();
     if (names.size() > 1) {
@@ -171,12 +173,58 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           SqlValidatorUtil.getSchema(rootSchema,
               Iterables.concat(schemaNames, Util.skipLast(names)), nameMatcher);
       if (schema != null) {
-        final String name = Util.last(names);
-        boolean caseSensitive = nameMatcher.isCaseSensitive();
-        functions2.addAll(schema.getFunctions(name, caseSensitive));
+        final String functionName = Util.last(names);
+        if (nameMatcher.isCaseSensitive()) {
+          addFunctions(functions2, schema, names, identifier.getParserPosition(),
+              functionName, true);
+        } else {
+          boolean hasMatchedFunctionName = false;
+          for (String candidateFunctionName : schema.getFunctionNames()) {
+            if (nameMatcher.matches(functionName, candidateFunctionName)) {
+              hasMatchedFunctionName = true;
+              // candidateFunctionName already has canonical case from schema.
+              // Use case-sensitive lookup to bind each function to that exact name.
+              addFunctions(functions2, schema, names, identifier.getParserPosition(),
+                  candidateFunctionName, true);
+            }
+          }
+          if (!hasMatchedFunctionName) {
+            // Fallback for schemas where getFunctionNames() is incomplete but
+            // getFunctions(name, false) can still resolve functions.
+            addFunctions(functions2, schema, names, identifier.getParserPosition(),
+                functionName, false);
+          }
+        }
       }
     }
     return functions2;
+  }
+
+  private static SqlIdentifier createResolvedIdentifier(CalciteSchema schema,
+      List<String> names, String name, SqlParserPos pos) {
+    final List<String> schemaPath = schema.path(null);
+    // Keep the same qualifier depth as the original call (e.g. schema.func
+    // stays 2-part, catalog.schema.func stays 3-part).
+    final int qualifierCount = names.size() - 1;
+    // Replace only the suffix that corresponds to the resolved schema path.
+    // Any leading qualifiers that are outside this schema path are kept as-is.
+    final int resolvedQualifierCount = Math.min(qualifierCount, schemaPath.size());
+    final List<String> resolvedNames = new ArrayList<>(names.size());
+    resolvedNames.addAll(names.subList(0, qualifierCount - resolvedQualifierCount));
+    resolvedNames.addAll(
+        schemaPath.subList(schemaPath.size() - resolvedQualifierCount, schemaPath.size()));
+    resolvedNames.add(name);
+    return new SqlIdentifier(resolvedNames, pos);
+  }
+
+  private static void addFunctions(
+      List<Pair<SqlIdentifier, org.apache.calcite.schema.Function>> functions,
+      CalciteSchema schema, List<String> names, SqlParserPos pos, String functionName,
+      boolean caseSensitive) {
+    final SqlIdentifier functionIdentifier =
+        createResolvedIdentifier(schema, names, functionName, pos);
+    schema.getFunctions(functionName, caseSensitive).forEach(function ->
+        functions.add(Pair.of(functionIdentifier, function)));
   }
 
   @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
@@ -274,10 +322,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           !(function instanceof TableMacro
               || function instanceof TableFunction);
     }
-    getFunctionsFrom(opName.names)
+    getFunctionsFrom(opName)
         .stream()
-        .filter(predicate)
-        .map(function -> toOp(opName, function, config))
+        .filter(pair -> predicate.test(pair.right))
+        .map(pair -> toOp(pair.left, pair.right, config))
         .forEachOrdered(operatorList::add);
   }
 

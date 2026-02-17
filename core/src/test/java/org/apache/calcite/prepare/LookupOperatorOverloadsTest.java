@@ -17,8 +17,13 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -35,7 +40,9 @@ import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -45,6 +52,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
 
 import static org.apache.calcite.sql.SqlFunctionCategory.MATCH_RECOGNIZE;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR;
@@ -58,6 +67,7 @@ import static org.apache.calcite.test.Matchers.isListOf;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 import static java.util.Objects.requireNonNull;
 
@@ -131,6 +141,154 @@ class LookupOperatorOverloadsTest {
 
   @Test void testLookupCaseInSensitively() throws SQLException {
     checkInternal(false);
+  }
+
+  // Look up MyCatalog.MySchema.MyFUNC using a lowercase 3-part identifier.
+  @Test void testLookupQualifiedNameUsesResolvedCase() {
+    final String catalogName = "MyCatalog";
+    final String schemaName = "MySchema";
+    final String funcName = "MyFUNC";
+    final CalciteSchema root =
+        CalciteSchema.createRootSchema(false, false, catalogName);
+    final CalciteSchema schema = root.add(schemaName, new AbstractSchema());
+    final TableFunction table =
+        requireNonNull(TableFunctionImpl.create(Smalls.MAZE_METHOD));
+    schema.plus().add(funcName, table);
+
+    final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final Properties properties = new Properties();
+    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(), "false");
+    final CalciteCatalogReader reader =
+        new CalciteCatalogReader(root, ImmutableList.of(), typeFactory,
+            new CalciteConnectionConfigImpl(properties));
+
+    final List<SqlOperator> operatorList = new ArrayList<>();
+    final SqlIdentifier lowercaseIdentifier =
+        new SqlIdentifier(
+            Lists.newArrayList(catalogName.toLowerCase(Locale.ROOT),
+            schemaName.toLowerCase(Locale.ROOT), funcName.toLowerCase(Locale.ROOT)),
+            null, SqlParserPos.ZERO, null);
+    reader.lookupOperatorOverloads(lowercaseIdentifier,
+        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
+        operatorList, SqlNameMatchers.withCaseSensitive(false));
+
+    checkFunctionType(1, funcName, operatorList);
+    assertThat(operatorList.get(0).getNameAsId().names,
+        isListOf(catalogName, schemaName, funcName));
+  }
+
+  // Look up MySchema.MyFUNC using a lowercase 2-part identifier.
+  @Test void testLookupPartiallyQualifiedNameUsesResolvedCase() {
+    final String catalogName = "MyCatalog";
+    final String schemaName = "MySchema";
+    final String funcName = "MyFUNC";
+    final CalciteSchema root =
+        CalciteSchema.createRootSchema(false, false, catalogName);
+    final CalciteSchema schema = root.add(schemaName, new AbstractSchema());
+    final TableFunction table =
+        requireNonNull(TableFunctionImpl.create(Smalls.MAZE_METHOD));
+    schema.plus().add(funcName, table);
+
+    final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final Properties properties = new Properties();
+    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(), "false");
+    final CalciteCatalogReader reader =
+        new CalciteCatalogReader(root, ImmutableList.of(), typeFactory,
+            new CalciteConnectionConfigImpl(properties));
+
+    final List<SqlOperator> operatorList = new ArrayList<>();
+    final SqlIdentifier lowercaseIdentifier =
+        new SqlIdentifier(
+            Lists.newArrayList(schemaName.toLowerCase(Locale.ROOT),
+            funcName.toLowerCase(Locale.ROOT)),
+            null, SqlParserPos.ZERO, null);
+    reader.lookupOperatorOverloads(lowercaseIdentifier,
+        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
+        operatorList, SqlNameMatchers.withCaseSensitive(false));
+
+    checkFunctionType(1, funcName, operatorList);
+    assertThat(operatorList.get(0).getNameAsId().names,
+        isListOf(schemaName, funcName));
+  }
+
+  // Look up myfunc when both MyFUNC and myfunc exist in the same schema.
+  @Test void testLookupCaseInsensitiveUsesEachMatchedFunctionName() {
+    final String schemaName = "MySchema";
+    final String upperFuncName = "MyFUNC";
+    final String lowerFuncName = "myfunc";
+    final CalciteSchema root = CalciteSchema.createRootSchema(false, true);
+    final CalciteSchema schema = root.add(schemaName, new AbstractSchema());
+    final TableFunction table =
+        requireNonNull(TableFunctionImpl.create(Smalls.MAZE_METHOD));
+    schema.plus().add(upperFuncName, table);
+    schema.plus().add(lowerFuncName, table);
+
+    final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final Properties properties = new Properties();
+    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(), "false");
+    final CalciteCatalogReader reader =
+        new CalciteCatalogReader(root, ImmutableList.of(), typeFactory,
+            new CalciteConnectionConfigImpl(properties));
+
+    final List<SqlOperator> operatorList = new ArrayList<>();
+    final SqlIdentifier lowercaseIdentifier =
+        new SqlIdentifier(
+            Lists.newArrayList(schemaName.toLowerCase(Locale.ROOT),
+            lowerFuncName),
+            null, SqlParserPos.ZERO, null);
+    reader.lookupOperatorOverloads(lowercaseIdentifier,
+        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
+        operatorList, SqlNameMatchers.withCaseSensitive(false));
+
+    assertThat(operatorList, hasSize(2));
+    boolean hasUpperName = false;
+    boolean hasLowerName = false;
+    for (SqlOperator operator : operatorList) {
+      if (operator.getNameAsId().names.equals(Lists.newArrayList(schemaName, upperFuncName))) {
+        hasUpperName = true;
+      }
+      if (operator.getNameAsId().names.equals(Lists.newArrayList(schemaName, lowerFuncName))) {
+        hasLowerName = true;
+      }
+    }
+    assertThat(hasUpperName, is(true));
+    assertThat(hasLowerName, is(true));
+  }
+
+  // Example: lookup "myschema.myfunc" against a dynamic schema and resolve it
+  // to "MySchema.MyFUNC" (fresh function instances on each lookup).
+  @Test void testLookupImplicitFunctionUsesResolvedCase() {
+    final String schemaName = "MySchema";
+    final String funcName = "MyFUNC";
+    final CalciteSchema root = CalciteSchema.createRootSchema(false, true);
+    root.add(schemaName, new AbstractSchema() {
+      @Override protected Multimap<String, Function> getFunctionMultimap() {
+        // Return fresh instances to mimic dynamic schemas that do not preserve
+        // function identity across lookups.
+        return ImmutableMultimap.of(funcName,
+            requireNonNull(TableFunctionImpl.create(Smalls.MAZE_METHOD)));
+      }
+    });
+
+    final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final Properties properties = new Properties();
+    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(), "false");
+    final CalciteCatalogReader reader =
+        new CalciteCatalogReader(root, ImmutableList.of(), typeFactory,
+            new CalciteConnectionConfigImpl(properties));
+
+    final List<SqlOperator> operatorList = new ArrayList<>();
+    final SqlIdentifier lowercaseIdentifier =
+        new SqlIdentifier(
+            Lists.newArrayList(schemaName.toLowerCase(Locale.ROOT),
+            funcName.toLowerCase(Locale.ROOT)),
+            null, SqlParserPos.ZERO, null);
+    reader.lookupOperatorOverloads(lowercaseIdentifier,
+        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION,
+        operatorList, SqlNameMatchers.withCaseSensitive(false));
+
+    checkFunctionType(1, funcName, operatorList);
+    assertThat(operatorList.get(0).getNameAsId().names, isListOf(schemaName, funcName));
   }
 
   private void checkInternal(boolean caseSensitive) throws SQLException {
