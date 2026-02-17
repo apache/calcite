@@ -3307,6 +3307,69 @@ public class SqlOperatorTest {
     c.isTrue("($3,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
   }
 
+  /** Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7418">[CALCITE-7418]
+   * SqlOverlapsOperator does not reject some illegal comparisons (e.g., TIME vs DATE)</a>. */
+  @Test void testNegativePeriodOperators() {
+    final String containsError =  "Supported form\\(s\\): "
+        + "'\\(<DT>, <DT>\\) CONTAINS \\(<DT>, <DT>\\)'\\n"
+        + "'\\(<DT>, <DT>\\) CONTAINS \\(<DT>, <INTERVAL>\\)'\\n"
+        + "'\\(<DT>, <INTERVAL>\\) CONTAINS \\(<DT>, <DT>\\)'\\n"
+        + "'\\(<DT>, <INTERVAL>\\) CONTAINS \\(<DT>, <INTERVAL>\\)'\\n"
+        + "'\\(<DT>, <DT>\\) CONTAINS <DT>'\\n"
+        + "'\\(<DT>, <INTERVAL>\\) CONTAINS <DT>'\\n"
+        + "Where 'DT' is one of 'DATE', 'TIME', or 'TIMESTAMP', the same for all arguments.";
+    final SqlOperatorFixture f = fixture();
+    f.checkFails("^(DATE '2020-10-10', DATE '2021-10-10') CONTAINS TIME '10:00:00'^",
+        "Cannot apply 'CONTAINS' to arguments of type "
+            + "'<RECORDTYPE\\(DATE EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIME\\(0\\)>'\\. "
+            + containsError, false);
+    f.checkFails("^(DATE '2020-10-10', DATE '2021-10-10') CONTAINS "
+            + "TIMESTAMP '2010-01-01 10:00:00'^",
+        "Cannot apply 'CONTAINS' to arguments of type "
+            + "'<RECORDTYPE\\(DATE EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIMESTAMP\\(0\\)>'\\. "
+            + containsError, false);
+    f.checkFails("^(DATE '2020-10-10', TIMESTAMP '2021-10-10 00:00:00') "
+            + "CONTAINS TIMESTAMP '2010-01-01 10:00:00'^",
+        "Cannot apply 'CONTAINS' to arguments of type "
+            + "'<RECORDTYPE\\(DATE EXPR\\$0, TIMESTAMP\\(0\\) EXPR\\$1\\)> "
+            + "CONTAINS <TIMESTAMP\\(0\\)>'\\. "
+            + containsError, false);
+    f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') CONTAINS TIME '10:00:00'^",
+        "Cannot apply 'CONTAINS' to arguments of type "
+            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> CONTAINS <TIME\\(0\\)>'\\. "
+            + containsError, false);
+    f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') CONTAINS TIMESTAMP '2010-02-02 10:00:00'^",
+        "Cannot apply 'CONTAINS' to arguments of type "
+            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "CONTAINS <TIMESTAMP\\(0\\)>'\\. "
+            + containsError, false);
+    final String overlapsError = "Supported form\\(s\\): "
+        + "'\\(<DT>, <DT>\\) OVERLAPS \\(<DT>, <DT>\\)'\\n"
+        + "'\\(<DT>, <DT>\\) OVERLAPS \\(<DT>, <INTERVAL>\\)'\\n"
+        + "'\\(<DT>, <INTERVAL>\\) OVERLAPS \\(<DT>, <DT>\\)'\\n"
+        + "'\\(<DT>, <INTERVAL>\\) OVERLAPS \\(<DT>, <INTERVAL>\\)'\\n"
+        + "Where 'DT' is one of 'DATE', 'TIME', or 'TIMESTAMP', the same for all arguments.";
+    f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') OVERLAPS "
+            + "(TIMESTAMP '2010-02-02 10:00:00', TIME '10:00:00')^",
+        "Cannot apply 'OVERLAPS' to arguments of type "
+            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "OVERLAPS <RECORDTYPE\\(TIMESTAMP\\(0\\) EXPR\\$0, TIME\\(0\\) EXPR\\$1\\)>'\\. "
+            + overlapsError, false);
+    f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') "
+            + "OVERLAPS (TIME '10:00:00', DATE '2020-01-01')^",
+        "Cannot apply 'OVERLAPS' to arguments of type "
+            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "OVERLAPS <RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)>'\\. "
+            + overlapsError, false);
+    final String precedesError = overlapsError.replace("OVERLAPS", "PRECEDES");
+    f.checkFails("^(TIME '10:10:10', DATE '2021-10-10') "
+            + "PRECEDES (TIME '10:00:00', TIME '10:10:10')^",
+        "Cannot apply 'PRECEDES' to arguments of type "
+            + "'<RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, DATE EXPR\\$1\\)> "
+            + "PRECEDES <RECORDTYPE\\(TIME\\(0\\) EXPR\\$0, TIME\\(0\\) EXPR\\$1\\)>'\\. "
+            + precedesError, false);
+  }
+
   @Test void testLessThanOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LESS_THAN, VmName.EXPAND);

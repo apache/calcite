@@ -33,6 +33,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * SqlOverlapsOperator represents the SQL:1999 standard {@code OVERLAPS}
  * function. Determines whether two anchored time intervals overlap.
@@ -77,8 +79,30 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
     return SqlOperandCountRanges.of(2);
   }
 
+  /**
+   * Returns a template describing how the operator signature is to be built.
+   *
+   * @param operandsCount is used with functions that can take a variable
+   *                      number of operands
+   * @return signature template, where {0} is the operator name and {1}, {2}, etc are operands
+   */
+  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
+    // This function can be called in 3 ways:
+    // - as a binary operator; format like a binary operator left OP right
+    // - as a ternary operator, for (a, b) CONTAINS c
+    // - as a quaternary operator, for (a, b) OVERLAPS (c, d)
+    if (operandsCount == 2) {
+      return "{1} {0} {2}";
+    } else if (operandsCount == 3) {
+      return "({1}, {2}) {0} {3}";
+    } else if (operandsCount == 4) {
+      return "({1}, {2}) {0} ({3}, {4})";
+    }
+    throw new IllegalArgumentException("Unexpected operand count " + operandsCount);
+  }
+
   @Override public String getAllowedSignatures(String opName) {
-    final String d = "DATETIME";
+    final String d = "DT";
     final String i = "INTERVAL";
     String[] typeNames = {
         d, d,
@@ -96,6 +120,16 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
           SqlUtil.getAliasedSignature(this, opName,
               ImmutableList.of(d, typeNames[y], d, typeNames[y + 1])));
     }
+    if (opName.equalsIgnoreCase("contains")) {
+      // Two more forms supported: (DT, DT) CONTAINS DT and (DT, INTERVAL) CONTAINS DT
+      ret.append(NL);
+      ret.append(SqlUtil.getAliasedSignature(this, opName, ImmutableList.of(d, d, d)));
+      ret.append(NL);
+      ret.append(SqlUtil.getAliasedSignature(this, opName, ImmutableList.of(d, i, d)));
+    }
+    ret.append(NL);
+    ret.append("Where 'DT' is one of 'DATE', 'TIME', or 'TIMESTAMP', "
+        + "the same for all arguments.");
     return ret.toString();
   }
 
@@ -108,11 +142,21 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
     final SqlSingleOperandTypeChecker rightChecker;
     switch (kind) {
     case CONTAINS:
+      // A ternary call of the form (a, b) CONTAINS c
+      // OR a quaternary call of the form (a, b) CONTAINS (c, d)
       rightChecker = OperandTypes.PERIOD_OR_DATETIME;
       break;
-    default:
+    case OVERLAPS:
+    case PRECEDES:
+    case IMMEDIATELY_PRECEDES:
+    case SUCCEEDS:
+    case IMMEDIATELY_SUCCEEDS:
+    case PERIOD_EQUALS:
+      // Always a quaternary call of the form (a, b) OVERLAPS (c, d)
       rightChecker = OperandTypes.PERIOD;
       break;
+    default:
+      throw new IllegalArgumentException("Unexpected operation " + kind);
     }
     if (!rightChecker.checkSingleOperandType(callBinding,
         callBinding.operand(1), 0, throwOnFailure)) {
@@ -121,9 +165,19 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
     final RelDataType t0 = callBinding.getOperandType(0);
     final RelDataType t1 = callBinding.getOperandType(1);
     if (!SqlTypeUtil.isDatetime(t1)) {
+      // "quaternary" call, of the form (a, b) OVERLAPS (c, d)
       final RelDataType t00 = t0.getFieldList().get(0).getType();
       final RelDataType t10 = t1.getFieldList().get(0).getType();
       if (!SqlTypeUtil.sameNamedType(t00, t10)) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
+        return false;
+      }
+    } else {
+      // "ternary" call, of the form (a, b) CONTAINS c
+      final RelDataType t00 = t0.getFieldList().get(0).getType();
+      if (!SqlTypeUtil.sameNamedType(t00, t1)) {
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();
         }
