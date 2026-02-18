@@ -9172,7 +9172,7 @@ public class SqlOperatorTest {
     f1.checkScalar("map_concat(map(1, 2), map(1, null))", "{1=null}",
         "(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
     f1.checkScalar("map_concat(map('foo', 1), map())", "{foo=1}",
-        "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
 
     // test operand is null map
     f1.checkNull("map_concat(map('foo', 1), cast(null as map<varchar, int>))");
