@@ -534,6 +534,7 @@ public enum BuiltInMethod {
   UUID_FROM_STRING(UUID.class, "fromString", String.class),
   UUID_TO_STRING(SqlFunctions.class, "uuidToString", UUID.class),
   UUID_TO_BINARY(SqlFunctions.class, "uuidToBinary", UUID.class),
+  INT_TO_BINARY(SqlFunctions.class, "intToBinary", Object.class, int.class, boolean.class),
   BINARY_TO_UUID(SqlFunctions.class, "binaryToUuid", ByteString.class),
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,

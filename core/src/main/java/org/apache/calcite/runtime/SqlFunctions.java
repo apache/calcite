@@ -89,6 +89,7 @@ import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
@@ -1270,6 +1271,66 @@ public class SqlFunctions {
   public static String formatNumber(BigDecimal value, int decimalVal) {
     DecimalFormat numberFormat = getNumberFormat(decimalVal);
     return numberFormat.format(value);
+  }
+
+  /** Implements casts from integer to binary values.
+   *
+   * @param value      Value converted; an integer or unsigned value.
+   * @param resultSize Size of result in bytes; negative if unspecified.
+   * @param fixed      True if the result type is BINARY; false for VARBINARY.
+   * @return           A ByteString containing the conversion result.
+   *
+   * <p>Most SQL dialects which support this feature seem to convert integers to big endian values,
+   * and then truncate or pad on the left when the size of the target BINARY does not exactly
+   * match the integer's size.
+   */
+  public static ByteString intToBinary(Object value, int resultSize, boolean fixed) {
+    ByteBuffer buffer;
+    if (value instanceof Byte) {
+      buffer = ByteBuffer.allocate(1)
+          .order(ByteOrder.BIG_ENDIAN)
+          .put((byte) value);
+    } else if (value instanceof Short) {
+      buffer = ByteBuffer.allocate(2)
+          .order(ByteOrder.BIG_ENDIAN)
+          .putShort((short) value);
+    } else if (value instanceof Integer) {
+      buffer = ByteBuffer.allocate(4)
+          .order(ByteOrder.BIG_ENDIAN)
+          .putInt((Integer) value);
+    } else if (value instanceof Long) {
+      buffer = ByteBuffer.allocate(8)
+          .order(ByteOrder.BIG_ENDIAN)
+          .putLong((Long) value);
+    } else if (value instanceof UByte) {
+      buffer = ByteBuffer.allocate(1)
+          .order(ByteOrder.BIG_ENDIAN)
+          .put(((UByte) value).byteValue());
+    } else if (value instanceof UShort) {
+      buffer = ByteBuffer.allocate(2)
+          .order(ByteOrder.BIG_ENDIAN)
+          .putShort(((UShort) value).shortValue());
+    } else if (value instanceof UInteger) {
+      buffer = ByteBuffer.allocate(4)
+          .order(ByteOrder.BIG_ENDIAN)
+          .putInt(((UInteger) value).intValue());
+    } else if (value instanceof ULong) {
+      buffer = ByteBuffer.allocate(8)
+          .order(ByteOrder.BIG_ENDIAN)
+          .putLong(((ULong) value).longValue());
+    } else {
+      throw new IllegalArgumentException("Unexpected argument type " + value);
+    }
+    ByteString result = new ByteString(buffer.array());
+    if (resultSize >= 0) {
+      if (resultSize < result.length()) {
+        result = SqlFunctions.right(result, resultSize);
+      } else if (fixed && resultSize > result.length()) {
+        // pad on left
+        result = new ByteString(new byte[resultSize - result.length()]).concat(result);
+      }
+    }
+    return result;
   }
 
   public static String formatNumber(long value, String format) {
