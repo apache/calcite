@@ -4056,6 +4056,31 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.EXISTS, VM_EXPAND);
   }
 
+  /** Test cases for <a href="https://issues.apache.org/jira/browse/CALCITE-7368">[CALCITE-7368]
+   * The validator accepts CAST(INT TO BINARY), but the runtime does not implement them</a>. */
+  @Test void testCastIntToBinary() {
+    final SqlOperatorFixture f = fixture();
+    f.checkNull("cast(CAST(NULL AS INT) AS VARBINARY)");
+    f.checkScalar("cast(10 as BINARY(4))", "0000000a", "BINARY(4) NOT NULL");
+    f.checkScalar("cast(10 AS BINARY(2))", "000a", "BINARY(2) NOT NULL");
+    f.checkScalar("cast(10 as VARBINARY(4))", "0000000a", "VARBINARY(4) NOT NULL");
+    f.checkScalar("cast(10 as VARBINARY(2))", "000a", "VARBINARY(2) NOT NULL");
+    f.checkScalar("cast(cast(10 AS INT UNSIGNED) AS BINARY(4))", "0000000a", "BINARY(4) NOT NULL");
+    f.checkScalar("cast(-1 AS BINARY(4))", "ffffffff", "BINARY(4) NOT NULL");
+    f.checkScalar("cast(-1 AS VARBINARY(8))", "ffffffff", "VARBINARY(8) NOT NULL");
+    f.checkScalar("cast(10 AS VARBINARY)", "0000000a", "VARBINARY NOT NULL");
+    f.checkScalar("cast(cast(10 AS TINYINT) AS VARBINARY)", "0a", "VARBINARY NOT NULL");
+    f.checkScalar("cast(cast(-1 AS TINYINT) AS VARBINARY)", "ff", "VARBINARY NOT NULL");
+    f.checkScalar("cast(cast(-1 AS TINYINT) AS BINARY(4))", "000000ff", "BINARY(4) NOT NULL");
+    f.checkScalar("cast(cast(10 AS BIGINT) AS VARBINARY(16))", "000000000000000a",
+        "VARBINARY(16) NOT NULL");
+    f.checkScalar("cast(cast(10 AS BIGINT) AS VARBINARY(8))", "000000000000000a",
+        "VARBINARY(8) NOT NULL");
+    f.checkScalar("cast(cast(10 AS BIGINT) AS VARBINARY(6))", "00000000000a",
+        "VARBINARY(6) NOT NULL");
+    f.checkScalar("cast(cast(10 AS BIGINT) AS VARBINARY(4))", "0000000a", "VARBINARY(4) NOT NULL");
+  }
+
   @Test void testNotOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.NOT, VmName.EXPAND);

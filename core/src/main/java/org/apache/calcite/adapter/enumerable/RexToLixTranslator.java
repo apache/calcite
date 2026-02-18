@@ -387,6 +387,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
     case VARBINARY:
     case BINARY:
+      int binaryPrecision = targetType.getPrecision();
       switch (sourceType.getSqlTypeName()) {
       case CHAR:
       case VARCHAR:
@@ -394,6 +395,19 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
             new ConstantExpression(Charset.class, sourceType.getCharset()));
       case UUID:
         return Expressions.call(BuiltInMethod.UUID_TO_BINARY.method, operand);
+      case BIGINT:
+      case INTEGER:
+      case SMALLINT:
+      case TINYINT:
+      case UBIGINT:
+      case UINTEGER:
+      case USMALLINT:
+      case UTINYINT:
+        return Expressions.call(
+            BuiltInMethod.INT_TO_BINARY.method,
+            operand,
+            Expressions.constant(binaryPrecision),
+            Expressions.constant(targetType.getSqlTypeName() == SqlTypeName.BINARY));
       default:
         return defaultExpression.get();
       }
