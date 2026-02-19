@@ -959,6 +959,11 @@ public class CoreRules {
   public static final AggregateFilterToCaseRule AGGREGATE_FILTER_TO_CASE =
       AggregateFilterToCaseRule.Config.DEFAULT.toRule();
 
+  /** Rule that converts an aggregate on of a filter into a filtered aggregate. */
+  public static final AggregateFilterToFilteredAggregateRule
+      AGGREGATE_FILTER_TO_FILTERED_AGGREGATE =
+      AggregateFilterToFilteredAggregateRule.Config.DEFAULT.toRule();
+
   /** Rule that remove duplicate {@link Sort} keys. */
   public static final SortRemoveDuplicateKeysRule SORT_REMOVE_DUPLICATE_KEYS =
       SortRemoveDuplicateKeysRule.Config.DEFAULT.toRule();
