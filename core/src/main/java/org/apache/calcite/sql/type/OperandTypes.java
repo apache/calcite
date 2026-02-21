@@ -402,9 +402,69 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER =
       family(SqlTypeFamily.INTEGER);
 
+  /** Operand type checker that only allows signed types.
+   * This is almost like an OR of 4 type families (INTEGER, APPROXIMATE_NUMERIC, DECIMAL)
+   * but OR allows implicit casts to any of the types, and this checker doesn't. */
+  public static final SqlSingleOperandTypeChecker SIGNED = new SqlSingleOperandTypeChecker() {
+    @Override public boolean checkSingleOperandType(SqlCallBinding callBinding, SqlNode operand,
+        int iFormalOperand, boolean throwOnFailure) {
+      RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
+      SqlTypeName typeName = type.getSqlTypeName();
+      boolean isLegal = SqlTypeName.INT_TYPES.contains(typeName)
+          || SqlTypeName.APPROX_TYPES.contains(typeName)
+          || typeName == SqlTypeName.DECIMAL;
+
+      if (!isLegal) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
+        return false;
+      }
+      return true;
+    }
+
+    @Override public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      // This is a specialized implementation of FamilyOperandTypeChecker.checkOperandTypes.
+      SqlNode op = callBinding.operands().get(0);
+      if (!checkSingleOperandType(callBinding, op, 0, false)) {
+        // try to coerce type if it is allowed.
+        boolean coerced = false;
+        if (callBinding.isTypeCoercionEnabled()) {
+          // Also allow expressions that can be coerced to NUMERIC (e.g. type CHAR)
+          TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+          ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
+          builder.add(callBinding.getOperandType(0));
+          ImmutableList<RelDataType> dataTypes = builder.build();
+          coerced =
+              typeCoercion.builtinFunctionCoercion(
+                  callBinding, dataTypes, ImmutableList.of(SqlTypeFamily.NUMERIC));
+        }
+        // re-validate the new nodes type.
+        SqlNode op1 = callBinding.operands().get(0);
+        if (!checkSingleOperandType(
+            callBinding,
+            op1,
+            0,
+            throwOnFailure)) {
+          return false;
+        }
+        return coerced;
+      }
+      return true;
+    }
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return SqlUtil.getAliasedSignature(op, opName, ImmutableList.of(SqlTypeFamily.INTEGER)) + "\n"
+          + SqlUtil.getAliasedSignature(
+              op, opName, ImmutableList.of(SqlTypeFamily.APPROXIMATE_NUMERIC)) + "\n"
+          + SqlUtil.getAliasedSignature(op, opName, ImmutableList.of(SqlTypeFamily.DECIMAL));
+    }
+  };
+
   public static final SqlSingleOperandTypeChecker UNSIGNED_NUMERIC_UNSIGNED_NUMERIC =
       family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.UNSIGNED_NUMERIC);
-
 
   public static final SqlSingleOperandTypeChecker INTEGER_INTEGER =
       family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
@@ -1296,6 +1356,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_INTERVAL =
       NUMERIC.or(INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker SIGNED_OR_INTERVAL =
+      SIGNED.or(INTERVAL);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_STRING =
       NUMERIC.or(STRING);
