@@ -80,7 +80,7 @@ public class MongoProject extends Project implements MongoRel {
           ? "_" + pair.right.substring(2)
           : pair.right;
       final String expr = pair.left.accept(translator);
-      items.add(expr.equals("'$" + name + "'")
+      items.add(expr.equals("\"$" + name + "\"")
           ? MongoRules.maybeQuote(name) + ": 1"
           : MongoRules.maybeQuote(name) + ": " + expr);
     }

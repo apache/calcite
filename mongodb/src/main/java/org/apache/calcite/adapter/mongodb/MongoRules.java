@@ -103,25 +103,13 @@ public class MongoRules {
   }
 
   static String maybeQuote(String s) {
-    if (!needsQuote(s)) {
-      return s;
-    }
+    // MongoDB Extended JSON conforms to the JSON RFC. It is safe to use double quotes for
+    // everything.
     return quote(s);
   }
 
   static String quote(String s) {
-    return "'" + s + "'"; // TODO: handle embedded quotes
-  }
-
-  private static boolean needsQuote(String s) {
-    for (int i = 0, n = s.length(); i < n; i++) {
-      char c = s.charAt(i);
-      if (!Character.isJavaIdentifierPart(c)
-          || c == '$') {
-        return true;
-      }
-    }
-    return false;
+    return "\"" + s.replace("\"", "\\\"") + "\"";
   }
 
   /** Translator from {@link RexNode} to strings in MongoDB's expression
@@ -181,7 +169,7 @@ public class MongoRules {
     @Override public String visitCall(RexCall call) {
       String name = isItem(call);
       if (name != null) {
-        return "'$" + name + "'";
+        return "\"$" + name + "\"";
       }
       final List<String> strings = visitList(call.operands);
       if (call.getKind() == SqlKind.CAST) {
@@ -233,7 +221,7 @@ public class MongoRules {
     }
 
     private static String stripQuotes(String s) {
-      return s.startsWith("'") && s.endsWith("'")
+      return s.startsWith("\"") && s.endsWith("\"")
           ? s.substring(1, s.length() - 1)
           : s;
     }

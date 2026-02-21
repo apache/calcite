@@ -119,6 +119,7 @@ public class MongoAdapterTest implements SchemaFactory {
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
     doc.put("arr", new BsonArray(Arrays.asList(new BsonString("a"), new BsonString("b"))));
     doc.put("binaryData", new BsonBinary("binaryData".getBytes(StandardCharsets.UTF_8)));
+    doc.put("1_minute_aggregation", new BsonInt32(10));
     datatypes.insertOne(doc);
 
     schema = new MongoSchema(database);
@@ -636,18 +637,22 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$limit: 5}"));
   }
 
-  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test void testProject() {
     assertModel(MODEL)
         .query("select state, city, 0 as zero from zips order by state, city")
         .limit(2)
-        .returns("STATE=AK; CITY=AKHIOK; ZERO=0\n"
-            + "STATE=AK; CITY=AKIACHAK; ZERO=0\n")
+        .returns("STATE=AK; CITY=ANCHORAGE; ZERO=0\n"
+            + "STATE=AK; CITY=FAIRBANKS; ZERO=0\n")
         .queryContains(
             mongoChecker(
-                "{$project: {CITY: '$city', STATE: '$state'}}",
-                "{$sort: {STATE: 1, CITY: 1}}",
-                "{$project: {STATE: 1, CITY: 1, ZERO: {$literal: 0}}}"));
+                "{$project: {STATE: '$state', CITY: '$city', ZERO: {$literal: 0}}}",
+                "{$sort: {STATE: 1, CITY: 1}}"));
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['1_minute_aggregation'] as INT) as \"1_minute_aggregation\" "
+            + "from \"mongo_raw\".\"datatypes\"")
+        .queryContains(
+            mongoChecker("{$project: {'1_minute_aggregation': 1}}"));
   }
 
   @Test void testFilter() {
