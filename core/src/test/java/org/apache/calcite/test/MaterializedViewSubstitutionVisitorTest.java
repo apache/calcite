@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -1646,11 +1647,14 @@ public class MaterializedViewSubstitutionVisitorTest {
     final RexBuilder rexBuilder = f.rexBuilder;
     final RexSimplify simplify = f.simplify;
 
+    final RelDataType intType = f.typeFactory.createType(int.class);
+    final RelDataType booleanType = f.typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RexLiteral i1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RexLiteral i2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
     final RexLiteral i3 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
+    final RexLiteral nullIntLiteral = rexBuilder.makeNullLiteral(intType);
+    final RexLiteral nullBooleanLiteral = rexBuilder.makeNullLiteral(booleanType);
 
-    final RelDataType intType = f.typeFactory.createType(int.class);
     final RexInputRef x = rexBuilder.makeInputRef(intType, 0); // $0
     final RexInputRef y = rexBuilder.makeInputRef(intType, 1); // $1
     final RexInputRef z = rexBuilder.makeInputRef(intType, 2); // $2
@@ -1694,6 +1698,15 @@ public class MaterializedViewSubstitutionVisitorTest {
             SqlStdOperatorTable.GREATER_THAN,
             rexBuilder.makeCall(SqlStdOperatorTable.PLUS, x, y),
             i2);
+
+    // x in (null:int)
+    final RexNode x_in_null = rexBuilder.makeIn(x, ImmutableList.of(nullIntLiteral));
+    // x in (null:int) and x = 1
+    final RexNode x_in_null_and_x_eq_1 =
+        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_in_null, x_eq_1);
+    // x = 1 and null:boolean
+    final RexNode x_eq_1_and_null =
+        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, nullBooleanLiteral);
 
     RexNode newFilter;
 
@@ -1853,6 +1866,28 @@ public class MaterializedViewSubstitutionVisitorTest {
         SubstitutionVisitor.splitFilter(simplify, x_times_y_gt, y_times_x_gt);
     assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
+
+    // Example 11.
+    //   condition: x in (null:int) and x = 1
+    //   target:    true
+    // yields
+    //   residue:  x = 1 and null:boolean
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_in_null_and_x_eq_1,
+            rexBuilder.makeLiteral(true));
+    assertThat(newFilter, notNullValue());
+    assertThat(newFilter, equalTo(x_eq_1_and_null));
+
+    // Example 12.
+    //   condition: x in (null:int) and x = 1
+    //   target:    x = 1
+    // yields
+    //   residue:  null:boolean
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_in_null_and_x_eq_1,
+            x_eq_1);
+    assertThat(newFilter, notNullValue());
+    assertThat(newFilter, equalTo(nullBooleanLiteral));
   }
 
   @Test void testSubQuery() {
