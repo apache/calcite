@@ -331,9 +331,10 @@ public abstract class Join extends BiRel implements Hintable {
         fieldNameList, systemFieldList);
   }
 
-  @Override public Join copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public Join copy(RelTraitSet traitSet, List<RelNode> inputs,
+      Set<CorrelationId> variablesSet) {
     assert inputs.size() == 2;
-    return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1),
+    return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1), variablesSet,
         joinType, isSemiJoinDone());
   }
 
@@ -352,8 +353,30 @@ public abstract class Join extends BiRel implements Hintable {
    *                      semi-join
    * @return Copy of this join
    */
+  public final Join copy(RelTraitSet traitSet, RexNode conditionExpr,
+      RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
+    return copy(traitSet, conditionExpr, left, right, getVariablesSet(), joinType, semiJoinDone);
+  }
+
+  /**
+   * Creates a copy of this join, overriding condition, system fields and
+   * inputs.
+   *
+   * <p>General contract as {@link RelNode#copy}.
+   *
+   * @param traitSet      Traits
+   * @param conditionExpr Condition
+   * @param left          Left input
+   * @param right         Right input
+   * @param joinType      Join type
+   * @param variablesSet  the variables that are set in this relational expression
+   * @param semiJoinDone  Whether this join has been translated to a
+   *                      semi-join
+   * @return Copy of this join
+   */
   public abstract Join copy(RelTraitSet traitSet, RexNode conditionExpr,
-      RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone);
+      RelNode left, RelNode right, Set<CorrelationId> variablesSet, JoinRelType joinType,
+      boolean semiJoinDone);
 
   /**
    * Analyzes the join condition.

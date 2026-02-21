@@ -23,6 +23,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.AsofJoin;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.RelHint;
@@ -37,6 +38,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -137,8 +139,8 @@ public final class LogicalAsofJoin extends AsofJoin {
     return systemFieldList;
   }
 
-  @Override public Join copy(
-      RelTraitSet traitSet, RexNode conditionExpr, RelNode left, RelNode right,
+  @Override public LogicalAsofJoin copy(RelTraitSet traitSet,
+      RexNode condition, RelNode left, RelNode right, Set<CorrelationId> variablesSet,
       JoinRelType joinType, boolean semiJoinDone) {
     // This method does not provide the matchCondition as an argument, so it should never be called
     throw new RuntimeException("This method should not be called");

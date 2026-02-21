@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
@@ -30,6 +31,10 @@ import org.apache.calcite.rex.RexNode;
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -71,7 +76,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
   }
 
   @Override public InnodbFilter copy(RelTraitSet traitSet, RelNode input,
-      RexNode condition) {
+      RexNode condition, Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new InnodbFilter(getCluster(), traitSet, input, condition,
         indexCondition, tableDef, forceIndexName);
   }

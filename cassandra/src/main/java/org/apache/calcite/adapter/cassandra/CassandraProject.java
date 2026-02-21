@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -35,6 +36,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -51,7 +55,8 @@ public class CassandraProject extends Project implements CassandraRel {
   }
 
   @Override public Project copy(RelTraitSet traitSet, RelNode input,
-      List<RexNode> projects, RelDataType rowType) {
+      List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new CassandraProject(getCluster(), traitSet, input, projects,
         rowType);
   }

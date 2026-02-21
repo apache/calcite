@@ -96,8 +96,8 @@ public class EnumerableAsofJoin extends AsofJoin implements EnumerableRel {
   }
 
   @Override public EnumerableAsofJoin copy(RelTraitSet traitSet, RexNode condition,
-                                           RelNode left, RelNode right, JoinRelType joinType,
-                                           boolean semiJoinDone) {
+      RelNode left, RelNode right, Set<CorrelationId> variablesSet, JoinRelType joinType,
+      boolean semiJoinDone) {
     // This method does not know about the matchCondition, so it should not be called
     throw new RuntimeException("This method should not be called");
   }
