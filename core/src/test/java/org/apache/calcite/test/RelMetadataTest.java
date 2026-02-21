@@ -2241,6 +2241,32 @@ public class RelMetadataTest {
         .assertThatAreColumnsUnique(bitSetOf(2), is(false));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6882">[CALCITE-6882]
+   * RelMdColumnUniqueness incorrectly claims fields are not unique if constant
+   * refinement occurs in a node above join</a>. */
+  @Test void testColumnUniquenessForFilterOnJoin() {
+    // Calcite should deduce that emp.empno is unique (knowing that empno is
+    // a key for emp and deptno is a key for dept).
+    sql("select emp.empno, dept.deptno\n"
+        + "from emp\n"
+        + "  inner join dept\n"
+        + "on emp.deptno = dept.deptno\n"
+        + "where dept.name = 'foo'")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true));
+  }
+
+  @Test void testColumnUniquenessForJoin() {
+    // Calcite should deduce that emp.empno is unique (knowing that empno is
+    // a key for emp and deptno is a key for dept).
+    sql("select emp.empno, dept.name, dept.deptno\n"
+        + "from emp\n"
+        + "  inner join dept\n"
+        + "on emp.deptno = dept.deptno")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true));
+  }
+
   @Test void testGroupBy() {
     sql("select deptno, count(*), sum(sal) from emp group by deptno")
         .assertThatUniqueKeysAre(bitSetOf(0));
