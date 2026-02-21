@@ -9152,6 +9152,18 @@ public class JdbcTest {
         .returnsUnordered("VAL=2500.55");
   }
 
+  @Test void bindBytesParameter() {
+    final String sql = "select \"primitiveBoolean\" from \"s\".\"everyTypes\" where \"bytes\" = ?";
+
+    CalciteAssert.that()
+        .withSchema("s", new ReflectiveSchema(new CatchallSchema()))
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setBytes(1, new byte[] { 00 });
+        })
+        .returnsUnordered("primitiveBoolean=false");
+  }
+
   @Test void bindNullParameter() {
     final String sql =
         "with cte as (select 2500.55 as val)"
