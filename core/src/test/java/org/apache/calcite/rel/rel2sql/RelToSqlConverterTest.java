@@ -1722,6 +1722,25 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5523">[CALCITE-5523]
+   * RelToSql converter generates GROUP BY clause with window expression</a>. */
+  @Test void testConvertWindowGroupByToSql() {
+    String query = "SELECT * FROM ("
+        + "SELECT rank() over (order by \"hire_date\") \"rank\" FROM \"employee\""
+        + ") GROUP BY \"rank\"";
+    String expectedOracleSql = "SELECT RANK() OVER (ORDER BY \"hire_date\") \"rank\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY RANK() OVER (ORDER BY \"hire_date\")";
+    String expectedPostgresal = "SELECT \"rank\"\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY \"hire_date\") AS \"rank\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t\"\n"
+        + "GROUP BY \"rank\"";
+
+    sql(query).withOracle().ok(expectedOracleSql)
+        .withPostgresql().ok(expectedPostgresal);
+  }
+
   /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
   @Test void testWindowedSum0BecomesCoalesce() {
     final String query = "select\n"
