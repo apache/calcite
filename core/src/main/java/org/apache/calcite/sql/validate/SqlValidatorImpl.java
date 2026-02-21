@@ -1581,6 +1581,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (node instanceof SqlMerge) {
         validatingSqlMerge = true;
       }
+      if (node instanceof SqlJoin) {
+        // select * from "scott".dept,
+        //     lateral (select count(cast(deptno as integer)) from "scott".emp
+        //         where emp.deptno = dept.deptno);
+        // ==》
+        // select * from "scott".dept left join
+        //     lateral (select count(cast(deptno as integer)) from "scott".emp
+        //        where emp.deptno = dept.deptno) on true;
+        SqlJoin sqlJoin = (SqlJoin) node;
+        if (sqlJoin.getJoinType() == JoinType.COMMA && sqlJoin.getRight() instanceof SqlCall) {
+          SqlCall sqlCall = (SqlCall) sqlJoin.getRight();
+          if (sqlCall.getOperator() == SqlStdOperatorTable.LATERAL
+              && sqlCall.operand(0) instanceof SqlSelect
+              && isAggregate(sqlCall.operand(0))) {
+            return performUnconditionalRewrites(
+                new SqlJoin(sqlJoin.getParserPosition(),
+                    sqlJoin.getLeft(), sqlJoin.isNaturalNode(),
+                    JoinType.LEFT.symbol(node.getParserPosition()),
+                    sqlJoin.getRight(), JoinConditionType.ON.symbol(node.getParserPosition()),
+                    SqlLiteral.createBoolean(true, node.getParserPosition())), underFrom);
+          }
+        }
+      }
       SqlCall call = (SqlCall) node;
       final SqlKind kind = call.getKind();
       final List<SqlNode> operands = call.getOperandList();
