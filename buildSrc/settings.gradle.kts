@@ -24,6 +24,7 @@ pluginManagement {
     }
 }
 
+include("asmchecker")
 include("javacc")
 include("fmpp")
 include("buildext")

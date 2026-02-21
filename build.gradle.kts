@@ -26,6 +26,7 @@ import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import net.ltgt.gradle.errorprone.errorprone
+import org.apache.calcite.buildtools.asmchecker.AsmCheckerTask
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
@@ -37,6 +38,7 @@ plugins {
     publishing
     // Verification
     checkstyle
+    id("calcite.asmchecker")
     calcite.buildext
     jacoco
     id("jacoco-report-aggregation")
@@ -905,6 +907,15 @@ allprojects {
                     includeTags("slow")
                 }
                 jvmArgs("-Xmx6g")
+            }
+            register<AsmCheckerTask>("bytecodeCheck") {
+                group = LifecycleBasePlugin.VERIFICATION_GROUP
+                description = "Checks the bytecode of every .class file in the build directory using ASM."
+                dependsOn("classes")
+            }
+
+            check {
+                dependsOn("bytecodeCheck")
             }
             configureEach<SpotBugsTask> {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
