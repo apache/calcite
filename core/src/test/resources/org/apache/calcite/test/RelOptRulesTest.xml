@@ -9791,10 +9791,11 @@ LogicalProject(DEPTNO=[$0], C1=[$1])
   </TestCase>
   <TestCase name="testMeasureJoin">
     <Resource name="sql">
-      <![CDATA[select deptno, aggregate(m) as m
-from (select deptno, name, avg(char_length(name)) as measure m
-  from dept)
-join emp using (deptno)
+      <![CDATA[with deptm as
+  (select deptno, name, avg(char_length(name)) as measure m
+   from dept)
+select deptno, aggregate(m) as m
+from deptm join emp using (deptno)
 group by deptno]]>
     </Resource>
     <Resource name="planBefore">
@@ -9812,7 +9813,7 @@ LogicalProject(DEPTNO=[$0], M=[$1])
       <![CDATA[
 LogicalProject(DEPTNO=[$0], M=[$1])
   LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
-    LogicalProject($f0=[$0], $f2=[M2X($2, SAME_PARTITION($0))])
+    LogicalProject($f0=[$0], $f2=[TODO($2, SAME_PARTITION($0))])
       LogicalJoin(condition=[=($0, $10)], joinType=[inner])
         LogicalProject(DEPTNO=[$0], NAME=[$1], M=[V2M(CAST(/(SUM(CHAR_LENGTH($1)), COUNT(CHAR_LENGTH($1)))):INTEGER NOT NULL)])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
