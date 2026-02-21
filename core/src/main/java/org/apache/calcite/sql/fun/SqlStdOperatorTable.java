@@ -1852,7 +1852,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * second operand is negative.
    */
   public static final SqlBasicFunction POWER =
-      SqlBasicFunction.create("POWER",
+      SqlBasicFunction.create(SqlKind.POWER,
           ReturnTypes.DOUBLE_NULLABLE,
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
