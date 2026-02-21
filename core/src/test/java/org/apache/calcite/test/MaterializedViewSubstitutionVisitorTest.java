@@ -2073,6 +2073,43 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(mv2, query2).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6193">[CALCITE-6193]
+   * If a query has more than one subexpression that matches a materialized view,
+   * only the first is substituted</a>. */
+  @Test void testStopTryIncorrectSubtree() {
+    final String mv = ""
+        + "select \"empid\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "group by \"empid\", \"deptno\"";
+    final String matchQuery = "select \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "group by \"deptno\"\n";
+    final String query = ""
+        + "select t1.\"deptno\"\n"
+        + "from (\n"
+        + "select \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "union all\n"
+        + matchQuery
+        + ") as t1 inner join (\n"
+        + matchQuery
+        + ") as t2 on t1.\"deptno\" = t2.\"deptno\"\n";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalCalc(expr#0..1=[{inputs}], deptno=[$t0])\n"
+            + "  LogicalJoin(condition=[=($0, $1)], joinType=[inner])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalCalc(expr#0..1=[{inputs}], deptno=[$t1])\n"
+            + "        LogicalCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "          LogicalTableScan(table=[[hr, emps]])\n"
+            + "      LogicalAggregate(group=[{1}])\n"
+            + "        EnumerableTableScan(table=[[hr, MV0]])\n"
+            + "    LogicalAggregate(group=[{1}])\n"
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
   /** Fixture for tests for whether expressions are satisfiable,
    * specifically {@link SubstitutionVisitor#mayBeSatisfiable(RexNode)}. */
   private static class SatisfiabilityFixture {
