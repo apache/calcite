@@ -1903,7 +1903,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TO_BASE64 =
       SqlBasicFunction.create("TO_BASE64",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {HIVE})
@@ -2575,7 +2575,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {SPARK, HIVE})
@@ -2589,21 +2589,21 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SHA1 =
       SqlBasicFunction.create("SHA1",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction SHA256 =
       SqlBasicFunction.create("SHA256",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction SHA512 =
       SqlBasicFunction.create("SHA512",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   /** The "IS_INF(value)" function. Returns whether value is infinite. */
