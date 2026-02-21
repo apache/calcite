@@ -190,6 +190,10 @@ public abstract class SqlCall extends SqlNode {
     if (!this.getOperator().getName().equalsIgnoreCase(that.getOperator().getName())) {
       return litmus.fail("{} != {}", this, node);
     }
+    // For same name but different kind
+    if (this.getOperator().getKind() != that.getOperator().getKind()) {
+      return litmus.fail("{} != {}", this, node);
+    }
     if (!equalDeep(this.getFunctionQuantifier(), that.getFunctionQuantifier(), litmus)) {
       return litmus.fail("{} != {} (function quantifier differs)", this, node);
     }
