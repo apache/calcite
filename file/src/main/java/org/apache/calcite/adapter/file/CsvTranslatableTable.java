@@ -25,6 +25,9 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.RelOptTable;
+
+import au.com.bytecode.opencsv.CSVParser;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.QueryableTable;
@@ -49,7 +52,11 @@ public class CsvTranslatableTable extends CsvTable
     implements QueryableTable, TranslatableTable {
   /** Creates a CsvTable. */
   CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType) {
-    super(source, protoRowType);
+    this(source, protoRowType, CSVParser.DEFAULT_SEPARATOR);
+  }
+
+  CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType, char separator) {
+    super(source, protoRowType, separator);
   }
 
   @Override public String toString() {
@@ -64,8 +71,11 @@ public class CsvTranslatableTable extends CsvTable
     return new AbstractEnumerable<Object>() {
       @Override public Enumerator<Object> enumerator() {
         JavaTypeFactory typeFactory = root.getTypeFactory();
-        return new CsvEnumerator<>(source, cancelFlag,
-            getFieldTypes(typeFactory), ImmutableIntList.of(fields));
+        //noinspection unchecked
+        return new CsvEnumerator<Object>(source, cancelFlag, false, null,
+            (CsvEnumerator.RowConverter) CsvEnumerator.arrayConverter(
+                getFieldTypes(typeFactory), ImmutableIntList.of(fields), false),
+            separator);
       }
     };
   }

@@ -23,6 +23,8 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Source;
 
+import au.com.bytecode.opencsv.CSVParser;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
@@ -37,13 +39,20 @@ import java.util.List;
 public abstract class CsvTable extends AbstractTable {
   protected final Source source;
   protected final @Nullable RelProtoDataType protoRowType;
+  protected final char separator;
   private @Nullable RelDataType rowType;
   private @Nullable List<RelDataType> fieldTypes;
 
   /** Creates a CsvTable. */
   CsvTable(Source source, @Nullable RelProtoDataType protoRowType) {
+    this(source, protoRowType, CSVParser.DEFAULT_SEPARATOR);
+  }
+
+  /** Creates a CsvTable. */
+  CsvTable(Source source, @Nullable RelProtoDataType protoRowType, char separator) {
     this.source = source;
     this.protoRowType = protoRowType;
+    this.separator = separator;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -53,7 +62,7 @@ public abstract class CsvTable extends AbstractTable {
     if (rowType == null) {
       rowType =
           CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-              null, isStream());
+              null, isStream(), separator);
     }
     return rowType;
   }
@@ -63,7 +72,7 @@ public abstract class CsvTable extends AbstractTable {
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();
       CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-          fieldTypes, isStream());
+          fieldTypes, isStream(), separator);
     }
     return fieldTypes;
   }

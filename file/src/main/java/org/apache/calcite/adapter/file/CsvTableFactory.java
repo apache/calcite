@@ -48,8 +48,11 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final Source source = Sources.file(base, fileName);
+    String separatorString = (String) operand.get("separator");
+    char separator = separatorString != null && separatorString.length() > 0
+        ? separatorString.charAt(0) : ',';
     final RelProtoDataType protoRowType =
         rowType != null ? RelDataTypeImpl.proto(rowType) : null;
-    return new CsvTranslatableTable(source, protoRowType);
+    return new CsvTranslatableTable(source, protoRowType, separator);
   }
 }

@@ -53,9 +53,9 @@ class CsvStreamReader extends CSVReader implements Closeable {
    */
   public static final long DEFAULT_MONITOR_DELAY = 2000;
 
-  CsvStreamReader(Source source) {
+  CsvStreamReader(Source source, char separator) {
     this(source,
-        CSVParser.DEFAULT_SEPARATOR,
+        separator,
         CSVParser.DEFAULT_QUOTE_CHARACTER,
         CSVParser.DEFAULT_ESCAPE_CHARACTER,
         DEFAULT_SKIP_LINES,
