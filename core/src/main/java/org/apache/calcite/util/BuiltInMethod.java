@@ -556,6 +556,7 @@ public enum BuiltInMethod {
   PARSE_URL3(SqlFunctions.ParseUrlFunction.class, "parseUrl", String.class,
       String.class, String.class),
   MULTI_STRING_CONCAT(SqlFunctions.class, "concatMulti", String[].class),
+  MULTI_STRING_CONCAT_OBJECTS(SqlFunctions.class, "concatMultiObjects", Object[].class),
   MULTI_STRING_CONCAT_WITH_NULL(SqlFunctions.class, "concatMultiWithNull",
       String[].class),
   MULTI_STRING_CONCAT_WITH_SEPARATOR(SqlFunctions.class,

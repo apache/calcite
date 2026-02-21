@@ -1730,6 +1730,41 @@ public class SqlFunctions {
     return String.join("", args);
   }
 
+  /** SQL {@code CONCAT(obj0, obj1, obj2, ...)} function. */
+  public static Object concatMultiObjects(Object... args) {
+    boolean containsByteString = anyIsByteString(args);
+    if (containsByteString) {
+      ByteString ret = ByteString.of("", 16);
+      for (Object str : args) {
+        if (str instanceof String) {
+          ret = ret.concat(new ByteString(((String) str).getBytes(UTF_8)));
+        } else if (str instanceof ByteString) {
+          ret = ret.concat((ByteString) str);
+        }
+      }
+      return ret;
+    } else {
+      String ret = "";
+      for (Object str : args) {
+        ret = ret.concat(str.toString());
+      }
+      return ret;
+    }
+  }
+
+  private static boolean anyIsByteString(Object... args) {
+    boolean ret = false;
+    for (Object o : args) {
+      if (!(o instanceof ByteString) && !(o instanceof String)) {
+        throw new RuntimeException("concat function only accepts strings or bytestring arguments.");
+      }
+      if (o instanceof ByteString) {
+        ret = true;
+      }
+    }
+    return ret;
+  }
+
   /** SQL {@code CONCAT(arg0, ...)} function which can accept null
    * but never return null. Always treats null as empty string. */
   public static String concatMultiWithNull(String... args) {
