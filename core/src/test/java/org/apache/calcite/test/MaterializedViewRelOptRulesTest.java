@@ -157,6 +157,19 @@ class MaterializedViewRelOptRulesTest {
         .noMat();
   }
 
+  @Test void testMultiMaterializationsNoAggregateFuncs() {
+    fixture("select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"")
+        .withMaterializations(
+            ImmutableList.of(
+                Pair.of(
+                    "select \"empid\", \"deptno\" from \"emps\" group by \"empid\", \"deptno\"",
+                    "MV0"),
+                Pair.of(
+                    "select \"empid\" from \"emps\" group by \"empid\", \"deptno\"",
+                "MV1")))
+        .ok();
+  }
+
   @Test void testAggregateMaterializationAggregateFuncs1() {
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" group by \"empid\", \"deptno\"",
