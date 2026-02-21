@@ -156,6 +156,11 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInsertValuesCannotCoerceTypes">
+    <Resource name="sql">
+      <![CDATA[insert into t3 (t3_int) values (10), (DATE '2001-01-01')]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInsertValuesQuerySourceCoercion">
     <Resource name="sql">
       <![CDATA[insert into t1 values ('a', 1, 1.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), ('b', 2,  2, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), ('c', CAST(3 AS SMALLINT),  3.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), ('d', 4, 4.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), ('e', 5, 5.0, 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false)]]>
@@ -206,6 +211,17 @@ LogicalProject(X=[$0])
     LogicalAggregate(group=[{0}])
       LogicalProject(X=[$0])
         LogicalValues(tuples=[[{ 3 }, { 4 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInsertValuesWithConvertibleTypes">
+    <Resource name="sql">
+      <![CDATA[insert into t3 (t3_int, t3_varchar20, t3_date) values ('10', 50, DATE '2001-01-01'), ('20', null, '2002-01-01'), (30, 'test', null), (40, DATE '2003-01-01', TIMESTAMP '2004-01-01 01:01:01')]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T3]], operation=[INSERT], flattened=[false])
+  LogicalValues(tuples=[[{ 10, '50', 2001-01-01 }, { 20, null, 2002-01-01 }, { 30, 'test', null }, { 40, '2003-01-01', 2004-01-01 }]])
 ]]>
     </Resource>
   </TestCase>
