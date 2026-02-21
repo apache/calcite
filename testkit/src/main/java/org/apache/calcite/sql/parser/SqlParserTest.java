@@ -1972,6 +1972,19 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"with\" at line 1, column 23.\n.*");
     expr("cast(x as varchar(10) ^without^ time zone)")
         .fails("(?s).*Encountered \"without\" at line 1, column 23.\n.*");
+
+    expr("cast(x as row(f0 int ^not^ null))")
+        .fails("(?s).*Encountered \"not\" at .*");
+    expr("cast(x as row(f0 varchar ^null^))")
+        .fails("(?s).*Encountered \"null\" at .*");
+    expr("cast(x as row(f0 int ^not^ null, f1 varchar ^null^))")
+        .fails("(?s).*Encountered \"not\" at .*");
+    expr("cast(x as integer ^not^ null)")
+        .fails("(?s).*Encountered \"not\" at .*");
+    expr("cast(x as integer ^not^ null array)")
+        .fails("(?s).*Encountered \"not\" at .*");
+    expr("cast(x as integer array ^not^ null)")
+        .fails("(?s).*Encountered \"not\" at .*");
   }
 
   /** Test for MSSQL CONVERT parsing, with focus on iffy DATE type and
@@ -6432,20 +6445,18 @@ public class SqlParserTest {
   @Test void testCastAsRowType() {
     expr("cast(a as row(f0 int, f1 varchar))")
         .ok("CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR))");
-    expr("cast(a as row(f0 int not null, f1 varchar null))")
-        .ok("CAST(`A` AS ROW(`F0` INTEGER, `F1` VARCHAR NULL))");
     // test nested row type.
     expr("cast(a as row("
-        + "f0 row(ff0 int not null, ff1 varchar null) null, "
-        + "f1 timestamp not null))")
+        + "f0 row(ff0 int, ff1 varchar), "
+        + "f1 timestamp))")
         .ok("CAST(`A` AS ROW("
-            + "`F0` ROW(`FF0` INTEGER, `FF1` VARCHAR NULL) NULL, "
+            + "`F0` ROW(`FF0` INTEGER, `FF1` VARCHAR), "
             + "`F1` TIMESTAMP))");
     // test row type in collection data types.
-    expr("cast(a as row(f0 bigint not null, f1 decimal null) array)")
-        .ok("CAST(`A` AS ROW(`F0` BIGINT, `F1` DECIMAL NULL) ARRAY)");
-    expr("cast(a as row(f0 varchar not null, f1 timestamp null) multiset)")
-        .ok("CAST(`A` AS ROW(`F0` VARCHAR, `F1` TIMESTAMP NULL) MULTISET)");
+    expr("cast(a as row(f0 bigint, f1 decimal) array)")
+        .ok("CAST(`A` AS ROW(`F0` BIGINT, `F1` DECIMAL) ARRAY)");
+    expr("cast(a as row(f0 varchar, f1 timestamp) multiset)")
+        .ok("CAST(`A` AS ROW(`F0` VARCHAR, `F1` TIMESTAMP) MULTISET)");
   }
 
   /**

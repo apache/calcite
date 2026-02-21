@@ -46,14 +46,12 @@ import static java.util.Objects.requireNonNull;
  *   &lt;field name&gt; &lt;data type&gt;
  * </pre></blockquote>
  *
- * <p>As a extended syntax to the standard SQL, each field type can have a
- * [ NULL | NOT NULL ] suffix specification, i.e.
- * Row(f0 int null, f1 varchar not null). The default is NOT NULL(not nullable).
+ * <p>i.e. Row(f0 int, f1 varchar). The default is NOT NULL(not nullable).
  */
 public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
 
   private final List<SqlIdentifier> fieldNames;
-  private final List<SqlDataTypeSpec> fieldTypes;
+  private final List<SqlTypeNameSpec> fieldTypes;
 
   /**
    * Creates a row type specification.
@@ -65,7 +63,7 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
   public SqlRowTypeNameSpec(
       SqlParserPos pos,
       List<SqlIdentifier> fieldNames,
-      List<SqlDataTypeSpec> fieldTypes) {
+      List<SqlTypeNameSpec> fieldTypes) {
     super(new SqlIdentifier(SqlTypeName.ROW.getName(), pos), pos);
     this.fieldNames = requireNonNull(fieldNames, "fieldNames");
     this.fieldTypes = requireNonNull(fieldTypes, "fieldTypes");
@@ -76,7 +74,7 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
     return fieldNames;
   }
 
-  public List<SqlDataTypeSpec> getFieldTypes() {
+  public List<SqlTypeNameSpec> getFieldTypes() {
     return fieldTypes;
   }
 
@@ -87,15 +85,10 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.print(getTypeName().getSimple());
     SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
-    for (Pair<SqlIdentifier, SqlDataTypeSpec> p : Pair.zip(this.fieldNames, this.fieldTypes)) {
+    for (Pair<SqlIdentifier, SqlTypeNameSpec> p : Pair.zip(this.fieldNames, this.fieldTypes)) {
       writer.sep(",", false);
       p.left.unparse(writer, 0, 0);
       p.right.unparse(writer, leftPrec, rightPrec);
-      Boolean isNullable = p.right.getNullable();
-      if (isNullable != null && isNullable) {
-        // Row fields default is not nullable.
-        writer.print("NULL");
-      }
     }
     writer.endList(frame);
   }
