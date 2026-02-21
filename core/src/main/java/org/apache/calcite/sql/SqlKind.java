@@ -159,11 +159,20 @@ public enum SqlKind {
   /** EXPLAIN statement. */
   EXPLAIN,
 
+  /** DESCRIBE DATABASE statement. */
+  DESCRIBE_DATABASE,
+
+  /** DESCRIBE CATALOG statement. */
+  DESCRIBE_CATALOG,
+
   /** DESCRIBE SCHEMA statement. */
   DESCRIBE_SCHEMA,
 
   /** DESCRIBE TABLE statement. */
   DESCRIBE_TABLE,
+
+  /** DESCRIBE STATEMENT statement. */
+  DESCRIBE_STATEMENT,
 
   /** INSERT statement. */
   INSERT,
