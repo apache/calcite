@@ -3460,6 +3460,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6570">[CALCITE-6570]
+   * UPDATE with sub-query that requires type cast gives AssertionError</a>.
+   */
+  @Test void testUpdateSubQueryWithCast() {
+    final String sql = "update emp\n"
+        + "set empno = (\n"
+        + "  select cast(min(empno) as BIGINT) from emp as e where e.deptno = emp.deptno)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3229">[CALCITE-3229]
    * UnsupportedOperationException for UPDATE with IN query</a>.
    */
@@ -3549,6 +3561,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1\n"
         + "when not matched then insert (empno, ename, deptno, sal)\n"
         + "values(t.empno, t.ename, 10, t.sal * .15)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6570">[CALCITE-6570]
+   * UPDATE with sub-query that requires type cast gives AssertionError</a>.
+   */
+  @Test void testMergeSubQueryWithCast() {
+    final String sql = "merge into emp t0\n"
+        + "using emp t1 ON t0.empno = t1.empno\n"
+        + "when matched then\n"
+        + "update set deptno = (select cast(deptno as BIGINT) from emp where deptno > 1)";
+
     sql(sql).ok();
   }
 

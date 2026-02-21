@@ -5281,6 +5281,28 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], up
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMergeSubQueryWithCast">
+    <Resource name="sql">
+      <![CDATA[merge into emp t0
+using emp t1 ON t0.empno = t1.empno
+when matched then
+update set deptno = (select cast(deptno as BIGINT) from emp where deptno > 1)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[MERGE], updateColumnList=[[DEPTNO]], flattened=[true])
+  LogicalProject($f0=[$18])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalProject(EXPR$0=[CAST($7):BIGINT NOT NULL])
+          LogicalFilter(condition=[>($7, 1)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModeFunction">
     <Resource name="sql">
       <![CDATA[select mode(deptno)
@@ -9727,6 +9749,24 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUpdateSubQueryWithCast">
+    <Resource name="sql">
+      <![CDATA[update emp
+set empno = (
+  select cast(min(empno) as BIGINT) from emp as e where e.deptno = emp.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[CAST($0):INTEGER]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[CAST($10):BIGINT])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
         LogicalProject(DEPTNO=[$7], EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

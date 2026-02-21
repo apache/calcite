@@ -3067,6 +3067,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           SqlSelect.HAVING_OPERAND);
       registerSubQueries(selectScope2,
           SqlNonNullableAccessors.getSelectList(select));
+
+      if (enclosingNode.getKind() == SqlKind.UPDATE) {
+        registerSubQueries(selectScope2,
+            ((SqlUpdate) enclosingNode).getSourceExpressionList());
+      } else if (enclosingNode.getKind() == SqlKind.MERGE) {
+        SqlUpdate updateCall = ((SqlMerge) enclosingNode).getUpdateCall();
+
+        if (updateCall != null) {
+          registerSubQueries(selectScope2,
+              updateCall.getSourceExpressionList());
+        }
+      }
+
       final SqlNodeList orderList = select.getOrderList();
       if (orderList != null) {
         // If the query is 'SELECT DISTINCT', restrict the columns
