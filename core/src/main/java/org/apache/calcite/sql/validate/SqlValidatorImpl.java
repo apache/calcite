@@ -2478,6 +2478,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (namespace == null) {
       namespaces.put(requireNonNull(ns.getNode()), ns);
       namespace = ns;
+    } else {
+      // due to the identity map, it is possible that the namespace returned by the map is different from the namespace to register
+      // this can lead to bugs during runtime therefore we throw an exception here
+      if (ns.getEnclosingNode() != namespace.getEnclosingNode()) {
+        throw new RuntimeException("Namespace returned by identity hashmap has different enclosing node. Namespace to register: " + ns.getEnclosingNode() + ", Namespace returned by map: " + namespace.getEnclosingNode());
+      }
     }
     if (usingScope != null) {
       if (alias == null) {
