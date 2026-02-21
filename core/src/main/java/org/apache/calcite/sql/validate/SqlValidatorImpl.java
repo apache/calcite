@@ -5981,7 +5981,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param scope Validator scope to derive type
    * @param ns    The namespace to lookup table
    */
-  private void validateSnapshot(
+  protected void validateSnapshot(
       SqlNode node,
       @Nullable SqlValidatorScope scope,
       SqlValidatorNamespace ns) {
@@ -5992,6 +5992,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!SqlTypeUtil.isTimestamp(dataType)) {
         throw newValidationError(period,
             Static.RESOURCE.illegalExpressionForTemporal(dataType.getSqlTypeName().getName()));
+      }
+      if (ns instanceof IdentifierNamespace && ns.resolve() instanceof WithItemNamespace) {
+        final WithItemNamespace withItemNamespace = (WithItemNamespace) ns.resolve();
+        final SqlWithItem sqlWithItem = (SqlWithItem) withItemNamespace.getNode();
+        throw newValidationError(snapshot.getTableRef(),
+            Static.RESOURCE.notTemporalTable(sqlWithItem.name.getSimple()));
       }
       SqlValidatorTable table = getTable(ns);
       if (!table.isTemporal()) {
