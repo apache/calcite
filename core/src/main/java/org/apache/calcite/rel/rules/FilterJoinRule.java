@@ -393,8 +393,12 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    * @see RelOptUtil#conjunctions(RexNode)
    */
   private static List<RexNode> getConjunctions(Filter filter) {
-    List<RexNode> conjunctions = conjunctions(filter.getCondition());
     RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+    // try to pull factors from disjunctions, for example, (P AND X) OR (P AND Y) will be
+    // converted to P AND (X OR Y), then it's possible to push P down, see comments of
+    // RexUtil.pullFactors() for details.
+    RexNode newCondition = RexUtil.pullFactors(rexBuilder, filter.getCondition());
+    List<RexNode> conjunctions = conjunctions(newCondition);
     for (int i = 0; i < conjunctions.size(); i++) {
       RexNode node = conjunctions.get(i);
       if (node instanceof RexCall) {
