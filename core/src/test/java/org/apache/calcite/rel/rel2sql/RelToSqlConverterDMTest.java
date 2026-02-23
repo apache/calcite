@@ -86,6 +86,7 @@ import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
 import org.apache.calcite.sql.fun.GeneratorTableFunction;
 import org.apache.calcite.sql.fun.HiveLateralViewExplodeFunction;
+import org.apache.calcite.sql.fun.HiveTableValueFunction;
 import org.apache.calcite.sql.fun.SqlAddMonths;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -10998,6 +10999,25 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
   }
+
+  @Test public void testLateralViewInlineFunction() {
+    final RelBuilder builder = foodmartRelBuilder();
+    RexNode operand =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.literal(0), builder.literal(1), builder.literal(2));
+    Map<String, RelDataType> tableFunRowType = new HashMap<>();
+    tableFunRowType.put("col1", operand.getType());
+    tableFunRowType.put("col2", operand.getType());
+    List<RexNode> operands = new ArrayList<>();
+    operands.add(operand);
+    RelNode root =
+        builder.functionScan(HiveTableValueFunction.of("INLINE", tableFunRowType), 0, operands).build();
+    final String expectedQuery = "SELECT *\n"
+        + "FROM TABLE(INLINE(ARRAY (0, 1, 2)))";
+
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedQuery));
+  }
+
 
   @Test public void testStrtokSplitToTable() {
     final RelBuilder builder = relBuilder();
