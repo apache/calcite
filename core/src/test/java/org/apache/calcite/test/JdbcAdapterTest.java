@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -1553,6 +1554,120 @@ class JdbcAdapterTest {
             || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
         .planHasSql(jdbcSql)
         .returnsCount(4);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5832">[CALCITE-5832]
+   * CyclicMetadataException thrown in complex JOIN</a>. */
+  @Test void testJdbcCyclicMetadata() throws Exception {
+    final String url = MultiJdbcSchemaJoinTest.TempDb.INSTANCE.getUrl();
+    Connection baseConnection = DriverManager.getConnection(url);
+    Statement baseStmt = baseConnection.createStatement();
+    baseStmt.execute("CREATE TABLE T1 (\n"
+        + "\"contentViewsCount\" INTEGER,\n"
+        + "\"isExpired\" BOOLEAN,\n"
+        + "\"metadataPreviewUrl\" VARCHAR(100),\n"
+        + "\"format\" VARCHAR(100),\n"
+        + "\"description\" VARCHAR(100),\n"
+        + "\"language\" VARCHAR(100),\n"
+        + "\"assetTitle\" VARCHAR(100),\n"
+        + "\"assetType\" VARCHAR(100),\n"
+        + "\"contentType\" VARCHAR(100),\n"
+        + "\"doi\" VARCHAR(100),\n"
+        + "\"crmBpn\" VARCHAR(100),\n"
+        + "PRIMARY KEY(\"doi\"))");
+    baseStmt.execute("CREATE TABLE T2 (\n"
+        + "\"doi\" VARCHAR(100),\n"
+        + "\"industry\" VARCHAR(100),\n"
+        + "PRIMARY KEY(\"doi\", \"industry\"))");
+    baseStmt.execute("CREATE TABLE T3 (\n"
+        + "\"semaphoreId\" VARCHAR(100),\n"
+        + "\"name\" VARCHAR(100),\n"
+        + "\"industryId\" VARCHAR(100),\n"
+        + "PRIMARY KEY(\"semaphoreId\"))");
+    baseStmt.execute("CREATE TABLE T4 (\n"
+        + "\"contentViewsCount\" INTEGER,\n"
+        + "\"CRM_Account_ID\" VARCHAR(100),\n"
+        + "\"CRM_Account_Name\" VARCHAR(100),\n"
+        + "PRIMARY KEY(\"CRM_Account_ID\"))");
+    baseStmt.close();
+    baseConnection.commit();
+
+    Properties info = new Properties();
+    info.put("model",
+        "inline:"
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'BASEJDBC',\n"
+            + "  schemas: [\n"
+            + "     {\n"
+            + "       type: 'jdbc',\n"
+            + "       name: 'BASEJDBC',\n"
+            + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+            + "       jdbcUrl: '" + url + "',\n"
+            + "       jdbcCatalog: null,\n"
+            + "       jdbcSchema: null\n"
+            + "     }\n"
+            + "  ]\n"
+            + "}");
+
+    final Connection calciteConnection =
+        DriverManager.getConnection("jdbc:calcite:", info);
+    final PreparedStatement preparedStatement = calciteConnection
+        .prepareStatement("SELECT \"_metadata.status\", \"doi\", \"industry.title\", "
+            + "\"crm_account.crm_account_name\", \"assettitle\", \"description\", \"assettype\", "
+            + "\"format\", \"contentviewscount\", \"metadatapreviewurl\", \"language\", "
+            + "\"contenttype\", \"isexpired\" FROM (select\n"
+            + "  \"A\".\"contentViewsCount\" \"contentviewscount\",\n"
+            + "  \"A\".\"isExpired\" \"isexpired\",\n"
+            + "  \"A\".\"metadataPreviewUrl\" \"metadatapreviewurl\",\n"
+            + "  \"A\".\"format\" \"format\",\n"
+            + "  \"A\".\"description\" \"description\",\n"
+            + "  \"A\".\"language\" \"language\",\n"
+            + "  \"A\".\"assetTitle\" \"assettitle\",\n"
+            + "  \"A\".\"assetType\" \"assettype\",\n"
+            + "  \"A\".\"contentType\" \"contenttype\",\n"
+            + "  \"A\".\"doi\" \"doi\",\n"
+            + "  null \"_metadata.status\",\n"
+            + "  \"D\".\"industry.title\" \"industry.title\",\n"
+            + "  \"F\".\"crm_account.crm_account_name\" \"crm_account.crm_account_name\"\n"
+            + "from \"T1\" \"A\"\n"
+            + "  left outer join \"T2\" \"B\"\n"
+            + "    on \"A\".\"doi\" = \"B\".\"doi\"\n"
+            + "  left outer join (\n"
+            + "    select\n"
+            + "      \"C\".\"semaphoreId\" \"industry.semaphoreId\",\n"
+            + "      \"C\".\"name\" \"industry.title\"\n"
+            + "    from \"T3\" \"C\"\n"
+            + "  ) \"D\"\n"
+            + "    on \"B\".\"industry\" = \"D\".\"industry.semaphoreId\"\n"
+            + "  left outer join (\n"
+            + "    select\n"
+            + "      \"E\".\"CRM_Account_ID\" \"crm_account.CRM_Account_ID\",\n"
+            + "      \"E\".\"CRM_Account_Name\" \"crm_account.crm_account_name\"\n"
+            + "    from \"T4\" \"E\"\n"
+            + "  ) \"F\"\n"
+            + "    on \"A\".\"crmBpn\" = \"F\".\"crm_account"
+            + ".CRM_Account_ID\")\n"
+            + "WHERE (\"isexpired\" = ?)\n"
+            + "AND (\"language\" IN (?, ?))\n"
+            + "AND (\"contenttype\" IN (?, ?))\n"
+            + "AND (\"doi\" IN (?))\n"
+            + "ORDER BY \"doi\" ASC\n"
+            + "LIMIT 500 OFFSET 0");
+    preparedStatement.setBoolean(1, false);
+    preparedStatement.setString(2, "en");
+    preparedStatement.setString(3, "de");
+    preparedStatement.setString(4, "text/html");
+    preparedStatement.setString(5, "text/plain");
+    preparedStatement.setString(6, "");
+    ResultSet rs = preparedStatement.executeQuery();
+
+    assertThat(rs.next(), is(false));
+
+    rs.close();
+    calciteConnection.close();
   }
 
   /** Acquires a lock, and releases it when closed. */
