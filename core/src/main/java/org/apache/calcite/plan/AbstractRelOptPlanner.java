@@ -308,7 +308,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // do nothing
   }
 
-  protected void dumpRuleAttemptsInfo() {
+  public void dumpRuleAttemptsInfo() {
     if (this.ruleAttemptsListener != null) {
       RULE_ATTEMPTS_LOGGER.debug("Rule Attempts Info for " + this.getClass().getSimpleName());
       RULE_ATTEMPTS_LOGGER.debug(this.ruleAttemptsListener.dump());
