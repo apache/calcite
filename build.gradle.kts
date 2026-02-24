@@ -90,6 +90,28 @@ val werror by props(true) // treat javac warnings as errors
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
 // Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
+val hepLargePlanModeTestIncludes = mapOf(
+    ":core" to listOf(
+        "**/org/apache/calcite/test/HepPlannerTest.class",
+        "**/org/apache/calcite/test/RelOptRulesTest.class",
+        "**/org/apache/calcite/test/RelMetadataTest.class",
+        "**/org/apache/calcite/sql2rel/RelFieldTrimmerTest.class",
+        "**/org/apache/calcite/rel/rel2sql/RelToSqlConverterTest.class",
+        "**/org/apache/calcite/test/SqlToRelConverterTest.class",
+        "**/org/apache/calcite/test/SqlHintsConverterTest.class",
+        "**/org/apache/calcite/test/InterpreterTest.class",
+        "**/org/apache/calcite/test/MaterializedViewSubstitutionVisitorTest.class",
+        "**/org/apache/calcite/test/RuleMatchVisualizerTest.class",
+        "**/org/apache/calcite/test/enumerable/EnumerableJoinTest.class",
+        "**/org/apache/calcite/test/enumerable/EnumerableHashJoinTest.class",
+        "**/org/apache/calcite/test/enumerable/EnumerableCorrelateTest.class"
+    ),
+    ":plus" to listOf(
+        "**/org/apache/calcite/adapter/tpch/TpchTest.class",
+        "**/org/apache/calcite/sql2rel/TpcdsSqlToRelTest.class"
+    )
+)
+
 // Java versions prior to 1.8.0u202 have known issues that cause invalid bytecode in certain patterns
 // of annotation usage.
 // So we require at least 1.8.0u202
@@ -136,6 +158,11 @@ val String.v: String get() = rootProject.extra["$this.version"] as String
 val buildVersion = "calcite".v + releaseParams.snapshotSuffix
 
 println("Building Apache Calcite $buildVersion")
+
+val testHepLargePlanMode by tasks.registering() {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs HepPlanner regression tests with large-plan mode enabled by default."
+}
 
 releaseArtifacts {
     fromProject(":release")
@@ -905,6 +932,21 @@ allprojects {
                     includeTags("slow")
                 }
                 jvmArgs("-Xmx6g")
+            }
+            hepLargePlanModeTestIncludes[project.path]?.let { includes ->
+                val hepLargePlanModeTask = register<Test>("testHepLargePlanMode") {
+                    group = LifecycleBasePlugin.VERIFICATION_GROUP
+                    description =
+                        "Runs HepPlanner-heavy tests with calcite.hep.large.plan.mode=true."
+                    testClassesDirs = sourceSets["test"].output.classesDirs
+                    classpath = sourceSets["test"].runtimeClasspath
+                    include(includes)
+                    systemProperty("calcite.hep.large.plan.mode", "true")
+                    shouldRunAfter("test")
+                }
+                rootProject.tasks.named("testHepLargePlanMode") {
+                    dependsOn(hepLargePlanModeTask)
+                }
             }
             configureEach<SpotBugsTask> {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
