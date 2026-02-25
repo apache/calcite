@@ -172,6 +172,60 @@ public abstract class SqlImplementor {
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
 
   /**
+   * State for generating a CorrelationScope.
+   */
+  public static class CorrelationScope {
+    final Set<CorrelationId> ids;
+    public String alias;
+
+    CorrelationScope(Set<CorrelationId> ids, @Nullable String alias) {
+      this.ids = ids;
+      this.alias = alias;
+    }
+  }
+
+  /**
+   * Stack of correlation scopes (LIFO).
+   * Each scope represents correlations defined at a particular level
+   * in the query tree.
+   */
+  public final Deque<CorrelationScope> correlationScopes = new ArrayDeque<>();
+
+  /**
+   * Pushes a new correlation scope onto the stack.
+   * The alias may be null initially and filled in later after visiting input.
+   *
+   * @param ids Set of CorrelationIds defined at this scope
+   * @param alias Table alias to use (may be null initially)
+   */
+  protected void pushCorrelationScope(Set<CorrelationId> ids, @Nullable String alias) {
+    correlationScopes.push(new CorrelationScope(ids, alias));
+  }
+
+  /**
+   * Pops the top correlation scope from the stack.
+   * Should be called in a finally block to ensure proper cleanup.
+   */
+  protected void popCorrelationScope() {
+    correlationScopes.pop();
+  }
+
+  /**
+   * Looks up the alias for a correlation variable by searching
+   * the correlation scope stack from top to bottom.
+   *
+   * @param id CorrelationId to look up
+   * @return The table alias if found in any scope, null otherwise
+   */
+  protected @Nullable String lookupCorrelationAlias(CorrelationId id) {
+    for (CorrelationScope scope : correlationScopes) {
+      if (scope.ids.contains(id)) {
+        return scope.alias;
+      }
+    }
+    return null;
+  }
+  /**
    * Private RexBuilder for short-lived expressions. It has its own
    * dedicated type factory, so don't trust the types to be canonized.
    *
@@ -1910,16 +1964,24 @@ public abstract class SqlImplementor {
     private final @Nullable RelNode expectedRel;
     private final boolean needNew;
 
+    /**
+     * Whether to force explicit alias generation in FROM clause.
+     * Set to true when this Result is used in a correlation context
+     * where the table alias must be explicit even if the dialect
+     * normally supports implicit aliases.
+     */
+    private final boolean forceExplicitAlias;
+
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
-          ImmutableSet.of(), null);
+          ImmutableSet.of(), null, false);
     }
 
     private Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
         boolean ignoreClauses, Set<Clause> expectedClauses,
-        @Nullable RelNode expectedRel) {
+        @Nullable RelNode expectedRel, boolean forceExplicitAlias) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -1929,6 +1991,7 @@ public abstract class SqlImplementor {
       this.ignoreClauses = ignoreClauses;
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);
       this.expectedRel = expectedRel;
+      this.forceExplicitAlias = forceExplicitAlias;
       final Set<Clause> clauses2 =
           ignoreClauses ? ImmutableSet.of() : expectedClauses;
       this.needNew = expectedRel != null
@@ -2241,9 +2304,23 @@ public abstract class SqlImplementor {
      * INTERSECT, EXCEPT) remain as is. */
     public SqlSelect asSelect() {
       if (node instanceof SqlSelect) {
-        return (SqlSelect) node;
+        SqlSelect select = (SqlSelect) node;
+        // Check if we need to add explicit alias to FROM clause
+        if (forceExplicitAlias && neededAlias != null) {
+          SqlNode from = select.getFrom();
+
+          // Only add alias if FROM doesn't already have one
+          if (from != null && from.getKind() != SqlKind.AS) {
+            SqlNode newFrom =
+                SqlStdOperatorTable.AS.createCall(POS, from,
+                new SqlIdentifier(neededAlias, POS));
+            select.setFrom(newFrom);
+          }
+        }
+        return select;
       }
-      if (!dialect.hasImplicitTableAlias() || hasConflictTableAlias(node)) {
+      // For non-SELECT nodes, wrap in SELECT *
+      if (forceExplicitAlias || !dialect.hasImplicitTableAlias()) {
         return wrapSelect(asFrom());
       }
       return wrapSelect(node);
@@ -2369,7 +2446,7 @@ public abstract class SqlImplementor {
       } else {
         return new Result(node, clauses, neededAlias, neededType,
             ImmutableMap.of(neededAlias, castNonNull(neededType)), anon, ignoreClauses,
-            expectedClauses, expectedRel);
+            expectedClauses, expectedRel, false);
       }
     }
 
@@ -2382,14 +2459,36 @@ public abstract class SqlImplementor {
     public Result resetAlias(String alias, RelDataType type) {
       return new Result(node, clauses, alias, neededType,
           ImmutableMap.of(alias, type), anon, ignoreClauses,
-          expectedClauses, expectedRel);
+          expectedClauses, expectedRel, false);
+    }
+
+    /**
+     * Sets the alias and forces explicit alias generation in FROM clause.
+     * Used when correlation requires an explicit table alias.
+     *
+     * @param alias New alias to use
+     * @param type Type of the node associated with the alias
+     * @return New Result with forced explicit alias
+     */
+    public Result resetAliasForCorrelation(String alias, RelDataType type) {
+      return new Result(
+          node,
+          clauses,
+          alias,
+          neededType,
+          ImmutableMap.of(alias, type),
+          anon,
+          ignoreClauses,
+          expectedClauses,
+          expectedRel,
+          true); // Force explicit alias
     }
 
     /** Returns a copy of this Result, overriding the value of {@code anon}. */
     Result withAnon(boolean anon) {
       return anon == this.anon ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, expectedClauses, expectedRel);
+              ignoreClauses, expectedClauses, expectedRel, false);
     }
 
     /** Returns a copy of this Result, overriding the value of
@@ -2401,7 +2500,7 @@ public abstract class SqlImplementor {
           && expectedRel == this.expectedRel
           ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
+              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel, false);
     }
   }
 
