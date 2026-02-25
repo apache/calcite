@@ -9042,4 +9042,37 @@ WHERE e.ename NOT IN (
 (14 rows)
 
 !ok
+
+select empno
+from emp e
+where exists (
+  select 1
+  from (
+    select deptno from dept
+    union all
+    select deptno from dept
+  ) u
+  where u.deptno = e.deptno
+);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
 # End sub-query.iq

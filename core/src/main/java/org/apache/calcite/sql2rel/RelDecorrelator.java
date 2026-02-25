@@ -1258,6 +1258,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     final List<CorRef> corVarList = collectExternalCorVars(rel);
+    if (corVarList.isEmpty()) {
+      return decorrelateRel((RelNode) rel, true, parentPropagatesNullValues);
+    }
+
     final NavigableMap<CorDef, Integer> valueGenCorDefOutputs = new TreeMap<>();
     final RelNode valueGen =
         requireNonNull(createValueGenerator(corVarList, 0, valueGenCorDefOutputs));
