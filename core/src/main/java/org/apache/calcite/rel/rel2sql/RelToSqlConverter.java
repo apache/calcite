@@ -603,75 +603,114 @@ public class RelToSqlConverter extends SqlImplementor
     }
     return false;
   }
-  /** Visits a Project; called by {@link #dispatch} via reflection. */
+
+  /**
+   * Extracts the table name from a SqlNode if it represents a simple table reference.
+   * Returns null for complex nodes like subqueries or joins.
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>"product" → "product"</li>
+   *   <li>"foodmart.product" → "product"</li>
+   *   <li>"SCOTT"."EMP" → "EMP"</li>
+   *   <li>Subquery/Join → null</li>
+   * </ul>
+   *
+   * @param node The SQL node to examine
+   * @return The table name if extractable, null otherwise
+   */
+  private @Nullable String extractTableNameFromNode(SqlNode node) {
+    if (node == null) {
+      return null;
+    }
+
+    // Simple identifier: "EMP" or "SCOTT.EMP"
+    if (node instanceof SqlIdentifier) {
+      SqlIdentifier id = (SqlIdentifier) node;
+      // Return the last component (table name)
+      return id.names.get(id.names.size() - 1);
+    }
+
+    // Already has AS clause - don't extract (will be handled differently)
+    if (node instanceof SqlCall && node.getKind() == SqlKind.AS) {
+      return null;
+    }
+
+    // Complex nodes (subquery, join, etc) - can't extract simple name
+    if (node instanceof SqlSelect || node instanceof SqlJoin) {
+      return null;
+    }
+
+    return null;
+  }
+  /**
+   * Visits a Project; called by {@link #dispatch} via reflection.
+   */
   public Result visit(Project e) {
     // If the input is a Sort, wrap SELECT is not required.
     final Result x;
     final Set<CorrelationId> definedHere = e.getVariablesSet();
     boolean pushed = false;
     if (!definedHere.isEmpty()) {
-      pushCorrelationScope(definedHere, null);
       pushed = true;
     }
 
-    try {
-      // Visit input node
-      Result inputResult;
-      if (e.getInput() instanceof Sort) {
-        inputResult = visitInput(e, 0);
-      } else {
-        inputResult = visitInput(e, 0, Clause.SELECT);
-      }
-
-      // If this Project defines correlations, fill in alias and force explicit generation
-      if (pushed) {
-        String alias = inputResult.neededAlias;
-        if (alias != null) {
-          correlationScopes.peek().alias = alias;
-          x = inputResult.resetAliasForCorrelation(alias, e.getInput().getRowType());
-        } else {
-          x = inputResult;
-        }
-      } else {
-        x = inputResult;
-      }
-      parseCorrelTable(e, x);
-      final Builder builder = x.builder(e);
-      if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
-          || !dialect.supportGenerateSelectStar(e.getInput())) {
-        final List<SqlNode> selectList = new ArrayList<>();
-        for (RexNode ref : e.getProjects()) {
-          SqlNode sqlExpr = builder.context.toSql(null, ref);
-          if (SqlUtil.isNullLiteral(sqlExpr, false)) {
-            final RelDataTypeField field =
-                e.getRowType().getFieldList().get(selectList.size());
-            sqlExpr = castNullType(sqlExpr, field.getType());
-          }
-          addSelect(selectList, sqlExpr, e.getRowType());
-        }
-        // We generate "SELECT 1 FROM EMP" replace "SELECT FROM EMP"
-        if (selectList.isEmpty()) {
-          selectList.add(SqlLiteral.createExactNumeric("1", POS));
-        }
-        final SqlNodeList selectNodeList = new SqlNodeList(selectList, POS);
-        if (builder.select.getGroup() == null
-            && builder.select.getHaving() == null
-            && SqlUtil.containsAgg(builder.select.getSelectList())
-            && !SqlUtil.containsAgg(selectNodeList)) {
-          // We are just about to remove the last aggregate function from the
-          // SELECT clause. The "GROUP BY ()" was implicit, but we now need to
-          // make it explicit.
-          builder.setGroupBy(SqlNodeList.EMPTY);
-        }
-        builder.setSelect(selectNodeList);
-      }
-      return builder.result();
-    } finally {
-      // Always pop the correlation scope in finally block
-      if (pushed) {
-        popCorrelationScope();
-      }
+    // Visit input node
+    Result inputResult;
+    if (e.getInput() instanceof Sort) {
+      inputResult = visitInput(e, 0);
+    } else {
+      inputResult = visitInput(e, 0, Clause.SELECT);
     }
+
+    // If this Project defines correlations, fill in alias and force explicit generation
+    if (pushed) {
+      String alias = inputResult.neededAlias;
+      if (alias != null) {
+        x = inputResult.resetAliasForCorrelation(alias, e.getInput().getRowType());
+      } else {
+        alias = extractTableNameFromNode(inputResult.node);
+        if (alias == null) {
+          alias = "t";
+        }
+        inputResult = inputResult.resetAlias(alias, e.getInput().getRowType());
+        x = inputResult.resetAliasForCorrelation
+                (inputResult.neededAlias, e.getInput().getRowType());
+      }
+    } else {
+      x = inputResult;
+    }
+    parseCorrelTable(e, x);
+    final Builder builder = x.builder(e);
+    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+        || !dialect.supportGenerateSelectStar(e.getInput())) {
+      final List<SqlNode> selectList = new ArrayList<>();
+      for (RexNode ref : e.getProjects()) {
+        SqlNode sqlExpr = builder.context.toSql(null, ref);
+        if (SqlUtil.isNullLiteral(sqlExpr, false)) {
+          final RelDataTypeField field =
+              e.getRowType().getFieldList().get(selectList.size());
+          sqlExpr = castNullType(sqlExpr, field.getType());
+        }
+        addSelect(selectList, sqlExpr, e.getRowType());
+      }
+      // We generate "SELECT 1 FROM EMP" replace "SELECT FROM EMP"
+      if (selectList.isEmpty()) {
+        selectList.add(SqlLiteral.createExactNumeric("1", POS));
+      }
+      final SqlNodeList selectNodeList = new SqlNodeList(selectList, POS);
+      if (builder.select.getGroup() == null
+          && builder.select.getHaving() == null
+          && SqlUtil.containsAgg(builder.select.getSelectList())
+          && !SqlUtil.containsAgg(selectNodeList)) {
+        // We are just about to remove the last aggregate function from the
+        // SELECT clause. The "GROUP BY ()" was implicit, but we now need to
+        // make it explicit.
+        builder.setGroupBy(SqlNodeList.EMPTY);
+      }
+      builder.setSelect(selectNodeList);
+    }
+    return builder.result();
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.

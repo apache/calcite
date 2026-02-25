@@ -172,60 +172,6 @@ public abstract class SqlImplementor {
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
 
   /**
-   * State for generating a CorrelationScope.
-   */
-  public static class CorrelationScope {
-    final Set<CorrelationId> ids;
-    public String alias;
-
-    CorrelationScope(Set<CorrelationId> ids, @Nullable String alias) {
-      this.ids = ids;
-      this.alias = alias;
-    }
-  }
-
-  /**
-   * Stack of correlation scopes (LIFO).
-   * Each scope represents correlations defined at a particular level
-   * in the query tree.
-   */
-  public final Deque<CorrelationScope> correlationScopes = new ArrayDeque<>();
-
-  /**
-   * Pushes a new correlation scope onto the stack.
-   * The alias may be null initially and filled in later after visiting input.
-   *
-   * @param ids Set of CorrelationIds defined at this scope
-   * @param alias Table alias to use (may be null initially)
-   */
-  protected void pushCorrelationScope(Set<CorrelationId> ids, @Nullable String alias) {
-    correlationScopes.push(new CorrelationScope(ids, alias));
-  }
-
-  /**
-   * Pops the top correlation scope from the stack.
-   * Should be called in a finally block to ensure proper cleanup.
-   */
-  protected void popCorrelationScope() {
-    correlationScopes.pop();
-  }
-
-  /**
-   * Looks up the alias for a correlation variable by searching
-   * the correlation scope stack from top to bottom.
-   *
-   * @param id CorrelationId to look up
-   * @return The table alias if found in any scope, null otherwise
-   */
-  protected @Nullable String lookupCorrelationAlias(CorrelationId id) {
-    for (CorrelationScope scope : correlationScopes) {
-      if (scope.ids.contains(id)) {
-        return scope.alias;
-      }
-    }
-    return null;
-  }
-  /**
    * Private RexBuilder for short-lived expressions. It has its own
    * dedicated type factory, so don't trust the types to be canonized.
    *
