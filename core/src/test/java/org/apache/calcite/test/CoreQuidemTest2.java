@@ -18,10 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 /**
  * Test that runs Quidem files with the top-down decorrelator enabled.
  */
@@ -37,16 +33,6 @@ public class CoreQuidemTest2 extends CoreQuidemTest {
     for (String arg : args) {
       new CoreQuidemTest2().test(arg);
     }
-  }
-
-  @Override protected Collection<String> data() {
-    final List<String> paths = new ArrayList<>(super.data());
-    // These remove operations are temporary and will be deleted
-    // once the new decorrelator can adapt to all scenarios.
-
-    // TODO: Support measure
-    paths.remove("sql/measure.iq");
-    return paths;
   }
 
   @Override protected CalciteAssert.AssertThat customize(CalciteAssert.AssertThat assertThat) {

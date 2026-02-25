@@ -667,6 +667,7 @@ group by deptno, deptno2;
 
 !ok
 
+!if (use_old_decorr) {
 # Measure with FILTER
 select job,
     c,
@@ -689,6 +690,7 @@ group by job;
 (3 rows)
 
 !ok
+!}
 
 !if (false) {
 # Null values in GROUP BY
