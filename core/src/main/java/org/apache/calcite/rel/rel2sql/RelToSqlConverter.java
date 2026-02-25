@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.AsofJoin;
@@ -48,17 +49,22 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAsofJoin;
@@ -604,6 +610,41 @@ public class RelToSqlConverter extends SqlImplementor
     return false;
   }
 
+  /**
+   * Recursively finds all correlation variables used within a RelNode tree.
+   * Collects CorrelationIds from RexCorrelVariable nodes in filters and projections.
+   *
+   * @param rel the RelNode to search
+   * @param ids the set to collect CorrelationIds into
+   */
+  private void findCorrelationsInRel(RelNode rel, Set<CorrelationId> ids) {
+    rel.accept(new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalFilter filter) {
+        // Extract correlation variables from filter conditions
+        filter.getCondition().accept(new RexVisitorImpl<Void>(true) {
+          @Override public Void visitCorrelVariable(RexCorrelVariable var) {
+            ids.add(var.id);
+            return super.visitCorrelVariable(var);
+          }
+        });
+        return super.visit(filter);
+      }
+
+      @Override public RelNode visit(LogicalProject project) {
+        // Extract correlation variables from projection expressions
+        for (RexNode node : project.getProjects()) {
+          node.accept(new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCorrelVariable(RexCorrelVariable var) {
+              ids.add(var.id);
+              return super.visitCorrelVariable(var);
+            }
+          });
+        }
+        return super.visit(project);
+      }
+    });
+  }
+
   /** Visits a Project; called by {@link #dispatch} via reflection. */
   public Result visit(Project e) {
     // If the input is a Sort, wrap SELECT is not required.
@@ -613,8 +654,54 @@ public class RelToSqlConverter extends SqlImplementor
     } else {
       x = visitInput(e, 0, Clause.SELECT);
     }
+
+    final Set<CorrelationId> usedCorrelations = new HashSet<>();
+    RexVisitor<Void> visitor = new RexVisitorImpl<Void>(true) {
+      @Override public Void visitCorrelVariable(RexCorrelVariable variable) {
+        usedCorrelations.add(variable.id);
+        return super.visitCorrelVariable(variable);
+      }
+
+      @Override public Void visitSubQuery(RexSubQuery subQuery) {
+        // CRITICAL: We must dive into the RelNode inside the SubQuery
+        findCorrelationsInRel(subQuery.rel, usedCorrelations);
+        return super.visitSubQuery(subQuery);
+      }
+    };
+
+    for (RexNode project : e.getProjects()) {
+      project.accept(visitor);
+    }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
+    String suggestedAlias = null;
+    if (!usedCorrelations.isEmpty()) {
+
+      Set<CorrelationId> definedHere = e.getVariablesSet();
+
+      // Only add alias if the correlations we found are actually defined here
+      // (meaning they reference this table from a subquery)
+      for (CorrelationId id : usedCorrelations) {
+        if (definedHere.contains(id)) {
+          // This correlation is defined at this level and used in a subquery
+          // So we need an alias for the current table
+          suggestedAlias = x.neededAlias;
+          break;
+        }
+      }
+    }
+
+    if (suggestedAlias != null) { // Extracted from your correlTableMap logic
+      // Get the current FROM clause (e.g., SCOTT.EMP)
+      SqlNode currentFrom = builder.select.getFrom();
+
+      // Wrap it in an AS call: SCOTT.EMP AS t
+      if (currentFrom != null && currentFrom.getKind() != SqlKind.AS) {
+        SqlNode aliasId = new SqlIdentifier(suggestedAlias, POS);
+        SqlNode newFrom = SqlStdOperatorTable.AS.createCall(POS, currentFrom, aliasId);
+        builder.select.setFrom(newFrom);
+      }
+    }
     if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
         || !dialect.supportGenerateSelectStar(e.getInput())) {
       final List<SqlNode> selectList = new ArrayList<>();

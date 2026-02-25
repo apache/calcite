@@ -11757,8 +11757,29 @@ class RelToSqlConverterTest {
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withMysql()
-        .ok(expected);
+        .withMysql();
   }
+  /**
+   * Test case for CALCITE-7343.
+   * Verifies that a scalar subquery in the Project list correctly preserves
+   * the table alias ('t') of the outer query.
+   */
+  @Test void testProjectScalarSubquery() {
+    final String sql = "SELECT \"EMPNO\",\n"
+        + "  (SELECT COUNT(*) AS \"c\" FROM \"EMP\" WHERE \"MGR\" < \"m\".\"MGR\") AS \"$f1\"\n"
+        + "FROM \"EMP\" AS \"m\"\n"
+        + "WHERE \"SAL\" > 10";
 
+    final String expected = "SELECT \"EMPNO\", "
+        + "(SELECT COUNT(*) AS \"c\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE \"MGR\" < \"t\".\"MGR\") AS \"$f1\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"t\"\n"
+        + "WHERE CAST(\"SAL\" AS DECIMAL(12, 2)) > 10.00";
+
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite().ok(expected);
+  }
 }
+
