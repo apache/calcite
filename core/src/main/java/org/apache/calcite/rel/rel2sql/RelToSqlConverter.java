@@ -556,6 +556,14 @@ public class RelToSqlConverter extends SqlImplementor
     if (rightNode.getKind() == SqlKind.AS) {
       rightNode = ((SqlBasicCall) rightNode).getOperandList().get(0);
     }
+    if (rightNode.getKind() == SqlKind.JOIN
+        && ((SqlJoin) rightNode).getJoinType() == JoinType.COMMA) {
+      SqlNode leftUpdatedNode =
+          getJoinNode(leftResult.asFrom(), ((SqlJoin) rightLateralAs).getLeft());
+      SqlNode rightUpdatedNode =
+          getJoinNode(leftUpdatedNode, ((SqlJoin) rightLateralAs).getRight());
+      return result(rightUpdatedNode, leftResult, rightResult);
+    }
 
     //Following validation checks if the right evaluated node is UNNEST or not, because
     //as per ANSI standard, we either can use LATERAL with subquery or UNNEST with array/multiset
@@ -734,6 +742,16 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     return aliases;
+  }
+
+  private SqlNode getJoinNode(SqlNode leftNode, SqlNode rightNode) {
+    return new SqlJoin(POS,
+        leftNode,
+        SqlLiteral.createBoolean(false, POS),
+        JoinType.COMMA.symbol(POS),
+        rightNode,
+        JoinConditionType.NONE.symbol(POS),
+        null);
   }
 
   /**
@@ -1917,8 +1935,13 @@ public class RelToSqlConverter extends SqlImplementor
         createAsFullOperands(e.getRowType(), unnestNode,
             requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
     TableAliasTrait tableAliasTrait = e.getTraitSet().getTrait(TableAliasTraitDef.instance);
+    SubQueryAliasTrait subQueryAliasTrait =
+        e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
     if (tableAliasTrait != null) {
       operands.add(new SqlIdentifier(tableAliasTrait.getTableAlias(), POS));
+    }
+    if (subQueryAliasTrait != null) {
+      operands.add(new SqlIdentifier(subQueryAliasTrait.getSubQueryAlias(), POS));
     }
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
     return result(asNode, ImmutableList.of(Clause.FROM), e, null);
