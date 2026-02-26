@@ -33,6 +33,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -47,15 +48,19 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -972,10 +977,8 @@ public class SubQueryRemoveRule
     boolean inputIntersectsRightSide =
         inputSet.intersects(ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
     if (inputIntersectsLeftSide && inputIntersectsRightSide) {
-      // The current existential rewrite needs to make join with one side of the origin join and
-      // generate a new condition to replace the on clause. But for RexNode whose operands are
-      // on either side of the join, we can't push them into join. So this rewriting is not
-      // supported.
+      rewriteSubQueryOnDomain(rule, call, e, join, nFieldsLeft, nFieldsRight,
+          inputSet, builder, variablesSet);
       return;
     }
 
@@ -1079,6 +1082,233 @@ public class SubQueryRemoveRule
 
       builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
       builder.project(fields(builder, nFields));
+    }
+
+    call.transformTo(builder.build());
+  }
+
+  /**
+   * Rewrites a sub-query that references columns from both the left and right inputs of a Join.
+   *
+   * <p>This method handles the complex case where a sub-query in a Join condition is correlated
+   * with both sides of the Join. It performs the following steps:
+   * <ol>
+   *   <li>Identifies the "Domain" of values from the left and right inputs that are relevant
+   *       to the sub-query.</li>
+   *   <li>Constructs a "Computation Domain" by cross-joining the distinct keys from the left
+   *       and right domains.</li>
+   *   <li>Remaps the sub-query to operate on this Computation Domain.</li>
+   *   <li>Rewrites the sub-query using the standard {@link #apply} method, but applied to the
+   *       Domain.</li>
+   *   <li>Re-integrates the result of the sub-query rewrite back into the original Join structure,
+   *       ensuring correct join types and conditions are maintained.</li>
+   * </ol>
+   *
+   * @param rule         The rule instance
+   * @param call         The rule call
+   * @param e            The sub-query to rewrite
+   * @param join         The join containing the sub-query
+   * @param nFieldsLeft  Number of fields in the left input
+   * @param nFieldsRight Number of fields in the right input
+   * @param inputSet     BitSet of columns used by the sub-query
+   * @param builder      The RelBuilder
+   * @param variablesSet Set of correlation variables used by the sub-query
+   */
+  private static void rewriteSubQueryOnDomain(SubQueryRemoveRule rule,
+      RelOptRuleCall call,
+      RexSubQuery e,
+      Join join,
+      int nFieldsLeft,
+      int nFieldsRight,
+      ImmutableBitSet inputSet,
+      RelBuilder builder,
+      Set<CorrelationId> variablesSet) {
+    // Map to store the offset of each correlation variable
+    final Map<CorrelationId, Integer> idToOffset = new HashMap<>();
+    // Helper to determine offset for each correlation variable
+    e.rel.accept(new CorrelationOffsetFinder(idToOffset, join, nFieldsLeft));
+
+    // 1. Identify which columns from Left and Right are used by the subquery.
+    // These will form the "Domain" on which the subquery is calculated.
+    final ImmutableBitSet leftUsed =
+        inputSet.intersect(ImmutableBitSet.range(0, nFieldsLeft));
+    final ImmutableBitSet rightUsed =
+        inputSet.intersect(ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
+
+    // 2. Build the "Computation Domain".
+    // This is a Cross Join of the distinct keys from Left and Right.
+    // Domain = Distinct(Project(LeftUsed)) x Distinct(Project(RightUsed))
+
+    // 2a. Left Domain
+    builder.push(join.getLeft());
+    builder.project(builder.fields(leftUsed));
+    builder.distinct();
+
+    // 2b. Right Domain
+    builder.push(join.getRight());
+    // We must shift the bitset to be 0-based for the Right input
+    ImmutableBitSet rightUsedShifted = rightUsed.shift(-nFieldsLeft);
+    builder.project(builder.fields(rightUsedShifted));
+    builder.distinct();
+
+    // 2c. Create Domain Cross Join
+    builder.join(JoinRelType.INNER, builder.literal(true));
+
+    // 3. Remap the SubQuery to run on the Domain.
+    // We need to map original field indices to their new positions in the Domain.
+    // Original: [LeftFields... | RightFields...]
+    // Domain:   [LeftUsed...   | RightUsed...]
+    final Map<Integer, Integer> mapping = new HashMap<>();
+    int targetIdx = 0;
+    for (int source : leftUsed) {
+      mapping.put(source, targetIdx++);
+    }
+    for (int source : rightUsed) {
+      mapping.put(source, targetIdx++);
+    }
+
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final CorrelationId domainCorrId = join.getCluster().createCorrel();
+    final RexNode domainCorrVar = rexBuilder.makeCorrel(builder.peek().getRowType(), domainCorrId);
+
+    // Shuttle to replace InputRefs and Correlations with references to the Domain
+    RexShuttle shuttle = new InputRefAndCorrelationReplacer(mapping, variablesSet, idToOffset);
+    // Create the new subquery with operands remapped to the Domain
+    RexNode newSubQueryNode = e.accept(shuttle);
+
+    // Rewrite e.rel to use domainCorrId
+    RelNode newRel =
+            e.rel.accept(
+                new DomainRewriter(variablesSet, idToOffset, mapping, rexBuilder, domainCorrVar));
+
+    if (newSubQueryNode instanceof RexSubQuery) {
+      newSubQueryNode = ((RexSubQuery) newSubQueryNode).clone(newRel);
+    }
+
+    // We introduced a new correlation variable domainCorrId.
+    Set<CorrelationId> newVariablesSet = ImmutableSet.of(domainCorrId);
+
+    final RelOptUtil.Logic logic =
+        LogicVisitor.find(join.getJoinType().generatesNullsOnRight()
+                ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+            ImmutableList.of(join.getCondition()), e);
+
+    // 4. Apply the standard rewriting rule to the Domain.
+    // The builder is currently sitting on the Domain Join.
+    // 'target' is the CASE expression (or similar) resulting from the rewrite.
+    // The builder stack now has the result of the rewrite (e.g. Domain Left Join Aggregate).
+    assert newSubQueryNode instanceof RexSubQuery;
+    final RexNode target =
+        rule.apply((RexSubQuery) newSubQueryNode, newVariablesSet, logic, builder,
+            1, builder.peek().getRowType().getFieldCount(), 0);
+
+    // The target references the Domain Result (which is currently at the top of the builder).
+    // In the final plan, the Domain Result will be joined to the right of the original inputs.
+    // Furthermore, since we use a LEFT JOIN, the Domain Result columns become nullable.
+    // So we need to shift the references in target AND make them nullable.
+    final int offset = nFieldsLeft + nFieldsRight;
+    final RexShuttle shiftAndNullableShuttle = new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        // Shift the index
+        int newIndex = inputRef.getIndex() + offset;
+        return new RexInputRef(newIndex, inputRef.getType());
+      }
+    };
+    final RexNode shiftedTarget = target.accept(shiftAndNullableShuttle);
+
+    // 5. Re-integrate with Original Inputs
+    // Stack has: [RewriteResult]
+    RelNode domainResult = builder.build();
+
+    // Rebuild the original Join structure
+    // We want to construct: Left JOIN (Right JOIN Domain) ON ...
+    // This preserves the JoinRelType of the original join.
+    JoinRelType joinType = join.getJoinType();
+    if (joinType == JoinRelType.RIGHT) {
+      // Symmetric to LEFT/INNER/FULL but attached to Left
+      builder.push(join.getLeft());
+      builder.push(domainResult);
+
+      // Join Left and Domain on Left Keys
+      List<RexNode> leftJoinConditions = new ArrayList<>();
+      int domainIdx = 0; // Left Keys are at start of Domain
+      for (int source : leftUsed) {
+        leftJoinConditions.add(
+            builder.equals(
+                builder.field(2, 0, source),
+                builder.field(2, 1, domainIdx++)));
+      }
+      builder.join(JoinRelType.INNER, builder.and(leftJoinConditions));
+
+      // Now Join Right
+      builder.push(join.getRight());
+      // Stack: (Left+Domain), Right
+
+      // Join Condition: Original + Right Keys match
+      List<RexNode> rightJoinConditions = new ArrayList<>();
+      // Domain starts after Left. Right Keys in Domain are after Left Keys.
+      int domainRightKeyIdx = nFieldsLeft + leftUsed.cardinality();
+      for (int source : rightUsed) {
+        // Right input (index 1)
+        RexInputRef field = builder.field(2, 1, source - nFieldsLeft);
+        // (Left+Domain) input (index 0)
+        RexInputRef field1 = builder.field(2, 0, domainRightKeyIdx++);
+        rightJoinConditions.add(builder.equals(field, field1));
+      }
+
+      RexShuttle replaceShuttle = new ReplaceSubQueryShuttle(e, shiftedTarget);
+      RexNode newJoinCondition = join.getCondition().accept(replaceShuttle);
+
+      builder.join(joinType, builder.and(builder.and(rightJoinConditions), newJoinCondition));
+
+      builder.project(fields(builder, nFieldsLeft + nFieldsRight));
+    } else {
+      // For INNER, LEFT, FULL join, we can attach Domain to Right, then Join Left.
+      // 1. Build (Right JOIN Domain)
+      builder.push(join.getRight());
+      builder.push(domainResult);
+
+      // Join Right and Domain on Right Keys
+      // Domain layout: [LeftKeys, RightKeys]
+      List<RexNode> rightJoinConditions = new ArrayList<>();
+      // Skip Left Keys
+      int domainIdx = leftUsed.cardinality();
+      for (int source : rightUsed) {
+        rightJoinConditions.add(
+            builder.equals(
+                builder.field(2, 0, source - nFieldsLeft),  // Right input
+                builder.field(2, 1, domainIdx++)));  // Domain input
+      }
+      // We use INNER join here to expand Right with Domain values.
+      // Since Domain contains all distinct Right keys, this is safe.
+      builder.join(JoinRelType.INNER, builder.and(rightJoinConditions));
+
+      // 2. Join Left with (Right JOIN Domain)
+      RelNode rightWithDomain = builder.build();
+      builder.push(join.getLeft());
+      builder.push(rightWithDomain);
+
+      // Join Condition: Original Condition (rewritten) AND Left.LeftKeys = Domain.LeftKeys
+      List<RexNode> leftJoinConditions = new ArrayList<>();
+      // In (Right+Domain), Domain fields start after Right fields
+      int domainStartInCombined = nFieldsRight;
+      int domainLeftKeyIdx = domainStartInCombined; // Left Keys are at start of Domain
+
+      for (int source : leftUsed) {
+        // Left input
+        RexInputRef field = builder.field(2, 0, source);
+        // (Right+Domain) input
+        RexInputRef field1 = builder.field(2, 1, domainLeftKeyIdx++);
+        leftJoinConditions.add(builder.equals(field, field1));
+      }
+
+      RexShuttle replaceShuttle = new ReplaceSubQueryShuttle(e, shiftedTarget);
+      RexNode newJoinCondition = join.getCondition().accept(replaceShuttle);
+
+      builder.join(joinType, builder.and(builder.and(leftJoinConditions), newJoinCondition));
+
+      // Project original fields (remove Domain columns)
+      builder.project(fields(builder, nFieldsLeft + nFieldsRight));
     }
 
     call.transformTo(builder.build());
@@ -1217,6 +1447,125 @@ public class SubQueryRemoveRule
       return subQuery.equals(this.subQuery) ? replacement : subQuery;
     }
   }
+
+  /**
+   * Shuttle that finds correlation variables and determines their offset.
+   */
+  private static class CorrelationOffsetFinder extends RelHomogeneousShuttle {
+    private final Map<CorrelationId, Integer> idToOffset;
+    private final Join join;
+    private final int nFieldsLeft;
+
+    CorrelationOffsetFinder(Map<CorrelationId, Integer> idToOffset, Join join, int nFieldsLeft) {
+      this.idToOffset = idToOffset;
+      this.join = join;
+      this.nFieldsLeft = nFieldsLeft;
+    }
+
+    @Override public RelNode visit(RelNode other) {
+      other.accept(new RexShuttle() {
+        @Override public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
+          if (!idToOffset.containsKey(correlVariable.id)) {
+            // Check if type matches Left
+            if (RelOptUtil.eq("type1", correlVariable.getType(),
+                "type2", join.getLeft().getRowType(), Litmus.IGNORE)) {
+              idToOffset.put(correlVariable.id, 0);
+            } else if (RelOptUtil.eq("type1", correlVariable.getType(),
+                "type2", join.getRight().getRowType(), Litmus.IGNORE)) {
+              idToOffset.put(correlVariable.id, nFieldsLeft);
+            } else {
+              // Default to 0 if unknown
+              idToOffset.put(correlVariable.id, 0);
+            }
+          }
+          return super.visitCorrelVariable(correlVariable);
+        }
+      });
+      return super.visit(other);
+    }
+  }
+
+  /**
+   * Shuttle that replaces InputRefs and Correlations with references to the Domain.
+   */
+  private static class InputRefAndCorrelationReplacer extends RexShuttle {
+    private final Map<Integer, Integer> mapping;
+    private final Set<CorrelationId> variablesSet;
+    private final Map<CorrelationId, Integer> idToOffset;
+
+    InputRefAndCorrelationReplacer(Map<Integer, Integer> mapping,
+        Set<CorrelationId> variablesSet, Map<CorrelationId, Integer> idToOffset) {
+      this.mapping = mapping;
+      this.variablesSet = variablesSet;
+      this.idToOffset = idToOffset;
+    }
+
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
+      Integer newIndex = mapping.get(inputRef.getIndex());
+      if (newIndex != null) {
+        return new RexInputRef(newIndex, inputRef.getType());
+      }
+      return super.visitInputRef(inputRef);
+    }
+
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+      RexNode refExpr = fieldAccess.getReferenceExpr();
+      if (refExpr instanceof RexCorrelVariable) {
+        CorrelationId id = ((RexCorrelVariable) refExpr).id;
+        if (variablesSet.contains(id)) {
+          int fieldIdx = fieldAccess.getField().getIndex();
+          int offset = idToOffset.getOrDefault(id, 0);
+          Integer newIndex = mapping.get(fieldIdx + offset);
+          if (newIndex != null) {
+            return new RexInputRef(newIndex, fieldAccess.getType());
+          }
+        }
+      }
+      return super.visitFieldAccess(fieldAccess);
+    }
+  }
+
+  /**
+   * Shuttle that rewrites RelNodes to use the Domain correlation variable.
+   */
+  private static class DomainRewriter extends RelHomogeneousShuttle {
+    private final Set<CorrelationId> variablesSet;
+    private final Map<CorrelationId, Integer> idToOffset;
+    private final Map<Integer, Integer> mapping;
+    private final RexBuilder rexBuilder;
+    private final RexNode domainCorrVar;
+
+    DomainRewriter(Set<CorrelationId> variablesSet, Map<CorrelationId, Integer> idToOffset,
+        Map<Integer, Integer> mapping, RexBuilder rexBuilder, RexNode domainCorrVar) {
+      this.variablesSet = variablesSet;
+      this.idToOffset = idToOffset;
+      this.mapping = mapping;
+      this.rexBuilder = rexBuilder;
+      this.domainCorrVar = domainCorrVar;
+    }
+
+    @Override public RelNode visit(RelNode other) {
+      return super.visit(
+          other.accept(new RexShuttle() {
+            @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+              RexNode refExpr = fieldAccess.getReferenceExpr();
+              if (refExpr instanceof RexCorrelVariable) {
+                CorrelationId id = ((RexCorrelVariable) refExpr).id;
+                if (variablesSet.contains(id)) {
+                  int fieldIdx = fieldAccess.getField().getIndex();
+                  int offset = idToOffset.getOrDefault(id, 0);
+                  Integer newIndex = mapping.get(fieldIdx + offset);
+                  if (newIndex != null) {
+                    return rexBuilder.makeFieldAccess(domainCorrVar, newIndex);
+                  }
+                }
+              }
+              return super.visitFieldAccess(fieldAccess);
+            }
+          }));
+    }
+  }
+
   /** Rule configuration. */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {

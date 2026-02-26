@@ -8292,6 +8292,149 @@ WHERE deptno NOT IN (
 !set trimfields true
 
 !use scott
+# [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
+SELECT empno
+FROM emp
+JOIN dept
+on emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7369 |
+|  7369 |
+|  7369 |
+|  7499 |
+|  7499 |
+|  7499 |
+|  7499 |
+|  7521 |
+|  7521 |
+|  7521 |
+|  7521 |
+|  7566 |
+|  7566 |
+|  7566 |
+|  7566 |
+|  7654 |
+|  7654 |
+|  7654 |
+|  7654 |
+|  7698 |
+|  7698 |
+|  7698 |
+|  7698 |
+|  7782 |
+|  7782 |
+|  7782 |
+|  7782 |
+|  7788 |
+|  7788 |
+|  7788 |
+|  7788 |
+|  7839 |
+|  7839 |
+|  7839 |
+|  7839 |
+|  7844 |
+|  7844 |
+|  7844 |
+|  7844 |
+|  7876 |
+|  7876 |
+|  7876 |
+|  7876 |
+|  7900 |
+|  7900 |
+|  7900 |
+|  7900 |
+|  7902 |
+|  7902 |
+|  7902 |
+|  7902 |
+|  7934 |
+|  7934 |
+|  7934 |
+|  7934 |
++-------+
+(56 rows)
+
+!ok
+
+# [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
+SELECT d.dname
+FROM dept d
+JOIN emp e
+ON d.deptno = e.deptno
+   AND NOT EXISTS (
+      SELECT 1
+      FROM emp e2
+      WHERE e2.deptno = d.deptno AND e2.empno > e.empno);
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| RESEARCH   |
+| SALES      |
++------------+
+(3 rows)
+
+!ok
+
+# [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
+SELECT *
+FROM dept d
+LEFT JOIN emp e
+  ON d.deptno = e.deptno
+    OR e.job IN (
+      SELECT b.job
+      FROM bonus b
+      WHERE b.sal = d.deptno);
++--------+------------+----------+-------+--------+-----------+------+------------+---------+---------+---------+
+| DEPTNO | DNAME      | LOC      | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO0 |
++--------+------------+----------+-------+--------+-----------+------+------------+---------+---------+---------+
+|     10 | ACCOUNTING | NEW YORK |  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|     10 | ACCOUNTING | NEW YORK |  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|     10 | ACCOUNTING | NEW YORK |  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|     20 | RESEARCH   | DALLAS   |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|     20 | RESEARCH   | DALLAS   |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|     20 | RESEARCH   | DALLAS   |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|     20 | RESEARCH   | DALLAS   |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|     20 | RESEARCH   | DALLAS   |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|     30 | SALES      | CHICAGO  |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|     30 | SALES      | CHICAGO  |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|     30 | SALES      | CHICAGO  |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|     40 | OPERATIONS | BOSTON   |       |        |           |      |            |         |         |         |
++--------+------------+----------+-------+--------+-----------+------+------------+---------+---------+---------+
+(15 rows)
+
+!ok
+
+# [CALCITE-7278] Correlated subqueries in the join condition cannot reference both join inputs
+# Verified against PostgreSQL. https://onecompiler.com/postgresql/44bx3j67t
+select Header.Name
+from ( VALUES (1, 'A'), (2, 'B')) as Header(Id, Name)
+join (values (11, 1), (12, 1), (21, 2)) as Version(Id, Parent)
+on not exists (select 1
+               from (values (11, 1), (12, 1), (21, 2)) as Version2(Id, Parent)
+               where Version2.Parent = Header.Id and Version2.Id > Version.Id);
++------+
+| NAME |
++------+
+| A    |
+| A    |
+| B    |
++------+
+(3 rows)
+
+!ok
+
 # [CALCITE-7379] LHS correlated variables are shadowed by nullable RHS outputs in LEFT JOIN
 # Correlated scalar subquery with LEFT JOIN.
 # The correlation variable (d.deptno) is used in the RHS of the join.
