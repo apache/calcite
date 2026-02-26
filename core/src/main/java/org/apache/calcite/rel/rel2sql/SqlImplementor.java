@@ -2266,7 +2266,7 @@ public abstract class SqlImplementor {
         return select;
       }
       // For non-SELECT nodes, wrap in SELECT *
-      if (forceExplicitAlias || !dialect.hasImplicitTableAlias()) {
+      if (forceExplicitAlias || !dialect.hasImplicitTableAlias() || hasConflictTableAlias(node)) {
         return wrapSelect(asFrom());
       }
       return wrapSelect(node);
