@@ -2143,7 +2143,6 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
   EnumerableValues(tuples=[[]])
 !plan
 
-!if (fixed.calcite6828) {
 # [CALCITE-1659] Simplifying CAST('YYYY-MM-DD hh:mm:ss.SSS' as TIMESTAMP)
 # should round the sub-second fraction
 select TIMESTAMP '2016-02-26 19:06:00.123456789',
@@ -2165,9 +2164,6 @@ select TIMESTAMP '2016-02-26 19:06:00.123456789',
 EnumerableValues(tuples=[[{ 2016-02-26 19:06:00.123, 2016-02-26 19:06:00, 2016-02-26 19:06:00, 2016-02-26 19:06:00.1, 2016-02-26 19:06:00.12, 2016-02-26 19:06:00.123, 2016-02-26 19:06:00.123, 2016-02-26 19:06:00.123 }]])
 !plan
 
-!}
-
-!if (fixed.calcite6828) {
 # [CALCITE-1664] CAST('<string>' as TIMESTAMP) adds part of sub-second fraction to the value
 select
   TIMESTAMP '2016-02-26 19:06:00.12345678',
@@ -2184,7 +2180,6 @@ select
 
 !ok
 
-!}
 # TIMESTAMPDIFF with 'flag' literal as time unit argument
 SELECT TIMESTAMPDIFF(quarter, TIMESTAMP '2008-12-25', TIMESTAMP '2008-09-25');
 +--------+
