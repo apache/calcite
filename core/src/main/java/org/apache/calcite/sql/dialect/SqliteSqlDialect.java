@@ -22,8 +22,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -77,9 +75,7 @@ public class SqliteSqlDialect extends SqlDialect {
       int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case CHAR_LENGTH:
-      SqlCall lengthCall = SqlLibraryOperators.LENGTH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      RelToSqlConverterUtil.convertCharLengthToLength(writer, call, leftPrec, rightPrec);
       break;
     case TRIM:
       RelToSqlConverterUtil.unparseTrimLR(writer, call, leftPrec, rightPrec);

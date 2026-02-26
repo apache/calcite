@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -76,6 +77,16 @@ public abstract class RelToSqlConverterUtil {
       final SqlCall regexReplaceCall = REGEXP_REPLACE_3.createCall(SqlParserPos.ZERO, trimOperands);
       regexReplaceCall.unparse(writer, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * Convert CHAR_LENGTH to LENGTH for some Dialects such as Oracle which not support CHAR_LENGTH.
+   */
+  public static void convertCharLengthToLength(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlCall lengthCall = SqlLibraryOperators.LENGTH
+        .createCall(SqlParserPos.ZERO, call.getOperandList());
+    lengthCall.getOperator().unparse(writer, lengthCall, leftPrec, rightPrec);
   }
 
   /**
