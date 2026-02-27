@@ -12150,33 +12150,6 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testPullAggregateThroughUnion">
-    <Resource name="sql">
-      <![CDATA[select deptno, job from (select deptno, job from emp as e1 group by deptno,job  union all select deptno, job from emp as e2 group by deptno,job) group by deptno,job]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], JOB=[$2])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], JOB=[$2])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testPullAggregateThroughUnion2">
     <Resource name="sql">
       <![CDATA[select deptno, job from (select deptno, job from emp as e1 group by deptno,job  union all select deptno, job from emp as e2 group by deptno,job) group by deptno,job]]>

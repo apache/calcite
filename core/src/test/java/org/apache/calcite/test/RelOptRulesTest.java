@@ -6378,19 +6378,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testPullAggregateThroughUnion() {
-    final String sql = "select deptno, job from"
-        + " (select deptno, job from emp as e1"
-        + " group by deptno,job"
-        + "  union all"
-        + " select deptno, job from emp as e2"
-        + " group by deptno,job)"
-        + " group by deptno,job";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_AGGREGATE)
-        .check();
-  }
-
   @Test void testPullAggregateThroughUnion2() {
     final String sql = "select deptno, job from"
         + " (select deptno, job from emp as e1"

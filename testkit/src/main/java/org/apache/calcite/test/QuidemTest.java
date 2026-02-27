@@ -23,7 +23,11 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -38,6 +42,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
@@ -53,7 +58,6 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.PatternFilenameFilter;
 
 import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.CommandHandler;
@@ -65,7 +69,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Field;
@@ -73,9 +77,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -139,6 +145,81 @@ public abstract class QuidemTest {
         final SqlWriter sqlWriter = new SqlPrettyWriter();
         validateNode.unparse(sqlWriter, 0, 0);
         x.echo(ImmutableList.of(sqlWriter.toSqlString().getSql()));
+      } else {
+        x.echo(content);
+      }
+      x.echo(lines);
+    }
+  }
+
+  /** Command that prints a plan for a SQL statement, optionally after applying rules.
+   *
+   * <p>The {@code args} string is a comma-separated list of rule names.
+   * {@code NONE} is a placeholder meaning "no rule at this position".
+   * All non-{@code NONE} rules are collected into a single
+   * {@link HepPlanner} and applied to the initial plan.
+   *
+   * <p>Examples: {@code "NONE"} (initial plan, no rules),
+   * {@code "NONE, AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
+   * {@code "RULE_A, RULE_B"} (plan after two rules in one HepPlanner). */
+  public static class SubPlanCommand extends AbstractCommand {
+    private static final Pattern PATTERN = Pattern.compile("^\"|\"$");
+
+    private final ImmutableList<String> lines;
+    private final ImmutableList<String> content;
+    private final SqlParserImplFactory parserFactory;
+    private final String args;
+
+    SubPlanCommand(SqlParserImplFactory parserFactory,
+        List<String> lines, List<String> content,
+        String args) {
+      this.lines = ImmutableList.copyOf(lines);
+      this.content = ImmutableList.copyOf(content);
+      this.parserFactory = parserFactory;
+      this.args = args;
+    }
+
+    @Override public void execute(Context x, boolean execute) throws Exception {
+      if (execute) {
+        // Parse rule names: strip surrounding quotes, split on comma, skip NONE
+        final List<RelOptRule> rules = new ArrayList<>();
+        for (String token : PATTERN.matcher(args).replaceAll("").split(",")) {
+          final String name = token.trim();
+          if (!name.equals("NONE")) {
+            rules.add(getCoreRule(name));
+          }
+        }
+
+        // Use SqlTestFactory matching RelOptFixture.DEFAULT, producing logical plans
+        final SqlTestFactory testFactory = SqlTestFactory.INSTANCE
+            .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+            .withSqlToRelConfig(c -> c.withExpand(false))
+            .withSqlToRelConfig(c ->
+                c.addRelBuilderConfigTransform(
+                    b -> b.withPruneInputOfAggregate(false)));
+
+        // Parse, validate, and convert SQL to RelNode
+        final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
+        final SqlToRelConverter converter = testFactory.createSqlToRelConverter();
+        final SqlNode sqlQuery =
+            testFactory.createParser(sqlCommand.sql).parseQuery();
+        final SqlNode validatedQuery =
+            requireNonNull(converter.validator).validate(sqlQuery);
+        RelNode relNode =
+            converter.convertQuery(validatedQuery, false, true).project();
+
+        // Apply rules using a single HepPlanner
+        if (!rules.isEmpty()) {
+          final HepProgramBuilder builder = new HepProgramBuilder();
+          for (RelOptRule rule : rules) {
+            builder.addRuleInstance(rule);
+          }
+          final HepPlanner hepPlanner = new HepPlanner(builder.build());
+          hepPlanner.setRoot(relNode);
+          relNode = hepPlanner.findBestExp();
+        }
+
+        x.echo(Arrays.asList(RelOptUtil.toString(relNode).split("\n")));
       } else {
         x.echo(content);
       }
@@ -210,9 +291,15 @@ public abstract class QuidemTest {
     final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
-    for (File f : Util.first(dir.listFiles(filter), new File[0])) {
-      paths.add(n2u(f.getAbsolutePath().substring(commonPrefixLength)));
+    try {
+      Files.walk(dir.toPath())
+          .filter(p -> p.toString().endsWith(".iq"))
+          .forEach(p ->
+              paths.add(
+                  n2u(p.toAbsolutePath().toString()
+                  .substring(commonPrefixLength))));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     return paths;
   }
