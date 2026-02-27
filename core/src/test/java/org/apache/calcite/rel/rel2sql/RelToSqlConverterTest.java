@@ -11814,4 +11814,25 @@ class RelToSqlConverterTest {
     sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
   }
 
+  @Test void testMultiLevelCrossReference() {
+    final String sql = "SELECT \"e\".\"ENAME\",\n"
+        + "  (SELECT COUNT(*)\n"
+        + "   FROM (SELECT \"d\".\"DEPTNO\", \"d\".\"DNAME\" FROM \"DEPT\" \"d\" "
+        + "         JOIN \"BONUS\" \"b\" ON \"d\".\"DEPTNO\" = \"e\".\"DEPTNO\") AS \"mid\"\n"
+        + "   WHERE \"mid\".\"DNAME\" = (SELECT \"DNAME\" FROM \"DEPT\" "
+        + "                          WHERE \"DEPTNO\" = \"e\".\"DEPTNO\" "
+        + "                          AND \"LOC\" = \"mid\".\"DNAME\"))\n"
+        + "FROM \"EMP\" AS \"e\"";
+    final String expected = "SELECT \"ENAME\", (SELECT COUNT(*)\n"
+        + "FROM (SELECT \"DEPT\".\"DEPTNO\", \"DEPT\".\"DNAME\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "INNER JOIN \"SCOTT\".\"BONUS\" ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\") AS \"t\"\n"
+        + "WHERE \"DNAME\" = (SELECT \"DNAME\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\" AND \"LOC\" = \"t\".\"DNAME\"))\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"EMP\"";
+
+    sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
+  }
+
 }
