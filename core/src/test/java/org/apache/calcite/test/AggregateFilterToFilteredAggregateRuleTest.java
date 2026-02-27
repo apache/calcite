@@ -32,7 +32,14 @@ import static org.apache.calcite.rel.rules.CoreRules.AGGREGATE_PROJECT_MERGE;
 import static org.apache.calcite.rel.rules.CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS;
 
 /**
- * Unit test for {@link AggregateFilterToFilteredAggregateRule}.
+ * Unit tests for {@link AggregateFilterToFilteredAggregateRule}.
+ *
+ * <p>Relevant tickets:
+ * <ul>
+ * <li><a href="https://issues.apache.org/jira/browse/CALCITE-7362">
+ * [CALCITE-7362] Add rule to transform WHERE clauses into filtered aggregates
+ * </a></li>
+ * </ul>
  */
 class AggregateFilterToFilteredAggregateRuleTest {
 
