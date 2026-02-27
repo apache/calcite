@@ -63,7 +63,7 @@ import java.util.List;
     Aggregate aggregate = call.rel(0);
     Filter filter = call.rel(1);
     if (!aggregate.getGroupSet().isEmpty()) {
-      // At the moment we only support the transformation for grand totals;
+      // At the moment we only support the transformation for grand totals, i.e.,
       // aggregates with no grouping keys.
       return;
     }
