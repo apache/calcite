@@ -105,7 +105,7 @@ At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/30562734
 ## Optimizing Common Table Expressions in Apache Hive with Calcite
 
 At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
-[[sumary](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.md)],
+[[summary](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.md)],
 [[slides](https://www.slideshare.net/slideshow/optimizing-common-table-expressions-in-apache-hive-with-calcite/276219213)],
 [[pdf](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.pdf)],
 [[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=6317s)].
