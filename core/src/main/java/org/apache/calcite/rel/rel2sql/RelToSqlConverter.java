@@ -613,34 +613,20 @@ public class RelToSqlConverter extends SqlImplementor
    *   <li>"product" → "product"</li>
    *   <li>"foodmart.product" → "product"</li>
    *   <li>"SCOTT"."EMP" → "EMP"</li>
-   *   <li>Subquery/Join → null</li>
+   *   <li>Subquery/Join/Other → null</li>
    * </ul>
    *
    * @param node The SQL node to examine
-   * @return The table name if extractable, null otherwise
+   * @return The table name if it's a simple identifier, null otherwise
    */
   private @Nullable String extractTableNameFromNode(SqlNode node) {
-    if (node == null) {
-      return null;
-    }
-
-    // Simple identifier: "EMP" or "SCOTT.EMP"
     if (node instanceof SqlIdentifier) {
       SqlIdentifier id = (SqlIdentifier) node;
       // Return the last component (table name)
       return id.names.get(id.names.size() - 1);
     }
 
-    // Already has AS clause - don't extract (will be handled differently)
-    if (node instanceof SqlCall && node.getKind() == SqlKind.AS) {
-      return null;
-    }
-
-    // Complex nodes (subquery, join, etc) - can't extract simple name
-    if (node instanceof SqlSelect || node instanceof SqlJoin) {
-      return null;
-    }
-
+    // All other cases: return null
     return null;
   }
   /**
@@ -650,10 +636,7 @@ public class RelToSqlConverter extends SqlImplementor
     // If the input is a Sort, wrap SELECT is not required.
     final Result x;
     final Set<CorrelationId> definedHere = e.getVariablesSet();
-    boolean pushed = false;
-    if (!definedHere.isEmpty()) {
-      pushed = true;
-    }
+    boolean pushed = !definedHere.isEmpty();
 
     // Visit input node
     Result inputResult;
