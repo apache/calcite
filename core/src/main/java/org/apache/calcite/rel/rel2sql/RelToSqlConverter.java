@@ -656,9 +656,8 @@ public class RelToSqlConverter extends SqlImplementor
         if (alias == null) {
           alias = "t";
         }
-        inputResult = inputResult.resetAlias(alias, e.getInput().getRowType());
         x = inputResult.resetAliasForCorrelation
-                (inputResult.neededAlias, e.getInput().getRowType());
+                (alias, e.getInput().getRowType());
       }
     } else {
       x = inputResult;
