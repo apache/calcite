@@ -146,7 +146,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $2])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])
-  LogicalProject(SAL=[$5], $f3=[AND(=($1, 'Bob'), =($7, 10))])
+  LogicalProject(SAL=[$5], $f3=[AND(=($7, 10), =($1, 'Bob'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

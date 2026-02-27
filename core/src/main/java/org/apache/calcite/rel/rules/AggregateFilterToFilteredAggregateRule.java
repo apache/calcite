@@ -78,7 +78,7 @@ import java.util.List;
       RexNode condition = filter.getCondition();
       // If the aggregate call has its own filter, combine it with the filter condition.
       if (aggCall.hasFilter()) {
-        condition = builder.and(builder.field(aggCall.filterArg), condition);
+        condition = builder.and(condition, builder.field(aggCall.filterArg));
       }
       int pos = projects.indexOf(condition);
       if (pos < 0) {
