@@ -138,14 +138,14 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
   private void registerTableDept(MockSchema salesSchema, Fixture fixture) {
     MockTable deptTable = MockTable.create(this, salesSchema, "DEPT", false, 4);
     deptTable.addColumn("DEPTNO", fixture.intType, true);
-    deptTable.addColumn("NAME", fixture.varchar10Type);
+    deptTable.addColumn("DNAME", fixture.varchar10Type);
     registerTable(deptTable);
   }
 
   private void registerTableDeptNullables(MockSchema salesSchema, Fixture fixture) {
     MockTable deptNullablesTable = MockTable.create(this, salesSchema, "DEPTNULLABLES", false, 4);
     deptNullablesTable.addColumn("DEPTNO", fixture.intTypeNull, true);
-    deptNullablesTable.addColumn("NAME", fixture.varchar10TypeNull);
+    deptNullablesTable.addColumn("DNAME", fixture.varchar10TypeNull);
     registerTable(deptNullablesTable);
   }
 
@@ -160,7 +160,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     MockTable deptNestedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
     deptNestedTable.addColumn("DEPTNO", fixture.intType, true);
-    deptNestedTable.addColumn("NAME", fixture.varchar10Type);
+    deptNestedTable.addColumn("DNAME", fixture.varchar10Type);
     deptNestedTable.addColumn("SKILL", fixture.skillRecordType);
     deptNestedTable.addColumn("EMPLOYEES", fixture.empListType);
     registerTable(deptNestedTable);
@@ -170,7 +170,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     MockTable deptNestedExpandedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED_EXPANDED", false, 4);
     deptNestedExpandedTable.addColumn("DEPTNO", fixture.intType, true);
-    deptNestedExpandedTable.addColumn("NAME", fixture.varchar10Type);
+    deptNestedExpandedTable.addColumn("DNAME", fixture.varchar10Type);
     deptNestedExpandedTable.addColumn("EMPLOYEES", fixture.empListType);
     deptNestedExpandedTable.addColumn("ADMINS", fixture.varchar5ArrayType);
     deptNestedExpandedTable.addColumn("OFFICES", fixture.rectilinearPeekCoordMultisetType);

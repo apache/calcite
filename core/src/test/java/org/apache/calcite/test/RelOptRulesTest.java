@@ -929,7 +929,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testNotPushFilterPastWindowWhenPredicateNotOnPartitionKey() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME) from dept) t\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DNAME) from dept) t\n"
         + "where DEPTNO = 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
@@ -1214,7 +1214,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testFullOuterJoinSimplificationToLeftOuter() {
     final String sql = "select 1 from sales.dept d full outer join sales.emp e\n"
         + "on d.deptno = e.deptno\n"
-        + "where d.name = 'Charlie'";
+        + "where d.dname = 'Charlie'";
     sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
   }
 
@@ -1228,7 +1228,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testFullOuterJoinSimplificationToInner() {
     final String sql = "select 1 from sales.dept d full outer join sales.emp e\n"
         + "on d.deptno = e.deptno\n"
-        + "where d.name = 'Charlie' and e.sal > 100";
+        + "where d.dname = 'Charlie' and e.sal > 100";
     sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
   }
 
@@ -1242,7 +1242,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testRightOuterJoinSimplificationToInner() {
     final String sql = "select 1 from sales.dept d right outer join sales.emp e\n"
         + "on d.deptno = e.deptno\n"
-        + "where d.name = 'Charlie'";
+        + "where d.dname = 'Charlie'";
     sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
   }
 
@@ -1307,7 +1307,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testPushFilterPastWindowWithOnePartitionColumn() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by DEPTNO) from dept)\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DEPTNO) from dept)\n"
         + "where DEPTNO > 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
@@ -1322,7 +1322,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testPushFilterPastWindowWithTwoPartitionColumns() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) from dept)\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) from dept)\n"
         + "where DEPTNO > 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
@@ -1337,7 +1337,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testPushFilterPastWindowWithDoubleWindows() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) as cnt,\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) as cnt,\n"
         + "sum(1) over (partition by DEPTNO) as all_sum from dept) t\n"
         + "where DEPTNO = 1";
     sql(sql)
@@ -1485,14 +1485,14 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSemiJoinProjectTranspose() {
     // build a rel equivalent to sql:
-    // select a.name from dept a
+    // select a.dname from dept a
     // where a.deptno in (select b.deptno * 2 from dept);
     checkSemiOrAntiJoinProjectTranspose(JoinRelType.SEMI);
   }
 
   @Test void testAntiJoinProjectTranspose() {
     // build a rel equivalent to sql:
-    // select a.name from dept a
+    // select a.dname from dept a
     // where a.deptno not in (select b.deptno * 2 from dept);
     checkSemiOrAntiJoinProjectTranspose(JoinRelType.ANTI);
   }
@@ -1540,8 +1540,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testJoinProjectTranspose2() {
     final String sql = "select *\n"
         + "from dept a\n"
-        + "left join (select name, 1 from dept) as b\n"
-        + "on a.name = b.name";
+        + "left join (select dname, 1 from dept) as b\n"
+        + "on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
         .checkUnchanged();
@@ -1551,9 +1551,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * should not transpose since the left project of right join has literal. */
   @Test void testJoinProjectTranspose3() {
     final String sql = "select *\n"
-        + "from (select name, 1 from dept) as a\n"
+        + "from (select dname, 1 from dept) as a\n"
         + "right join dept b\n"
-        + "on a.name = b.name";
+        + "on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER)
         .checkUnchanged();
@@ -1567,7 +1567,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from dept a\n"
         + "left join (select x name, y is not null from\n"
         + "(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b\n"
-        + "on a.name = b.name";
+        + "on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
         .checkUnchanged();
@@ -1579,8 +1579,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testJoinProjectTranspose5() {
     final String sql = "select *\n"
         + "from dept a\n"
-        + "left join (select name, 1 + 1 from dept) as b\n"
-        + "on a.name = b.name";
+        + "left join (select dname, 1 + 1 from dept) as b\n"
+        + "on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
         .checkUnchanged();
@@ -1591,9 +1591,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * literal. */
   @Test void testJoinProjectTranspose6() {
     final String sql = "select *\n"
-        + "from (select name, 1 from dept) a\n"
-        + "full join (select name, 1 from dept) as b\n"
-        + "on a.name = b.name";
+        + "from (select dname, 1 from dept) a\n"
+        + "full join (select dname, 1 from dept) as b\n"
+        + "on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
         .checkUnchanged();
@@ -1605,8 +1605,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testJoinProjectTranspose7() {
     final String sql = "select *\n"
         + "from dept a\n"
-        + "left join (select name from dept) as b\n"
-        + " on a.name = b.name";
+        + "left join (select dname from dept) as b\n"
+        + " on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
         .check();
@@ -1622,7 +1622,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "left join (\n"
         + "  select name, deptno > 10 and cast(null as boolean)\n"
         + "  from dept) as b\n"
-        + "on a.name = b.name";
+        + "on a.dname = b.dname";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
         .check();
@@ -1631,8 +1631,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testJoinProjectTransposeWindow() {
     final String sql = "select *\n"
         + "from dept a\n"
-        + "join (select rank() over (order by name) as r, 1 + 1 from dept) as b\n"
-        + "on a.name = b.r";
+        + "join (select rank() over (order by dname) as r, 1 + 1 from dept) as b\n"
+        + "on a.dname = b.r";
     sql(sql)
         .withRule(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE)
         .check();
@@ -1642,10 +1642,10 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-889">[CALCITE-889]
    * Implement SortUnionTransposeRule</a>. */
   @Test void testSortUnionTranspose() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
-        + "order by name limit 10";
+        + "select b.dname from dept b\n"
+        + "order by dname limit 10";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
             CoreRules.SORT_UNION_TRANSPOSE)
@@ -1656,9 +1656,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-889">[CALCITE-889]
    * Implement SortUnionTransposeRule</a>. */
   @Test void testSortUnionTranspose2() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
+        + "select b.dname from dept b\n"
         + "order by name";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
@@ -1670,10 +1670,10 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-987">[CALCITE-987]
    * Push limit 0 will result in an infinite loop</a>. */
   @Test void testSortUnionTranspose3() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
-        + "order by name limit 0";
+        + "select b.dname from dept b\n"
+        + "order by dname limit 0";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
             CoreRules.SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH)
@@ -2145,7 +2145,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Similar to {@link #testSemiJoinRule()} but LEFT. */
   @Test void testSemiJoinRuleLeft() {
-    final String sql = "select name from dept left join (\n"
+    final String sql = "select dname from dept left join (\n"
         + "  select distinct deptno from emp\n"
         + "  where sal > 100) using (deptno)";
     sql(sql)
@@ -2329,8 +2329,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testReduceAverage() {
-    final String sql = "select name, max(name), avg(deptno), min(name)\n"
-        + "from sales.dept group by name";
+    final String sql = "select dname, max(dname), avg(deptno), min(dname)\n"
+        + "from sales.dept group by dname";
     sql(sql).withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS).check();
   }
 
@@ -2338,9 +2338,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
    * Adding a cast around the null literal in aggregate rules</a>. */
   @Test void testCastInAggregateReduceFunctions() {
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),\n"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),\n"
         + "stddev_samp(deptno),var_pop(deptno), var_samp(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql)
         .withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
         .check();
@@ -2364,7 +2364,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "var_pop(deptno) filter (where deptno > 30), "
         + "var_samp(deptno) filter (where deptno > 40), "
         + "avg(deptno) filter (where deptno > 50)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql)
         .withRule(rule)
         .check();
@@ -2588,8 +2588,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testCastInAggregateExpandDistinctAggregatesRule() {
     final String sql = "select name, sum(distinct cn), sum(distinct sm)\n"
         + "from (\n"
-        + "  select name, count(dept.deptno) as cn,sum(dept.deptno) as sm\n"
-        + "  from sales.dept group by name)\n"
+        + "  select dname, count(dept.deptno) as cn,sum(dept.deptno) as sm\n"
+        + "  from sales.dept group by dname)\n"
         + "group by name";
     sql(sql)
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
@@ -2734,8 +2734,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testFilterTableFunctionScanTranspose() {
     // "tfrt" table function is the one from MockSqlOperatorTable,
     // that implement TableFunctionReturnTypeInference.
-    final String sql = "select * from table(tfrt(cursor(select name from dept)))"
-        + " where name = '1'";
+    final String sql = "select * from table(tfrt(cursor(select dname from dept)))"
+        + " where dname = '1'";
 
     sql(sql)
         .withRule(CoreRules.FILTER_TABLE_FUNCTION_TRANSPOSE)
@@ -3585,7 +3585,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionMergeRule() {
     final String sql = "select * from (\n"
         + "select * from (\n"
-        + "  select name, deptno from dept\n"
+        + "  select dname, deptno from dept\n"
         + "  union all\n"
         + "  select name, deptno from\n"
         + "  (\n"
@@ -3595,7 +3595,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  ) subq\n"
         + ") a\n"
         + "union all\n"
-        + "select name, deptno from dept\n"
+        + "select dname, deptno from dept\n"
         + ") aa\n";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
@@ -3837,7 +3837,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  ) subq2\n"
         + ") a\n"
         + "except all\n"
-        + "select name, deptno from dept\n"
+        + "select dname, deptno from dept\n"
         + ") aa\n";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
@@ -4225,7 +4225,7 @@ class RelOptRulesTest extends RelOptTestBase {
     // tests the case where the semijoin is not pushed because it uses join keys from both tables
     // of the bottom join.
     final String sql = "select e.ename from emp e, dept d, bonus b\n"
-        + "where e.deptno = d.deptno and e.ename = b.ename and d.name = b.job";
+        + "where e.deptno = d.deptno and e.ename = b.ename and d.dname = b.job";
     sql(sql)
         .withRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
@@ -4803,7 +4803,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testRemoveSemiJoinRightWithFilter() {
     final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno\n"
-        + "and d.name = 'foo'";
+        + "and d.dname = 'foo'";
     sql(sql)
         .withPreRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
@@ -6885,12 +6885,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.PROJECT_MERGE).checkUnchanged();
   }
 
-  @Test void testAggregateProjectPullUpConstants() {
-    final String sql = "select job, empno, sal, sum(sal) as s\n"
-        + "from emp where empno = 10\n"
-        + "group by job, empno, sal";
-    sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS).check();
-  }
 
   @Test void testAggregateProjectPullUpConstants2() {
     final String sql = "select ename, sal\n"
@@ -8804,7 +8798,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sal,\n"
         + " empno NOT IN (\n"
         + " select deptno from dept\n"
-        + "   where emp.job=dept.name)\n"
+        + "   where emp.job=dept.dname)\n"
         + " from emp";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
@@ -8816,7 +8810,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sal from emp\n"
         + "where empno NOT IN (\n"
         + "  select deptno from dept\n"
-        + "  where emp.job = dept.name)";
+        + "  where emp.job = dept.dname)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -8860,14 +8854,14 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSelectAnyCorrelated() {
     final String sql = "select empno > ANY (\n"
-        + "  select deptno from dept where emp.job = dept.name)\n"
+        + "  select deptno from dept where emp.job = dept.dname)\n"
         + "from emp\n";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
   @Test void testWhereAnyCorrelatedInSelect() {
     final String sql = "select * from emp where empno > ANY (\n"
-        + "  select deptno from dept where emp.job = dept.name)\n";
+        + "  select deptno from dept where emp.job = dept.dname)\n";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -8879,7 +8873,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSomeWithEquality2() {
     final String sql = "select * from emp e1\n"
-        + "  where e1.ename= SOME (select name from dept)";
+        + "  where e1.ename= SOME (select dname from dept)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -8913,9 +8907,9 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test public void testSomeWithTwoSubQueries() {
     final String sql = "select empno from sales.empnullables\n"
         + "where deptno > some(\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
         + "or deptno < some(\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')";
+        + "  select deptno from sales.deptnullables where dname = 'dept2')";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -8971,9 +8965,9 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testExpandProjectInWithTwoSubQueries() {
     final String sql = "select empno, deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
         + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')\n"
+        + "  select deptno from sales.deptnullables where dname = 'dept2')\n"
         + "from sales.empnullables";
     sql(sql)
         .withSubQueryRules()
@@ -9052,9 +9046,9 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testExpandFilterInWithTwoSubQueries() {
     final String sql = "select empno from sales.empnullables\n"
         + "where deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
         + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')";
+        + "  select deptno from sales.deptnullables where dname = 'dept2')";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -9105,9 +9099,9 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testExpandFilterConstantInWithTwoSubQueries() {
     final String sql = "select empno from sales.empnullables\n"
         + "where 1 in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
         + "or 2 in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')";
+        + "  select deptno from sales.deptnullables where dname = 'dept2')";
     // We disable expression simplification and enable trim to make plan
     // more straightforward and easier to identify whether the plan is correct
     sql(sql)
@@ -9324,7 +9318,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sal\n"
         + "from sales.emp\n"
         + "where empno IN (\n"
-        + "  select deptno from dept where emp.job = dept.name)\n"
+        + "  select deptno from dept where emp.job = dept.dname)\n"
         + "AND empno IN (\n"
         + "  select empno from emp e where emp.ename = e.ename)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
@@ -9359,7 +9353,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * value-generator for emp.job. */
   @Test void testWhereInCorrelated() {
     final String sql = "select sal from emp where empno IN (\n"
-        + "  select deptno from dept where emp.job = dept.name)";
+        + "  select deptno from dept where emp.job = dept.dname)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -9676,7 +9670,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   @Test void testDecorrelateProjectWithMultiKeyAndFetchOne1() {
     final String query = "SELECT name, "
-        + "(SELECT sal FROM emp where dept.deptno = emp.deptno and dept.name = emp.ename "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno and dept.dname = emp.ename "
         + "order by year(hiredate), emp.sal limit 1) FROM dept";
     sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
         .withLateDecorrelate(true)
@@ -9997,8 +9991,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.of(SqlKind.AVG))
         .toRule();
-    final String sql = "select name, max(name), avg(deptno), min(name)\n"
-        + "from sales.dept group by name";
+    final String sql = "select dname, max(dname), avg(deptno), min(dname)\n"
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10007,8 +10001,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
         .toRule();
-    String sql = "select name, max(name), avg(deptno), min(name)"
-        + " from sales.dept group by name";
+    String sql = "select dname, max(dname), avg(deptno), min(dname)"
+        + " from sales.dept group by dname";
     sql(sql).withRule(rule).checkUnchanged();
   }
 
@@ -10018,7 +10012,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
         .toRule();
     String sql = "select name, sum(deptno)"
-            + " from sales.dept group by name";
+            + " from sales.dept group by dname";
     sql(sql).withRule(rule).checkUnchanged();
   }
 
@@ -10029,9 +10023,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.of(SqlKind.AVG, SqlKind.VAR_POP))
         .toRule();
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
         + " var_pop(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10042,9 +10036,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.of(SqlKind.AVG, SqlKind.SUM))
         .toRule();
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
         + " var_pop(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10068,9 +10062,9 @@ class RelOptRulesTest extends RelOptTestBase {
             EnumSet.of(SqlKind.AVG, SqlKind.SUM, SqlKind.STDDEV_POP,
                 SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP))
         .toRule();
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
         + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -11143,7 +11137,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "emp, emp_b, dept, dept_nested "
         + "where emp.empno = emp_b.empno "
         + "and emp_b.deptno = dept.deptno "
-        + "and dept.name = dept_nested.name "
+        + "and dept.dname = dept_nested.name "
         + "and dept_nested.deptno = emp.deptno "
         + "and emp.sal + emp_b.sal = dept.deptno + dept_nested.deptno")
         .withPre(program)

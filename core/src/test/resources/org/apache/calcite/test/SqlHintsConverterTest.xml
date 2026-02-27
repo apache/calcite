@@ -183,12 +183,12 @@ Filter:[[RESOURCE inheritPath:[0, 0] options:{CPU=2}], [RESOURCE inheritPath:[0,
   <TestCase name="testHintsPropagationInVolcanoPlannerRules">
     <Resource name="sql">
       <![CDATA[select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */
-ename, job, sal, dept.name
+ename, job, sal, dept.dname
 from emp join dept on emp.deptno = dept.deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
+LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -196,7 +196,7 @@ LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(ENAME=[$3], JOB=[$4], SAL=[$7], NAME=[$1])
+EnumerableProject(ENAME=[$3], JOB=[$4], SAL=[$7], DNAME=[$1])
   EnumerableHashJoin(condition=[=($0, $9)], joinType=[inner])
     EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
     EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -272,7 +272,7 @@ EnumerableSort(sort0=[$0], dir0=[ASC])
       <![CDATA[select /*+ breakable */ deptno from
 (select ename, deptno from emp
 intersect all
-select name, deptno from dept)]]>
+select dname, deptno from dept)]]>
     </Resource>
     <Resource name="hints">
       <![CDATA[
@@ -284,7 +284,7 @@ Intersect:[[BREAKABLE inheritPath:[0]]]
   <TestCase name="testJoinHintRequiresSpecificInputs">
     <Resource name="sql">
       <![CDATA[select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */
-ename, job, sal, dept.name
+ename, job, sal, dept.dname
 from emp join dept on emp.deptno = dept.deptno]]>
     </Resource>
     <Resource name="hints">
@@ -299,7 +299,7 @@ LogicalJoin:[[USE_HASH_JOIN inheritPath:[0] options:[EMP, DEPT]]]
       <![CDATA[select /*+ breakable */ deptno from
 (select ename, deptno from emp
 except all
-select name, deptno from dept)]]>
+select dname, deptno from dept)]]>
     </Resource>
     <Resource name="hints">
       <![CDATA[
@@ -351,7 +351,7 @@ Project:[[TIME_ZONE inheritPath:[] options:[1, 1.23, a bc, -1.0]]]
   <TestCase name="testSameHintsWithDifferentInheritPath">
     <Resource name="sql">
       <![CDATA[select /*+ properties(k1='v1', k2='v2') */
-ename, job, sal, dept.name
+ename, job, sal, dept.dname
 from emp /*+ index(idx1, idx2) */
 join dept /*+ properties(k1='v1', k2='v2') */
 on emp.deptno = dept.deptno]]>
@@ -401,7 +401,7 @@ TableFunctionScan:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
   <TestCase name="testTableHintsInJoin">
     <Resource name="sql">
       <![CDATA[select
-ename, job, sal, dept.name
+ename, job, sal, dept.dname
 from emp /*+ index(idx1, idx2) */
 join dept /*+ properties(k1='v1', k2='v2') */
 on emp.deptno = dept.deptno]]>
@@ -458,7 +458,7 @@ LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
       <![CDATA[select /*+ breakable */ deptno from
 (select ename, deptno from emp
 union all
-select name, deptno from dept)]]>
+select dname, deptno from dept)]]>
     </Resource>
     <Resource name="hints">
       <![CDATA[
@@ -470,12 +470,12 @@ Union:[[BREAKABLE inheritPath:[0]]]
   <TestCase name="testUseMergeJoin">
     <Resource name="sql">
       <![CDATA[select /*+ use_merge_join(emp, dept) */
-ename, job, sal, dept.name
+ename, job, sal, dept.dname
 from emp join dept on emp.deptno = dept.deptno]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
+EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5], DNAME=[$10])
   EnumerableMergeJoin(condition=[=($7, $9)], joinType=[inner])
     EnumerableSort(sort0=[$7], dir0=[ASC])
       EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
@@ -485,7 +485,7 @@ EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
+LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])

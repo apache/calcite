@@ -54,7 +54,7 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   @Test void testOrderByDesc() {
     checkFeature(
-        "select name from dept order by ^name desc^",
+        "select dname from dept order by ^name desc^",
         RESOURCE.sQLConformance_OrderByDesc());
   }
 
@@ -63,13 +63,13 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   @Test void testIntersect() {
     checkFeature(
-        "^select name from dept intersect select name from dept^",
+        "^select dname from dept intersect select dname from dept^",
         RESOURCE.sQLFeature_F302());
   }
 
   @Test void testExcept() {
     checkFeature(
-        "^select name from dept except select name from dept^",
+        "^select dname from dept except select dname from dept^",
         RESOURCE.sQLFeature_E071_03());
   }
 

@@ -63,7 +63,7 @@ class HepPlannerTest {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final String UNION_TREE =
-      "(select name from dept union select ename from emp)"
+      "(select dname from dept union select ename from emp)"
       + " union (select ename from bonus)";
 
   private static final String COMPLEX_UNION_TREE = "select * from (\n"
@@ -134,7 +134,7 @@ class HepPlannerTest {
             .withDescription("CoerceInputsRule:Intersection") // TODO
             .toRule());
 
-    final String sql = "(select name from dept union select ename from emp)\n"
+    final String sql = "(select dname from dept union select ename from emp)\n"
         + "intersect (select fname from customer.contact)";
     sql(sql).withPlanner(planner).checkUnchanged();
   }
@@ -151,7 +151,7 @@ class HepPlannerTest {
 
     planner.addRule(CoreRules.FILTER_TO_CALC);
 
-    final String sql = "select name from sales.dept where deptno=12";
+    final String sql = "select dname from sales.dept where deptno=12";
     sql(sql).withPlanner(planner).check();
   }
 
@@ -182,9 +182,9 @@ class HepPlannerTest {
   private static String buildUnion(int n) {
     StringBuilder sb = new StringBuilder();
     sb.append("select * from (");
-    sb.append("select name from sales.dept");
+    sb.append("select dname from sales.dept");
     for (int i = 0; i < n; i++) {
-      sb.append(" union all select name from sales.dept");
+      sb.append(" union all select dname from sales.dept");
     }
     sb.append(")");
     return sb.toString();
@@ -195,7 +195,7 @@ class HepPlannerTest {
     HepPlanner planner =
         new HepPlanner(
             programBuilder.build());
-    RelNode root = sql("select name from sales.dept").toRel();
+    RelNode root = sql("select dname from sales.dept").toRel();
     planner.setRoot(root);
 
     StringWriter sw = new StringWriter();
@@ -329,7 +329,7 @@ class HepPlannerTest {
     programBuilder.addRuleInstance(CoreRules.FILTER_TO_CALC);
     programBuilder.addGroupEnd();
 
-    final String sql = "select upper(name) from dept where deptno=20";
+    final String sql = "select upper(dname) from dept where deptno=20";
     sql(sql).withProgram(programBuilder.build()).check();
   }
 
@@ -342,11 +342,11 @@ class HepPlannerTest {
 
     HepPlanner planner = new HepPlanner(programBuilder.build());
     planner.setRoot(
-        sql("select upper(name) from dept where deptno=20").toRel());
+        sql("select upper(dname) from dept where deptno=20").toRel());
     planner.findBestExp();
     // Reuse of HepPlanner (should trigger GC).
     planner.setRoot(
-        sql("select upper(name) from dept where deptno=20").toRel());
+        sql("select upper(dname) from dept where deptno=20").toRel());
     planner.findBestExp();
   }
 

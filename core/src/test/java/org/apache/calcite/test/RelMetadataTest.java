@@ -246,7 +246,7 @@ public class RelMetadataTest {
   @Disabled
   @Test void testPercentageOriginalRowsTwoFilters() {
     sql("select * from (\n"
-        + "  select * from dept where name='X')\n"
+        + "  select * from dept where dname='X')\n"
         + "where deptno = 20")
         .assertPercentageOriginalRows(
             isAlmost(DEFAULT_EQUAL_SELECTIVITY_SQUARED));
@@ -277,13 +277,13 @@ public class RelMetadataTest {
   }
 
   @Test void testPercentageOriginalRowsUnionNoFilter() {
-    sql("select name from dept union all select ename from emp")
+    sql("select dname from dept union all select ename from emp")
         .assertPercentageOriginalRows(isAlmost(1.0));
   }
 
   @Disabled
   @Test void testPercentageOriginalRowsUnionLittleFilter() {
-    sql("select name from dept where deptno=20"
+    sql("select dname from dept where deptno=20"
         + " union all select ename from emp")
         .assertPercentageOriginalRows(
             isAlmost(((DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY) + EMP_SIZE)
@@ -292,7 +292,7 @@ public class RelMetadataTest {
 
   @Disabled
   @Test void testPercentageOriginalRowsUnionBigFilter() {
-    sql("select name from dept"
+    sql("select dname from dept"
         + " union all select ename from emp where deptno=20")
         .assertPercentageOriginalRows(
             isAlmost(((EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY) + DEPT_SIZE)
@@ -1073,7 +1073,7 @@ public class RelMetadataTest {
   // ----------------------------------------------------------------------
 
   @Test void testCalcColumnOriginsTable() {
-    final String sql = "select name,deptno from dept where deptno > 10";
+    final String sql = "select dname,deptno from dept where deptno > 10";
     final RelNode relNode = sql(sql).toRel();
     final HepProgram program = new HepProgramBuilder().
         addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
@@ -1107,17 +1107,17 @@ public class RelMetadataTest {
   }
 
   @Test void testColumnOriginsTableOnly() {
-    sql("select name as dname from dept")
+    sql("select dname from dept")
         .assertColumnOriginSingle("DEPT", "NAME", false);
   }
 
   @Test void testColumnOriginsExpression() {
-    sql("select upper(name) as dname from dept")
+    sql("select upper(dname) as dname from dept")
         .assertColumnOriginSingle("DEPT", "NAME", true);
   }
 
   @Test void testColumnOriginsDyadicExpression() {
-    sql("select name||ename from dept,emp")
+    sql("select dname||ename from dept,emp")
         .assertColumnOriginDouble("DEPT", "NAME", "EMP", "ENAME", true);
   }
 
@@ -1127,7 +1127,7 @@ public class RelMetadataTest {
   }
 
   @Test void testColumnOriginsFilter() {
-    sql("select name as dname from dept where deptno=10")
+    sql("select dname from dept where deptno=10")
         .assertColumnOriginSingle("DEPT", "NAME", false);
   }
 
@@ -1137,18 +1137,18 @@ public class RelMetadataTest {
   }
 
   @Test void testColumnOriginsJoinRight() {
-    sql("select name as dname from emp,dept")
+    sql("select dname from emp,dept")
         .assertColumnOriginSingle("DEPT", "NAME", false);
   }
 
   @Test void testColumnOriginsJoinOuter() {
-    sql("select name as dname from emp left outer join dept"
+    sql("select dname from emp left outer join dept"
         + " on emp.deptno = dept.deptno")
         .assertColumnOriginSingle("DEPT", "NAME", true);
   }
 
   @Test void testColumnOriginsJoinFullOuter() {
-    sql("select name as dname from emp full outer join dept"
+    sql("select dname from emp full outer join dept"
         + " on emp.deptno = dept.deptno")
         .assertColumnOriginSingle("DEPT", "NAME", true);
   }
@@ -1197,7 +1197,7 @@ public class RelMetadataTest {
 
   @Test @Disabled("Plan contains casts, which inhibit metadata propagation")
   void testColumnOriginsUnion() {
-    sql("select name from dept union all select ename from emp")
+    sql("select dname from dept union all select ename from emp")
         .assertColumnOriginDouble("DEPT", "NAME", "EMP", "ENAME", false);
   }
 
@@ -1239,7 +1239,7 @@ public class RelMetadataTest {
    * RelMetadataQuery.getColumnOrigins should return null when column origin
    * includes correlation variables</a>. */
   @Test void testColumnOriginsForCorrelate() {
-    final String sql = "select (select max(dept.name || '_' || emp.ename)"
+    final String sql = "select (select max(dept.dname || '_' || emp.ename)"
         + "from dept where emp.deptno = dept.deptno) from emp";
     final RelMetadataFixture fixture = sql(sql);
 
@@ -1375,7 +1375,7 @@ public class RelMetadataTest {
   @Test void testRowCountUnion() {
     final String sql = "select ename from emp\n"
         + "union all\n"
-        + "select name from dept";
+        + "select dname from dept";
     sql(sql).assertThatRowCount(is(EMP_SIZE + DEPT_SIZE),
         is(0D), is(Double.POSITIVE_INFINITY));
   }
@@ -1383,7 +1383,7 @@ public class RelMetadataTest {
   @Test void testRowCountUnionOnFinite() {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "union all\n"
-        + "select name from (select * from dept limit 40)";
+        + "select dname from (select * from dept limit 40)";
     sql(sql).assertThatRowCount(is(EMP_SIZE + DEPT_SIZE), is(0D), is(140D));
   }
 
@@ -1402,7 +1402,7 @@ public class RelMetadataTest {
   @Test void testRowCountIntersectOnFinite() {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "intersect\n"
-        + "select name from (select * from dept limit 40)";
+        + "select dname from (select * from dept limit 40)";
     sql(sql)
         .assertThatRowCount(is(Math.min(EMP_SIZE, DEPT_SIZE)), is(0D), is(40D));
   }
@@ -1410,7 +1410,7 @@ public class RelMetadataTest {
   @Test void testRowCountMinusOnFinite() {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "except\n"
-        + "select name from (select * from dept limit 40)";
+        + "select dname from (select * from dept limit 40)";
     sql(sql).assertThatRowCount(is(4D), is(0D), is(100D));
   }
 
@@ -4372,7 +4372,7 @@ public class RelMetadataTest {
 
   @Test void testExpressionLineageOuterJoin() {
     // lineage cannot be determined
-    final RelNode rel = sql("select name as dname from emp left outer join dept"
+    final RelNode rel = sql("select dname from emp left outer join dept"
         + " on emp.deptno = dept.deptno").toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
@@ -5003,7 +5003,7 @@ public class RelMetadataTest {
   @Test void testNodeTypeCountUnion() {
     final String sql = "select ename from emp\n"
         + "union all\n"
-        + "select name from dept";
+        + "select dname from dept";
     sql(sql)
         .assertThatNodeTypeCountIs(TableScan.class, 2,
             Project.class, 2,
@@ -5013,7 +5013,7 @@ public class RelMetadataTest {
   @Test void testNodeTypeCountUnionOnFinite() {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "union all\n"
-        + "select name from (select * from dept limit 40)";
+        + "select dname from (select * from dept limit 40)";
     sql(sql)
         .assertThatNodeTypeCountIs(TableScan.class, 2,
             Union.class, 1,
@@ -5024,7 +5024,7 @@ public class RelMetadataTest {
   @Test void testNodeTypeCountMinusOnFinite() {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "except\n"
-        + "select name from (select * from dept limit 40)";
+        + "select dname from (select * from dept limit 40)";
     sql(sql)
         .assertThatNodeTypeCountIs(TableScan.class, 2,
             Minus.class, 1,

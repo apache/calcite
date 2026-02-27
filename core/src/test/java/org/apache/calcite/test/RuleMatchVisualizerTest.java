@@ -60,10 +60,10 @@ class RuleMatchVisualizerTest extends RelOptTestBase {
   }
 
   @Test void testHepPlanner() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
-        + "order by name limit 10";
+        + "select b.dname from dept b\n"
+        + "order by dname limit 10";
 
     final HepProgram program = HepProgram.builder()
         .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
@@ -82,7 +82,7 @@ class RuleMatchVisualizerTest extends RelOptTestBase {
   }
 
   @Test void testVolcanoPlanner() {
-    final String sql = "select a.name from dept a";
+    final String sql = "select a.dname from dept a";
 
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.setTopDownOpt(false);

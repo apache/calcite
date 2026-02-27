@@ -26,11 +26,11 @@ order by name limit 10]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-  LogicalProject(NAME=[$0])
+  LogicalProject(DNAME=[$0])
     LogicalUnion(all=[true])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -39,10 +39,10 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalUnion(all=[true])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -127,13 +127,13 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(NAME=[$1])
+LogicalProject(DNAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(NAME=[$1])
+EnumerableProject(DNAME=[$1])
   EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>

@@ -232,7 +232,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testAliasList() {
     final String sql = "select a + b from (\n"
-        + "  select deptno, 1 as uno, name from dept\n"
+        + "  select deptno, 1 as uno, dname from dept\n"
         + ") as d(a, b, c)\n"
         + "where c like 'X%'";
     sql(sql).ok();
@@ -878,7 +878,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     //   Internal error:
     //   Type 'RecordType(VARCHAR(128) $f0)' has no field 'NAME'
     final String sql =
-        "select name from (select name from dept group by name)";
+        "select dname from (select dname from dept group by dname)";
     sql(sql).ok();
   }
 
@@ -1361,7 +1361,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testTableSubset() {
-    final String sql = "select deptno, name from dept";
+    final String sql = "select deptno, dname from dept";
     sql(sql).ok();
   }
 
@@ -1618,7 +1618,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * IndexOutOfBoundsException when using LATERAL TABLE with more than one
    * field</a>. */
   @Test void testCollectionTableWithLateral3() {
-    sql("select * from dept, lateral table(DEDUP(dept.deptno, dept.name))").ok();
+    sql("select * from dept, lateral table(DEDUP(dept.deptno, dept.dname))").ok();
   }
 
   /** Test case for
@@ -1827,7 +1827,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testCollectionTableWithCursorParam() {
     final String sql = "select * from table(dedup("
         + "cursor(select ename from emp),"
-        + " cursor(select name from dept), 'NAME'))";
+        + " cursor(select dname from dept), 'NAME'))";
     sql(sql).withDecorrelate(false).ok();
   }
 
@@ -1994,7 +1994,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select *\n"
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
-        + "where d.name = (\n"
+        + "where d.dname = (\n"
         + "  select max(name)\n"
         + "  from dept as d2\n"
         + "  where d2.deptno = d.deptno)";
@@ -2004,7 +2004,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testMultipleCorrelatedSubQueriesInSelectReferencingDifferentTablesInFrom() {
     final String sql = "select\n"
         + "(select ename from emp where empno = empnos.empno) as emp_name,\n"
-        + "(select name from dept where deptno = deptnos.deptno) as dept_name\n"
+        + "(select dname from dept where deptno = deptnos.deptno) as dept_name\n"
         + " from (values (1), (2)) as empnos(empno), (values (1), (2)) as deptnos(deptno)";
     sql(sql).withExpand(false).ok();
   }
@@ -2104,7 +2104,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testUniqueWithOneProject() {
     final String sql = "select * from emp\n"
-        + "where unique (select name from dept where deptno=55)";
+        + "where unique (select dname from dept where deptno=55)";
     sql(sql).withExpand(false).ok();
   }
 
@@ -5583,7 +5583,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno from\n"
         + "(select ename, deptno from emp\n"
         + "union all\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).withTrim(true).ok();
   }
 
@@ -5592,7 +5592,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno from\n"
         + "(select ename, deptno from emp\n"
         + "union\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).withTrim(true).ok();
   }
 
@@ -5601,7 +5601,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno from\n"
         + "(select ename, deptno from emp\n"
         + "intersect all\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).withTrim(true).ok();
   }
 
@@ -5610,7 +5610,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno from\n"
         + "(select ename, deptno from emp\n"
         + "intersect\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).withTrim(true).ok();
   }
 
@@ -5619,7 +5619,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno from\n"
         + "(select ename, deptno from emp\n"
         + "except all\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).withTrim(true).ok();
   }
 
@@ -5628,7 +5628,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "select deptno from\n"
         + "(select ename, deptno from emp\n"
         + "except\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).withTrim(true).ok();
   }
 
