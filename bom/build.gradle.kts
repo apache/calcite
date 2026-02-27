@@ -125,7 +125,7 @@ dependencies {
         apiv("org.apache.logging.log4j:log4j-slf4j-impl", "log4j2")
         apiv("org.apache.pig:pig")
         apiv("org.apache.pig:pigunit", "pig")
-        apiv("org.apache.spark:spark-core_2.10", "spark")
+        apiv("org.apache.spark:spark-core_2.13", "spark")
         apiv("org.apiguardian:apiguardian-api")
         apiv("net.bytebuddy:byte-buddy")
         apiv("org.cassandraunit:cassandra-unit")
