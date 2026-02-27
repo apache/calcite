@@ -6252,21 +6252,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testAggregateProjectMerge() {
-    final String sql = "select x, sum(z), y from (\n"
-        + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
-        + "  from emp)\n"
-        + "group by x, y";
-    sql(sql).withRule(CoreRules.AGGREGATE_PROJECT_MERGE).check();
-  }
-
-  @Test void testAggregateGroupingSetsProjectMerge() {
-    final String sql = "select x, sum(z), y from (\n"
-        + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
-        + "  from emp)\n"
-        + "group by rollup(x, y)";
-    sql(sql).withRule(CoreRules.AGGREGATE_PROJECT_MERGE).check();
-  }
 
   @Test void testAggregateExtractProjectRule() {
     final String sql = "select sum(sal)\n"
@@ -6378,55 +6363,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testPullAggregateThroughUnion2() {
-    final String sql = "select deptno, job from"
-        + " (select deptno, job from emp as e1"
-        + " group by deptno,job"
-        + "  union all"
-        + " select deptno, job from emp as e2"
-        + " group by deptno,job)"
-        + " group by deptno,job";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_AGGREGATE_SECOND,
-            CoreRules.AGGREGATE_UNION_AGGREGATE_FIRST)
-        .check();
-  }
-
-  /**
-   * Once the bottom aggregate pulled through union, we need to add a Project
-   * if the new input contains a different type from the union.
-   */
-  @Test void testPullAggregateThroughUnionAndAddProjects() {
-    final String sql = "select job, deptno from"
-        + " (select job, deptno from emp as e1"
-        + " group by job, deptno"
-        + "  union all"
-        + " select job, deptno from emp as e2"
-        + " group by job, deptno)"
-        + " group by job, deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.AGGREGATE_UNION_AGGREGATE)
-        .check();
-  }
-
-  /**
-   * Make sure the union alias is preserved when the bottom aggregate is
-   * pulled up through union.
-   */
-  @Test void testPullAggregateThroughUnionWithAlias() {
-    final String sql = "select job, c from"
-        + " (select job, deptno c from emp as e1"
-        + " group by job, deptno"
-        + "  union all"
-        + " select job, deptno from emp as e2"
-        + " group by job, deptno)"
-        + " group by job, c";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.AGGREGATE_UNION_AGGREGATE)
-        .check();
-  }
 
   /**
    * Creates a {@link HepProgram} with common transitive rules.

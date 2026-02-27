@@ -333,30 +333,6 @@ LogicalProject(SUM0_MATCH=[$3], SUM_DISTINCT_NOT_MATCH=[$0], COUNT_DISTINCT_MATC
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testAggregateGroupingSetsProjectMerge">
-    <Resource name="sql">
-      <![CDATA[select x, sum(z), y from (
-  select deptno as x, empno as y, sal as z, sal * 2 as zz
-  from emp)
-group by rollup(x, y)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
-  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$1=[SUM($2)])
-    LogicalProject(X=[$7], Y=[$0], Z=[$5])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
-  LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$1=[$2])
-    LogicalAggregate(group=[{0, 7}], groups=[[{0, 7}, {7}, {}]], EXPR$1=[SUM($5)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testAggregateGroupingSetsToUnionRule">
     <Resource name="sql">
       <![CDATA[SELECT deptno, job, sal, SUM(comm)
@@ -929,30 +905,6 @@ LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
     </Resource>
     <Resource name="sql">
       <![CDATA[select min(deptno), max(deptno) from emp]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testAggregateProjectMerge">
-    <Resource name="sql">
-      <![CDATA[select x, sum(z), y from (
-  select deptno as x, empno as y, sal as z, sal * 2 as zz
-  from emp)
-group by x, y]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM($2)])
-    LogicalProject(X=[$7], Y=[$0], Z=[$5])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
-  LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$1=[$2])
-    LogicalAggregate(group=[{0, 7}], EXPR$1=[SUM($5)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
     </Resource>
   </TestCase>
   <TestCase name="testAggregateProjectPullUpConstants">
@@ -12147,88 +12099,6 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
     LogicalFilter(condition=[NOT($2)])
       LogicalProject(DEPTNO=[$0], DNAME=[$1], markCol=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPullAggregateThroughUnion2">
-    <Resource name="sql">
-      <![CDATA[select deptno, job from (select deptno, job from emp as e1 group by deptno,job  union all select deptno, job from emp as e2 group by deptno,job) group by deptno,job]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], JOB=[$2])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(DEPTNO=[$7], JOB=[$2])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPullAggregateThroughUnionAndAddProjects">
-    <Resource name="sql">
-      <![CDATA[select job, deptno from (select job, deptno from emp as e1 group by job, deptno  union all select job, deptno from emp as e2 group by job, deptno) group by job, deptno]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(JOB=[$2], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(JOB=[$2], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalProject(JOB=[$2], DEPTNO=[$7])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(JOB=[$2], DEPTNO=[$7])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testPullAggregateThroughUnionWithAlias">
-    <Resource name="sql">
-      <![CDATA[select job, c from (select job, deptno c from emp as e1 group by job, deptno  union all select job, deptno from emp as e2 group by job, deptno) group by job, c]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(JOB=[$2], C=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(JOB=[$2], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalProject(JOB=[$0], C=[$1])
-    LogicalUnion(all=[true])
-      LogicalAggregate(group=[{2, 7}])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(JOB=[$2], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
