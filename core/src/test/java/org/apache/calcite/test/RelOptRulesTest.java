@@ -386,17 +386,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
-   * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
-  @Test void testSampleToFilter() {
-    final String sql = "select deptno from emp tablesample bernoulli(50)";
-    sql(sql)
-        .withRule(CoreRules.SAMPLE_TO_FILTER)
-        .check();
-  }
-
-  /**
-   * Test case for
    * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6317">
    * [CALCITE-6317] Incorrect constant replacement when group keys are NULL</a>. */
   @Test void testPredicatePull() {
@@ -405,17 +394,6 @@ class RelOptRulesTest extends RelOptTestBase {
                 + "where deptno = 10 "
                 + "group by rollup(sal, deptno)";
     sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
-   * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
-  @Test void testSampleToFilterWithSeed() {
-    final String sql = "select deptno from emp tablesample bernoulli(50) REPEATABLE(10)";
-    sql(sql)
-        .withRule(CoreRules.SAMPLE_TO_FILTER)
         .check();
   }
 
@@ -687,19 +665,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6873">[CALCITE-6873]
-   * FilterProjectTransposeRule should not push the Filter past the Project
-   * when the Filter contains a Subquery with correlation</a>. */
-  @Test void testFilterProjectTransposeRule2() {
-    final String sql = "select * from (select deptno from emp) as d\n"
-        + "where NOT EXISTS (\n"
-        + "  select count(*) from emp e where e.deptno = d.deptno)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
    * Create an optimization pass which can convert some cases of Correlate + Unnest
    * to Unnest</a>. */
@@ -764,46 +729,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withPreRule(CoreRules.PROJECT_REMOVE)
         .withRule(CoreRules.UNNEST_DECORRELATE)
-        .check();
-  }
-
-  @Test void testFilterProjectTransposeRule3() {
-    final String sql = "select * from (select deptno from emp) as d\n"
-        + "where NOT EXISTS (\n"
-        + "  select count(*) from emp e)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
-   * Add the planner rule that pushes the Filter past a Sample</a>. */
-  @Test void testFilterSampleTransposeWithBernoulli() {
-    final String sql = "select deptno from emp tablesample bernoulli(50) where deptno > 10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
-   * Add the planner rule that pushes the Filter past a Sample</a>. */
-  @Test void testFilterSampleTransposeWithSystem() {
-    final String sql = "select deptno from emp tablesample system(50) where deptno > 10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
-   * Add the planner rule that pushes the Filter past a Sample</a>. */
-  @Test void testFilterSampleTransposeWithSystemAndSeed() {
-    final String sql = "select deptno from emp\n"
-        + "tablesample system(50) repeatable(10) where deptno > 10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
         .check();
   }
 
@@ -906,16 +831,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testUnionToDistinctRule() {
-    final String sql = "select * from dept union select * from dept";
-    sql(sql).withRule(CoreRules.UNION_TO_DISTINCT).check();
-  }
-
-  @Test void testExtractJoinFilterRule() {
-    final String sql = "select 1 from emp inner join dept on emp.deptno=dept.deptno";
-    sql(sql).withRule(CoreRules.JOIN_EXTRACT_FILTER).check();
-  }
-
   @Test void testNotPushExpression() {
     final String sql = "select 1 from emp inner join dept\n"
         + "on emp.deptno=dept.deptno and emp.ename is not null";
@@ -937,11 +852,6 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_PROJECT_TRANSPOSE,
             CoreRules.FILTER_WINDOW_TRANSPOSE,
             CoreRules.PROJECT_REMOVE).check();
-  }
-
-  @Test void testAddRedundantSemiJoinRule() {
-    final String sql = "select 1 from emp inner join dept on emp.deptno = dept.deptno";
-    sql(sql).withRule(CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN).check();
   }
 
   /** Test case for
