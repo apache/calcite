@@ -179,7 +179,7 @@ class SqlHintsConverterTest {
   @Test void testThreeLevelNestedQueryHint() {
     final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
         + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n"
-        + "join emp e2 on d1.name = e2.job";
+        + "join emp e2 on d1.dname = e2.job";
     sql(sql).ok();
   }
 
@@ -386,7 +386,7 @@ class SqlHintsConverterTest {
   }
 
   @Test void testTableHintsInInsert() throws Exception {
-    final String sql = HintTools.withHint("insert into dept /*+ %s */ (deptno, name) "
+    final String sql = HintTools.withHint("insert into dept /*+ %s */ (deptno, dname) "
         + "select deptno, dname from dept");
     final SqlInsert insert = (SqlInsert) sql(sql).parseQuery();
     assert insert.getTargetTable() instanceof SqlTableRef;
@@ -436,7 +436,7 @@ class SqlHintsConverterTest {
         + "on e.empno = t.empno\n"
         + "when matched then update\n"
         + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
-        + "when not matched then insert (name, dept, salary)\n"
+        + "when not matched then insert (dname, dept, salary)\n"
         + "values(t.name, 10, t.salary * .15)";
     final String sql1 = HintTools.withHint(sql);
 

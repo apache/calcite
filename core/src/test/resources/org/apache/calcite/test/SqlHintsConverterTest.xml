@@ -427,7 +427,7 @@ TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPat
     <Resource name="sql">
       <![CDATA[select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */
 e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno
-join emp e2 on d1.name = e2.job]]>
+join emp e2 on d1.dname = e2.job]]>
     </Resource>
     <Resource name="hints">
       <![CDATA[

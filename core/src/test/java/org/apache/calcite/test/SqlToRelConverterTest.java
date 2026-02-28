@@ -321,7 +321,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testAsOfJoin() {
     final String sql = "select emp.empno from emp asof join dept\n"
         + "match_condition emp.deptno <= dept.deptno\n"
-        + "on ename = name";
+        + "on ename = dname";
     sql(sql).ok();
   }
 
@@ -392,14 +392,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testJoinNaturalNoCommonColumn() {
     final String sql = "SELECT *\n"
-        + "FROM emp NATURAL JOIN (SELECT deptno AS foo, name FROM dept) AS d";
+        + "FROM emp NATURAL JOIN (SELECT deptno AS foo, dname FROM dept) AS d";
     sql(sql).ok();
   }
 
   @Test void testJoinNaturalMultipleCommonColumn() {
     final String sql = "SELECT *\n"
         + "FROM emp\n"
-        + "NATURAL JOIN (SELECT deptno, name AS ename FROM dept) AS d";
+        + "NATURAL JOIN (SELECT deptno, dname AS ename FROM dept) AS d";
     sql(sql).ok();
   }
 
@@ -407,7 +407,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4915">[CALCITE-4915]
    * Query with unqualified common column and NATURAL JOIN fails</a>. */
   @Test void testJoinNaturalWithUnqualifiedCommonColumn() {
-    final String sql = "SELECT deptno, name\n"
+    final String sql = "SELECT deptno, dname\n"
         + "FROM emp\n"
         + "NATURAL JOIN dept";
     sql(sql).ok();
@@ -459,7 +459,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Query with GROUP BY and JOIN ... USING wrongly fails with
    * "Column 'DEPTNO' is ambiguous"</a>. */
   @Test void testJoinUsingWithUnqualifiedCommonColumn() {
-    final String sql = "SELECT deptno, name\n"
+    final String sql = "SELECT deptno, dname\n"
         + "FROM emp JOIN dept using (deptno)";
     sql(sql).ok();
   }
@@ -891,10 +891,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testGroupBug281b() {
     // Try to confuse it with spurious columns.
-    final String sql = "select name, foo from (\n"
-        + "select deptno, name, count(deptno) as foo\n"
+    final String sql = "select dname, foo from (\n"
+        + "select deptno, dname, count(deptno) as foo\n"
         + "from dept\n"
-        + "group by name, deptno, name)";
+        + "group by dname, deptno, dname)";
     sql(sql).ok();
   }
 
@@ -1827,7 +1827,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testCollectionTableWithCursorParam() {
     final String sql = "select * from table(dedup("
         + "cursor(select ename from emp),"
-        + " cursor(select dname from dept), 'NAME'))";
+        + " cursor(select dname from dept), 'DNAME'))";
     sql(sql).withDecorrelate(false).ok();
   }
 
@@ -1899,7 +1899,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testUnnestArrayNoExpand() {
-    final String sql = "select name,\n"
+    final String sql = "select dname,\n"
         + "    array (select *\n"
         + "        from emp\n"
         + "        where deptno = dept.deptno) as emp_array,\n"
@@ -1995,7 +1995,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "where d.dname = (\n"
-        + "  select max(name)\n"
+        + "  select max(dname)\n"
         + "  from dept as d2\n"
         + "  where d2.deptno = d.deptno)";
     sql(sql).withExpand(false).ok();
@@ -2239,7 +2239,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     // In the SELECT clause, the value of IN remains in 3-valued logic
     // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
     // WHERE clause -- so the translation is more complicated.
-    final String sql = "select name, deptno in (\n"
+    final String sql = "select dname, deptno in (\n"
         + "  select case when deptno > 0 then deptno else null end from emp)\n"
         + "from dept";
     sql(sql).ok();
@@ -2249,7 +2249,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     // In the SELECT clause, the value of IN remains in 3-valued logic
     // -- it's not forced into 2-valued by the "... IS TRUE" wrapper as in the
     // WHERE clause -- so the translation is more complicated.
-    final String sql = "select name, deptno in (\n"
+    final String sql = "select dname, deptno in (\n"
         + "  select case when deptno > 0 then deptno else null end from emp)\n"
         + "from dept";
     sql(sql).withExpand(false).ok();
@@ -3145,7 +3145,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testRelShuttleForLogicalAsofJoin() {
     final String sql = "select emp.empno from emp asof join dept\n"
         + "match_condition emp.deptno <= dept.deptno\n"
-        + "on ename = name";
+        + "on ename = dname";
     final RelNode rel = sql(sql).toRel();
     final List<RelNode> rels = new ArrayList<>();
     final RelShuttleImpl visitor = new RelShuttleImpl() {
@@ -3280,7 +3280,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testCorrelatedSubQueryInAggregate() {
     final String sql = "SELECT SUM(\n"
-        + "  (select char_length(name) from dept\n"
+        + "  (select char_length(dname) from dept\n"
         + "   where dept.deptno = emp.empno))\n"
         + "FROM emp";
     sql(sql).withExpand(false).ok();
@@ -3960,7 +3960,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testQualifyInDdl() {
-    sql("INSERT INTO dept(deptno, name)\n"
+    sql("INSERT INTO dept(deptno, dname)\n"
         + "SELECT DISTINCT empno, ename\n"
         + "FROM emp\n"
         + "WHERE deptno > 5\n"
@@ -4035,9 +4035,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("SELECT *\n"
         + "FROM emp\n"
         + "WHERE EXISTS(\n"
-        + " SELECT name\n"
+        + " SELECT dname\n"
         + " FROM dept\n"
-        + " QUALIFY RANK() OVER (PARTITION BY name\n"
+        + " QUALIFY RANK() OVER (PARTITION BY dname\n"
         + "                      ORDER BY dept.deptno DESC) = emp.deptno\n"
         + ")")
         .ok();
@@ -4376,7 +4376,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  approx_count_distinct(skill) as approx_count_distinct_skill,\n"
         + "  max(skill) as max_skill, min(skill) as min_skill,\n"
         + "  any_value(skill) as any_value_skill\n"
-        + "from sales.dept_nested group by name";
+        + "from sales.dept_nested group by dname";
     sql(sql).ok();
   }
 

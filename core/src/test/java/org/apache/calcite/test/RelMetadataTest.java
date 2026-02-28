@@ -402,7 +402,7 @@ public class RelMetadataTest {
   }
 
   @Test void testFunctionalDependencyJoin() {
-    final String sql = "select e.empno, e.ename, e.deptno, d.name"
+    final String sql = "select e.empno, e.ename, e.deptno, d.dname"
         + " from emp e join dept d on e.deptno = d.deptno";
 
     final RelNode relNode = sql(sql).toRel();
@@ -410,7 +410,7 @@ public class RelMetadataTest {
     assertThat(
         Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
-            + "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], NAME=[$10])\n"
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], DNAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[inner])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
@@ -608,7 +608,7 @@ public class RelMetadataTest {
   }
 
   @Test void testFunctionalDependencyInnerJoin() {
-    final String sql = "SELECT e.empno, e.deptno, d.name\n"
+    final String sql = "SELECT e.empno, e.deptno, d.dname\n"
         + "FROM emp e\n"
         + "JOIN dept d ON e.deptno = d.deptno";
 
@@ -617,7 +617,7 @@ public class RelMetadataTest {
     assertThat(
         Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
+            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], DNAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[inner])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
@@ -633,7 +633,7 @@ public class RelMetadataTest {
   }
 
   @Test void testFunctionalDependencyLeftJoin() {
-    final String sql = "SELECT e.empno, e.deptno, d.name\n"
+    final String sql = "SELECT e.empno, e.deptno, d.dname\n"
         + "FROM emp e\n"
         + "LEFT JOIN dept d ON e.deptno = d.deptno";
 
@@ -642,7 +642,7 @@ public class RelMetadataTest {
     assertThat(
         Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
+            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], DNAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[left])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
@@ -658,7 +658,7 @@ public class RelMetadataTest {
   }
 
   @Test void testFunctionalDependencyRightJoin() {
-    final String sql = "SELECT e.empno, e.deptno, d.name\n"
+    final String sql = "SELECT e.empno, e.deptno, d.dname\n"
         + "FROM dept d\n"
         + "RIGHT JOIN emp e ON e.deptno = d.deptno";
 
@@ -667,7 +667,7 @@ public class RelMetadataTest {
     assertThat(
         Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
-            + "LogicalProject(EMPNO=[$2], DEPTNO=[$9], NAME=[$1])\n"
+            + "LogicalProject(EMPNO=[$2], DEPTNO=[$9], DNAME=[$1])\n"
             + "  LogicalJoin(condition=[=($9, $0)], joinType=[right])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"));
@@ -683,7 +683,7 @@ public class RelMetadataTest {
   }
 
   @Test void testFunctionalDependencyFullOuterJoin() {
-    final String sql = "SELECT e.empno, e.deptno, d.name\n"
+    final String sql = "SELECT e.empno, e.deptno, d.dname\n"
         + "FROM emp e\n"
         + "FULL JOIN dept d ON e.deptno = d.deptno";
 
@@ -692,7 +692,7 @@ public class RelMetadataTest {
     assertThat(
         Util.toLinux(RelOptUtil.toString(relNode)),
         is(""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], NAME=[$10])\n"
+            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], DNAME=[$10])\n"
             + "  LogicalJoin(condition=[=($7, $9)], joinType=[full])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
             + "    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n"));
@@ -1108,17 +1108,17 @@ public class RelMetadataTest {
 
   @Test void testColumnOriginsTableOnly() {
     sql("select dname from dept")
-        .assertColumnOriginSingle("DEPT", "NAME", false);
+        .assertColumnOriginSingle("DEPT", "DNAME", false);
   }
 
   @Test void testColumnOriginsExpression() {
     sql("select upper(dname) as dname from dept")
-        .assertColumnOriginSingle("DEPT", "NAME", true);
+        .assertColumnOriginSingle("DEPT", "DNAME", true);
   }
 
   @Test void testColumnOriginsDyadicExpression() {
     sql("select dname||ename from dept,emp")
-        .assertColumnOriginDouble("DEPT", "NAME", "EMP", "ENAME", true);
+        .assertColumnOriginDouble("DEPT", "DNAME", "EMP", "ENAME", true);
   }
 
   @Test void testColumnOriginsConstant() {
@@ -1128,7 +1128,7 @@ public class RelMetadataTest {
 
   @Test void testColumnOriginsFilter() {
     sql("select dname from dept where deptno=10")
-        .assertColumnOriginSingle("DEPT", "NAME", false);
+        .assertColumnOriginSingle("DEPT", "DNAME", false);
   }
 
   @Test void testColumnOriginsJoinLeft() {
@@ -1138,19 +1138,19 @@ public class RelMetadataTest {
 
   @Test void testColumnOriginsJoinRight() {
     sql("select dname from emp,dept")
-        .assertColumnOriginSingle("DEPT", "NAME", false);
+        .assertColumnOriginSingle("DEPT", "DNAME", false);
   }
 
   @Test void testColumnOriginsJoinOuter() {
     sql("select dname from emp left outer join dept"
         + " on emp.deptno = dept.deptno")
-        .assertColumnOriginSingle("DEPT", "NAME", true);
+        .assertColumnOriginSingle("DEPT", "DNAME", true);
   }
 
   @Test void testColumnOriginsJoinFullOuter() {
     sql("select dname from emp full outer join dept"
         + " on emp.deptno = dept.deptno")
-        .assertColumnOriginSingle("DEPT", "NAME", true);
+        .assertColumnOriginSingle("DEPT", "DNAME", true);
   }
 
   /** Test case for
@@ -1171,12 +1171,12 @@ public class RelMetadataTest {
   }
 
   @Test void testColumnOriginsAggKey() {
-    sql("select name,count(deptno) from dept group by name")
-        .assertColumnOriginSingle("DEPT", "NAME", false);
+    sql("select dname,count(deptno) from dept group by dname")
+        .assertColumnOriginSingle("DEPT", "DNAME", false);
   }
 
   @Test void testColumnOriginsAggReduced() {
-    sql("select count(deptno),name from dept group by name")
+    sql("select count(deptno),dname from dept group by dname")
         .assertColumnOriginIsEmpty();
   }
 
@@ -1186,7 +1186,7 @@ public class RelMetadataTest {
   }
 
   @Test void testColumnOriginsAggCountStar() {
-    sql("select count(*),name from dept group by name")
+    sql("select count(*),dname from dept group by dname")
         .assertColumnOriginIsEmpty();
   }
 
@@ -1198,7 +1198,7 @@ public class RelMetadataTest {
   @Test @Disabled("Plan contains casts, which inhibit metadata propagation")
   void testColumnOriginsUnion() {
     sql("select dname from dept union all select ename from emp")
-        .assertColumnOriginDouble("DEPT", "NAME", "EMP", "ENAME", false);
+        .assertColumnOriginDouble("DEPT", "DNAME", "EMP", "ENAME", false);
   }
 
   @Test void testColumnOriginsSelfUnion() {
@@ -3691,7 +3691,7 @@ public class RelMetadataTest {
                 relBuilder.field(2, 1, "DEPTNO"),
                 relBuilder.field(2, 0, "MGR_COMM"))));
 
-    relBuilder.project(relBuilder.field("MGR"), relBuilder.field("NAME"),
+    relBuilder.project(relBuilder.field("MGR"), relBuilder.field("DNAME"),
         relBuilder.field("MGR_COMM"), relBuilder.field("COMM"));
     final RelNode project3 = relBuilder.peek();
     predicates = mq.getPulledUpPredicates(project3);

@@ -297,7 +297,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
   private static final List<String> DEPT_COLUMNS =
       Arrays.asList(
           "COLUMN(DEPTNO)",
-          "COLUMN(NAME)");
+          "COLUMN(DNAME)");
 
   protected static final List<String> PREDICATE_KEYWORDS =
       Arrays.asList(

@@ -205,13 +205,16 @@ class HepPlannerTest {
     final RelNode root1 = planner.getRoot();
     assertThat(root1, notNullValue());
     root1.explain(planWriter);
-    String planStr = sw.toString();
 
-    assertThat(
-        planStr, isLinux("digraph {\n"
-            + "\"LogicalTableScan\\ntable = [CATALOG, SA\\nLES, DEPT]\\n\" -> "
-            + "\"LogicalProject\\nNAME = $1\\n\" [label=\"0\"]\n"
-            + "}\n"));
+    String expected =
+        "digraph {\n"
+            + "\"LogicalTableScan\\n"
+            + "table = [CATALOG, SA\\n"
+            + "LES, DEPT]\\n"
+            + "\" -> \"LogicalProject\\nDNAME = $1\\n"
+            + "\" [label=\"0\"]\n"
+            + "}\n";
+    assertThat(sw.toString(), isLinux(expected));
   }
 
   private void assertIncludesExactlyOnce(String message, String digest,

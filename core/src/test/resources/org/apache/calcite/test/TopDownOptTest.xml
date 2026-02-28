@@ -106,7 +106,7 @@ EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}]
     <Resource name="sql">
       <![CDATA[select * from emp e
 join dept d on e.deptno=d.deptno
-order by e.ename, d.name]]>
+order by e.ename, d.dname]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -156,7 +156,7 @@ EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
     <Resource name="sql">
       <![CDATA[select * from emp e
 left join dept d on e.deptno=d.deptno
-order by e.ename, d.name]]>
+order by e.ename, d.dname]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -181,7 +181,7 @@ EnumerableSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
     <Resource name="sql">
       <![CDATA[select * from dept d
 where exists (select 1 from emp e where e.deptno=d.deptno)
-order by d.name]]>
+order by d.dname]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
