@@ -19,6 +19,8 @@
 # Pages such as developer.md use this data.
 # List must be sorted by first name, last name.
 #
+# lint: sort until '# End contributors.yml' where '- name: (.*)'
+
 - name: Alan Gates
   emeritus: 2018/05/04
   apacheId: gates
@@ -337,6 +339,12 @@
   githubId: stevenn
   org: NGData
   role: PMC
+- name: TJ Banghart
+  apacheId: tjbanghart
+  githubId: tjbanghart
+  pronouns: he/him
+  org: Google
+  role: Committer
 - name: Tanner Clary
   apacheId: tanner
   githubId: tanclary
@@ -353,12 +361,6 @@
   githubId: thomasrebele
   pronouns: he/him
   org: Cloudera
-  role: Committer
-- name: TJ Banghart
-  apacheId: tjbanghart
-  githubId: tjbanghart
-  pronouns: he/him
-  org: Google
   role: Committer
 - name: Vineet Garg
   apacheId: vgarg

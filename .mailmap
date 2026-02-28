@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# lint: sort until '# End .mailmap' where '^([A-Z][^#].*)'
+
 Abhishek Dasgupta <abhishekdasgupta005@gmail.com>
 Adam Kennedy <adamkennedybackup@gmail.com>
 Alan Jin <jinlantao@gmail.com>
@@ -190,3 +192,4 @@ Zhong Yu <yuzhong.yz@alibaba-inc.com>
 zhuyufeng <comeonyfzhu@163.com>
 Zou Dan <zoudan@bytedance.com>
 Zuozhi Wang <zuozhi.wzz@alibaba-inc.com>
+# End .mailmap
