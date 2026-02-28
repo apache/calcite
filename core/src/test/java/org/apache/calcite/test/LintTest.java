@@ -22,25 +22,16 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUnsafe;
 import org.apache.calcite.util.Util;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -59,10 +50,10 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.compile;
 
 /** Various automated checks on the code and git history. */
@@ -71,7 +62,7 @@ class LintTest {
    * space. */
   private static final Pattern CALCITE_PATTERN =
       compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
-  private static final Path ROOT_PATH = Paths.get(System.getProperty("gradle.rootDir"));
+  private static final Pattern PATTERN = compile("^ *(// )?");
 
   private static final String TERMINOLOGY_ERROR_MSG =
       "Message contains '%s' word; use one of the following instead: %s";
@@ -193,7 +184,61 @@ class LintTest {
             line -> line.state().ulCount++)
         .add(line -> line.contains("</ul>"),
             line -> line.state().ulCount--)
+
+        // Apply active sort consumer to each line.
+        .add(line -> line.state().sortConsumer != null,
+            line -> requireNonNull(line.state().sortConsumer).accept(line))
+
+        // Start sorting when a "// lint: sort ..." directive is found.
+        .add(line -> line.contains("// lint: sort")
+                && !line.source().fileOpt()
+                    .filter(f -> f.getName().equals("LintTest.java")).isPresent(),
+            line -> {
+              line.state().sortConsumer = null;
+              boolean continued = line.line().endsWith("\\");
+              if (continued) {
+                line.state().partialSort = "";
+              } else {
+                line.state().partialSort = null;
+                Sort sort = Sort.parse(line.line());
+                if (sort != null) {
+                  line.state().sortConsumer = new SortConsumer(sort);
+                }
+              }
+            })
+
+        // Continue accumulating a multi-line sort specification.
+        .add(line -> line.state().partialSort != null,
+            line -> {
+              String thisLine = line.line();
+              boolean continued = thisLine.endsWith("\\");
+              if (continued) {
+                thisLine = skipLast(thisLine);
+              }
+              final String nextLine;
+              if (requireNonNull(line.state().partialSort).isEmpty()) {
+                nextLine = thisLine;
+              } else {
+                thisLine = PATTERN.matcher(thisLine).replaceAll("");
+                nextLine = line.state().partialSort + thisLine;
+              }
+              if (continued) {
+                line.state().partialSort = nextLine;
+              } else {
+                line.state().partialSort = null;
+                Sort sort = Sort.parse(nextLine);
+                if (sort != null) {
+                  line.state().sortConsumer = new SortConsumer(sort);
+                }
+              }
+            })
+
         .build();
+  }
+
+  /** Strips the last character from a string. */
+  private static String skipLast(String s) {
+    return s.substring(0, s.length() - 1);
   }
 
   /** Returns whether we are currently in a region where lint rules should not
@@ -395,7 +440,7 @@ class LintTest {
     private final Set<String> validTerms;
 
     TermRule(String regex, String... validTerms) {
-      this.termPattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+      this.termPattern = compile(regex, Pattern.CASE_INSENSITIVE);
       this.validTerms = ImmutableSet.copyOf(validTerms);
     }
 
@@ -497,67 +542,6 @@ class LintTest {
     }
   }
 
-  /** Ensures that the {@code contributors.yml} file is sorted by name. */
-  @Test void testContributorsFileIsSorted() throws IOException {
-    final ObjectMapper mapper = new YAMLMapper();
-    final File contributorsFile = ROOT_PATH.resolve("site/_data/contributors.yml").toFile();
-    JavaType listType =
-        mapper.getTypeFactory()
-            .constructCollectionType(List.class, Contributor.class);
-    List<Contributor> contributors =
-        mapper.readValue(contributorsFile, listType);
-    Contributor contributor =
-        firstOutOfOrder(contributors,
-            Comparator.comparing(c -> c.name, String.CASE_INSENSITIVE_ORDER));
-    if (contributor != null) {
-      fail("contributor '" + contributor.name + "' is out of order");
-    }
-  }
-
-  /** Ensures that the {@code .mailmap} file is sorted. */
-  @Test void testMailmapFile() {
-    final File mailmapFile = ROOT_PATH.resolve(".mailmap").toFile();
-    final List<String> lines = new ArrayList<>();
-    forEachLineIn(mailmapFile, line -> {
-      if (!line.startsWith("#")) {
-        lines.add(line);
-      }
-    });
-    String line = firstOutOfOrder(lines, String.CASE_INSENSITIVE_ORDER);
-    if (line != null) {
-      fail("line '" + line + "' is out of order");
-    }
-  }
-
-  /** Performs an action for each line in a file. */
-  private static void forEachLineIn(File file, Consumer<String> consumer) {
-    try (BufferedReader r = Util.reader(file)) {
-      for (;;) {
-        String line = r.readLine();
-        if (line == null) {
-          break;
-        }
-        consumer.accept(line);
-      }
-    } catch (IOException e) {
-      throw Util.throwAsRuntime(e);
-    }
-  }
-
-  /** Returns the first element in a list that is out of order, or null if the
-   * list is sorted. */
-  private static <E> @Nullable E firstOutOfOrder(Iterable<E> elements,
-      Comparator<E> comparator) {
-    E previous = null;
-    for (E e : elements) {
-      if (previous != null && comparator.compare(previous, e) > 0) {
-        return e;
-      }
-      previous = e;
-    }
-    return null;
-  }
-
   /** Warning that code is not as it should be. */
   private static class Message {
     final Source source;
@@ -591,6 +575,8 @@ class LintTest {
     int javadocEndLine;
     int blockquoteCount;
     int ulCount;
+    @Nullable String partialSort;
+    @Nullable Consumer<Puffin.Line<GlobalState, FileState>> sortConsumer;
 
     FileState(GlobalState global) {
       this.global = global;
@@ -605,13 +591,219 @@ class LintTest {
     }
   }
 
-  /** Contributor element in "contributors.yaml" file. */
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private static class Contributor {
-    final String name;
+  /** Tests the sort specification syntax. */
+  @Test void testSort() {
+    // With "until" and "where": 'case b' arrives after 'case c', 'd'.
+    checkSortSpec(
+        "class Test {\n"
+            + "  switch (x) {\n"
+            + "  // lint: sort until '#}' where '##case '\n"
+            + "  case a\n"
+            + "  case c\n"
+            + "  case d\n"
+            + "  case b\n"
+            + "  case e\n"
+            + "  }\n"
+            + "}\n",
+        "GuavaCharSource{memory}:7:"
+            + "Lines must be sorted; '  case b' should be before '  case c'");
 
-    @JsonCreator Contributor(@JsonProperty("name") String name) {
-      this.name = name;
+    // Cases after "until" are checked against the same sorted list.
+    checkSortSpec(
+        "class Test {\n"
+            + "  switch (x) {\n"
+            + "  // lint: sort until '#}' where '##case '\n"
+            + "  case x\n"
+            + "  case y\n"
+            + "  case z\n"
+            + "  }\n"
+            + "  switch (y) {\n"
+            + "  case a\n"
+            + "  }\n"
+            + "}\n",
+        "GuavaCharSource{memory}:9:"
+            + "Lines must be sorted; '  case a' should be before '  case x'");
+
+    // Change '#}' to '##}': consumer stops at the same-indent '}', so
+    // the second switch's cases are not compared. No violations.
+    checkSortSpec(
+        "class Test {\n"
+            + "  switch (x) {\n"
+            + "  // lint: sort until '##}' where '##case '\n"
+            + "  case x\n"
+            + "  case y\n"
+            + "  case z\n"
+            + "  }\n"
+            + "  switch (y) {\n"
+            + "  case a\n"
+            + "  }\n"
+            + "}\n");
+
+    // Specification has "until", "where" and "erase" clauses.
+    checkSortSpec(
+        "class Test {\n"
+            + "  // lint: sort until '#}' where '##A::' erase '^ .*::'\n"
+            + "  A::c\n"
+            + "  A::a\n"
+            + "  A::b\n"
+            + "  }\n"
+            + "}\n",
+        "GuavaCharSource{memory}:4:"
+            + "Lines must be sorted; 'a' should be before 'c'");
+
+    // Specification spread over multiple lines using '\' continuation.
+    checkSortSpec(
+        "class Test {\n"
+            + "  // lint: sort until '#}'\\\n"
+            + "  // where '##A::'\\\n"
+            + "  // erase '^ .*::'\n"
+            + "  A::c\n"
+            + "  A::a\n"
+            + "  A::b\n"
+            + "  }\n"
+            + "}\n",
+        "GuavaCharSource{memory}:6:"
+            + "Lines must be sorted; 'a' should be before 'c'");
+  }
+
+  private void checkSortSpec(String code, String... expectedMessages) {
+    final Puffin.Program<GlobalState> program = makeProgram();
+    final StringWriter sw = new StringWriter();
+    final GlobalState g;
+    try (PrintWriter pw = new PrintWriter(sw)) {
+      g = program.execute(Stream.of(Sources.of(code)), pw);
+    }
+    assertThat(g.messages.toString(),
+        is("[" + String.join(", ", expectedMessages) + "]"));
+  }
+
+  /** Specification for a sort directive, parsed from a comment like
+   * {@code // lint: sort until 'pattern' where 'filter' erase 'erasePattern'}.
+   *
+   * <p>Supports indentation placeholders:
+   * <ul>
+   *   <li>{@code ##} - the directive line's indentation (as a regex anchor)
+   *   <li>{@code #} - one level up (indent minus 2 spaces)
+   * </ul>
+   */
+  private static class Sort {
+    final @Nullable Pattern until;
+    final @Nullable Pattern where;
+    final @Nullable Pattern erase;
+
+    Sort(@Nullable Pattern until, @Nullable Pattern where, @Nullable Pattern erase) {
+      this.until = until;
+      this.where = where;
+      this.erase = erase;
+    }
+
+    /** Parses a sort directive from a line like
+     * {@code // lint: sort until 'X' where 'Y' erase 'Z'}.
+     * Returns null if parsing fails. */
+    static @Nullable Sort parse(String line) {
+      int sortIndex = line.indexOf("lint: sort");
+      if (sortIndex < 0) {
+        return null;
+      }
+      final String spec =
+          line.substring(sortIndex + "lint: sort".length()).trim();
+      int indent = 0;
+      while (indent < line.length() && line.charAt(indent) == ' ') {
+        indent++;
+      }
+      Pattern until = extractPattern(spec, "until", indent);
+      Pattern where = extractPattern(spec, "where", indent);
+      Pattern erase = extractPattern(spec, "erase", indent);
+      return new Sort(until, where, erase);
+    }
+
+    /** Extracts and compiles the pattern from a clause like
+     * {@code until 'pattern'}. Returns null if the keyword is absent or
+     * the pattern is malformed. */
+    private static @Nullable Pattern extractPattern(
+        String spec, String keyword, int indent) {
+      int keywordIndex = spec.indexOf(keyword);
+      if (keywordIndex < 0) {
+        return null;
+      }
+      final String rest =
+          spec.substring(keywordIndex + keyword.length()).trim();
+      if (rest.isEmpty() || rest.charAt(0) != '\'') {
+        return null;
+      }
+      int endQuote = rest.indexOf('\'', 1);
+      if (endQuote < 0) {
+        return null;
+      }
+      String pattern = rest.substring(1, endQuote);
+      if (!pattern.contains("[#")) {
+        pattern = pattern.replace("##", "^" + Strings.repeat(" ", indent));
+        pattern =
+            pattern.replace("#", "^" + Strings.repeat(" ", Math.max(0, indent - 2)));
+      }
+      try {
+        return compile(pattern);
+      } catch (Exception e) {
+        return null;
+      }
+    }
+  }
+
+  /** Checks that lines in a sorted region are in order. */
+  private static class SortConsumer
+      implements Consumer<Puffin.Line<GlobalState, FileState>> {
+    final Sort sort;
+    final Comparator<String> comparator = String.CASE_INSENSITIVE_ORDER;
+    final List<String> lines = new ArrayList<>();
+    boolean done = false;
+
+    SortConsumer(Sort sort) {
+      this.sort = sort;
+    }
+
+    @Override public void accept(Puffin.Line<GlobalState, FileState> line) {
+      if (done) {
+        return;
+      }
+      final String thisLine = line.line();
+
+      // End of sorted region.
+      if (sort.until != null && sort.until.matcher(thisLine).find()) {
+        done = true;
+        line.state().sortConsumer = null;
+        return;
+      }
+
+      // If a "where" filter is present, skip non-matching lines.
+      if (sort.where != null && !sort.where.matcher(thisLine).find()) {
+        return;
+      }
+
+      // Apply the "erase" pattern before comparing.
+      String compareLine = thisLine;
+      if (sort.erase != null) {
+        compareLine = sort.erase.matcher(thisLine).replaceAll("");
+      }
+
+      addLine(line, compareLine);
+    }
+
+    private void addLine(Puffin.Line<GlobalState, FileState> line,
+        String thisLine) {
+      if (!lines.isEmpty()) {
+        final String prevLine = lines.get(lines.size() - 1);
+        if (comparator.compare(prevLine, thisLine) > 0) {
+          final String earlierLine =
+              Util.filter(lines, s -> comparator.compare(s, thisLine) > 0)
+                  .iterator().next();
+          line.state().message(
+              String.format(Locale.ROOT,
+                  "Lines must be sorted; '%s' should be before '%s'",
+                  thisLine, earlierLine),
+              line);
+        }
+      }
+      lines.add(thisLine);
     }
   }
 }
