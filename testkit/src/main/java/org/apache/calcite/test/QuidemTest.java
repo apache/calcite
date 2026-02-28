@@ -56,6 +56,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.io.PatternFilenameFilter;
 
 import net.hydromatic.quidem.AbstractCommand;
+import net.hydromatic.quidem.Command;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
@@ -75,6 +76,8 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -143,6 +146,56 @@ public abstract class QuidemTest {
         x.echo(content);
       }
       x.echo(lines);
+    }
+  }
+
+  /** Implements the {@code !rule-plan "RULE1[; RULE2 ...]"} quidem directive.
+   *
+   * <p>Runs {@code EXPLAIN PLAN FOR} with a HEP pass containing exactly the
+   * named {@link CoreRules} fields. An empty string applies no rules.
+   * Does not affect the global rule set.
+   */
+  public static class RulePlanCommand extends AbstractCommand {
+    private final ImmutableList<String> lines;
+    private final ImmutableList<String> content;
+    private final String ruleSetArg;
+
+    public RulePlanCommand(List<String> lines,
+        List<String> content, String ruleSetArg) {
+      this.lines = ImmutableList.copyOf(lines);
+      this.content = ImmutableList.copyOf(content);
+      this.ruleSetArg = ruleSetArg;
+    }
+
+    @Override public void execute(Context ctx, boolean execute) throws Exception {
+      if (execute) {
+        final Program program = buildProgram(ruleSetArg);
+        try (Hook.Closeable ignored =
+                 Hook.PROGRAM.addThread(
+                     (Consumer<Holder<Program>>) holder -> holder.set(program));
+             Statement stmt = ctx.connection().createStatement();
+             ResultSet rs =
+                 stmt.executeQuery("EXPLAIN PLAN FOR " + ctx.previousSqlCommand().sql)) {
+          final String plan = rs.next() ? rs.getString(1).trim() : "";
+          ctx.echo(ImmutableList.copyOf(plan.split("\n")));
+        }
+      } else {
+        ctx.echo(content);
+      }
+      ctx.echo(lines);
+    }
+
+    /** Builds a {@link Program} from a rule-set argument string. */
+    public static Program buildProgram(String ruleSetArg) {
+      final List<RelOptRule> rules = new ArrayList<>();
+      for (String part : ruleSetArg.split(";")) {
+        final String token = part.trim();
+        if (!token.isEmpty()) {
+          rules.add(getCoreRule(token));
+        }
+      }
+      // Only the specified rules are applied
+      return Programs.hep(rules, false, DefaultRelMetadataProvider.INSTANCE);
     }
   }
 
@@ -446,6 +499,18 @@ public abstract class QuidemTest {
     }
   }
 
+  /** Parses a {@code !rule-plan "..."} line into a {@link RulePlanCommand},
+   * or returns {@code null} if the line does not match. */
+  public static @Nullable Command parseRulePlanCommand(
+      List<String> lines, List<String> content, String line) {
+    final Pattern pattern = Pattern.compile("rule-plan\\s+\"([^\"]*)\"");
+    final Matcher matcher = pattern.matcher(line);
+    if (matcher.matches()) {
+      return new RulePlanCommand(lines, content, matcher.group(1));
+    }
+    return null;
+  }
+
   public static RelOptRule getCoreRule(String ruleName) {
     try {
       Field ruleField = CoreRules.class.getField(ruleName);
@@ -498,7 +563,7 @@ public abstract class QuidemTest {
 
   /** Creates a command handler. */
   protected CommandHandler createCommandHandler() {
-    return Quidem.EMPTY_COMMAND_HANDLER;
+    return (lines, content, line) -> parseRulePlanCommand(lines, content, line);
   }
 
   /** Creates a connection factory. */

@@ -1,0 +1,112 @@
+# rule-plan.iq - Tests for the !rule-plan "RULE_SET" command
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# The !rule-plan "RULE_SET" command shows EXPLAIN PLAN output using a
+# custom per-query rule set, without affecting the global planner state.
+#
+# SYNTAX:
+# -------
+#   !rule-plan "RULE1[; RULE2 ...]"
+#   !rule-plan ""    (empty string = no rules applied)
+#
+# SEMANTICS:
+# ----------
+# - RULE_SET is a semicolon-separated list of CoreRules field names.
+# - Only the listed rules are applied in a single HEP pass; no base program
+#   (sub-query de-nesting, decorrelation, field trimming) is added.
+# - An empty string "" means no rules: the raw logical plan is shown.
+# - The command does NOT change the global rule set, so subsequent !ok
+#   commands still execute with the normal optimizer.
+
+!use scott
+!set outputformat mysql
+
+# [1] !rule-plan "" applies no rules, showing the raw logical plan.
+select deptno, job
+from (select deptno, job from emp as e1 group by deptno, job
+      union all
+      select deptno, job from emp as e2 group by deptno, job)
+group by deptno, job;
+LogicalAggregate(group=[{0, 1}])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], JOB=[$2])
+        LogicalTableScan(table=[[scott, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], JOB=[$2])
+        LogicalTableScan(table=[[scott, EMP]])
+!rule-plan ""
+
+# [2] !rule-plan "AGGREGATE_UNION_AGGREGATE" shows the plan after the
+#     AGGREGATE_UNION_AGGREGATE rule has been applied.
+select deptno, job
+from (select deptno, job from emp as e1 group by deptno, job
+      union all
+      select deptno, job from emp as e2 group by deptno, job)
+group by deptno, job;
+LogicalAggregate(group=[{0, 1}])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[scott, EMP]])
+!rule-plan "AGGREGATE_UNION_AGGREGATE"
+
+# [3] !rule-plan "..." does NOT affect subsequent !ok commands.
+#     The following !ok uses the normal Volcano-based optimizer,
+#     so it returns the correct result set.
+select deptno, job
+from (select deptno, job from emp as e1 group by deptno, job
+      union all
+      select deptno, job from emp as e2 group by deptno, job)
+group by deptno, job
+order by 1, 2;
++--------+-----------+
+| DEPTNO | JOB       |
++--------+-----------+
+|     10 | CLERK     |
+|     10 | MANAGER   |
+|     10 | PRESIDENT |
+|     20 | ANALYST   |
+|     20 | CLERK     |
+|     20 | MANAGER   |
+|     30 | CLERK     |
+|     30 | MANAGER   |
+|     30 | SALESMAN  |
++--------+-----------+
+(9 rows)
+
+!ok
+
+# [4] Multiple rules can be composed: apply AGGREGATE_UNION_AGGREGATE to
+#     a query whose column order differs (JOB, DEPTNO).  Then verify with
+#     !ok that the result set is still produced by the normal optimizer.
+select job, deptno
+from (select job, deptno from emp as e1 group by job, deptno
+      union all
+      select job, deptno from emp as e2 group by job, deptno)
+group by job, deptno;
+LogicalAggregate(group=[{0, 1}])
+  LogicalUnion(all=[true])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+    LogicalProject(JOB=[$2], DEPTNO=[$7])
+      LogicalTableScan(table=[[scott, EMP]])
+!rule-plan "AGGREGATE_UNION_AGGREGATE"
+
+# End rule-plan.iq

@@ -207,11 +207,25 @@ public class CoreQuidemTest extends QuidemTest {
     return new ExtendedCommandHandler();
   }
 
-  /** Command handler that adds a "!explain-validated-on dialect..." command
-   * (see {@link QuidemTest.ExplainValidatedCommand}). */
+  /** Command handler that adds the {@code !explain-validated-on} and
+   * {@code !rule-plan} directives.
+   *
+   * <ul>
+   *   <li>a {@code !explain-validated-on dialect...} command
+   *       (see {@link QuidemTest.ExplainValidatedCommand});
+   *   <li>a {@code !rule-plan "RULE1[; RULE2 ...]"} command
+   *       (see {@link QuidemTest.RulePlanCommand}).
+   * </ul>
+   */
   private static class ExtendedCommandHandler implements CommandHandler {
     @Override public @Nullable Command parseCommand(List<String> lines,
         List<String> content, String line) {
+      // Handle: !rule-plan "[RULE1[; RULE2 ...]]"
+      final Command planCmd =
+          QuidemTest.parseRulePlanCommand(lines, content, line);
+      if (planCmd != null) {
+        return planCmd;
+      }
       final String prefix = "explain-validated-on";
       if (line.startsWith(prefix)) {
         final Pattern pattern =
