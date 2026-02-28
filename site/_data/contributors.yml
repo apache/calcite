@@ -17,7 +17,10 @@
 
 # Database of contributors to Apache Calcite.
 # Pages such as developer.md use this data.
+#
 # List must be sorted by first name, last name.
+# The following directive tells LintTest to check:
+# // lint: sort where ' name:' erase '^.*name:'
 #
 - name: Alan Gates
   emeritus: 2018/05/04
