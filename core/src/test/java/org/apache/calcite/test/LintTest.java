@@ -67,6 +67,7 @@ class LintTest {
    * space. */
   private static final Pattern CALCITE_PATTERN =
       compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
+  private static final Pattern PATTERN = compile("^ *(// )?");
   private static final Path ROOT_PATH = Paths.get(System.getProperty("gradle.rootDir"));
 
   private static final String TERMINOLOGY_ERROR_MSG =
@@ -224,7 +225,7 @@ class LintTest {
               if (requireNonNull(line.state().partialSort).isEmpty()) {
                 nextLine = thisLine;
               } else {
-                thisLine = thisLine.replaceAll("^ *(// )?", "");
+                thisLine = PATTERN.matcher(thisLine).replaceAll("");
                 nextLine = line.state().partialSort + thisLine;
               }
               if (continued) {
@@ -445,7 +446,7 @@ class LintTest {
     private final Set<String> validTerms;
 
     TermRule(String regex, String... validTerms) {
-      this.termPattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+      this.termPattern = compile(regex, Pattern.CASE_INSENSITIVE);
       this.validTerms = ImmutableSet.copyOf(validTerms);
     }
 
