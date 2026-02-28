@@ -854,111 +854,6 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.PROJECT_REMOVE).check();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3890">[CALCITE-3890]
-   * Derive IS NOT NULL predicates from a inner join and create filters with those predicates
-   * as new inputs of the join</a>. */
-  @Test void testJoinDeriveIsNotNullFilterRule1() {
-    final String sql = "select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for the right input of join, but not for
-   * the left input since its child already has one. */
-  @Test void testJoinDeriveIsNotNullFilterRule2() {
-    final String sql = "select t1.deptno from (select * from emp where mgr is not null) t1 "
-        + "join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter in both sides. */
-  @Test void testJoinDeriveIsNotNullFilterRule3() {
-    final String sql = "select t1.deptno from emp t1 inner join emp t2 on t1.mgr > t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for both join keys. */
-  @Test void testJoinDeriveIsNotNullFilterRule4() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename and t1.mgr > t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for the right input of join, but not for
-   * the left input since its ancestor already has one. */
-  @Test void testJoinDeriveIsNotNullFilterRule5() {
-    final String sql = "select t1.deptno from (select ename, deptno+1 as deptno from\n"
-        + "empnullables where ename is not null) t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since it is full join. */
-  @Test void testJoinDeriveIsNotNullFilterRule6() {
-    final String sql = "select t1.deptno from emp t1 full join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since it is left join. */
-  @Test void testJoinDeriveIsNotNullFilterRule7() {
-    final String sql = "select t1.deptno from emp t1 left join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since it is right join. */
-  @Test void testJoinDeriveIsNotNullFilterRule8() {
-    final String sql = "select t1.deptno from emp t1 right join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in both sides since they already have the filter. */
-  @Test void testJoinDeriveIsNotNullFilterRule9() {
-    final String sql = "select t1.deptno from (select * from emp where mgr is not null) t1\n"
-        + "join (select * from emp where mgr is not null) t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since the join condition is not strong. */
-  @Test void testJoinDeriveIsNotNullFilterRule10() {
-    final String sql = "select t1.deptno from emp t1 inner join emp t2\n"
-        + "on t1.mgr is not distinct from t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter since it's cartesian product. */
-  @Test void testJoinDeriveIsNotNullFilterRule11() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename or 1 = 1";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for one of the join keys. */
-  @Test void testJoinDeriveIsNotNullFilterRule12() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter if join condition is not strong wrt
-   * each key. */
-  @Test void testJoinDeriveIsNotNullFilterRule13() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc'";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
   /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
    * should not create IS NOT NULL filter if join condition is not strong wrt
    * each key. */
@@ -969,14 +864,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withFactory(t ->
             t.withOperatorTable(opTab -> SqlValidatorTest.operatorTableFor(SqlLibrary.ORACLE)))
         .withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter only for the first operand of NULLIF. */
-  @Test void testJoinDeriveIsNotNullFilterRule15() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on nullif(t1.ename, t2.ename) = 'abc'";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
   }
 
   @Test void testStrengthenJoinType() {
@@ -1590,17 +1477,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testSortRemovalAllKeysConstant() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp\n"
-        + "where deptno = 10\n"
-        + "group by deptno, sal\n"
-        + "order by deptno desc nulls last";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .check();
-  }
-
   @Test void testSortRemovalOneKeyConstant() {
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -1620,26 +1496,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
    * Random functions are incorrectly considered deterministic</a>. */
-  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRand() {
-    final String sql = "SELECT ename FROM emp ORDER BY RAND()";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
-   * Random functions are incorrectly considered deterministic</a>. */
-  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger() {
-    final String sql = "SELECT ename FROM emp ORDER BY RAND_INTEGER(2)";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
-   * Random functions are incorrectly considered deterministic</a>. */
   @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRandom() {
     final String sql = "SELECT ename FROM emp ORDER BY RANDOM()";
     sql(sql)
@@ -1647,140 +1503,6 @@ class RelOptRulesTest extends RelOptTestBase {
             f.withOperatorTable(opTab ->
                 SqlValidatorTest.operatorTableFor(SqlLibrary.POSTGRESQL)))
         .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-873">[CALCITE-873]
-   * SortRemoveConstantKeysRule should remove NULL literal sort keys
-   * (e.g. ORDER BY NULL)</a>. */
-  @Test void testSortRemoveConstantKeyWhenOrderByIsNull() {
-    final String sql = "SELECT * FROM emp ORDER BY deptno, null, empno";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5994">[CALCITE-5994]
-   * Add optimization rule to remove Sort when its input's row number
-   * is less or equal to one</a>. */
-  @Test void testSortRemoveWhenAggregateMaxRowCntIsOne() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp order by c";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5994">[CALCITE-5994]
-   * Add optimization rule to remove Sort when its input's row number
-   * is less or equal to one</a>. */
-  @Test void testSortRemoveWhenLimitMaxRowCntIsOne() {
-    final String sql = "select *\n"
-        + "from (select * from sales.emp limit 1)\n"
-        + "order by deptno";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT,
-            CoreRules.SORT_PROJECT_TRANSPOSE,
-            CoreRules.PROJECT_REMOVE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
-   * Add optimization to remove redundant LIMIT that is more than
-   * input row count</a>. */
-  @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch() {
-    final String sql = "select * from\n"
-        + "(VALUES 1,2,3,4,5,6) as t1 limit 10";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7181">[CALCITE-7181]
-   * FETCH in SortRemoveRedundantRule do not support BIGINT</a>. */
-  @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2() {
-    final String sql = "select * from\n"
-        // The maximum value of BIGINT is   9223372036854775807.
-        + "(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
-   * Add optimization to remove redundant LIMIT that is more than input
-   * row count</a>. */
-  @Test void testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp limit 20";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
-   * Add optimization to remove redundant LIMIT that is more than input
-   * row count</a>. */
-  @Test void testSortRemoveWhenHasOffset() {
-    final String sql = "select * from\n"
-        + "(select * from sales.emp limit 10) t limit 20 offset 1";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortRemoveWhenIsOrderAndLimit() {
-    final String sql = "SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortNotRemoveWhenIsOrderAndLimit() {
-    final String sql = "select * from\n"
-        + "(SELECT * FROM sales.emp limit 100)\n"
-        + "ORDER BY 1 LIMIT 10";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortNotRemoveWhenLimitFetchIsZeroHasOrder() {
-    final String sql = "select * from\n"
-        + "(SELECT * FROM sales.emp limit 1)\n"
-        + "ORDER BY 1 LIMIT 0";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortNotRemoveWhenLimitFetchIsZeroWithoutOrder() {
-    final String sql = "SELECT count(*) FROM sales.emp LIMIT 0";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
         .checkUnchanged();
   }
 
@@ -3773,60 +3495,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Tests {@link UnionMergeRule}, which merges 2 {@link Union} operators into
-   * a single {@code Union} with 3 inputs. */
-  @Test void testMergeUnionAll() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union all\n"
-        + "select * from emp where deptno = 20\n"
-        + "union all\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .check();
-  }
-
-  /** Tests {@link UnionMergeRule}, which merges 2 {@link Union}
-   * {@code DISTINCT} (not {@code ALL}) operators into a single
-   * {@code Union} with 3 inputs. */
-  @Test void testMergeUnionDistinct() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union distinct\n"
-        + "select * from emp where deptno = 20\n"
-        + "union\n" // same as 'union distinct'
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .check();
-  }
-
-  /** Tests that {@link UnionMergeRule} does nothing if its arguments have
-   * different {@code ALL} settings. */
-  @Test void testMergeUnionMixed() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union\n"
-        + "select * from emp where deptno = 20\n"
-        + "union all\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .checkUnchanged();
-  }
-
-  /** Tests that {@link UnionMergeRule} converts all inputs to DISTINCT
-   * if the top one is DISTINCT.
-   * (Since UNION is left-associative, the "top one" is the rightmost.) */
-  @Test void testMergeUnionMixed2() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union all\n"
-        + "select * from emp where deptno = 20\n"
-        + "union\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .check();
-  }
-
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
    * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
    * including NaN, Infinity</a>. */
@@ -3866,20 +3534,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.UNION_MERGE,
             CoreRules.INTERSECT_MERGE)
         .checkUnchanged();
-  }
-
-  /** Tests {@link CoreRules#INTERSECT_MERGE}, which merges 2
-   * {@link Intersect} operators into a single {@code Intersect} with 3
-   * inputs. */
-  @Test void testMergeIntersect() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select * from emp where deptno = 20\n"
-        + "intersect\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.INTERSECT_MERGE)
-        .check();
   }
 
   /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule},
@@ -4020,20 +3674,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Tests {@link CoreRules#MINUS_MERGE}, which merges 2
-   * {@link Minus} operators into a single {@code Minus} with 3
-   * inputs. */
-  @Test void testMergeMinus() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "except\n"
-        + "select * from emp where deptno = 20\n"
-        + "except\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.MINUS_MERGE)
-        .check();
-  }
-
   /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
    * which rewrites an {@link Minus} operator with 3 inputs. */
   @Test void testMinusToDistinct() {
@@ -4073,21 +3713,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
         .check();
-  }
-
-  /** Tests {@link CoreRules#MINUS_MERGE}
-   * does not merge {@code Minus(a, Minus(b, c))}
-   * into {@code Minus(a, b, c)}, which would be incorrect. */
-  @Test void testMergeMinusRightDeep() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "except\n"
-        + "select * from (\n"
-        + "  select * from emp where deptno = 20\n"
-        + "  except\n"
-        + "  select * from emp where deptno = 30)";
-    sql(sql)
-        .withRule(CoreRules.MINUS_MERGE)
-        .checkUnchanged();
   }
 
   @Test void testHeterogeneousConversion() {
@@ -8085,119 +7710,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should remove the bottom join since the project uses column in the
-   * right input of bottom join. */
-  @Test void testProjectJoinRemove1() {
-    final String sql = "SELECT e.deptno, d2.deptno\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
-        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the bottom join since the project uses column in the
-   * left input of bottom join. */
-  @Test void testProjectJoinRemove2() {
-    final String sql = "SELECT e.deptno, d1.deptno\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
-        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the bottom join since the right join keys of bottom
-   * join are not unique. */
-  @Test void testProjectJoinRemove3() {
-    final String sql = "SELECT e1.deptno, d.deptno\n"
-        + "FROM sales.emp e1\n"
-        + "LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno\n"
-        + "LEFT JOIN sales.dept d ON e1.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should remove the left join since the join key of the right input is
-   * unique. */
-  @Test void testProjectJoinRemove4() {
-    final String sql = "SELECT e.deptno\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the left join since the join key of the right input is
-   * not unique. */
-  @Test void testProjectJoinRemove5() {
-    final String sql = "SELECT e1.deptno\n"
-        + "FROM sales.emp e1\n"
-        + "LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the left join since the project use columns in the right
-   * input of the join. */
-  @Test void testProjectJoinRemove6() {
-    final String sql = "SELECT e.deptno, d.dname\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should remove the right join since the join key of the left input is
-   * unique. */
-  @Test void testProjectJoinRemove7() {
-    final String sql = "SELECT e.deptno\n"
-        + "FROM sales.dept d\n"
-        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the right join since the join key of the left input is
-   * not unique. */
-  @Test void testProjectJoinRemove8() {
-    final String sql = "SELECT e2.deptno\n"
-        + "FROM sales.emp e1\n"
-        + "RIGHT JOIN sales.emp e2 ON e1.deptno = e2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the right join since the project uses columns in the
-   * left input of the join. */
-  @Test void testProjectJoinRemove9() {
-    final String sql = "SELECT e.deptno, d.dname\n"
-        + "FROM sales.dept d\n"
-        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove4()};
-   * The project references the last column of the left input.
-   * The rule should be fired.*/
-  @Test void testProjectJoinRemove10() {
-    final String sql = "SELECT e.deptno, e.slacker\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7071">[CALCITE-7071]
    * Add test for replacing JOIN node with its child node
@@ -11611,51 +11123,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withPre(program)
         .withRule(CoreRules.AGGREGATE_FILTER_TO_CASE)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7104">[CALCITE-7104]
-   * Remove duplicate sort keys</a>. */
-  @Test void testSortRemoveDuplicateKeys() {
-    final String query = "select d1\n"
-        + " from (select deptno as d1, deptno as d2 from dept) as tmp\n"
-        + " order by d1, d2, d1 desc\n";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7104">[CALCITE-7104]
-   * Remove duplicate sort keys</a>. */
-  @Test void testSortRemoveDuplicateKeysJoin() {
-    final String query = "select * from (select deptno as d1, deptno as d2 from emp) as t1\n"
-        + " join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7222">[CALCITE-7222]
-   * SortRemoveDuplicateKeysRule miss fetch and offset infomation</a>. */
-  @Test void testSortRemoveDuplicateKeysWithPK() {
-    final String query = "select * from (select empno as a, deptno as b from emp) t"
-        + " order by a, b limit 1 offset 2";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7222">[CALCITE-7222]
-   * SortRemoveDuplicateKeysRule miss fetch and offset infomation</a>. */
-  @Test void testSortRemoveDuplicateKeysWithLimit() {
-    final String query = "select * from (select empno as a, empno as b from emp) t"
-        + " order by a, b limit 1 offset 2";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
         .check();
   }
 

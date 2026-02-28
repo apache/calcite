@@ -1,0 +1,339 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to removing redundant sorts
+# (SORT_REMOVE_CONSTANT_KEYS, SORT_REMOVE_REDUNDANT, SORT_REMOVE_DUPLICATE_KEYS).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testSortNotRemoveWhenIsOrderAndLimit ----------------------------------------
+# SORT_REMOVE_REDUNDANT should not remove sort when input has potentially more
+# than one row.
+
+select * from
+(SELECT * FROM sales.emp limit 100)
+ORDER BY 1 LIMIT 10;
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[100])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[100])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortNotRemoveWhenLimitFetchIsZeroHasOrder --------------------------------
+# SORT_REMOVE_REDUNDANT should not remove sort with LIMIT 0.
+
+select * from
+(SELECT * FROM sales.emp limit 1)
+ORDER BY 1 LIMIT 0;
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[1])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[1])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortNotRemoveWhenLimitFetchIsZeroWithoutOrder ----------------------------
+# SORT_REMOVE_REDUNDANT should not remove a limit of zero.
+
+SELECT count(*) FROM sales.emp LIMIT 0;
+LogicalSort(fetch=[0])
+  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(fetch=[0])
+  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemovalAllKeysConstant ----------------------------------------------
+# SORT_REMOVE_CONSTANT_KEYS should remove all sort keys when they are all
+# constant (group-by column filtered with equality).
+
+select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal
+order by deptno desc nulls last;
+LogicalProject(C=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+    LogicalProject(C=[$2], DEPTNO=[$0])
+      LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(C=[$0])
+  LogicalProject(C=[$2], DEPTNO=[$0])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+      LogicalProject(DEPTNO=[$7], SAL=[$5])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_CONSTANT_KEYS"
+
+# testSortRemoveConstantKeyDoesNotRemoveOrderByRand ---------------------------
+# SORT_REMOVE_CONSTANT_KEYS should not remove ORDER BY RAND() because RAND()
+# is non-deterministic.
+# [CALCITE-6507]
+
+SELECT ename FROM emp ORDER BY RAND();
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_CONSTANT_KEYS"
+
+# testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger --------------------
+# SORT_REMOVE_CONSTANT_KEYS should not remove ORDER BY RAND_INTEGER() because
+# RAND_INTEGER() is non-deterministic.
+# [CALCITE-6507]
+
+SELECT ename FROM emp ORDER BY RAND_INTEGER(2);
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RAND_INTEGER(2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RAND_INTEGER(2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_CONSTANT_KEYS"
+
+# testSortRemoveConstantKeyWhenOrderByIsNull -----------------------------------
+# SORT_REMOVE_CONSTANT_KEYS should remove NULL literal sort keys.
+# [CALCITE-873]
+
+SELECT * FROM emp ORDER BY deptno, null, empno;
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalSort(sort0=[$7], sort1=[$9], sort2=[$0], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[null:NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalSort(sort0=[$7], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[null:NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_CONSTANT_KEYS"
+
+# testSortRemoveDuplicateKeys -------------------------------------------------
+# SORT_REMOVE_DUPLICATE_KEYS should remove duplicate sort keys.
+# [CALCITE-7104]
+
+select d1
+from (select deptno as d1, deptno as d2 from dept) as tmp
+order by d1, d2, d1 desc;
+LogicalProject(D1=[$0])
+  LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+    LogicalProject(D1=[$0], D2=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(D1=[$0])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(D1=[$0], D2=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_REMOVE_DUPLICATE_KEYS"
+
+# testSortRemoveDuplicateKeysJoin ---------------------------------------------
+# SORT_REMOVE_DUPLICATE_KEYS should remove duplicate sort keys in a join.
+# [CALCITE-7104]
+
+select * from (select deptno as d1, deptno as d2 from emp) as t1
+join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST;
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalProject(D1=[$7], D2=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalProject(D1=[$7], D2=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_DUPLICATE_KEYS"
+
+# testSortRemoveDuplicateKeysWithLimit ----------------------------------------
+# SORT_REMOVE_DUPLICATE_KEYS should preserve fetch and offset when removing
+# duplicate sort keys.
+# [CALCITE-7222]
+
+select * from (select empno as a, empno as b from emp) t order by a, b limit 1 offset 2;
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_DUPLICATE_KEYS"
+
+# testSortRemoveDuplicateKeysWithPK -------------------------------------------
+# SORT_REMOVE_DUPLICATE_KEYS should preserve fetch and offset when the sort has
+# a primary key column.
+# [CALCITE-7222]
+
+select * from (select empno as a, deptno as b from emp) t order by a, b limit 1 offset 2;
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
+  LogicalProject(A=[$0], B=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_DUPLICATE_KEYS"
+
+# testSortRemoveWhenAggregateMaxRowCntIsOne -----------------------------------
+# SORT_REMOVE_REDUNDANT should remove sort when aggregate produces at most one
+# row.
+# [CALCITE-5994]
+
+select count(*) as c
+from sales.emp order by c;
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], C=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemoveWhenHasOffset -------------------------------------------------
+# SORT_REMOVE_REDUNDANT should not remove sort when it has an offset.
+# [CALCITE-6009]
+
+select * from
+(select * from sales.emp limit 10) t limit 20 offset 1;
+LogicalSort(offset=[1], fetch=[20])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(offset=[1], fetch=[20])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch --------------
+# SORT_REMOVE_REDUNDANT should remove LIMIT when aggregate produces at most one
+# row and the limit is greater than 1.
+# [CALCITE-6009]
+
+select count(*) as c
+from sales.emp limit 20;
+LogicalSort(fetch=[20])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], C=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch -----------------
+# SORT_REMOVE_REDUNDANT should remove LIMIT when VALUES row count is less than
+# or equal to the limit.
+# [CALCITE-6009]
+
+select * from
+(VALUES 1,2,3,4,5,6) as t1 limit 10;
+LogicalSort(fetch=[10])
+  LogicalProject(T1=[$0])
+    LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+!sub-plan "NONE"
+LogicalProject(T1=[$0])
+  LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2 ----------------
+# SORT_REMOVE_REDUNDANT should handle BIGINT fetch values.
+# [CALCITE-7181]
+
+select * from
+(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807;
+LogicalSort(fetch=[9823372036854775807:DECIMAL(19, 0)])
+  LogicalProject(T1=[$0])
+    LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+!sub-plan "NONE"
+LogicalProject(T1=[$0])
+  LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemoveWhenIsOrderAndLimit -------------------------------------------
+# SORT_REMOVE_REDUNDANT should remove ORDER BY with LIMIT when input aggregate
+# has at most one row.
+# [CALCITE-6038]
+
+SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10;
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT"
+
+# testSortRemoveWhenLimitMaxRowCntIsOne ---------------------------------------
+# SORT_REMOVE_REDUNDANT should remove sort when input is limited to one row.
+# [CALCITE-5994]
+
+select *
+from (select * from sales.emp limit 1)
+order by deptno;
+LogicalSort(sort0=[$7], dir0=[ASC])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[1])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalSort(fetch=[1])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_REMOVE_REDUNDANT, SORT_PROJECT_TRANSPOSE, PROJECT_REMOVE"
+
+# End sort-remove.iq

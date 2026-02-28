@@ -1,0 +1,311 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testJoinDeriveIsNotNullFilterRule1 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filters for both
+# inputs of an inner join.
+
+select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr;
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+    LogicalFilter(condition=[IS NOT NULL($3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[IS NOT NULL($3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule10 -----------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
+# the join condition IS NOT DISTINCT FROM is not a strong predicate.
+
+select t1.deptno
+from emp t1 inner join emp t2
+on t1.mgr is not distinct from t2.mgr;
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $12)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $12)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule11 -----------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
+# it is a cartesian product (OR condition).
+# Note: No !ok or !type because empnullables does not exist in the scott database.
+
+select t1.deptno
+from empnullables t1 inner join
+empnullables t2 on t1.ename = t2.ename or 1 = 1;
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule12 -----------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter for one
+# of the join keys (ename) but not for the IS NOT DISTINCT FROM key.
+# Note: No !ok or !type because empnullables does not exist in the scott database.
+
+select t1.deptno
+from empnullables t1 inner join
+empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr;
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($1, $10), IS NOT DISTINCT FROM($3, $12))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($1, $10), IS NOT DISTINCT FROM($3, $12))], joinType=[inner])
+    LogicalFilter(condition=[IS NOT NULL($1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[IS NOT NULL($1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule13 -----------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter if join
+# condition is not strong wrt each key (COALESCE is not strong).
+# Note: No !ok or !type because empnullables does not exist in the scott database.
+
+select t1.deptno
+from empnullables t1 inner join
+empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc';
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=(CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, $10), 'abc')], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=(CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, $10), 'abc')], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule15 -----------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter only for
+# the first operand of NULLIF.
+# Note: No !ok or !type because empnullables does not exist in the scott database.
+
+select t1.deptno
+from empnullables t1 inner join
+empnullables t2 on nullif(t1.ename, t2.ename) = 'abc';
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
+    LogicalFilter(condition=[IS NOT NULL($1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule2 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filter for the
+# right input only, since the left input's child already has one.
+
+select t1.deptno
+from (select * from emp where mgr is not null) t1
+join emp t2 on t1.mgr = t2.mgr;
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[IS NOT NULL($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[IS NOT NULL($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[IS NOT NULL($3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule3 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filters for both
+# sides of a non-equality inner join condition.
+
+select t1.deptno from emp t1 inner join emp t2 on t1.mgr > t2.mgr;
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[>($3, $12)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[>($3, $12)], joinType=[inner])
+    LogicalFilter(condition=[IS NOT NULL($3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[IS NOT NULL($3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule4 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter for both
+# join keys.
+# Note: No !ok or !type because empnullables does not exist in the scott database.
+
+select t1.deptno
+from empnullables t1 inner join
+empnullables t2 on t1.ename = t2.ename and t1.mgr > t2.mgr;
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($1, $10), >($3, $12))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(=($1, $10), >($3, $12))], joinType=[inner])
+    LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($3))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($3))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule5 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filter for the
+# right input only, since the left input's ancestor already has one.
+# Note: No !ok or !type because empnullables does not exist in the scott database.
+
+select t1.deptno
+from (select ename, deptno+1 as deptno from
+empnullables where ename is not null) t1 inner join
+empnullables t2 on t1.ename = t2.ename;
+LogicalProject(DEPTNO=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(ENAME=[$1], DEPTNO=[+($7, 1)])
+      LogicalFilter(condition=[IS NOT NULL($1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(ENAME=[$1], DEPTNO=[+($7, 1)])
+      LogicalFilter(condition=[IS NOT NULL($1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[IS NOT NULL($1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule6 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
+# it is a full join.
+
+select t1.deptno from emp t1 full join emp t2 on t1.mgr = t2.mgr;
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule7 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
+# it is a left join.
+
+select t1.deptno from emp t1 left join emp t2 on t1.mgr = t2.mgr;
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule8 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
+# it is a right join.
+
+select t1.deptno from emp t1 right join emp t2 on t1.mgr = t2.mgr;
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# testJoinDeriveIsNotNullFilterRule9 ------------------------------------------
+# JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
+# both sides already have one.
+
+select t1.deptno
+from (select * from emp where mgr is not null) t1
+join (select * from emp where mgr is not null) t2 on t1.mgr = t2.mgr;
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[IS NOT NULL($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[IS NOT NULL($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($3, $12)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[IS NOT NULL($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[IS NOT NULL($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+
+# End join-derive.iq
