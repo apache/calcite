@@ -30,6 +30,8 @@
 select * from
 (SELECT * FROM sales.emp limit 100)
 ORDER BY 1 LIMIT 10;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalSort(fetch=[100])
@@ -49,6 +51,8 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
 select * from
 (SELECT * FROM sales.emp limit 1)
 ORDER BY 1 LIMIT 0;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalSort(fetch=[1])
@@ -66,6 +70,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 # SORT_REMOVE_REDUNDANT should not remove a limit of zero.
 
 SELECT count(*) FROM sales.emp LIMIT 0;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalSort(fetch=[0])
   LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     LogicalProject($f0=[0])
@@ -86,6 +91,8 @@ from sales.emp
 where deptno = 10
 group by deptno, sal
 order by deptno desc nulls last;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
 LogicalProject(C=[$0])
   LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
     LogicalProject(C=[$2], DEPTNO=[$0])
@@ -108,6 +115,7 @@ LogicalProject(C=[$0])
 # [CALCITE-6507]
 
 SELECT ename FROM emp ORDER BY RAND();
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[RAND()])
@@ -125,6 +133,7 @@ LogicalProject(ENAME=[$0])
 # [CALCITE-6507]
 
 SELECT ename FROM emp ORDER BY RAND_INTEGER(2);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[RAND_INTEGER(2)])
@@ -141,6 +150,7 @@ LogicalProject(ENAME=[$0])
 # [CALCITE-873]
 
 SELECT * FROM emp ORDER BY deptno, null, empno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalSort(sort0=[$7], sort1=[$9], sort2=[$0], dir0=[ASC], dir1=[ASC], dir2=[ASC])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[null:NULL])
@@ -159,6 +169,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 select d1
 from (select deptno as d1, deptno as d2 from dept) as tmp
 order by d1, d2, d1 desc;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(D1=[$0])
   LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
     LogicalProject(D1=[$0], D2=[$0])
@@ -176,6 +187,7 @@ LogicalProject(D1=[$0])
 
 select * from (select deptno as d1, deptno as d2 from emp) as t1
 join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
   LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
@@ -197,6 +209,7 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 # [CALCITE-7222]
 
 select * from (select empno as a, empno as b from emp) t order by a, b limit 1 offset 2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
   LogicalProject(A=[$0], B=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -212,6 +225,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
 # [CALCITE-7222]
 
 select * from (select empno as a, deptno as b from emp) t order by a, b limit 1 offset 2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
   LogicalProject(A=[$0], B=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -228,6 +242,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
 
 select count(*) as c
 from sales.emp order by c;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
@@ -244,6 +259,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 
 select * from
 (select * from sales.emp limit 10) t limit 20 offset 1;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalSort(offset=[1], fetch=[20])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalSort(fetch=[10])
@@ -264,6 +280,7 @@ LogicalSort(offset=[1], fetch=[20])
 
 select count(*) as c
 from sales.emp limit 20;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalSort(fetch=[20])
   LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
@@ -281,6 +298,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 
 select * from
 (VALUES 1,2,3,4,5,6) as t1 limit 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(fetch=[10])
   LogicalProject(T1=[$0])
     LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
@@ -295,6 +313,7 @@ LogicalProject(T1=[$0])
 
 select * from
 (VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(fetch=[9823372036854775807:DECIMAL(19, 0)])
   LogicalProject(T1=[$0])
     LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
@@ -309,6 +328,7 @@ LogicalProject(T1=[$0])
 # [CALCITE-6038]
 
 SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     LogicalProject($f0=[0])
@@ -326,6 +346,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 select *
 from (select * from sales.emp limit 1)
 order by deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
 LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalSort(fetch=[1])

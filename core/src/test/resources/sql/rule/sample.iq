@@ -29,6 +29,8 @@
 select deptno
 from emp tablesample bernoulli(50)
 where deptno > 10;
+# Not using !ok: result is non-deterministic.
+
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -51,6 +53,8 @@ LogicalProject(DEPTNO=[$7])
 select deptno
 from emp tablesample system(50)
 where deptno > 10;
+# Not using !ok: result is non-deterministic.
+
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[>($7, 10)])
     Sample(mode=[system], rate=[0.5], repeatableSeed=[-])
@@ -71,6 +75,8 @@ LogicalProject(DEPTNO=[$7])
 select deptno
 from emp tablesample system(50) repeatable(10)
 where deptno > 10;
+# Not using !ok: result is non-deterministic.
+
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[>($7, 10)])
     Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
@@ -88,6 +94,7 @@ LogicalProject(DEPTNO=[$7])
 
 select deptno
 from emp tablesample bernoulli(50);
+# Not using !ok: result is non-deterministic.
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -106,6 +113,7 @@ LogicalProject(DEPTNO=[$7])
 
 select deptno
 from emp tablesample bernoulli(50) repeatable(10);
+# Not using !ok: result is non-deterministic.
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])

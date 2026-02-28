@@ -31,6 +31,7 @@ SELECT e.deptno, d2.deptno
 FROM sales.emp e
 LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno
 LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$11])
   LogicalJoin(condition=[=($7, $11)], joinType=[left])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
@@ -44,6 +45,23 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "NONE, PROJECT_JOIN_JOIN_REMOVE"
 
+# testProjectJoinRemove10 -----------------------------------------------------
+# PROJECT_JOIN_REMOVE should remove the left join when all projected columns
+# come from the left (non-null-generating) side.
+
+SELECT e.deptno, e.slacker
+FROM sales.emp e
+LEFT JOIN sales.dept d ON e.deptno = d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7], SLACKER=[$8])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
 # testProjectJoinRemove2 ------------------------------------------------------
 # PROJECT_JOIN_JOIN_REMOVE should not remove d2 when the project references d1.
 
@@ -51,6 +69,7 @@ SELECT e.deptno, d1.deptno
 FROM sales.emp e
 LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno
 LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
   LogicalJoin(condition=[=($7, $11)], joinType=[left])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
@@ -73,6 +92,7 @@ SELECT e1.deptno, d.deptno
 FROM sales.emp e1
 LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno
 LEFT JOIN sales.dept d ON e1.deptno = d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
   LogicalJoin(condition=[=($7, $18)], joinType=[left])
     LogicalJoin(condition=[=($7, $16)], joinType=[left])
@@ -95,6 +115,7 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
 SELECT e.deptno
 FROM sales.emp e
 LEFT JOIN sales.dept d ON e.deptno = d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -111,6 +132,7 @@ LogicalProject(DEPTNO=[$7])
 SELECT e1.deptno
 FROM sales.emp e1
 LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($7, $16)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -129,6 +151,7 @@ LogicalProject(DEPTNO=[$7])
 SELECT e.deptno, d.dname
 FROM sales.emp e
 LEFT JOIN sales.dept d ON e.deptno = d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$7], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -147,6 +170,7 @@ LogicalProject(DEPTNO=[$7], DNAME=[$10])
 SELECT e.deptno
 FROM sales.dept d
 RIGHT JOIN sales.emp e ON e.deptno = d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$9])
   LogicalJoin(condition=[=($9, $0)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -163,6 +187,7 @@ LogicalProject(DEPTNO=[$7])
 SELECT e2.deptno
 FROM sales.emp e1
 RIGHT JOIN sales.emp e2 ON e1.deptno = e2.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$16])
   LogicalJoin(condition=[=($7, $16)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -181,6 +206,7 @@ LogicalProject(DEPTNO=[$16])
 SELECT e.deptno, d.dname
 FROM sales.dept d
 RIGHT JOIN sales.emp e ON e.deptno = d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(DEPTNO=[$9], DNAME=[$1])
   LogicalJoin(condition=[=($9, $0)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -190,22 +216,6 @@ LogicalProject(DEPTNO=[$9], DNAME=[$1])
   LogicalJoin(condition=[=($9, $0)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_JOIN_REMOVE"
-
-# testProjectJoinRemove10 -----------------------------------------------------
-# PROJECT_JOIN_REMOVE should remove the left join when all projected columns
-# come from the left (non-null-generating) side.
-
-SELECT e.deptno, e.slacker
-FROM sales.emp e
-LEFT JOIN sales.dept d ON e.deptno = d.deptno;
-LogicalProject(DEPTNO=[$7], SLACKER=[$8])
-  LogicalJoin(condition=[=($7, $9)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
-LogicalProject(DEPTNO=[$7], SLACKER=[$8])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, PROJECT_JOIN_REMOVE"
 
 # End project-join-remove.iq

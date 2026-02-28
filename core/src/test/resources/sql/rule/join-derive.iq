@@ -27,6 +27,7 @@
 # inputs of an inner join.
 
 select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -49,6 +50,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from emp t1 inner join emp t2
 on t1.mgr is not distinct from t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -70,6 +72,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from empnullables t1 inner join
 empnullables t2 on t1.ename = t2.ename or 1 = 1;
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
@@ -89,6 +92,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from empnullables t1 inner join
 empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr;
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), IS NOT DISTINCT FROM($3, $12))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
@@ -110,6 +114,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from empnullables t1 inner join
 empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc';
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=(CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, $10), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
@@ -129,6 +134,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from empnullables t1 inner join
 empnullables t2 on nullif(t1.ename, t2.ename) = 'abc';
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
@@ -148,6 +154,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from (select * from emp where mgr is not null) t1
 join emp t2 on t1.mgr = t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -171,6 +178,7 @@ LogicalProject(DEPTNO=[$7])
 # sides of a non-equality inner join condition.
 
 select t1.deptno from emp t1 inner join emp t2 on t1.mgr > t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -194,6 +202,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from empnullables t1 inner join
 empnullables t2 on t1.ename = t2.ename and t1.mgr > t2.mgr;
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), >($3, $12))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
@@ -216,6 +225,7 @@ select t1.deptno
 from (select ename, deptno+1 as deptno from
 empnullables where ename is not null) t1 inner join
 empnullables t2 on t1.ename = t2.ename;
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$1])
   LogicalJoin(condition=[=($0, $3)], joinType=[inner])
     LogicalProject(ENAME=[$1], DEPTNO=[+($7, 1)])
@@ -237,6 +247,7 @@ LogicalProject(DEPTNO=[$1])
 # it is a full join.
 
 select t1.deptno from emp t1 full join emp t2 on t1.mgr = t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -253,6 +264,7 @@ LogicalProject(DEPTNO=[$7])
 # it is a left join.
 
 select t1.deptno from emp t1 left join emp t2 on t1.mgr = t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -269,6 +281,7 @@ LogicalProject(DEPTNO=[$7])
 # it is a right join.
 
 select t1.deptno from emp t1 right join emp t2 on t1.mgr = t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -287,6 +300,7 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from (select * from emp where mgr is not null) t1
 join (select * from emp where mgr is not null) t2 on t1.mgr = t2.mgr;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
