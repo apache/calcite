@@ -742,11 +742,11 @@ class LintTest {
    * </ul>
    */
   private static class Sort {
-    final Pattern until;
+    final @Nullable Pattern until;
     final @Nullable Pattern where;
     final @Nullable Pattern erase;
 
-    Sort(Pattern until, @Nullable Pattern where, @Nullable Pattern erase) {
+    Sort(@Nullable Pattern until, @Nullable Pattern where, @Nullable Pattern erase) {
       this.until = until;
       this.where = where;
       this.erase = erase;
@@ -767,9 +767,6 @@ class LintTest {
         indent++;
       }
       Pattern until = extractPattern(spec, "until", indent);
-      if (until == null) {
-        return null;
-      }
       Pattern where = extractPattern(spec, "where", indent);
       Pattern erase = extractPattern(spec, "erase", indent);
       return new Sort(until, where, erase);
@@ -794,9 +791,11 @@ class LintTest {
         return null;
       }
       String pattern = rest.substring(1, endQuote);
-      pattern = pattern.replace("##", "^" + Strings.repeat(" ", indent));
-      pattern =
-          pattern.replace("#", "^" + Strings.repeat(" ", Math.max(0, indent - 2)));
+      if (!pattern.contains("[#")) {
+        pattern = pattern.replace("##", "^" + Strings.repeat(" ", indent));
+        pattern =
+            pattern.replace("#", "^" + Strings.repeat(" ", Math.max(0, indent - 2)));
+      }
       try {
         return compile(pattern);
       } catch (Exception e) {
@@ -824,7 +823,7 @@ class LintTest {
       final String thisLine = line.line();
 
       // End of sorted region.
-      if (sort.until.matcher(thisLine).find()) {
+      if (sort.until != null && sort.until.matcher(thisLine).find()) {
         done = true;
         line.state().sortConsumer = null;
         return;
