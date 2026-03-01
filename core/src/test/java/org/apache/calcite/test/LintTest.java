@@ -195,7 +195,7 @@ class LintTest {
         .add(line -> line.state().sortConsumer != null,
             line -> requireNonNull(line.state().sortConsumer).accept(line))
 
-        // Start sorting when a "// lint: sort until ..." directive is found.
+        // Start sorting when a "// lint: sort ..." directive is found.
         .add(line -> line.contains("// lint: sort")
                 && !line.source().fileOpt()
                     .filter(f -> f.getName().equals("LintTest.java")).isPresent(),
