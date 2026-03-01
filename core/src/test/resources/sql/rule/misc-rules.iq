@@ -63,8 +63,7 @@ LogicalProject(EMPNO=[$0])
 # a subquery (result should be unchanged).
 
 select deptno from sales.emp where
-exists (select deptno from sales.emp where empno < 20)
-;
+exists (select deptno from sales.emp where empno < 20);
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[<($0, 20)])
@@ -128,11 +127,6 @@ LogicalProject(DEPTNO=[$0])
 # testLoptOptimizeJoinRulePrioritizeSelfJoin -----------------------------------
 # MULTI_JOIN_OPTIMIZE prioritizes joining emp with itself (self-join) before
 # joining with dept.
-# TODO: The original Java test applied JOIN_TO_MULTI_JOIN via a HepProgram with
-# HepMatchOrder.BOTTOM_UP, which is not expressible in .iq format. With BOTTOM_UP,
-# the rule fires on the inner join first, producing nested 2-way MultiJoins rather
-# than a flat 3-way MultiJoin. The .iq runner produces the same nested structure
-# (BOTTOM_UP appears to be the default for the SubPlanCommand runner).
 
 select e.empno from emp e inner join dept d on d.deptno = e.deptno inner join emp e2 on e.empno = e2.empno;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
@@ -157,8 +151,7 @@ LogicalProject(EMPNO=[$0])
 # contains a subquery (result should be unchanged).
 
 select exists (select deptno from sales.emp)
-from (select deptno from sales.emp where empno < 20)
-;
+from (select deptno from sales.emp where empno < 20);
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[EXISTS({
 LogicalTableScan(table=[[CATALOG, SALES, EMP]])

@@ -43,8 +43,7 @@ SELECT *
 FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)
 ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)
 MATCH_CONDITION t2.t < t1.t
-ON t1.k = t2.k
-;
+ON t1.k = t2.k;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
   LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
@@ -84,9 +83,9 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 
 # function has already been expanded (checkUnchanged).
 
 select COUNT(*) over (
-ORDER BY empno
-ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp
-;
+  ORDER BY empno
+  ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count
+from emp;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(W_COUNT=[$1])
   LogicalWindow(window#0=[window(order by [0] rows between $1 PRECEDING and $2 PRECEDING aggs [COUNT()])], constants=[[10, 1]])
@@ -283,33 +282,6 @@ LogicalProject(EXPR$0=[1], A=[$1])
       LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceCastAndConsts -------------------------------------------------------
-# Tests that constant expressions inside a cast can be reduced.
-
-select * from emp
-where cast((empno + (10/2)) as int) = 13;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
-LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[=(CAST(+($0, /(10, 2))):INTEGER NOT NULL, 13)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[=(+($0, 5), 13)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
-
-# testReduceCastTimeUnchanged -------------------------------------------------------
-# Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
-
-select cast(time '12:34:56' as timestamp) from emp as e;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
-LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
-
 # testReduceCase -------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a CASE expression with a false condition
 # to the else branch, unifying numeric types.
@@ -342,6 +314,21 @@ LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, NONE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
+# testReduceCastAndConsts -------------------------------------------------------
+# Tests that constant expressions inside a cast can be reduced.
+
+select * from emp
+where cast((empno + (10/2)) as int) = 13;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=(CAST(+($0, /(10, 2))):INTEGER NOT NULL, 13)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=(+($0, 5), 13)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
+
 # testReduceCasts -------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS, and FILTER_REDUCE_EXPRESSIONS
 # remove redundant casts (e.g., CAST(integer AS integer) becomes the column itself).
@@ -370,6 +357,18 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+
+# testReduceCastTimeUnchanged -------------------------------------------------------
+# Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
+
+select cast(time '12:34:56' as timestamp) from emp as e;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testReduceCompositeInSubQuery -------------------------------------------------------
 # [CALCITE-6887] FILTER_REDUCE_EXPRESSIONS reduces a constant expression in an
