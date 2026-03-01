@@ -9870,26 +9870,6 @@ LogicalProject(DNAME=[$0], EXPR$1=[$0], EXPR$2=[CAST(/($1, $2)):INTEGER NOT NULL
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReduceCase">
-    <Resource name="sql">
-      <![CDATA[select
-  case when false then cast(2.1 as float)
-   else cast(1 as integer) end as newcol
-from emp]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(NEWCOL=[CASE(false, CAST(2.1:DECIMAL(2, 1)):FLOAT NOT NULL, CAST(1):FLOAT NOT NULL)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(NEWCOL=[1.0E0:FLOAT])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testReduceCaseNullabilityChange">
     <Resource name="sql">
       <![CDATA[select case when empno = 1 then 1

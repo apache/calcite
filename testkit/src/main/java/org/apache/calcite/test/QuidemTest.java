@@ -154,14 +154,43 @@ public abstract class QuidemTest {
 
   /** Command that prints a plan for a SQL statement, optionally after applying rules.
    *
-   * <p>The {@code args} string is a comma-separated list of rule names.
-   * {@code NONE} is a placeholder meaning "no rule at this position".
-   * All non-{@code NONE} rules are collected into a single
+   * <p>The {@code args} string is a comma-separated list of config tokens and
+   * rule names. {@code NONE} is a placeholder meaning "no rule at this position".
+   * Config tokens (lowercase-starting) configure the SQL-to-RelNode conversion
+   * and {@link org.apache.calcite.tools.RelBuilder RelBuilder} behavior.
+   * All uppercase tokens are {@link CoreRules} field names collected into a single
    * {@link HepPlanner} and applied to the initial plan.
+   *
+   * <p>Supported config tokens:
+   * <ul>
+   *   <li>{@code aggregateUnique=true} &mdash; GROUP BY without aggregate
+   *       functions creates a {@code LogicalAggregate} (not simplified to a
+   *       Project); equivalent to
+   *       {@code .withRelBuilderConfig(b -> b.withAggregateUnique(true))}
+   *   <li>{@code bloat=N} &mdash; allows merging expressions up to N nodes
+   *       larger; equivalent to
+   *       {@code .withRelBuilderConfig(b -> b.withBloat(N))}
+   *   <li>{@code expand=true} &mdash; expands sub-queries during
+   *       SQL-to-RelNode conversion; equivalent to {@code .withExpand(true)}
+   *   <li>{@code relBuilderSimplify=false} &mdash; disables
+   *       {@link org.apache.calcite.rex.RexSimplify} during RelNode
+   *       construction, so CASE/CAST expressions appear unsimplified;
+   *       equivalent to {@code .withRelBuilderSimplify(false)}
+   *   <li>{@code simplifyValues=false} &mdash; prevents Values rows from
+   *       being simplified; equivalent to
+   *       {@code .withRelBuilderConfig(b -> b.withSimplifyValues(false))}
+   *   <li>{@code subQueryRules} &mdash; applies
+   *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules before the
+   *       main rules; equivalent to {@code .withSubQueryRules()}
+   *   <li>{@code trim=true} &mdash; trims unused fields from projections;
+   *       equivalent to {@code .withTrim(true)}
+   * </ul>
    *
    * <p>Examples: {@code "NONE"} (initial plan, no rules),
    * {@code "NONE, AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
-   * {@code "RULE_A, RULE_B"} (plan after two rules in one HepPlanner). */
+   * {@code "aggregateUnique=true, NONE"} (initial plan with aggregateUnique),
+   * {@code "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
+   * (plan after rule, with expressions not pre-simplified by RelBuilder). */
   public static class SubPlanCommand extends AbstractCommand {
     private static final Pattern PATTERN = Pattern.compile("^\"|\"$");
 
@@ -181,45 +210,109 @@ public abstract class QuidemTest {
 
     @Override public void execute(Context x, boolean execute) throws Exception {
       if (execute) {
-        // Parse rule names: strip surrounding quotes, split on comma, skip NONE
+        // Parse config tokens (lowercase-starting) and rule names (UPPERCASE)
+        boolean aggregateUnique = false;
+        boolean relBuilderSimplify = true;
+        boolean expand = false;
+        boolean trim = false;
+        boolean simplifyValues = true;
+        boolean subQueryRules = false;
+        int bloat = -1; // -1 means "use default"
         final List<RelOptRule> rules = new ArrayList<>();
         for (String token : PATTERN.matcher(args).replaceAll("").split(",")) {
           final String name = token.trim();
-          if (!name.equals("NONE")) {
+          if (name.isEmpty() || name.equals("NONE")) {
+            // skip placeholder
+          } else if (Character.isLowerCase(name.charAt(0))) {
+            // config token
+            if (name.equals("aggregateUnique=true")) {
+              aggregateUnique = true;
+            } else if (name.startsWith("bloat=")) {
+              bloat = Integer.parseInt(name.substring("bloat=".length()));
+            } else if (name.equals("expand=true")) {
+              expand = true;
+            } else if (name.equals("relBuilderSimplify=false")) {
+              relBuilderSimplify = false;
+            } else if (name.equals("simplifyValues=false")) {
+              simplifyValues = false;
+            } else if (name.equals("subQueryRules")) {
+              subQueryRules = true;
+            } else if (name.equals("trim=true")) {
+              trim = true;
+            } else {
+              throw new IllegalArgumentException("Unknown config token: " + name);
+            }
+          } else {
             rules.add(getCoreRule(name));
           }
         }
 
-        // Use SqlTestFactory matching RelOptFixture.DEFAULT, producing logical plans
-        final SqlTestFactory testFactory = SqlTestFactory.INSTANCE
+        // Build factory from config tokens; use final copies for lambdas
+        final boolean expand0 = expand;
+        final boolean simplifyValues0 = simplifyValues;
+        final int bloat0 = bloat;
+        SqlTestFactory testFactory = SqlTestFactory.INSTANCE
             .withValidatorConfig(c -> c.withIdentifierExpansion(true))
-            .withSqlToRelConfig(c -> c.withExpand(false))
+            .withSqlToRelConfig(c -> c.withExpand(expand0))
             .withSqlToRelConfig(c ->
                 c.addRelBuilderConfigTransform(
                     b -> b.withPruneInputOfAggregate(false)));
-
-        // Parse, validate, and convert SQL to RelNode
-        final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
-        final SqlToRelConverter converter = testFactory.createSqlToRelConverter();
-        final SqlNode sqlQuery =
-            testFactory.createParser(sqlCommand.sql).parseQuery();
-        final SqlNode validatedQuery =
-            requireNonNull(converter.validator).validate(sqlQuery);
-        RelNode relNode =
-            converter.convertQuery(validatedQuery, false, true).project();
-
-        // Apply rules using a single HepPlanner
-        if (!rules.isEmpty()) {
-          final HepProgramBuilder builder = new HepProgramBuilder();
-          for (RelOptRule rule : rules) {
-            builder.addRuleInstance(rule);
-          }
-          final HepPlanner hepPlanner = new HepPlanner(builder.build());
-          hepPlanner.setRoot(relNode);
-          relNode = hepPlanner.findBestExp();
+        if (aggregateUnique) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.addRelBuilderConfigTransform(b -> b.withAggregateUnique(true)));
         }
+        if (!simplifyValues0) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.addRelBuilderConfigTransform(b -> b.withSimplifyValues(false)));
+        }
+        if (trim) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.withTrimUnusedFields(true));
+        }
+        if (bloat0 >= 0) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.addRelBuilderConfigTransform(b -> b.withBloat(bloat0)));
+        }
+        final SqlTestFactory factory0 = testFactory;
 
-        x.echo(Arrays.asList(RelOptUtil.toString(relNode).split("\n")));
+        // Parse, validate, and convert SQL to RelNode.
+        // relBuilderSimplify=false wraps conversion in a thread hook.
+        final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
+        try (AutoCloseable ignored = relBuilderSimplify
+            ? (AutoCloseable) () -> {}
+            : Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
+          final SqlToRelConverter converter = factory0.createSqlToRelConverter();
+          final SqlNode sqlQuery =
+              factory0.createParser(sqlCommand.sql).parseQuery();
+          final SqlNode validatedQuery =
+              requireNonNull(converter.validator).validate(sqlQuery);
+          RelNode relNode =
+              converter.convertQuery(validatedQuery, false, true).project();
+
+          // Apply subQueryRules as pre-rules before the main rules
+          if (subQueryRules) {
+            final HepProgramBuilder preBuilder = new HepProgramBuilder();
+            preBuilder.addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+            preBuilder.addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+            preBuilder.addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE);
+            final HepPlanner prePlanner = new HepPlanner(preBuilder.build());
+            prePlanner.setRoot(relNode);
+            relNode = prePlanner.findBestExp();
+          }
+
+          // Apply main rules using a single HepPlanner
+          if (!rules.isEmpty()) {
+            final HepProgramBuilder builder = new HepProgramBuilder();
+            for (RelOptRule rule : rules) {
+              builder.addRuleInstance(rule);
+            }
+            final HepPlanner hepPlanner = new HepPlanner(builder.build());
+            hepPlanner.setRoot(relNode);
+            relNode = hepPlanner.findBestExp();
+          }
+
+          x.echo(Arrays.asList(RelOptUtil.toString(relNode).split("\n")));
+        }
       } else {
         x.echo(content);
       }

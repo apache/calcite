@@ -4256,16 +4256,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testReduceCase() {
-    final String sql = "select\n"
-        + "  case when false then cast(2.1 as float)\n"
-        + "   else cast(1 as integer) end as newcol\n"
-        + "from emp";
-    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
   @Test void testReduceCaseNullabilityChange() {
     final String sql = "select case when empno = 1 then 1\n"
         + "when 1 IS NOT NULL then 2\n"

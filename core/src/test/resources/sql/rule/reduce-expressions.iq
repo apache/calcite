@@ -310,14 +310,25 @@ LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
+# testReduceCase -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces a CASE expression with a false condition
+# to the else branch, unifying numeric types.
+
+select
+  case when false then cast(2.1 as float)
+   else cast(1 as integer) end as newcol
+from emp;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(NEWCOL=[CASE(false, CAST(2.1:DECIMAL(2, 1)):FLOAT NOT NULL, CAST(1):FLOAT NOT NULL)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(NEWCOL=[1.0E0:FLOAT])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"
+
 # testReduceCompositeInSubQuery -------------------------------------------------------
 # [CALCITE-6887] FILTER_REDUCE_EXPRESSIONS reduces a constant expression in an
 # OR condition that contains a composite IN subquery.
-# TODO: The original Java test used withRelBuilderConfig(b -> b.withAggregateUnique(true))
-# and withSubQueryRules(), which are not supported in .iq format. With aggregateUnique=true,
-# the GROUP BY in the subquery produces a LogicalAggregate wrapped in a LogicalProject.
-# Without that config, EMPNO is a unique key so the aggregate is simplified away, leaving
-# just LogicalProject(EMPNO, DEPTNO) over LogicalTableScan in the IN subquery plan.
 
 select *
 from emp
@@ -330,18 +341,22 @@ or deptno < 40 + 60;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[OR(IN($0, $7, {
-LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($7, +(40, 60)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan "aggregateUnique=true, NONE"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[OR(IN($0, $7, {
-LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($7, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
+!sub-plan "aggregateUnique=true, NONE, FILTER_REDUCE_EXPRESSIONS"
 
 # testReduceConstants3 -------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
