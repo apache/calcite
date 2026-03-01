@@ -2386,44 +2386,6 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testDecorrelationWithProject">
-    <Resource name="sql">
-      <![CDATA[select sal,
-exists (select * from emp_b where emp.deptno = emp_b.deptno)
-from sales.emp]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
-LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-})])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planMid">
-      <![CDATA[
-LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}])
-      LogicalProject(i=[true])
-        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
-  LogicalJoin(condition=[=($7, $9)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$0], $f1=[true])
-      LogicalAggregate(group=[{0}])
-        LogicalProject(DEPTNO=[$7])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testDecorrelationWithSort">
     <Resource name="sql">
       <![CDATA[SELECT e1.empno
@@ -2782,40 +2744,6 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 LogicalFilter(condition=[false])
   LogicalAggregate(group=[{}], agg#0=[COUNT()])
     LogicalTableScan(table=[[scott, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testDoubleReduction">
-    <Resource name="sql">
-      <![CDATA[SELECT power(1004.3, 2)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[POWER(1004.3:DECIMAL(5, 1), 2)])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[1008618.4899999999E0:DOUBLE])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testDoubleReduction2">
-    <Resource name="sql">
-      <![CDATA[SELECT 1.0 / 0.0e0]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[/(1.0:DECIMAL(2, 1), 0.0E0:DOUBLE)])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[Infinity:DOUBLE])
-  LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -10948,74 +10876,6 @@ LogicalProject(B=[ST_BUFFER(ST_POINT(0.0:DECIMAL(2, 1), 0.0:DECIMAL(2, 1)), 1, 4
       <![CDATA[
 LogicalProject(B=[CAST(POLYGON ((1 0, 0.9238795325112867 -0.3826834323650898, 0.7071067811865476 -0.7071067811865475, 0.3826834323650898 -0.9238795325112867, 0.0000000000000001 -1, -0.3826834323650897 -0.9238795325112867, -0.7071067811865475 -0.7071067811865476, -0.9238795325112867 -0.3826834323650899, -1 -0.0000000000000001, -0.9238795325112867 0.3826834323650897, -0.7071067811865477 0.7071067811865475, -0.3826834323650903 0.9238795325112865, -0.0000000000000002 1, 0.38268343236509 0.9238795325112866, 0.7071067811865474 0.7071067811865477, 0.9238795325112865 0.3826834323650904, 1 0)):GEOMETRY):GEOMETRY])
   LogicalTableScan(table=[[CATALOG, GEO, RESTAURANTS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSplit">
-    <Resource name="sql">
-      <![CDATA[select split('1|2|3', '|')]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[SPLIT('1|2|3', '|')])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[ARRAY('1':VARCHAR, '2':VARCHAR, '3':VARCHAR)])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSplitNull">
-    <Resource name="sql">
-      <![CDATA[select split('1|2|3', NULL)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[SPLIT('1|2|3', null:NULL)])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSplitNull1">
-    <Resource name="sql">
-      <![CDATA[select split(NULL, '|')]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[SPLIT(null:NULL, '|')])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSplitNull2">
-    <Resource name="sql">
-      <![CDATA[select split(NULL, NULL)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[SPLIT(null:NULL, null:NULL)])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
-  LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>

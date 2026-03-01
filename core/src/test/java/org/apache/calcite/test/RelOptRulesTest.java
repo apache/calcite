@@ -2753,33 +2753,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
-   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
-   * including NaN, Infinity</a>. */
-  @Test public void testDoubleReduction() {
-    // Without the fix for CALCITE-2067 the result returned below is
-    // 1008618.49.  Ironically, that result is more accurate; however
-    // it is not the result returned by the pow() function, which is
-    // 1008618.4899999999
-    final String sql = "SELECT power(1004.3, 2)";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
-   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
-   * including NaN, Infinity</a>. */
-  @Test public void testDoubleReduction2() {
-    // Without the fix for CALCITE-2067 the following expression is not
-    // reduced to Infinity, since Infinity cannot be represented
-    // as a BigDecimal value.
-    final String sql2 = "SELECT 1.0 / 0.0e0";
-    sql(sql2)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
   /** Tests that {@link UnionMergeRule} does nothing if its arguments have
    * are different set operators, {@link Union} and {@link Intersect}. */
   @Test void testMergeSetOpMixed() {
@@ -5035,63 +5008,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for non-equi outer join. */
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
-   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
-  @Test public void testSplitNull() {
-    final String query = "select split('1|2|3', NULL)";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
-   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
-  @Test public void testSplitNull1() {
-    final String query = "select split(NULL, '|')";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
-   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
-  @Test public void testSplitNull2() {
-    final String query = "select split(NULL, NULL)";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5882">
-   * [CALCITE-5882] Compile-time evaluation of SPLIT function returns incorrect result</a>. */
-  @Test public void testSplit() {
-    final String query = "select split('1|2|3', '|')";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2200">[CALCITE-2200]
    * Infinite loop for JoinPushTransitivePredicatesRule</a>. */
   @Test void testJoinPushTransitivePredicatesRule() {
@@ -6990,16 +6906,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
    * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2295">[CALCITE-2295]
-   * Correlated SubQuery with Project will generate error plan</a>. */
-  @Test public void testDecorrelationWithProject() throws Exception {
-    final String sql = "select sal,\n"
-        + "exists (select * from emp_b where emp.deptno = emp_b.deptno)\n"
-        + "from sales.emp";
-    sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3296">[CALCITE-3296]

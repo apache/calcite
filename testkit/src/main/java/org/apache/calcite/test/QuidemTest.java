@@ -28,6 +28,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -39,17 +40,21 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
@@ -180,6 +185,13 @@ public abstract class QuidemTest {
    *   <li>{@code simplifyValues=false} &mdash; prevents Values rows from
    *       being simplified; equivalent to
    *       {@code .withRelBuilderConfig(b -> b.withSimplifyValues(false))}
+   *   <li>{@code lateDecorrelate=true} &mdash; applies
+   *       {@link RelDecorrelator#decorrelateQuery} after the main rules;
+   *       equivalent to {@code .withLateDecorrelate(true)}
+   *   <li>{@code operatorTable=BIG_QUERY} &mdash; uses BigQuery operator
+   *       table; equivalent to
+   *       {@code .withFactory(t -> t.withOperatorTable(o ->
+   *       getOperatorTable(SqlLibrary.BIG_QUERY)))}
    *   <li>{@code subQueryRules} &mdash; applies
    *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules before the
    *       main rules; equivalent to {@code .withSubQueryRules()}
@@ -215,6 +227,8 @@ public abstract class QuidemTest {
         boolean aggregateUnique = false;
         boolean relBuilderSimplify = true;
         boolean expand = false;
+        boolean lateDecorrelate = false;
+        boolean operatorTableBigQuery = false;
         boolean trim = false;
         boolean simplifyValues = true;
         boolean subQueryRules = false;
@@ -232,6 +246,10 @@ public abstract class QuidemTest {
               bloat = parseInt(name.substring("bloat=".length()));
             } else if (name.equals("expand=true")) {
               expand = true;
+            } else if (name.equals("lateDecorrelate=true")) {
+              lateDecorrelate = true;
+            } else if (name.equals("operatorTable=BIG_QUERY")) {
+              operatorTableBigQuery = true;
             } else if (name.equals("relBuilderSimplify=false")) {
               relBuilderSimplify = false;
             } else if (name.equals("simplifyValues=false")) {
@@ -274,6 +292,12 @@ public abstract class QuidemTest {
           testFactory = testFactory.withSqlToRelConfig(c ->
               c.addRelBuilderConfigTransform(b -> b.withBloat(bloat0)));
         }
+        if (operatorTableBigQuery) {
+          testFactory = testFactory.withOperatorTable(opTab ->
+              SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                  SqlLibrary.BIG_QUERY));
+        }
+        final boolean lateDecorrelate0 = lateDecorrelate;
         final boolean trim0 = trim;
         final SqlTestFactory factory0 = testFactory;
 
@@ -317,6 +341,13 @@ public abstract class QuidemTest {
             final HepPlanner hepPlanner = new HepPlanner(builder.build());
             hepPlanner.setRoot(relNode);
             relNode = hepPlanner.findBestExp();
+          }
+
+          // Apply late decorrelation if requested
+          if (lateDecorrelate0) {
+            final RelBuilder relBuilder =
+                RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), null);
+            relNode = RelDecorrelator.decorrelateQuery(relNode, relBuilder);
           }
 
           x.echo(Arrays.asList(RelOptUtil.toString(relNode).split("\n")));

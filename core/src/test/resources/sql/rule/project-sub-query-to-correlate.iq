@@ -22,6 +22,38 @@
 !use scott
 !set outputformat mysql
 
+# testDecorrelationWithProject -------------------------------------------------
+# PROJECT_SUB_QUERY_TO_CORRELATE expands an EXISTS in a project, then
+# lateDecorrelate=true decorrelates (converting LogicalCorrelate to
+# LogicalJoin). Not using !ok: emp_b is not in scott database.
+# [CALCITE-2295] Correlated SubQuery with Project will generate error plan
+
+select sal,
+exists (select * from emp_b where emp.deptno = emp_b.deptno)
+from sales.emp;
+LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "subQueryRules, NONE"
+LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f1=[true])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "subQueryRules, lateDecorrelate=true, NONE"
+
 # testExpandProjectExists ------------------------------------------------------
 # Tests that an EXISTS sub-query in a project is expanded to a left join.
 

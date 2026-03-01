@@ -100,6 +100,35 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE, 
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
 
+# testDoubleReduction ----------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces a POWER expression to a floating-point
+# constant. Without [CALCITE-2067], the result was 1008618.49 (less accurate).
+# [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+# including NaN, Infinity
+
+SELECT power(1004.3, 2);
+LogicalProject(EXPR$0=[POWER(1004.3:DECIMAL(5, 1), 2)])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1008618.4899999999E0:DOUBLE])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testDoubleReduction2 ---------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces 1.0 / 0.0e0 to Infinity. Without
+# [CALCITE-2067], Infinity cannot be represented as a BigDecimal value and
+# the expression is not reduced.
+# [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+# including NaN, Infinity
+
+SELECT 1.0 / 0.0e0;
+LogicalProject(EXPR$0=[/(1.0:DECIMAL(2, 1), 0.0E0:DOUBLE)])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[Infinity:DOUBLE])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
+
 # testExpressionPreceding -------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not modify a plan when applied after a window
 # function has already been expanded (checkUnchanged).
@@ -1213,5 +1242,57 @@ LogicalProject(COL1=[$0])
   LogicalFilter(condition=[NOT($0)])
     LogicalValues(tuples=[[{ false }, { true }]])
 !sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
+
+# testSplit --------------------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces a compile-time SPLIT expression.
+# [CALCITE-5882] Compile-time evaluation of SPLIT function returns incorrect
+# result
+
+select split('1|2|3', '|');
+LogicalProject(EXPR$0=[SPLIT('1|2|3', '|')])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, operatorTable=BIG_QUERY"
+LogicalProject(EXPR$0=[ARRAY('1':VARCHAR, '2':VARCHAR, '3':VARCHAR)])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, operatorTable=BIG_QUERY"
+
+# testSplitNull ----------------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces SPLIT(str, NULL) to null.
+# [CALCITE-5879] AssertionError during constant reduction of SPLIT expression
+# that returns NULL
+
+select split('1|2|3', NULL);
+LogicalProject(EXPR$0=[SPLIT('1|2|3', null:NULL)])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, operatorTable=BIG_QUERY"
+LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, operatorTable=BIG_QUERY"
+
+# testSplitNull1 ---------------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces SPLIT(NULL, sep) to null.
+# [CALCITE-5879] AssertionError during constant reduction of SPLIT expression
+# that returns NULL
+
+select split(NULL, '|');
+LogicalProject(EXPR$0=[SPLIT(null:NULL, '|')])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, operatorTable=BIG_QUERY"
+LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, operatorTable=BIG_QUERY"
+
+# testSplitNull2 ---------------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces SPLIT(NULL, NULL) to null.
+# [CALCITE-5879] AssertionError during constant reduction of SPLIT expression
+# that returns NULL
+
+select split(NULL, NULL);
+LogicalProject(EXPR$0=[SPLIT(null:NULL, null:NULL)])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, operatorTable=BIG_QUERY"
+LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, operatorTable=BIG_QUERY"
 
 # End reduce-expressions.iq
