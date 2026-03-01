@@ -23,6 +23,73 @@
 !use scott
 !set outputformat mysql
 
+# testExpandJoinExists --------------------------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites EXISTS in a LEFT JOIN ON clause.
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+select empno
+from sales.emp left join sales.dept
+on exists (select deptno from sales.emp where empno < 20);
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[EXISTS({
+LogicalFilter(condition=[<($0, 20)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(i=[true])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules, NONE"
+
+# testExpandJoinScalar --------------------------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites scalar sub-queries in a LEFT JOIN ON
+# clause.
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+select empno
+from sales.emp left join sales.dept
+on (select deptno from sales.emp where empno < 20)
+ < (select deptno from sales.emp where empno > 100);
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[<($SCALAR_QUERY({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), $SCALAR_QUERY({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($0, 100)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10], $f0=[$11])
+      LogicalJoin(condition=[<($11, $12)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalJoin(condition=[true], joinType=[left])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+              LogicalProject(DEPTNO=[$7])
+                LogicalFilter(condition=[<($0, 20)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+            LogicalProject(DEPTNO=[$7])
+              LogicalFilter(condition=[>($0, 100)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules, NONE"
+
 # testJoinSubQueryRemoveRuleWithAndNotExists ----------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites AND NOT EXISTS in a LEFT JOIN ON clause.
 

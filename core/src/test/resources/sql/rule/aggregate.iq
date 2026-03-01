@@ -105,6 +105,21 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
 
+# testAggregateRemove2 --------------------------------------------------------
+# AggregateRemoveRule removes a GROUP BY with all-unique keys (DISTINCT on empno,
+# deptno where empno is unique), so the Aggregate is eliminated.
+
+select distinct empno, deptno from sales.emp;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "aggregateUnique=true, NONE"
+LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "aggregateUnique=true, NONE, AGGREGATE_REMOVE, PROJECT_MERGE"
+
 # testPullAggregateThroughUnion -----------------------------------------------
 # Tests that AggregateUnionAggregateRule can convert
 # a union of two 'select distinct' queries to a 'select distinct'

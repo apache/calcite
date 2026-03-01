@@ -3102,17 +3102,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testReduceConstants2() {
-    final String sql = "select p1 is not distinct from p0\n"
-        + "from (values (2, cast(null as integer))) as t(p0, p1)";
-    sql(sql)
-        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
   // see HIVE-9645
 
   // see HIVE-9644
@@ -4241,33 +4230,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPlanner(hepPlanner).check();
   }
 
-  @Test void testReduceCasts() {
-    // Disable simplify in RelBuilder so that there are casts in 'before';
-    // The resulting plan should have no cast expressions
-    final String sql = "select cast(d.dname as varchar(128)), cast(e.empno as integer)\n"
-        + "from dept as d inner join emp as e\n"
-        + "on cast(d.deptno as integer) = cast(e.deptno as integer)\n"
-        + "where cast(e.job as varchar(1)) = 'Manager'";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testReduceCaseNullabilityChange() {
-    final String sql = "select case when empno = 1 then 1\n"
-        + "when 1 IS NOT NULL then 2\n"
-        + "else null end as qx "
-        + "from emp";
-    sql(sql)
-        .withRelBuilderSimplify(false)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
   @Test void testReduceCastsNullable() {
     HepProgram program = new HepProgramBuilder()
 
@@ -5181,21 +5143,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2275">[CALCITE-2275]
-   * JoinPushTransitivePredicatesRule wrongly pushes down NOT condition</a>. */
-  @Test void testInferringPredicatesWithNotOperatorInJoinCondition() {
-    final String sql = "select * from sales.emp d\n"
-        + "join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)";
-    sql(sql)
-        .withRelBuilderSimplify(false)
-        .withDecorrelate(true)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_CONDITION_PUSH,
-            CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
-        .check();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6600">[CALCITE-6600]
    * AggregateJoinTransposeRule can throw ArrayIndexOutOfBoundsException when applied
    * on a SemiJoin</a>.*/
@@ -5411,19 +5358,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp\n"
         + "group by empno, deptno";
     sql(sql)
-        .withRule(CoreRules.AGGREGATE_REMOVE,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-  /**
-   * Test case for AggregateRemoveRule, should remove aggregates since
-   * empno is unique and there are no aggregate functions.
-   */
-  @Test void testAggregateRemove2() {
-    final String sql = "select distinct empno, deptno from sales.emp\n";
-    sql(sql)
-        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
         .withRule(CoreRules.AGGREGATE_REMOVE,
             CoreRules.PROJECT_MERGE)
         .check();
@@ -5834,15 +5768,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * that can not be removed. */
 
 
-  /** Tests expanding a sub-query, specifically an uncorrelated scalar
-   * sub-query in a project (SELECT clause). */
-  @Test void testExpandProjectScalar() {
-    final String sql = "select empno,\n"
-        + "  (select deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql).withSubQueryRules().check();
-  }
-
   @Test void testSelectNotInCorrelated() {
     final String sql = "select sal,\n"
         + " empno NOT IN (\n"
@@ -5933,40 +5858,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test public void testSomeWithTwoCorrelatedSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n"
-        + "where deptno > some(\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)\n"
-        + "or deptno < some(\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test public void testSomeWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n"
-        + "where deptno > some(\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
-        + "or deptno < some(\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept2')";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
    * Sub-queries connected by OR</a>. */
   @Test void testWhereOrSubQuery() {
@@ -5974,224 +5865,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where sal = 4\n"
         + "or empno NOT IN (select deptno from dept)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
-
-  @Test void testExpandProjectIn() {
-    final String sql = "select empno,\n"
-        + "  deptno in (select deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandProjectInNullable() {
-    final String sql = "with e2 as (\n"
-        + "  select empno, case when deptno > 0 then deptno else null end as deptno\n"
-        + "  from sales.emp)\n"
-        + "select empno,\n"
-        + "  deptno in (select deptno from e2 where empno < 20) as d\n"
-        + "from e2";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandProjectInWithTwoCorrelatedSubQueries() {
-    final String sql = "select empno, deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)\n"
-        + "from sales.empnullables as e";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  @Test void testExpandProjectInWithTwoSubQueries() {
-    final String sql = "select empno, deptno in (\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept2')\n"
-        + "from sales.empnullables";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  @Test void testExpandProjectInComposite() {
-    final String sql = "select empno, (empno, deptno) in (\n"
-        + "    select empno, deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandProjectExists() {
-    final String sql = "select empno,\n"
-        + "  exists (select deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandFilterScalar() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where (select deptno from sales.emp where empno < 20)\n"
-        + " < (select deptno from sales.emp where empno > 100)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExpandFilterIn() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where deptno in (select deptno from sales.emp where empno < 20)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExpandFilterInComposite() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where (empno, deptno) in (\n"
-        + "  select empno, deptno from sales.emp where empno < 20)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test void testExpandFilterInCorrelatedWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n"
-        + "where deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test void testExpandFilterInWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n"
-        + "where deptno in (\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept2')";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** An IN filter that requires full 3-value logic (true, false, unknown). */
-  @Test void testExpandFilterIn3Value() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where empno\n"
-        + " < case deptno in (select case when deptno > 0 then deptno else null end\n"
-        + "                   from sales.emp where empno < 20)\n"
-        + "   when true then 10\n"
-        + "   when false then 20\n"
-        + "   else 30\n"
-        + "   end";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5680">[CALCITE-5680]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries with only literal operands in subquery remove phase</a>. */
-  @Test void testExpandFilterConstantInCorrelatedWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n"
-        + "where 1 in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)\n"
-        + "or 2 in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)";
-    // We disable expression simplification and enable trim to make plan
-    // more straightforward and easier to identify whether the plan is correct
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5680">[CALCITE-5680]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries with only literal operands in subquery remove phase</a>. */
-  @Test void testExpandFilterConstantInWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n"
-        + "where 1 in (\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept1')\n"
-        + "or 2 in (\n"
-        + "  select deptno from sales.deptnullables where dname = 'dept2')";
-    // We disable expression simplification and enable trim to make plan
-    // more straightforward and easier to identify whether the plan is correct
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** An EXISTS filter that can be converted into true/false. */
-  @Test void testExpandFilterExists() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** An EXISTS filter that can be converted into a semi-join. */
-  @Test void testExpandFilterExistsSimple() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** An EXISTS filter that can be converted into a semi-join. */
-  @Test void testExpandFilterExistsSimpleAnd() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)\n"
-        + "and emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExpandJoinScalar() {
-    final String sql = "select empno\n"
-        + "from sales.emp left join sales.dept\n"
-        + "on (select deptno from sales.emp where empno < 20)\n"
-        + " < (select deptno from sales.emp where empno > 100)";
-    sql(sql).withSubQueryRules().check();
   }
 
   /** Test case for
@@ -6320,13 +5993,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
-  @Test void testExpandJoinExists() {
-    final String sql = "select empno\n"
-        + "from sales.emp left join sales.dept\n"
-        + "on exists (select deptno from sales.emp where empno < 20)";
-    sql(sql).withSubQueryRules().check();
-  }
-
   @Test void testDecorrelateExists() {
     final String sql = "select * from sales.emp\n"
         + "where EXISTS (\n"
@@ -6387,14 +6053,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
-  @Test void testWhereInJoinCorrelated() {
-    final String sql = "select empno from emp as e\n"
-        + "join dept as d using (deptno)\n"
-        + "where e.sal in (\n"
-        + "  select e2.sal from emp as e2 where e2.deptno > e.deptno)";
-    sql(sql).withSubQueryRules().check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1494">[CALCITE-1494]
    * Inefficient plan for correlated sub-queries</a>. In "planAfter", there
@@ -6420,14 +6078,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where deptno in (\n"
         + "  select deptno from emp where sal + 1 = d.deptnoMinus)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
-
-  @Test void testExpandWhereComparisonCorrelated() {
-    final String sql = "select empno\n"
-        + "from sales.emp as e\n"
-        + "where sal = (\n"
-        + "  select max(sal) from sales.emp e2 where e2.empno = e.empno)";
-    sql(sql).withSubQueryRules().check();
   }
 
   @Test void testCustomColumnResolvingInNonCorrelatedSubQuery() {

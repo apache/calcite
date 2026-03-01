@@ -273,6 +273,7 @@ public abstract class QuidemTest {
           testFactory = testFactory.withSqlToRelConfig(c ->
               c.addRelBuilderConfigTransform(b -> b.withBloat(bloat0)));
         }
+        final boolean trim0 = trim;
         final SqlTestFactory factory0 = testFactory;
 
         // Parse, validate, and convert SQL to RelNode.
@@ -288,6 +289,12 @@ public abstract class QuidemTest {
               requireNonNull(converter.validator).validate(sqlQuery);
           RelNode relNode =
               converter.convertQuery(validatedQuery, false, true).project();
+          // trim=true: apply flattenTypes then trimUnusedFields, matching
+          // AbstractSqlTester.convertSqlToRel2 behavior
+          if (trim0) {
+            relNode = converter.flattenTypes(relNode, true);
+            relNode = converter.trimUnusedFields(true, relNode);
+          }
 
           // Apply subQueryRules as pre-rules before the main rules
           if (subQueryRules) {

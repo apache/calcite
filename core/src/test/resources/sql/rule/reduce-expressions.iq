@@ -326,6 +326,51 @@ LogicalProject(NEWCOL=[1.0E0:FLOAT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"
 
+# testReduceCaseNullabilityChange -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces a CASE expression that has a constant
+# condition (1 IS NOT NULL is always true), changing nullability.
+
+select case when empno = 1 then 1
+when 1 IS NOT NULL then 2
+else null end as qx from emp;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(QX=[CASE(=($0, 1), 1, IS NOT NULL(1), 2, null:INTEGER)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
+
+# testReduceCasts -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS, and FILTER_REDUCE_EXPRESSIONS
+# remove redundant casts (e.g., CAST(integer AS integer) becomes the column itself).
+
+select cast(d.dname as varchar(128)), cast(e.empno as integer)
+from dept as d inner join emp as e
+on cast(d.deptno as integer) = cast(e.deptno as integer)
+where cast(e.job as varchar(1)) = 'Manager';
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER NOT NULL])
+  LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
+      LogicalJoin(condition=[=($2, $12)], joinType=[inner])
+        LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):INTEGER NOT NULL])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($7):INTEGER NOT NULL])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
+  LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
+      LogicalJoin(condition=[=($2, $12)], joinType=[inner])
+        LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+
 # testReduceCompositeInSubQuery -------------------------------------------------------
 # [CALCITE-6887] FILTER_REDUCE_EXPRESSIONS reduces a constant expression in an
 # OR condition that contains a composite IN subquery.
@@ -357,6 +402,21 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1])
 }), <($7, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "aggregateUnique=true, NONE, FILTER_REDUCE_EXPRESSIONS"
+
+# testReduceConstants2 -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, and
+# JOIN_REDUCE_EXPRESSIONS do not change the plan when simplifyValues is false
+# (checkUnchanged).
+
+select p1 is not distinct from p0
+from (values (2, cast(null as integer))) as t(p0, p1);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[false])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "simplifyValues=false, NONE"
+LogicalProject(EXPR$0=[false])
+  LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "simplifyValues=false, NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testReduceConstants3 -------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.

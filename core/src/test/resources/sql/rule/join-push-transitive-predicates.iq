@@ -23,6 +23,27 @@
 !use scott
 !set outputformat mysql
 
+# testInferringPredicatesWithNotOperatorInJoinCondition -----------------------
+# [CALCITE-2275] Tests that JoinPushTransitivePredicatesRule correctly handles
+# a NOT IN condition in the join condition, pushing the NOT predicate to the
+# left side and the equivalent SEARCH predicate to the right side.
+
+select * from sales.emp d
+join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6);
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[AND(=($16, $7), NOT(OR(=($7, 4), =($7, 6))))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[=($16, $7)], joinType=[inner])
+    LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
+
 # testInfiniteLoopWithBetweenAnd -----------------------------------------------
 # Tests that JOIN_PUSH_TRANSITIVE_PREDICATES does not cause an infinite loop
 # [CALCITE-7302]
