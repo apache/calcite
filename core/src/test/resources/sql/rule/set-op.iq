@@ -1,0 +1,853 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to set operations (INTERSECT, MINUS, UNION).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testAggregateUnionTransposeWithAllInputsUnique --------------------------------
+# AGGREGATE_UNION_TRANSPOSE is a no-op if all inputs to UNION are already unique.
+
+select deptno, SUM(t) from (
+select distinct deptno, 1 as t from sales.emp e1
+union all
+select distinct deptno, 2 as t from sales.emp e2)
+group by deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_UNION_TRANSPOSE"
+
+# testAggregateUnionTransposeWithOneInputNonNullable ---------------------------
+# AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input has a non-nullable column.
+# [CALCITE-6642]
+
+select deptno, SUM(t) from (
+select deptno, 1 as t from sales.emp e1
+union all
+select deptno, nullif(sal, 0) as t from sales.emp e2)
+group by deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], T=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_UNION_TRANSPOSE"
+
+# testAggregateUnionTransposeWithOneInputUnique --------------------------------
+# AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input is unique.
+# [CALCITE-4616]
+
+select deptno, SUM(t) from (
+select deptno, 1 as t from sales.emp e1
+union all
+select distinct deptno, 2 as t from sales.emp e2)
+group by deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], T=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalProject(DEPTNO=[$7], T=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_UNION_TRANSPOSE"
+
+# testAggregateUnionTransposeWithTopLevelGroupSetRemapping ---------------------
+# AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when top-level group set is remapped.
+
+select count(t1), t2 from (
+select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from sales.emp e1
+union all
+select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from sales.emp e2)
+group by t2;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(EXPR$0=[$1], T2=[$0])
+  LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+    LogicalUnion(all=[true])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(EXPR$0=[$1], T2=[$0])
+  LogicalAggregate(group=[{0}], EXPR$0=[$SUM0($1)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
+
+# testIntersectToExistsRuleMultiFields -----------------------------------------
+# INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with multiple fields.
+# [CALCITE-6836]
+
+SELECT a.ename, a.job FROM emp AS a
+INTERSECT
+SELECT b.ename, b.job FROM emp AS b;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($cor0.ENAME, $0), =($cor0.JOB, $1))])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRuleMultiIntersect --------------------------------------
+# INTERSECT_TO_EXISTS rewrites nested INTERSECT to correlated EXISTS subqueries.
+# [CALCITE-6836]
+
+SELECT a.ename FROM emp AS a
+INTERSECT
+SELECT b.dname FROM dept AS b
+INTERSECT
+SELECT c.ename FROM emp AS c;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalAggregate(group=[{0}])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor1.ENAME, $0)])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor1]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRuleOneField --------------------------------------------
+# INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with one field.
+# [CALCITE-6836]
+
+SELECT a.ename FROM emp AS a
+INTERSECT
+SELECT b.dname FROM dept AS b;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRulePrimaryKey ------------------------------------------
+# INTERSECT_TO_EXISTS on a primary-key column skips the outer Aggregate.
+# [CALCITE-6836]
+
+SELECT a.empno FROM emp AS a
+INTERSECT
+SELECT b.empno FROM emp AS b;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRuleWithAll ---------------------------------------------
+# INTERSECT_TO_EXISTS does not rewrite INTERSECT ALL (only INTERSECT DISTINCT).
+# [CALCITE-6836]
+
+SELECT a.ename FROM emp AS a
+INTERSECT ALL
+SELECT b.dname FROM dept AS b;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[true])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalIntersect(all=[true])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, INTERSECT_TO_EXISTS"
+
+# testIntersectToFilterRuleNWayWithMultiSources --------------------------------
+# INTERSECT_FILTER_TO_FILTER merges n-way INTERSECT from multiple sources into combined filters.
+# [CALCITE-7002]
+
+SELECT deptno FROM emp WHERE deptno < 12
+INTERSECT
+SELECT deptno FROM dept WHERE deptno > 5
+INTERSECT
+SELECT deptno FROM emp WHERE deptno > 6
+INTERSECT
+SELECT deptno FROM dept WHERE deptno < 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[<($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[<($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(6..12)])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(5..10)])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+
+# testIntersectToFilterRuleWithOneFilter ---------------------------------------
+# INTERSECT_FILTER_TO_FILTER rewrites INTERSECT into a single filter when one input has no filter.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp
+INTERSECT
+SELECT mgr, comm FROM emp WHERE comm = 5;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+
+# testIntersectToFilterRuleWithTwoFilters --------------------------------------
+# INTERSECT_FILTER_TO_FILTER rewrites INTERSECT into AND of two filters.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+INTERSECT
+SELECT mgr, comm FROM emp WHERE comm = 5;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[AND(=($0, 12), =($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+
+# testIntersectToSemiJoin ------------------------------------------------------
+# INTERSECT_TO_SEMI_JOIN rewrites 2-way INTERSECT DISTINCT to semi-join + aggregate.
+# [CALCITE-6880]
+
+select ename from emp where deptno = 10
+intersect
+select ename from emp where deptno = 20;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoin2 -----------------------------------------------------
+# INTERSECT_TO_SEMI_JOIN rewrites n-way INTERSECT to chained semi-joins (after INTERSECT_MERGE).
+# [CALCITE-7000]
+
+select ename from emp where deptno = 10
+intersect
+select deptno from emp where ename in ('a', 'b')
+intersect
+select ename from empnullables;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+    LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, INTERSECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+      LogicalProject(ENAME=[CAST($0):VARCHAR])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[CAST($0):VARCHAR])
+        LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[CAST($0):VARCHAR])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, INTERSECT_MERGE, INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoinAll ---------------------------------------------------
+# INTERSECT_TO_SEMI_JOIN applies only to INTERSECT DISTINCT; INTERSECT ALL is left unchanged.
+# [CALCITE-6880]
+
+select ename from emp where deptno = 10
+intersect
+select ename from emp where deptno = 20
+intersect all
+select ename from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[true])
+  LogicalIntersect(all=[false])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalIntersect(all=[true])
+  LogicalAggregate(group=[{0}])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+      LogicalProject(ENAME=[$1])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalFilter(condition=[=($7, 20)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoinCoercion ----------------------------------------------
+# INTERSECT_TO_SEMI_JOIN handles column type coercion between INTERSECT inputs.
+# [CALCITE-6880]
+
+select ename from emp where deptno = 10
+intersect
+select job from emp where deptno = 20;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(JOB=[CAST($2):VARCHAR(20) NOT NULL])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(JOB=[CAST($2):VARCHAR(20) NOT NULL])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoinMultiCol ----------------------------------------------
+# INTERSECT_TO_SEMI_JOIN rewrites INTERSECT with multiple columns to a multi-condition semi-join.
+# [CALCITE-6880]
+
+select deptno, ename from emp where deptno = 10
+intersect
+select deptno, ename from emp where deptno = 20;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[semi])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_TO_SEMI_JOIN"
+
+# testMinusToAntiJoinRule ------------------------------------------------------
+# MINUS_TO_ANTI_JOIN rewrites 2-way EXCEPT DISTINCT to anti-join + aggregate.
+# [CALCITE-6948]
+
+select ename from emp where deptno = 10
+except
+select ename from emp where deptno = 20;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[=($0, $1)], joinType=[anti])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, MINUS_TO_ANTI_JOIN"
+
+# testMinusToAntiJoinRuleMultiInputs -------------------------------------------
+# MINUS_TO_ANTI_JOIN rewrites n-way EXCEPT to chained anti-joins (after MINUS_MERGE).
+
+select ename from emp where deptno = 10
+except
+select deptno from emp where ename in ('a', 'b')
+except
+select ename from empnullables;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+    LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, MINUS_MERGE"
+LogicalProject(ENAME=[CAST($0):VARCHAR])
+  LogicalAggregate(group=[{0}])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[anti])
+      LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[anti])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, MINUS_MERGE, MINUS_TO_ANTI_JOIN"
+
+# testMinusToFilterNWayWithSubquery --------------------------------------------
+# MINUS_FILTER_TO_FILTER merges same-source inputs in n-way EXCEPT containing a correlated subquery.
+# [CALCITE-7002]
+
+SELECT deptno FROM emp WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 5
+EXCEPT
+SELECT deptno FROM emp e1 WHERE EXISTS (
+    SELECT 1 FROM emp e2
+    WHERE e2.comm = e1.comm)
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 10
+EXCEPT
+SELECT deptno FROM emp WHERE deptno > 20;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[>($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($6, $cor0.COMM)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 20)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(12..20]])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($6, $cor0.COMM)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleFourWayWithForSources -----------------------------------
+# MINUS_FILTER_TO_FILTER is unchanged when all four EXCEPT sources are different tables.
+# [CALCITE-7002]
+
+SELECT deptno FROM emp WHERE deptno = 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 5
+EXCEPT
+SELECT deptno FROM empnullables WHERE deptno = 6
+EXCEPT
+SELECT deptno FROM deptnullables WHERE deptno = 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "NONE, MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "NONE, MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleNWayWithMultiSources ------------------------------------
+# MINUS_FILTER_TO_FILTER merges n-way EXCEPT from multiple sources into combined filters.
+# [CALCITE-6973]
+
+SELECT deptno FROM emp WHERE deptno > 6
+EXCEPT
+SELECT deptno FROM dept WHERE deptno > 8
+EXCEPT
+SELECT deptno FROM emp WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno > 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[>($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 8)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(6..12]])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 8)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleWithOneFilter -------------------------------------------
+# MINUS_FILTER_TO_FILTER rewrites EXCEPT into a negated filter when one input has no filter.
+# [CALCITE-6973]
+
+SELECT mgr, comm FROM emp
+EXCEPT
+SELECT mgr, comm FROM emp WHERE comm = 5;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[<>($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleWithTwoFilters ------------------------------------------
+# MINUS_FILTER_TO_FILTER rewrites EXCEPT into AND of one filter and NOT of the other.
+# [CALCITE-6973]
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+EXCEPT
+SELECT mgr, comm FROM emp WHERE comm = 5;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[AND(=($0, 12), <>($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testPushJoinThroughUnionOnLeft -----------------------------------------------
+# JOIN_LEFT_UNION_TRANSPOSE distributes a join over a UNION ALL on the left input.
+
+select r1.sal from
+(select * from emp e1 union all select * from emp e2) r1,
+emp r2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SAL=[$5])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_LEFT_UNION_TRANSPOSE"
+
+# testPushJoinThroughUnionOnRight ----------------------------------------------
+# JOIN_RIGHT_UNION_TRANSPOSE distributes a join over a UNION ALL on the right input.
+
+select r1.sal from
+emp r1,
+(select * from emp e1 union all select * from emp e2) r2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SAL=[$5])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_RIGHT_UNION_TRANSPOSE"
+
+# testUnionToFilterRuleNWayWithMultiSources ------------------------------------
+# UNION_FILTER_TO_FILTER merges n-way UNION from multiple sources into combined filters.
+# [CALCITE-7002]
+
+SELECT deptno FROM emp WHERE deptno = 12
+UNION
+SELECT deptno FROM dept WHERE deptno = 5
+UNION
+SELECT deptno FROM emp WHERE deptno = 6
+UNION
+SELECT deptno FROM dept WHERE deptno = 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, UNION_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[6, 12])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, UNION_MERGE, PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+
+# testUnionToFilterRuleWithOneFilter -------------------------------------------
+# UNION_FILTER_TO_FILTER rewrites UNION into a single scan when one input has no filter.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp
+UNION
+SELECT mgr, comm FROM emp WHERE comm = 5;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalUnion(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+
+# testUnionToFilterRuleWithTwoFilters ------------------------------------------
+# UNION_FILTER_TO_FILTER rewrites UNION into OR of two filters.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+UNION
+SELECT mgr, comm FROM emp WHERE comm = 5;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[OR(=($0, 12), =($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+
+# End set-op.iq

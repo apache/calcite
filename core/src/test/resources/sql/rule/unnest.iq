@@ -1,0 +1,145 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to unnesting and decorrelation
+# (UNNEST_DECORRELATE and UNNEST_PROJECT_DECORRELATE rules).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testUnnestDecorrelate -------------------------------------------------------
+# UNNEST_PROJECT_DECORRELATE converts a Correlate + Unnest with an intermediate
+# Project into a plain Unnest.
+# [CALCITE-7196]
+
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+
+WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)
+SELECT array_element.id
+FROM t1, UNNEST(t1.arr) AS array_element(id);
+LogicalProject(ID=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(ID=[$0])
+      Uncollect
+        LogicalProject(ARR=[$cor0.ARR])
+          LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+Uncollect
+  LogicalProject(ARR=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, UNNEST_PROJECT_DECORRELATE"
+
+# testUnnestDecorrelate2 ------------------------------------------------------
+# UNNEST_PROJECT_DECORRELATE converts a Correlate + Unnest with ordinality
+# and an intermediate Project into a plain Unnest with ordinality.
+# [CALCITE-7196]
+
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+
+WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)
+SELECT array_element.id, array_element.ord
+FROM t1, UNNEST(t1.arr) WITH ORDINALITY AS array_element(id, ord);
+LogicalProject(ID=[$1], ORD=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(ID=[$0], ORD=[$1])
+      Uncollect(withOrdinality=[true])
+        LogicalProject(ARR=[$cor0.ARR])
+          LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+Uncollect(withOrdinality=[true])
+  LogicalProject(ARR=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, UNNEST_PROJECT_DECORRELATE"
+
+# testUnnestDecorrelate3 ------------------------------------------------------
+# UNNEST_DECORRELATE converts a Correlate + Unnest (after PROJECT_REMOVE has
+# removed the intermediate Project) into a plain Unnest.
+# [CALCITE-7196]
+
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+
+WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)
+SELECT array_element.id
+FROM t1, UNNEST(t1.arr) AS array_element(id);
+LogicalProject(ID=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(ARR=[ARRAY(1, 2, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(ID=[$0])
+      Uncollect
+        LogicalProject(ARR=[$cor0.ARR])
+          LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+Uncollect
+  LogicalProject(ARR=[ARRAY(1, 2, 3)])
+    LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REMOVE, UNNEST_DECORRELATE"
+
+# testUnnestDecorrelate4 ------------------------------------------------------
+# UNNEST_DECORRELATE converts a Correlate + Unnest over a table column
+# (after PROJECT_REMOVE) into a plain Unnest over the table.
+# [CALCITE-7196]
+
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+
+select t2.ename
+from DEPT_NESTED as t1,
+unnest(t1.employees) as t2;
+LogicalProject(ENAME=[$5])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+LogicalProject(ENAME=[$1])
+  Uncollect
+    LogicalProject(EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!sub-plan "NONE, PROJECT_REMOVE, UNNEST_DECORRELATE"
+
+# testUnnestDecorrelate5 ------------------------------------------------------
+# UNNEST_DECORRELATE converts a Correlate + Unnest where the unnested value
+# is a struct field (after PROJECT_REMOVE) into a plain Unnest.
+# [CALCITE-7196]
+
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+
+WITH t1 AS (SELECT ROW(ARRAY[1, 2, 3]) as struct_with_array_field)
+SELECT array_element.id
+FROM t1, UNNEST(t1.struct_with_array_field[1]) AS array_element(id);
+LogicalProject(ID=[$1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalProject(STRUCT_WITH_ARRAY_FIELD=[ROW(ARRAY(1, 2, 3))])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(ID=[$0])
+      Uncollect
+        LogicalProject(EXPR$0=[$cor0.STRUCT_WITH_ARRAY_FIELD.EXPR$0])
+          LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+Uncollect
+  LogicalProject($f0=[ROW(ARRAY(1, 2, 3)).EXPR$0])
+    LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REMOVE, UNNEST_DECORRELATE"
+
+# End unnest.iq

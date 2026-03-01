@@ -1,0 +1,153 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to merging Projects with Aggregates
+# (PROJECT_AGGREGATE_MERGE rule).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testProjectAggregateMerge ---------------------------------------------------
+# Tests that PROJECT_AGGREGATE_MERGE removes unused aggregate calls but not
+# group keys.
+
+select deptno + ss
+from (
+  select job, deptno, min(sal) as ms, sum(sal) as ss
+  from emp
+  group by job, deptno);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[+($1, $3)])
+  LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[+($1, $2)])
+  LogicalAggregate(group=[{0, 1}], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+
+# testProjectAggregateMergeNonNumericLiteral ----------------------------------
+# Tests that PROJECT_AGGREGATE_MERGE does nothing with non-numeric literals
+# and does not throw an exception.
+
+# Not using !ok: this test uses a custom catalog (NULLABLE table) not in scott.
+# Not using !sub-plan: this test uses a custom catalog (NULLABLE table) not in
+# the mock catalog used by !sub-plan.
+
+# testProjectAggregateMergeNoOp -----------------------------------------------
+# Tests that PROJECT_AGGREGATE_MERGE does nothing when all aggregate calls are
+# referenced.
+
+select deptno + ss + ms
+from (
+  select job, deptno, min(sal) as ms, sum(sal) as ss
+  from emp
+  group by job, deptno);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[+(+($1, $3), $2)])
+  LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[+(+($1, $3), $2)])
+  LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
+    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+
+# testProjectAggregateMergeNoOpForNonSum --------------------------------------
+# Tests that PROJECT_AGGREGATE_MERGE does nothing for non-SUM aggregate calls.
+
+select coalesce(m, 0)
+from (
+  select max(deptno) as m
+  from emp
+);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], M=[MAX($0)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], M=[MAX($0)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+
+# testProjectAggregateMergeSum0 -----------------------------------------------
+# Tests that PROJECT_AGGREGATE_MERGE converts COALESCE(SUM(x), 0) into SUM0(x).
+
+select coalesce(sum_sal, 0) as ss0
+from (
+  select sum(sal) as sum_sal
+  from emp);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SS0=[$0])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+
+# testProjectAggregateMergeSum01 ----------------------------------------------
+# Tests that PROJECT_AGGREGATE_MERGE converts COALESCE(SUM(CAST(x)), 0) to
+# SUM0. [CALCITE-6834]
+
+select coalesce(sum(cast(mgr as tinyint)), 0) as ss0
+from emp;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)])
+    LogicalProject($f0=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SS0=[CAST($0):INTEGER NOT NULL])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
+    LogicalProject($f0=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+
+# testProjectAggregateMergeSum0AndSum -----------------------------------------
+# As testProjectAggregateMergeSum0, but SUM is also used directly so it cannot
+# be fully replaced by SUM0.
+
+select sum_sal * 2, coalesce(sum_sal, 0) as ss0
+from (
+  select sum(sal) as sum_sal
+  from emp);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[*($0, 2)], SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[*($0, 2)], SS0=[$1])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], agg#1=[$SUM0($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+
+# End project-aggregate-merge.iq

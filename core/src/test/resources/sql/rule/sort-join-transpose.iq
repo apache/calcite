@@ -1,0 +1,368 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to pushing Sort past Join
+# (SORT_JOIN_TRANSPOSE, SORT_JOIN_COPY, SORT_PROJECT_TRANSPOSE).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testSortJoinCopyInnerJoinOrderBy ---------------------------------------------
+# SORT_JOIN_COPY should copy the Sort to the preserving side of an inner join.
+
+select * from sales.emp join sales.dept on
+sales.emp.deptno = sales.dept.deptno order by sal;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalSort(sort0=[$5], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_COPY"
+
+# testSortJoinCopyInnerJoinOrderByLimit ----------------------------------------
+# SORT_JOIN_COPY should copy the Sort but not the fetch to the preserving side.
+
+select * from sales.emp e join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+order by sal limit 10;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalSort(sort0=[$5], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_COPY"
+
+# testSortJoinCopyInnerJoinOrderByTwoFields ------------------------------------
+# SORT_JOIN_COPY should copy Sort keys to both sides when each key comes from
+# a different input.
+
+select * from sales.emp e join  sales.dept d on
+ e.deptno = d.deptno order by e.sal,d.dname;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], sort1=[$10], dir0=[ASC], dir1=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], sort1=[$10], dir0=[ASC], dir1=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalSort(sort0=[$5], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(sort0=[$1], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_COPY"
+
+# testSortJoinTranspose1 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should push Sort past the preserving side of a left join.
+
+select * from sales.emp e left join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+order by sal limit 10;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalSort(sort0=[$5], dir0=[ASC], fetch=[10])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose10 ------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should handle large BIGINT fetch and offset values.
+
+select * from sales.emp e left join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+limit 3000000000 offset 2500000000;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(offset=[2500000000:BIGINT], fetch=[3000000000:BIGINT])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalSort(fetch=[5500000000:BIGINT])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose2 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should push Sort past the preserving side of a right join.
+
+select * from sales.emp e right join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+order by dname;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$10], dir0=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$10], dir0=[ASC])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(sort0=[$1], dir0=[ASC])
+        LogicalProject(DEPTNO=[$0], DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose3 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should not push Sort when keys come from both sides of
+# the join.
+
+select * from sales.emp e left join (
+  select * from sales.dept) d on e.deptno = d.deptno
+order by sal, dname limit 10;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], sort1=[$10], dir0=[ASC], dir1=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(sort0=[$5], sort1=[$10], dir0=[ASC], dir1=[ASC], fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose5 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should not fire again after it has already pushed the Sort.
+# [CALCITE-1498]
+
+select * from sales.emp e right join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+limit 10;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalSort(fetch=[10])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(fetch=[10])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalSort(fetch=[10])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose6 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should push LIMIT+OFFSET past a count-preserving join.
+# [CALCITE-1507]
+
+select d.deptno, empno from sales.dept d
+right join sales.emp e using (deptno) limit 10 offset 2;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(offset=[2], fetch=[10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(offset=[2], fetch=[10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalSort(fetch=[12])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose7 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should push Sort with OFFSET past a left join when the
+# non-preserving side is count-preserving against the join condition.
+# [CALCITE-1507]
+
+select d.deptno, empno from sales.dept d
+left join sales.emp e using (deptno) order by d.deptno offset 1;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalSort(sort0=[$0], dir0=[ASC])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose8 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should not push Sort past a JOIN when fetch is a dynamic
+# parameter.
+# [CALCITE-6983]
+
+select * from sales.emp e right join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+FETCH NEXT ? ROWS ONLY;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(fetch=[?0])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(fetch=[?0])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortJoinTranspose9 -------------------------------------------------------
+# SORT_JOIN_TRANSPOSE should not push Sort past a JOIN when offset is a dynamic
+# parameter.
+# [CALCITE-6983]
+
+select * from sales.emp e left join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+OFFSET ? ROWS;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(offset=[?0])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE, SORT_PROJECT_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalSort(offset=[?0])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE, SORT_PROJECT_TRANSPOSE, SORT_JOIN_TRANSPOSE"
+
+# testSortProjectTranspose1 ----------------------------------------------------
+# SORT_PROJECT_TRANSPOSE should push Sort past a Project when the sort key is a
+# monotone expression (cast to same type).
+
+select d.deptno from sales.dept d
+order by cast(d.deptno as integer) offset 1;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[$0])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+
+# testSortProjectTranspose2 ----------------------------------------------------
+# SORT_PROJECT_TRANSPOSE should push Sort past a Project when the sort key is a
+# monotone cast (DOUBLE preserves integer ordering).
+
+select d.deptno from sales.dept d
+order by cast(d.deptno as double) offset 1;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_PROJECT_TRANSPOSE"
+
+# testSortProjectTranspose3 ----------------------------------------------------
+# SORT_JOIN_TRANSPOSE should not push Sort past a Project when the sort key is
+# a non-monotone cast (VARCHAR ordering differs from integer ordering).
+
+select d.deptno from sales.dept d
+order by cast(d.deptno as varchar(10)) offset 1;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):VARCHAR(10) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):VARCHAR(10) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, SORT_JOIN_TRANSPOSE"
+
+# End sort-join-transpose.iq

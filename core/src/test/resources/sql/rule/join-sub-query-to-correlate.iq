@@ -1,0 +1,213 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to converting join sub-queries to correlates
+# (JOIN_SUB_QUERY_TO_CORRELATE rule).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testJoinSubQueryRemoveRuleWithAndNotExists ----------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites AND NOT EXISTS in a LEFT JOIN ON clause.
+
+select *
+from (select 1 id union all select 2) t1
+left join (select 2 id) t2
+on t1.id = t2.id and not exists(select *
+                                from (select 3 id) p
+                                where p.id = t1.id);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[AND(=($0, $1), NOT(EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID)])
+  LogicalValues(tuples=[[{ 3 }]])
+})))], joinType=[left], variablesSet=[[$cor0]])
+    LogicalValues(tuples=[[{ 1 }, { 2 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+!sub-plan "NONE"
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$2])
+    LogicalJoin(condition=[AND(=($0, $2), IS NULL($1))], joinType=[left])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 1 }, { 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+      LogicalValues(tuples=[[{ 2 }]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# testJoinSubQueryRemoveRuleWithNotExists -------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites NOT EXISTS in a LEFT JOIN ON clause.
+
+select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on not exists(select *
+               from (select 3 id) p
+               where p.id = t2.id);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID0)])
+  LogicalValues(tuples=[[{ 3 }]])
+}))], joinType=[left], variablesSet=[[$cor0]])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+!sub-plan "NONE"
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$1])
+    LogicalJoin(condition=[IS NULL($2)], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }]])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# testJoinSubQueryRemoveRuleWithNotIn -----------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites NOT IN in a JOIN ON clause.
+
+SELECT empno FROM emp JOIN dept on emp.deptno not in (SELECT deptno FROM dept);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[NOT(IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$11], DNAME=[$12])
+    LogicalJoin(condition=[IS NULL($10)], joinType=[inner])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[$0], i=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# testJoinSubQueryRemoveRuleWithOrExists --------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites OR EXISTS in a LEFT JOIN ON clause.
+
+select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on t1.id = t2.id or exists(select *
+                           from (select 3 id) p
+                           where p.id = t2.id);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[OR(=($0, $1), EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID0)])
+  LogicalValues(tuples=[[{ 3 }]])
+}))], joinType=[left], variablesSet=[[$cor0]])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+!sub-plan "NONE"
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$1])
+    LogicalJoin(condition=[OR(=($0, $1), IS NOT NULL($2))], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }]])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# testJoinSubQueryRemoveRuleWithOrNotExists -----------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites OR NOT EXISTS in a LEFT JOIN ON clause.
+
+select *
+from (select 1 id) t1
+left join (select 2 id) t2
+on t1.id = t2.id or not exists(select *
+                               from (select 3 id) p
+                               where p.id = t2.id);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalJoin(condition=[OR(=($0, $1), NOT(EXISTS({
+LogicalFilter(condition=[=($0, $cor0.ID0)])
+  LogicalValues(tuples=[[{ 3 }]])
+})))], joinType=[left], variablesSet=[[$cor0]])
+    LogicalValues(tuples=[[{ 1 }]])
+    LogicalValues(tuples=[[{ 2 }]])
+!sub-plan "NONE"
+LogicalProject(ID=[$0], ID0=[$1])
+  LogicalProject(ID=[$0], ID0=[$1])
+    LogicalJoin(condition=[OR(=($0, $1), IS NULL($2))], joinType=[left])
+      LogicalValues(tuples=[[{ 1 }]])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalValues(tuples=[[{ 2 }]])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($0, $cor0.ID)])
+            LogicalValues(tuples=[[{ 3 }]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# testJoinSubQueryRemoveRuleWithQuantifierSome --------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites >= SOME sub-query in a JOIN ON clause.
+
+SELECT empno FROM emp JOIN dept on emp.deptno >= SOME(SELECT deptno FROM dept);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[>= SOME($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$12], DNAME=[$13])
+    LogicalJoin(condition=[CAST(OR(AND(IS TRUE(>=($7, $9)), <>($10, 0)), AND(>($10, $11), null, <>($10, 0), IS NOT TRUE(>=($7, $9))), AND(>=($7, $9), <>($10, 0), IS NOT TRUE(>=($7, $9)), <=($10, $11)))):BOOLEAN NOT NULL], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(m=[$0], c=[$1], d=[$1])
+          LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# testJoinSubQueryRewriteWithBothSidesColumns ---------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE does not rewrite when sub-query references both
+# sides of the join (plan is unchanged).
+
+SELECT empno FROM emp JOIN dept on emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[>= SOME(+($7, $9), {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[>= SOME(+($7, $9), {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+
+# End join-sub-query-to-correlate.iq

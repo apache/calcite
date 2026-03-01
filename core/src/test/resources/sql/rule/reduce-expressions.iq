@@ -36,6 +36,69 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
   LogicalValues(tuples=[[]])
 !sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
 
+# testAsofOpt -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS does not modify an ASOF join plan (checkUnchanged).
+
+SELECT *
+FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)
+ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)
+MATCH_CONDITION t2.t < t1.t
+ON t1.k = t2.k
+;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
+    LogicalValues(tuples=[[{ null, 0 }, { 1, null }, { 1, 0 }, { 1, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 2, 3 }, { 3, 4 }]])
+    LogicalValues(tuples=[[{ 1, null }, { 1, 2 }, { 1, 3 }, { 2, 10 }, { 2, 0 }]])
+!sub-plan "NONE"
+LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
+    LogicalValues(tuples=[[{ null, 0 }, { 1, null }, { 1, 0 }, { 1, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 2, 3 }, { 3, 4 }]])
+    LogicalValues(tuples=[[{ 1, null }, { 1, 2 }, { 1, 3 }, { 2, 10 }, { 2, 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testCastRemove -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS does not remove a CAST in a complex CASE with
+# COALESCE (checkUnchanged).
+
+select
+case when cast(ename as double) < 5 then 0.0
+     else coalesce(cast(ename as double), 1.0)
+     end as t
+ from (
+       select
+          case when ename > 'abc' then ename
+               else null
+               end as ename from emp
+ );
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testExpressionPreceding -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS does not modify a plan when applied after a window
+# function has already been expanded (checkUnchanged).
+
+select COUNT(*) over (
+ORDER BY empno
+ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp
+;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(W_COUNT=[$1])
+  LogicalWindow(window#0=[window(order by [0] rows between $1 PRECEDING and $2 PRECEDING aggs [COUNT()])], constants=[[10, 1]])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+LogicalProject(W_COUNT=[$1])
+  LogicalWindow(window#0=[window(order by [0] rows between $1 PRECEDING and $2 PRECEDING aggs [COUNT()])], constants=[[10, 1]])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_REDUCE_EXPRESSIONS"
+
 # testExpressionSimplification1 -------------------------------------------------------
 # [CALCITE-5169] 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'.
 # ename <> '' and ename <> '3' should be simplified to Sarg.
@@ -81,6 +144,23 @@ LogicalProject(EXPR$0=[54])
   LogicalValues(tuples=[[]])
 !sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
 
+# testNoOversimplificationBelowIsNull -------------------------------------------------------
+# [CALCITE-2726] FILTER_REDUCE_EXPRESSIONS should not oversimplify conditions
+# below IS NULL.
+
+select *
+from emp
+where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(=($0, null), =($3, 1))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(null, =($3, 1))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
+
 # testOrAlwaysTrue -------------------------------------------------------
 # Tests that "sal is null or sal is not null" is always true and the filter is removed.
 
@@ -119,6 +199,40 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
+# testOversimplifiedCaseStatement -------------------------------------------------------
+# [CALCITE-2726] FILTER_REDUCE_EXPRESSIONS should not oversimplify CASE in a
+# compound WHERE condition.
+
+select * from emp where MGR > 0 and case when MGR > 0 then deptno / MGR else null end > 1;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(>($3, 0), >(CASE(>($3, 0), /($7, $3), null:INTEGER), 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(>($3, 0), CASE(>($3, 0), >(/($7, $3), 1), false))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
+
+# testPredicatePull -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS pulls constants from filter predicates into a
+# rollup aggregate's project.
+
+select deptno, sal from emp where deptno = 10 group by rollup(sal, deptno);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(DEPTNO=[$1], SAL=[$0])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$1], SAL=[$0])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]])
+    LogicalProject(SAL=[$5], DEPTNO=[10])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
+
 # testPullNull -------------------------------------------------------
 # Tests that constant values are pulled into the project when they are known from the filter.
 
@@ -135,6 +249,39 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
   LogicalFilter(condition=[AND(=($7, 7), =($0, 10), IS NULL($3))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+
+# testPullUpPredicatesFromProject1 -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces expressions in a project using constants
+# inferred from the filter (comm <> 2 becomes false, comm = 2 becomes true).
+
+select comm <> 2, comm = 2 from emp where comm = 2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[<>($6, 2)], EXPR$1=[=($6, 2)])
+  LogicalFilter(condition=[=($6, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(EXPR$0=[false], EXPR$1=[true])
+  LogicalFilter(condition=[=($6, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testRand -------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces ROUND(RAND()) but preserves it when used
+# in a filter with BETWEEN/IN conditions.
+
+SELECT * FROM (SELECT 1, ROUND(RAND()) AS A)
+WHERE A BETWEEN 1 AND 10 OR A IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EXPR$0=[$0], A=[$1])
+  LogicalFilter(condition=[OR(AND(>=($1, CAST(1):DOUBLE NOT NULL), <=($1, CAST(10):DOUBLE NOT NULL)), =($1, CAST(1):DOUBLE NOT NULL), =($1, CAST(2):DOUBLE NOT NULL), =($1, CAST(3):DOUBLE NOT NULL), =($1, CAST(4):DOUBLE NOT NULL), =($1, CAST(5):DOUBLE NOT NULL), =($1, CAST(6):DOUBLE NOT NULL), =($1, CAST(7):DOUBLE NOT NULL), =($1, CAST(8):DOUBLE NOT NULL), =($1, CAST(9):DOUBLE NOT NULL), =($1, CAST(10):DOUBLE NOT NULL))])
+    LogicalProject(EXPR$0=[1], A=[ROUND(RAND())])
+      LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1], A=[$1])
+  LogicalFilter(condition=[OR(AND(>=($1, CAST(1):DOUBLE NOT NULL), <=($1, CAST(10):DOUBLE NOT NULL)), =($1, CAST(1):DOUBLE NOT NULL), =($1, CAST(2):DOUBLE NOT NULL), =($1, CAST(3):DOUBLE NOT NULL), =($1, CAST(4):DOUBLE NOT NULL), =($1, CAST(5):DOUBLE NOT NULL), =($1, CAST(6):DOUBLE NOT NULL), =($1, CAST(7):DOUBLE NOT NULL), =($1, CAST(8):DOUBLE NOT NULL), =($1, CAST(9):DOUBLE NOT NULL), =($1, CAST(10):DOUBLE NOT NULL))])
+    LogicalProject(EXPR$0=[1], A=[ROUND(RAND())])
+      LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceCastAndConsts -------------------------------------------------------
 # Tests that constant expressions inside a cast can be reduced.
@@ -162,6 +309,39 @@ LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
 LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+
+# testReduceCompositeInSubQuery -------------------------------------------------------
+# [CALCITE-6887] FILTER_REDUCE_EXPRESSIONS reduces a constant expression in an
+# OR condition that contains a composite IN subquery.
+# TODO: The original Java test used withRelBuilderConfig(b -> b.withAggregateUnique(true))
+# and withSubQueryRules(), which are not supported in .iq format. With aggregateUnique=true,
+# the GROUP BY in the subquery produces a LogicalAggregate wrapped in a LogicalProject.
+# Without that config, EMPNO is a unique key so the aggregate is simplified away, leaving
+# just LogicalProject(EMPNO, DEPTNO) over LogicalTableScan in the IN subquery plan.
+
+select *
+from emp
+where (empno, deptno) in (
+  select empno, deptno from (
+    select empno, deptno
+    from emp
+    group by empno, deptno))
+or deptno < 40 + 60;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(IN($0, $7, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($7, +(40, 60)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(IN($0, $7, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($7, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
 
 # testReduceConstants3 -------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
@@ -515,3 +695,20 @@ LogicalProject(EXPR$0=[+(1, 1)], EXPR$1=[ARRAY(+(1, 1), +(2, 2))], EXPR$2=[ROW('
 LogicalProject(EXPR$0=[2], EXPR$1=[ARRAY(2, 4)], EXPR$2=[ROW('a', 6)], EXPR$3=[MAP('ab', 12)], EXPR$4=[ROW(3, ARRAY(3, 5), ROW('a', 7), MAP('abcd', 13))], EXPR$5=[ARRAY(6, 2, 1)], EXPR$6=[ARRAY(ROW(8, 'a'), ROW(8, 'b'))], EXPR$7=[ARRAY(MAP('abcdef', 16), MAP('ghijkl', 18))], EXPR$8=[ARRAY(ROW(3, ARRAY(2, 4), ROW('a', 6), MAP('xy', 16)))], EXPR$9=[3], EXPR$10=[2], EXPR$11=[2], EXPR$12=[1])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testReduceExpressionsNot -------------------------------------------------------
+# FILTER_REDUCE_EXPRESSIONS does not reduce NOT(col1) when col1 is a boolean
+# from a VALUES clause (checkUnchanged).
+
+select * from (values (false),(true)) as q (col1) where not(col1);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalProject(COL1=[$0])
+  LogicalFilter(condition=[NOT($0)])
+    LogicalValues(tuples=[[{ false }, { true }]])
+!sub-plan "NONE"
+LogicalProject(COL1=[$0])
+  LogicalFilter(condition=[NOT($0)])
+    LogicalValues(tuples=[[{ false }, { true }]])
+!sub-plan "NONE, FILTER_REDUCE_EXPRESSIONS"
+
+# End reduce-expressions.iq

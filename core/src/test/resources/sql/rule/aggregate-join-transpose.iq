@@ -203,6 +203,36 @@ LogicalAggregate(group=[{0, 2}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
+# testPushAggregateThroughJoin3 -----------------------------------------------
+# [CALCITE-2278] AGGREGATE_JOIN_TRANSPOSE_EXTENDED does not push through a join
+# with a non-equi join condition (checkUnchanged).
+# TODO: The original Java test used withRelBuilderConfig(b -> b.withAggregateUnique(true)),
+# which is not supported in .iq format. With aggregateUnique=true, a GROUP BY without
+# aggregate functions produces a LogicalAggregate; AGGREGATE_PROJECT_MERGE then converts it
+# to a LogicalProject. Without that config, the .iq runner still produces LogicalProject
+# after AGGREGATE_PROJECT_MERGE (empno is a unique key so the aggregate is simplified away).
+
+select e.empno,d.deptno
+from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.empno < d.deptno
+group by e.empno,d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], DEPTNO=[$9])
+  LogicalJoin(condition=[<($0, $9)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(EMPNO=[$0], DEPTNO=[$9])
+  LogicalJoin(condition=[<($0, $9)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
 # testPushAggregateThroughJoin4 -----------------------------------------------
 # [CALCITE-1544] AggregateJoinTransposeRule fails to preserve row type.
 
@@ -443,6 +473,33 @@ LogicalProject(EXPR$0=[$2])
         LogicalFilter(condition=[=($0, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin11 -----------------------------------------
+# AGGREGATE_JOIN_TRANSPOSE_EXTENDED does not push through a left outer join
+# with a non-equi join condition (checkUnchanged).
+# TODO: Same as testPushAggregateThroughJoin3: the original Java test used
+# withRelBuilderConfig(b -> b.withAggregateUnique(true)), not supported in .iq format.
+
+select e.empno,d.deptno
+from (select * from sales.emp where empno = 10) as e
+left outer join sales.dept as d on e.empno < d.deptno
+group by e.empno,d.deptno;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+
+LogicalProject(EMPNO=[$0], DEPTNO=[$9])
+  LogicalJoin(condition=[<($0, $9)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(EMPNO=[$0], DEPTNO=[$9])
+  LogicalJoin(condition=[<($0, $9)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushAggregateThroughOuterJoin12 -----------------------------------------
