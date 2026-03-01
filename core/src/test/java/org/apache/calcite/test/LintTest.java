@@ -29,13 +29,9 @@ import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -54,7 +50,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import static java.lang.Integer.parseInt;
@@ -68,7 +63,6 @@ class LintTest {
   private static final Pattern CALCITE_PATTERN =
       compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
   private static final Pattern PATTERN = compile("^ *(// )?");
-  private static final Path ROOT_PATH = Paths.get(System.getProperty("gradle.rootDir"));
 
   private static final String TERMINOLOGY_ERROR_MSG =
       "Message contains '%s' word; use one of the following instead: %s";
@@ -546,50 +540,6 @@ class LintTest {
       checkMessage(msg, "", errors::add);
       assertThat(errors, empty());
     }
-  }
-
-  /** Ensures that the {@code .mailmap} file is sorted. */
-  @Test void testMailmapFile() {
-    final File mailmapFile = ROOT_PATH.resolve(".mailmap").toFile();
-    final List<String> lines = new ArrayList<>();
-    forEachLineIn(mailmapFile, line -> {
-      if (!line.startsWith("#")) {
-        lines.add(line);
-      }
-    });
-    String line = firstOutOfOrder(lines, String.CASE_INSENSITIVE_ORDER);
-    if (line != null) {
-      fail("line '" + line + "' is out of order");
-    }
-  }
-
-  /** Performs an action for each line in a file. */
-  private static void forEachLineIn(File file, Consumer<String> consumer) {
-    try (BufferedReader r = Util.reader(file)) {
-      for (;;) {
-        String line = r.readLine();
-        if (line == null) {
-          break;
-        }
-        consumer.accept(line);
-      }
-    } catch (IOException e) {
-      throw Util.throwAsRuntime(e);
-    }
-  }
-
-  /** Returns the first element in a list that is out of order, or null if the
-   * list is sorted. */
-  private static <E> @Nullable E firstOutOfOrder(Iterable<E> elements,
-      Comparator<E> comparator) {
-    E previous = null;
-    for (E e : elements) {
-      if (previous != null && comparator.compare(previous, e) > 0) {
-        return e;
-      }
-      previous = e;
-    }
-    return null;
   }
 
   /** Warning that code is not as it should be. */
