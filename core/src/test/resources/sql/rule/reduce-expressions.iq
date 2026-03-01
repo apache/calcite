@@ -75,16 +75,13 @@ LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
 # PROJECT_REDUCE_EXPRESSIONS does not remove a CAST in a complex CASE with
 # COALESCE (checkUnchanged).
 
-select
-case when cast(ename as double) < 5 then 0.0
-     else coalesce(cast(ename as double), 1.0)
-     end as t
- from (
-       select
-          case when ename > 'abc' then ename
-               else null
-               end as ename from emp
- );
+select case when cast(dname as double) < 5 then 0.0
+            else coalesce(cast(dname as double), 1.0)
+            end as t
+from (select case when dname > 'abc' then dname
+             else null
+             end as dname
+    from dept);
 +-----+
 | T   |
 +-----+
@@ -92,25 +89,15 @@ case when cast(ename as double) < 5 then 0.0
 | 1.0 |
 | 1.0 |
 | 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
-| 1.0 |
 +-----+
-(14 rows)
+(4 rows)
 
 !ok
-LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "NONE"
-LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "NONE, PROJECT_REDUCE_EXPRESSIONS"
 
 # testExpressionPreceding -------------------------------------------------------

@@ -96,6 +96,7 @@ import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -228,7 +229,7 @@ public abstract class QuidemTest {
             if (name.equals("aggregateUnique=true")) {
               aggregateUnique = true;
             } else if (name.startsWith("bloat=")) {
-              bloat = Integer.parseInt(name.substring("bloat=".length()));
+              bloat = parseInt(name.substring("bloat=".length()));
             } else if (name.equals("expand=true")) {
               expand = true;
             } else if (name.equals("relBuilderSimplify=false")) {
@@ -279,9 +280,9 @@ public abstract class QuidemTest {
         // Parse, validate, and convert SQL to RelNode.
         // relBuilderSimplify=false wraps conversion in a thread hook.
         final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
-        try (AutoCloseable ignored = relBuilderSimplify
-            ? (AutoCloseable) () -> {}
-            : Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
+        try (AutoCloseable ignored =
+                 Hook.REL_BUILDER_SIMPLIFY.addThread(
+                     Hook.propertyJ(relBuilderSimplify))) {
           final SqlToRelConverter converter = factory0.createSqlToRelConverter();
           final SqlNode sqlQuery =
               factory0.createParser(sqlCommand.sql).parseQuery();
