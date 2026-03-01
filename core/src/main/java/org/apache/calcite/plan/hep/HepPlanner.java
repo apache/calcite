@@ -54,14 +54,17 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -103,6 +106,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private int nTransformationsLastGC;
 
   private final boolean noDag;
+
+  private boolean largePlanMode = false;
 
   /**
    * Query graph, with edges directed from parent to child. This is a
@@ -183,10 +188,48 @@ public class HepPlanner extends AbstractRelOptPlanner {
     this.noDag = noDag;
   }
 
+  /**
+   * Create a new {@code HepPlanner} capable of execute multiple HepPrograms
+   * with (noDag = false, isLargePlanMode = true, enableFiredRulesCache = true).
+   *
+   * <p>Unlike planners that require setRoot for every optimization pass,
+   * this planner preserves the internal graph structure and optimized plan across
+   * successive executions. This allows for multi-phrase optimization where the
+   * output of one {@link HepProgram} serves as the immediate starting point for the next.
+   *
+   * <p><b>Usage Example:</b>
+   * <pre>{@code
+   *   HepPlanner planner = new HepPlanner();
+   *   planner.setRoot(initPlanRoot);
+   *   planner.executeProgram(phrase1Program);
+   *   planner.dumpRuleAttemptsInfo(); // optional
+   *   planner.clear(); // clear the rules and rule match caches, the graph is reused
+   *   // other logics ...
+   *   planner.executeProgram(phrase2Program);
+   *   planner.clear();
+   *   ...
+   *   RelNode optimized = planner.buildFinalPlan();
+   * }</pre>
+   *
+   * @see #setRoot(RelNode)
+   * @see #executeProgram(HepProgram)
+   * @see #dumpRuleAttemptsInfo()
+   * @see #clear()
+   * @see #buildFinalPlan()
+   */
+  public HepPlanner() {
+    this(HepProgram.builder().build(), null, false, null, RelOptCostImpl.FACTORY);
+    this.largePlanMode = true;
+    this.enableFiredRulesCache = true;
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public void setRoot(RelNode rel) {
-    root = addRelToGraph(rel);
+    // initRelToVertexCache is used to quickly skip common nodes before traversing its inputs
+    IdentityHashMap<RelNode, HepRelVertex> initRelToVertexCache = (isLargePlanMode() && !noDag)
+        ? new IdentityHashMap<>() : null;
+    root = addRelToGraph(rel, initRelToVertexCache);
     dumpGraph();
   }
 
@@ -204,6 +247,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
     this.firedRulesCacheIndex.clear();
   }
 
+  public boolean isLargePlanMode() {
+    return largePlanMode;
+  }
+
+  public void setLargePlanMode(final boolean largePlanMode) {
+    this.largePlanMode = largePlanMode;
+  }
+
   @Override public RelNode changeTraits(RelNode rel, RelTraitSet toTraits) {
     // Ignore traits, except for the root, where we remember
     // what the final conversion should be.
@@ -214,6 +265,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public RelNode findBestExp() {
+    if (isLargePlanMode()) {
+      throw new UnsupportedOperationException("findBestExp is not supported in large plan mode"
+          + ", please use buildFinalPlan() to get the final plan.");
+    }
+
     requireNonNull(root, "'root' must not be null");
 
     executeProgram(mainProgram);
@@ -221,6 +277,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // Get rid of everything except what's in the final plan.
     collectGarbage();
     dumpRuleAttemptsInfo();
+    return buildFinalPlan(requireNonNull(root, "'root' must not be null"));
+  }
+
+  public RelNode buildFinalPlan() {
     return buildFinalPlan(requireNonNull(root, "'root' must not be null"));
   }
 
@@ -237,7 +297,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   /** Top-level entry point for a program. Initializes state and then invokes
    * the program. */
-  private void executeProgram(HepProgram program) {
+  public void executeProgram(HepProgram program) {
     final HepInstruction.PrepareContext px =
         HepInstruction.PrepareContext.create(this);
     final HepState state = program.prepare(px);
@@ -249,7 +309,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     state.instructionStates.forEach(instructionState -> {
       instructionState.execute();
       int delta = nTransformations - nTransformationsLastGC;
-      if (delta > graphSizeLastGC) {
+      if (!isLargePlanMode() && delta > graphSizeLastGC) {
         // The number of transformations performed since the last
         // garbage collection is greater than the number of vertices in
         // the graph at that time.  That means there should be a
@@ -492,12 +552,23 @@ public class HepPlanner extends AbstractRelOptPlanner {
       HepProgram.State programState, HepRelVertex start) {
     switch (requireNonNull(programState.matchOrder, "programState.matchOrder")) {
     case ARBITRARY:
+      if (isLargePlanMode()) {
+        return BreadthFirstIterator.of(graph, start).iterator();
+      }
+      return DepthFirstIterator.of(graph, start).iterator();
     case DEPTH_FIRST:
+      if (isLargePlanMode()) {
+        throw new UnsupportedOperationException("DepthFirstIterator is too slow for large plan mode"
+            + ", please setLargePlanMode(false) if you don't want to use this mode.");
+      }
       return DepthFirstIterator.of(graph, start).iterator();
     case TOP_DOWN:
     case BOTTOM_UP:
       assert start == root;
-      collectGarbage();
+      if (!isLargePlanMode()) {
+        // NOTE: Planner already run GC for every transformation removed subtree
+        collectGarbage();
+      }
       return TopologicalOrderIterator.of(graph, programState.matchOrder).iterator();
     default:
       throw new
@@ -774,7 +845,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
       parents.add(parent);
     }
 
-    HepRelVertex newVertex = addRelToGraph(bestRel);
+    HepRelVertex newVertex = addRelToGraph(bestRel, null);
+    Set<HepRelVertex> garbageVertexSet = new LinkedHashSet<>();
 
     // There's a chance that newVertex is the same as one
     // of the parents due to common subexpression recognition
@@ -785,10 +857,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (iParentMatch != -1) {
       newVertex = parents.get(iParentMatch);
     } else {
-      contractVertices(newVertex, vertex, parents);
+      contractVertices(newVertex, vertex, parents, garbageVertexSet);
     }
 
-    if (getListener() != null) {
+    if (isLargePlanMode()) {
+      collectGarbage(garbageVertexSet);
+    } else if (getListener() != null) {
       // Assume listener doesn't want to see garbage.
       collectGarbage();
     }
@@ -824,11 +898,18 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   private HepRelVertex addRelToGraph(
-      RelNode rel) {
+      RelNode rel, @Nullable IdentityHashMap<RelNode, HepRelVertex> initRelToVertexCache) {
     // Check if a transformation already produced a reference
     // to an existing vertex.
     if (graph.vertexSet().contains(rel)) {
       return (HepRelVertex) rel;
+    }
+
+    // Fast equiv vertex for set root, before add children.
+    if (initRelToVertexCache != null && initRelToVertexCache.containsKey(rel)) {
+      HepRelVertex vertex = initRelToVertexCache.get(rel);
+      assert vertex != null;
+      return vertex;
     }
 
     // Recursively add children, replacing this rel's inputs
@@ -836,7 +917,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     final List<RelNode> inputs = rel.getInputs();
     final List<RelNode> newInputs = new ArrayList<>();
     for (RelNode input1 : inputs) {
-      HepRelVertex childVertex = addRelToGraph(input1);
+      HepRelVertex childVertex = addRelToGraph(input1, initRelToVertexCache);
       newInputs.add(childVertex);
     }
 
@@ -868,6 +949,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
       graph.addEdge(newVertex, (HepRelVertex) input);
     }
 
+    if (initRelToVertexCache != null) {
+      initRelToVertexCache.put(rel, newVertex);
+    }
+
     nTransformations++;
     return newVertex;
   }
@@ -875,7 +960,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private void contractVertices(
       HepRelVertex preservedVertex,
       HepRelVertex discardedVertex,
-      List<HepRelVertex> parents) {
+      List<HepRelVertex> parents,
+      Set<HepRelVertex> garbageVertexSet) {
     if (preservedVertex == discardedVertex) {
       // Nop.
       return;
@@ -897,6 +983,18 @@ public class HepPlanner extends AbstractRelOptPlanner {
       }
       clearCache(parent);
       graph.removeEdge(parent, discardedVertex);
+
+      if (!noDag && isLargePlanMode()) {
+        // Recursive merge parent path
+        HepRelVertex addedVertex = mapDigestToVertex.get(parentRel.getRelDigest());
+        if (addedVertex != null && addedVertex != parent) {
+          List<HepRelVertex> parentCopy = // contractVertices will change predecessorList
+              new ArrayList<>(Graphs.predecessorListOf(graph, parent));
+          contractVertices(addedVertex, parent, parentCopy, garbageVertexSet);
+          continue;
+        }
+      }
+
       graph.addEdge(parent, preservedVertex);
       updateVertex(parent, parentRel);
     }
@@ -904,10 +1002,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // NOTE:  we don't actually do graph.removeVertex(discardedVertex),
     // because it might still be reachable from preservedVertex.
     // Leave that job for garbage collection.
+    // If isLargePlanMode is true, we will do fine grant GC in tryCleanVertices
+    // by tracking discarded vertex subtree's inward references.
 
     if (discardedVertex == root) {
       root = preservedVertex;
     }
+    garbageVertexSet.add(discardedVertex);
   }
 
   /**
@@ -992,6 +1093,58 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return rel;
   }
 
+  /** Try remove discarded vertices recursively. */
+  private void tryCleanVertices(HepRelVertex vertex) {
+    if (vertex == root || !graph.vertexSet().contains(vertex)
+        || !graph.getInwardEdges(vertex).isEmpty()) {
+      return;
+    }
+
+    // rel is the no inward edges subtree root.
+    RelNode rel = vertex.getCurrentRel();
+    notifyDiscard(rel);
+
+    Set<HepRelVertex> outVertices = new LinkedHashSet<>();
+    List<DefaultEdge> outEdges = graph.getOutwardEdges(vertex);
+    for (DefaultEdge outEdge : outEdges) {
+      outVertices.add((HepRelVertex) outEdge.target);
+    }
+
+    for (HepRelVertex child : outVertices) {
+      graph.removeEdge(vertex, child);
+    }
+    assert graph.getInwardEdges(vertex).isEmpty();
+    assert graph.getOutwardEdges(vertex).isEmpty();
+    graph.vertexSet().remove(vertex);
+    mapDigestToVertex.remove(rel.getRelDigest());
+
+    for (HepRelVertex child : outVertices) {
+      tryCleanVertices(child);
+    }
+    clearCache(vertex);
+
+    if (enableFiredRulesCache) {
+      for (List<Integer> relIds : firedRulesCacheIndex.get(rel.getId())) {
+        firedRulesCache.removeAll(relIds);
+      }
+    }
+  }
+
+  private void collectGarbage(final Set<HepRelVertex> garbageVertexSet) {
+    for (HepRelVertex vertex : garbageVertexSet) {
+      tryCleanVertices(vertex);
+    }
+
+    if (LOGGER.isTraceEnabled()) {
+      int currentGraphSize = graph.vertexSet().size();
+      collectGarbage();
+      int currentGraphSize2 = graph.vertexSet().size();
+      if (currentGraphSize != currentGraphSize2) {
+        throw new AssertionError("Graph size changed after garbage collection");
+      }
+    }
+  }
+
   private void collectGarbage() {
     if (nTransformations == nTransformationsLastGC) {
       // No modifications have taken place since the last gc,
@@ -1061,12 +1214,48 @@ public class HepPlanner extends AbstractRelOptPlanner {
         + cyclicVertices);
   }
 
+  private void assertGraphConsistent() {
+    int liveNum = 0;
+    for (HepRelVertex vertex : BreadthFirstIterator.of(graph, requireNonNull(root, "root"))) {
+      if (graph.getOutwardEdges(vertex).size()
+          != Sets.newHashSet(requireNonNull(vertex, "vertex").getCurrentRel().getInputs()).size()) {
+        throw new AssertionError("HepPlanner:outward edge num is different "
+            + "with input node num, " + vertex);
+      }
+      for (DefaultEdge edge : graph.getInwardEdges(vertex)) {
+        if (!((HepRelVertex) edge.source).getCurrentRel().getInputs().contains(vertex)) {
+          throw new AssertionError("HepPlanner:inward edge target is not in input node list, "
+              + vertex);
+        }
+      }
+      liveNum++;
+    }
+
+    Set<RelNode> validSet = new HashSet<>();
+    Deque<RelNode> nodes = new ArrayDeque<>();
+    nodes.push(requireNonNull(requireNonNull(root, "root").getCurrentRel()));
+    while (!nodes.isEmpty()) {
+      RelNode node = nodes.pop();
+      validSet.add(node);
+      for (RelNode input : node.getInputs()) {
+        nodes.push(((HepRelVertex) input).getCurrentRel());
+      }
+    }
+
+    if (liveNum == validSet.size()) {
+      return;
+    }
+    throw new AssertionError("HepPlanner:Query graph live node num is different with root"
+        + " input valid node num, liveNodeNum: " + liveNum + ", validNodeNum: " + validSet.size());
+  }
+
   private void dumpGraph() {
     if (!LOGGER.isTraceEnabled()) {
       return;
     }
 
     assertNoCycles();
+    assertGraphConsistent();
 
     HepRelVertex root = this.root;
     if (root == null) {
