@@ -2645,6 +2645,60 @@ values pi();
 
 !ok
 
+# [CALCITE-5132] Scalar IN subquery returns UNKNOWN instead of FALSE when key is partially NULL.
+# Case 1: Default insubquerythreshold=20
+!if (use_old_decorr) {
+select empno, deptno, (empno, deptno) in ((7521, null)) from "scott".emp;
++-------+--------+--------+
+| EMPNO | DEPTNO | EXPR$2 |
++-------+--------+--------+
+|  7369 |     20 | false  |
+|  7499 |     30 | false  |
+|  7521 |     30 |        |
+|  7566 |     20 | false  |
+|  7654 |     30 | false  |
+|  7698 |     30 | false  |
+|  7782 |     10 | false  |
+|  7788 |     20 | false  |
+|  7839 |     10 | false  |
+|  7844 |     30 | false  |
+|  7876 |     20 | false  |
+|  7900 |     30 | false  |
+|  7902 |     20 | false  |
+|  7934 |     10 | false  |
++-------+--------+--------+
+(14 rows)
+
+!ok
+
+# [CALCITE-5132] Scalar IN subquery returns UNKNOWN instead of FALSE when key is partially NULL.
+# Case 2: insubquerythreshold=0
+!set insubquerythreshold 0
+select empno, deptno, (empno, deptno) in ((7521, null)) from "scott".emp;
++-------+--------+--------+
+| EMPNO | DEPTNO | EXPR$2 |
++-------+--------+--------+
+|  7369 |     20 | false  |
+|  7499 |     30 | false  |
+|  7521 |     30 |        |
+|  7566 |     20 | false  |
+|  7654 |     30 | false  |
+|  7698 |     30 | false  |
+|  7782 |     10 | false  |
+|  7788 |     20 | false  |
+|  7839 |     10 | false  |
+|  7844 |     30 | false  |
+|  7876 |     20 | false  |
+|  7900 |     30 | false  |
+|  7902 |     20 | false  |
+|  7934 |     10 | false  |
++-------+--------+--------+
+(14 rows)
+
+!ok
+!set insubquerythreshold 20
+!}
+
 !use scott-babel
 # Tests for https://issues.apache.org/jira/browse/CALCITE-6939
 # [CALCITE-6939] Add support for Lateral Column Alias

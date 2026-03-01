@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.util.Util.last;
 
@@ -787,6 +788,52 @@ public class SubQueryRemoveRule
     // Now the left join
     builder.join(JoinRelType.LEFT, builder.and(conditions), variablesSet);
 
+    // For multi-column IN with nullable RHS columns, the global ck < c check is
+    // insufficient. Consider: (empno, deptno) IN (select empno, deptno from ...)
+    // where one RHS row is (7521, null):
+    //   empno=7521: AND(TRUE,  UNKNOWN) = UNKNOWN  → result should be null
+    //   empno=7369: AND(FALSE, UNKNOWN) = FALSE    → result should be false
+    // ck<c only tells us "some RHS row has a null", but cannot distinguish
+    // which LHS keys are actually affected. Instead, we build a partial-null
+    // table (pt) of RHS rows that have at least one NULL column, and LEFT JOIN
+    // it with per-column condition (col IS NULL OR key = col):
+    //   - a NULL col acts as a wildcard and matches any LHS value
+    //   - a non-NULL col must equal the LHS key exactly
+    // pt.i IS NOT NULL → LHS key matched a partial-null RHS row → UNKNOWN
+    // pt.i IS NULL     → no partial-null RHS row matched → fall through to false
+    String ptAlias = "pt";
+    if (subQueryIndex != 0) {
+      ptAlias = "pt" + subQueryIndex;
+    }
+    // Only needed for multi-column, non-literal IN with null-safety logic.
+    // Single-column cases are handled correctly by the existing ck < c check.
+    final boolean needsPartialNullCheck =
+        needsNullSafety && !allLiterals && fields.size() > 1;
+    if (needsPartialNullCheck) {
+      // Record current width so we can shift pt field references past the existing stack.
+      final int ptRefOffset = builder.fields().size();
+      // Build pt: distinct RHS rows that have at least one NULL column.
+      builder.push(e.rel);
+      final List<RexNode> anyFieldIsNull =
+          fields.stream().map(builder::isNull).collect(Collectors.toList());
+      builder.filter(builder.or(anyFieldIsNull));
+      builder.aggregate(builder.groupKey(fields),
+          builder.literalAgg(true).as("i"));
+      builder.as(ptAlias);
+      // Per-column join condition: (pt.col IS NULL OR lhs.key = pt.col)
+      // A NULL pt.col is treated as a wildcard matching any LHS value.
+      final List<RexNode> ptLocalFields = builder.fields();
+      final List<RexNode> ptJoinConditions =
+          IntStream.range(0, expressionOperands.size())
+              .mapToObj(k -> {
+                RexNode ptCol = RexUtil.shift(ptLocalFields.get(k), ptRefOffset);
+                return builder.or(builder.isNull(ptCol),
+                    builder.equals(expressionOperands.get(k), ptCol));
+              })
+              .collect(Collectors.toList());
+      builder.join(JoinRelType.LEFT, builder.and(ptJoinConditions), variablesSet);
+    }
+
     final ImmutableList.Builder<RexNode> operands = ImmutableList.builder();
     RexLiteral b = trueLiteral;
     switch (logic) {
@@ -826,7 +873,8 @@ public class SubQueryRemoveRule
       operands.add(builder.isNotNull(builder.field(dtAlias, "cs")),
           trueLiteral);
     } else {
-      operands.add(builder.isNotNull(last(builder.fields())),
+      // Use alias-based field reference so that adding pt JOIN doesn't shift index
+      operands.add(builder.isNotNull(builder.field(dtAlias, "i")),
           trueLiteral);
     }
 
@@ -834,8 +882,11 @@ public class SubQueryRemoveRule
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
-        // only reference ctAlias if we created it
-        if (needsNullSafety) {
+        if (needsPartialNullCheck) {
+          // pt.i IS NOT NULL: LHS key matched a partial-null RHS row → UNKNOWN.
+          operands.add(builder.isNotNull(builder.field(ptAlias, "i")), b);
+        } else if (needsNullSafety) {
+          // Single-column: the traditional ck<c global check suffices.
           operands.add(
               builder.lessThan(builder.field(ctAlias, "ck"),
                   builder.field(ctAlias, "c")),
