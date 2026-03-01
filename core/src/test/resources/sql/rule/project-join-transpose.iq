@@ -101,7 +101,13 @@ LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1)])
 
 select empno + deptno from emp where sal = 10 * comm
 and upper(ename) = 'FOO';
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[+($0, $7)])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -119,7 +125,14 @@ LogicalProject(EXPR$0=[+($0, $4)])
 select count(*)
 from emp
 where case when mgr < 10 then true else false end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[0])
     LogicalFilter(condition=[CASE(<($3, 10), true, false)])
@@ -141,7 +154,177 @@ select empno + deptno as x, ename, job, mgr,
 from emp
 where sal = 10 * comm
 and upper(ename) = 'FOO';
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+java.sql.SQLException: Error while executing SQL "select empno + deptno as x, ename, job, mgr,
+  hiredate, sal, comm, slacker
+from emp
+where sal = 10 * comm
+and upper(ename) = 'FOO'": From line 2, column 24 to line 2, column 30: Column 'SLACKER' not found in any table
+	at org.apache.calcite.avatica.Helper.createException(Helper.java:56)
+	at org.apache.calcite.avatica.Helper.createException(Helper.java:41)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:164)
+	at org.apache.calcite.avatica.AvaticaStatement.executeQuery(AvaticaStatement.java:228)
+	at net.hydromatic.quidem.Quidem.checkResult(Quidem.java:317)
+	at net.hydromatic.quidem.Quidem.access$2600(Quidem.java:54)
+	at net.hydromatic.quidem.Quidem$ContextImpl.checkResult(Quidem.java:1778)
+	at net.hydromatic.quidem.Quidem$CheckResultCommand.execute(Quidem.java:985)
+	at net.hydromatic.quidem.Quidem$CompositeCommand.execute(Quidem.java:1522)
+	at net.hydromatic.quidem.Quidem.execute(Quidem.java:204)
+	at org.apache.calcite.test.QuidemTest.checkRun(QuidemTest.java:540)
+	at org.apache.calcite.test.QuidemTest.test(QuidemTest.java:730)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:727)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.SameThreadTimeoutInvocation.proceed(SameThreadTimeoutInvocation.java:45)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestTemplateMethod(TimeoutExtension.java:94)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:217)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:213)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:138)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:68)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.submit(ForkJoinPoolHierarchicalTestExecutorService.java:118)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:226)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:204)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:142)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.lambda$execute$2(TestTemplateTestDescriptor.java:110)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:110)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:44)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at java.base/java.util.concurrent.RecursiveAction.exec(RecursiveAction.java:194)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1310)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1841)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1806)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+Caused by: org.apache.calcite.runtime.CalciteContextException: From line 2, column 24 to line 2, column 30: Column 'SLACKER' not found in any table
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:502)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at org.apache.calcite.runtime.Resources$ExInstWithCause.ex(Resources.java:511)
+	at org.apache.calcite.sql.SqlUtil.newContextException(SqlUtil.java:960)
+	at org.apache.calcite.sql.SqlUtil.newContextException(SqlUtil.java:945)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.newValidationError(SqlValidatorImpl.java:6151)
+	at org.apache.calcite.sql.validate.DelegatingScope.fullyQualify(DelegatingScope.java:293)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl$Expander.visit(SqlValidatorImpl.java:7389)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl$SelectExpander.visit(SqlValidatorImpl.java:7730)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl$SelectExpander.visit(SqlValidatorImpl.java:7682)
+	at org.apache.calcite.sql.SqlIdentifier.accept(SqlIdentifier.java:324)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl$Expander.go(SqlValidatorImpl.java:7354)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl$SelectExpander.go(SqlValidatorImpl.java:7721)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.expandSelectExpr(SqlValidatorImpl.java:6917)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.expandSelectItem(SqlValidatorImpl.java:490)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.validateSelectList(SqlValidatorImpl.java:5268)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.validateSelect(SqlValidatorImpl.java:4260)
+	at org.apache.calcite.sql.validate.SelectNamespace.validateImpl(SelectNamespace.java:62)
+	at org.apache.calcite.sql.validate.AbstractNamespace.validate(AbstractNamespace.java:96)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.validateNamespace(SqlValidatorImpl.java:1304)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.validateQuery(SqlValidatorImpl.java:1275)
+	at org.apache.calcite.sql.SqlSelect.validate(SqlSelect.java:292)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.validateScopedExpression(SqlValidatorImpl.java:1241)
+	at org.apache.calcite.sql.validate.SqlValidatorImpl.validate(SqlValidatorImpl.java:947)
+	at org.apache.calcite.sql2rel.SqlToRelConverter.convertQuery(SqlToRelConverter.java:628)
+	at org.apache.calcite.prepare.Prepare.prepareSql(Prepare.java:258)
+	at org.apache.calcite.prepare.Prepare.prepareSql(Prepare.java:221)
+	at org.apache.calcite.prepare.CalcitePrepareImpl.prepare2_(CalcitePrepareImpl.java:675)
+	at org.apache.calcite.prepare.CalcitePrepareImpl.prepare_(CalcitePrepareImpl.java:526)
+	at org.apache.calcite.prepare.CalcitePrepareImpl.prepareSql(CalcitePrepareImpl.java:494)
+	at org.apache.calcite.jdbc.CalciteConnectionImpl.parseQuery(CalciteConnectionImpl.java:246)
+	at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:654)
+	at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:677)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:157)
+	... 123 more
+Caused by: org.apache.calcite.sql.validate.SqlValidatorException: Column 'SLACKER' not found in any table
+	at java.base/jdk.internal.re (stack truncated)
+!ok
 LogicalProject(X=[+($0, $7)], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -158,7 +341,25 @@ LogicalProject(X=[+($0, $7)], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL
 select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
 from emp e full outer join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then 11 else -1 * e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+----------+
+| EXPR$0 | EXPR$1   |
++--------+----------+
+|      1 | -1100.00 |
+|      1 | -1300.00 |
+|      1 | -1500.00 |
+|      1 | -1600.00 |
+|      1 | -2450.00 |
+|      1 | -2850.00 |
+|      1 | -2975.00 |
+|      1 | -5000.00 |
+|      1 |  -800.00 |
+|      1 |  -950.00 |
+|      2 | -1250.00 |
+|      2 | -3000.00 |
++--------+----------+
+(12 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), 11, *(-1, $5))])
@@ -182,7 +383,25 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
 from emp e full outer join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then -1 * e.sal else e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+
+| EXPR$0 | EXPR$1  |
++--------+---------+
+|      1 | 1100.00 |
+|      1 | 1300.00 |
+|      1 | 1500.00 |
+|      1 | 1600.00 |
+|      1 | 2450.00 |
+|      1 | 2850.00 |
+|      1 | 2975.00 |
+|      1 | 5000.00 |
+|      1 |  800.00 |
+|      1 |  950.00 |
+|      2 | 1250.00 |
+|      2 | 3000.00 |
++--------+---------+
+(12 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), *(-1, $5), $5)])
@@ -207,7 +426,13 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
 from emp e inner join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then 11 else -1 * e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), 11, *(-1, $5))])
@@ -231,7 +456,13 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
 from emp e inner join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then -1 * e.sal else e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), *(-1, $5), $5)])
@@ -254,7 +485,13 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 
 select e.sal + b.comm from emp e inner join bonus b
 on e.ename = b.ename and e.deptno = 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[+($5, $12)])
   LogicalJoin(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -275,7 +512,25 @@ LogicalProject(EXPR$0=[+($1, $4)])
 select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
 from emp e left outer join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then 11 else -1 * e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+----------+
+| EXPR$0 | EXPR$1   |
++--------+----------+
+|      1 | -1100.00 |
+|      1 | -1300.00 |
+|      1 | -1500.00 |
+|      1 | -1600.00 |
+|      1 | -2450.00 |
+|      1 | -2850.00 |
+|      1 | -2975.00 |
+|      1 | -5000.00 |
+|      1 |  -800.00 |
+|      1 |  -950.00 |
+|      2 | -1250.00 |
+|      2 | -3000.00 |
++--------+----------+
+(12 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), 11, *(-1, $5))])
@@ -300,7 +555,13 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
 from bonus b left outer join emp e on e.ename = b.ename
 group by case when e.sal < 11 then 11 else -1 * e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($9, 11), 11, *(-1, $9))])
@@ -325,7 +586,13 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
 from bonus b left outer join emp e on e.ename = b.ename
 group by case when e.sal < 11 then -1 * e.sal else e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($9, 11), *(-1, $9), $9)])
@@ -351,7 +618,27 @@ select e.empno + 1 as c1, coalesce(d.dname, b.job, '') as c2
 from emp e
 left join bonus b on e.ename = b.ename
 left join dept d on e.deptno = d.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+------------+
+| C1   | C2         |
++------+------------+
+| 7370 | RESEARCH   |
+| 7500 | SALES      |
+| 7522 | SALES      |
+| 7567 | RESEARCH   |
+| 7655 | SALES      |
+| 7699 | SALES      |
+| 7783 | ACCOUNTING |
+| 7789 | RESEARCH   |
+| 7840 | ACCOUNTING |
+| 7845 | SALES      |
+| 7877 | RESEARCH   |
+| 7901 | SALES      |
+| 7903 | RESEARCH   |
+| 7935 | ACCOUNTING |
++------+------------+
+(14 rows)
+
+!ok
 LogicalProject(C1=[+($0, 1)], C2=[CASE(IS NOT NULL($14), CAST($14):VARCHAR(10) NOT NULL, IS NOT NULL($10), CAST($10):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
   LogicalJoin(condition=[=($7, $13)], joinType=[left])
     LogicalJoin(condition=[=($1, $9)], joinType=[left])
@@ -378,7 +665,13 @@ LogicalProject(C1=[$2], C2=[CASE(IS NOT NULL($5), CAST($5):VARCHAR(10) NOT NULL,
 select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
 from emp e right outer join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then 11 else -1 * e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), 11, *(-1, $5))])
@@ -403,7 +696,13 @@ select count(*),
  case when e.sal < 11 then -1 * e.sal else e.sal end
 from emp e right outer join bonus b on e.ename = b.ename
 group by case when e.sal < 11 then -1 * e.sal else e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($5, 11), *(-1, $5), $5)])
@@ -428,7 +727,25 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then 11 else -1 * e.sal end
 from bonus b right outer join emp e on e.ename = b.ename
 group by case when e.sal < 11 then 11 else -1 * e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+----------+
+| EXPR$0 | EXPR$1   |
++--------+----------+
+|      1 | -1100.00 |
+|      1 | -1300.00 |
+|      1 | -1500.00 |
+|      1 | -1600.00 |
+|      1 | -2450.00 |
+|      1 | -2850.00 |
+|      1 | -2975.00 |
+|      1 | -5000.00 |
+|      1 |  -800.00 |
+|      1 |  -950.00 |
+|      2 | -1250.00 |
+|      2 | -3000.00 |
++--------+----------+
+(12 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($9, 11), 11, *(-1, $9))])
@@ -453,7 +770,25 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 select count(*), case when e.sal < 11 then -1 * e.sal else e.sal end
 from bonus b right outer join emp e on e.ename = b.ename
 group by case when e.sal < 11 then -1 * e.sal else e.sal end;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+
+| EXPR$0 | EXPR$1  |
++--------+---------+
+|      1 | 1100.00 |
+|      1 | 1300.00 |
+|      1 | 1500.00 |
+|      1 | 1600.00 |
+|      1 | 2450.00 |
+|      1 | 2850.00 |
+|      1 | 2975.00 |
+|      1 | 5000.00 |
+|      1 |  800.00 |
+|      1 |  950.00 |
+|      2 | 1250.00 |
+|      2 | 3000.00 |
++--------+---------+
+(12 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE(<($9, 11), *(-1, $9), $9)])
@@ -476,7 +811,41 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 
 select sal from
 (select * from emp e1 union all select * from emp e2);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(28 rows)
+
+!ok
 LogicalProject(SAL=[$5])
   LogicalUnion(all=[true])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -565,7 +934,15 @@ LogicalProject(EXPR$0=[+($1, $5)], EXPR$1=[SUM($6) OVER (PARTITION BY $4)])
 # PROJECT_MERGE + PROJECT_VALUES_MERGE reduce expressions in VALUES clauses.
 
 select a + b from (values (10, 1), (20, 3)) as t(a, b);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+|     11 |
+|     23 |
++--------+
+(2 rows)
+
+!ok
 LogicalProject(EXPR$0=[+($0, $1)])
   LogicalValues(tuples=[[{ 10, 1 }, { 20, 3 }]])
 !sub-plan "NONE"

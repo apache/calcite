@@ -27,7 +27,14 @@
 # DISTINCT agg-calls on the same column.
 
 select sum(distinct deptno), count(distinct deptno), bit_and(deptno) from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |      0 |
++--------+--------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[BIT_AND($0)])
   LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -43,7 +50,14 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_A
 # DISTINCT agg-calls on the same column.
 
 select sum(distinct deptno), count(distinct deptno), bit_or(deptno) from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |     30 |
++--------+--------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[BIT_OR($0)])
   LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -60,9 +74,19 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_O
 select dname, sum(distinct cn), sum(distinct sm)
 from (
   select dname, count(dept.deptno) as cn,sum(dept.deptno) as sm
-  from sales.dept group by dname)
+  from dept group by dname)
 group by dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++------------+--------+--------+
+| DNAME      | EXPR$1 | EXPR$2 |
++------------+--------+--------+
+| ACCOUNTING |      1 |     10 |
+| OPERATIONS |      1 |     40 |
+| RESEARCH   |      1 |     20 |
+| SALES      |      1 |     30 |
++------------+--------+--------+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM(DISTINCT $1)], EXPR$2=[SUM(DISTINCT $2)])
   LogicalAggregate(group=[{0}], CN=[COUNT()], SM=[SUM($1)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
@@ -81,8 +105,17 @@ LogicalProject(DNAME=[$0], EXPR$1=[CAST($1):BIGINT NOT NULL], EXPR$2=[CAST($2):I
 # Tests expansion of COUNT(DISTINCT) with a non-distinct SUM in a group-by query.
 # [CALCITE-1293]
 
-select count(distinct deptno), sum(sal) from sales.emp group by deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+select count(distinct deptno), sum(sal) from emp group by deptno;
++--------+----------+
+| EXPR$0 | EXPR$1   |
++--------+----------+
+|      1 | 10875.00 |
+|      1 |  8750.00 |
+|      1 |  9400.00 |
++--------+----------+
+(3 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], EXPR$1=[$2])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT(DISTINCT $0)], EXPR$1=[SUM($1)])
     LogicalProject(DEPTNO=[$7], SAL=[$5])
@@ -101,10 +134,30 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$2])
 # Tests expansion of a DISTINCT AVG alongside a non-distinct COUNT(*).
 
 select emp.empno, count(*), avg(distinct dept.deptno)
-from sales.emp emp inner join sales.dept dept
+from emp emp inner join dept dept
 on emp.deptno = dept.deptno
 group by emp.empno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+--------+--------+
+| EMPNO | EXPR$1 | EXPR$2 |
++-------+--------+--------+
+|  7369 |      1 |     20 |
+|  7499 |      1 |     30 |
+|  7521 |      1 |     30 |
+|  7566 |      1 |     20 |
+|  7654 |      1 |     30 |
+|  7698 |      1 |     30 |
+|  7782 |      1 |     10 |
+|  7788 |      1 |     20 |
+|  7839 |      1 |     10 |
+|  7844 |      1 |     30 |
+|  7876 |      1 |     20 |
+|  7900 |      1 |     30 |
+|  7902 |      1 |     20 |
+|  7934 |      1 |     10 |
++-------+--------+--------+
+(14 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[AVG(DISTINCT $1)])
   LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
@@ -127,7 +180,160 @@ SELECT deptno,
   SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)
 FROM emp
 GROUP BY deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+java.sql.SQLException: Error while executing SQL "SELECT deptno,
+  SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)
+FROM emp
+GROUP BY deptno": Value 150 out of range
+	at org.apache.calcite.avatica.Helper.createException(Helper.java:56)
+	at org.apache.calcite.avatica.Helper.createException(Helper.java:41)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:164)
+	at org.apache.calcite.avatica.AvaticaStatement.executeQuery(AvaticaStatement.java:228)
+	at net.hydromatic.quidem.Quidem.checkResult(Quidem.java:317)
+	at net.hydromatic.quidem.Quidem.access$2600(Quidem.java:54)
+	at net.hydromatic.quidem.Quidem$ContextImpl.checkResult(Quidem.java:1778)
+	at net.hydromatic.quidem.Quidem$CheckResultCommand.execute(Quidem.java:985)
+	at net.hydromatic.quidem.Quidem$CompositeCommand.execute(Quidem.java:1522)
+	at net.hydromatic.quidem.Quidem.execute(Quidem.java:204)
+	at org.apache.calcite.test.QuidemTest.checkRun(QuidemTest.java:540)
+	at org.apache.calcite.test.QuidemTest.test(QuidemTest.java:730)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:727)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.SameThreadTimeoutInvocation.proceed(SameThreadTimeoutInvocation.java:45)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestTemplateMethod(TimeoutExtension.java:94)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:217)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:213)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:138)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:68)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.submit(ForkJoinPoolHierarchicalTestExecutorService.java:118)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:226)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:204)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:142)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.lambda$execute$2(TestTemplateTestDescriptor.java:110)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:110)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:44)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at java.base/java.util.concurrent.RecursiveAction.exec(RecursiveAction.java:194)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1310)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1841)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1806)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+Caused by: java.lang.ArithmeticException: Value 150 out of range
+	at org.apache.calcite.linq4j.tree.Primitive.checkRoundedRange(Primitive.java:387)
+	at org.apache.calcite.linq4j.tree.Primitive.numberValue(Primitive.java:554)
+	at org.apache.calcite.linq4j.tree.Primitive.numberValueRoundDown(Primitive.java:539)
+	at Baz$1.apply(Unknown Source)
+	at Baz$1.apply(Unknown Source)
+	at Baz$1.apply(Unknown Source)
+	at org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory$AccumulatorAdderSeq.apply(BasicAggregateLambdaFactory.java:81)
+	at org.apache.calcite.linq4j.EnumerableDefaults.groupByMultiple_(EnumerableDefaults.java:1206)
+	at org.apache.calcite.linq4j.EnumerableDefaults.groupByMultiple(EnumerableDefaults.java:801)
+	at Baz.bind(Unknown Source)
+	at org.apache.calcite.jdbc.CalcitePrepare$CalciteSignature.enumerable(CalcitePrepare.java:367)
+	at org.apache.calcite.jdbc.CalciteConnectionImpl.enumerable(CalciteConnectionImpl.java:335)
+	at org.apache.calcite.jdbc.CalciteMetaImpl._createIterable(CalciteMetaImpl.java:609)
+	at org.apache.calcite.jdbc.CalciteMetaImpl.createIterable(CalciteMetaImpl.java:600)
+	at org.apache.calcite.avatica.AvaticaResultSet.execute(AvaticaResultSet.java:184)
+	at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:64)
+	at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:43)
+	at org.apache.calcite.avatica.AvaticaConnection$1.execute(AvaticaConnection.java:669)
+	at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:669)
+	at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:677)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:157)
+	... 123 more
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($0)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[MAX($0)], EXPR$4=[MAX($2)])
   LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -144,7 +350,16 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[SUM($1)], EXPR$3=[MAX($3
 SELECT deptno, COUNT(deptno), SUM(DISTINCT sal)
 FROM emp
 GROUP BY deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+---------+
+| DEPTNO | EXPR$1 | EXPR$2  |
++--------+--------+---------+
+|     10 |      3 | 8750.00 |
+|     20 |      5 | 7875.00 |
+|     30 |      6 | 8150.00 |
++--------+--------+---------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[SUM(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -162,7 +377,17 @@ LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($2)], EXPR$2=[SUM($1)])
 SELECT deptno, COUNT(DISTINCT sal)
 FROM emp
 GROUP BY ROLLUP(deptno);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      4 |
+|     30 |      5 |
+|        |     12 |
++--------+--------+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -183,7 +408,17 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[CAST(CASE(=($5, 0), $1, =($5, 1), $2, null:B
 SELECT deptno, COUNT(DISTINCT sal), SUM(sal)
 FROM emp
 GROUP BY GROUPING SETS ((deptno), ());
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2   |
++--------+--------+----------+
+|     10 |      3 |  8750.00 |
+|     20 |      4 | 10875.00 |
+|     30 |      5 |  9400.00 |
+|        |     12 | 29025.00 |
++--------+--------+----------+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)], EXPR$2=[SUM($1)])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -204,7 +439,17 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[CAST(CASE(=($7, 0), $1, =($7, 1), $2, null:B
 SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal), COUNT(*)
 FROM emp
 GROUP BY GROUPING SETS ((deptno), ());
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+----------+--------+
+| DEPTNO | EXPR$1 | EXPR$2   | EXPR$3 |
++--------+--------+----------+--------+
+|     10 |      3 |  8750.00 |      3 |
+|     20 |      4 |  7875.00 |      5 |
+|     30 |      5 |  8150.00 |      6 |
+|        |     12 | 24775.00 |     14 |
++--------+--------+----------+--------+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[COUNT()])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -225,7 +470,16 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[CAST(CASE(=($9, 0), $1, =($9, 1), $2, null:B
 SELECT deptno, SUM(comm), MIN(comm), SUM(DISTINCT sal)
 FROM emp
 GROUP BY deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+--------+---------+
+| DEPTNO | EXPR$1  | EXPR$2 | EXPR$3  |
++--------+---------+--------+---------+
+|     10 |         |        | 8750.00 |
+|     20 |         |        | 7875.00 |
+|     30 | 2200.00 |   0.00 | 8150.00 |
++--------+---------+--------+---------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[SUM(DISTINCT $2)])
   LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -243,7 +497,14 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[MIN($3)], EXPR$3=[SUM($1
 SELECT COUNT(DISTINCT c) FILTER (WHERE d),
 COUNT(DISTINCT d) FILTER (WHERE c)
 FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm from emp);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      0 |      1 |
++--------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0) FILTER $1], EXPR$1=[COUNT(DISTINCT $1) FILTER $0])
   LogicalProject(C=[>($5, 1000)], D=[<($5, 500)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -263,7 +524,16 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
 FROM emp
 GROUP BY deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+--------+
+| DEPTNO | EXPR$1  | EXPR$2 |
++--------+---------+--------+
+|     10 |         |      3 |
+|     20 |         |      3 |
+|     30 | 2200.00 |      4 |
++--------+---------+--------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT(DISTINCT $2) FILTER $3])
   LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5], $f3=[>($5, 1000)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -281,7 +551,14 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):INTEGER NOT NULL], EXPR$2=[$2])
 
 SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
 FROM emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+--------+
+| EXPR$0  | EXPR$1 |
++---------+--------+
+| 2200.00 |     10 |
++---------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER $2])
   LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -300,7 +577,14 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 
 SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
 FROM emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+--------+
+| EXPR$0  | EXPR$1 |
++---------+--------+
+| 2200.00 |     10 |
++---------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER $2])
   LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -322,7 +606,25 @@ LogicalJoin(condition=[true], joinType=[inner])
 SELECT sal, SUM(comm), MIN(comm), SUM(DISTINCT sal)
 FROM emp
 GROUP BY sal;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+---------+--------+---------+
+| SAL     | EXPR$1  | EXPR$2 | EXPR$3  |
++---------+---------+--------+---------+
+| 1100.00 |         |        | 1100.00 |
+| 1250.00 | 1900.00 | 500.00 | 1250.00 |
+| 1300.00 |         |        | 1300.00 |
+| 1500.00 |    0.00 |   0.00 | 1500.00 |
+| 1600.00 |  300.00 | 300.00 | 1600.00 |
+| 2450.00 |         |        | 2450.00 |
+| 2850.00 |         |        | 2850.00 |
+| 2975.00 |         |        | 2975.00 |
+| 3000.00 |         |        | 3000.00 |
+| 5000.00 |         |        | 5000.00 |
+|  800.00 |         |        |  800.00 |
+|  950.00 |         |        |  950.00 |
++---------+---------+--------+---------+
+(12 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[SUM(DISTINCT $0)])
   LogicalProject(SAL=[$5], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -339,7 +641,16 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($2)], EXPR$3=[SUM($0
 SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, comm)
 FROM emp
 GROUP BY deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+--------+--------+
+| DEPTNO | EXPR$1  | EXPR$2 | EXPR$3 |
++--------+---------+--------+--------+
+|     10 |         |        |      0 |
+|     20 |         |        |      0 |
+|     30 | 2200.00 |   0.00 |      4 |
++--------+---------+--------+--------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[COUNT(DISTINCT $2, $1)])
   LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -357,7 +668,16 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT(
 SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, deptno, comm)
 FROM emp
 GROUP BY deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+--------+--------+
+| DEPTNO | EXPR$1  | EXPR$2 | EXPR$3 |
++--------+---------+--------+--------+
+|     10 |         |        |      0 |
+|     20 |         |        |      0 |
+|     30 | 2200.00 |   0.00 |      4 |
++--------+---------+--------+--------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[COUNT(DISTINCT $2, $0, $1)])
   LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -375,7 +695,17 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT(
 select count(distinct deptno) as cd, count(*) as c
 from emp
 group by cube(deptno);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+----+
+| CD | C  |
++----+----+
+|  1 |  3 |
+|  1 |  5 |
+|  1 |  6 |
+|  3 | 14 |
++----+----+
+(4 rows)
+
+!ok
 LogicalProject(CD=[$1], C=[$2])
   LogicalAggregate(group=[{0}], groups=[[{0}, {}]], CD=[COUNT(DISTINCT $0)], C=[COUNT()])
     LogicalProject(DEPTNO=[$7])
@@ -393,7 +723,14 @@ LogicalProject(CD=[$1], C=[$2])
 # DISTINCT agg-calls on the same column.
 
 select sum(distinct deptno), count(distinct deptno), max(deptno) from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |     30 |
++--------+--------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[MAX($0)])
   LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -409,7 +746,14 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[MAX($
 # DISTINCT agg-calls on the same column.
 
 select sum(distinct deptno), count(distinct deptno), min(deptno) from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |     10 |
++--------+--------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[MIN($0)])
   LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -427,7 +771,25 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[MIN($
 SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)
 FROM emp
 GROUP BY sal;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+---------+--------+---------+
+| SAL     | EXPR$1  | EXPR$2 | EXPR$3  |
++---------+---------+--------+---------+
+| 1100.00 |         |        | 1100.00 |
+| 1250.00 | 1900.00 | 950.00 | 1250.00 |
+| 1300.00 |         |        | 1300.00 |
+| 1500.00 |    0.00 |   0.00 | 1500.00 |
+| 1600.00 |  300.00 | 300.00 | 1600.00 |
+| 2450.00 |         |        | 2450.00 |
+| 2850.00 |         |        | 2850.00 |
+| 2975.00 |         |        | 2975.00 |
+| 3000.00 |         |        | 3000.00 |
+| 5000.00 |         |        | 5000.00 |
+|  800.00 |         |        |  800.00 |
+|  950.00 |         |        |  950.00 |
++---------+---------+--------+---------+
+(12 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[AVG(DISTINCT $1)], EXPR$3=[SUM(DISTINCT $0)])
   LogicalProject(SAL=[$5], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])

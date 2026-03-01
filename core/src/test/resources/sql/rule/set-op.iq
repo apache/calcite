@@ -26,11 +26,20 @@
 # AGGREGATE_UNION_TRANSPOSE is a no-op if all inputs to UNION are already unique.
 
 select deptno, SUM(t) from (
-select distinct deptno, 1 as t from sales.emp e1
+select distinct deptno, 1 as t from emp e1
 union all
-select distinct deptno, 2 as t from sales.emp e2)
+select distinct deptno, 2 as t from emp e2)
 group by deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      3 |
+|     30 |      3 |
++--------+--------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0, 1}])
@@ -55,11 +64,20 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # [CALCITE-6642]
 
 select deptno, SUM(t) from (
-select deptno, 1 as t from sales.emp e1
+select deptno, 1 as t from emp e1
 union all
-select deptno, nullif(sal, 0) as t from sales.emp e2)
+select deptno, nullif(sal, 0) as t from emp e2)
 group by deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+----------+
+| DEPTNO | EXPR$1   |
++--------+----------+
+|     10 |  8753.00 |
+|     20 | 10880.00 |
+|     30 |  9406.00 |
++--------+----------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7], T=[1])
@@ -82,11 +100,20 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # [CALCITE-4616]
 
 select deptno, SUM(t) from (
-select deptno, 1 as t from sales.emp e1
+select deptno, 1 as t from emp e1
 union all
-select distinct deptno, 2 as t from sales.emp e2)
+select distinct deptno, 2 as t from emp e2)
 group by deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      5 |
+|     20 |      7 |
+|     30 |      8 |
++--------+--------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7], T=[1])
@@ -110,11 +137,19 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when top-level group set is remapped.
 
 select count(t1), t2 from (
-select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from sales.emp e1
+select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from emp e1
 union all
-select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from sales.emp e2)
+select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from emp e2)
 group by t2;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+----+
+| EXPR$0 | T2 |
++--------+----+
+|      0 |  1 |
+|      0 |  2 |
++--------+----+
+(2 rows)
+
+!ok
 LogicalProject(EXPR$0=[$1], T2=[$0])
   LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
     LogicalUnion(all=[true])
@@ -141,7 +176,27 @@ LogicalProject(EXPR$0=[$1], T2=[$0])
 SELECT a.ename, a.job FROM emp AS a
 INTERSECT
 SELECT b.ename, b.job FROM emp AS b;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+-----------+
+| ENAME  | JOB       |
++--------+-----------+
+| ADAMS  | CLERK     |
+| ALLEN  | SALESMAN  |
+| BLAKE  | MANAGER   |
+| CLARK  | MANAGER   |
+| FORD   | ANALYST   |
+| JAMES  | CLERK     |
+| JONES  | MANAGER   |
+| KING   | PRESIDENT |
+| MARTIN | SALESMAN  |
+| MILLER | CLERK     |
+| SCOTT  | ANALYST   |
+| SMITH  | CLERK     |
+| TURNER | SALESMAN  |
+| WARD   | SALESMAN  |
++--------+-----------+
+(14 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(ENAME=[$1], JOB=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -167,7 +222,13 @@ INTERSECT
 SELECT b.dname FROM dept AS b
 INTERSECT
 SELECT c.ename FROM emp AS c;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalIntersect(all=[false])
     LogicalProject(ENAME=[$1])
@@ -199,7 +260,13 @@ LogicalFilter(condition=[=($cor1.ENAME, $0)])
 SELECT a.ename FROM emp AS a
 INTERSECT
 SELECT b.dname FROM dept AS b;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -223,7 +290,27 @@ LogicalFilter(condition=[=($cor0.ENAME, $0)])
 SELECT a.empno FROM emp AS a
 INTERSECT
 SELECT b.empno FROM emp AS b;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -246,7 +333,13 @@ LogicalFilter(condition=[=($cor0.EMPNO, $0)])
 SELECT a.ename FROM emp AS a
 INTERSECT ALL
 SELECT b.dname FROM dept AS b;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[true])
   LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -271,7 +364,181 @@ INTERSECT
 SELECT deptno FROM emp WHERE deptno > 6
 INTERSECT
 SELECT deptno FROM dept WHERE deptno < 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+java.lang.AssertionError: type mismatch:
+type1:
+TINYINT NOT NULL
+type2:
+TINYINT
+	at org.apache.calcite.util.Litmus.lambda$static$0(Litmus.java:31)
+	at org.apache.calcite.plan.RelOptUtil.eq(RelOptUtil.java:2240)
+	at org.apache.calcite.rex.RexProgramBuilder$RegisterInputShuttle.visitInputRef(RexProgramBuilder.java:945)
+	at org.apache.calcite.rex.RexProgramBuilder$RegisterInputShuttle.visitInputRef(RexProgramBuilder.java:923)
+	at org.apache.calcite.rex.RexInputRef.accept(RexInputRef.java:125)
+	at org.apache.calcite.rex.RexShuttle.visitList(RexShuttle.java:168)
+	at org.apache.calcite.rex.RexShuttle.visitCall(RexShuttle.java:120)
+	at org.apache.calcite.rex.RexProgramBuilder$RegisterShuttle.visitCall(RexProgramBuilder.java:883)
+	at org.apache.calcite.rex.RexProgramBuilder$RegisterShuttle.visitCall(RexProgramBuilder.java:881)
+	at org.apache.calcite.rex.RexCall.accept(RexCall.java:208)
+	at org.apache.calcite.rex.RexShuttle.visitList(RexShuttle.java:168)
+	at org.apache.calcite.rex.RexShuttle.visitCall(RexShuttle.java:120)
+	at org.apache.calcite.rex.RexProgramBuilder$RegisterShuttle.visitCall(RexProgramBuilder.java:883)
+	at org.apache.calcite.rex.RexProgramBuilder$RegisterShuttle.visitCall(RexProgramBuilder.java:881)
+	at org.apache.calcite.rex.RexCall.accept(RexCall.java:208)
+	at org.apache.calcite.rex.RexProgramBuilder.registerInput(RexProgramBuilder.java:300)
+	at org.apache.calcite.rex.RexProgramBuilder.addProject(RexProgramBuilder.java:210)
+	at org.apache.calcite.rex.RexExecutorImpl.compile(RexExecutorImpl.java:76)
+	at org.apache.calcite.rex.RexExecutorImpl.getExecutable(RexExecutorImpl.java:123)
+	at org.apache.calcite.plan.RexImplicationChecker.isSatisfiable(RexImplicationChecker.java:259)
+	at org.apache.calcite.plan.RexImplicationChecker.implies2(RexImplicationChecker.java:245)
+	at org.apache.calcite.plan.RexImplicationChecker.impliesConjunction(RexImplicationChecker.java:151)
+	at org.apache.calcite.plan.RexImplicationChecker.impliesAny(RexImplicationChecker.java:141)
+	at org.apache.calcite.plan.RexImplicationChecker.implies(RexImplicationChecker.java:127)
+	at org.apache.calcite.rel.metadata.RelMdPredicates.lambda$getPredicates$2(RelMdPredicates.java:521)
+	at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:178)
+	at java.base/java.util.HashMap$KeySpliterator.forEachRemaining(HashMap.java:1715)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:682)
+	at org.apache.calcite.rel.metadata.RelMdPredicates.getPredicates(RelMdPredicates.java:522)
+	at org.apache.calcite.rel.metadata.janino.GeneratedMetadata_PredicatesHandler.getPredicates_$(Unknown Source)
+	at org.apache.calcite.rel.metadata.janino.GeneratedMetadata_PredicatesHandler.getPredicates(Unknown Source)
+	at org.apache.calcite.rel.metadata.RelMetadataQuery.getPulledUpPredicates(RelMetadataQuery.java:918)
+	at org.apache.calcite.rel.metadata.RelMdPredicates.getPredicates(RelMdPredicates.java:641)
+	at org.apache.calcite.rel.metadata.janino.GeneratedMetadata_PredicatesHandler.getPredicates_$(Unknown Source)
+	at org.apache.calcite.rel.metadata.janino.GeneratedMetadata_PredicatesHandler.getPredicates(Unknown Source)
+	at org.apache.calcite.rel.metadata.RelMetadataQuery.getPulledUpPredicates(RelMetadataQuery.java:918)
+	at org.apache.calcite.rel.metadata.RelMdColumnUniqueness.decorateWithConstantColumnsFromPredicates(RelMdColumnUniqueness.java:516)
+	at org.apache.calcite.rel.metadata.RelMdColumnUniqueness.areColumnsUnique(RelMdColumnUniqueness.java:469)
+	at org.apache.calcite.rel.metadata.janino.GeneratedMetadata_ColumnUniquenessHandler.areColumnsUnique_$(Unknown Source)
+	at org.apache.calcite.rel.metadata.janino.GeneratedMetadata_ColumnUniquenessHandler.areColumnsUnique(Unknown Source)
+	at org.apache.calcite.rel.metadata.RelMetadataQuery.areColumnsUnique(RelMetadataQuery.java:619)
+	at org.apache.calcite.rel.metadata.RelMetadataQuery.areColumnsUnique(RelMetadataQuery.java:599)
+	at org.apache.calcite.rel.rules.AggregateRemoveRule.onMatch(AggregateRemoveRule.java:113)
+	at org.apache.calcite.plan.volcano.VolcanoRuleCall.onMatch(VolcanoRuleCall.java:223)
+	at org.apache.calcite.plan.volcano.IterativeRuleDriver.drive(IterativeRuleDriver.java:61)
+	at org.apache.calcite.plan.volcano.VolcanoPlanner.findBestExp(VolcanoPlanner.java:525)
+	at org.apache.calcite.tools.Programs.lambda$standard$5(Programs.java:341)
+	at org.apache.calcite.tools.Programs$SequenceProgram.run(Programs.java:407)
+	at org.apache.calcite.prepare.Prepare.optimize(Prepare.java:178)
+	at org.apache.calcite.prepare.Prepare.prepareSql(Prepare.java:320)
+	at org.apache.calcite.prepare.Prepare.prepareSql(Prepare.java:221)
+	at org.apache.calcite.prepare.CalcitePrepareImpl.prepare2_(CalcitePrepareImpl.java:675)
+	at org.apache.calcite.prepare.CalcitePrepareImpl.prepare_(CalcitePrepareImpl.java:526)
+	at org.apache.calcite.prepare.CalcitePrepareImpl.prepareSql(CalcitePrepareImpl.java:494)
+	at org.apache.calcite.jdbc.CalciteConnectionImpl.parseQuery(CalciteConnectionImpl.java:246)
+	at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:654)
+	at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:677)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:157)
+	at org.apache.calcite.avatica.AvaticaStatement.executeQuery(AvaticaStatement.java:228)
+	at net.hydromatic.quidem.Quidem.checkResult(Quidem.java:317)
+	at net.hydromatic.quidem.Quidem.access$2600(Quidem.java:54)
+	at net.hydromatic.quidem.Quidem$ContextImpl.checkResult(Quidem.java:1778)
+	at net.hydromatic.quidem.Quidem$CheckResultCommand.execute(Quidem.java:985)
+	at net.hydromatic.quidem.Quidem$CompositeCommand.execute(Quidem.java:1522)
+	at net.hydromatic.quidem.Quidem.execute(Quidem.java:204)
+	at org.apache.calcite.test.QuidemTest.checkRun(QuidemTest.java:540)
+	at org.apache.calcite.test.QuidemTest.test(QuidemTest.java:730)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:727)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.SameThreadTimeoutInvocation.proceed(SameThreadTimeoutInvocation.java:45)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestTemplateMethod(TimeoutExtension.java:94)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:217)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:213)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:138)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:68)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.submit(ForkJoinPoolHierarchicalTestExecutorService.java:118)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:226)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:204)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:142)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.lambda$execute$2(TestTemplateTestDescriptor.java:110)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:110)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:44)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorSe (stack truncated)
+!ok
 LogicalIntersect(all=[false])
   LogicalFilter(condition=[<($0, 12)])
     LogicalProject(DEPTNO=[$7])
@@ -302,7 +569,13 @@ LogicalIntersect(all=[false])
 SELECT mgr, comm FROM emp
 INTERSECT
 SELECT mgr, comm FROM emp WHERE comm = 5;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(MGR=[$3], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -323,7 +596,13 @@ LogicalAggregate(group=[{0, 1}])
 SELECT mgr, comm FROM emp WHERE mgr = 12
 INTERSECT
 SELECT mgr, comm FROM emp WHERE comm = 5;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(MGR=[$3], COMM=[$6])
@@ -345,7 +624,13 @@ LogicalAggregate(group=[{0, 1}])
 select ename from emp where deptno = 10
 intersect
 select ename from emp where deptno = 20;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 10)])
@@ -409,7 +694,13 @@ intersect
 select ename from emp where deptno = 20
 intersect all
 select ename from emp where deptno = 30;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[true])
   LogicalIntersect(all=[false])
     LogicalProject(ENAME=[$1])
@@ -443,7 +734,13 @@ LogicalIntersect(all=[true])
 select ename from emp where deptno = 10
 intersect
 select job from emp where deptno = 20;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 10)])
@@ -469,7 +766,13 @@ LogicalAggregate(group=[{0}])
 select deptno, ename from emp where deptno = 10
 intersect
 select deptno, ename from emp where deptno = 20;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+-------+
+| DEPTNO | ENAME |
++--------+-------+
++--------+-------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalFilter(condition=[=($7, 10)])
@@ -495,7 +798,16 @@ LogicalAggregate(group=[{0, 1}])
 select ename from emp where deptno = 10
 except
 select ename from emp where deptno = 20;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| ENAME  |
++--------+
+| CLARK  |
+| KING   |
+| MILLER |
++--------+
+(3 rows)
+
+!ok
 LogicalMinus(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 10)])
@@ -562,7 +874,7 @@ EXCEPT
 SELECT deptno FROM dept WHERE deptno = 10
 EXCEPT
 SELECT deptno FROM emp WHERE deptno > 20;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: EnumerableMinus with correlated subquery is not supported by H2.
 LogicalMinus(all=[false])
   LogicalFilter(condition=[>($0, 12)])
     LogicalProject(DEPTNO=[$7])
@@ -650,7 +962,13 @@ EXCEPT
 SELECT deptno FROM emp WHERE deptno > 12
 EXCEPT
 SELECT deptno FROM dept WHERE deptno > 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalMinus(all=[false])
   LogicalFilter(condition=[>($0, 6)])
     LogicalProject(DEPTNO=[$7])
@@ -681,7 +999,24 @@ LogicalMinus(all=[false])
 SELECT mgr, comm FROM emp
 EXCEPT
 SELECT mgr, comm FROM emp WHERE comm = 5;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7566 |         |
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
+| 7782 |         |
+| 7788 |         |
+| 7839 |         |
+| 7902 |         |
+|      |         |
++------+---------+
+(11 rows)
+
+!ok
 LogicalMinus(all=[false])
   LogicalProject(MGR=[$3], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -702,7 +1037,13 @@ LogicalAggregate(group=[{0, 1}])
 SELECT mgr, comm FROM emp WHERE mgr = 12
 EXCEPT
 SELECT mgr, comm FROM emp WHERE comm = 5;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
 LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(MGR=[$3], COMM=[$6])
@@ -723,7 +1064,405 @@ LogicalAggregate(group=[{0, 1}])
 select r1.sal from
 (select * from emp e1 union all select * from emp e2) r1,
 emp r2;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(392 rows)
+
+!ok
 LogicalProject(SAL=[$5])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalUnion(all=[true])
@@ -751,7 +1490,405 @@ LogicalProject(SAL=[$5])
 select r1.sal from
 emp r1,
 (select * from emp e1 union all select * from emp e2) r2;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(392 rows)
+
+!ok
 LogicalProject(SAL=[$5])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -784,7 +1921,14 @@ UNION
 SELECT deptno FROM emp WHERE deptno = 6
 UNION
 SELECT deptno FROM dept WHERE deptno = 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
++--------+
+(1 row)
+
+!ok
 LogicalUnion(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(DEPTNO=[$7])
@@ -815,7 +1959,24 @@ LogicalUnion(all=[false])
 SELECT mgr, comm FROM emp
 UNION
 SELECT mgr, comm FROM emp WHERE comm = 5;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7566 |         |
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
+| 7782 |         |
+| 7788 |         |
+| 7839 |         |
+| 7902 |         |
+|      |         |
++------+---------+
+(11 rows)
+
+!ok
 LogicalUnion(all=[false])
   LogicalProject(MGR=[$3], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -835,7 +1996,13 @@ LogicalAggregate(group=[{0, 1}])
 SELECT mgr, comm FROM emp WHERE mgr = 12
 UNION
 SELECT mgr, comm FROM emp WHERE comm = 5;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
 LogicalUnion(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(MGR=[$3], COMM=[$6])

@@ -109,8 +109,28 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
 # AggregateRemoveRule removes a GROUP BY with all-unique keys (DISTINCT on empno,
 # deptno where empno is unique), so the Aggregate is eliminated.
 
-select distinct empno, deptno from sales.emp;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+select distinct empno, deptno from emp;
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
+|  7369 |     20 |
+|  7499 |     30 |
+|  7521 |     30 |
+|  7566 |     20 |
+|  7654 |     30 |
+|  7698 |     30 |
+|  7782 |     10 |
+|  7788 |     20 |
+|  7839 |     10 |
+|  7844 |     30 |
+|  7876 |     20 |
+|  7900 |     30 |
+|  7902 |     20 |
+|  7934 |     10 |
++-------+--------+
+(14 rows)
+
+!ok
 
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(EMPNO=[$0], DEPTNO=[$7])

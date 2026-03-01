@@ -26,9 +26,29 @@
 # Tests that an EXISTS sub-query in a project is expanded to a left join.
 
 select empno,
-  exists (select deptno from sales.emp where empno < 20) as d
-from sales.emp;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+  exists (select deptno from emp where empno < 20) as d
+from emp;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], D=[EXISTS({
 LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -48,9 +68,29 @@ LogicalProject(EMPNO=[$0], D=[IS NOT NULL($9)])
 # Tests that an IN sub-query in a project is expanded to a left join.
 
 select empno,
-  deptno in (select deptno from sales.emp where empno < 20) as d
-from sales.emp;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+  deptno in (select deptno from emp where empno < 20) as d
+from emp;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], D=[IN($7, {
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[<($0, 20)])
@@ -71,9 +111,29 @@ LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($10), true, false)])
 # Tests that a composite IN sub-query (tuple IN) in a project is expanded.
 
 select empno, (empno, deptno) in (
-    select empno, deptno from sales.emp where empno < 20) as d
-from sales.emp;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+    select empno, deptno from emp where empno < 20) as d
+from emp;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], D=[IN($0, $7, {
 LogicalProject(EMPNO=[$0], DEPTNO=[$7])
   LogicalFilter(condition=[<($0, 20)])
@@ -95,11 +155,31 @@ LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($11), true, false)])
 
 with e2 as (
   select empno, case when deptno > 0 then deptno else null end as deptno
-  from sales.emp)
+  from emp)
 select empno,
   deptno in (select deptno from e2 where empno < 20) as d
 from e2;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], D=[IN(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER), {
 LogicalProject(DEPTNO=[$1])
   LogicalFilter(condition=[<($0, 20)])
@@ -218,9 +298,29 @@ LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($9, 0), false, IS NULL($7), null:BO
 # Tests expanding an uncorrelated scalar sub-query in a project (SELECT clause).
 
 select empno,
-  (select deptno from sales.emp where empno < 20) as d
-from sales.emp;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+  (select deptno from emp where empno < 20) as d
+from emp;
++-------+---+
+| EMPNO | D |
++-------+---+
+|  7369 |   |
+|  7499 |   |
+|  7521 |   |
+|  7566 |   |
+|  7654 |   |
+|  7698 |   |
+|  7782 |   |
+|  7788 |   |
+|  7839 |   |
+|  7844 |   |
+|  7876 |   |
+|  7900 |   |
+|  7902 |   |
+|  7934 |   |
++-------+---+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], D=[$SCALAR_QUERY({
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[<($0, 20)])

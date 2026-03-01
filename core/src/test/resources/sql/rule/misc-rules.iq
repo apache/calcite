@@ -27,7 +27,27 @@
 # (result should be unchanged).
 
 select emp.ename from emp LEFT JOIN emp AS emp1 on emp.ename = emp1.ename;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($1, $10)]], projFields=[[ALL, ALL]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -62,9 +82,15 @@ LogicalProject(EMPNO=[$0])
 # FILTER_CALC_MERGE cannot merge a Filter into a Calc when the Filter contains
 # a subquery (result should be unchanged).
 
-select deptno from sales.emp where
-exists (select deptno from sales.emp where empno < 20);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select deptno from emp where
+exists (select deptno from emp where empno < 20);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -85,7 +111,13 @@ LogicalFilter(condition=[<($0, 20)])
 # (result should be unchanged).
 
 select ename from emp where sal > all (select comm from emp);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[NOT(<= SOME($5, {
 LogicalProject(COMM=[$6])
@@ -108,7 +140,13 @@ LogicalProject(COMM=[$6])
 select deptno from
 (select deptno from emp where sal > 100 offset 100)
 limit 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[10])
@@ -129,7 +167,27 @@ LogicalProject(DEPTNO=[$0])
 # joining with dept.
 
 select e.empno from emp e inner join dept d on d.deptno = e.deptno inner join emp e2 on e.empno = e2.empno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   MultiJoin(joinFilter=[=($0, $11)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
     MultiJoin(joinFilter=[=($9, $7)], isFullOuterJoin=[false], joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]], projFields=[[ALL, ALL]])
@@ -150,9 +208,15 @@ LogicalProject(EMPNO=[$0])
 # PROJECT_CALC_MERGE cannot merge a Project into a Calc when the Project
 # contains a subquery (result should be unchanged).
 
-select exists (select deptno from sales.emp)
-from (select deptno from sales.emp where empno < 20);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select exists (select deptno from emp)
+from (select deptno from emp where empno < 20);
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[EXISTS({
 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
@@ -173,7 +237,27 @@ LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 # (result should be unchanged).
 
 select  sal > all (select comm from emp) from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+|        |
+|        |
+|        |
+|        |
+|        |
+|        |
+|        |
+|        |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(EXPR$0=[NOT(<= SOME($5, {
 LogicalProject(COMM=[$6])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -193,7 +277,13 @@ LogicalProject(COMM=[$6])
 
 select e.sal + b.comm from emp e inner join bonus b
 on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[+($5, $13)])
   LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($9, $14), =($7, 10))], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[||($1, $2)])

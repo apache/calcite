@@ -27,7 +27,54 @@
 # inputs of an inner join.
 
 select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(41 rows)
+
+!ok
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -50,7 +97,55 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from emp t1 inner join emp t2
 on t1.mgr is not distinct from t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(42 rows)
+
+!ok
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -154,7 +249,54 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from (select * from emp where mgr is not null) t1
 join emp t2 on t1.mgr = t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(41 rows)
+
+!ok
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -178,7 +320,77 @@ LogicalProject(DEPTNO=[$7])
 # sides of a non-equality inner join condition.
 
 select t1.deptno from emp t1 inner join emp t2 on t1.mgr > t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(64 rows)
+
+!ok
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])
@@ -247,7 +459,56 @@ LogicalProject(DEPTNO=[$1])
 # it is a full join.
 
 select t1.deptno from emp t1 full join emp t2 on t1.mgr = t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|        |
++--------+
+(43 rows)
+
+!ok
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -264,7 +525,55 @@ LogicalProject(DEPTNO=[$7])
 # it is a left join.
 
 select t1.deptno from emp t1 left join emp t2 on t1.mgr = t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(42 rows)
+
+!ok
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -281,7 +590,55 @@ LogicalProject(DEPTNO=[$7])
 # it is a right join.
 
 select t1.deptno from emp t1 right join emp t2 on t1.mgr = t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|        |
++--------+
+(42 rows)
+
+!ok
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -300,7 +657,54 @@ LogicalProject(DEPTNO=[$7])
 select t1.deptno
 from (select * from emp where mgr is not null) t1
 join (select * from emp where mgr is not null) t2 on t1.mgr = t2.mgr;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(41 rows)
+
+!ok
 DEPTNO TINYINT(3)
 !type
 LogicalProject(DEPTNO=[$7])

@@ -31,10 +31,16 @@ select e.job,
   sum(sal) + 1 as sum_sal_plus, max(sal) as max_sal,
   sum(sal) as sum_sal_2, count(sal) as count_sal,
   count(mgr) as count_mgr
-from sales.emp as e
-join sales.dept as d on e.job = d.dname
+from emp as e
+join dept as d on e.job = d.dname
 group by e.job,d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+---------+------------+--------------+---------+-----------+-----------+-----------+
+| JOB | MIN_SAL | MIN_DEPTNO | SUM_SAL_PLUS | MAX_SAL | SUM_SAL_2 | COUNT_SAL | COUNT_MGR |
++-----+---------+------------+--------------+---------+-----------+-----------+-----------+
++-----+---------+------------+--------------+---------+-----------+-----------+-----------+
+(0 rows)
+
+!ok
 
 LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)], MAX_SAL=[$5], SUM_SAL_2=[$4], COUNT_SAL=[$6], COUNT_MGR=[$7])
   LogicalAggregate(group=[{2, 10}], MIN_SAL=[MIN($5)], MIN_DEPTNO=[MIN($7)], SUM_SAL_2=[SUM($5)], MAX_SAL=[MAX($5)], COUNT_SAL=[COUNT()], COUNT_MGR=[COUNT($3)])
@@ -54,8 +60,15 @@ LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)],
 # testPushAggregateSumNoGroup -------------------------------------------------
 # Pushes COUNT(*) through a join with no GROUP BY.
 
-select count(*) from sales.emp join sales.dept on job = dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+select count(*) from emp join dept on job = dname;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -74,10 +87,16 @@ LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)])
 # SUM is the easiest aggregate function to split; pushes it through an inner join.
 
 select e.job,sum(sal)
-from (select * from sales.emp where ename = 'A') as e
-join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname
 group by e.job,d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+--------+
+| JOB | EXPR$1 |
++-----+--------+
++-----+--------+
+(0 rows)
+
+!ok
 
 LogicalProject(JOB=[$0], EXPR$1=[$2])
   LogicalAggregate(group=[{2, 10}], EXPR$1=[SUM($5)])
@@ -102,9 +121,16 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
 # Like testPushAggregateSumThroughJoin but also uses AggregateReduceFunctionsRule.
 
 select sum(sal)
-from (select * from sales.emp where ename = 'A') as e
-join sales.dept as d on e.job = d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname;
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -128,9 +154,16 @@ LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
 # Pushes SUM through a join that has no GROUP BY keys.
 
 select sum(sal)
-from (select * from sales.emp where ename = 'A') as e
-join sales.dept as d on e.job = d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname;
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -153,10 +186,16 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 # AGGREGATE_JOIN_TRANSPOSE_EXTENDED pushes aggregate through a join on non-join keys.
 
 select e.job,d.dname
-from (select * from sales.emp where ename = 'A') as e
-join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname
 group by e.job,d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{2, 10}])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
@@ -178,11 +217,17 @@ LogicalJoin(condition=[=($0, $1)], joinType=[inner])
 # Like testPushAggregateThroughJoin1 but the join condition includes extra predicates.
 
 select e.job,d.dname
-from (select * from sales.emp where ename = 'A') as e
-join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname
 and e.deptno + e.empno = d.deptno + 5
 group by e.job,d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{2, 11}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[inner])
@@ -208,10 +253,16 @@ LogicalAggregate(group=[{0, 2}])
 # with a non-equi join condition (checkUnchanged).
 
 select e.empno,d.deptno
-from (select * from sales.emp where empno = 10) as e
-join sales.dept as d on e.empno < d.deptno
+from (select * from emp where empno = 10) as e
+join dept as d on e.empno < d.deptno
 group by e.empno,d.deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
++-------+--------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(EMPNO=[$0], DEPTNO=[$9])
@@ -240,9 +291,18 @@ LogicalAggregate(group=[{0, 9}])
 # [CALCITE-1544] AggregateJoinTransposeRule fails to preserve row type.
 
 select e.deptno
-from sales.emp as e join sales.dept as d on e.deptno = d.deptno
+from emp as e join dept as d on e.deptno = d.deptno
 group by e.deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
 
 LogicalAggregate(group=[{7}])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
@@ -261,9 +321,18 @@ LogicalProject(DEPTNO=[$0])
 # Pushes aggregate through a join when both sides have the same join key.
 
 select e.deptno, d.deptno
-from sales.emp as e join sales.dept as d on e.deptno = d.deptno
+from emp as e join dept as d on e.deptno = d.deptno
 group by e.deptno, d.deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     20 |     20 |
+|     30 |     30 |
++--------+--------+
+(3 rows)
+
+!ok
 
 LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
   LogicalAggregate(group=[{7, 9}])
@@ -283,10 +352,17 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
 # [CALCITE-2195] AggregateJoinTransposeRule fails to aggregate over unique column.
 
 select sum(B.sal)
-from sales.emp as A
-join (select distinct sal from sales.emp) as B
+from emp as A
+join (select distinct sal from emp) as B
 on A.sal=B.sal;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++----------+
+| EXPR$0   |
++----------+
+| 29025.00 |
++----------+
+(1 row)
+
+!ok
 
 LogicalAggregate(group=[{}], EXPR$0=[SUM($9)])
   LogicalJoin(condition=[=($5, $9)], joinType=[inner])
@@ -307,10 +383,17 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 # Pushes ANY_VALUE(DISTINCT ...) through a join over a distinct sub-query.
 
 select any_value(distinct B.sal)
-from sales.emp as A
-join (select distinct sal from sales.emp) as B
+from emp as A
+join (select distinct sal from emp) as B
 on A.sal=B.sal;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++---------+
+| EXPR$0  |
++---------+
+| 5000.00 |
++---------+
+(1 row)
+
+!ok
 
 LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($9)])
   LogicalJoin(condition=[=($5, $9)], joinType=[inner])
@@ -330,10 +413,160 @@ LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
 # Pushes SINGLE_VALUE(DISTINCT ...) through a join over a distinct sub-query.
 
 select single_value(distinct B.sal)
-from sales.emp as A
-join (select distinct sal from sales.emp) as B
+from emp as A
+join (select distinct sal from emp) as B
 on A.sal=B.sal;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+java.sql.SQLException: Error while executing SQL "select single_value(distinct B.sal)
+from emp as A
+join (select distinct sal from emp) as B
+on A.sal=B.sal": more than one value in agg SINGLE_VALUE
+	at org.apache.calcite.avatica.Helper.createException(Helper.java:56)
+	at org.apache.calcite.avatica.Helper.createException(Helper.java:41)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:164)
+	at org.apache.calcite.avatica.AvaticaStatement.executeQuery(AvaticaStatement.java:228)
+	at net.hydromatic.quidem.Quidem.checkResult(Quidem.java:317)
+	at net.hydromatic.quidem.Quidem.access$2600(Quidem.java:54)
+	at net.hydromatic.quidem.Quidem$ContextImpl.checkResult(Quidem.java:1778)
+	at net.hydromatic.quidem.Quidem$CheckResultCommand.execute(Quidem.java:985)
+	at net.hydromatic.quidem.Quidem$CompositeCommand.execute(Quidem.java:1522)
+	at net.hydromatic.quidem.Quidem.execute(Quidem.java:204)
+	at org.apache.calcite.test.QuidemTest.checkRun(QuidemTest.java:540)
+	at org.apache.calcite.test.QuidemTest.test(QuidemTest.java:730)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:727)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.SameThreadTimeoutInvocation.proceed(SameThreadTimeoutInvocation.java:45)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestTemplateMethod(TimeoutExtension.java:94)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:217)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:213)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:138)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:68)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.submit(ForkJoinPoolHierarchicalTestExecutorService.java:118)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:226)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask$DefaultDynamicTestExecutor.execute(NodeTestTask.java:204)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:142)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.lambda$execute$2(TestTemplateTestDescriptor.java:110)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:184)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at java.base/java.util.stream.ReferencePipeline$7$1.accept(ReferencePipeline.java:276)
+	at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1708)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:151)
+	at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:174)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:110)
+	at org.junit.jupiter.engine.descriptor.TestTemplateTestDescriptor.execute(TestTemplateTestDescriptor.java:44)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService.invokeAll(ForkJoinPoolHierarchicalTestExecutorService.java:129)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+	at org.junit.platform.engine.support.hierarchical.ForkJoinPoolHierarchicalTestExecutorService$ExclusiveTask.compute(ForkJoinPoolHierarchicalTestExecutorService.java:185)
+	at java.base/java.util.concurrent.RecursiveAction.exec(RecursiveAction.java:194)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1310)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1841)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1806)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+Caused by: java.lang.IllegalStateException: more than one value in agg SINGLE_VALUE
+	at Baz$3.apply(Unknown Source)
+	at Baz$3.apply(Unknown Source)
+	at Baz$3.apply(Unknown Source)
+	at org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory$AccumulatorAdderSeq.apply(BasicAggregateLambdaFactory.java:81)
+	at org.apache.calcite.linq4j.EnumerableDefaults.aggregate(EnumerableDefaults.java:134)
+	at org.apache.calcite.linq4j.DefaultEnumerable.aggregate(DefaultEnumerable.java:108)
+	at Baz.bind(Unknown Source)
+	at org.apache.calcite.jdbc.CalcitePrepare$CalciteSignature.enumerable(CalcitePrepare.java:367)
+	at org.apache.calcite.jdbc.CalciteConnectionImpl.enumerable(CalciteConnectionImpl.java:335)
+	at org.apache.calcite.jdbc.CalciteMetaImpl._createIterable(CalciteMetaImpl.java:609)
+	at org.apache.calcite.jdbc.CalciteMetaImpl.createIterable(CalciteMetaImpl.java:600)
+	at org.apache.calcite.avatica.AvaticaResultSet.execute(AvaticaResultSet.java:184)
+	at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:64)
+	at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:43)
+	at org.apache.calcite.avatica.AvaticaConnection$1.execute(AvaticaConnection.java:669)
+	at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:669)
+	at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:677)
+	at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:157)
+	... 123 more
+!ok
 
 LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($9)])
   LogicalJoin(condition=[=($5, $9)], joinType=[inner])
@@ -354,11 +587,17 @@ LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($1)])
 
 select d.dname,
   sum(sal) as sum_sal, count(*) as c
-from sales.emp as e
-join (select distinct dname from sales.dept) as d
+from emp as e
+join (select distinct dname from dept) as d
   on e.job = d.dname
 group by d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+---------+---+
+| DNAME | SUM_SAL | C |
++-------+---------+---+
++-------+---------+---+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{9}], SUM_SAL=[SUM($5)], C=[COUNT()])
   LogicalJoin(condition=[=($2, $9)], joinType=[inner])
@@ -377,8 +616,15 @@ LogicalProject(DNAME=[$3], SUM_SAL=[$1], C=[$2])
 # testPushAggregateThroughJoinOnEmptyLogicalValues ----------------------------
 # [CALCITE-3076] Should not throw when the join input is an empty LogicalValues.
 
-select count(*) volume, sum(C1.sal) C1_sum_sal from (select sal, ename from sales.emp where 1=2) C1 inner join (select ename from sales.emp) C2   on C1.ename = C2.ename;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+select count(*) volume, sum(C1.sal) C1_sum_sal from (select sal, ename from emp where 1=2) C1 inner join (select ename from emp) C2   on C1.ename = C2.ename;
++--------+------------+
+| VOLUME | C1_SUM_SAL |
++--------+------------+
+|      0 |            |
++--------+------------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], VOLUME=[COUNT()], C1_SUM_SAL=[SUM($0)])
   LogicalJoin(condition=[=($1, $2)], joinType=[inner])
     LogicalProject(SAL=[$5], ENAME=[$1])
@@ -402,12 +648,28 @@ LogicalAggregate(group=[{}], VOLUME=[$SUM0($0)], C1_SUM_SAL=[SUM($1)])
 
 select A.job, B.mgr, A.deptno,
 max(B.hiredate1) as hiredate1, sum(B.comm1) as comm1
-from sales.emp as A
+from emp as A
 join (select mgr, sal, max(hiredate) as hiredate1,
-    sum(comm) as comm1 from sales.emp group by mgr, sal) as B
+    sum(comm) as comm1 from emp group by mgr, sal) as B
 on A.sal=B.sal
 group by A.job, B.mgr, A.deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----------+------+--------+------------+---------+
+| JOB       | MGR  | DEPTNO | HIREDATE1  | COMM1   |
++-----------+------+--------+------------+---------+
+| ANALYST   | 7566 |     20 | 1987-04-19 |         |
+| CLERK     | 7698 |     30 | 1981-12-03 |         |
+| CLERK     | 7782 |     10 | 1982-01-23 |         |
+| CLERK     | 7788 |     20 | 1987-05-23 |         |
+| CLERK     | 7902 |     20 | 1980-12-17 |         |
+| MANAGER   | 7839 |     10 | 1981-06-09 |         |
+| MANAGER   | 7839 |     20 | 1981-02-04 |         |
+| MANAGER   | 7839 |     30 | 1981-01-05 |         |
+| PRESIDENT |      |     10 | 1981-11-17 |         |
+| SALESMAN  | 7698 |     30 | 1981-09-28 | 4100.00 |
++-----------+------+--------+------------+---------+
+(10 rows)
+
+!ok
 
 LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
   LogicalAggregate(group=[{2, 7, 9}], HIREDATE1=[MAX($11)], COMM1=[SUM($12)])
@@ -430,10 +692,16 @@ LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
 # Outer join, group by on non-join keys, group by on non-null generating side only.
 
 select e.ename
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 group by e.ename;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{1}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
@@ -456,10 +724,16 @@ LogicalAggregate(group=[{0}])
 # Outer join with aggregate functions; should not push through (checkUnchanged).
 
 select count(e.ename)
-from (select * from sales.emp where empno = 10) as e
-left outer join sales.emp as d on e.job = d.job
+from (select * from emp where empno = 10) as e
+left outer join emp as d on e.job = d.job
 group by e.ename,d.mgr;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 
 LogicalProject(EXPR$0=[$2])
   LogicalAggregate(group=[{1, 12}], EXPR$0=[COUNT()])
@@ -483,10 +757,16 @@ LogicalProject(EXPR$0=[$2])
 # with a non-equi join condition (checkUnchanged).
 
 select e.empno,d.deptno
-from (select * from sales.emp where empno = 10) as e
-left outer join sales.dept as d on e.empno < d.deptno
+from (select * from emp where empno = 10) as e
+left outer join dept as d on e.empno < d.deptno
 group by e.empno,d.deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
++-------+--------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(EMPNO=[$0], DEPTNO=[$9])
@@ -515,10 +795,17 @@ LogicalAggregate(group=[{0, 9}])
 # Right outer join; group by on key same as join key, on null generating side.
 
 select e.job
-from (select * from sales.emp where ename = 'A') as e
-right outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+right outer join dept as d on e.job = d.dname
 group by e.job;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+
+| JOB |
++-----+
+|     |
++-----+
+(1 row)
+
+!ok
 
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[=($2, $10)], joinType=[right])
@@ -541,10 +828,17 @@ LogicalAggregate(group=[{0}])
 # Full outer join; group by on key same as join key, on one side.
 
 select e.job
-from (select * from sales.emp where ename = 'A') as e
-full outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+full outer join dept as d on e.job = d.dname
 group by e.job;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+
+| JOB |
++-----+
+|     |
++-----+
+(1 row)
+
+!ok
 
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[=($2, $10)], joinType=[full])
@@ -567,10 +861,23 @@ LogicalAggregate(group=[{0}])
 # Full outer join; group by on key same as join key, on both sides.
 
 select e.mgr, d.mgr
-from sales.emp as e
-full outer join sales.emp as d on e.mgr = d.mgr
+from emp as e
+full outer join emp as d on e.mgr = d.mgr
 group by d.mgr, e.mgr;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++------+------+
+| MGR  | MGR  |
++------+------+
+| 7566 | 7566 |
+| 7698 | 7698 |
+| 7782 | 7782 |
+| 7788 | 7788 |
+| 7839 | 7839 |
+| 7902 | 7902 |
+|      |      |
++------+------+
+(7 rows)
+
+!ok
 
 LogicalProject(MGR=[$1], MGR0=[$0])
   LogicalProject(MGR0=[$1], MGR=[$0])
@@ -593,10 +900,23 @@ LogicalProject(MGR=[$1], MGR0=[$0])
 # Full outer join; group by on both sides on non-join keys.
 
 select e.ename, d.mgr
-from (select * from sales.emp where ename = 'A') as e
-full outer join sales.emp as d on e.job = d.job
+from (select * from emp where ename = 'A') as e
+full outer join emp as d on e.job = d.job
 group by e.ename,d.mgr;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+------+
+| ENAME | MGR  |
++-------+------+
+|       | 7566 |
+|       | 7698 |
+|       | 7782 |
+|       | 7788 |
+|       | 7839 |
+|       | 7902 |
+|       |      |
++-------+------+
+(7 rows)
+
+!ok
 
 LogicalAggregate(group=[{1, 12}])
   LogicalJoin(condition=[=($2, $11)], joinType=[full])
@@ -619,11 +939,18 @@ LogicalAggregate(group=[{0, 3}])
 # Full outer join; group by key is subset of join keys.
 
 select e.job
-from (select * from sales.emp where ename = 'A') as e
-full outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+full outer join dept as d on e.job = d.dname
 and e.deptno + e.empno = d.deptno + 5
 group by e.job;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+
+| JOB |
++-----+
+|     |
++-----+
+(1 row)
+
+!ok
 
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[full])
@@ -648,10 +975,16 @@ LogicalAggregate(group=[{0}])
 # Outer join, group by on non-join keys, on null generating side only.
 
 select d.ename
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.emp as d on e.job = d.job
+from (select * from emp where ename = 'A') as e
+left outer join emp as d on e.job = d.job
 group by d.ename;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{10}])
   LogicalJoin(condition=[=($2, $11)], joinType=[left])
@@ -674,10 +1007,16 @@ LogicalAggregate(group=[{1}])
 # Outer join, group by on both sides on non-join keys.
 
 select e.ename, d.mgr
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.emp as d on e.job = d.job
+from (select * from emp where ename = 'A') as e
+left outer join emp as d on e.job = d.job
 group by e.ename,d.mgr;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+-----+
+| ENAME | MGR |
++-------+-----+
++-------+-----+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{1, 12}])
   LogicalJoin(condition=[=($2, $11)], joinType=[left])
@@ -700,10 +1039,16 @@ LogicalAggregate(group=[{0, 3}])
 # Outer join, group by key same as join key, group by on non-null generating side.
 
 select e.job
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 group by e.job;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+
+| JOB |
++-----+
++-----+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
@@ -726,10 +1071,16 @@ LogicalProject(JOB=[$0])
 # Outer join, group by key same as join key, group by on null generating side.
 
 select d.dname
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 group by d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{10}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
@@ -752,10 +1103,16 @@ LogicalAggregate(group=[{1}])
 # Outer join, group by key same as join key, group by on both sides.
 
 select e.job,d.dname
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 group by e.job,d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{2, 10}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
@@ -777,11 +1134,17 @@ LogicalJoin(condition=[=($0, $1)], joinType=[left])
 # Outer join, group by key is subset of join keys, group by on non-null generating side.
 
 select e.job
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 and e.deptno + e.empno = d.deptno + 5
 group by e.job;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+
+| JOB |
++-----+
++-----+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
@@ -806,11 +1169,17 @@ LogicalAggregate(group=[{0}])
 # Outer join, group by key is a subset of join keys, group by on null generating side.
 
 select d.dname
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 and e.deptno + e.empno = d.deptno + 5
 group by d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{11}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
@@ -835,11 +1204,17 @@ LogicalAggregate(group=[{2}])
 # Outer join, group by key is subset of join keys, group by on both sides.
 
 select e.job, d.dname
-from (select * from sales.emp where ename = 'A') as e
-left outer join sales.dept as d on e.job = d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
 and e.deptno + e.empno = d.deptno + 5
 group by e.job, d.dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
 
 LogicalAggregate(group=[{2, 11}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
@@ -863,9 +1238,16 @@ LogicalAggregate(group=[{0, 2}])
 # testPushDistinctAggregateIntoJoin -------------------------------------------
 # [CALCITE-2249] Should not push a DISTINCT aggregate into a join (checkUnchanged).
 
-select count(distinct sal) from sales.emp
- join sales.dept on job = dname;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+select count(distinct sal) from emp
+ join dept on job = dname;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0)])
   LogicalProject(SAL=[$5])
     LogicalJoin(condition=[=($2, $10)], joinType=[inner])

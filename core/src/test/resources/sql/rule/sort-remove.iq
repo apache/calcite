@@ -28,9 +28,25 @@
 # than one row.
 
 select * from
-(SELECT * FROM sales.emp limit 100)
+(SELECT * FROM emp limit 100)
 ORDER BY 1 LIMIT 10;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(10 rows)
+
+!ok
 
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -49,9 +65,15 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
 # SORT_REMOVE_REDUNDANT should not remove sort with LIMIT 0.
 
 select * from
-(SELECT * FROM sales.emp limit 1)
+(SELECT * FROM emp limit 1)
 ORDER BY 1 LIMIT 0;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -69,8 +91,14 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 # testSortNotRemoveWhenLimitFetchIsZeroWithoutOrder ----------------------------
 # SORT_REMOVE_REDUNDANT should not remove a limit of zero.
 
-SELECT count(*) FROM sales.emp LIMIT 0;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+SELECT count(*) FROM emp LIMIT 0;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalSort(fetch=[0])
   LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     LogicalProject($f0=[0])
@@ -87,11 +115,20 @@ LogicalSort(fetch=[0])
 # constant (group-by column filtered with equality).
 
 select count(*) as c
-from sales.emp
+from emp
 where deptno = 10
 group by deptno, sal
 order by deptno desc nulls last;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++---+
+| C |
++---+
+| 1 |
+| 1 |
+| 1 |
++---+
+(3 rows)
+
+!ok
 
 LogicalProject(C=[$0])
   LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
@@ -133,7 +170,7 @@ LogicalProject(ENAME=[$0])
 # [CALCITE-6507]
 
 SELECT ename FROM emp ORDER BY RAND_INTEGER(2);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: result is non-deterministic.
 LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[RAND_INTEGER(2)])
@@ -150,7 +187,7 @@ LogicalProject(ENAME=[$0])
 # [CALCITE-873]
 
 SELECT * FROM emp ORDER BY deptno, null, empno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: ORDER BY null literal causes a SQL error in this context.
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalSort(sort0=[$7], sort1=[$9], sort2=[$0], dir0=[ASC], dir1=[ASC], dir2=[ASC])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[null:NULL])
@@ -169,7 +206,17 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 select d1
 from (select deptno as d1, deptno as d2 from dept) as tmp
 order by d1, d2, d1 desc;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+
+| D1 |
++----+
+| 10 |
+| 20 |
+| 30 |
+| 40 |
++----+
+(4 rows)
+
+!ok
 LogicalProject(D1=[$0])
   LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
     LogicalProject(D1=[$0], D2=[$0])
@@ -187,7 +234,83 @@ LogicalProject(D1=[$0])
 
 select * from (select deptno as d1, deptno as d2 from emp) as t1
 join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+----+-------+--------+-----------+------+------------+---------+---------+--------+
+| D1 | D2 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++----+----+-------+--------+-----------+------+------------+---------+---------+--------+
+| 10 | 10 |  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+| 10 | 10 |  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+| 10 | 10 |  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
+| 10 | 10 |  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+| 10 | 10 |  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+| 10 | 10 |  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
+| 10 | 10 |  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+| 10 | 10 |  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+| 10 | 10 |  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
+| 20 | 20 |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+| 20 | 20 |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+| 20 | 20 |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+| 20 | 20 |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+| 20 | 20 |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+| 20 | 20 |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+| 20 | 20 |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+| 20 | 20 |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+| 20 | 20 |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+| 20 | 20 |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+| 20 | 20 |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+| 20 | 20 |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+| 20 | 20 |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+| 20 | 20 |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+| 20 | 20 |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+| 20 | 20 |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+| 20 | 20 |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+| 20 | 20 |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+| 20 | 20 |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+| 20 | 20 |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+| 20 | 20 |  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+| 20 | 20 |  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+| 20 | 20 |  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+| 20 | 20 |  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+| 20 | 20 |  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+| 30 | 30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+| 30 | 30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+| 30 | 30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+| 30 | 30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+| 30 | 30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+| 30 | 30 |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+| 30 | 30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+| 30 | 30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+| 30 | 30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+| 30 | 30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+| 30 | 30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+| 30 | 30 |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+| 30 | 30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+| 30 | 30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+| 30 | 30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+| 30 | 30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+| 30 | 30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+| 30 | 30 |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+| 30 | 30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+| 30 | 30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+| 30 | 30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+| 30 | 30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+| 30 | 30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+| 30 | 30 |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+| 30 | 30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+| 30 | 30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+| 30 | 30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+| 30 | 30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+| 30 | 30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+| 30 | 30 |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+| 30 | 30 |  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+| 30 | 30 |  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+| 30 | 30 |  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+| 30 | 30 |  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+| 30 | 30 |  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+| 30 | 30 |  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
++----+----+-------+--------+-----------+------+------------+---------+---------+--------+
+(70 rows)
+
+!ok
 LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
   LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
@@ -209,7 +332,14 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 # [CALCITE-7222]
 
 select * from (select empno as a, empno as b from emp) t order by a, b limit 1 offset 2;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+------+
+| A    | B    |
++------+------+
+| 7521 | 7521 |
++------+------+
+(1 row)
+
+!ok
 LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
   LogicalProject(A=[$0], B=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -225,7 +355,14 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
 # [CALCITE-7222]
 
 select * from (select empno as a, deptno as b from emp) t order by a, b limit 1 offset 2;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+----+
+| A    | B  |
++------+----+
+| 7521 | 30 |
++------+----+
+(1 row)
+
+!ok
 LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC], offset=[2], fetch=[1])
   LogicalProject(A=[$0], B=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -241,8 +378,15 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
 # [CALCITE-5994]
 
 select count(*) as c
-from sales.emp order by c;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+from emp order by c;
++----+
+| C  |
++----+
+| 14 |
++----+
+(1 row)
+
+!ok
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
@@ -258,8 +402,23 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 # [CALCITE-6009]
 
 select * from
-(select * from sales.emp limit 10) t limit 20 offset 1;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+(select * from emp limit 10) t limit 20 offset 1;
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(9 rows)
+
+!ok
 LogicalSort(offset=[1], fetch=[20])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalSort(fetch=[10])
@@ -279,8 +438,15 @@ LogicalSort(offset=[1], fetch=[20])
 # [CALCITE-6009]
 
 select count(*) as c
-from sales.emp limit 20;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+from emp limit 20;
++----+
+| C  |
++----+
+| 14 |
++----+
+(1 row)
+
+!ok
 LogicalSort(fetch=[20])
   LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
@@ -298,7 +464,19 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 
 select * from
 (VALUES 1,2,3,4,5,6) as t1 limit 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+
+| T1 |
++----+
+|  1 |
+|  2 |
+|  3 |
+|  4 |
+|  5 |
+|  6 |
++----+
+(6 rows)
+
+!ok
 LogicalSort(fetch=[10])
   LogicalProject(T1=[$0])
     LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
@@ -313,7 +491,7 @@ LogicalProject(T1=[$0])
 
 select * from
 (VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: LIMIT 9823372036854775807 overflows H2/HSQLDB integer range.
 LogicalSort(fetch=[9823372036854775807:DECIMAL(19, 0)])
   LogicalProject(T1=[$0])
     LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
@@ -327,8 +505,15 @@ LogicalProject(T1=[$0])
 # has at most one row.
 # [CALCITE-6038]
 
-SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+SELECT count(*) FROM emp ORDER BY 1 LIMIT 10;
++--------+
+| EXPR$0 |
++--------+
+|     14 |
++--------+
+(1 row)
+
+!ok
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     LogicalProject($f0=[0])
@@ -344,9 +529,16 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 # [CALCITE-5994]
 
 select *
-from (select * from sales.emp limit 1)
+from (select * from emp limit 1)
 order by deptno;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++-------+-------+-------+------+------------+--------+------+--------+
+| EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |
++-------+-------+-------+------+------------+--------+------+--------+
+|  7369 | SMITH | CLERK | 7902 | 1980-12-17 | 800.00 |      |     20 |
++-------+-------+-------+------+------------+--------+------+--------+
+(1 row)
+
+!ok
 
 LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])

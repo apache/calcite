@@ -27,7 +27,13 @@
 # Tests that a filter with a false condition is eliminated.
 
 select * from (values (1,2)) where false;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
   LogicalFilter(condition=[false])
     LogicalValues(tuples=[[{ 1, 2 }]])
@@ -44,7 +50,16 @@ FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 3
 ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)
 MATCH_CONDITION t2.t < t1.t
 ON t1.k = t2.k;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+---+----+----+
+| K | T | K0 | T0 |
++---+---+----+----+
+| 1 | 3 |  1 |  2 |
+| 1 | 4 |  1 |  3 |
+| 2 | 3 |  2 |  0 |
++---+---+----+----+
+(3 rows)
+
+!ok
 LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
   LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
     LogicalValues(tuples=[[{ null, 0 }, { 1, null }, { 1, 0 }, { 1, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 2, 3 }, { 3, 4 }]])
@@ -70,7 +85,27 @@ case when cast(ename as double) < 5 then 0.0
                else null
                end as ename from emp
  );
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+
+| T   |
++-----+
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
+| 1.0 |
++-----+
+(14 rows)
+
+!ok
 LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE"
@@ -86,7 +121,27 @@ select COUNT(*) over (
   ORDER BY empno
   ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count
 from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------+
+| W_COUNT |
++---------+
+|       0 |
+|       1 |
+|      10 |
+|      10 |
+|      10 |
+|      10 |
+|       2 |
+|       3 |
+|       4 |
+|       5 |
+|       6 |
+|       7 |
+|       8 |
+|       9 |
++---------+
+(14 rows)
+
+!ok
 LogicalProject(W_COUNT=[$1])
   LogicalWindow(window#0=[window(order by [0] rows between $1 PRECEDING and $2 PRECEDING aggs [COUNT()])], constants=[[10, 1]])
     LogicalProject(EMPNO=[$0])
@@ -104,7 +159,27 @@ LogicalProject(W_COUNT=[$1])
 
 select * from emp
 where ename <> '' and ename <> '3';
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(<>($1, ''), <>($1, '3'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -120,7 +195,27 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 
 select * from emp
 where (ename < '' or ename > '') and (ename < '3' or ename > '3');
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(OR(<($1, ''), >($1, '')), OR(<($1, '3'), >($1, '3')))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -134,7 +229,13 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # [CALCITE-7070] FILTER_REDUCE_EXPRESSIONS crashes on expression BETWEEN ( NULL) AND X.
 
 SELECT + 54 FROM emp WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) NOT BETWEEN ( NULL ) AND 89;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[54])
   LogicalFilter(condition=[NOT(NOT(AND(>=(CAST(CAST($0):DOUBLE NOT NULL):INTEGER NOT NULL, null), <=(CAST(CAST($0):DOUBLE NOT NULL):INTEGER NOT NULL, 89))))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -150,7 +251,14 @@ LogicalProject(EXPR$0=[54])
 select *
 from emp
 where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----------+-----+------------+---------+------+--------+
+| EMPNO | ENAME | JOB       | MGR | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+-----------+-----+------------+---------+------+--------+
+|  7839 | KING  | PRESIDENT |     | 1981-11-17 | 5000.00 |      |     10 |
++-------+-------+-----------+-----+------------+---------+------+--------+
+(1 row)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[IS NULL(OR(AND(=($0, 1), =($3, 1)), AND(=($0, null), =($3, 1))))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -203,7 +311,13 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # compound WHERE condition.
 
 select * from emp where MGR > 0 and case when MGR > 0 then deptno / MGR else null end > 1;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(>($3, 0), >(CASE(>($3, 0), /($7, $3), null:INTEGER), 1))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -218,7 +332,20 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # rollup aggregate's project.
 
 select deptno, sal from emp where deptno = 10 group by rollup(sal, deptno);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+---------+
+| DEPTNO | SAL     |
++--------+---------+
+|     10 | 1300.00 |
+|     10 | 2450.00 |
+|     10 | 5000.00 |
+|        | 1300.00 |
+|        | 2450.00 |
+|        | 5000.00 |
+|        |         |
++--------+---------+
+(7 rows)
+
+!ok
 LogicalProject(DEPTNO=[$1], SAL=[$0])
   LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
@@ -239,7 +366,13 @@ select *
 from emp
 where deptno=7
 and empno = 10 and mgr is null and empno = 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(=($7, 7), =($0, 10), IS NULL($3))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -254,7 +387,13 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
 # inferred from the filter (comm <> 2 becomes false, comm = 2 becomes true).
 
 select comm <> 2, comm = 2 from emp where comm = 2;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[<>($6, 2)], EXPR$1=[=($6, 2)])
   LogicalFilter(condition=[=($6, 2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -290,7 +429,27 @@ select
   case when false then cast(2.1 as float)
    else cast(1 as integer) end as newcol
 from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| NEWCOL |
++--------+
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
+|    1.0 |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(NEWCOL=[CASE(false, CAST(2.1:DECIMAL(2, 1)):FLOAT NOT NULL, CAST(1):FLOAT NOT NULL)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, NONE"
@@ -305,7 +464,27 @@ LogicalProject(NEWCOL=[1.0E0:FLOAT])
 select case when empno = 1 then 1
 when 1 IS NOT NULL then 2
 else null end as qx from emp;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++----+
+| QX |
++----+
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
+|  2 |
++----+
+(14 rows)
+
+!ok
 
 LogicalProject(QX=[CASE(=($0, 1), 1, IS NOT NULL(1), 2, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -319,7 +498,13 @@ LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
 
 select * from emp
 where cast((empno + (10/2)) as int) = 13;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=(CAST(+($0, /(10, 2))):INTEGER NOT NULL, 13)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -337,7 +522,13 @@ select cast(d.dname as varchar(128)), cast(e.empno as integer)
 from dept as d inner join emp as e
 on cast(d.deptno as integer) = cast(e.deptno as integer)
 where cast(e.job as varchar(1)) = 'Manager';
-# Not using !ok: query uses the sales schema, which is not in the scott database.
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 
 LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER NOT NULL])
   LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
@@ -362,7 +553,27 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
 # Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
 
 select cast(time '12:34:56' as timestamp) from emp as e;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---------------------+
+| EXPR$0              |
++---------------------+
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
+| 2026-03-01 12:34:56 |
++---------------------+
+(14 rows)
+
+!ok
 LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE"
@@ -382,7 +593,27 @@ where (empno, deptno) in (
     from emp
     group by empno, deptno))
 or deptno < 40 + 60;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[OR(IN($0, $7, {
 LogicalProject(EMPNO=[$0], DEPTNO=[$1])
@@ -409,7 +640,14 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1])
 
 select p1 is not distinct from p0
 from (values (2, cast(null as integer))) as t(p0, p1);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
 LogicalProject(EXPR$0=[false])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "simplifyValues=false, NONE"
@@ -421,7 +659,13 @@ LogicalProject(EXPR$0=[false])
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
 
 select e.mgr is not distinct from f.mgr from emp e join emp f on (e.mgr=f.mgr) where e.mgr is null;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[OR(AND(IS NULL($3), IS NULL($12)), IS TRUE(=($3, $12)))])
   LogicalFilter(condition=[IS NULL($3)])
     LogicalJoin(condition=[=($3, $12)], joinType=[inner])
@@ -444,7 +688,14 @@ where case deptno
   when 20 then 2
   when 10 then 1
   else 3 end = 1;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+|      3 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
     LogicalFilter(condition=[=(CASE(=($7, 20), 2, =($7, 10), 1, 3), 1)])
@@ -465,7 +716,14 @@ where case deptno
   when 20 then 2
   when 10 then 1
   else cast(null as integer) end = 1;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+|      3 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
     LogicalFilter(condition=[=(CASE(=($7, 20), 2, =($7, 10), 1, null:INTEGER), 1)])
@@ -488,7 +746,14 @@ where case deptno
   when 10 then 1
   when 30 then 111
   else 0 end = 1;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+|      9 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
     LogicalFilter(condition=[=(CASE(=($7, 30), 1, =($7, 20), 2, =($7, 10), 1, =($7, 30), 111, 0), 1)])
@@ -504,7 +769,13 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 # [CALCITE-570] ReduceExpressionsRule throws "duplicate key" exception.
 
 select d.deptno from dept d where d.deptno=7 and d.deptno=8;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[AND(=($0, 7), =($0, 8))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -520,7 +791,13 @@ select *
 from emp
 where deptno=7 and deptno=8
 and empno = 10 and mgr is null and empno = 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(=($7, 7), =($7, 8), =($0, 10), IS NULL($3))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -533,7 +810,17 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b).
 
 select d.deptno from dept d where d.deptno<>7 or d.deptno<>8;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[OR(<>($0, 7), <>($0, 8))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -546,7 +833,26 @@ LogicalProject(DEPTNO=[$0])
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), with nullable column.
 
 select e.empno from emp e where e.mgr<>7 or e.mgr<>8;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(13 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[OR(<>($3, 7), <>($3, 8))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -560,7 +866,17 @@ LogicalProject(EMPNO=[$0])
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), with NOT.
 
 select d.deptno from dept d where not(d.deptno=7 and d.deptno=8);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[NOT(AND(=($0, 7), =($0, 8)))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -573,7 +889,17 @@ LogicalProject(DEPTNO=[$0])
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with three predicates.
 
 select d.deptno from dept d where not(d.deptno=7 and d.dname='foo' and d.deptno=8);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[NOT(AND(=($0, 7), =($1, 'foo'), =($0, 8)))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -586,7 +912,27 @@ LogicalProject(DEPTNO=[$0])
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with nullable column.
 
 select e.empno from emp e where not(e.mgr=7 and e.deptno=8 and e.mgr=8);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[NOT(AND(=($3, 7), =($7, 8), =($3, 8)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -600,7 +946,26 @@ LogicalProject(EMPNO=[$0])
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with single nullable column.
 
 select e.empno from emp e where not(e.mgr=7 and e.mgr=8);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(13 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[NOT(AND(=($3, 7), =($3, 8)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -632,7 +997,13 @@ LogicalProject(SAL=[$0], T=[$1])
 # Tests that a filter with WHERE NULL (same as WHERE FALSE) produces an empty result.
 
 select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
   LogicalFilter(condition=[>(+(1, 2), +(3, null))])
     LogicalValues(tuples=[[{ 1, 2 }]])
@@ -646,7 +1017,13 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 
 select empno from emp
 where empno=10 and empno is not null;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[=($0, 10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -660,7 +1037,13 @@ LogicalProject(EMPNO=[$0])
 # Tests that "empno=10 and empno is null" reduces to an empty result.
 
 select empno from emp where empno=10 and empno is null;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[false])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -674,7 +1057,13 @@ LogicalProject(EMPNO=[$0])
 
 select empno from emp
 where empno=10 and not(empno=10);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[AND(=($0, 10), NOT(=($0, 10)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -687,7 +1076,13 @@ LogicalProject(EMPNO=[$0])
 # Tests that "empno>10 and empno<=10" reduces to an empty result.
 
 select empno from emp where empno>10 and empno<=10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[AND(>($0, 10), <=($0, 10))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -706,7 +1101,27 @@ select * from (
     from emp)
   where n is null and n is null)
 where n is null;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+
+| N |
++---+
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
+|   |
++---+
+(14 rows)
+
+!ok
 LogicalProject(N=[$0])
   LogicalFilter(condition=[IS NULL($0)])
     LogicalProject(N=[$0])
@@ -724,7 +1139,14 @@ LogicalProject(N=[$0])
 # [HIVE-9645] Tests that cast(null as integer) = 1 reduces to empty result.
 
 select count(1) from emp where cast(null as integer) = 1;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[1])
     LogicalFilter(condition=[false])
@@ -739,7 +1161,13 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 # [CALCITE-902] Match nullability when reducing expressions in a Project.
 
 select mgr from emp where mgr=10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+
+| MGR |
++-----+
++-----+
+(0 rows)
+
+!ok
 LogicalProject(MGR=[$3])
   LogicalFilter(condition=[=($3, 10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -762,7 +1190,14 @@ CARDINALITY(ARRAY[2*3, 2*2, 1*4]),
 CARDINALITY(ARRAY[ROW(4*3, 'm'), ROW(4+6, 'b')]),
 CARDINALITY(ARRAY[MAP['ac'||'bd', 1+8], MAP['gi'||'jl', 1+9]]),
 CARDINALITY(ARRAY[ROW(1+7, ARRAY[1+4, 4+2], ROW('t', 5+5), MAP['y'||'z', 9+9])]);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  | EXPR$4                         | EXPR$5    | EXPR$6           | EXPR$7                     | EXPR$8                         | EXPR$9 | EXPR$10 | EXPR$11 | EXPR$12 |
++--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
+|      2 | [2, 4] | {a, 6} | {ab=12} | {3, [3, 5], {a, 7}, {abcd=13}} | [6, 2, 1] | [{8, a}, {8, b}] | [{abcdef=16}, {ghijkl=18}] | [{3, [2, 4], {a, 6}, {xy=16}}] |      3 |       2 |       2 |       1 |
++--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
+(1 row)
+
+!ok
 LogicalProject(EXPR$0=[+(1, 1)], EXPR$1=[ARRAY(+(1, 1), +(2, 2))], EXPR$2=[ROW('a', +(3, 3))], EXPR$3=[MAP(||('a', 'b'), +(6, 6))], EXPR$4=[ROW(+(1, 2), ARRAY(+(1, 2), +(2, 3)), ROW('a', +(3, 4)), MAP(||('ab', 'cd'), +(6, 7)))], EXPR$5=[ARRAY(*(2, 3), 2, 1)], EXPR$6=[ARRAY(ROW(*(4, 2), 'a'), ROW(+(4, 4), 'b'))], EXPR$7=[ARRAY(MAP(||('abc', 'def'), +(8, 8)), MAP(||('ghi', 'jkl'), +(9, 9)))], EXPR$8=[ARRAY(ROW(+(1, 2), ARRAY(+(1, 1), +(2, 2)), ROW('a', +(3, 3)), MAP(||('x', 'y'), +(8, 8))))], EXPR$9=[CARDINALITY(ARRAY(*(2, 3), *(2, 2), 4))], EXPR$10=[CARDINALITY(ARRAY(ROW(*(4, 3), 'm'), ROW(+(4, 6), 'b')))], EXPR$11=[CARDINALITY(ARRAY(MAP(||('ac', 'bd'), +(1, 8)), MAP(||('gi', 'jl'), +(1, 9))))], EXPR$12=[CARDINALITY(ARRAY(ROW(+(1, 7), ARRAY(+(1, 4), +(4, 2)), ROW('t', +(5, 5)), MAP(||('y', 'z'), +(9, 9)))))])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE"
@@ -775,7 +1210,14 @@ LogicalProject(EXPR$0=[2], EXPR$1=[ARRAY(2, 4)], EXPR$2=[ROW('a', 6)], EXPR$3=[M
 # from a VALUES clause (checkUnchanged).
 
 select * from (values (false),(true)) as q (col1) where not(col1);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| COL1  |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
 LogicalProject(COL1=[$0])
   LogicalFilter(condition=[NOT($0)])
     LogicalValues(tuples=[[{ false }, { true }]])

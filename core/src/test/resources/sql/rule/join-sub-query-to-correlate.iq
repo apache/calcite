@@ -25,11 +25,31 @@
 
 # testExpandJoinExists --------------------------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites EXISTS in a LEFT JOIN ON clause.
-# Not using !ok: query uses the sales schema, which is not in the scott database.
 
 select empno
-from sales.emp left join sales.dept
-on exists (select deptno from sales.emp where empno < 20);
+from emp left join dept
+on exists (select deptno from emp where empno < 20);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[EXISTS({
 LogicalFilter(condition=[<($0, 20)])
@@ -53,12 +73,12 @@ LogicalProject(EMPNO=[$0])
 # testExpandJoinScalar --------------------------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites scalar sub-queries in a LEFT JOIN ON
 # clause.
-# Not using !ok: query uses the sales schema, which is not in the scott database.
 
 select empno
-from sales.emp left join sales.dept
-on (select deptno from sales.emp where empno < 20)
- < (select deptno from sales.emp where empno > 100);
+from emp left join dept
+on (select deptno from emp where empno < 20)
+ < (select deptno from emp where empno > 100);
+# Not using !ok: scalar subquery returns more than one row with scott data.
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[<($SCALAR_QUERY({
 LogicalProject(DEPTNO=[$7])
@@ -99,7 +119,15 @@ left join (select 2 id) t2
 on t1.id = t2.id and not exists(select *
                                 from (select 3 id) p
                                 where p.id = t1.id);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |     |
+|  2 |   2 |
++----+-----+
+(2 rows)
+
+!ok
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[AND(=($0, $1), NOT(EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID)])
@@ -128,7 +156,14 @@ left join (select 2 id) t2
 on not exists(select *
                from (select 3 id) p
                where p.id = t2.id);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |   2 |
++----+-----+
+(1 row)
+
+!ok
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[NOT(EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID0)])
@@ -152,7 +187,13 @@ LogicalProject(ID=[$0], ID0=[$1])
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites NOT IN in a JOIN ON clause.
 
 SELECT empno FROM emp JOIN dept on emp.deptno not in (SELECT deptno FROM dept);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[NOT(IN($7, {
 LogicalProject(DEPTNO=[$0])
@@ -180,7 +221,14 @@ left join (select 2 id) t2
 on t1.id = t2.id or exists(select *
                            from (select 3 id) p
                            where p.id = t2.id);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |     |
++----+-----+
+(1 row)
+
+!ok
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[OR(=($0, $1), EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID0)])
@@ -209,7 +257,14 @@ left join (select 2 id) t2
 on t1.id = t2.id or not exists(select *
                                from (select 3 id) p
                                where p.id = t2.id);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+-----+
+| ID | ID0 |
++----+-----+
+|  1 |   2 |
++----+-----+
+(1 row)
+
+!ok
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalJoin(condition=[OR(=($0, $1), NOT(EXISTS({
 LogicalFilter(condition=[=($0, $cor0.ID0)])
@@ -233,7 +288,69 @@ LogicalProject(ID=[$0], ID0=[$1])
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites >= SOME sub-query in a JOIN ON clause.
 
 SELECT empno FROM emp JOIN dept on emp.deptno >= SOME(SELECT deptno FROM dept);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7369 |
+|  7369 |
+|  7369 |
+|  7499 |
+|  7499 |
+|  7499 |
+|  7499 |
+|  7521 |
+|  7521 |
+|  7521 |
+|  7521 |
+|  7566 |
+|  7566 |
+|  7566 |
+|  7566 |
+|  7654 |
+|  7654 |
+|  7654 |
+|  7654 |
+|  7698 |
+|  7698 |
+|  7698 |
+|  7698 |
+|  7782 |
+|  7782 |
+|  7782 |
+|  7782 |
+|  7788 |
+|  7788 |
+|  7788 |
+|  7788 |
+|  7839 |
+|  7839 |
+|  7839 |
+|  7839 |
+|  7844 |
+|  7844 |
+|  7844 |
+|  7844 |
+|  7876 |
+|  7876 |
+|  7876 |
+|  7876 |
+|  7900 |
+|  7900 |
+|  7900 |
+|  7900 |
+|  7902 |
+|  7902 |
+|  7902 |
+|  7902 |
+|  7934 |
+|  7934 |
+|  7934 |
+|  7934 |
++-------+
+(56 rows)
+
+!ok
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[>= SOME($7, {
 LogicalProject(DEPTNO=[$0])
@@ -259,7 +376,7 @@ LogicalProject(EMPNO=[$0])
 # sides of the join (plan is unchanged).
 
 SELECT empno FROM emp JOIN dept on emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: >= SOME subquery with both-sides columns is not supported by H2.
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[>= SOME(+($7, $9), {
 LogicalProject(DEPTNO=[$0])
