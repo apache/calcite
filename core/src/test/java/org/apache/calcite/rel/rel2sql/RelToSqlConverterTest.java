@@ -11107,7 +11107,7 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"DEPTNO\"\n"
         + "HAVING \"DEPTNO\" = \"DEPT\".\"DEPTNO\") AS \"$f2\"\n"
-        + "FROM \"scott\".\"DEPT\"";
+        + "FROM \"scott\".\"DEPT\" AS \"DEPT\"";
 
     relFn(relFn).ok(expected);
   }
@@ -11256,7 +11256,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT (SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE \"product\".\"product_id\" >= 2), 3\n"
-        + "FROM \"foodmart\".\"product\"";
+        + "FROM \"foodmart\".\"product\" AS \"product\"";
     sql(sql).ok(expected);
   }
 
@@ -11757,8 +11757,82 @@ class RelToSqlConverterTest {
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withMysql()
+        .withMysql();
+  }
+  /**
+   * Test case for CALCITE-7343.
+   * Verifies that a scalar subquery in the Project list correctly preserves
+   * the table alias ('t') of the outer query.
+   */
+  @Test void testProjectScalarSubquery() {
+    final String sql = "SELECT \"EMPNO\",\n"
+        + "  (SELECT COUNT(*) AS \"c\" FROM \"EMP\" WHERE \"MGR\" < \"m\".\"MGR\") AS \"$f1\"\n"
+        + "FROM \"EMP\" AS \"m\"\n"
+        + "WHERE \"SAL\" > 10";
+
+    final String expected = "SELECT \"EMPNO\", "
+        + "(SELECT COUNT(*) AS \"c\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE \"MGR\" < \"t\".\"MGR\") AS \"$f1\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"t\"\n"
+        + "WHERE CAST(\"SAL\" AS DECIMAL(12, 2)) > 10.00";
+
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite().ok(expected);
+  }
+  @Test void testProjectDeeplyNestedScalarSubquery() {
+    final String sql = "SELECT \"EMPNO\",\n"
+        + "  (SELECT MAX((SELECT COUNT(*) FROM \"DEPT\" "
+        + "WHERE \"DEPTNO\" = \"m\".\"DEPTNO\"))\n"
+        + "   FROM \"DEPT\" WHERE \"LOC\" = 'NEW YORK') AS \"$f1\"\n"
+        + "FROM \"EMP\" AS \"m\"";
+
+    final String expected = "SELECT \"EMPNO\", "
+        + "(SELECT MAX((SELECT COUNT(*)\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\"))\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"LOC\" = 'NEW YORK') AS \"$f1\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"EMP\"";
+
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
         .ok(expected);
+  }
+  @Test void testMultiLayerProjectCorrelation() {
+    final String sql = "SELECT \"EMPNO\" + 1, \n"
+        + "  (SELECT \"DNAME\" FROM \"DEPT\" WHERE \"DEPTNO\" = \"sub\".\"DEPTNO\")\n"
+        + "FROM (SELECT * FROM \"EMP\") AS \"sub\"";
+
+    final String expected = "SELECT \"EMPNO\" + 1, "
+        + "(SELECT \"DNAME\"\nFROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = \"t\".\"DEPTNO\")\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"t\"";
+
+    sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
+  }
+
+  @Test void testMultiLevelCrossReference() {
+    final String sql = "SELECT \"e\".\"ENAME\",\n"
+        + "  (SELECT COUNT(*)\n"
+        + "   FROM (SELECT \"d\".\"DEPTNO\", \"d\".\"DNAME\" FROM \"DEPT\" \"d\" "
+        + "         JOIN \"BONUS\" \"b\" ON \"d\".\"DEPTNO\" = \"e\".\"DEPTNO\") AS \"mid\"\n"
+        + "   WHERE \"mid\".\"DNAME\" = (SELECT \"DNAME\" FROM \"DEPT\" "
+        + "                          WHERE \"DEPTNO\" = \"e\".\"DEPTNO\" "
+        + "                          AND \"LOC\" = \"mid\".\"DNAME\"))\n"
+        + "FROM \"EMP\" AS \"e\"";
+    final String expected = "SELECT \"ENAME\", (SELECT COUNT(*)\n"
+        + "FROM (SELECT \"DEPT\".\"DEPTNO\", \"DEPT\".\"DNAME\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "INNER JOIN \"SCOTT\".\"BONUS\" ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\") AS \"t\"\n"
+        + "WHERE \"DNAME\" = (SELECT \"DNAME\"\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" = \"EMP\".\"DEPTNO\" AND \"LOC\" = \"t\".\"DNAME\"))\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"EMP\"";
+
+    sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
   }
 
 }

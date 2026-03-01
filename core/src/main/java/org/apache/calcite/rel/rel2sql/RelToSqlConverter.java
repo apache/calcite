@@ -604,14 +604,63 @@ public class RelToSqlConverter extends SqlImplementor
     return false;
   }
 
-  /** Visits a Project; called by {@link #dispatch} via reflection. */
+  /**
+   * Extracts the table name from a SqlNode if it represents a simple table reference.
+   * Returns null for complex nodes like subqueries or joins.
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>"product" → "product"</li>
+   *   <li>"foodmart.product" → "product"</li>
+   *   <li>"SCOTT"."EMP" → "EMP"</li>
+   *   <li>Subquery/Join/Other → null</li>
+   * </ul>
+   *
+   * @param node The SQL node to examine
+   * @return The table name if it's a simple identifier, null otherwise
+   */
+  private @Nullable String extractTableNameFromNode(SqlNode node) {
+    if (node instanceof SqlIdentifier) {
+      SqlIdentifier id = (SqlIdentifier) node;
+      // Return the last component (table name)
+      return id.names.get(id.names.size() - 1);
+    }
+
+    // All other cases: return null
+    return null;
+  }
+  /**
+   * Visits a Project; called by {@link #dispatch} via reflection.
+   */
   public Result visit(Project e) {
     // If the input is a Sort, wrap SELECT is not required.
     final Result x;
+    final Set<CorrelationId> definedHere = e.getVariablesSet();
+    boolean pushed = !definedHere.isEmpty();
+
+    // Visit input node
+    Result inputResult;
     if (e.getInput() instanceof Sort) {
-      x = visitInput(e, 0);
+      inputResult = visitInput(e, 0);
     } else {
-      x = visitInput(e, 0, Clause.SELECT);
+      inputResult = visitInput(e, 0, Clause.SELECT);
+    }
+
+    // If this Project defines correlations, fill in alias and force explicit generation
+    if (pushed) {
+      String alias = inputResult.neededAlias;
+      if (alias != null) {
+        x = inputResult.resetAliasForCorrelation(alias, e.getInput().getRowType());
+      } else {
+        alias = extractTableNameFromNode(inputResult.node);
+        if (alias == null) {
+          alias = "t";
+        }
+        x = inputResult.resetAliasForCorrelation
+                (alias, e.getInput().getRowType());
+      }
+    } else {
+      x = inputResult;
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
