@@ -74,6 +74,7 @@ import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.dialect.SqliteSqlDialect;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -82,7 +83,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql2rel.SqlRexConvertlet;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
@@ -135,7 +139,7 @@ class RelToSqlConverterTest {
   private Sql fixture() {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, "?",
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
-        UnaryOperator.identity(), null, ImmutableList.of());
+        UnaryOperator.identity(), null, ImmutableList.of(), StandardConvertletTable.INSTANCE);
   }
 
   /** Initiates a test case with a given SQL query. */
@@ -153,12 +157,13 @@ class RelToSqlConverterTest {
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
-      RelDataTypeSystem typeSystem, Program... programs) {
+      RelDataTypeSystem typeSystem, SqlRexConvertletTable convertletTable, Program... programs) {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
+        .convertletTable(convertletTable)
         .programs(programs)
         .operatorTable(MockSqlOperatorTable.standard()
             .plus(librarySet)
@@ -11293,12 +11298,14 @@ class RelToSqlConverterTest {
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
+    private final SqlRexConvertletTable convertletTable;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
         SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         @Nullable Function<RelBuilder, RelNode> relFn,
-        List<Function<RelNode, RelNode>> transforms) {
+        List<Function<RelNode, RelNode>> transforms,
+        SqlRexConvertletTable convertletTable) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
       this.dialect = dialect;
@@ -11307,21 +11314,22 @@ class RelToSqlConverterTest {
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
       this.config = config;
+      this.convertletTable = convertletTable;
     }
 
     Sql withSql(String sql) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
     }
 
     Sql dialect(SqlDialect dialect) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
     }
 
     Sql withCalcite() {
@@ -11564,12 +11572,12 @@ class RelToSqlConverterTest {
 
     Sql parserConfig(SqlParser.Config parserConfig) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
     }
 
     final Sql withLibrary(SqlLibrary library) {
@@ -11578,7 +11586,7 @@ class RelToSqlConverterTest {
 
     Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
       return new Sql(schemaSpec, sql, dialect, parserConfig,
-          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
+          ImmutableSet.copyOf(librarySet), config, relFn, transforms, convertletTable);
     }
 
     Sql optimize(final RuleSet ruleSet,
@@ -11595,7 +11603,12 @@ class RelToSqlConverterTest {
                 ImmutableList.of(), ImmutableList.of());
           });
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
+    }
+
+    Sql withConvertletTable(SqlRexConvertletTable convertletTable) {
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms, convertletTable);
     }
 
     Sql ok(String expectedQuery) {
@@ -11631,7 +11644,8 @@ class RelToSqlConverterTest {
               .withTrimUnusedFields(false));
           RelDataTypeSystem typeSystem = dialect.getTypeSystem();
           final Planner planner =
-              getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem);
+              getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem,
+                  convertletTable);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).project();
@@ -11647,7 +11661,7 @@ class RelToSqlConverterTest {
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+          relFn, transforms, convertletTable);
     }
   }
 
@@ -11833,6 +11847,33 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"EMP\" AS \"EMP\"";
 
     sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
+  }
+
+  @Test void testNotBetween() {
+    Sql f = fixture().withConvertletTable(new SqlRexConvertletTable() {
+      @Override public @Nullable SqlRexConvertlet get(SqlCall call) {
+        // Override StandardConvertletTable::convertBetween to avoid converting SqlBetweenOperator
+        if (call != null && call.getOperator() instanceof SqlBetweenOperator) {
+          return StandardConvertletTable.INSTANCE::convertCall;
+        }
+        return StandardConvertletTable.INSTANCE.get(call);
+      }
+    });
+    final String query1 = "SELECT empno FROM emp WHERE NOT (empno BETWEEN 1000 AND 2000)";
+    final String expected1 = "SELECT \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE CAST(\"EMPNO\" AS INTEGER) NOT BETWEEN ASYMMETRIC 1000 AND 2000";
+    f.withSql(query1)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected1);
+
+    final String query2 = "SELECT empno FROM emp WHERE NOT (empno BETWEEN SYMMETRIC 1000 AND 2000)";
+    final String expected2 = "SELECT \"EMPNO\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE CAST(\"EMPNO\" AS INTEGER) NOT BETWEEN SYMMETRIC 1000 AND 2000";
+    f.withSql(query2)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected2);
   }
 
 }
