@@ -1410,93 +1410,84 @@ public class SqlParserTest {
         .ok("VALUES (ROW((`A` BETWEEN ASYMMETRIC ((`B` OR (`C` AND `D`)) OR `E`) AND `F`)))");
   }
 
-  @Test void testBetweenSpark() {
-    sql("select * from t where price between 1 and 2")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("SELECT *\n"
-                + "FROM T\n"
-                + "WHERE (PRICE BETWEEN 1 AND 2)");
+  /**
+   * Test case for [CALCITE-4471](https://issues.apache.org/jira/browse/CALCITE-4471) that
+   * Spark SQL's BETWEEN operator does not support the ASYMMETRIC/SYMMETRIC keywords.
+   */
+  @Test void testBetweenForSparkSqlDialect() {
+    SqlParserFixture f = fixture().withDialect(SparkSqlDialect.DEFAULT);
 
-    sql("select * from t where price between symmetric 1 and 2")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("SELECT *\n"
-                + "FROM T\n"
-                + "WHERE (PRICE BETWEEN 1 AND 2)");
+    f.sql("select * from t where price between 1 and 2")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN 1 AND 2)");
 
-    sql("select * from t where price not between symmetric 1 and 2")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("SELECT *\n"
-                + "FROM T\n"
-                + "WHERE (PRICE NOT BETWEEN 1 AND 2)");
+    f.sql("select * from t where price not between 1 and 2")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` NOT BETWEEN 1 AND 2)");
 
-    sql("select * from t where price between 1 and 2+2*2")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("SELECT *\n"
-                + "FROM T\n"
-                + "WHERE (PRICE BETWEEN 1 AND (2 + (2 * 2)))");
+    f.sql("select * from t where price between 1 and 2+2*2")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN 1 AND (2 + (2 * 2)))");
 
     final String sql0 = "select * from t\n"
         + " where price > 5\n"
         + " and price not between 1 + 2 and 3 * 4 AnD price is null";
     final String expected0 = "SELECT *\n"
-        + "FROM T\n"
-        + "WHERE (((PRICE > 5) "
-        + "AND (PRICE NOT BETWEEN (1 + 2) AND (3 * 4))) "
-        + "AND (PRICE IS NULL))";
-    sql(sql0).withDialect(SparkSqlDialect.DEFAULT).ok(expected0);
+        + "FROM `T`\n"
+        + "WHERE (((`PRICE` > 5) "
+        + "AND (`PRICE` NOT BETWEEN (1 + 2) AND (3 * 4))) "
+        + "AND (`PRICE` IS NULL))";
+    f.sql(sql0).ok(expected0);
 
     final String sql1 = "select * from t\n"
         + "where price > 5\n"
         + "and price between 1 + 2 and 3 * 4 + price is null";
     final String expected1 = "SELECT *\n"
-        + "FROM T\n"
-        + "WHERE ((PRICE > 5) "
-        + "AND ((PRICE BETWEEN (1 + 2) AND ((3 * 4) + PRICE)) "
+        + "FROM `T`\n"
+        + "WHERE ((`PRICE` > 5) "
+        + "AND ((`PRICE` BETWEEN (1 + 2) AND ((3 * 4) + `PRICE`)) "
         + "IS NULL))";
-    sql(sql1).withDialect(SparkSqlDialect.DEFAULT).ok(expected1);
+    f.sql(sql1).ok(expected1);
 
     final String sql2 = "select * from t\n"
         + "where price > 5\n"
         + "and price between 1 + 2 and 3 * 4 or price is null";
     final String expected2 = "SELECT *\n"
-        + "FROM T\n"
-        + "WHERE (((PRICE > 5) "
-        + "AND (PRICE BETWEEN (1 + 2) AND (3 * 4))) "
-        + "OR (PRICE IS NULL))";
-    sql(sql2).withDialect(SparkSqlDialect.DEFAULT).ok(expected2);
+        + "FROM `T`\n"
+        + "WHERE (((`PRICE` > 5) "
+        + "AND (`PRICE` BETWEEN (1 + 2) AND (3 * 4))) "
+        + "OR (`PRICE` IS NULL))";
+    f.sql(sql2).ok(expected2);
 
     final String sql3 = "values a between c and d and e and f between g and h";
     final String expected3 = "VALUES ("
-        + "(((A BETWEEN C AND D) AND E)"
-        + " AND (F BETWEEN G AND H)))";
-    sql(sql3).withDialect(SparkSqlDialect.DEFAULT).ok(expected3);
+        + "(((`A` BETWEEN `C` AND `D`) AND `E`)"
+        + " AND (`F` BETWEEN `G` AND `H`)))";
+    f.sql(sql3).ok(expected3);
 
-    sql("values a between b or c^")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .fails(".*BETWEEN operator has no terminating AND");
+    f.sql("values a between b or c^")
+        .fails(".*BETWEEN operator has no terminating AND");
 
-    sql("values a ^between^")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .fails("(?s).*Encountered \"between <EOF>\" at line 1, column 10.*");
+    f.sql("values a ^between^")
+        .fails("(?s).*Encountered \"between <EOF>\" at line 1, column 10.*");
 
-    sql("values a between symmetric 1^")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .fails(".*BETWEEN operator has no terminating AND");
+    f.sql("values a between 1^")
+        .fails(".*BETWEEN operator has no terminating AND");
 
     // precedence of BETWEEN is higher than AND and OR, but lower than '+'
-    sql("values a between b and c + 2 or d and e")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("VALUES (((A BETWEEN B AND (C + 2)) OR (D AND E)))");
+    f.sql("values a between b and c + 2 or d and e")
+        .ok("VALUES (((`A` BETWEEN `B` AND (`C` + 2)) OR (`D` AND `E`)))");
 
     // '=' has slightly lower precedence than BETWEEN; both are left-assoc
-    sql("values x = a between b and c = d = e")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("VALUES ((((X = (A BETWEEN B AND C)) = D) = E))");
+    f.sql("values x = a between b and c = d = e")
+        .ok("VALUES ((((`X` = (`A` BETWEEN `B` AND `C`)) = `D`) = `E`))");
 
     // AND doesn't match BETWEEN if it's between parentheses!
-    sql("values a between b or (c and d) or e and f")
-        .withDialect(SparkSqlDialect.DEFAULT)
-            .ok("VALUES ((A BETWEEN ((B OR (C AND D)) OR E) AND F))");
+    f.sql("values a between b or (c and d) or e and f")
+        .ok("VALUES ((`A` BETWEEN ((`B` OR (`C` AND `D`)) OR `E`) AND `F`))");
   }
 
   @Test void testOperateOnColumn() {
