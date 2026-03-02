@@ -87,7 +87,6 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -348,7 +347,8 @@ public abstract class QuidemTest {
             relNode = RelDecorrelator.decorrelateQuery(relNode, relBuilder);
           }
 
-          x.echo(ImmutableList.of(RelOptUtil.toString(relNode)));
+          final String s = RelOptUtil.toString(relNode);
+          x.echo(ImmutableList.copyOf(s.split(System.lineSeparator())));
         }
       } else {
         x.echo(content);
