@@ -1458,6 +1458,7 @@ comp:
 | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
 | ABS(numeric)              | Returns the absolute value of *numeric*
 | MOD(numeric1, numeric2)   | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
+| NULLABLE_MOD(numeric1, numeric2)   | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative. Returns NULL when numeric2 is zero
 | SQRT(numeric)             | Returns the square root of *numeric*
 | LN(numeric)               | Returns the natural logarithm (base *e*) of *numeric*
 | LOG10(numeric)            | Returns the base 10 logarithm of *numeric*
