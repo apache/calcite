@@ -1,0 +1,1115 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for rules related to pushing aggregate through joins
+# (AGGREGATE_JOIN_TRANSPOSE_EXTENDED rule).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testPushAggregateFunctionsThroughJoin ---------------------------------------
+# Pushes a variety of aggregate functions (MIN, SUM, MAX, COUNT) through an inner join.
+
+select e.job,
+  min(sal) as min_sal, min(e.deptno) as min_deptno,
+  sum(sal) + 1 as sum_sal_plus, max(sal) as max_sal,
+  sum(sal) as sum_sal_2, count(sal) as count_sal,
+  count(mgr) as count_mgr
+from emp as e
+join dept as d on e.job = d.dname
+group by e.job,d.dname;
++-----+---------+------------+--------------+---------+-----------+-----------+-----------+
+| JOB | MIN_SAL | MIN_DEPTNO | SUM_SAL_PLUS | MAX_SAL | SUM_SAL_2 | COUNT_SAL | COUNT_MGR |
++-----+---------+------------+--------------+---------+-----------+-----------+-----------+
++-----+---------+------------+--------------+---------+-----------+-----------+-----------+
+(0 rows)
+
+!ok
+
+LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)], MAX_SAL=[$5], SUM_SAL_2=[$4], COUNT_SAL=[$6], COUNT_MGR=[$7])
+  LogicalAggregate(group=[{2, 10}], MIN_SAL=[MIN($5)], MIN_DEPTNO=[MIN($7)], SUM_SAL_2=[SUM($5)], MAX_SAL=[MAX($5)], COUNT_SAL=[COUNT()], COUNT_MGR=[COUNT($3)])
+    LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)], MAX_SAL=[$5], SUM_SAL_2=[$4], COUNT_SAL=[$6], COUNT_MGR=[$7])
+  LogicalProject(JOB=[$0], DNAME=[$7], MIN_SAL=[$1], MIN_DEPTNO=[$2], $f9=[CAST(*($3, $8)):INTEGER NOT NULL], MAX_SAL=[$4], $f10=[*($5, $8)], $f11=[*($6, $8)])
+    LogicalJoin(condition=[=($0, $7)], joinType=[inner])
+      LogicalAggregate(group=[{2}], MIN_SAL=[MIN($5)], MIN_DEPTNO=[MIN($7)], SUM_SAL_2=[SUM($5)], MAX_SAL=[MAX($5)], COUNT_SAL=[COUNT()], COUNT_MGR=[COUNT($3)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], agg#0=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateSumNoGroup -------------------------------------------------
+# Pushes COUNT(*) through a join with no GROUP BY.
+
+select count(*) from emp join dept on job = dname;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)])
+  LogicalProject($f4=[*($1, $3)])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalAggregate(group=[{2}], EXPR$0=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], EXPR$0=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateSumThroughJoin ---------------------------------------------
+# SUM is the easiest aggregate function to split; pushes it through an inner join.
+
+select e.job,sum(sal)
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname
+group by e.job,d.dname;
++-----+--------+
+| JOB | EXPR$1 |
++-----+--------+
++-----+--------+
+(0 rows)
+
+!ok
+
+LogicalProject(JOB=[$0], EXPR$1=[$2])
+  LogicalAggregate(group=[{2, 10}], EXPR$1=[SUM($5)])
+    LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(JOB=[$0], EXPR$1=[$2])
+  LogicalProject(JOB=[$0], DNAME=[$2], $f4=[CAST(*($1, $3)):INTEGER NOT NULL])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalAggregate(group=[{2}], EXPR$1=[SUM($5)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalFilter(condition=[=($1, 'A')])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], agg#0=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateSumThroughJoinAfterAggregateReduce -------------------------
+# Like testPushAggregateSumThroughJoin but also uses AggregateReduceFunctionsRule.
+
+select sum(sal)
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname;
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
+  LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)], agg#1=[$SUM0($1)])
+    LogicalProject($f5=[CAST(*($1, $4)):INTEGER NOT NULL], $f6=[*($2, $4)])
+      LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+        LogicalAggregate(group=[{2}], EXPR$0=[$SUM0($5)], agg#1=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($1, 'A')])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{1}], agg#0=[COUNT()])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_REDUCE_FUNCTIONS, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateSumWithoutGroupKeyThroughJoin ------------------------------
+# Pushes SUM through a join that has no GROUP BY keys.
+
+select sum(sal)
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname;
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f4=[CAST(*($1, $3)):INTEGER])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalAggregate(group=[{2}], EXPR$0=[SUM($5)])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalFilter(condition=[=($1, 'A')])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], agg#0=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin1 -----------------------------------------------
+# AGGREGATE_JOIN_TRANSPOSE_EXTENDED pushes aggregate through a join on non-join keys.
+
+select e.job,d.dname
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname
+group by e.job,d.dname;
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{2, 10}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+  LogicalAggregate(group=[{2}])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalAggregate(group=[{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin2 -----------------------------------------------
+# Like testPushAggregateThroughJoin1 but the join condition includes extra predicates.
+
+select e.job,d.dname
+from (select * from emp where ename = 'A') as e
+join dept as d on e.job = d.dname
+and e.deptno + e.empno = d.deptno + 5
+group by e.job,d.dname;
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{2, 11}])
+  LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0, 2}])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
+    LogicalAggregate(group=[{2, 9}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin3 -----------------------------------------------
+# [CALCITE-2278] AGGREGATE_JOIN_TRANSPOSE_EXTENDED does not push through a join
+# with a non-equi join condition (checkUnchanged).
+
+select e.empno,d.deptno
+from (select * from emp where empno = 10) as e
+join dept as d on e.empno < d.deptno
+group by e.empno,d.deptno;
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
++-------+--------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$9])
+    LogicalJoin(condition=[<($0, $9)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "aggregateUnique=true, NONE"
+LogicalAggregate(group=[{0, 9}])
+  LogicalJoin(condition=[<($0, $9)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0, 9}])
+  LogicalJoin(condition=[<($0, $9)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin4 -----------------------------------------------
+# [CALCITE-1544] AggregateJoinTransposeRule fails to preserve row type.
+
+select e.deptno
+from emp as e join dept as d on e.deptno = d.deptno
+group by e.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
+
+LogicalAggregate(group=[{7}])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(DEPTNO=[$0])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin5 -----------------------------------------------
+# Pushes aggregate through a join when both sides have the same join key.
+
+select e.deptno, d.deptno
+from emp as e join dept as d on e.deptno = d.deptno
+group by e.deptno, d.deptno;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     20 |     20 |
+|     30 |     30 |
++--------+--------+
+(3 rows)
+
+!ok
+
+LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
+  LogicalAggregate(group=[{7, 9}])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin6 -----------------------------------------------
+# [CALCITE-2195] AggregateJoinTransposeRule fails to aggregate over unique column.
+
+select sum(B.sal)
+from emp as A
+join (select distinct sal from emp) as B
+on A.sal=B.sal;
++----------+
+| EXPR$0   |
++----------+
+| 29025.00 |
++----------+
+(1 row)
+
+!ok
+
+LogicalAggregate(group=[{}], EXPR$0=[SUM($9)])
+  LogicalJoin(condition=[=($5, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f3=[CAST(*($1, $2)):INTEGER])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalAggregate(group=[{5}], agg#0=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{5}])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin7 -----------------------------------------------
+# Pushes ANY_VALUE(DISTINCT ...) through a join over a distinct sub-query.
+
+select any_value(distinct B.sal)
+from emp as A
+join (select distinct sal from emp) as B
+on A.sal=B.sal;
++---------+
+| EXPR$0  |
++---------+
+| 5000.00 |
++---------+
+(1 row)
+
+!ok
+
+LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($9)])
+  LogicalJoin(condition=[=($5, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoin8 -----------------------------------------------
+# Pushes SINGLE_VALUE(DISTINCT ...) through a join over a distinct sub-query.
+
+select single_value(distinct B.sal)
+from emp as A
+join (select distinct sal from emp) as B
+on A.sal=B.sal;
+more than one
+!error
+
+LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($9)])
+  LogicalJoin(condition=[=($5, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($1)])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{5}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoinDistinct ----------------------------------------
+# [CALCITE-2249] Should not push a DISTINCT aggregate into a join.
+
+select d.dname,
+  sum(sal) as sum_sal, count(*) as c
+from emp as e
+join (select distinct dname from dept) as d
+  on e.job = d.dname
+group by d.dname;
++-------+---------+---+
+| DNAME | SUM_SAL | C |
++-------+---------+---+
++-------+---------+---+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{9}], SUM_SAL=[SUM($5)], C=[COUNT()])
+  LogicalJoin(condition=[=($2, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(DNAME=[$3], SUM_SAL=[$1], C=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalAggregate(group=[{2}], SUM_SAL=[SUM($5)], C=[COUNT()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoinOnEmptyLogicalValues ----------------------------
+# [CALCITE-3076] Should not throw when the join input is an empty LogicalValues.
+
+select count(*) volume, sum(C1.sal) C1_sum_sal from (select sal, ename from emp where 1=2) C1 inner join (select ename from emp) C2   on C1.ename = C2.ename;
++--------+------------+
+| VOLUME | C1_SUM_SAL |
++--------+------------+
+|      0 |            |
++--------+------------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], VOLUME=[COUNT()], C1_SUM_SAL=[SUM($0)])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject(SAL=[$5], ENAME=[$1])
+      LogicalValues(tuples=[[]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, FILTER_REDUCE_EXPRESSIONS"
+LogicalAggregate(group=[{}], VOLUME=[$SUM0($0)], C1_SUM_SAL=[SUM($1)])
+  LogicalProject(VOLUME=[$3], $f4=[CAST(*($1, $3)):INTEGER])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalProject(ENAME=[$1], SAL=[$0])
+        LogicalProject(SAL=[$5], ENAME=[$1])
+          LogicalValues(tuples=[[]])
+      LogicalAggregate(group=[{0}], VOLUME=[COUNT()])
+        LogicalProject(ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, FILTER_REDUCE_EXPRESSIONS, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughJoinWithUniqueInput ---------------------------------
+# [CALCITE-2278] Fails to split aggregate call if input has distinct rows.
+
+select A.job, B.mgr, A.deptno,
+max(B.hiredate1) as hiredate1, sum(B.comm1) as comm1
+from emp as A
+join (select mgr, sal, max(hiredate) as hiredate1,
+    sum(comm) as comm1 from emp group by mgr, sal) as B
+on A.sal=B.sal
+group by A.job, B.mgr, A.deptno;
++-----------+------+--------+------------+---------+
+| JOB       | MGR  | DEPTNO | HIREDATE1  | COMM1   |
++-----------+------+--------+------------+---------+
+| ANALYST   | 7566 |     20 | 1987-04-19 |         |
+| CLERK     | 7698 |     30 | 1981-12-03 |         |
+| CLERK     | 7782 |     10 | 1982-01-23 |         |
+| CLERK     | 7788 |     20 | 1987-05-23 |         |
+| CLERK     | 7902 |     20 | 1980-12-17 |         |
+| MANAGER   | 7839 |     10 | 1981-06-09 |         |
+| MANAGER   | 7839 |     20 | 1981-02-04 |         |
+| MANAGER   | 7839 |     30 | 1981-01-05 |         |
+| PRESIDENT |      |     10 | 1981-11-17 |         |
+| SALESMAN  | 7698 |     30 | 1981-09-28 | 4100.00 |
++-----------+------+--------+------------+---------+
+(10 rows)
+
+!ok
+
+LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
+  LogicalAggregate(group=[{2, 7, 9}], HIREDATE1=[MAX($11)], COMM1=[SUM($12)])
+    LogicalJoin(condition=[=($5, $10)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{3, 5}], HIREDATE1=[MAX($4)], COMM1=[SUM($6)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
+  LogicalAggregate(group=[{0, 1, 2}], HIREDATE1=[MAX($3)], COMM1=[SUM($4)])
+    LogicalProject(JOB=[$0], DEPTNO=[$2], MGR=[$4], HIREDATE1=[$6], $f8=[CAST(*($3, $7)):INTEGER NOT NULL])
+      LogicalJoin(condition=[=($1, $5)], joinType=[inner])
+        LogicalAggregate(group=[{2, 5, 7}], agg#0=[COUNT()])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{3, 5}], HIREDATE1=[MAX($4)], COMM1=[SUM($6)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin1 ------------------------------------------
+# Outer join, group by on non-join keys, group by on non-null generating side only.
+
+select e.ename
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+group by e.ename;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin10 -----------------------------------------
+# Outer join with aggregate functions; should not push through (checkUnchanged).
+
+select count(e.ename)
+from (select * from emp where empno = 10) as e
+left outer join emp as d on e.job = d.job
+group by e.ename,d.mgr;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
+LogicalProject(EXPR$0=[$2])
+  LogicalAggregate(group=[{1, 12}], EXPR$0=[COUNT()])
+    LogicalJoin(condition=[=($2, $11)], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(EXPR$0=[$2])
+  LogicalAggregate(group=[{1, 12}], EXPR$0=[COUNT()])
+    LogicalJoin(condition=[=($2, $11)], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin11 -----------------------------------------
+# AGGREGATE_JOIN_TRANSPOSE_EXTENDED does not push through a left outer join
+# with a non-equi join condition (checkUnchanged).
+
+select e.empno,d.deptno
+from (select * from emp where empno = 10) as e
+left outer join dept as d on e.empno < d.deptno
+group by e.empno,d.deptno;
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
++-------+--------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$9])
+    LogicalJoin(condition=[<($0, $9)], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "aggregateUnique=true, NONE"
+LogicalAggregate(group=[{0, 9}])
+  LogicalJoin(condition=[<($0, $9)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0, 9}])
+  LogicalJoin(condition=[<($0, $9)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin12 -----------------------------------------
+# Right outer join; group by on key same as join key, on null generating side.
+
+select e.job
+from (select * from emp where ename = 'A') as e
+right outer join dept as d on e.job = d.dname
+group by e.job;
++-----+
+| JOB |
++-----+
+|     |
++-----+
+(1 row)
+
+!ok
+
+LogicalAggregate(group=[{2}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[right])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[=($0, $1)], joinType=[right])
+    LogicalAggregate(group=[{2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin13 -----------------------------------------
+# Full outer join; group by on key same as join key, on one side.
+
+select e.job
+from (select * from emp where ename = 'A') as e
+full outer join dept as d on e.job = d.dname
+group by e.job;
++-----+
+| JOB |
++-----+
+|     |
++-----+
+(1 row)
+
+!ok
+
+LogicalAggregate(group=[{2}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[full])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[=($0, $1)], joinType=[full])
+    LogicalAggregate(group=[{2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin14 -----------------------------------------
+# Full outer join; group by on key same as join key, on both sides.
+
+select e.mgr, d.mgr
+from emp as e
+full outer join emp as d on e.mgr = d.mgr
+group by d.mgr, e.mgr;
++------+------+
+| MGR  | MGR  |
++------+------+
+| 7566 | 7566 |
+| 7698 | 7698 |
+| 7782 | 7782 |
+| 7788 | 7788 |
+| 7839 | 7839 |
+| 7902 | 7902 |
+|      |      |
++------+------+
+(7 rows)
+
+!ok
+
+LogicalProject(MGR=[$1], MGR0=[$0])
+  LogicalProject(MGR0=[$1], MGR=[$0])
+    LogicalAggregate(group=[{3, 12}])
+      LogicalJoin(condition=[=($3, $12)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(MGR=[$1], MGR0=[$0])
+  LogicalProject(MGR0=[$1], MGR=[$0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalJoin(condition=[=($0, $1)], joinType=[full])
+        LogicalAggregate(group=[{3}])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{3}])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin15 -----------------------------------------
+# Full outer join; group by on both sides on non-join keys.
+
+select e.ename, d.mgr
+from (select * from emp where ename = 'A') as e
+full outer join emp as d on e.job = d.job
+group by e.ename,d.mgr;
++-------+------+
+| ENAME | MGR  |
++-------+------+
+|       | 7566 |
+|       | 7698 |
+|       | 7782 |
+|       | 7788 |
+|       | 7839 |
+|       | 7902 |
+|       |      |
++-------+------+
+(7 rows)
+
+!ok
+
+LogicalAggregate(group=[{1, 12}])
+  LogicalJoin(condition=[=($2, $11)], joinType=[full])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0, 3}])
+  LogicalJoin(condition=[=($1, $2)], joinType=[full])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{2, 3}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin16 -----------------------------------------
+# Full outer join; group by key is subset of join keys.
+
+select e.job
+from (select * from emp where ename = 'A') as e
+full outer join dept as d on e.job = d.dname
+and e.deptno + e.empno = d.deptno + 5
+group by e.job;
++-----+
+| JOB |
++-----+
+|     |
++-----+
+(1 row)
+
+!ok
+
+LogicalAggregate(group=[{2}])
+  LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[full])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[full])
+    LogicalAggregate(group=[{2, 9}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin2 ------------------------------------------
+# Outer join, group by on non-join keys, on null generating side only.
+
+select d.ename
+from (select * from emp where ename = 'A') as e
+left outer join emp as d on e.job = d.job
+group by d.ename;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{10}])
+  LogicalJoin(condition=[=($2, $11)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalAggregate(group=[{2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin3 ------------------------------------------
+# Outer join, group by on both sides on non-join keys.
+
+select e.ename, d.mgr
+from (select * from emp where ename = 'A') as e
+left outer join emp as d on e.job = d.job
+group by e.ename,d.mgr;
++-------+-----+
+| ENAME | MGR |
++-------+-----+
++-------+-----+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{1, 12}])
+  LogicalJoin(condition=[=($2, $11)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0, 3}])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{2, 3}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin4 ------------------------------------------
+# Outer join, group by key same as join key, group by on non-null generating side.
+
+select e.job
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+group by e.job;
++-----+
+| JOB |
++-----+
++-----+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{2}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(JOB=[$0])
+  LogicalJoin(condition=[=($0, $1)], joinType=[left])
+    LogicalAggregate(group=[{2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin5 ------------------------------------------
+# Outer join, group by key same as join key, group by on null generating side.
+
+select d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+group by d.dname;
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{10}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($0, $1)], joinType=[left])
+    LogicalAggregate(group=[{2}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin6 ------------------------------------------
+# Outer join, group by key same as join key, group by on both sides.
+
+select e.job,d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+group by e.job,d.dname;
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{2, 10}])
+  LogicalJoin(condition=[=($2, $10)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalJoin(condition=[=($0, $1)], joinType=[left])
+  LogicalAggregate(group=[{2}])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalAggregate(group=[{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin7 ------------------------------------------
+# Outer join, group by key is subset of join keys, group by on non-null generating side.
+
+select e.job
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+and e.deptno + e.empno = d.deptno + 5
+group by e.job;
++-----+
+| JOB |
++-----+
++-----+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{2}])
+  LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+    LogicalAggregate(group=[{2, 9}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin8 ------------------------------------------
+# Outer join, group by key is a subset of join keys, group by on null generating side.
+
+select d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+and e.deptno + e.empno = d.deptno + 5
+group by d.dname;
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{11}])
+  LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{2}])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+    LogicalAggregate(group=[{2, 9}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushAggregateThroughOuterJoin9 ------------------------------------------
+# Outer join, group by key is subset of join keys, group by on both sides.
+
+select e.job, d.dname
+from (select * from emp where ename = 'A') as e
+left outer join dept as d on e.job = d.dname
+and e.deptno + e.empno = d.deptno + 5
+group by e.job, d.dname;
++-----+-------+
+| JOB | DNAME |
++-----+-------+
++-----+-------+
+(0 rows)
+
+!ok
+
+LogicalAggregate(group=[{2, 11}])
+  LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+      LogicalFilter(condition=[=($1, 'A')])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE"
+LogicalAggregate(group=[{0, 2}])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
+    LogicalAggregate(group=[{2, 9}])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
+        LogicalFilter(condition=[=($1, 'A')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1, 2}])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 5)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushDistinctAggregateIntoJoin -------------------------------------------
+# [CALCITE-2249] Should not push a DISTINCT aggregate into a join (checkUnchanged).
+
+select count(distinct sal) from emp
+ join dept on job = dname;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0)])
+  LogicalProject(SAL=[$5])
+    LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0)])
+  LogicalProject(SAL=[$5])
+    LogicalJoin(condition=[=($2, $10)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# End aggregate-join-transpose.iq

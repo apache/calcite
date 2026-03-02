@@ -23,7 +23,12 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -35,16 +40,21 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
@@ -53,7 +63,6 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.PatternFilenameFilter;
 
 import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.CommandHandler;
@@ -65,7 +74,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Field;
@@ -73,9 +82,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -90,6 +101,7 @@ import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -139,6 +151,207 @@ public abstract class QuidemTest {
         final SqlWriter sqlWriter = new SqlPrettyWriter();
         validateNode.unparse(sqlWriter, 0, 0);
         x.echo(ImmutableList.of(sqlWriter.toSqlString().getSql()));
+      } else {
+        x.echo(content);
+      }
+      x.echo(lines);
+    }
+  }
+
+  /** Command that prints a plan for a SQL statement, optionally after applying rules.
+   *
+   * <p>The {@code args} string is a comma-separated list of config tokens and
+   * rule names. {@code NONE} is a placeholder meaning "no rule at this position".
+   * Config tokens (lowercase-starting) configure the SQL-to-RelNode conversion
+   * and {@link org.apache.calcite.tools.RelBuilder RelBuilder} behavior.
+   * All uppercase tokens are {@link CoreRules} field names collected into a single
+   * {@link HepPlanner} and applied to the initial plan.
+   *
+   * <p>Supported config tokens:
+   * <ul>
+   *   <li>{@code aggregateUnique=true} &mdash; GROUP BY without aggregate
+   *       functions creates a {@code LogicalAggregate} (not simplified to a
+   *       Project); equivalent to
+   *       {@code .withRelBuilderConfig(b -> b.withAggregateUnique(true))}
+   *   <li>{@code bloat=N} &mdash; allows merging expressions up to N nodes
+   *       larger; equivalent to
+   *       {@code .withRelBuilderConfig(b -> b.withBloat(N))}
+   *   <li>{@code expand=true} &mdash; expands sub-queries during
+   *       SQL-to-RelNode conversion; equivalent to {@code .withExpand(true)}
+   *   <li>{@code relBuilderSimplify=false} &mdash; disables
+   *       {@link org.apache.calcite.rex.RexSimplify} during RelNode
+   *       construction, so CASE/CAST expressions appear unsimplified;
+   *       equivalent to {@code .withRelBuilderSimplify(false)}
+   *   <li>{@code simplifyValues=false} &mdash; prevents Values rows from
+   *       being simplified; equivalent to
+   *       {@code .withRelBuilderConfig(b -> b.withSimplifyValues(false))}
+   *   <li>{@code lateDecorrelate=true} &mdash; applies
+   *       {@link RelDecorrelator#decorrelateQuery} after the main rules;
+   *       equivalent to {@code .withLateDecorrelate(true)}
+   *   <li>{@code operatorTable=BIG_QUERY} &mdash; uses BigQuery operator
+   *       table; equivalent to
+   *       {@code .withFactory(t -> t.withOperatorTable(o ->
+   *       getOperatorTable(SqlLibrary.BIG_QUERY)))}
+   *   <li>{@code subQueryRules} &mdash; applies
+   *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules before the
+   *       main rules; equivalent to {@code .withSubQueryRules()}
+   *   <li>{@code trim=true} &mdash; trims unused fields from projections;
+   *       equivalent to {@code .withTrim(true)}
+   * </ul>
+   *
+   * <p>Examples: {@code "NONE"} (initial plan, no rules),
+   * {@code "NONE, AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
+   * {@code "aggregateUnique=true, NONE"} (initial plan with aggregateUnique),
+   * {@code "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
+   * (plan after rule, with expressions not pre-simplified by RelBuilder). */
+  public static class SubPlanCommand extends AbstractCommand {
+    private static final Pattern PATTERN = Pattern.compile("^\"|\"$");
+
+    private final ImmutableList<String> lines;
+    private final ImmutableList<String> content;
+    private final SqlParserImplFactory parserFactory;
+    private final String args;
+
+    SubPlanCommand(SqlParserImplFactory parserFactory,
+        List<String> lines, List<String> content,
+        String args) {
+      this.lines = ImmutableList.copyOf(lines);
+      this.content = ImmutableList.copyOf(content);
+      this.parserFactory = parserFactory;
+      this.args = args;
+    }
+
+    @Override public void execute(Context x, boolean execute) throws Exception {
+      if (execute) {
+        // Parse config tokens (lowercase-starting) and rule names (UPPERCASE)
+        boolean aggregateUnique = false;
+        boolean relBuilderSimplify = true;
+        boolean expand = false;
+        boolean lateDecorrelate = false;
+        boolean operatorTableBigQuery = false;
+        boolean trim = false;
+        boolean simplifyValues = true;
+        boolean subQueryRules = false;
+        int bloat = -1; // -1 means "use default"
+        final List<RelOptRule> rules = new ArrayList<>();
+        for (String token : PATTERN.matcher(args).replaceAll("").split(",")) {
+          final String name = token.trim();
+          if (name.isEmpty() || name.equals("NONE")) {
+            // skip placeholder
+          } else if (Character.isLowerCase(name.charAt(0))) {
+            // config token
+            if (name.equals("aggregateUnique=true")) {
+              aggregateUnique = true;
+            } else if (name.startsWith("bloat=")) {
+              bloat = parseInt(name.substring("bloat=".length()));
+            } else if (name.equals("expand=true")) {
+              expand = true;
+            } else if (name.equals("lateDecorrelate=true")) {
+              lateDecorrelate = true;
+            } else if (name.equals("operatorTable=BIG_QUERY")) {
+              operatorTableBigQuery = true;
+            } else if (name.equals("relBuilderSimplify=false")) {
+              relBuilderSimplify = false;
+            } else if (name.equals("simplifyValues=false")) {
+              simplifyValues = false;
+            } else if (name.equals("subQueryRules")) {
+              subQueryRules = true;
+            } else if (name.equals("trim=true")) {
+              trim = true;
+            } else {
+              throw new IllegalArgumentException("Unknown config token: " + name);
+            }
+          } else {
+            rules.add(getCoreRule(name));
+          }
+        }
+
+        // Build factory from config tokens; use final copies for lambdas
+        final boolean expand0 = expand;
+        final boolean simplifyValues0 = simplifyValues;
+        final int bloat0 = bloat;
+        SqlTestFactory testFactory = SqlTestFactory.INSTANCE
+            .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+            .withSqlToRelConfig(c -> c.withExpand(expand0))
+            .withSqlToRelConfig(c ->
+                c.addRelBuilderConfigTransform(
+                    b -> b.withPruneInputOfAggregate(false)));
+        if (aggregateUnique) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.addRelBuilderConfigTransform(b -> b.withAggregateUnique(true)));
+        }
+        if (!simplifyValues0) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.addRelBuilderConfigTransform(b -> b.withSimplifyValues(false)));
+        }
+        if (trim) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.withTrimUnusedFields(true));
+        }
+        if (bloat0 >= 0) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.addRelBuilderConfigTransform(b -> b.withBloat(bloat0)));
+        }
+        if (operatorTableBigQuery) {
+          testFactory = testFactory.withOperatorTable(opTab ->
+              SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                  SqlLibrary.BIG_QUERY));
+        }
+        final boolean lateDecorrelate0 = lateDecorrelate;
+        final boolean trim0 = trim;
+        final SqlTestFactory factory0 = testFactory;
+
+        // Parse, validate, and convert SQL to RelNode.
+        // relBuilderSimplify=false wraps conversion in a thread hook.
+        final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
+        try (AutoCloseable ignored =
+                 Hook.REL_BUILDER_SIMPLIFY.addThread(
+                     Hook.propertyJ(relBuilderSimplify))) {
+          final SqlToRelConverter converter = factory0.createSqlToRelConverter();
+          final SqlNode sqlQuery =
+              factory0.createParser(sqlCommand.sql).parseQuery();
+          final SqlNode validatedQuery =
+              requireNonNull(converter.validator).validate(sqlQuery);
+          RelNode relNode =
+              converter.convertQuery(validatedQuery, false, true).project();
+          // trim=true: apply flattenTypes then trimUnusedFields, matching
+          // AbstractSqlTester.convertSqlToRel2 behavior
+          if (trim0) {
+            relNode = converter.flattenTypes(relNode, true);
+            relNode = converter.trimUnusedFields(true, relNode);
+          }
+
+          // Apply subQueryRules as pre-rules before the main rules
+          if (subQueryRules) {
+            final HepProgramBuilder preBuilder = new HepProgramBuilder();
+            preBuilder.addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+            preBuilder.addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+            preBuilder.addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE);
+            final HepPlanner prePlanner = new HepPlanner(preBuilder.build());
+            prePlanner.setRoot(relNode);
+            relNode = prePlanner.findBestExp();
+          }
+
+          // Apply main rules using a single HepPlanner
+          if (!rules.isEmpty()) {
+            final HepProgramBuilder builder = new HepProgramBuilder();
+            for (RelOptRule rule : rules) {
+              builder.addRuleInstance(rule);
+            }
+            final HepPlanner hepPlanner = new HepPlanner(builder.build());
+            hepPlanner.setRoot(relNode);
+            relNode = hepPlanner.findBestExp();
+          }
+
+          // Apply late decorrelation if requested
+          if (lateDecorrelate0) {
+            final RelBuilder relBuilder =
+                RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), null);
+            relNode = RelDecorrelator.decorrelateQuery(relNode, relBuilder);
+          }
+
+          x.echo(Arrays.asList(RelOptUtil.toString(relNode).split("\n")));
+        }
       } else {
         x.echo(content);
       }
@@ -210,9 +423,15 @@ public abstract class QuidemTest {
     final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    final FilenameFilter filter = new PatternFilenameFilter(".*\\.iq$");
-    for (File f : Util.first(dir.listFiles(filter), new File[0])) {
-      paths.add(n2u(f.getAbsolutePath().substring(commonPrefixLength)));
+    try {
+      Files.walk(dir.toPath())
+          .filter(p -> p.toString().endsWith(".iq"))
+          .forEach(p ->
+              paths.add(
+                  n2u(p.toAbsolutePath().toString()
+                  .substring(commonPrefixLength))));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     return paths;
   }

@@ -48,13 +48,13 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   @Test void testDistinct() {
     checkFeature(
-        "select ^distinct^ name from dept",
+        "select ^distinct^ dname from dept",
         RESOURCE.sQLFeature_E051_01());
   }
 
   @Test void testOrderByDesc() {
     checkFeature(
-        "select name from dept order by ^name desc^",
+        "select dname from dept order by ^dname desc^",
         RESOURCE.sQLConformance_OrderByDesc());
   }
 
@@ -63,13 +63,13 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   @Test void testIntersect() {
     checkFeature(
-        "^select name from dept intersect select name from dept^",
+        "^select dname from dept intersect select dname from dept^",
         RESOURCE.sQLFeature_F302());
   }
 
   @Test void testExcept() {
     checkFeature(
-        "^select name from dept except select name from dept^",
+        "^select dname from dept except select dname from dept^",
         RESOURCE.sQLFeature_E071_03());
   }
 
@@ -85,11 +85,11 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   @Test void testTablesample() {
     checkFeature(
-        "select name from ^dept tablesample bernoulli(50)^",
+        "select dname from ^dept tablesample bernoulli(50)^",
         RESOURCE.sQLFeature_T613());
 
     checkFeature(
-        "select name from ^dept tablesample substitute('sample_dept')^",
+        "select dname from ^dept tablesample substitute('sample_dept')^",
         RESOURCE.sQLFeatureExt_T613_Substitution());
   }
 

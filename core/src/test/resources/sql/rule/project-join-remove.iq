@@ -1,0 +1,589 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to removing redundant joins in projections
+# (PROJECT_JOIN_JOIN_REMOVE and PROJECT_JOIN_REMOVE rules).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testProjectJoinRemove1 ------------------------------------------------------
+# PROJECT_JOIN_JOIN_REMOVE should remove the second left join when d2 is a
+# duplicate of d1.
+
+SELECT e.deptno, d2.deptno
+FROM emp e
+LEFT JOIN dept d1 ON e.deptno = d1.deptno
+LEFT JOIN dept d2 ON e.deptno = d2.deptno;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
++--------+--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$11])
+  LogicalJoin(condition=[=($7, $11)], joinType=[left])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_JOIN_JOIN_REMOVE"
+
+# testProjectJoinRemove10 -----------------------------------------------------
+# PROJECT_JOIN_REMOVE should remove the left join when all projected columns
+# come from the left (non-null-generating) side.
+
+SELECT e.deptno, e.ename
+FROM emp e
+LEFT JOIN dept d ON e.deptno = d.deptno;
++--------+--------+
+| DEPTNO | ENAME  |
++--------+--------+
+|     10 | CLARK  |
+|     10 | KING   |
+|     10 | MILLER |
+|     20 | ADAMS  |
+|     20 | FORD   |
+|     20 | JONES  |
+|     20 | SCOTT  |
+|     20 | SMITH  |
+|     30 | ALLEN  |
+|     30 | BLAKE  |
+|     30 | JAMES  |
+|     30 | MARTIN |
+|     30 | TURNER |
+|     30 | WARD   |
++--------+--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7], ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7], ENAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# testProjectJoinRemove2 ------------------------------------------------------
+# PROJECT_JOIN_JOIN_REMOVE should not remove d2 when the project references d1.
+
+SELECT e.deptno, d1.deptno
+FROM emp e
+LEFT JOIN dept d1 ON e.deptno = d1.deptno
+LEFT JOIN dept d2 ON e.deptno = d2.deptno;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
++--------+--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+  LogicalJoin(condition=[=($7, $11)], joinType=[left])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
+  LogicalJoin(condition=[=($7, $11)], joinType=[left])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_JOIN_JOIN_REMOVE"
+
+# testProjectJoinRemove3 ------------------------------------------------------
+# PROJECT_JOIN_JOIN_REMOVE should not remove a join when the tables differ.
+
+SELECT e1.deptno, d.deptno
+FROM emp e1
+LEFT JOIN emp e2 ON e1.deptno = e2.deptno
+LEFT JOIN dept d ON e1.deptno = d.deptno;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     20 |     20 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
+|     30 |     30 |
++--------+--------+
+(70 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
+  LogicalJoin(condition=[=($7, $18)], joinType=[left])
+    LogicalJoin(condition=[=($7, $16)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
+  LogicalJoin(condition=[=($7, $18)], joinType=[left])
+    LogicalJoin(condition=[=($7, $16)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_JOIN_JOIN_REMOVE"
+
+# testProjectJoinRemove4 ------------------------------------------------------
+# PROJECT_JOIN_REMOVE should remove the left join when the project only uses
+# columns from the preserved side.
+
+SELECT e.deptno
+FROM emp e
+LEFT JOIN dept d ON e.deptno = d.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# testProjectJoinRemove5 ------------------------------------------------------
+# PROJECT_JOIN_REMOVE should not remove the join when EMP.DEPTNO is not a
+# unique key.
+
+SELECT e1.deptno
+FROM emp e1
+LEFT JOIN emp e2 ON e1.deptno = e2.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(70 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $16)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $16)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# testProjectJoinRemove6 ------------------------------------------------------
+# PROJECT_JOIN_REMOVE should not remove the join when the project uses
+# a column from the null-generating side.
+
+SELECT e.deptno, d.dname
+FROM emp e
+LEFT JOIN dept d ON e.deptno = d.deptno;
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     10 | ACCOUNTING |
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
++--------+------------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7], DNAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7], DNAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# testProjectJoinRemove7 ------------------------------------------------------
+# PROJECT_JOIN_REMOVE should remove a right join when the project only uses
+# columns from the preserved (right) side.
+
+SELECT e.deptno
+FROM dept d
+RIGHT JOIN emp e ON e.deptno = d.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$9])
+  LogicalJoin(condition=[=($9, $0)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# testProjectJoinRemove8 ------------------------------------------------------
+# PROJECT_JOIN_REMOVE should not remove a right join when EMP.DEPTNO is not a
+# unique key.
+
+SELECT e2.deptno
+FROM emp e1
+RIGHT JOIN emp e2 ON e1.deptno = e2.deptno;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(70 rows)
+
+!ok
+LogicalProject(DEPTNO=[$16])
+  LogicalJoin(condition=[=($7, $16)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$16])
+  LogicalJoin(condition=[=($7, $16)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# testProjectJoinRemove9 ------------------------------------------------------
+# PROJECT_JOIN_REMOVE should not remove a right join when the project uses
+# a column from the null-generating (left) side.
+
+SELECT e.deptno, d.dname
+FROM dept d
+RIGHT JOIN emp e ON e.deptno = d.deptno;
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     10 | ACCOUNTING |
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     20 | RESEARCH   |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
+|     30 | SALES      |
++--------+------------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$9], DNAME=[$1])
+  LogicalJoin(condition=[=($9, $0)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$9], DNAME=[$1])
+  LogicalJoin(condition=[=($9, $0)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_JOIN_REMOVE"
+
+# End project-join-remove.iq

@@ -1,0 +1,405 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to filters and aggregates.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testAggregateCaseToFilter ----------------------------------------------------
+# AGGREGATE_CASE_TO_FILTER rewrites CASE expressions inside aggregate calls
+# to use the FILTER syntax.
+
+select
+ sum(sal) as sum_sal,
+ count(distinct case
+       when job = 'CLERK'
+       then deptno else null end) as count_distinct_clerk,
+ sum(case when deptno = 10 then sal end) as sum_sal_d10,
+ sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,
+ sum(case when deptno = 30 then 1 else 0 end) as count_d30,
+ count(case when deptno = 40 then 'x' end) as count_d40,
+ sum(case when deptno = 45 then 1 end) as count_d45,
+ sum(case when deptno = 50 then 1 else null end) as count_d50,
+ sum(case when deptno = 60 then null end) as sum_null_d60,
+ sum(case when deptno = 70 then null else 1 end) as sum_null_d70,
+ count(case when deptno = 20 then 1 end) as count_d20
+from emp;
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL  | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| 29025.00 |                    3 |     8750.00 |    10875.00 |         6 |         0 |           |           |              |           14 |         5 |
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], COUNT_DISTINCT_CLERK=[COUNT(DISTINCT $1)], SUM_SAL_D10=[SUM($2)], SUM_SAL_D20=[SUM($3)], COUNT_D30=[SUM($4)], COUNT_D40=[COUNT($5)], COUNT_D45=[SUM($6)], COUNT_D50=[SUM($7)], SUM_NULL_D60=[SUM($8)], SUM_NULL_D70=[SUM($9)], COUNT_D20=[COUNT($10)])
+  LogicalProject(SAL=[$5], $f1=[CASE(=($2, 'CLERK'), $7, null:INTEGER)], $f2=[CASE(=($7, 10), $5, null:INTEGER)], $f3=[CASE(=($7, 20), $5, 0)], $f4=[CASE(=($7, 30), 1, 0)], $f5=[CASE(=($7, 40), 'x', null:CHAR(1))], $f6=[CASE(=($7, 45), 1, null:INTEGER)], $f7=[CASE(=($7, 50), 1, null:INTEGER)], $f8=[null:DECIMAL(19, 9)], $f9=[CASE(=($7, 70), null:INTEGER, 1)], $f10=[CASE(=($7, 20), 1, null:INTEGER)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], COUNT_DISTINCT_CLERK=[COUNT(DISTINCT $4) FILTER $5], SUM_SAL_D10=[SUM($6) FILTER $7], SUM_SAL_D20=[SUM($1)], COUNT_D30=[SUM($2)], COUNT_D40=[COUNT() FILTER $8], COUNT_D45=[SUM($9) FILTER $10], COUNT_D50=[SUM($11) FILTER $12], SUM_NULL_D60=[SUM($3)], SUM_NULL_D70=[SUM($13) FILTER $14], COUNT_D20=[COUNT() FILTER $15])
+  LogicalProject(SAL=[$5], $f3=[CASE(=($7, 20), $5, 0)], $f4=[CASE(=($7, 30), 1, 0)], $f8=[null:DECIMAL(19, 9)], DEPTNO=[$7], $f12=[=($2, 'CLERK')], SAL0=[$5], $f14=[=($7, 10)], $f15=[=($7, 40)], $f16=[1], $f17=[=($7, 45)], $f18=[1], $f19=[=($7, 50)], $f20=[1], $f21=[<>($7, 70)], $f22=[=($7, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_CASE_TO_FILTER"
+
+# testAggregateCaseToFilterNoMatch ---------------------------------------------
+# AGGREGATE_CASE_TO_FILTER should not rewrite CASE expressions where the ELSE
+# branch is non-null and not the identity (plan unchanged).
+
+select
+ sum(case when deptno = -1 then 1 else 0 end) as sum_no_match,
+ sum(case when deptno = -1 then 2 else 0 end) as sum_no_match2,
+ sum(case when deptno = -1 then 3 else -1 end) as sum_no_match3
+from emp;
++--------------+---------------+---------------+
+| SUM_NO_MATCH | SUM_NO_MATCH2 | SUM_NO_MATCH3 |
++--------------+---------------+---------------+
+|            0 |             0 |           -14 |
++--------------+---------------+---------------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], SUM_NO_MATCH=[SUM($0)], SUM_NO_MATCH2=[SUM($1)], SUM_NO_MATCH3=[SUM($2)])
+  LogicalProject($f0=[CASE(=($7, -1), 1, 0)], $f1=[CASE(=($7, -1), 2, 0)], $f2=[CASE(=($7, -1), 3, -1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], SUM_NO_MATCH=[SUM($0)], SUM_NO_MATCH2=[SUM($1)], SUM_NO_MATCH3=[SUM($2)])
+  LogicalProject($f0=[CASE(=($7, -1), 1, 0)], $f1=[CASE(=($7, -1), 2, 0)], $f2=[CASE(=($7, -1), 3, -1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_CASE_TO_FILTER"
+
+# testAggregateFilterToCase ----------------------------------------------------
+# AGGREGATE_FILTER_TO_CASE rewrites aggregate FILTER clauses back to CASE
+# expressions (inverse of AGGREGATE_CASE_TO_FILTER).
+# [CALCITE-7086]
+
+select coalesce(sum_match, 0) as sum0_match, sum_distinct_not_match,
+  count_distinct_match, count_star_match
+from (select
+    sum(sal) filter(where deptno = 10) as sum_match,
+    sum(distinct empno) filter(where deptno = 20) as sum_distinct_not_match,
+    count(distinct cast(deptno as int)) filter(where job = 'CLERK') as count_distinct_match,
+    count(*) filter(where deptno = 40) as count_star_match
+  from emp);
+Value 38501 out of range
+!error
+LogicalProject(SUM0_MATCH=[$3], SUM_DISTINCT_NOT_MATCH=[$0], COUNT_DISTINCT_MATCH=[$1], COUNT_STAR_MATCH=[$2])
+  LogicalAggregate(group=[{}], SUM_DISTINCT_NOT_MATCH=[SUM(DISTINCT $2) FILTER $3], COUNT_DISTINCT_MATCH=[COUNT(DISTINCT $4) FILTER $5], COUNT_STAR_MATCH=[COUNT() FILTER $6], agg#3=[$SUM0($0) FILTER $1])
+    LogicalProject(SAL=[$5], $f1=[=($7, 10)], EMPNO=[$0], $f3=[=($7, 20)], $f4=[$7], $f5=[=($2, 'CLERK')], $f6=[=($7, 40)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+LogicalProject(SUM0_MATCH=[$3], SUM_DISTINCT_NOT_MATCH=[$0], COUNT_DISTINCT_MATCH=[$1], COUNT_STAR_MATCH=[$2])
+  LogicalAggregate(group=[{}], SUM_DISTINCT_NOT_MATCH=[SUM(DISTINCT $0) FILTER $1], COUNT_DISTINCT_MATCH=[COUNT(DISTINCT $2)], COUNT_STAR_MATCH=[COUNT($3)], agg#3=[$SUM0($4)])
+    LogicalProject(EMPNO=[$0], $f3=[=($7, 20)], $f7=[CASE(=($2, 'CLERK'), $7, null:INTEGER)], $f8=[CASE(=($7, 40), 0, null:INTEGER)], $f9=[CASE(=($7, 10), $5, null:INTEGER)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE, AGGREGATE_FILTER_TO_CASE"
+
+# testAggregateGroupingSetsToUnionRule -----------------------------------------
+# AGGREGATE_GROUPING_SETS_TO_UNION converts GROUPING SETS aggregation into
+# a UNION ALL of simple GROUP BY aggregations.
+# [CALCITE-7116]
+
+SELECT deptno, job, sal, SUM(comm)
+FROM emp
+GROUP BY GROUPING SETS ((deptno, job), (deptno, sal));
+# Not using !ok: result row order is non-deterministic.
+LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1}, {0, 2}]], EXPR$3=[SUM($3)])
+  LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[null:INTEGER], EXPR$3=[$2])
+    LogicalAggregate(group=[{0, 1}], EXPR$3=[SUM($3)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0], JOB=[null:VARCHAR(10)], SAL=[$1], EXPR$3=[$2])
+    LogicalAggregate(group=[{0, 2}], EXPR$3=[SUM($3)])
+      LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_GROUPING_SETS_TO_UNION"
+
+# testAggregateMergeSum0 -------------------------------------------------------
+# AGGREGATE_MERGE should merge SUM0 into COUNT even when the top GROUP BY
+# is empty.
+# [CALCITE-3957]
+
+select coalesce(sum(count_comm), 0)
+from (
+  select deptno, count(comm) as count_comm
+  from emp
+  group by deptno, mgr) t;
++--------+
+| EXPR$0 |
++--------+
+|      4 |
++--------+
+(1 row)
+
+!ok
+LogicalProject(EXPR$0=[$0])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($2)])
+    LogicalAggregate(group=[{3, 7}], COUNT_COMM=[COUNT()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE, AGGREGATE_PROJECT_MERGE"
+LogicalProject(EXPR$0=[$0])
+  LogicalAggregate(group=[{}], agg#0=[COUNT()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_AGGREGATE_MERGE, AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMinMaxToLimitRule -----------------------------------------------
+# AGGREGATE_MIN_MAX_TO_LIMIT rewrites MIN and MAX aggregate queries as
+# correlated scalar subqueries with LIMIT 1.
+
+select min(deptno), max(deptno) from emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     10 |     30 |
++--------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject($f0=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], $f1=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 1 }]])
+!sub-plan "NONE, AGGREGATE_MIN_MAX_TO_LIMIT"
+
+# testCastInAggregateReduceFunctions -------------------------------------------
+# AGGREGATE_REDUCE_FUNCTIONS adds a cast around the null literal in decomposed
+# stddev/variance functions.
+# [CALCITE-1621]
+
+select job, stddev_pop(empno), avg(empno),
+    stddev_samp(empno),var_pop(empno), var_samp(empno)
+from emp
+group by job;
+Value 54302161 out of range
+!error
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], EXPR$2=[AVG($1)], EXPR$3=[STDDEV_SAMP($1)], EXPR$4=[VAR_POP($1)], EXPR$5=[VAR_SAMP($1)])
+  LogicalProject(JOB=[$2], EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(JOB=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:DECIMAL(2, 1))):INTEGER NOT NULL], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[CAST(POWER(/(-($1, /(*($2, $2), $3)), CASE(=($3, 1), null:BIGINT, -($3, 1))), 0.5:DECIMAL(2, 1))):INTEGER], EXPR$4=[CAST(/(-($1, /(*($2, $2), $3)), $3)):INTEGER NOT NULL], EXPR$5=[CAST(/(-($1, /(*($2, $2), $3)), CASE(=($3, 1), null:BIGINT, -($3, 1)))):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($2)], agg#1=[$SUM0($1)], agg#2=[COUNT()])
+    LogicalProject(JOB=[$0], EMPNO=[$1], $f2=[*($1, $1)])
+      LogicalProject(JOB=[$2], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_REDUCE_FUNCTIONS"
+
+# testPullFilterThroughAggregate -----------------------------------------------
+# AGGREGATE_FILTER_TRANSPOSE pulls a filter out from below an aggregate and
+# places it above.
+
+select ename, sal, deptno from (
+  select ename, sal, deptno
+  from emp
+  where sal > 5000)
+group by ename, sal, deptno;
++-------+-----+--------+
+| ENAME | SAL | DEPTNO |
++-------+-----+--------+
++-------+-----+--------+
+(0 rows)
+
+!ok
+LogicalAggregate(group=[{0, 1, 2}])
+  LogicalFilter(condition=[>($1, 5000)])
+    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalFilter(condition=[>($1, 5000)])
+  LogicalAggregate(group=[{0, 1, 2}])
+    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_MERGE, PROJECT_FILTER_TRANSPOSE, AGGREGATE_FILTER_TRANSPOSE"
+
+# testPullFilterThroughAggregateGroupingSets -----------------------------------
+# AGGREGATE_FILTER_TRANSPOSE pulls a filter from below an aggregate with
+# grouping sets (ROLLUP).
+
+select ename, sal, deptno from (
+  select ename, sal, deptno
+  from emp
+  where sal > 5000)
+group by rollup(ename, sal, deptno);
++-------+-----+--------+
+| ENAME | SAL | DEPTNO |
++-------+-----+--------+
++-------+-----+--------+
+(0 rows)
+
+!ok
+LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0}, {}]])
+  LogicalFilter(condition=[>($1, 5000)])
+    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0}, {}]])
+  LogicalFilter(condition=[>($1, 5000)])
+    LogicalAggregate(group=[{0, 1, 2}])
+      LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, PROJECT_MERGE, PROJECT_FILTER_TRANSPOSE, AGGREGATE_FILTER_TRANSPOSE"
+
+# testPushFilterPastAgg --------------------------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE pushes a filter past an aggregate when the
+# filter condition is on a group-by column.
+
+select dname, c from
+(select dname dname, count(*) as c from dept group by dname) t
+ where dname = 'Charlie';
++-------+---+
+| DNAME | C |
++-------+---+
++-------+---+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$0], C=[$1])
+  LogicalFilter(condition=[=($0, 'Charlie')])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], C=[$1])
+  LogicalAggregate(group=[{0}], C=[COUNT()])
+    LogicalFilter(condition=[=($0, 'Charlie')])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testPushFilterPastAggFour ----------------------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE pushes a filter past an aggregate, removing a
+# redundant outer aggregate.
+# [CALCITE-1109]
+
+select emp.deptno, count(*) from emp where emp.sal > '12'
+group by emp.deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      5 |
+|     30 |      6 |
++--------+--------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
+  LogicalFilter(condition=[>($0, CAST('12'):INTEGER NOT NULL)])
+    LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
+  LogicalAggregate(group=[{5, 7}], EXPR$1=[COUNT()])
+    LogicalFilter(condition=[>($5, 12)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_FILTER_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testPushFilterPastAggThree ---------------------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE should not push a HAVING filter past an aggregate
+# (plan unchanged because the condition references an aggregate function).
+# [CALCITE-799]
+
+select deptno from emp
+group by deptno having count(*) > 1;
+# Not using !ok: result row order is non-deterministic.
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[>($1, 1)])
+    LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[>($1, 1)])
+    LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testPushFilterPastAggTwo -----------------------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE pushes conditions that apply to group-by columns
+# past the aggregate, but retains conditions that reference aggregate calls.
+# [CALCITE-434]
+
+select dept1.c1 from (
+select dept.dname as c1, count(*) as c2
+from dept where dept.dname > 'b' group by dept.dname) dept1
+where dept1.c1 > 'c' and (dept1.c2 > 30 or dept1.c1 < 'z');
++----+
+| C1 |
++----+
++----+
+(0 rows)
+
+!ok
+LogicalProject(C1=[$0])
+  LogicalFilter(condition=[AND(>($0, 'c'), OR(>($1, 30), <($0, 'z')))])
+    LogicalAggregate(group=[{0}], C2=[COUNT()])
+      LogicalProject(C1=[$1])
+        LogicalFilter(condition=[>($1, 'b')])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(C1=[$0])
+  LogicalFilter(condition=[OR(>($1, 30), <($0, 'z'))])
+    LogicalAggregate(group=[{0}], C2=[COUNT()])
+      LogicalFilter(condition=[>($0, 'c')])
+        LogicalProject(C1=[$1])
+          LogicalFilter(condition=[>($1, 'b')])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testReduceAverage ------------------------------------------------------------
+# AGGREGATE_REDUCE_FUNCTIONS decomposes AVG into SUM / COUNT.
+
+select dname, max(dname), avg(deptno), min(dname)
+from dept group by dname;
++------------+------------+--------+------------+
+| DNAME      | EXPR$1     | EXPR$2 | EXPR$3     |
++------------+------------+--------+------------+
+| ACCOUNTING | ACCOUNTING |     10 | ACCOUNTING |
+| OPERATIONS | OPERATIONS |     40 | OPERATIONS |
+| RESEARCH   | RESEARCH   |     20 | RESEARCH   |
+| SALES      | SALES      |     30 | SALES      |
++------------+------------+--------+------------+
+(4 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[$0], EXPR$2=[CAST(/($1, $2)):INTEGER NOT NULL], EXPR$3=[$0])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($1)], agg#1=[COUNT()])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_REDUCE_FUNCTIONS"
+
+# End aggregate-filter.iq

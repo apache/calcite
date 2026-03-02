@@ -1,0 +1,255 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to pushing filters into joins
+# (FILTER_INTO_JOIN).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testExpandFilterDisjunctionForTable -----------------------------------------
+# FILTER_INTO_JOIN after EXPAND_FILTER_DISJUNCTION_GLOBAL pushes disjunctive
+# filter predicates into join conditions.
+
+select e.empno from emp as e, empnullables as en
+where e.empno = en.empno
+and
+(
+  (e.mgr > 100 and en.sal < 200)
+  or
+  e.comm < 50
+);
+# Not using !ok: empnullables is not in the scott database
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(=($0, $9), OR(AND(>($3, 100), <($14, 200)), <($6, 50)), OR(>($3, 100), <($6, 50)))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, EXPAND_FILTER_DISJUNCTION_GLOBAL"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $9), OR(AND(>($3, 100), <($14, 200)), <($6, 50)))], joinType=[inner])
+    LogicalFilter(condition=[OR(>($3, 100), <($6, 50))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, EXPAND_FILTER_DISJUNCTION_GLOBAL, FILTER_INTO_JOIN"
+
+# testFilterJoinRuleAndIsNotNull -----------------------------------------------
+# FILTER_INTO_JOIN simplifies a left join to inner when the WHERE clause
+# [CALCITE-5247]
+# requires both sides to be non-null (AND of IS NOT NULL).
+
+select * from
+emp LHS
+left join dept RHS on LHS.EMPNO = RHS.DEPTNO
+where
+RHS.DEPTNO is not null
+AND RHS.DNAME is not null;
+# Not using !ok: result row order is non-deterministic for a join with select *
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalFilter(condition=[AND(IS NOT NULL($9), IS NOT NULL($10))])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], DNAME=[CAST($10):VARCHAR(10)])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testFilterJoinRuleOrIsNotNull ------------------------------------------------
+# FILTER_INTO_JOIN simplifies a left join to inner when the WHERE clause
+# [CALCITE-5247]
+# requires at least one nullable column to be non-null (OR of IS NOT NULL).
+
+select * from
+emp LHS
+left join dept RHS on LHS.EMPNO = RHS.DEPTNO
+where
+RHS.DEPTNO is not null
+OR RHS.DNAME is not null;
+# Not using !ok: result row order is non-deterministic for a join with select *
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalFilter(condition=[OR(IS NOT NULL($9), IS NOT NULL($10))])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], DNAME=[CAST($10):VARCHAR(10)])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testFullOuterJoinSimplificationToInner --------------------------------------
+# FILTER_INTO_JOIN converts a full outer join to inner when both left and
+# right sides have null-rejecting WHERE predicates.
+
+select 1 from sales.dept d full outer join sales.emp e
+on d.deptno = e.deptno
+where d.dname = 'Charlie' and e.sal > 100;
+# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[AND(=($1, 'Charlie'), >($7, 100))])
+    LogicalJoin(condition=[=($0, $9)], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalFilter(condition=[=($1, 'Charlie')])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testFullOuterJoinSimplificationToLeftOuter ----------------------------------
+# FILTER_INTO_JOIN converts a full outer join to left outer when only the
+# left side has a null-rejecting WHERE predicate.
+
+select 1 from sales.dept d full outer join sales.emp e
+on d.deptno = e.deptno
+where d.dname = 'Charlie';
+# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[=($1, 'Charlie')])
+    LogicalJoin(condition=[=($0, $9)], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalFilter(condition=[=($1, 'Charlie')])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testFullOuterJoinSimplificationToRightOuter ---------------------------------
+# FILTER_INTO_JOIN converts a full outer join to right outer when only the
+# right side has a null-rejecting WHERE predicate.
+
+select 1 from sales.dept d full outer join sales.emp e
+on d.deptno = e.deptno
+where e.sal > 100;
+# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[>($7, 100)])
+    LogicalJoin(condition=[=($0, $9)], joinType=[full])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
+    LogicalJoin(condition=[=($0, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testLeftOuterJoinSimplificationToInner --------------------------------------
+# FILTER_INTO_JOIN converts a left outer join to inner when the WHERE clause
+# has a null-rejecting predicate on the right side.
+
+select 1 from sales.dept d left outer join sales.emp e
+on d.deptno = e.deptno
+where e.sal > 100;
+# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[>($7, 100)])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testPushAboveFiltersIntoInnerJoinCondition ----------------------------------
+# FILTER_INTO_JOIN removes a redundant WHERE predicate that is already present
+# in the inner join condition.
+
+select * from sales.dept d inner join sales.emp e
+on d.deptno = e.deptno and d.deptno > e.mgr
+where d.deptno > e.mgr;
+# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalFilter(condition=[>($0, $5)])
+    LogicalJoin(condition=[AND(=($0, $9), >($0, $5))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[AND(=($0, $9), >($0, $5))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testPushFilterWithIsNotDistinctFromPastJoin ---------------------------------
+# FILTER_INTO_JOIN moves an IS NOT DISTINCT FROM predicate from the WHERE
+# clause into the join condition.
+
+SELECT * FROM
+emp t1 INNER JOIN
+emp t2
+ON t1.deptno = t2.deptno
+WHERE t1.ename is not distinct from t2.ename;
+# Not using !ok: result row order is non-deterministic for a self-join
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalFilter(condition=[OR(AND(IS NULL($1), IS NULL($10)), IS TRUE(=($1, $10)))])
+    LogicalJoin(condition=[=($7, $16)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[AND(=($7, $16), IS NOT DISTINCT FROM($1, $10))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testRightOuterJoinSimplificationToInner -------------------------------------
+# FILTER_INTO_JOIN converts a right outer join to inner when the WHERE clause
+# has a null-rejecting predicate on the left side.
+
+select 1 from sales.dept d right outer join sales.emp e
+on d.deptno = e.deptno
+where d.dname = 'Charlie';
+# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+LogicalProject(EXPR$0=[1])
+  LogicalFilter(condition=[=($1, 'Charlie')])
+    LogicalJoin(condition=[=($0, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalFilter(condition=[=($1, 'Charlie')])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_INTO_JOIN"
+
+# End filter-into-join.iq

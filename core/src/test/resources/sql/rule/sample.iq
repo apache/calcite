@@ -1,0 +1,128 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to TABLESAMPLE (Sample relational operator).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testFilterSampleTransposeWithBernoulli --------------------------------------
+# FILTER_SAMPLE_TRANSPOSE should push the Filter past a Bernoulli sample.
+# [CALCITE-6031]
+
+select deptno
+from emp tablesample bernoulli(50)
+where deptno > 10;
+# Not using !ok: result is non-deterministic.
+
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, 10)])
+    Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[0])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_SAMPLE_TRANSPOSE"
+
+# testFilterSampleTransposeWithSystem -----------------------------------------
+# FILTER_SAMPLE_TRANSPOSE should push the Filter past a system sample.
+# [CALCITE-6031]
+# Note: No !ok or !type because system TABLESAMPLE cannot be planned
+# (there is no Sample[NONE->ENUMERABLE] conversion).
+
+select deptno
+from emp tablesample system(50)
+where deptno > 10;
+# Not using !ok: result is non-deterministic.
+
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, 10)])
+    Sample(mode=[system], rate=[0.5], repeatableSeed=[-])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[system], rate=[0.5], repeatableSeed=[0])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_SAMPLE_TRANSPOSE"
+
+# testFilterSampleTransposeWithSystemAndSeed ----------------------------------
+# FILTER_SAMPLE_TRANSPOSE should push the Filter past a system sample with seed.
+# [CALCITE-6031]
+# Note: No !ok or !type because system TABLESAMPLE cannot be planned
+# (there is no Sample[NONE->ENUMERABLE] conversion).
+
+select deptno
+from emp tablesample system(50) repeatable(10)
+where deptno > 10;
+# Not using !ok: result is non-deterministic.
+
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, 10)])
+    Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_SAMPLE_TRANSPOSE"
+
+# testSampleToFilter ----------------------------------------------------------
+# SAMPLE_TO_FILTER should convert a Bernoulli sample to a filter on RAND().
+# [CALCITE-5971]
+
+select deptno
+from emp tablesample bernoulli(50);
+# Not using !ok: result is non-deterministic.
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<(RAND(), 0.5:DECIMAL(2, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SAMPLE_TO_FILTER"
+
+# testSampleToFilterWithSeed --------------------------------------------------
+# SAMPLE_TO_FILTER should convert a seeded Bernoulli sample to a filter
+# on RAND(seed).
+# [CALCITE-5971]
+
+select deptno
+from emp tablesample bernoulli(50) repeatable(10);
+# Not using !ok: result is non-deterministic.
+DEPTNO TINYINT(3)
+!type
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[10])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<(RAND(10), 0.5:DECIMAL(2, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, SAMPLE_TO_FILTER"
+
+# End sample.iq

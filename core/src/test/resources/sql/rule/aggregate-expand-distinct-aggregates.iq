@@ -1,0 +1,662 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules that expand DISTINCT aggregates (AggregateExpandDistinctAggregatesRule).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testBitAndReuseDistinctAttrWithMixedOptionality ------------------------------
+# Tests that BIT_AND (non-distinct) can share the inner aggregate with
+# DISTINCT agg-calls on the same column.
+
+select sum(distinct deptno), count(distinct deptno), bit_and(deptno) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |      0 |
++--------+--------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[BIT_AND($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_AND($0)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testBitOrReuseDistinctAttrWithMixedOptionality -------------------------------
+# Tests that BIT_OR (non-distinct) can share the inner aggregate with
+# DISTINCT agg-calls on the same column.
+
+select sum(distinct deptno), count(distinct deptno), bit_or(deptno) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |     30 |
++--------+--------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[BIT_OR($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_OR($0)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testCastInAggregateExpandDistinctAggregatesRule ------------------------------
+# [CALCITE-1621] Adding a cast around the null literal in aggregate rules.
+
+select dname, sum(distinct cn), sum(distinct sm)
+from (
+  select dname, count(dept.deptno) as cn,sum(dept.deptno) as sm
+  from dept group by dname)
+group by dname;
++------------+--------+--------+
+| DNAME      | EXPR$1 | EXPR$2 |
++------------+--------+--------+
+| ACCOUNTING |      1 |     10 |
+| OPERATIONS |      1 |     40 |
+| RESEARCH   |      1 |     20 |
+| SALES      |      1 |     30 |
++------------+--------+--------+
+(4 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM(DISTINCT $1)], EXPR$2=[SUM(DISTINCT $2)])
+  LogicalAggregate(group=[{0}], CN=[COUNT()], SM=[SUM($1)])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[CAST($1):BIGINT NOT NULL], EXPR$2=[CAST($2):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], EXPR$1_g0=[SUM($1) FILTER $3], EXPR$2_g0=[SUM($2) FILTER $4])
+    LogicalProject(DNAME=[$0], CN=[$1], SM=[$2], $g_1=[=($3, 1)], $g_2=[=($3, 2)])
+      LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1}, {0, 2}, {0}]], $g=[GROUPING($0, $1, $2)])
+        LogicalAggregate(group=[{0}], CN=[COUNT()], SM=[SUM($1)])
+          LogicalProject(DNAME=[$1], DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctCount3 -----------------------------------------------------------
+# Tests expansion of COUNT(DISTINCT) with a non-distinct SUM in a group-by query.
+# [CALCITE-1293]
+
+select count(distinct deptno), sum(sal) from emp group by deptno;
++--------+----------+
+| EXPR$0 | EXPR$1   |
++--------+----------+
+|      1 | 10875.00 |
+|      1 |  8750.00 |
+|      1 |  9400.00 |
++--------+----------+
+(3 rows)
+
+!ok
+LogicalProject(EXPR$0=[$1], EXPR$1=[$2])
+  LogicalAggregate(group=[{0}], EXPR$0=[COUNT(DISTINCT $0)], EXPR$1=[SUM($1)])
+    LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[$1], EXPR$1=[$2])
+  LogicalProject(DEPTNO=[$0], EXPR$0=[$1], EXPR$1=[CAST($2):INTEGER NOT NULL])
+    LogicalAggregate(group=[{0}], EXPR$0_g0=[COUNT($0) FILTER $2], EXPR$1_g0=[MIN($1) FILTER $2])
+      LogicalProject(DEPTNO=[$0], EXPR$1=[$1], $g_0=[=($2, 0)])
+        LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], $g=[GROUPING($0)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctNonDistinctAggregates -------------------------------------------
+# Tests expansion of a DISTINCT AVG alongside a non-distinct COUNT(*).
+
+select emp.empno, count(*), avg(distinct dept.deptno)
+from emp emp inner join dept dept
+on emp.deptno = dept.deptno
+group by emp.empno;
++-------+--------+--------+
+| EMPNO | EXPR$1 | EXPR$2 |
++-------+--------+--------+
+|  7369 |      1 |     20 |
+|  7499 |      1 |     30 |
+|  7521 |      1 |     30 |
+|  7566 |      1 |     20 |
+|  7654 |      1 |     30 |
+|  7698 |      1 |     30 |
+|  7782 |      1 |     10 |
+|  7788 |      1 |     20 |
+|  7839 |      1 |     10 |
+|  7844 |      1 |     30 |
+|  7876 |      1 |     20 |
+|  7900 |      1 |     30 |
+|  7902 |      1 |     20 |
+|  7934 |      1 |     10 |
++-------+--------+--------+
+(14 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[AVG(DISTINCT $1)])
+  LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($2)], EXPR$2=[AVG($1)])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
+    LogicalProject(EMPNO=[$0], DEPTNO0=[$9])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctNonDistinctAggregatesWithGrouping1 -------------------------------
+# [CALCITE-1558] AggregateExpandDistinctAggregatesRule gets field mapping wrong
+# if groupKey is used in aggregate function.
+
+SELECT deptno,
+  SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)
+FROM emp
+GROUP BY deptno;
+Value 150 out of range
+!error
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($0)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[MAX($0)], EXPR$4=[MAX($2)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[SUM($1)], EXPR$3=[MAX($3)], EXPR$4=[MAX($4)])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM($0)], EXPR$3=[MAX($0)], EXPR$4=[MAX($2)])
+    LogicalProject(DEPTNO=[$7], SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctNonDistinctAggregatesWithGrouping2 -------------------------------
+# Tests expansion of SUM(DISTINCT) alongside COUNT of non-distinct column.
+
+SELECT deptno, COUNT(deptno), SUM(DISTINCT sal)
+FROM emp
+GROUP BY deptno;
++--------+--------+---------+
+| DEPTNO | EXPR$1 | EXPR$2  |
++--------+--------+---------+
+|     10 |      3 | 8750.00 |
+|     20 |      5 | 7875.00 |
+|     30 |      6 | 8150.00 |
++--------+--------+---------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()], EXPR$2=[SUM(DISTINCT $1)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($2)], EXPR$2=[SUM($1)])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
+    LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctNonDistinctAggregatesWithGroupingSets ----------------------------
+# [CALCITE-5465] Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an
+# incorrect plan when sql has distinct agg-call with rollup.
+
+SELECT deptno, COUNT(DISTINCT sal)
+FROM emp
+GROUP BY ROLLUP(deptno);
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      4 |
+|     30 |      5 |
+|        |     12 |
++--------+--------+
+(4 rows)
+
+!ok
+LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST(CASE(=($5, 0), $1, =($5, 1), $2, null:BIGINT)):BIGINT NOT NULL])
+  LogicalFilter(condition=[OR(AND(=($5, 0), >($3, 0)), =($5, 1))])
+    LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1_g0=[COUNT($1) FILTER $2], EXPR$1_g1=[COUNT($1) FILTER $4], $g_present_0=[COUNT() FILTER $3], $g_present_1=[COUNT() FILTER $5], $g_final=[GROUPING($0)])
+      LogicalProject(DEPTNO=[$0], SAL=[$1], $g_0=[=($2, 0)], $g_1=[=($2, 1)], $g_2=[=($2, 2)], $g_3=[=($2, 3)])
+        LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], $g=[GROUPING($0, $1)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctNonDistinctAggregatesWithGroupingSets2 ---------------------------
+# [CALCITE-5465] Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an
+# incorrect plan when sql has distinct agg-call with rollup (with SUM).
+
+SELECT deptno, COUNT(DISTINCT sal), SUM(sal)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2   |
++--------+--------+----------+
+|     10 |      3 |  8750.00 |
+|     20 |      4 | 10875.00 |
+|     30 |      5 |  9400.00 |
+|        |     12 | 29025.00 |
++--------+--------+----------+
+(4 rows)
+
+!ok
+LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)], EXPR$2=[SUM($1)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST(CASE(=($7, 0), $1, =($7, 1), $2, null:BIGINT)):BIGINT NOT NULL], EXPR$2=[CASE(=($7, 0), $3, =($7, 1), $4, null:INTEGER)])
+  LogicalFilter(condition=[OR(AND(=($7, 0), >($5, 0)), =($7, 1))])
+    LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1_g0=[COUNT($1) FILTER $3], EXPR$1_g1=[COUNT($1) FILTER $5], EXPR$2_g0=[MIN($2) FILTER $4], EXPR$2_g1=[MIN($2) FILTER $6], $g_present_0=[COUNT() FILTER $4], $g_present_1=[COUNT() FILTER $6], $g_final=[GROUPING($0)])
+      LogicalProject(DEPTNO=[$0], SAL=[$1], EXPR$2=[$2], $g_0=[=($3, 0)], $g_1=[=($3, 1)], $g_2=[=($3, 2)], $g_3=[=($3, 3)])
+        LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($1)], $g=[GROUPING($0, $1)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctNonDistinctAggregatesWithGroupingSets3 ---------------------------
+# [CALCITE-5465] Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an
+# incorrect plan when sql has distinct agg-call with rollup (with COUNT(*)).
+
+SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal), COUNT(*)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), ());
++--------+--------+----------+--------+
+| DEPTNO | EXPR$1 | EXPR$2   | EXPR$3 |
++--------+--------+----------+--------+
+|     10 |      3 |  8750.00 |      3 |
+|     20 |      4 |  7875.00 |      5 |
+|     30 |      5 |  8150.00 |      6 |
+|        |     12 | 24775.00 |     14 |
++--------+--------+----------+--------+
+(4 rows)
+
+!ok
+LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT(DISTINCT $1)], EXPR$2=[SUM(DISTINCT $1)], EXPR$3=[COUNT()])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST(CASE(=($9, 0), $1, =($9, 1), $2, null:BIGINT)):BIGINT NOT NULL], EXPR$2=[CASE(=($9, 0), $3, =($9, 1), $4, null:INTEGER)], EXPR$3=[CAST(CASE(=($9, 0), $5, =($9, 1), $6, null:BIGINT)):BIGINT NOT NULL])
+  LogicalFilter(condition=[OR(AND(=($9, 0), >($7, 0)), =($9, 1))])
+    LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1_g0=[COUNT($1) FILTER $3], EXPR$1_g1=[COUNT($1) FILTER $5], EXPR$2_g0=[SUM($1) FILTER $3], EXPR$2_g1=[SUM($1) FILTER $5], EXPR$3_g0=[MIN($2) FILTER $4], EXPR$3_g1=[MIN($2) FILTER $6], $g_present_0=[COUNT() FILTER $4], $g_present_1=[COUNT() FILTER $6], $g_final=[GROUPING($0)])
+      LogicalProject(DEPTNO=[$0], SAL=[$1], EXPR$3=[$2], $g_0=[=($3, 0)], $g_1=[=($3, 1)], $g_2=[=($3, 2)], $g_3=[=($3, 3)])
+        LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$3=[COUNT()], $g=[GROUPING($0, $1)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctNonDistinctTwoAggregatesWithGrouping -----------------------------
+# Tests expansion when two non-distinct aggregates (SUM, MIN) accompany
+# a DISTINCT SUM on a different column.
+
+SELECT deptno, SUM(comm), MIN(comm), SUM(DISTINCT sal)
+FROM emp
+GROUP BY deptno;
++--------+---------+--------+---------+
+| DEPTNO | EXPR$1  | EXPR$2 | EXPR$3  |
++--------+---------+--------+---------+
+|     10 |         |        | 8750.00 |
+|     20 |         |        | 7875.00 |
+|     30 | 2200.00 |   0.00 | 8150.00 |
++--------+---------+--------+---------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[SUM(DISTINCT $2)])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[MIN($3)], EXPR$3=[SUM($1)])
+  LogicalAggregate(group=[{0, 2}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctWithDiffFiltersAndSameGroupSet -----------------------------------
+# Tests expansion of DISTINCT aggregates with different FILTER conditions
+# but the same group set.
+
+SELECT COUNT(DISTINCT c) FILTER (WHERE d),
+COUNT(DISTINCT d) FILTER (WHERE c)
+FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm from emp);
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|      0 |      1 |
++--------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0) FILTER $1], EXPR$1=[COUNT(DISTINCT $1) FILTER $0])
+  LogicalProject(C=[>($5, 1000)], D=[<($5, 500)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+  LogicalAggregate(group=[{}], EXPR$0_g0=[COUNT($0) FILTER $3], EXPR$1_g0=[COUNT($1) FILTER $2])
+    LogicalProject(C=[$0], D=[$1], $g_0_f_0=[AND(=($2, 0), IS TRUE($0))], $g_0_f_1=[AND(=($2, 0), IS TRUE($1))])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {}]], $g=[GROUPING($0, $1)])
+        LogicalProject(C=[>($5, 1000)], D=[<($5, 500)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctWithFilterAndGroupBy ---------------------------------------------
+# Tests expansion of COUNT(DISTINCT) with a FILTER clause alongside a
+# non-distinct SUM in a group-by query.
+
+SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
+FROM emp
+GROUP BY deptno;
++--------+---------+--------+
+| DEPTNO | EXPR$1  | EXPR$2 |
++--------+---------+--------+
+|     10 |         |      3 |
+|     20 |         |      3 |
+|     30 | 2200.00 |      4 |
++--------+---------+--------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT(DISTINCT $2) FILTER $3])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5], $f3=[>($5, 1000)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):INTEGER NOT NULL], EXPR$2=[$2])
+  LogicalAggregate(group=[{0}], EXPR$1_g0=[MIN($2) FILTER $4], EXPR$2_g0=[COUNT($1) FILTER $3])
+    LogicalProject(DEPTNO=[$0], SAL=[$1], EXPR$1=[$3], $g_0_f_2=[AND(=($4, 0), IS TRUE($2))], $g_3=[=($4, 3)])
+      LogicalAggregate(group=[{0, 2, 3}], groups=[[{0, 2, 3}, {0}]], EXPR$1=[SUM($1)], $g=[GROUPING($0, $2, $3)])
+        LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5], $f3=[>($5, 1000)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctWithFilterWithoutGroupBy ----------------------------------------
+# Tests expansion of COUNT(DISTINCT) with a FILTER clause and no GROUP BY.
+
+SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
+FROM emp;
++---------+--------+
+| EXPR$0  | EXPR$1 |
++---------+--------+
+| 2200.00 |     10 |
++---------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER $2])
+  LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+  LogicalAggregate(group=[{}], EXPR$0_g0=[MIN($1) FILTER $3], EXPR$1_g0=[COUNT($0) FILTER $2])
+    LogicalProject(SAL=[$0], EXPR$0=[$2], $g_0_f_1=[AND(=($3, 0), IS TRUE($1))], $g_3=[=($3, 3)])
+      LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {}]], EXPR$0=[SUM($0)], $g=[GROUPING($1, $2)])
+        LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testDistinctWithFilterWithoutGroupByUsingJoin --------------------------------
+# Tests expansion of COUNT(DISTINCT) with a FILTER clause and no GROUP BY,
+# using the join-based strategy.
+
+SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
+FROM emp;
++---------+--------+
+| EXPR$0  | EXPR$1 |
++---------+--------+
+| 2200.00 |     10 |
++---------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER $2])
+  LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalAggregate(group=[{}], EXPR$1=[COUNT($0)])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i$SAL=[CASE($2, $1, null:INTEGER)])
+        LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctWithGrouping -----------------------------------------------------
+# Tests expansion when the DISTINCT column is also the GROUP BY key.
+
+SELECT sal, SUM(comm), MIN(comm), SUM(DISTINCT sal)
+FROM emp
+GROUP BY sal;
++---------+---------+--------+---------+
+| SAL     | EXPR$1  | EXPR$2 | EXPR$3  |
++---------+---------+--------+---------+
+| 1100.00 |         |        | 1100.00 |
+| 1250.00 | 1900.00 | 500.00 | 1250.00 |
+| 1300.00 |         |        | 1300.00 |
+| 1500.00 |    0.00 |   0.00 | 1500.00 |
+| 1600.00 |  300.00 | 300.00 | 1600.00 |
+| 2450.00 |         |        | 2450.00 |
+| 2850.00 |         |        | 2850.00 |
+| 2975.00 |         |        | 2975.00 |
+| 3000.00 |         |        | 3000.00 |
+| 5000.00 |         |        | 5000.00 |
+|  800.00 |         |        |  800.00 |
+|  950.00 |         |        |  950.00 |
++---------+---------+--------+---------+
+(12 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[SUM(DISTINCT $0)])
+  LogicalProject(SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($2)], EXPR$3=[SUM($0)])
+  LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctWithMultipleInputs -----------------------------------------------
+# Tests expansion of COUNT(DISTINCT) with multiple input columns.
+
+SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, comm)
+FROM emp
+GROUP BY deptno;
++--------+---------+--------+--------+
+| DEPTNO | EXPR$1  | EXPR$2 | EXPR$3 |
++--------+---------+--------+--------+
+|     10 |         |        |      0 |
+|     20 |         |        |      0 |
+|     30 | 2200.00 |   0.00 |      4 |
++--------+---------+--------+--------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[COUNT(DISTINCT $2, $1)])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT($2, $1)])
+  LogicalAggregate(group=[{0, 1, 2}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testDistinctWithMultipleInputsAndGroupby -------------------------------------
+# Tests expansion of COUNT(DISTINCT) with multiple input columns including
+# the group key.
+
+SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, deptno, comm)
+FROM emp
+GROUP BY deptno;
++--------+---------+--------+--------+
+| DEPTNO | EXPR$1  | EXPR$2 | EXPR$3 |
++--------+---------+--------+--------+
+|     10 |         |        |      0 |
+|     20 |         |        |      0 |
+|     30 | 2200.00 |   0.00 |      4 |
++--------+---------+--------+--------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)], EXPR$3=[COUNT(DISTINCT $2, $0, $1)])
+  LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT($2, $0, $1)])
+  LogicalAggregate(group=[{0, 1, 2}], EXPR$1=[SUM($1)], EXPR$2=[MIN($1)])
+    LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testIssue6332 ----------------------------------------------------------------
+# [CALCITE-6332] AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN produces
+# incorrect results for aggregates with groupSets; rule should not fire.
+
+select count(distinct deptno) as cd, count(*) as c
+from emp
+group by cube(deptno);
++----+----+
+| CD | C  |
++----+----+
+|  1 |  3 |
+|  1 |  5 |
+|  1 |  6 |
+|  3 | 14 |
++----+----+
+(4 rows)
+
+!ok
+LogicalProject(CD=[$1], C=[$2])
+  LogicalAggregate(group=[{0}], groups=[[{0}, {}]], CD=[COUNT(DISTINCT $0)], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(CD=[$1], C=[$2])
+  LogicalAggregate(group=[{0}], groups=[[{0}, {}]], CD=[COUNT(DISTINCT $0)], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# testMaxReuseDistinctAttrWithMixedOptionality ---------------------------------
+# Tests that MAX (non-distinct) can share the inner aggregate with
+# [CALCITE-3404]
+# DISTINCT agg-calls on the same column.
+
+select sum(distinct deptno), count(distinct deptno), max(deptno) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |     30 |
++--------+--------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[MAX($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[MAX($0)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testMinReuseDistinctAttrWithMixedOptionality ---------------------------------
+# Tests that MIN (non-distinct) can share the inner aggregate with
+# DISTINCT agg-calls on the same column.
+
+select sum(distinct deptno), count(distinct deptno), min(deptno) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     60 |      3 |     10 |
++--------+--------+--------+
+(1 row)
+
+!ok
+LogicalAggregate(group=[{}], EXPR$0=[SUM(DISTINCT $0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[MIN($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[MIN($0)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
+
+# testMultipleDistinctWithGrouping ---------------------------------------------
+# Tests expansion when multiple DISTINCT aggregates have different arguments,
+# using the join-based strategy.
+
+SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)
+FROM emp
+GROUP BY sal;
++---------+---------+--------+---------+
+| SAL     | EXPR$1  | EXPR$2 | EXPR$3  |
++---------+---------+--------+---------+
+| 1100.00 |         |        | 1100.00 |
+| 1250.00 | 1900.00 | 950.00 | 1250.00 |
+| 1300.00 |         |        | 1300.00 |
+| 1500.00 |    0.00 |   0.00 | 1500.00 |
+| 1600.00 |  300.00 | 300.00 | 1600.00 |
+| 2450.00 |         |        | 2450.00 |
+| 2850.00 |         |        | 2850.00 |
+| 2975.00 |         |        | 2975.00 |
+| 3000.00 |         |        | 3000.00 |
+| 5000.00 |         |        | 5000.00 |
+|  800.00 |         |        |  800.00 |
+|  950.00 |         |        |  950.00 |
++---------+---------+--------+---------+
+(12 rows)
+
+!ok
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[AVG(DISTINCT $1)], EXPR$3=[SUM(DISTINCT $0)])
+  LogicalProject(SAL=[$5], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SAL=[$0], EXPR$1=[$1], EXPR$2=[$3], EXPR$3=[$5])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $4)], joinType=[inner])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[inner])
+      LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+        LogicalProject(SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], EXPR$2=[AVG($1)])
+        LogicalAggregate(group=[{0, 1}])
+          LogicalProject(SAL=[$5], COMM=[$6])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$3=[SUM($0)])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(SAL=[$0])
+          LogicalProject(SAL=[$5], COMM=[$6])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
+
+# End aggregate-expand-distinct-aggregates.iq

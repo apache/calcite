@@ -123,7 +123,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -295,8 +294,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * Hypergraph creation with incorrect hyperedges</a>. */
   @Test void testHypergraph0() {
     HepProgram program = createHypergraphProgram();
-    String innerJoinSql = "select a.ename, bc.name from bonus a inner join "
-        + "(select b.empno, b.ename, c.name from emp b inner join dept c on b.deptno = c.deptno) bc "
+    String innerJoinSql = "select a.ename, bc.dname from bonus a inner join "
+        + "(select b.empno, b.ename, c.dname from emp b inner join dept c on b.deptno = c.deptno) bc "
         + "on a.ename = bc.ename";
 
     sql(innerJoinSql).withPre(program)
@@ -308,10 +307,10 @@ class RelOptRulesTest extends RelOptTestBase {
    * Hypergraph creation with incorrect hyperedges</a>. */
   @Test void testHypergraph1() {
     HepProgram program = createHypergraphProgram();
-    String innerJoinSql = "select a.ename, bcde.name "
+    String innerJoinSql = "select a.ename, bcde.dname "
         + "from bonus a "
         + "inner join ("
-        + "  select b.empno, b.ename, c.name "
+        + "  select b.empno, b.ename, c.dname "
         + "  from emp b "
         + "  inner join dept c on b.deptno = c.deptno "
         + "  inner join emp_address d on d.empno = b.empno "
@@ -327,10 +326,10 @@ class RelOptRulesTest extends RelOptTestBase {
    * Hypergraph creation with incorrect hyperedges</a>. */
   @Test void testHypergraph2() {
     HepProgram program = createHypergraphProgram();
-    String innerJoinSql = "select ab.ename, cdef.name "
+    String innerJoinSql = "select ab.ename, cdef.dname "
         + "from (select a.ename from bonus a inner join emp b on a.ename = b.ename) ab "
         + "inner join ("
-        + "  select c.empno, c.ename, d.name "
+        + "  select c.empno, c.ename, d.dname "
         + "  from emp c "
         + "  inner join dept d on c.deptno = d.deptno "
         + "  inner join emp_address e on e.empno = c.empno "
@@ -386,64 +385,14 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
-   * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
-  @Test void testSampleToFilter() {
-    final String sql = "select deptno from emp tablesample bernoulli(50)";
-    sql(sql)
-        .withRule(CoreRules.SAMPLE_TO_FILTER)
-        .check();
-  }
-
-  /**
-   * Test case for
    * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6317">
    * [CALCITE-6317] Incorrect constant replacement when group keys are NULL</a>. */
-  @Test void testPredicatePull() {
-    final String sql = "select deptno, sal "
-                 + "from emp "
-                + "where deptno = 10 "
-                + "group by rollup(sal, deptno)";
-    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
-   * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
-  @Test void testSampleToFilterWithSeed() {
-    final String sql = "select deptno from emp tablesample bernoulli(50) REPEATABLE(10)";
-    sql(sql)
-        .withRule(CoreRules.SAMPLE_TO_FILTER)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6887">[CALCITE-6887]
    * ReduceExpressionsRule applied to 'IN subquery' should make the values distinct
    * if the subquery is a Values composed of literals</a>. */
-  @Test void testAggregateValuesRuleWithInRepeatingValues() {
-    final String sql = "SELECT deptno, sal "
-        + "FROM EMP "
-        + "WHERE deptno IN (1,1,3,1,2,1,1,1,1,1,1,1,null,null,1,1,1,1,1,1,1)";
 
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withRule(CoreRules.AGGREGATE_VALUES)
-        .check();
-  }
-
-  @Test void testReduceInValuesNonOrdered() {
-    final String sql = "SELECT deptno, sal "
-        + "FROM EMP "
-        + "WHERE deptno IN (1,1,3,1,2)";
-
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withRule(CoreRules.AGGREGATE_VALUES)
-        .checkUnchanged();
-  }
 
   @Test void testAggregateValuesRuleWithRepeatingValues() {
     final Function<RelBuilder, RelNode> relFn = b -> b
@@ -489,44 +438,11 @@ class RelOptRulesTest extends RelOptTestBase {
   /**
    * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
    * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
-  @Test void testConstantWindow() {
-    final String sql = "with empsalary(dept, empno, salary, enroll_date) as "
-        + "(VALUES ('x', 10, 5200, DATE '2007-08-01'), (NULL, NULL, NULL, NULL))\n"
-        + "select sum(salary) "
-        + "OVER (order by enroll_date range between INTERVAL 365 DAYS preceding and "
-        + "INTERVAL 365 DAYS following),\n"
-        + "salary, enroll_date FROM empsalary";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
-        .withRule(CoreRules.PROJECT_WINDOW_TRANSPOSE)
-        .checkUnchanged();
-  }
 
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7375">[CALCITE-7375]
    * ProjectWindowTransposeRule does not correctly adjust column indices in window bounds</a>. */
-  @Test void testNestedConstantWindow() {
-    final String sql = "WITH t1 AS (\n"
-        + "  SELECT *,\n"
-        + "         FIRST_VALUE(deptno) OVER (\n"
-        + "           ORDER BY empno\n"
-        + "           ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING\n"
-        + "         ) AS f1\n"
-        + "  FROM emp\n"
-        + ")\n"
-        + "SELECT deptno,\n"
-        + "       f1,\n"
-        + "       LAST_VALUE(deptno) OVER (\n"
-        + "         ORDER BY empno\n"
-        + "         ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING\n"
-        + "       ) AS f2\n"
-        + "FROM t1";
-    sql(sql)
-            .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
-            .withRule(CoreRules.PROJECT_WINDOW_TRANSPOSE)
-            .check();
-  }
 
   /**
    * Test case for
@@ -624,21 +540,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1479">[CALCITE-1479]
    * AssertionError in ReduceExpressionsRule on multi-column IN
    * sub-query</a>. */
-  @Test void testReduceCompositeInSubQuery() {
-    final String sql = "select *\n"
-        + "from emp\n"
-        + "where (empno, deptno) in (\n"
-        + "  select empno, deptno from (\n"
-        + "    select empno, deptno\n"
-        + "    from emp\n"
-        + "    group by empno, deptno))\n"
-        + "or deptno < 40 + 60";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2865">[CALCITE-2865]
@@ -687,125 +588,29 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6873">[CALCITE-6873]
-   * FilterProjectTransposeRule should not push the Filter past the Project
-   * when the Filter contains a Subquery with correlation</a>. */
-  @Test void testFilterProjectTransposeRule2() {
-    final String sql = "select * from (select deptno from emp) as d\n"
-        + "where NOT EXISTS (\n"
-        + "  select count(*) from emp e where e.deptno = d.deptno)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .checkUnchanged();
-  }
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
+   * Create an optimization pass which can convert some cases of Correlate + Unnest
+   * to Unnest</a>. */
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
    * Create an optimization pass which can convert some cases of Correlate + Unnest
    * to Unnest</a>. */
-  @Test void testUnnestDecorrelate() {
-    final String sql = "WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)\n"
-        + "SELECT array_element.id\n"
-        + "FROM t1, UNNEST(t1.arr) AS array_element(id)";
-    sql(sql)
-        .withRule(CoreRules.UNNEST_PROJECT_DECORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
    * Create an optimization pass which can convert some cases of Correlate + Unnest
    * to Unnest</a>. */
-  @Test void testUnnestDecorrelate2() {
-    final String sql = "WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)\n"
-        + "SELECT array_element.id, array_element.ord\n"
-        + "FROM t1, UNNEST(t1.arr) WITH ORDINALITY AS array_element(id, ord)";
-    sql(sql)
-        .withRule(CoreRules.UNNEST_PROJECT_DECORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
    * Create an optimization pass which can convert some cases of Correlate + Unnest
    * to Unnest</a>. */
-  @Test void testUnnestDecorrelate3() {
-    final String sql = "WITH t1 AS (SELECT ARRAY[1, 2, 3] as arr)\n"
-        + "SELECT array_element.id\n"
-        + "FROM t1, UNNEST(t1.arr) AS array_element(id)";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_REMOVE)
-        .withRule(CoreRules.UNNEST_DECORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
    * Create an optimization pass which can convert some cases of Correlate + Unnest
    * to Unnest</a>. */
-  @Test void testUnnestDecorrelate4() {
-    final String sql = "select t2.ename\n"
-        + "from DEPT_NESTED as t1,\n"
-        + "unnest(t1.employees) as t2";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_REMOVE)
-        .withRule(CoreRules.UNNEST_DECORRELATE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
-   * Create an optimization pass which can convert some cases of Correlate + Unnest
-   * to Unnest</a>. */
-  @Test void testUnnestDecorrelate5() {
-    final String sql = "WITH t1 AS (SELECT ROW(ARRAY[1, 2, 3]) as struct_with_array_field)\n"
-        + "SELECT array_element.id\n"
-        + "FROM t1, UNNEST(t1.struct_with_array_field[1]) AS array_element(id)";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_REMOVE)
-        .withRule(CoreRules.UNNEST_DECORRELATE)
-        .check();
-  }
-
-  @Test void testFilterProjectTransposeRule3() {
-    final String sql = "select * from (select deptno from emp) as d\n"
-        + "where NOT EXISTS (\n"
-        + "  select count(*) from emp e)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
-   * Add the planner rule that pushes the Filter past a Sample</a>. */
-  @Test void testFilterSampleTransposeWithBernoulli() {
-    final String sql = "select deptno from emp tablesample bernoulli(50) where deptno > 10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
-   * Add the planner rule that pushes the Filter past a Sample</a>. */
-  @Test void testFilterSampleTransposeWithSystem() {
-    final String sql = "select deptno from emp tablesample system(50) where deptno > 10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
-   * Add the planner rule that pushes the Filter past a Sample</a>. */
-  @Test void testFilterSampleTransposeWithSystemAndSeed() {
-    final String sql = "select deptno from emp\n"
-        + "tablesample system(50) repeatable(10) where deptno > 10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6878">[CALCITE-6878]
@@ -906,30 +711,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testUnionToDistinctRule() {
-    final String sql = "select * from dept union select * from dept";
-    sql(sql).withRule(CoreRules.UNION_TO_DISTINCT).check();
-  }
-
-  @Test void testExtractJoinFilterRule() {
-    final String sql = "select 1 from emp inner join dept on emp.deptno=dept.deptno";
-    sql(sql).withRule(CoreRules.JOIN_EXTRACT_FILTER).check();
-  }
-
-  @Test void testNotPushExpression() {
-    final String sql = "select 1 from emp inner join dept\n"
-        + "on emp.deptno=dept.deptno and emp.ename is not null";
-    sql(sql).withRule(CoreRules.JOIN_PUSH_EXPRESSIONS)
-        .withRelBuilderSimplify(false)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6011">[CALCITE-6011]
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testNotPushFilterPastWindowWhenPredicateNotOnPartitionKey() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME) from dept) t\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DNAME) from dept) t\n"
         + "where DEPTNO = 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
@@ -937,116 +725,6 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_PROJECT_TRANSPOSE,
             CoreRules.FILTER_WINDOW_TRANSPOSE,
             CoreRules.PROJECT_REMOVE).check();
-  }
-
-  @Test void testAddRedundantSemiJoinRule() {
-    final String sql = "select 1 from emp inner join dept on emp.deptno = dept.deptno";
-    sql(sql).withRule(CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3890">[CALCITE-3890]
-   * Derive IS NOT NULL predicates from a inner join and create filters with those predicates
-   * as new inputs of the join</a>. */
-  @Test void testJoinDeriveIsNotNullFilterRule1() {
-    final String sql = "select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for the right input of join, but not for
-   * the left input since its child already has one. */
-  @Test void testJoinDeriveIsNotNullFilterRule2() {
-    final String sql = "select t1.deptno from (select * from emp where mgr is not null) t1 "
-        + "join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter in both sides. */
-  @Test void testJoinDeriveIsNotNullFilterRule3() {
-    final String sql = "select t1.deptno from emp t1 inner join emp t2 on t1.mgr > t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for both join keys. */
-  @Test void testJoinDeriveIsNotNullFilterRule4() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename and t1.mgr > t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for the right input of join, but not for
-   * the left input since its ancestor already has one. */
-  @Test void testJoinDeriveIsNotNullFilterRule5() {
-    final String sql = "select t1.deptno from (select ename, deptno+1 as deptno from\n"
-        + "empnullables where ename is not null) t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since it is full join. */
-  @Test void testJoinDeriveIsNotNullFilterRule6() {
-    final String sql = "select t1.deptno from emp t1 full join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since it is left join. */
-  @Test void testJoinDeriveIsNotNullFilterRule7() {
-    final String sql = "select t1.deptno from emp t1 left join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since it is right join. */
-  @Test void testJoinDeriveIsNotNullFilterRule8() {
-    final String sql = "select t1.deptno from emp t1 right join emp t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in both sides since they already have the filter. */
-  @Test void testJoinDeriveIsNotNullFilterRule9() {
-    final String sql = "select t1.deptno from (select * from emp where mgr is not null) t1\n"
-        + "join (select * from emp where mgr is not null) t2 on t1.mgr = t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter in any side since the join condition is not strong. */
-  @Test void testJoinDeriveIsNotNullFilterRule10() {
-    final String sql = "select t1.deptno from emp t1 inner join emp t2\n"
-        + "on t1.mgr is not distinct from t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter since it's cartesian product. */
-  @Test void testJoinDeriveIsNotNullFilterRule11() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename or 1 = 1";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter for one of the join keys. */
-  @Test void testJoinDeriveIsNotNullFilterRule12() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should not create IS NOT NULL filter if join condition is not strong wrt
-   * each key. */
-  @Test void testJoinDeriveIsNotNullFilterRule13() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc'";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
   }
 
   /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
@@ -1059,14 +737,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withFactory(t ->
             t.withOperatorTable(opTab -> SqlValidatorTest.operatorTableFor(SqlLibrary.ORACLE)))
         .withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   * should create IS NOT NULL filter only for the first operand of NULLIF. */
-  @Test void testJoinDeriveIsNotNullFilterRule15() {
-    final String sql = "select t1.deptno from empnullables t1 inner join\n"
-        + "empnullables t2 on nullif(t1.ename, t2.ename) = 'abc'";
-    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
   }
 
   @Test void testStrengthenJoinType() {
@@ -1147,21 +817,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3979">[CALCITE-3979]
    * ReduceExpressionsRule might have removed CAST expression(s) incorrectly</a>. */
-  @Test void testCastRemove() {
-    final String sql = "select\n"
-        + "case when cast(ename as double) < 5 then 0.0\n"
-        + "     else coalesce(cast(ename as double), 1.0)\n"
-        + "     end as t\n"
-        + " from (\n"
-        + "       select\n"
-        + "          case when ename > 'abc' then ename\n"
-        + "               else null\n"
-        + "               end as ename from emp\n"
-        + " )";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3887">[CALCITE-3887]
@@ -1211,48 +866,11 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testFullOuterJoinSimplificationToLeftOuter() {
-    final String sql = "select 1 from sales.dept d full outer join sales.emp e\n"
-        + "on d.deptno = e.deptno\n"
-        + "where d.name = 'Charlie'";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
-  @Test void testFullOuterJoinSimplificationToRightOuter() {
-    final String sql = "select 1 from sales.dept d full outer join sales.emp e\n"
-        + "on d.deptno = e.deptno\n"
-        + "where e.sal > 100";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
-  @Test void testFullOuterJoinSimplificationToInner() {
-    final String sql = "select 1 from sales.dept d full outer join sales.emp e\n"
-        + "on d.deptno = e.deptno\n"
-        + "where d.name = 'Charlie' and e.sal > 100";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
-  @Test void testLeftOuterJoinSimplificationToInner() {
-    final String sql = "select 1 from sales.dept d left outer join sales.emp e\n"
-        + "on d.deptno = e.deptno\n"
-        + "where e.sal > 100";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
-  @Test void testRightOuterJoinSimplificationToInner() {
-    final String sql = "select 1 from sales.dept d right outer join sales.emp e\n"
-        + "on d.deptno = e.deptno\n"
-        + "where d.name = 'Charlie'";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
-  @Test void testPushAboveFiltersIntoInnerJoinCondition() {
-    final String sql = ""
-        + "select * from sales.dept d inner join sales.emp e\n"
-        + "on d.deptno = e.deptno and d.deptno > e.mgr\n"
-        + "where d.deptno > e.mgr";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3225">[CALCITE-3225]
@@ -1295,19 +913,13 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.JOIN_TO_MULTI_JOIN).check();
   }
 
-  @Test void testPushFilterPastAgg() {
-    final String sql = "select dname, c from\n"
-        + "(select name dname, count(*) as c from dept group by name) t\n"
-        + " where dname = 'Charlie'";
-    sql(sql).withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6011">[CALCITE-6011]
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testPushFilterPastWindowWithOnePartitionColumn() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by DEPTNO) from dept)\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DEPTNO) from dept)\n"
         + "where DEPTNO > 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
@@ -1322,7 +934,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testPushFilterPastWindowWithTwoPartitionColumns() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) from dept)\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) from dept)\n"
         + "where DEPTNO > 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
@@ -1337,7 +949,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Add the planner rule that pushes the Filter past a Window</a>. */
   @Test void testPushFilterPastWindowWithDoubleWindows() {
     final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) as cnt,\n"
+        + "(select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) as cnt,\n"
         + "sum(1) over (partition by DEPTNO) as all_sum from dept) t\n"
         + "where DEPTNO = 1";
     sql(sql)
@@ -1366,36 +978,14 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * FilterAggregateTransposeRule loses conditions that cannot be pushed</a>. */
-  @Test void testPushFilterPastAggTwo() {
-    final String sql = "select dept1.c1 from (\n"
-        + "select dept.name as c1, count(*) as c2\n"
-        + "from dept where dept.name > 'b' group by dept.name) dept1\n"
-        + "where dept1.c1 > 'c' and (dept1.c2 > 30 or dept1.c1 < 'z')";
-    sql(sql).withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-799">[CALCITE-799]
    * Incorrect result for {@code HAVING count(*) > 1}</a>. */
-  @Test void testPushFilterPastAggThree() {
-    final String sql = "select deptno from emp\n"
-        + "group by deptno having count(*) > 1";
-    sql(sql).withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1109">[CALCITE-1109]
    * FilterAggregateTransposeRule pushes down incorrect condition</a>. */
-  @Test void testPushFilterPastAggFour() {
-    final String sql = "select emp.deptno, count(*) from emp where emp.sal > '12'\n"
-        + "group by emp.deptno";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.AGGREGATE_FILTER_TRANSPOSE)
-        .withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5425">[CALCITE-5425]
@@ -1442,7 +1032,7 @@ class RelOptRulesTest extends RelOptTestBase {
             .addRuleInstance(filterOnJoin)
             .addGroupEnd()
             .build();
-    final String sql = "select a.name\n"
+    final String sql = "select a.dname\n"
         + "from dept a\n"
         + "left join dept b on b.deptno > 10\n"
         + "right join dept c on b.deptno > 10\n";
@@ -1485,14 +1075,14 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSemiJoinProjectTranspose() {
     // build a rel equivalent to sql:
-    // select a.name from dept a
+    // select a.dname from dept a
     // where a.deptno in (select b.deptno * 2 from dept);
     checkSemiOrAntiJoinProjectTranspose(JoinRelType.SEMI);
   }
 
   @Test void testAntiJoinProjectTranspose() {
     // build a rel equivalent to sql:
-    // select a.name from dept a
+    // select a.dname from dept a
     // where a.deptno not in (select b.deptno * 2 from dept);
     checkSemiOrAntiJoinProjectTranspose(JoinRelType.ANTI);
   }
@@ -1518,7 +1108,7 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testJoinProjectTranspose1() {
-    final String sql = "select a.name\n"
+    final String sql = "select a.dname\n"
         + "from dept a\n"
         + "left join dept b on b.deptno > 10\n"
         + "right join dept c on b.deptno > 10\n";
@@ -1537,115 +1127,40 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
    * JoinProjectTransposeRule should not pull a literal above the
    * null-generating side of a join</a>. */
-  @Test void testJoinProjectTranspose2() {
-    final String sql = "select *\n"
-        + "from dept a\n"
-        + "left join (select name, 1 from dept) as b\n"
-        + "on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
-        .checkUnchanged();
-  }
 
   /** As {@link #testJoinProjectTranspose2()};
    * should not transpose since the left project of right join has literal. */
-  @Test void testJoinProjectTranspose3() {
-    final String sql = "select *\n"
-        + "from (select name, 1 from dept) as a\n"
-        + "right join dept b\n"
-        + "on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER)
-        .checkUnchanged();
-  }
 
   /** As {@link #testJoinProjectTranspose2()};
    * should not transpose since the right project of left join has not-strong
    * expression {@code y is not null}. */
-  @Test void testJoinProjectTranspose4() {
-    final String sql = "select *\n"
-        + "from dept a\n"
-        + "left join (select x name, y is not null from\n"
-        + "(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b\n"
-        + "on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
-        .checkUnchanged();
-  }
 
   /** As {@link #testJoinProjectTranspose2()};
    * should not transpose since the right project of left join has not-strong
    * expression {@code 1 + 1}. */
-  @Test void testJoinProjectTranspose5() {
-    final String sql = "select *\n"
-        + "from dept a\n"
-        + "left join (select name, 1 + 1 from dept) as b\n"
-        + "on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
-        .checkUnchanged();
-  }
 
   /** As {@link #testJoinProjectTranspose2()};
    * should not transpose since both the left project and right project have
    * literal. */
-  @Test void testJoinProjectTranspose6() {
-    final String sql = "select *\n"
-        + "from (select name, 1 from dept) a\n"
-        + "full join (select name, 1 from dept) as b\n"
-        + "on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
-        .checkUnchanged();
-  }
 
   /** As {@link #testJoinProjectTranspose2()};
    * Should transpose since all expressions in the right project of left join
    * are strong. */
-  @Test void testJoinProjectTranspose7() {
-    final String sql = "select *\n"
-        + "from dept a\n"
-        + "left join (select name from dept) as b\n"
-        + " on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
-        .check();
-  }
 
   /** As {@link #testJoinProjectTranspose2()};
    * should transpose since all expressions including
    * {@code deptno > 10 and cast(null as boolean)} in the right project of left
    * join are strong. */
-  @Test void testJoinProjectTranspose8() {
-    final String sql = "select *\n"
-        + "from dept a\n"
-        + "left join (\n"
-        + "  select name, deptno > 10 and cast(null as boolean)\n"
-        + "  from dept) as b\n"
-        + "on a.name = b.name";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER)
-        .check();
-  }
 
-  @Test void testJoinProjectTransposeWindow() {
-    final String sql = "select *\n"
-        + "from dept a\n"
-        + "join (select rank() over (order by name) as r, 1 + 1 from dept) as b\n"
-        + "on a.name = b.r";
-    sql(sql)
-        .withRule(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-889">[CALCITE-889]
    * Implement SortUnionTransposeRule</a>. */
   @Test void testSortUnionTranspose() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
-        + "order by name limit 10";
+        + "select b.dname from dept b\n"
+        + "order by dname limit 10";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
             CoreRules.SORT_UNION_TRANSPOSE)
@@ -1656,10 +1171,10 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-889">[CALCITE-889]
    * Implement SortUnionTransposeRule</a>. */
   @Test void testSortUnionTranspose2() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
-        + "order by name";
+        + "select b.dname from dept b\n"
+        + "order by dname";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
             CoreRules.SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH)
@@ -1670,24 +1185,13 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-987">[CALCITE-987]
    * Push limit 0 will result in an infinite loop</a>. */
   @Test void testSortUnionTranspose3() {
-    final String sql = "select a.name from dept a\n"
+    final String sql = "select a.dname from dept a\n"
         + "union all\n"
-        + "select b.name from dept b\n"
-        + "order by name limit 0";
+        + "select b.dname from dept b\n"
+        + "order by dname limit 0";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
             CoreRules.SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH)
-        .check();
-  }
-
-  @Test void testSortRemovalAllKeysConstant() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp\n"
-        + "where deptno = 10\n"
-        + "group by deptno, sal\n"
-        + "order by deptno desc nulls last";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
         .check();
   }
 
@@ -1710,26 +1214,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
    * Random functions are incorrectly considered deterministic</a>. */
-  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRand() {
-    final String sql = "SELECT ename FROM emp ORDER BY RAND()";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
-   * Random functions are incorrectly considered deterministic</a>. */
-  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger() {
-    final String sql = "SELECT ename FROM emp ORDER BY RAND_INTEGER(2)";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
-   * Random functions are incorrectly considered deterministic</a>. */
   @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRandom() {
     final String sql = "SELECT ename FROM emp ORDER BY RANDOM()";
     sql(sql)
@@ -1737,140 +1221,6 @@ class RelOptRulesTest extends RelOptTestBase {
             f.withOperatorTable(opTab ->
                 SqlValidatorTest.operatorTableFor(SqlLibrary.POSTGRESQL)))
         .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-873">[CALCITE-873]
-   * SortRemoveConstantKeysRule should remove NULL literal sort keys
-   * (e.g. ORDER BY NULL)</a>. */
-  @Test void testSortRemoveConstantKeyWhenOrderByIsNull() {
-    final String sql = "SELECT * FROM emp ORDER BY deptno, null, empno";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5994">[CALCITE-5994]
-   * Add optimization rule to remove Sort when its input's row number
-   * is less or equal to one</a>. */
-  @Test void testSortRemoveWhenAggregateMaxRowCntIsOne() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp order by c";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5994">[CALCITE-5994]
-   * Add optimization rule to remove Sort when its input's row number
-   * is less or equal to one</a>. */
-  @Test void testSortRemoveWhenLimitMaxRowCntIsOne() {
-    final String sql = "select *\n"
-        + "from (select * from sales.emp limit 1)\n"
-        + "order by deptno";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT,
-            CoreRules.SORT_PROJECT_TRANSPOSE,
-            CoreRules.PROJECT_REMOVE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
-   * Add optimization to remove redundant LIMIT that is more than
-   * input row count</a>. */
-  @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch() {
-    final String sql = "select * from\n"
-        + "(VALUES 1,2,3,4,5,6) as t1 limit 10";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7181">[CALCITE-7181]
-   * FETCH in SortRemoveRedundantRule do not support BIGINT</a>. */
-  @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2() {
-    final String sql = "select * from\n"
-        // The maximum value of BIGINT is   9223372036854775807.
-        + "(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
-   * Add optimization to remove redundant LIMIT that is more than input
-   * row count</a>. */
-  @Test void testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp limit 20";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
-   * Add optimization to remove redundant LIMIT that is more than input
-   * row count</a>. */
-  @Test void testSortRemoveWhenHasOffset() {
-    final String sql = "select * from\n"
-        + "(select * from sales.emp limit 10) t limit 20 offset 1";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortRemoveWhenIsOrderAndLimit() {
-    final String sql = "SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortNotRemoveWhenIsOrderAndLimit() {
-    final String sql = "select * from\n"
-        + "(SELECT * FROM sales.emp limit 100)\n"
-        + "ORDER BY 1 LIMIT 10";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortNotRemoveWhenLimitFetchIsZeroHasOrder() {
-    final String sql = "select * from\n"
-        + "(SELECT * FROM sales.emp limit 1)\n"
-        + "ORDER BY 1 LIMIT 0";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
-   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
-   * and there is no 'OFFSET' clause</a>. */
-  @Test void testSortNotRemoveWhenLimitFetchIsZeroWithoutOrder() {
-    final String sql = "SELECT count(*) FROM sales.emp LIMIT 0";
-    sql(sql)
-        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
         .checkUnchanged();
   }
 
@@ -1995,15 +1345,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
    * Add the Rule to merge Limit</a>. */
-  @Test void testLimitMerge6() {
-    final String sql = "select deptno from\n"
-        + "(select deptno from emp where sal > 100 offset 100)\n"
-        + "limit 10";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MERGE)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7176">[CALCITE-7176]
@@ -2145,7 +1486,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Similar to {@link #testSemiJoinRule()} but LEFT. */
   @Test void testSemiJoinRuleLeft() {
-    final String sql = "select name from dept left join (\n"
+    final String sql = "select dname from dept left join (\n"
         + "  select distinct deptno from emp\n"
         + "  where sal > 100) using (deptno)";
     sql(sql)
@@ -2294,57 +1635,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5169">[CALCITE-5169]
-   * 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'</a>.
-   *
-   * <p>{@code ename <> '' and ename <> '3'} should be simplified to Sarg.
-   */
-  @Test void testExpressionSimplification1() {
-    final String sql = "select * from emp\n"
-        + "where ename <> '' and ename <> '3'";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5169">[CALCITE-5169]
-   * 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'</a>.
-   *
-   * <p>{@code (ename < '' or ename > '') and (ename < '3' or ename > '3')} should be
-   * simplified to Sarg too.
-   * The difference between this and {@link #testExpressionSimplification1()} is
-   * that '<' and '<>' have different
-   * {@link org.apache.calcite.sql.type.SqlOperandTypeChecker.Consistency} which
-   * will lead to different type inference result for literals. These two tests
-   * show that the simplification could handle this case.
-   */
-  @Test void testExpressionSimplification2() {
-    final String sql = "select * from emp\n"
-        + "where (ename < '' or ename > '') and (ename < '3' or ename > '3')";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceAverage() {
-    final String sql = "select name, max(name), avg(deptno), min(name)\n"
-        + "from sales.dept group by name";
-    sql(sql).withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
    * Adding a cast around the null literal in aggregate rules</a>. */
-  @Test void testCastInAggregateReduceFunctions() {
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),\n"
-        + "stddev_samp(deptno),var_pop(deptno), var_samp(deptno)\n"
-        + "from sales.dept group by name";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7192">[CALCITE-7192]
@@ -2358,13 +1652,13 @@ class RelOptRulesTest extends RelOptTestBase {
             EnumSet.of(SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP,
                       SqlKind.VAR_POP, SqlKind.VAR_SAMP, SqlKind.AVG))
         .toRule();
-    final String sql = "select name, "
+    final String sql = "select dname, "
         + "stddev_pop(deptno) filter (where deptno > 10), "
         + "stddev_samp(deptno) filter (where deptno > 20), "
         + "var_pop(deptno) filter (where deptno > 30), "
         + "var_samp(deptno) filter (where deptno > 40), "
         + "avg(deptno) filter (where deptno > 50)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql)
         .withRule(rule)
         .check();
@@ -2394,18 +1688,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES,
             CoreRules.AGGREGATE_PROJECT_MERGE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1293">[CALCITE-1293]
-   * Bad code generated when argument to COUNT(DISTINCT) is a # GROUP BY
-   * column</a>. */
-  @Test void testDistinctCount3() {
-    final String sql = "select count(distinct deptno), sum(sal)"
-        + " from sales.emp group by deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
         .check();
   }
 
@@ -2450,18 +1732,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN,
             CoreRules.AGGREGATE_PROJECT_MERGE)
         .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6332">
-   * [CALCITE-6332] Optimization CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN
-   * produces incorrect results for aggregates with groupSets</a>. */
-  @Test void testIssue6332() {
-    final String sql = "select count(distinct deptno) as cd, count(*) as c\n"
-        + "from emp\n"
-        + "group by cube(deptno)";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .checkUnchanged();
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6349">
@@ -2534,69 +1804,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5465">[CALCITE-5465]
-   * Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan
-   * when sql has distinct agg-call with rollup</a>. */
-  @Test void testDistinctNonDistinctAggregatesWithGroupingSets() {
-    final String sql = "SELECT deptno, COUNT(DISTINCT sal)\n"
-        + "FROM emp\n"
-        + "GROUP BY ROLLUP(deptno)";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5465">[CALCITE-5465]
-   * Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan
-   * when sql has distinct agg-call with rollup</a>. */
-  @Test void testDistinctNonDistinctAggregatesWithGroupingSets2() {
-    final String sql = "SELECT deptno, COUNT(DISTINCT sal), SUM(sal)\n"
-        + "FROM emp\n"
-        + "GROUP BY GROUPING SETS ((deptno), ())";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5465">[CALCITE-5465]
-   * Rule of AGGREGATE_EXPAND_DISTINCT_AGGREGATES produces an incorrect plan
-   * when sql has distinct agg-call with rollup</a>. */
-  @Test void testDistinctNonDistinctAggregatesWithGroupingSets3() {
-    final String sql = "SELECT deptno, COUNT(DISTINCT sal), SUM(DISTINCT sal), COUNT(*)\n"
-        + "FROM emp\n"
-        + "GROUP BY GROUPING SETS ((deptno), ())";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
-
-  @Test void testDistinctNonDistinctAggregates() {
-    final String sql = "select emp.empno, count(*), avg(distinct dept.deptno)\n"
-        + "from sales.emp emp inner join sales.dept dept\n"
-        + "on emp.deptno = dept.deptno\n"
-        + "group by emp.empno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
-   * Adding a cast around the null literal in aggregate rules</a>. */
-  @Test void testCastInAggregateExpandDistinctAggregatesRule() {
-    final String sql = "select name, sum(distinct cn), sum(distinct sm)\n"
-        + "from (\n"
-        + "  select name, count(dept.deptno) as cn,sum(dept.deptno) as sm\n"
-        + "  from sales.dept group by name)\n"
-        + "group by name";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5884">[CALCITE-5884]
    * ARRAY_TO_STRING function should return NULL if its 'nullValue' argument is NULL</a>. */
   @Test void testArrayToString() {
@@ -2615,42 +1822,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1558">[CALCITE-1558]
    * AggregateExpandDistinctAggregatesRule gets field mapping wrong if groupKey
    * is used in aggregate function</a>. */
-  @Test void testDistinctNonDistinctAggregatesWithGrouping1() {
-    final String sql = "SELECT deptno,\n"
-        + "  SUM(deptno), SUM(DISTINCT sal), MAX(deptno), MAX(comm)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
-  @Test void testDistinctNonDistinctAggregatesWithGrouping2() {
-    final String sql = "SELECT deptno, COUNT(deptno), SUM(DISTINCT sal)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
-  @Test void testDistinctNonDistinctTwoAggregatesWithGrouping() {
-    final String sql = "SELECT deptno, SUM(comm), MIN(comm), SUM(DISTINCT sal)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
-  @Test void testDistinctWithGrouping() {
-    final String sql = "SELECT sal, SUM(comm), MIN(comm), SUM(DISTINCT sal)\n"
-        + "FROM emp\n"
-        + "GROUP BY sal";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
   @Test void testRemoveDistinctOnAgg() {
     final String sql = "SELECT empno, SUM(distinct sal), MIN(sal), "
@@ -2663,40 +1837,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testMultipleDistinctWithGrouping() {
-    final String sql = "SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)\n"
-        + "FROM emp\n"
-        + "GROUP BY sal";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
-  @Test void testDistinctWithMultipleInputs() {
-    final String sql = "SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, comm)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
-  @Test void testDistinctWithMultipleInputsAndGroupby() {
-    final String sql = "SELECT deptno, SUM(comm), MIN(comm), COUNT(DISTINCT sal, deptno, comm)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
-  @Test void testDistinctWithFilterWithoutGroupByUsingJoin() {
-    final String sql = "SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
-                       + "FROM emp";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
-        .check();
-  }
 
   @Test void testMultipleDistinctWithSameArgsDifferentFilterUsingJoin() {
     final String sql = "select deptno, "
@@ -2711,45 +1854,12 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testDistinctWithFilterWithoutGroupBy() {
-    final String sql = "SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
-        + "FROM emp";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
 
-  @Test void testDistinctWithDiffFiltersAndSameGroupSet() {
-    final String sql = "SELECT COUNT(DISTINCT c) FILTER (WHERE d),\n"
-        + "COUNT(DISTINCT d) FILTER (WHERE c)\n"
-        + "FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm from emp)";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5985">[CALCITE-5985]
    * FilterTableFunctionTransposeRule should not use "Logical" RelNodes</a>. */
-  @Test void testFilterTableFunctionScanTranspose() {
-    // "tfrt" table function is the one from MockSqlOperatorTable,
-    // that implement TableFunctionReturnTypeInference.
-    final String sql = "select * from table(tfrt(cursor(select name from dept)))"
-        + " where name = '1'";
 
-    sql(sql)
-        .withRule(CoreRules.FILTER_TABLE_FUNCTION_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testDistinctWithFilterAndGroupBy() {
-    final String sql = "SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES)
-        .check();
-  }
 
   /** Tests {@link AggregateExpandWithinDistinctRule}. The generated query
    * throws if arguments are not functionally dependent on the distinct key. */
@@ -2943,32 +2053,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withProgram(program).check();
   }
 
-  @Test void testPushProjectPastFilter() {
-    final String sql = "select empno + deptno from emp where sal = 10 * comm\n"
-        + "and upper(ename) = 'FOO'";
-    sql(sql).withRule(CoreRules.PROJECT_FILTER_TRANSPOSE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1778">[CALCITE-1778]
-   * Query with "WHERE CASE" throws AssertionError "Cast for just nullability
-   * not allowed"</a>. */
-  @Test void testPushProjectPastFilter2() {
-    final String sql = "select count(*)\n"
-        + "from emp\n"
-        + "where case when mgr < 10 then true else false end";
-    sql(sql).withRule(CoreRules.PROJECT_FILTER_TRANSPOSE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3975">[CALCITE-3975]
-   * ProjectFilterTransposeRule should succeed for project that happens to
-   * reference all input columns</a>. */
-  @Test void testPushProjectPastFilter3() {
-    checkPushProjectPastFilter3(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .checkUnchanged();
-  }
-
   /** As {@link #testPushProjectPastFilter3()} but pushes down project and
    * filter expressions whole. */
   @Test void testPushProjectPastFilter3b() {
@@ -2991,22 +2075,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where sal = 10 * comm\n"
         + "and upper(ename) = 'FOO'";
     return sql(sql).withRule(rule);
-  }
-
-  @Test void testPushProjectPastJoin() {
-    final String sql = "select e.sal + b.comm from emp e inner join bonus b\n"
-        + "on e.ename = b.ename and e.deptno = 10";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3004">[CALCITE-3004]
-   * Should not push over past union but its operands can since setop
-   * will affect row count</a>. */
-  @Test void testProjectSetOpTranspose() {
-    final String sql = "select job, sum(sal + 100) over (partition by deptno) from\n"
-        + "(select * from emp e1 union all select * from emp e2)";
-    sql(sql).withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE).check();
   }
 
   @Test void testProjectCorrelateTransposeDynamic() {
@@ -3079,7 +2147,7 @@ class RelOptRulesTest extends RelOptTestBase {
             .withPreserveExprCondition(RelOptRulesTest::skipItem)
             .toRule();
 
-    final String sql = "select t1.name, t2.ename\n"
+    final String sql = "select t1.dname, t2.ename\n"
         + "from DEPT_NESTED as t1,\n"
         + "unnest(t1.employees) as t2";
     sql(sql).withRule(customPCTrans).check();
@@ -3096,7 +2164,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(CoreRules.JOIN_COMMUTE_OUTER)
         .addRuleInstance(CoreRules.PROJECT_MERGE)
         .build();
-    final String sql = "select t1.name, e.ename\n"
+    final String sql = "select t1.dname, e.ename\n"
         + "from DEPT_NESTED as t1 left outer join sales.emp e\n"
         + " on t1.skill.type = e.job";
     sql(sql).withPre(preProgram).withProgram(program).check();
@@ -3107,7 +2175,7 @@ class RelOptRulesTest extends RelOptTestBase {
         ProjectCorrelateTransposeRule.Config.DEFAULT
             .withPreserveExprCondition(expr -> true)
             .toRule();
-    final String sql = "select t1.name, t2.ename\n"
+    final String sql = "select t1.dname, t2.ename\n"
         + "from DEPT_NESTED as t1,\n"
         + "unnest(t1.employees) as t2";
     sql(sql).withRule(customPCTrans).check();
@@ -3116,13 +2184,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** As {@link #testProjectSetOpTranspose()};
    * should not push over past correlate but its operands can since correlate
    * will affect row count. */
-  @Test void testProjectCorrelateTransposeWithOver() {
-    final String sql = "select sum(t1.deptno + 1) over (partition by t1.name),\n"
-        + "count(t2.empno) over ()\n"
-        + "from DEPT_NESTED as t1,\n"
-        + "unnest(t1.employees) as t2";
-    sql(sql).withRule(CoreRules.PROJECT_CORRELATE_TRANSPOSE).check();
-  }
 
   /** Tests that the default instance of {@link FilterProjectTransposeRule}
    * does not push a Filter that contains a correlating variable.
@@ -3210,24 +2271,6 @@ class RelOptRulesTest extends RelOptTestBase {
   private static final String STRONG_EXPR =
       "case when e.sal < 11 then -1 * e.sal else e.sal end";
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1753">[CALCITE-1753]
-   * PushProjector should only preserve expressions if the expression is strong
-   * when pushing into the nullable-side of outer join</a>. */
-  @Test void testPushProjectPastInnerJoin() {
-    final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
-        + "from emp e inner join bonus b on e.ename = b.ename\n"
-        + "group by " + NOT_STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastInnerJoinStrong() {
-    final String sql = "select count(*), " + STRONG_EXPR + "\n"
-        + "from emp e inner join bonus b on e.ename = b.ename\n"
-        + "group by " + STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7065">[CALCITE-7065]
    * CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes when applied to a lambda</a>. */
   @Test void testReduceLambda() {
@@ -3239,135 +2282,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).checkUnchanged();
   }
 
-  @Test void testPushProjectPastLeftJoin() {
-    final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
-        + "from emp e left outer join bonus b on e.ename = b.ename\n"
-        + "group by case when e.sal < 11 then 11 else -1 * e.sal end";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
 
-  @Test void testPushProjectPastLeftJoinSwap() {
-    final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
-        + "from bonus b left outer join emp e on e.ename = b.ename\n"
-        + "group by " + NOT_STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastLeftJoinSwapStrong() {
-    final String sql = "select count(*), " + STRONG_EXPR + "\n"
-        + "from bonus b left outer join emp e on e.ename = b.ename\n"
-        + "group by " + STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastRightJoin() {
-    final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
-        + "from emp e right outer join bonus b on e.ename = b.ename\n"
-        + "group by " + NOT_STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastRightJoinStrong() {
-    final String sql = "select count(*),\n"
-        + " case when e.sal < 11 then -1 * e.sal else e.sal end\n"
-        + "from emp e right outer join bonus b on e.ename = b.ename\n"
-        + "group by case when e.sal < 11 then -1 * e.sal else e.sal end";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastRightJoinSwap() {
-    final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
-        + "from bonus b right outer join emp e on e.ename = b.ename\n"
-        + "group by " + NOT_STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastRightJoinSwapStrong() {
-    final String sql = "select count(*), " + STRONG_EXPR + "\n"
-        + "from bonus b right outer join emp e on e.ename = b.ename\n"
-        + "group by " + STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastFullJoin() {
-    final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
-        + "from emp e full outer join bonus b on e.ename = b.ename\n"
-        + "group by " + NOT_STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastFullJoinStrong() {
-    final String sql = "select count(*), " + STRONG_EXPR + "\n"
-        + "from emp e full outer join bonus b on e.ename = b.ename\n"
-        + "group by " + STRONG_EXPR;
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2343">[CALCITE-2343]
-   * Should not push over whose columns are all from left child past join since
-   * join will affect row count</a>. */
-  @Test void testPushProjectWithOverPastJoin1() {
-    final String sql = "select e.sal + b.comm,\n"
-        + "count(e.empno) over (partition by e.deptno)\n"
-        + "from emp e join bonus b\n"
-        + "on e.ename = b.ename and e.deptno = 10";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  /** As {@link #testPushProjectWithOverPastJoin1()};
-   * should not push over whose columns are all from right child past join since
-   * join will affect row count. */
-  @Test void testPushProjectWithOverPastJoin2() {
-    final String sql = "select e.sal + b.comm,\n"
-        + "count(b.sal) over (partition by b.job)\n"
-        + "from emp e join bonus b\n"
-        + "on e.ename = b.ename and e.deptno = 10";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  /** As {@link #testPushProjectWithOverPastJoin2()};
-   * should not push over past join but should push the operands of over past
-   * join. */
-  @Test void testPushProjectWithOverPastJoin3() {
-    final String sql = "select e.sal + b.comm,\n"
-        + "sum(b.sal + b.sal + 100) over (partition by b.job)\n"
-        + "from emp e join bonus b\n"
-        + "on e.ename = b.ename and e.deptno = 10";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4982">[CALCITE-4982]
-   * NonNull field shouldn't be pushed down into leaf of outer-join
-   * in 'ProjectJoinTransposeRule'</a>. */
-  @Test void testPushProjectPastOutJoinWithCastNonNullExpr() {
-    final String sql = "select e.empno + 1 as c1, coalesce(d.name, b.job, '') as c2\n"
-        + "from emp e\n"
-        + "left join bonus b on e.ename = b.ename\n"
-        + "left join dept d on e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
-  }
-
-  @Test void testPushProjectPastSetOp() {
-    final String sql = "select sal from\n"
-        + "(select * from emp e1 union all select * from emp e2)";
-    sql(sql).withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE).check();
-  }
-
-  @Test void testPushJoinThroughUnionOnLeft() {
-    final String sql = "select r1.sal from\n"
-        + "(select * from emp e1 union all select * from emp e2) r1,\n"
-        + "emp r2";
-    sql(sql).withRule(CoreRules.JOIN_LEFT_UNION_TRANSPOSE).check();
-  }
-
-  @Test void testPushJoinThroughUnionOnRight() {
-    final String sql = "select r1.sal from\n"
-        + "emp r1,\n"
-        + "(select * from emp e1 union all select * from emp e2) r2";
-    sql(sql).withRule(CoreRules.JOIN_RIGHT_UNION_TRANSPOSE).check();
-  }
 
   @Test void testPushJoinThroughUnionOnRightDoesNotMatchSemiJoin() {
     // build a rel equivalent to sql:
@@ -3412,10 +2327,10 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testMergeFilterWithJoinCondition() {
-    final String sql = "select d.name as dname,e.ename as ename\n"
+    final String sql = "select d.dname, e.ename\n"
         + " from emp e inner join dept d\n"
         + " on e.deptno=d.deptno\n"
-        + " where d.name='Propane'";
+        + " where d.dname='Propane'";
     sql(sql)
         .withRule(CoreRules.JOIN_EXTRACT_FILTER,
             CoreRules.FILTER_TO_CALC,
@@ -3544,7 +2459,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Tests that filters are combined if they are identical. */
   @Test void testMergeFilter() {
-    final String sql = "select name from (\n"
+    final String sql = "select dname from (\n"
         + "  select *\n"
         + "  from dept\n"
         + "  where deptno = 10)\n"
@@ -3557,45 +2472,25 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6639">[CALCITE-6639]
    * Optimization that pulls up predicates causes ASOF JOIN validation failures</a>. */
-  @Test void testAsofOpt() {
-    final String sql = "SELECT *\n"
-        + "FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), "
-        + "(1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)\n"
-        + "ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)\n"
-        + "MATCH_CONDITION t2.t < t1.t\n"
-        + "ON t1.k = t2.k\n";
-    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7273">[CALCITE-7273]
    *  CoreRules.JOIN_REDUCE_EXPRESSIONS throws when applied to an ASOF JOIN</a>. */
-  @Test void testAsofOptJoin() {
-    // Had to use ROW values to cause the optimization rule to match
-    final String sql = "SELECT *\n"
-        + "FROM (VALUES (NULL, ROW(0, 1)), (1, ROW(0, 2))) AS t1(k, t)\n"
-        + "ASOF JOIN (VALUES (2, ROW(0, 3))) AS t2(k, t)\n"
-        + "MATCH_CONDITION t2.t < t1.t\n"
-        + "ON t1.k = t2.k\n";
-    sql(sql).withRule(CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
 
   /** Tests to see if the final branch of union is missed. */
   @Test void testUnionMergeRule() {
     final String sql = "select * from (\n"
         + "select * from (\n"
-        + "  select name, deptno from dept\n"
+        + "  select dname, deptno from dept\n"
         + "  union all\n"
-        + "  select name, deptno from\n"
+        + "  select dname, deptno from\n"
         + "  (\n"
-        + "    select name, deptno, count(1) from dept group by name, deptno\n"
+        + "    select dname, deptno, count(1) from dept group by dname, deptno\n"
         + "    union all\n"
-        + "    select name, deptno, count(1) from dept group by name, deptno\n"
+        + "    select dname, deptno, count(1) from dept group by dname, deptno\n"
         + "  ) subq\n"
         + ") a\n"
         + "union all\n"
-        + "select name, deptno from dept\n"
+        + "select dname, deptno from dept\n"
         + ") aa\n";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
@@ -3643,11 +2538,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6617">[CALCITE-6617]
    * TypeCoercion is not applied correctly to comparisons</a>. */
-  @Test void testRand() {
-    final String sql = "SELECT * FROM (SELECT 1, ROUND(RAND()) AS A)\n"
-        + "WHERE A BETWEEN 1 AND 10 OR A IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)";
-    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6481">[CALCITE-6481]
@@ -3822,22 +2712,22 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testMinusMergeRule() {
     final String sql = "select * from (\n"
         + "select * from (\n"
-        + "  select name, deptno from\n"
+        + "  select dname, deptno from\n"
         + "  (\n"
-        + "    select name, deptno, count(1) from dept group by name, deptno\n"
+        + "    select dname, deptno, count(1) from dept group by dname, deptno\n"
         + "    except all\n"
-        + "    select name, deptno, 1 from dept\n"
+        + "    select dname, deptno, 1 from dept\n"
         + "  ) subq\n"
         + "  except all\n"
-        + "  select name, deptno from\n"
+        + "  select dname, deptno from\n"
         + "  (\n"
-        + "    select name, deptno, 1 from dept\n"
+        + "    select dname, deptno, 1 from dept\n"
         + "    except all\n"
-        + "    select name, deptno, count(1) from dept group by name, deptno\n"
+        + "    select dname, deptno, count(1) from dept group by dname, deptno\n"
         + "  ) subq2\n"
         + ") a\n"
         + "except all\n"
-        + "select name, deptno from dept\n"
+        + "select dname, deptno from dept\n"
         + ") aa\n";
     sql(sql)
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
@@ -3863,87 +2753,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Tests {@link UnionMergeRule}, which merges 2 {@link Union} operators into
-   * a single {@code Union} with 3 inputs. */
-  @Test void testMergeUnionAll() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union all\n"
-        + "select * from emp where deptno = 20\n"
-        + "union all\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .check();
-  }
-
-  /** Tests {@link UnionMergeRule}, which merges 2 {@link Union}
-   * {@code DISTINCT} (not {@code ALL}) operators into a single
-   * {@code Union} with 3 inputs. */
-  @Test void testMergeUnionDistinct() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union distinct\n"
-        + "select * from emp where deptno = 20\n"
-        + "union\n" // same as 'union distinct'
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .check();
-  }
-
-  /** Tests that {@link UnionMergeRule} does nothing if its arguments have
-   * different {@code ALL} settings. */
-  @Test void testMergeUnionMixed() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union\n"
-        + "select * from emp where deptno = 20\n"
-        + "union all\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .checkUnchanged();
-  }
-
-  /** Tests that {@link UnionMergeRule} converts all inputs to DISTINCT
-   * if the top one is DISTINCT.
-   * (Since UNION is left-associative, the "top one" is the rightmost.) */
-  @Test void testMergeUnionMixed2() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "union all\n"
-        + "select * from emp where deptno = 20\n"
-        + "union\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.UNION_MERGE)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
-   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
-   * including NaN, Infinity</a>. */
-  @Test public void testDoubleReduction() {
-    // Without the fix for CALCITE-2067 the result returned below is
-    // 1008618.49.  Ironically, that result is more accurate; however
-    // it is not the result returned by the pow() function, which is
-    // 1008618.4899999999
-    final String sql = "SELECT power(1004.3, 2)";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
-   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
-   * including NaN, Infinity</a>. */
-  @Test public void testDoubleReduction2() {
-    // Without the fix for CALCITE-2067 the following expression is not
-    // reduced to Infinity, since Infinity cannot be represented
-    // as a BigDecimal value.
-    final String sql2 = "SELECT 1.0 / 0.0e0";
-    sql(sql2)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
   /** Tests that {@link UnionMergeRule} does nothing if its arguments have
    * are different set operators, {@link Union} and {@link Intersect}. */
   @Test void testMergeSetOpMixed() {
@@ -3956,20 +2765,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.UNION_MERGE,
             CoreRules.INTERSECT_MERGE)
         .checkUnchanged();
-  }
-
-  /** Tests {@link CoreRules#INTERSECT_MERGE}, which merges 2
-   * {@link Intersect} operators into a single {@code Intersect} with 3
-   * inputs. */
-  @Test void testMergeIntersect() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select * from emp where deptno = 20\n"
-        + "intersect\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.INTERSECT_MERGE)
-        .check();
   }
 
   /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule},
@@ -4034,96 +2829,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
-   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
-  @Test void testIntersectToSemiJoin() {
-    final String sql = "select ename from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select ename from emp where deptno = 20\n";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7000">[CALCITE-7000]
-   * Extend IntersectToSemiJoinRule to support n-way inputs</a>. */
-  @Test void testIntersectToSemiJoin2() {
-    final String sql = "select ename from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select deptno from emp where ename in ('a', 'b')\n"
-        + "intersect\n"
-        + "select ename from empnullables\n";
-    sql(sql).withPreRule(CoreRules.INTERSECT_MERGE)
-        .withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
-   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
-  @Test void testIntersectToSemiJoinMultiCol() {
-    final String sql = "select deptno, ename from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select deptno, ename from emp where deptno = 20\n";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
-   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
-  @Test void testIntersectToSemiJoinAll() {
-    final String sql = "select ename from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select ename from emp where deptno = 20\n"
-        + "intersect all\n"
-        + "select ename from emp where deptno = 30\n";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
-   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
-  @Test void testIntersectToSemiJoinCoercion() {
-    final String sql = "select ename from emp where deptno = 10\n"
-        + "intersect\n"
-        + "select job from emp where deptno = 20\n";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6948">[CALCITE-6948]
-   * Implement MinusToAntiJoinRule</a>. */
-  @Test void testMinusToAntiJoinRule() {
-    final String sql = "select ename from emp where deptno = 10\n"
-        + "except\n"
-        + "select ename from emp where deptno = 20\n";
-    sql(sql).withRule(CoreRules.MINUS_TO_ANTI_JOIN)
-        .check();
-  }
-
-  @Test void testMinusToAntiJoinRuleMultiInputs() {
-    final String sql = "select ename from emp where deptno = 10\n"
-        + "except\n"
-        + "select deptno from emp where ename in ('a', 'b')\n"
-        + "except\n"
-        + "select ename from empnullables\n";
-    sql(sql).withPreRule(CoreRules.MINUS_MERGE)
-        .withRule(CoreRules.MINUS_TO_ANTI_JOIN)
-        .check();
-  }
-
-  /** Tests {@link CoreRules#MINUS_MERGE}, which merges 2
-   * {@link Minus} operators into a single {@code Minus} with 3
-   * inputs. */
-  @Test void testMergeMinus() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "except\n"
-        + "select * from emp where deptno = 20\n"
-        + "except\n"
-        + "select * from emp where deptno = 30\n";
-    sql(sql)
-        .withRule(CoreRules.MINUS_MERGE)
-        .check();
-  }
-
   /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
    * which rewrites an {@link Minus} operator with 3 inputs. */
   @Test void testMinusToDistinct() {
@@ -4163,21 +2868,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
         .check();
-  }
-
-  /** Tests {@link CoreRules#MINUS_MERGE}
-   * does not merge {@code Minus(a, Minus(b, c))}
-   * into {@code Minus(a, b, c)}, which would be incorrect. */
-  @Test void testMergeMinusRightDeep() {
-    final String sql = "select * from emp where deptno = 10\n"
-        + "except\n"
-        + "select * from (\n"
-        + "  select * from emp where deptno = 20\n"
-        + "  except\n"
-        + "  select * from emp where deptno = 30)";
-    sql(sql)
-        .withRule(CoreRules.MINUS_MERGE)
-        .checkUnchanged();
   }
 
   @Test void testHeterogeneousConversion() {
@@ -4225,7 +2915,7 @@ class RelOptRulesTest extends RelOptTestBase {
     // tests the case where the semijoin is not pushed because it uses join keys from both tables
     // of the bottom join.
     final String sql = "select e.ename from emp e, dept d, bonus b\n"
-        + "where e.deptno = d.deptno and e.ename = b.ename and d.name = b.job";
+        + "where e.deptno = d.deptno and e.ename = b.ename and d.dname = b.job";
     sql(sql)
         .withRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
@@ -4337,12 +3027,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5289">
    * [CALCITE-5289] Assertion failure in MultiJoinOptimizeBushyRule</a>. */
-  @Test void testBushyJoinRule() {
-    final String sql = "select emp.ename from emp LEFT JOIN emp AS emp1 on emp.ename = emp1.ename";
-    sql(sql).withPreRule(CoreRules.JOIN_TO_MULTI_JOIN)
-        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
-        .checkUnchanged();
-  }
 
   @Test void testConvertMultiJoinRule() {
     final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
@@ -4390,249 +3074,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7070">[CALCITE-7070]
-   * FILTER_REDUCE_EXPRESSIONS crashes on expression BETWEEN ( NULL) AND X</a>. */
-  @Test void testFilterReduceCrash() {
-    final String sql = "SELECT + 54 FROM emp WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) "
-        + "NOT BETWEEN ( NULL ) AND 89";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
+  // see HIVE-9645
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-570">[CALCITE-570]
-   * ReduceExpressionsRule throws "duplicate key" exception</a>. */
-  @Test void testReduceConstantsDup() {
-    final String sql = "select d.deptno"
-        + " from dept d"
-        + " where d.deptno=7 and d.deptno=8";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS).check();
-  }
+  // see HIVE-9644
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-935">[CALCITE-935]
-   * Improve how ReduceExpressionsRule handles duplicate constraints</a>. */
-  @Test void testReduceConstantsDup2() {
+  @Test void testSimplifyItemIsNotNull() {
     final String sql = "select *\n"
-        + "from emp\n"
-        + "where deptno=7 and deptno=8\n"
-        + "and empno = 10 and mgr is null and empno = 10";
+        + "from sales.customer as t1\n"
+        + "where t1.c_nationkey[0] is not null";
+
     sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
-   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test void testReduceConstantsDup3() {
-    final String sql = "select d.deptno"
-        + " from dept d"
-        + " where d.deptno<>7 or d.deptno<>8";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
-   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test void testReduceConstantsDup3Null() {
-    final String sql = "select e.empno"
-        + " from emp e"
-        + " where e.mgr<>7 or e.mgr<>8";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
-   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test void testReduceConstantsDupNot() {
-    final String sql = "select d.deptno"
-        + " from dept d"
-        + " where not(d.deptno=7 and d.deptno=8)";
-    sql(sql)
+        .withDynamicTable()
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
-   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test void testReduceConstantsDupNotNull() {
-    final String sql = "select e.empno"
-        + " from emp e"
-        + " where not(e.mgr=7 and e.mgr=8)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
-   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test void testReduceConstantsDupNot2() {
-    final String sql = "select d.deptno"
-        + " from dept d"
-        + " where not(d.deptno=7 and d.name='foo' and d.deptno=8)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
-   * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test void testReduceConstantsDupNot2Null() {
-    final String sql = "select e.empno"
-        + " from emp e"
-        + " where not(e.mgr=7 and e.deptno=8 and e.mgr=8)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7140">[CALCITE-7140]
-   * Improve constant reduction of expressions containing SqlRowOperator</a>. */
-  @Test void testReduceConstantsWithRow() {
-    final String sql = "SELECT 1+1, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['a'||'b', 6+6],\n"
-        + "ROW(1+2, ARRAY[1+2, 2+3], ROW('a', 3+4), MAP['ab'||'cd', 6+7]),\n"
-        + "ARRAY[2*3, 2, 1],\n"
-        + "ARRAY[ROW(4*2, 'a'), ROW(4+4, 'b')],\n"
-        + "ARRAY[MAP['abc'||'def', 8+8], MAP['ghi'||'jkl', 9+9]],\n"
-        + "ARRAY[ROW(1+2, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['x'||'y', 8+8])],\n"
-        + "CARDINALITY(ARRAY[2*3, 2*2, 1*4]),\n"
-        + "CARDINALITY(ARRAY[ROW(4*3, 'm'), ROW(4+6, 'b')]),\n"
-        + "CARDINALITY(ARRAY[MAP['ac'||'bd', 1+8], MAP['gi'||'jl', 1+9]]),\n"
-        + "CARDINALITY(ARRAY[ROW(1+7, ARRAY[1+4, 4+2], ROW('t', 5+5), MAP['y'||'z', 9+9])])";
-    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
-  }
-
-  @Test void testPullNull() {
-    final String sql = "select *\n"
-        + "from emp\n"
-        + "where deptno=7\n"
-        + "and empno = 10 and mgr is null and empno = 10";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testOrAlwaysTrue() {
-    final String sql = "select * from EMPNULLABLES_20\n"
-        + "where sal is null or sal is not null";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testOrAlwaysTrue2() {
-    final String sql = "select * from EMPNULLABLES_20\n"
-        + "where sal is not null or sal is null";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceConstants2() {
-    final String sql = "select p1 is not distinct from p0\n"
-        + "from (values (2, cast(null as integer))) as t(p0, p1)";
-    sql(sql)
-        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
         .checkUnchanged();
   }
 
-  @Test void testReduceConstants3() {
-    final String sql = "select e.mgr is not distinct from f.mgr "
-        + "from emp e join emp f on (e.mgr=f.mgr) where e.mgr is null";
+  @Test void testSimplifyItemIsNull() {
+    String sql = "select * from sales.customer as t1 where t1.c_nationkey[0] is null";
+
     sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-902">[CALCITE-902]
-   * Match nullability when reducing expressions in a Project</a>. */
-  @Test void testReduceConstantsProjectNullable() {
-    final String sql = "select mgr from emp where mgr=10";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  // see HIVE-9645
-  @Test void testReduceConstantsNullEqualsOne() {
-    final String sql = "select count(1) from emp where cast(null as integer) = 1";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  // see HIVE-9644
-  @Test void testReduceConstantsCaseEquals() {
-    final String sql = "select count(1) from emp\n"
-        + "where case deptno\n"
-        + "  when 20 then 2\n"
-        + "  when 10 then 1\n"
-        + "  else 3 end = 1";
-    // Equivalent to 'deptno = 10'
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceConstantsCaseEquals2() {
-    final String sql = "select count(1) from emp\n"
-        + "where case deptno\n"
-        + "  when 20 then 2\n"
-        + "  when 10 then 1\n"
-        + "  else cast(null as integer) end = 1";
-
-    // Equivalent to 'case when deptno = 20 then false
-    //                     when deptno = 10 then true
-    //                     else null end'
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceConstantsCaseEquals3() {
-    final String sql = "select count(1) from emp\n"
-        + "where case deptno\n"
-        + "  when 30 then 1\n"
-        + "  when 20 then 2\n"
-        + "  when 10 then 1\n"
-        + "  when 30 then 111\n"
-        + "  else 0 end = 1";
-
-    // Equivalent to 'deptno = 30 or deptno = 10'
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
+        .withDynamicTable()
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .checkUnchanged();
   }
 
   @Test void testSkipReduceConstantsCaseEquals() {
@@ -4642,31 +3105,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
             CoreRules.FILTER_REDUCE_EXPRESSIONS,
             CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
-
-  @Test void testReduceConstantsEliminatesFilter() {
-    final String sql = "select * from (values (1,2)) where 1 + 2 > 3 + CAST(NULL AS INTEGER)";
-
-    // WHERE NULL is the same as WHERE FALSE, so get empty result
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1860">[CALCITE-1860]
-   * Duplicate null predicates cause NullPointerException in RexUtil</a>. */
-  @Test void testReduceConstantsNull() {
-    final String sql = "select * from (\n"
-        + "  select *\n"
-        + "  from (\n"
-        + "    select cast(null as integer) as n\n"
-        + "    from emp)\n"
-        + "  where n is null and n is null)\n"
-        + "where n is null";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .check();
   }
 
@@ -4688,14 +3126,6 @@ class RelOptRulesTest extends RelOptTestBase {
           r.getCluster().getPlanner().setExecutor(null);
           return r;
         })
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testAlreadyFalseEliminatesFilter() {
-    final String sql = "select * from (values (1,2)) where false";
-
-    sql(sql)
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
         .check();
   }
@@ -4768,50 +3198,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
 
-  @Test void testRemoveSemiJoin() {
-    final String sql = "select e.ename from emp e, dept d\n"
-        + "where e.deptno = d.deptno";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN)
-        .withRule(CoreRules.SEMI_JOIN_REMOVE)
-        .check();
-  }
 
-  @Test void testRemoveSemiJoinWithFilter() {
-    final String sql = "select e.ename from emp e, dept d\n"
-        + "where e.deptno = d.deptno and e.ename = 'foo'";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
-            CoreRules.SEMI_JOIN_FILTER_TRANSPOSE)
-        .withRule(CoreRules.SEMI_JOIN_REMOVE)
-        .check();
-  }
 
-  @Test void testRemoveSemiJoinRight() {
-    final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
-        + "where e1.deptno = d.deptno and d.deptno = e2.deptno";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
-            CoreRules.SEMI_JOIN_JOIN_TRANSPOSE)
-        .withRule(CoreRules.SEMI_JOIN_REMOVE)
-        .check();
-  }
-
-  @Test void testRemoveSemiJoinRightWithFilter() {
-    final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
-        + "where e1.deptno = d.deptno and d.deptno = e2.deptno\n"
-        + "and d.name = 'foo'";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
-            CoreRules.SEMI_JOIN_JOIN_TRANSPOSE,
-            CoreRules.SEMI_JOIN_FILTER_TRANSPOSE)
-        .withRule(CoreRules.SEMI_JOIN_REMOVE)
-        .check();
-  }
 
   /** Creates an environment for testing multi-join queries. */
   private RelOptFixture multiJoin(String query) {
@@ -4908,16 +3296,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testReduceValuesUnderProject() {
-    // Plan should be same as for
-    // select a, b as x from (values (11), (23)) as t(x)");
-    final String sql = "select a + b from (values (10, 1), (20, 3)) as t(a, b)";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_VALUES_MERGE)
-        .check();
-  }
-
   @Test void testReduceValuesUnderProjectFilter() {
     // Plan should be same as for
     // select * from (values (11, 1, 10), (23, 3, 20)) as t(x, b, a)");
@@ -4933,15 +3311,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1439">[CALCITE-1439]
    * Handling errors during constant reduction</a>. */
-  @Test void testReduceCase() {
-    final String sql = "select\n"
-        + "  case when false then cast(2.1 as float)\n"
-        + "   else cast(1 as integer) end as newcol\n"
-        + "from emp";
-    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .withRelBuilderSimplify(false)
-        .check();
-  }
 
   private void checkReduceNullableToNotNull(ReduceExpressionsRule<?> rule) {
     final String sql = "select\n"
@@ -5010,36 +3379,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(rule);
   }
 
-  @Test void testReduceConstantsIsNull() {
-    final String sql = "select empno from emp where empno=10 and empno is null";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceConstantsIsNotNull() {
-    final String sql = "select empno from emp\n"
-        + "where empno=10 and empno is not null";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
-  @Test void testReduceConstantsNegated() {
-    final String sql = "select empno from emp\n"
-        + "where empno=10 and not(empno=10)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceConstantsNegatedInverted() {
-    final String sql = "select empno from emp where empno>10 and empno<=10";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2638">[CALCITE-2638]
    * Constant reducer must not duplicate calls to non-deterministic
@@ -5065,18 +3404,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Checks that constant reducer duplicates calls to dynamic functions, if
-   * appropriate. CURRENT_TIMESTAMP is a dynamic function. */
-  @Test void testReduceConstantsDynamicFunction() {
-    final String sql = "select sal, t\n"
-        + "from (select sal, current_timestamp t from emp)\n"
-        + "where t > TIMESTAMP '2018-01-01 00:00:00'";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
   @Test void testCasePushIsAlwaysWorking() {
     final String sql = "select empno from emp"
         + " where case when sal > 1000 then empno else sal end = 1";
@@ -5087,12 +3414,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testReduceValuesNull() {
-    // The NULL literal presents pitfalls for value-reduction. Only
-    // an INSERT statement contains un-CASTed NULL values.
-    final String sql = "insert into EMPNULLABLES(EMPNO, ENAME, JOB) (select 0, 'null', NULL)";
-    sql(sql).withRule(CoreRules.PROJECT_VALUES_MERGE).check();
-  }
 
   @Test void testReduceValuesToEmpty() {
     // Plan should be same as for
@@ -5743,14 +4064,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testEmptyAggregateEmptyKeyWithAggregateValuesRule() {
-    final String sql = "select count(*), sum(empno) from emp where false";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE)
-        .withRule(CoreRules.AGGREGATE_VALUES)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5117">[CALCITE-5117]
@@ -5889,51 +4202,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPlanner(hepPlanner).check();
   }
 
-  @Test void testReduceCasts() {
-    // Disable simplify in RelBuilder so that there are casts in 'before';
-    // The resulting plan should have no cast expressions
-    final String sql = "select cast(d.name as varchar(128)), cast(e.empno as integer)\n"
-        + "from dept as d inner join emp as e\n"
-        + "on cast(d.deptno as integer) = cast(e.deptno as integer)\n"
-        + "where cast(e.job as varchar(1)) = 'Manager'";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  /** Tests that a cast from a TIME to a TIMESTAMP is not reduced. It is not
-   * constant because the result depends upon the current date. */
-  @Test void testReduceCastTimeUnchanged() {
-    sql("select cast(time '12:34:56' as timestamp) from emp as e")
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
-  @Test void testReduceCastAndConsts() {
-    // Make sure constant expressions inside the cast can be reduced
-    // in addition to the casts.
-    final String sql = "select * from emp\n"
-        + "where cast((empno + (10/2)) as int) = 13";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS).check();
-  }
-
-  @Test void testReduceCaseNullabilityChange() {
-    final String sql = "select case when empno = 1 then 1\n"
-        + "when 1 IS NOT NULL then 2\n"
-        + "else null end as qx "
-        + "from emp";
-    sql(sql)
-        .withRelBuilderSimplify(false)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
   @Test void testReduceCastsNullable() {
     HepProgram program = new HepProgramBuilder()
 
@@ -5950,7 +4218,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(CoreRules.CALC_MERGE)
         .addRuleInstance(CoreRules.CALC_REDUCE_EXPRESSIONS)
         .build();
-    final String sql = "insert into sales.dept(deptno, name)\n"
+    final String sql = "insert into sales.dept(deptno, dname)\n"
         + "select empno, cast(job as varchar(128)) from sales.empnullables";
     sql(sql).withProgram(program).check();
   }
@@ -6107,31 +4375,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testPullFilterThroughAggregate() {
-    final String sql = "select ename, sal, deptno from ("
-        + "  select ename, sal, deptno"
-        + "  from emp"
-        + "  where sal > 5000)"
-        + "group by ename, sal, deptno";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
-        .check();
-  }
 
-  @Test void testPullFilterThroughAggregateGroupingSets() {
-    final String sql = "select ename, sal, deptno from ("
-        + "  select ename, sal, deptno"
-        + "  from emp"
-        + "  where sal > 5000)"
-        + "group by rollup(ename, sal, deptno)";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.AGGREGATE_FILTER_TRANSPOSE)
-        .check();
-  }
 
   private void basePullConstantTroughAggregate() {
     sql("${sql}")
@@ -6252,22 +4496,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testAggregateProjectMerge() {
-    final String sql = "select x, sum(z), y from (\n"
-        + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
-        + "  from emp)\n"
-        + "group by x, y";
-    sql(sql).withRule(CoreRules.AGGREGATE_PROJECT_MERGE).check();
-  }
-
-  @Test void testAggregateGroupingSetsProjectMerge() {
-    final String sql = "select x, sum(z), y from (\n"
-        + "  select deptno as x, empno as y, sal as z, sal * 2 as zz\n"
-        + "  from emp)\n"
-        + "group by rollup(x, y)";
-    sql(sql).withRule(CoreRules.AGGREGATE_PROJECT_MERGE).check();
-  }
-
   @Test void testAggregateExtractProjectRule() {
     final String sql = "select sum(sal)\n"
         + "from emp";
@@ -6324,33 +4552,7 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(pre).withRule(rule).checkUnchanged();
   }
 
-  @Test void testAggregateCaseToFilter() {
-    final String sql = "select\n"
-        + " sum(sal) as sum_sal,\n"
-        + " count(distinct case\n"
-        + "       when job = 'CLERK'\n"
-        + "       then deptno else null end) as count_distinct_clerk,\n"
-        + " sum(case when deptno = 10 then sal end) as sum_sal_d10,\n"
-        + " sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,\n"
-        + " sum(case when deptno = 30 then 1 else 0 end) as count_d30,\n"
-        + " count(case when deptno = 40 then 'x' end) as count_d40,\n"
-        + " sum(case when deptno = 45 then 1 end) as count_d45,\n"
-        + " sum(case when deptno = 50 then 1 else null end) as count_d50,\n"
-        + " sum(case when deptno = 60 then null end) as sum_null_d60,\n"
-        + " sum(case when deptno = 70 then null else 1 end) as sum_null_d70,\n"
-        + " count(case when deptno = 20 then 1 end) as count_d20\n"
-        + "from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).check();
-  }
 
-  @Test void testAggregateCaseToFilterNoMatch() {
-    final String sql = "select\n"
-        + " sum(case when deptno = -1 then 1 else 0 end) as sum_no_match,\n"
-        + " sum(case when deptno = -1 then 2 else 0 end) as sum_no_match2,\n"
-        + " sum(case when deptno = -1 then 3 else -1 end) as sum_no_match3\n"
-        + "from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7330">[CALCITE-7330]
@@ -6378,69 +4580,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testPullAggregateThroughUnion() {
-    final String sql = "select deptno, job from"
-        + " (select deptno, job from emp as e1"
-        + " group by deptno,job"
-        + "  union all"
-        + " select deptno, job from emp as e2"
-        + " group by deptno,job)"
-        + " group by deptno,job";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_AGGREGATE)
-        .check();
-  }
-
-  @Test void testPullAggregateThroughUnion2() {
-    final String sql = "select deptno, job from"
-        + " (select deptno, job from emp as e1"
-        + " group by deptno,job"
-        + "  union all"
-        + " select deptno, job from emp as e2"
-        + " group by deptno,job)"
-        + " group by deptno,job";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_AGGREGATE_SECOND,
-            CoreRules.AGGREGATE_UNION_AGGREGATE_FIRST)
-        .check();
-  }
-
-  /**
-   * Once the bottom aggregate pulled through union, we need to add a Project
-   * if the new input contains a different type from the union.
-   */
-  @Test void testPullAggregateThroughUnionAndAddProjects() {
-    final String sql = "select job, deptno from"
-        + " (select job, deptno from emp as e1"
-        + " group by job, deptno"
-        + "  union all"
-        + " select job, deptno from emp as e2"
-        + " group by job, deptno)"
-        + " group by job, deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.AGGREGATE_UNION_AGGREGATE)
-        .check();
-  }
-
-  /**
-   * Make sure the union alias is preserved when the bottom aggregate is
-   * pulled up through union.
-   */
-  @Test void testPullAggregateThroughUnionWithAlias() {
-    final String sql = "select job, c from"
-        + " (select job, deptno c from emp as e1"
-        + " group by job, deptno"
-        + "  union all"
-        + " select job, deptno from emp as e2"
-        + " group by job, deptno)"
-        + " group by job, c";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.AGGREGATE_UNION_AGGREGATE)
-        .check();
-  }
-
   /**
    * Creates a {@link HepProgram} with common transitive rules.
    */
@@ -6453,160 +4592,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
   }
 
-  @Test void testTransitiveInferenceJoin() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno where e.deptno > 7";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceProject() {
-    final String sql = "select 1 from (select * from sales.emp where deptno > 7) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceAggregate() {
-    final String sql = "select 1 from (select deptno, count(*) from sales.emp where deptno > 7\n"
-        + "group by deptno) d inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceUnion() {
-    final String sql = "select 1 from\n"
-        + "(select deptno from sales.emp where deptno > 7\n"
-        + "union all select deptno from sales.emp where deptno > 10) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceJoin3way() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno\n"
-        + "inner join sales.emp f on e.deptno = f.deptno\n"
-        + "where d.deptno > 7";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceJoin3wayAgg() {
-    final String sql = "select 1 from\n"
-        + "(select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno\n"
-        + "inner join sales.emp f on e.deptno = f.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceLeftOuterJoin() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "left outer join sales.emp e on d.deptno = e.deptno\n"
-        + "where d.deptno > 7 and e.deptno > 9";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceRightOuterJoin() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "right outer join sales.emp e on d.deptno = e.deptno\n"
-        + "where d.deptno > 7 and e.deptno > 9";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceFullOuterJoin() {
-    final String sql = "select 1 from sales.emp d full outer join sales.emp e\n"
-        + "on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).checkUnchanged();
-  }
 
-  @Test void testTransitiveInferencePreventProjectPullUp() {
-    final String sql = "select 1 from (select comm as deptno from sales.emp where deptno > 7) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).checkUnchanged();
-  }
 
-  @Test void testTransitiveInferencePullUpThruAlias() {
-    final String sql = "select 1 from (select comm as deptno from sales.emp where comm > 7) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceConjunctInPullUp() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno\n"
-        + "where d.deptno in (7, 9) or d.deptno > 10";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceNoPullUpExprs() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno\n"
-        + "where d.deptno in (7, 9) or d.comm > 10";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).checkUnchanged();
-  }
 
-  @Test void testTransitiveInferenceUnion3way() {
-    final String sql = "select 1 from\n"
-        + "(select deptno from sales.emp where deptno > 7\n"
-        + "union all\n"
-        + "select deptno from sales.emp where deptno > 10\n"
-        + "union all\n"
-        + "select deptno from sales.emp where deptno > 1) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceUnion3wayOr() {
-    final String sql = "select 1 from\n"
-        + "(select empno, deptno from sales.emp where deptno > 7 or empno < 10\n"
-        + "union all\n"
-        + "select empno, deptno from sales.emp where deptno > 10 or empno < deptno\n"
-        + "union all\n"
-        + "select empno, deptno from sales.emp where deptno > 1) d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
-  @Test void testTransitiveInferenceUnionAlwaysTrue() {
-    final String sql = "select d.deptno, e.deptno from\n"
-        + "(select deptno from sales.emp where deptno < 4) d\n"
-        + "inner join\n"
-        + "(select deptno from sales.emp where deptno > 7\n"
-        + "union all select deptno from sales.emp) e\n"
-        + "on d.deptno = e.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
-  @Test void testTransitiveInferenceConstantEquiPredicate() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno  where 1 = 1";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).checkUnchanged();
-  }
 
-  @Test void testTransitiveInferenceComplexPredicate() {
-    final String sql = "select 1 from sales.emp d\n"
-        + "inner join sales.emp e on d.deptno = e.deptno\n"
-        + "where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno\n"
-        + "and d.comm + d.deptno > d.comm/2";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
 
   @Test void testPullConstantIntoProject() {
     final String sql = "select deptno, deptno + 1, empno + deptno\n"
@@ -6616,17 +4621,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
             CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2274">[CALCITE-2274]
-   * Filter predicates aren't inferred while using dynamic star in subquery</a>. */
-  @Test void testTransitiveInferenceJoinUsingStar() {
-    final String sql = "SELECT * FROM sales.emp d JOIN\n"
-        + "(SELECT * FROM sales.emp WHERE deptno = 4) e\n"
-        + "ON e.deptno = d.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
   }
 
   /** Tests propagation of a filter derived from an "IS NOT DISTINCT FROM"
@@ -6708,12 +4702,6 @@ class RelOptRulesTest extends RelOptTestBase {
           .check();
   }
 
-  @Test void testPullUpPredicatesFromProject1() {
-    final String sql = "select comm <> 2, comm = 2 from emp where comm = 2";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
 
   @Test void testPullUpPredicatesFromProject2() {
     final String sql = "select comm = 2, empno <> 1 from emp where comm = 2 and empno = 1";
@@ -6756,19 +4744,6 @@ class RelOptRulesTest extends RelOptTestBase {
                 CoreRules.JOIN_REDUCE_EXPRESSIONS))
         .build();
     sql(sql).withPre(getTransitiveProgram()).withProgram(program).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7302">[CALCITE-7302]
-   * Infinite loop with JoinPushTransitivePredicatesRule</a>. */
-  @Test void testInfiniteLoopWithBetweenAnd() {
-    final String sql = "With dept_temp as"
-        + " (SELECT deptno, name FROM dept where deptno between 30 and 50),"
-        + "emp_temp as"
-        + " (Select ename, deptno from emp)"
-        + "select * from dept_temp inner join emp_temp on dept_temp.deptno = emp_temp.deptno ";
-    sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
-        .check();
   }
 
   /** Test case for
@@ -6863,66 +4838,10 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6632">[CALCITE-6632]
    * Wrong optimization because window missing constants in digest</a>. */
-  @Test void testWindowMissingConstantInDigest() {
-    final String sql = "select sum(100) over (partition by deptno order by sal) as s\n"
-        + "from emp\n"
-        + "union all\n"
-        + "select sum(1000) over(partition by deptno order by sal) as s\n"
-        + "from emp\n";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
-        .check();
-  }
 
-  /** While it's probably valid relational algebra for a Project to contain
-   * a RexOver inside a RexOver, ProjectMergeRule should not bring it about. */
-  @Test void testProjectMergeShouldIgnoreOver() {
-    final String sql = "select row_number() over (order by deptno), col1\n"
-        + "from (\n"
-        + "  select deptno,\n"
-        + "    sum(100) over (partition by  deptno order by sal) as col1\n"
-        + "  from emp)";
-    sql(sql).withRule(CoreRules.PROJECT_MERGE).checkUnchanged();
-  }
 
-  @Test void testAggregateProjectPullUpConstants() {
-    final String sql = "select job, empno, sal, sum(sal) as s\n"
-        + "from emp where empno = 10\n"
-        + "group by job, empno, sal";
-    sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS).check();
-  }
 
-  @Test void testAggregateProjectPullUpConstants2() {
-    final String sql = "select ename, sal\n"
-        + "from (select '1', ename, sal from emp where ename = 'John') subq\n"
-        + "group by ename, sal";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
-        .check();
-  }
 
-  @Test void testPushFilterWithRank() {
-    final String sql = "select e1.ename, r\n"
-        + "from (\n"
-        + "  select ename, "
-        + "  rank() over(partition by  deptno order by sal) as r "
-        + "  from emp) e1\n"
-        + "where r < 2";
-    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  @Test void testPushFilterWithRankExpr() {
-    final String sql = "select e1.ename, r\n"
-        + "from (\n"
-        + "  select ename,\n"
-        + "  rank() over(partition by  deptno order by sal) + 1 as r "
-        + "  from emp) e1\n"
-        + "where r < 2";
-    sql(sql).withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841]
@@ -7008,46 +4927,14 @@ class RelOptRulesTest extends RelOptTestBase {
    * [CALCITE-5861] ReduceExpressionsRule rules should constant-fold
    * expressions in window bounds</a>.
    */
-  @Test void testExpressionPreceding() {
-    HepProgramBuilder preBuilder = new HepProgramBuilder();
-    preBuilder.addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-    preBuilder.addRuleInstance(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
-
-    final String sql =
-        "select COUNT(*) over (\n"
-            + "ORDER BY empno\n"
-            + "ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp\n";
-    sql(sql)
-        .withPre(preBuilder.build())
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-750">[CALCITE-750]
    * Allow windowed aggregate on top of regular aggregate</a>. */
-  @Test void testNestedAggregates() {
-    final String sql = "SELECT\n"
-        + "  avg(sum(sal) + 2 * min(empno) + 3 * avg(empno))\n"
-        + "  over (partition by deptno)\n"
-        + "from emp\n"
-        + "group by deptno";
-    sql(sql).withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2078">[CALCITE-2078]
    * Aggregate functions in OVER clause</a>. */
-  @Test void testWindowFunctionOnAggregations() {
-    final String sql = "SELECT\n"
-        + "  min(empno),\n"
-        + "  sum(sal),\n"
-        + "  sum(sum(sal))\n"
-        + "    over (partition by min(empno) order by sum(sal))\n"
-        + "from emp\n"
-        + "group by deptno";
-    sql(sql).withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW).check();
-  }
 
   @Test void testMeasureSort() {
     final String sql = "select deptno, c1\n"
@@ -7102,7 +4989,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Disabled
   @Test void testMeasureJoin() {
     final String sql = "with deptm as\n"
-        + "  (select deptno, name, avg(char_length(name)) as measure m\n"
+        + "  (select deptno, dname, avg(char_length(dname)) as measure m\n"
         + "   from dept)\n"
         + "select deptno, aggregate(m) as m\n"
         + "from deptm join emp using (deptno)\n"
@@ -7118,328 +5005,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testPushAggregateThroughJoin1() {
-    final String sql = "select e.job,d.name\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "join sales.dept as d on e.job = d.name\n"
-        + "group by e.job,d.name";
-    sql(sql).withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by on non-join keys, group by on
-   * non-null generating side only. */
-  @Test void testPushAggregateThroughOuterJoin1() {
-    final String sql = "select e.ename\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "group by e.ename";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by on non-join keys, on null
-   * generating side only. */
-  @Test void testPushAggregateThroughOuterJoin2() {
-    final String sql = "select d.ename\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.emp as d on e.job = d.job\n"
-        + "group by d.ename";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by on both side on non-join
-   * keys. */
-  @Test void testPushAggregateThroughOuterJoin3() {
-    final String sql = "select e.ename, d.mgr\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.emp as d on e.job = d.job\n"
-        + "group by e.ename,d.mgr";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by on key same as join key,
-   * group by on non-null generating side. */
-  @Test void testPushAggregateThroughOuterJoin4() {
-    final String sql = "select e.job\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "group by e.job";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by on key same as join key,
-   * group by on null generating side. */
-  @Test void testPushAggregateThroughOuterJoin5() {
-    final String sql = "select d.name\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "group by d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by on key same as join key,
-   * group by on both side. */
-  @Test void testPushAggregateThroughOuterJoin6() {
-    final String sql = "select e.job,d.name\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "group by e.job,d.name";
-    sql(sql).withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by key is susbset of join keys,
-   * group by on non-null generating side. */
-  @Test void testPushAggregateThroughOuterJoin7() {
-    final String sql = "select e.job\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "and e.deptno + e.empno = d.deptno + 5\n"
-        + "group by e.job";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by key is a subset of join keys,
-   * group by on null generating side. */
-  @Test void testPushAggregateThroughOuterJoin8() {
-    final String sql = "select d.name\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "and e.deptno + e.empno = d.deptno + 5\n"
-        + "group by d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, group by key is susbset of join keys,
-   * group by on both sides. */
-  @Test void testPushAggregateThroughOuterJoin9() {
-    final String sql = "select e.job, d.name\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "left outer join sales.dept as d on e.job = d.name\n"
-        + "and e.deptno + e.empno = d.deptno + 5\n"
-        + "group by e.job, d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for outer join, with aggregate functions. */
-  @Test void testPushAggregateThroughOuterJoin10() {
-    final String sql = "select count(e.ename)\n"
-        + "from (select * from sales.emp where empno = 10) as e\n"
-        + "left outer join sales.emp as d on e.job = d.job\n"
-        + "group by e.ename,d.mgr";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .checkUnchanged();
-  }
-
   /** Test case for non-equi outer join. */
-  @Test void testPushAggregateThroughOuterJoin11() {
-    final String sql = "select e.empno,d.deptno\n"
-        + "from (select * from sales.emp where empno = 10) as e\n"
-        + "left outer join sales.dept as d on e.empno < d.deptno\n"
-        + "group by e.empno,d.deptno";
-    sql(sql)
-        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
-   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
-  @Test public void testSplitNull() {
-    final String query = "select split('1|2|3', NULL)";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
-   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
-  @Test public void testSplitNull1() {
-    final String query = "select split(NULL, '|')";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
-   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
-  @Test public void testSplitNull2() {
-    final String query = "select split(NULL, NULL)";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5882">
-   * [CALCITE-5882] Compile-time evaluation of SPLIT function returns incorrect result</a>. */
-  @Test public void testSplit() {
-    final String query = "select split('1|2|3', '|')";
-    sql(query)
-        .withFactory(
-            t -> t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for right outer join, group by on key same as join
-   * key, group by on (left)null generating side. */
-  @Test void testPushAggregateThroughOuterJoin12() {
-    final String sql = "select e.job\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "right outer join sales.dept as d on e.job = d.name\n"
-        + "group by e.job";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for full outer join, group by on key same as join key,
-   * group by on one side. */
-  @Test void testPushAggregateThroughOuterJoin13() {
-    final String sql = "select e.job\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "full outer join sales.dept as d on e.job = d.name\n"
-        + "group by e.job";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for full outer join, group by on key same as join key,
-   * group by on both side. */
-  @Test void testPushAggregateThroughOuterJoin14() {
-    final String sql = "select e.mgr, d.mgr\n"
-        + "from sales.emp as e\n"
-        + "full outer join sales.emp as d on e.mgr = d.mgr\n"
-        + "group by d.mgr, e.mgr";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for full outer join, group by on both side on non-join
-   * keys. */
-  @Test void testPushAggregateThroughOuterJoin15() {
-    final String sql = "select e.ename, d.mgr\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "full outer join sales.emp as d on e.job = d.job\n"
-        + "group by e.ename,d.mgr";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for full outer join, group by key is susbset of join
-   * keys. */
-  @Test void testPushAggregateThroughOuterJoin16() {
-    final String sql = "select e.job\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "full outer join sales.dept as d on e.job = d.name\n"
-        + "and e.deptno + e.empno = d.deptno + 5\n"
-        + "group by e.job";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  @Test void testPushAggregateThroughJoin2() {
-    final String sql = "select e.job,d.name\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "join sales.dept as d on e.job = d.name\n"
-        + "and e.deptno + e.empno = d.deptno + 5\n"
-        + "group by e.job,d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  @Test void testPushAggregateThroughJoin3() {
-    final String sql = "select e.empno,d.deptno\n"
-        + "from (select * from sales.emp where empno = 10) as e\n"
-        + "join sales.dept as d on e.empno < d.deptno\n"
-        + "group by e.empno,d.deptno";
-    sql(sql)
-        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1544">[CALCITE-1544]
-   * AggregateJoinTransposeRule fails to preserve row type</a>. */
-  @Test void testPushAggregateThroughJoin4() {
-    final String sql = "select e.deptno\n"
-        + "from sales.emp as e join sales.dept as d on e.deptno = d.deptno\n"
-        + "group by e.deptno";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  @Test void testPushAggregateThroughJoin5() {
-    final String sql = "select e.deptno, d.deptno\n"
-        + "from sales.emp as e join sales.dept as d on e.deptno = d.deptno\n"
-        + "group by e.deptno, d.deptno";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2200">[CALCITE-2200]
@@ -7475,32 +5041,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5387">[CALCITE-5387]
-   * Type-mismatch on nullability in JoinPushTransitivePredicatesRule RelRule</a>. */
-  @Test void testJoinPushTransitivePredicatesNullabilityIssue() {
-    final String sql = "WITH\n"
-        + "non_null_table AS (\n"
-        + "  SELECT DATE '2023-08-07' AS date_col_non_null FROM dept\n"
-        + "),\n"
-        + "null_table AS (\n"
-        + "  SELECT CAST(null as DATE) AS date_col_null FROM dept\n"
-        + ")\n"
-        + "SELECT *\n"
-        + "FROM non_null_table\n"
-        + "JOIN null_table\n"
-        + "ON null_table.date_col_null = non_null_table.date_col_non_null";
-
-    sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
-  }
-
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6432">[CALCITE-6432]
    * Infinite loop for JoinPushTransitivePredicatesRule</a>. */
   @Test void testProjectPredicatePull() {
     final String sql = "select e.ename, d.dname\n"
         + "from (select ename, deptno from emp where deptno = 10) e\n"
-        + "join (select name dname, deptno, * from dept) d\n"
+        + "join (select dname dname, deptno, * from dept) d\n"
         + "on e.deptno = d.deptno";
     final HepProgram program = new HepProgramBuilder()
         .addRuleCollection(
@@ -7511,157 +5058,13 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2275">[CALCITE-2275]
-   * JoinPushTransitivePredicatesRule wrongly pushes down NOT condition</a>. */
-  @Test void testInferringPredicatesWithNotOperatorInJoinCondition() {
-    final String sql = "select * from sales.emp d\n"
-        + "join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)";
-    sql(sql)
-        .withRelBuilderSimplify(false)
-        .withDecorrelate(true)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_CONDITION_PUSH,
-            CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2195">[CALCITE-2195]
-   * AggregateJoinTransposeRule fails to aggregate over unique column</a>. */
-  @Test void testPushAggregateThroughJoin6() {
-    final String sql = "select sum(B.sal)\n"
-        + "from sales.emp as A\n"
-        + "join (select distinct sal from sales.emp) as B\n"
-        + "on A.sal=B.sal\n";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  @Test void testPushAggregateThroughJoin7() {
-    final String sql = "select any_value(distinct B.sal)\n"
-        + "from sales.emp as A\n"
-        + "join (select distinct sal from sales.emp) as B\n"
-        + "on A.sal=B.sal\n";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  @Test void testPushAggregateThroughJoin8() {
-    final String sql = "select single_value(distinct B.sal)\n"
-        + "from sales.emp as A\n"
-        + "join (select distinct sal from sales.emp) as B\n"
-        + "on A.sal=B.sal\n";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2278">[CALCITE-2278]
-   * AggregateJoinTransposeRule fails to split aggregate call if input contains
-   * an aggregate call and has distinct rows</a>. */
-  @Test void testPushAggregateThroughJoinWithUniqueInput() {
-    final String sql = "select A.job, B.mgr, A.deptno,\n"
-        + "max(B.hiredate1) as hiredate1, sum(B.comm1) as comm1\n"
-        + "from sales.emp as A\n"
-        + "join (select mgr, sal, max(hiredate) as hiredate1,\n"
-        + "    sum(comm) as comm1 from sales.emp group by mgr, sal) as B\n"
-        + "on A.sal=B.sal\n"
-        + "group by A.job, B.mgr, A.deptno";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** SUM is the easiest aggregate function to split. */
-  @Test void testPushAggregateSumThroughJoin() {
-    final String sql = "select e.job,sum(sal)\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "join sales.dept as d on e.job = d.name\n"
-        + "group by e.job,d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2105">[CALCITE-2105]
-   * AggregateJoinTransposeRule incorrectly makes a SUM NOT NULL when Aggregate
-   * has no group keys</a>. */
-  @Test void testPushAggregateSumWithoutGroupKeyThroughJoin() {
-    final String sql = "select sum(sal)\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "join sales.dept as d on e.job = d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2108">[CALCITE-2108]
-   * AggregateJoinTransposeRule incorrectly splits a SUM0 call when Aggregate
-   * has no group keys</a>.
-   *
-   * <p>Similar to {@link #testPushAggregateSumThroughJoin()},
-   * but also uses {@link AggregateReduceFunctionsRule}. */
-  @Test void testPushAggregateSumThroughJoinAfterAggregateReduce() {
-    final String sql = "select sum(sal)\n"
-        + "from (select * from sales.emp where ename = 'A') as e\n"
-        + "join sales.dept as d on e.job = d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_REDUCE_FUNCTIONS,
-            CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Push a variety of aggregate functions. */
-  @Test void testPushAggregateFunctionsThroughJoin() {
-    final String sql = "select e.job,\n"
-        + "  min(sal) as min_sal, min(e.deptno) as min_deptno,\n"
-        + "  sum(sal) + 1 as sum_sal_plus, max(sal) as max_sal,\n"
-        + "  sum(sal) as sum_sal_2, count(sal) as count_sal,\n"
-        + "  count(mgr) as count_mgr\n"
-        + "from sales.emp as e\n"
-        + "join sales.dept as d on e.job = d.name\n"
-        + "group by e.job,d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Push a aggregate functions into a relation that is unique on the join
-   * key. */
-  @Test void testPushAggregateThroughJoinDistinct() {
-    final String sql = "select d.name,\n"
-        + "  sum(sal) as sum_sal, count(*) as c\n"
-        + "from sales.emp as e\n"
-        + "join (select distinct name from sales.dept) as d\n"
-        + "  on e.job = d.name\n"
-        + "group by d.name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6600">[CALCITE-6600]
    * AggregateJoinTransposeRule can throw ArrayIndexOutOfBoundsException when applied
    * on a SemiJoin</a>.*/
   @Test void testPushAggregateThroughSemiJoin() {
     final String sql = "select distinct sal\n"
         + "from (select * from sales.emp e where e.job in\n"
-        + "(select d.name from sales.dept d))";
+        + "(select d.dname from sales.dept d))";
     sql(sql)
         .withLateDecorrelate(true)
         .withTrim(true)
@@ -7671,142 +5074,6 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
         .check();
-  }
-
-  /** Push count(*) through join, no GROUP BY. */
-  @Test void testPushAggregateSumNoGroup() {
-    final String sql =
-        "select count(*) from sales.emp join sales.dept on job = name";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3076">[CALCITE-3076]
-   * AggregateJoinTransposeRule throws error for unique under aggregate keys when
-   * generating merged calls</a>.*/
-  @Test void testPushAggregateThroughJoinOnEmptyLogicalValues() {
-    final String sql = "select count(*) volume, sum(C1.sal) C1_sum_sal "
-        + "from (select sal, ename from sales.emp where 1=2) C1 "
-        + "inner join (select ename from sales.emp) C2   "
-        + "on C1.ename = C2.ename ";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2249">[CALCITE-2249]
-   * AggregateJoinTransposeRule generates non-equivalent nodes if Aggregate
-   * contains DISTINCT aggregate function</a>. */
-  @Test void testPushDistinctAggregateIntoJoin() {
-    final String sql = "select count(distinct sal) from sales.emp\n"
-        + " join sales.dept on job = name";
-    sql(sql).withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
-        .checkUnchanged();
-  }
-
-  /** Tests that ProjectAggregateMergeRule removes unused aggregate calls but
-   * not group keys. */
-  @Test void testProjectAggregateMerge() {
-    final String sql = "select deptno + ss\n"
-        + "from (\n"
-        + "  select job, deptno, min(sal) as ms, sum(sal) as ss\n"
-        + "  from sales.emp\n"
-        + "  group by job, deptno)";
-    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .check();
-  }
-
-  /** Tests that ProjectAggregateMergeRule does nothing when all aggregate calls
-   * are referenced. */
-  @Test void testProjectAggregateMergeNoOp() {
-    final String sql = "select deptno + ss + ms\n"
-        + "from (\n"
-        + "  select job, deptno, min(sal) as ms, sum(sal) as ss\n"
-        + "  from sales.emp\n"
-        + "  group by job, deptno)";
-    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .checkUnchanged();
-  }
-
-  /** Tests that ProjectAggregateMergeRule converts {@code COALESCE(SUM(x), 0)}
-   * into {@code SUM0(x)}. */
-  @Test void testProjectAggregateMergeSum0() {
-    final String sql = "select coalesce(sum_sal, 0) as ss0\n"
-        + "from (\n"
-        + "  select sum(sal) as sum_sal\n"
-        + "  from sales.emp)";
-    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6834">[CALCITE-6834]
-   * In query that applies COALESCE to nullable SUM, EnumerableProjectToCalcRule
-   * throws AssertionError</a>. */
-  @Test void testProjectAggregateMergeSum01() {
-    final String sql = "select coalesce(sum(cast(mgr as tinyint)), 0) as ss0\n"
-        + "from sales.emp";
-    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .check();
-  }
-
-  /** As {@link #testProjectAggregateMergeSum0()} but there is another use of
-   * {@code SUM} that cannot be converted to {@code SUM0}. */
-  @Test void testProjectAggregateMergeSum0AndSum() {
-    final String sql = "select sum_sal * 2, coalesce(sum_sal, 0) as ss0\n"
-        + "from (\n"
-        + "  select sum(sal) as sum_sal\n"
-        + "  from sales.emp)";
-    sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .check();
-  }
-
-  /** Tests that ProjectAggregateMergeRule does nothing with non-numeric literals
-   * and does not throw an exception. */
-  @Test void testProjectAggregateMergeNonNumericLiteral() {
-    // Requires a NULLABLE column to trigger
-    final SqlTestFactory.CatalogReaderFactory catalogReaderFactory = (typeFactory, caseSensitive) ->
-        new MockCatalogReader(typeFactory, caseSensitive) {
-          @Override public MockCatalogReader init() {
-            MockSchema schema = new MockSchema("SALES");
-            registerSchema(schema);
-            final boolean nullable = true;
-            final RelDataType timestampType =
-                typeFactory.createTypeWithNullability(
-                    typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
-                    nullable);
-            String tableName = "NULLABLE";
-            MockTable table = MockTable
-                .create(this, schema, tableName, false, 100);
-            table.addColumn("HIREDATE", timestampType);
-            registerTable(table);
-            return this;
-          }
-        }.init();
-    final String sql = "select hiredate, coalesce(hiredate, {ts '1969-12-31 00:00:00'}) as c1\n"
-        + "from sales.nullable\n"
-        + "group by hiredate";
-    sql(sql)
-        .withCatalogReaderFactory(catalogReaderFactory)
-        .withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .checkUnchanged();
-  }
-
-  @Test void testProjectAggregateMergeNoOpForNonSum() {
-    final String sql = "select coalesce(m, 0)\n"
-        + "from (\n"
-        + "  select max(deptno) as m\n"
-        + "  from sales.emp\n"
-        + ")";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .checkUnchanged();
   }
 
   /**
@@ -7921,18 +5188,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * AggregateMergeRule should merge SUM0 into COUNT even if GROUP BY is
    * empty</a>. (It is not valid to merge a SUM onto a SUM0 if the top GROUP BY
    * is empty.) */
-  @Test void testAggregateMergeSum0() {
-    final String sql = "select coalesce(sum(count_comm), 0)\n"
-        + "from (\n"
-        + "  select deptno, count(comm) as count_comm\n"
-        + "  from sales.emp\n"
-        + "  group by deptno, mgr) t";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_AGGREGATE_MERGE,
-            CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_MERGE)
-        .check();
-  }
 
   /**
    * Test case for AggregateMergeRule, should not merge 2 aggregates
@@ -7978,7 +5233,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "FROM (\n"
         + "    SELECT sum(deptno) AS deptno\n"
         + "    FROM dept\n"
-        + "    GROUP BY name)";
+        + "    GROUP BY dname)";
     sql(sql)
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.PROJECT_MERGE)
@@ -7998,7 +5253,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "FROM (\n"
         + "    SELECT min(deptno) mn, max(deptno) mx\n"
         + "    FROM dept\n"
-        + "    GROUP BY name)";
+        + "    GROUP BY dname)";
     sql(sql)
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.PROJECT_MERGE)
@@ -8018,19 +5273,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from sales.emp\n"
         + "group by empno, deptno";
     sql(sql)
-        .withRule(CoreRules.AGGREGATE_REMOVE,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-  /**
-   * Test case for AggregateRemoveRule, should remove aggregates since
-   * empno is unique and there are no aggregate functions.
-   */
-  @Test void testAggregateRemove2() {
-    final String sql = "select distinct empno, deptno from sales.emp\n";
-    sql(sql)
-        .withRelBuilderConfig(b -> b.withAggregateUnique(true))
         .withRule(CoreRules.AGGREGATE_REMOVE,
             CoreRules.PROJECT_MERGE)
         .check();
@@ -8137,7 +5379,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * remove the left join since the aggregate uses column in the right
    * input of the bottom join. */
   @Test void testAggregateJoinRemove3() {
-    final String sql = "select e.deptno, count(distinct d.name)\n"
+    final String sql = "select e.deptno, count(distinct d.dname)\n"
         + "from sales.emp e\n"
         + "left outer join sales.dept d on e.deptno = d.deptno\n"
         + "group by e.deptno";
@@ -8160,7 +5402,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Similar to {@link #testAggregateJoinRemove2()} but right join. */
   @Test void testAggregateJoinRemove5() {
-    final String sql = "select d.deptno, count(distinct d.name)\n"
+    final String sql = "select d.deptno, count(distinct d.dname)\n"
         + "from sales.emp e\n"
         + "right outer join sales.dept d on e.deptno = d.deptno\n"
         + "group by d.deptno";
@@ -8196,11 +5438,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-
   /** Similar to {@link #testAggregateJoinRemove7()} but has aggregate
    * call. */
   @Test void testAggregateJoinRemove8() {
-    final String sql = "SELECT e.deptno, COUNT(DISTINCT d2.name)\n"
+    final String sql = "SELECT e.deptno, COUNT(DISTINCT d2.dname)\n"
         + "FROM sales.emp e\n"
         + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
         + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno\n"
@@ -8214,7 +5455,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Similar to {@link #testAggregateJoinRemove7()} but use columns in
    * the right input of the top join. */
   @Test void testAggregateJoinRemove9() {
-    final String sql = "SELECT distinct e.deptno, d2.name\n"
+    final String sql = "SELECT distinct e.deptno, d2.dname\n"
         + "FROM sales.emp e\n"
         + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
         + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
@@ -8228,7 +5469,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * Should not remove the bottom join since the aggregate uses column in the
    * right input of bottom join. */
   @Test void testAggregateJoinRemove10() {
-    final String sql = "SELECT e.deptno, COUNT(DISTINCT d1.name, d2.name)\n"
+    final String sql = "SELECT e.deptno, COUNT(DISTINCT d1.dname, d2.dname)\n"
         + "FROM sales.emp e\n"
         + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
         + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno\n"
@@ -8249,119 +5490,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.AGGREGATE_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should remove the bottom join since the project uses column in the
-   * right input of bottom join. */
-  @Test void testProjectJoinRemove1() {
-    final String sql = "SELECT e.deptno, d2.deptno\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
-        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the bottom join since the project uses column in the
-   * left input of bottom join. */
-  @Test void testProjectJoinRemove2() {
-    final String sql = "SELECT e.deptno, d1.deptno\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno\n"
-        + "LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the bottom join since the right join keys of bottom
-   * join are not unique. */
-  @Test void testProjectJoinRemove3() {
-    final String sql = "SELECT e1.deptno, d.deptno\n"
-        + "FROM sales.emp e1\n"
-        + "LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno\n"
-        + "LEFT JOIN sales.dept d ON e1.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should remove the left join since the join key of the right input is
-   * unique. */
-  @Test void testProjectJoinRemove4() {
-    final String sql = "SELECT e.deptno\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the left join since the join key of the right input is
-   * not unique. */
-  @Test void testProjectJoinRemove5() {
-    final String sql = "SELECT e1.deptno\n"
-        + "FROM sales.emp e1\n"
-        + "LEFT JOIN sales.emp e2 ON e1.deptno = e2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the left join since the project use columns in the right
-   * input of the join. */
-  @Test void testProjectJoinRemove6() {
-    final String sql = "SELECT e.deptno, d.name\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should remove the right join since the join key of the left input is
-   * unique. */
-  @Test void testProjectJoinRemove7() {
-    final String sql = "SELECT e.deptno\n"
-        + "FROM sales.dept d\n"
-        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .check();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the right join since the join key of the left input is
-   * not unique. */
-  @Test void testProjectJoinRemove8() {
-    final String sql = "SELECT e2.deptno\n"
-        + "FROM sales.emp e1\n"
-        + "RIGHT JOIN sales.emp e2 ON e1.deptno = e2.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove1()};
-   * Should not remove the right join since the project uses columns in the
-   * left input of the join. */
-  @Test void testProjectJoinRemove9() {
-    final String sql = "SELECT e.deptno, d.name\n"
-        + "FROM sales.dept d\n"
-        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
-        .checkUnchanged();
-  }
-
-  /** Similar to {@link #testAggregateJoinRemove4()};
-   * The project references the last column of the left input.
-   * The rule should be fired.*/
-  @Test void testProjectJoinRemove10() {
-    final String sql = "SELECT e.deptno, e.slacker\n"
-        + "FROM sales.emp e\n"
-        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno";
-    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
         .check();
   }
 
@@ -8496,98 +5624,12 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4616">[CALCITE-4616]
-   * AggregateUnionTransposeRule causes row type mismatch when some inputs have
-   * unique grouping key</a>. */
-  @Test void testAggregateUnionTransposeWithOneInputUnique() {
-    final String sql = "select deptno, SUM(t) from (\n"
-        + "select deptno, 1 as t from sales.emp e1\n"
-        + "union all\n"
-        + "select distinct deptno, 2 as t from sales.emp e2)\n"
-        + "group by deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6642">[CALCITE-6642]
-   * AggregateUnionTransposeRule throws an assertion error when creating children aggregates
-   * when one input only has a non-nullable column</a>. */
-  @Test void testAggregateUnionTransposeWithOneInputNonNullable() {
-    final String sql = "select deptno, SUM(t) from (\n"
-        + "select deptno, 1 as t from sales.emp e1\n"
-        + "union all\n"
-        + "select deptno, nullif(sal, 0) as t from sales.emp e2)\n"
-        + "group by deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
-        .check();
-  }
-
-  /** If all inputs to UNION are already unique, AggregateUnionTransposeRule is
-   * a no-op. */
-  @Test void testAggregateUnionTransposeWithAllInputsUnique() {
-    final String sql = "select deptno, SUM(t) from (\n"
-        + "select distinct deptno, 1 as t from sales.emp e1\n"
-        + "union all\n"
-        + "select distinct deptno, 2 as t from sales.emp e2)\n"
-        + "group by deptno";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  @Test void testAggregateUnionTransposeWithTopLevelGroupSetRemapping() {
-    final String sql = "select count(t1), t2 from (\n"
-        + "select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from sales.emp e1\n"
-        + "union all\n"
-        + "select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from sales.emp e2)\n"
-        + "group by t2";
-    sql(sql)
-        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testSortJoinTranspose1() {
-    final String sql = "select * from sales.emp e left join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "order by sal limit 10";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testSortJoinTranspose2() {
-    final String sql = "select * from sales.emp e right join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "order by name";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testSortJoinTranspose3() {
-    // This one cannot be pushed down
-    final String sql = "select * from sales.emp e left join (\n"
-        + "  select * from sales.dept) d on e.deptno = d.deptno\n"
-        + "order by sal, name limit 10";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-931">[CALCITE-931]
    * Wrong collation trait in SortJoinTransposeRule for right joins</a>. */
   @Test void testSortJoinTranspose4() {
     final String sql = "select * from sales.emp e right join (\n"
         + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "order by name";
+        + "order by dname";
     sql(sql).withFactory(t ->
         t.withPlannerFactory(context ->
             // Create a customized test with RelCollation trait in the test
@@ -8607,127 +5649,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1498">[CALCITE-1498]
-   * Avoid LIMIT with trivial ORDER BY being pushed through JOIN endlessly</a>. */
-  @Test void testSortJoinTranspose5() {
-    // SortJoinTransposeRule should not be fired again.
-    final String sql = "select * from sales.emp e right join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "limit 10";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
-            CoreRules.SORT_JOIN_TRANSPOSE,
-            CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1507">[CALCITE-1507]
-   * OFFSET cannot be pushed through a JOIN if the non-preserved side of outer
-   * join is not count-preserving</a>. */
-  @Test void testSortJoinTranspose6() {
-    // This one can be pushed down even if it has an OFFSET, since the dept
-    // table is count-preserving against the join condition.
-    final String sql = "select d.deptno, empno from sales.dept d\n"
-        + "right join sales.emp e using (deptno) limit 10 offset 2";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1507">[CALCITE-1507]
-   * OFFSET cannot be pushed through a JOIN if the non-preserved side of outer
-   * join is not count-preserving</a>. */
-  @Test void testSortJoinTranspose7() {
-    // This one cannot be pushed down
-    final String sql = "select d.deptno, empno from sales.dept d\n"
-        + "left join sales.emp e using (deptno) order by d.deptno offset 1";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6983">[CALCITE-6983]
-   * SortJoinTransposeRule should not push SORT past a JOIN when SORT's fetch is DynamicParam
-   * </a>. */
-  @Test void testSortJoinTranspose8() {
-    final String sql = "select * from sales.emp e right join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "FETCH NEXT ? ROWS ONLY";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
-            CoreRules.SORT_JOIN_TRANSPOSE,
-            CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6983">[CALCITE-6983]
-   * SortJoinTransposeRule should not push SORT past a JOIN when SORT's fetch is DynamicParam
-   * </a>. */
-  @Test void testSortJoinTranspose9() {
-    final String sql = "select * from sales.emp e left join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "OFFSET ? ROWS";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
-            CoreRules.SORT_JOIN_TRANSPOSE,
-            CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  @Test void testSortJoinTranspose10() {
-    final String sql = "select * from sales.emp e left join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "limit 3000000000 offset 2500000000";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testSortProjectTranspose1() {
-    // This one can be pushed down
-    final String sql = "select d.deptno from sales.dept d\n"
-        + "order by cast(d.deptno as integer) offset 1";
-    sql(sql).withRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testSortProjectTranspose2() {
-    // This one can be pushed down
-    final String sql = "select d.deptno from sales.dept d\n"
-        + "order by cast(d.deptno as double) offset 1";
-    sql(sql).withRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testSortProjectTranspose3() {
-    // This one cannot be pushed down
-    final String sql = "select d.deptno from sales.dept d\n"
-        + "order by cast(d.deptno as varchar(10)) offset 1";
-    sql(sql).withRule(CoreRules.SORT_JOIN_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1023">[CALCITE-1023]
    * Planner rule that removes Aggregate keys that are constant</a>. */
-  @Test void testAggregateConstantKeyRule() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp\n"
-        + "where deptno = 10\n"
-        + "group by deptno, sal";
-    sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
@@ -8750,61 +5673,21 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Tests {@link AggregateProjectPullUpConstantsRule} where reduction is not
    * possible because "deptno" is the only key. */
-  @Test void testAggregateConstantKeyRule2() {
-    final String sql = "select count(*) as c\n"
-        + "from sales.emp\n"
-        + "where deptno = 10\n"
-        + "group by deptno";
-    sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
-        .checkUnchanged();
-  }
 
   /** Tests {@link AggregateProjectPullUpConstantsRule} where both keys are
    * constants but only one can be removed. */
-  @Test void testAggregateConstantKeyRule3() {
-    final String sql = "select job\n"
-        + "from sales.emp\n"
-        + "where mgr is null and job = 'Clerk'\n"
-        + "group by mgr, job\n"
-        + "having count(*) > 3";
-    sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
-        .check();
-  }
 
   /** Tests {@link AggregateProjectPullUpConstantsRule} where
    * there are group keys of type
    * {@link org.apache.calcite.sql.fun.SqlAbstractTimeFunction}
    * that can not be removed. */
-  @Test void testAggregateDynamicFunction() {
-    final String sql = "select hiredate\n"
-        + "from sales.emp\n"
-        + "where mgr is null and hiredate = current_timestamp\n"
-        + "group by mgr, hiredate\n"
-        + "having count(*) > 3";
-    sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
-        .check();
-  }
 
-  @Test void testReduceExpressionsNot() {
-    final String sql = "select * from (values (false),(true)) as q (col1) where not(col1)";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
-  /** Tests expanding a sub-query, specifically an uncorrelated scalar
-   * sub-query in a project (SELECT clause). */
-  @Test void testExpandProjectScalar() {
-    final String sql = "select empno,\n"
-        + "  (select deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql).withSubQueryRules().check();
-  }
 
   @Test void testSelectNotInCorrelated() {
     final String sql = "select sal,\n"
         + " empno NOT IN (\n"
         + " select deptno from dept\n"
-        + "   where emp.job=dept.name)\n"
+        + "   where emp.job=dept.dname)\n"
         + " from emp";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
@@ -8816,7 +5699,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sal from emp\n"
         + "where empno NOT IN (\n"
         + "  select deptno from dept\n"
-        + "  where emp.job = dept.name)";
+        + "  where emp.job = dept.dname)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -8843,7 +5726,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for testing type created by SubQueryRemoveRule: an
    * ANY sub-query is non-nullable therefore plan should have cast. */
   @Test void testAnyInProjectNonNullable() {
-    final String sql = "select name, deptno > ANY (\n"
+    final String sql = "select dname, deptno > ANY (\n"
         + "  select deptno from emp)\n"
         + "from dept";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
@@ -8852,7 +5735,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for testing type created by SubQueryRemoveRule; an
    * ANY sub-query is nullable therefore plan should not have cast. */
   @Test void testAnyInProjectNullable() {
-    final String sql = "select deptno, name = ANY (\n"
+    final String sql = "select deptno, dname = ANY (\n"
         + "  select mgr from emp)\n"
         + "from dept";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
@@ -8860,14 +5743,14 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSelectAnyCorrelated() {
     final String sql = "select empno > ANY (\n"
-        + "  select deptno from dept where emp.job = dept.name)\n"
+        + "  select deptno from dept where emp.job = dept.dname)\n"
         + "from emp\n";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
   @Test void testWhereAnyCorrelatedInSelect() {
     final String sql = "select * from emp where empno > ANY (\n"
-        + "  select deptno from dept where emp.job = dept.name)\n";
+        + "  select deptno from dept where emp.job = dept.dname)\n";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -8879,7 +5762,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testSomeWithEquality2() {
     final String sql = "select * from emp e1\n"
-        + "  where e1.ename= SOME (select name from dept)";
+        + "  where e1.ename= SOME (select dname from dept)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -8890,40 +5773,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test public void testSomeWithTwoCorrelatedSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n"
-        + "where deptno > some(\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
-        + "or deptno < some(\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test public void testSomeWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n"
-        + "where deptno > some(\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
-        + "or deptno < some(\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
    * Sub-queries connected by OR</a>. */
   @Test void testWhereOrSubQuery() {
@@ -8931,224 +5780,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where sal = 4\n"
         + "or empno NOT IN (select deptno from dept)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
-
-  @Test void testExpandProjectIn() {
-    final String sql = "select empno,\n"
-        + "  deptno in (select deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandProjectInNullable() {
-    final String sql = "with e2 as (\n"
-        + "  select empno, case when deptno > 0 then deptno else null end as deptno\n"
-        + "  from sales.emp)\n"
-        + "select empno,\n"
-        + "  deptno in (select deptno from e2 where empno < 20) as d\n"
-        + "from e2";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandProjectInWithTwoCorrelatedSubQueries() {
-    final String sql = "select empno, deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)\n"
-        + "from sales.empnullables as e";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  @Test void testExpandProjectInWithTwoSubQueries() {
-    final String sql = "select empno, deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')\n"
-        + "from sales.empnullables";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  @Test void testExpandProjectInComposite() {
-    final String sql = "select empno, (empno, deptno) in (\n"
-        + "    select empno, deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandProjectExists() {
-    final String sql = "select empno,\n"
-        + "  exists (select deptno from sales.emp where empno < 20) as d\n"
-        + "from sales.emp";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  @Test void testExpandFilterScalar() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where (select deptno from sales.emp where empno < 20)\n"
-        + " < (select deptno from sales.emp where empno > 100)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExpandFilterIn() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where deptno in (select deptno from sales.emp where empno < 20)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExpandFilterInComposite() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where (empno, deptno) in (\n"
-        + "  select empno, deptno from sales.emp where empno < 20)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test void testExpandFilterInCorrelatedWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n"
-        + "where deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries in subquery remove phase</a>. */
-  @Test void testExpandFilterInWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n"
-        + "where deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
-        + "or deptno in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** An IN filter that requires full 3-value logic (true, false, unknown). */
-  @Test void testExpandFilterIn3Value() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where empno\n"
-        + " < case deptno in (select case when deptno > 0 then deptno else null end\n"
-        + "                   from sales.emp where empno < 20)\n"
-        + "   when true then 10\n"
-        + "   when false then 20\n"
-        + "   else 30\n"
-        + "   end";
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5680">[CALCITE-5680]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries with only literal operands in subquery remove phase</a>. */
-  @Test void testExpandFilterConstantInCorrelatedWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n"
-        + "where 1 in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
-        + "or 2 in (\n"
-        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
-    // We disable expression simplification and enable trim to make plan
-    // more straightforward and easier to identify whether the plan is correct
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5680">[CALCITE-5680]
-   * Wrong field reference lookup due to same intermediate table alias
-   * of multiple sub-queries with only literal operands in subquery remove phase</a>. */
-  @Test void testExpandFilterConstantInWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n"
-        + "where 1 in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
-        + "or 2 in (\n"
-        + "  select deptno from sales.deptnullables where name = 'dept2')";
-    // We disable expression simplification and enable trim to make plan
-    // more straightforward and easier to identify whether the plan is correct
-    sql(sql)
-        .withSubQueryRules()
-        .withRelBuilderSimplify(false)
-        .withTrim(true)
-        .check();
-  }
-
-  /** An EXISTS filter that can be converted into true/false. */
-  @Test void testExpandFilterExists() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)\n"
-        + "or emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** An EXISTS filter that can be converted into a semi-join. */
-  @Test void testExpandFilterExistsSimple() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** An EXISTS filter that can be converted into a semi-join. */
-  @Test void testExpandFilterExistsSimpleAnd() {
-    final String sql = "select empno\n"
-        + "from sales.emp\n"
-        + "where exists (select deptno from sales.emp where empno < 20)\n"
-        + "and emp.sal < 100";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExpandJoinScalar() {
-    final String sql = "select empno\n"
-        + "from sales.emp left join sales.dept\n"
-        + "on (select deptno from sales.emp where empno < 20)\n"
-        + " < (select deptno from sales.emp where empno > 100)";
-    sql(sql).withSubQueryRules().check();
   }
 
   /** Test case for
@@ -9277,13 +5908,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
-  @Test void testExpandJoinExists() {
-    final String sql = "select empno\n"
-        + "from sales.emp left join sales.dept\n"
-        + "on exists (select deptno from sales.emp where empno < 20)";
-    sql(sql).withSubQueryRules().check();
-  }
-
   @Test void testDecorrelateExists() {
     final String sql = "select * from sales.emp\n"
         + "where EXISTS (\n"
@@ -9324,7 +5948,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select sal\n"
         + "from sales.emp\n"
         + "where empno IN (\n"
-        + "  select deptno from dept where emp.job = dept.name)\n"
+        + "  select deptno from dept where emp.job = dept.dname)\n"
         + "AND empno IN (\n"
         + "  select empno from emp e where emp.ename = e.ename)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
@@ -9344,14 +5968,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
-  @Test void testWhereInJoinCorrelated() {
-    final String sql = "select empno from emp as e\n"
-        + "join dept as d using (deptno)\n"
-        + "where e.sal in (\n"
-        + "  select e2.sal from emp as e2 where e2.deptno > e.deptno)";
-    sql(sql).withSubQueryRules().check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1494">[CALCITE-1494]
    * Inefficient plan for correlated sub-queries</a>. In "planAfter", there
@@ -9359,7 +5975,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * value-generator for emp.job. */
   @Test void testWhereInCorrelated() {
     final String sql = "select sal from emp where empno IN (\n"
-        + "  select deptno from dept where emp.job = dept.name)";
+        + "  select deptno from dept where emp.job = dept.dname)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
@@ -9372,19 +5988,11 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testWhereExpressionInCorrelated2() {
-    final String sql = "select name from (\n"
-        + "  select name, deptno, deptno - 10 as deptnoMinus from dept) as d\n"
+    final String sql = "select dname from (\n"
+        + "  select dname, deptno, deptno - 10 as deptnoMinus from dept) as d\n"
         + "where deptno in (\n"
         + "  select deptno from emp where sal + 1 = d.deptnoMinus)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
-
-  @Test void testExpandWhereComparisonCorrelated() {
-    final String sql = "select empno\n"
-        + "from sales.emp as e\n"
-        + "where sal = (\n"
-        + "  select max(sal) from sales.emp e2 where e2.empno = e.empno)";
-    sql(sql).withSubQueryRules().check();
   }
 
   @Test void testCustomColumnResolvingInNonCorrelatedSubQuery() {
@@ -9504,7 +6112,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * failing during the decorrelation phase. The correlation variable is used at two levels
    * deep. */
   @Test void testTwoLevelDecorrelate() {
-    final String sql = "SELECT d1.name, d1.deptno + (\n"
+    final String sql = "SELECT d1.dname, d1.deptno + (\n"
         + "SELECT e1.empno\n"
         + "FROM emp e1\n"
         + "WHERE d1.deptno = e1.deptno and\n"
@@ -9553,7 +6161,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * failing during the decorrelation phase. The correlation variable is used at the second
    * level and is not used in the first level */
   @Test void testCorrelatedVariableAtSecondLevel() {
-    final String sql = "SELECT d1.name, d1.deptno +(\n"
+    final String sql = "SELECT d1.dname, d1.deptno +(\n"
         + "SELECT e1.empno\n"
         + "FROM emp e1\n"
         + "WHERE e1.sal = (SELECT max(sal)\n"
@@ -9574,7 +6182,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateProjectWithFetchOne() {
-    final String query = "SELECT name, "
+    final String query = "SELECT dname, "
         + "(SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) "
         + "FROM dept";
     sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
@@ -9609,7 +6217,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateProjectWithFetchOneDesc() {
-    final String query = "SELECT name, "
+    final String query = "SELECT dname, "
         + "(SELECT emp.sal FROM emp WHERE dept.deptno = emp.deptno "
         + "ORDER BY emp.sal desc nulls last LIMIT 1) "
         + "FROM dept";
@@ -9623,7 +6231,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateFilterWithFetchOne() {
-    final String query = "SELECT name FROM dept "
+    final String query = "SELECT dname FROM dept "
         + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
         + "ORDER BY emp.sal limit 1)";
     sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
@@ -9636,7 +6244,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateFilterWithFetchOneDesc() {
-    final String query = "SELECT name FROM dept "
+    final String query = "SELECT dname FROM dept "
         + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
         + "ORDER BY emp.sal desc nulls last limit 1)";
     sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
@@ -9649,7 +6257,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateFilterWithFetchOneDesc1() {
-    final String query = "SELECT name FROM dept "
+    final String query = "SELECT dname FROM dept "
         + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
         + "ORDER BY emp.sal desc limit 1)";
     sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
@@ -9662,7 +6270,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateProjectWithMultiKeyAndFetchOne() {
-    final String query = "SELECT name, "
+    final String query = "SELECT dname, "
         + "(SELECT sal FROM emp where dept.deptno = emp.deptno "
         + "order by year(hiredate), emp.sal limit 1) FROM dept";
     sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
@@ -9675,8 +6283,8 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateProjectWithMultiKeyAndFetchOne1() {
-    final String query = "SELECT name, "
-        + "(SELECT sal FROM emp where dept.deptno = emp.deptno and dept.name = emp.ename "
+    final String query = "SELECT dname, "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno and dept.dname = emp.ename "
         + "order by year(hiredate), emp.sal limit 1) FROM dept";
     sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
         .withLateDecorrelate(true)
@@ -9688,7 +6296,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * RelDecorrelator can't decorrelate query with limit 1</a>.
    */
   @Test void testDecorrelateFilterWithMultiKeyAndFetchOne() {
-    final String query = "SELECT name FROM dept "
+    final String query = "SELECT dname FROM dept "
         + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
         + "order by year(hiredate), emp.sal desc limit 1)";
     sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
@@ -9733,30 +6341,10 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6927">[CALCITE-6927]
    * Add rule for join condition remove IS NOT DISTINCT FROM</a>. */
-  @Test void testJoinConditinExpandIsNotDistinctFromRule() {
-    final String sql = ""
-        + "select t1.ENAME from empnullables as t1\n"
-        + "join\n"
-        + "empnullables as t2\n"
-        + "on t1.ENAME is not distinct from t2.ENAME";
-    sql(sql)
-        .withRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6927">[CALCITE-6927]
    * Add rule for join condition remove IS NOT DISTINCT FROM</a>. */
-  @Test void testJoinConditinExpandIsNotDistinctFromRuleArray() {
-    final String sql = ""
-        + "select t1.ADMINS from DEPT_NESTED_EXPANDED as t1\n"
-        + "join\n"
-        + "DEPT_NESTED_EXPANDED as t2\n"
-        + "on t1.ADMINS is not distinct from t2.ADMINS";
-    sql(sql)
-        .withRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM)
-        .check();
-  }
 
   /** Creates an environment for testing spatial queries. */
   private RelOptFixture spatial(String sql) {
@@ -9838,93 +6426,28 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testOversimplifiedCaseStatement() {
-    String sql = "select * from emp "
-        + "where MGR > 0 and "
-        + "case when MGR > 0 then deptno / MGR else null end > 1";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
 
   /** Test case for
   * <a href="https://issues.apache.org/jira/browse/CALCITE-2726">[CALCITE-2726]
   * ReduceExpressionRule may oversimplify filter conditions containing nulls</a>.
   */
-  @Test void testNoOversimplificationBelowIsNull() {
-    String sql = "select *\n"
-        + "from emp\n"
-        + "where ( (empno=1 and mgr=1) or (empno=null and mgr=1) ) is null";
-    sql(sql).withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
-  @Test void testJoinConditionOrExpansionRule() {
-    String sql = "select *\n"
-        + "from EMP as p1\n"
-        + "inner join EMP as p2 on p1.empno = p2.empno or p1.mgr = p2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
-        .check();
-  }
 
-  @Test void testJoinConditionOrExpansionRule2() {
-    String sql = "select * from empnullables as t1 inner join empnullables as t2\n"
-        + "on (t1.empno = t2.empno\n"
-        + "and t1.job = 'Job1'\n"
-        + "and t1.ename in ('a', 'bb', 'cc')\n"
-        + "and t1.sal > 120 and t1.sal < 3000\n"
-        + "and t1.mgr = t1.comm)\n"
-        + "or\n"
-        + "(t1.deptno = t2.deptno\n"
-        + "and t2.job = 'Job2'\n"
-        + "and t2.ename in ('a', 'bb', 'cc')\n"
-        + "and t2.sal > 110 and t2.sal < 3000\n"
-        + "and t1.mgr + 10 < ln(15))\n"
-        + "or\n"
-        + "(t1.ename = 'Jensen'\n"
-        + "and t2.comm > 10)\n"
-        + "or\n"
-        + "t1.mgr between 10.0 and 20\n";
-
-    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
-  @Test void testJoinConditionOrExpansionRuleMultiOr() {
-    String sql = "select *\n"
-        + "from EMP as p1\n"
-        + "inner join EMP as p2 on  p1.mgr < p2.mgr or\n"
-        + "p1.empno = p2.empno or p1.sal < 0 or ln(p1.sal) < 10";
-    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
-  @Test void testJoinConditionOrExpansionRuleRight() {
-    String sql = "select *\n"
-        + "from EMP as p1\n"
-        + "right join DEPT as p2 on p1.empno = p2.deptno or p1.ename < p2.name";
-    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
-  @Test void testJoinConditionOrExpansionRuleLeft() {
-    String sql = "select *\n"
-        + "from EMP as p1\n"
-        + "left join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal";
-    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
@@ -9997,8 +6520,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.of(SqlKind.AVG))
         .toRule();
-    final String sql = "select name, max(name), avg(deptno), min(name)\n"
-        + "from sales.dept group by name";
+    final String sql = "select dname, max(dname), avg(deptno), min(dname)\n"
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10007,8 +6530,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
         .toRule();
-    String sql = "select name, max(name), avg(deptno), min(name)"
-        + " from sales.dept group by name";
+    String sql = "select dname, max(dname), avg(deptno), min(dname)"
+        + " from sales.dept group by dname";
     sql(sql).withRule(rule).checkUnchanged();
   }
 
@@ -10017,8 +6540,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
         .toRule();
-    String sql = "select name, sum(deptno)"
-            + " from sales.dept group by name";
+    String sql = "select dname, sum(deptno)"
+            + " from sales.dept group by dname";
     sql(sql).withRule(rule).checkUnchanged();
   }
 
@@ -10029,9 +6552,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.of(SqlKind.AVG, SqlKind.VAR_POP))
         .toRule();
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
         + " var_pop(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10042,9 +6565,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .withOperandFor(LogicalAggregate.class)
         .withFunctionsToReduce(EnumSet.of(SqlKind.AVG, SqlKind.SUM))
         .toRule();
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
         + " var_pop(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10068,9 +6591,9 @@ class RelOptRulesTest extends RelOptTestBase {
             EnumSet.of(SqlKind.AVG, SqlKind.SUM, SqlKind.STDDEV_POP,
                 SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP))
         .toRule();
-    final String sql = "select name, stddev_pop(deptno), avg(deptno),"
+    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
         + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
-        + "from sales.dept group by name";
+        + "from sales.dept group by dname";
     sql(sql).withRule(rule).check();
   }
 
@@ -10088,14 +6611,6 @@ class RelOptRulesTest extends RelOptTestBase {
   * <a href="https://issues.apache.org/jira/browse/CALCITE-2803">[CALCITE-2803]
   * Identify expanded IS NOT DISTINCT FROM expression when pushing project past join</a>.
   */
-  @Test void testPushProjectWithIsNotDistinctFromPastJoin() {
-    final String sql = "select e.sal + b.comm from emp e inner join bonus b\n"
-        + "on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10";
-    sql(sql)
-        .withRelBuilderSimplify(false)
-        .withRule(CoreRules.PROJECT_JOIN_TRANSPOSE)
-        .check();
-  }
 
   @Test void testDynamicStarWithUnion() {
     String sql = "(select n_nationkey from SALES.CUSTOMER)\n"
@@ -10179,14 +6694,6 @@ class RelOptRulesTest extends RelOptTestBase {
     assertThat(collationAfter, is(collationBefore));
   }
 
-  @Test void testPushFilterWithIsNotDistinctFromPastJoin() {
-    String sql = "SELECT * FROM "
-        + "emp t1 INNER JOIN "
-        + "emp t2 "
-        + "ON t1.deptno = t2.deptno "
-        + "WHERE t1.ename is not distinct from t2.ename";
-    sql(sql).withRule(CoreRules.FILTER_INTO_JOIN).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3997">[CALCITE-3997]
@@ -10313,33 +6820,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
   }
 
-  @Test void testSortJoinCopyInnerJoinOrderBy() {
-    final String sql = "select * from sales.emp join sales.dept on\n"
-        + "sales.emp.deptno = sales.dept.deptno order by sal";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_COPY)
-        .check();
-  }
 
-  @Test void testSortJoinCopyInnerJoinOrderByLimit() {
-    final String sql = "select * from sales.emp e join (\n"
-        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
-        + "order by sal limit 10";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_COPY)
-        .check();
-  }
 
-  @Test void testSortJoinCopyInnerJoinOrderByTwoFields() {
-    final String sql = "select * from sales.emp e join  sales.dept d on\n"
-        + " e.deptno = d.deptno order by e.sal,d.name";
-    sql(sql)
-        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.SORT_JOIN_COPY)
-        .check();
-  }
 
   @Test void testSortJoinCopySemiJoinOrderBy() {
     final String sql = "select * from sales.dept d where d.deptno in\n"
@@ -10378,13 +6860,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
    * Subquery in join conditions rewrite fails if referencing a column
    * from the right-hand side table</a>. */
-  @Test void testJoinSubQueryRemoveRuleWithNotIn() {
-    final String sql = "SELECT empno FROM emp JOIN dept on "
-        + "emp.deptno not in (SELECT deptno FROM dept)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7350">[CALCITE-7350]
@@ -10409,96 +6884,28 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
    * Subquery in join conditions rewrite fails if referencing a column
    * from the right-hand side table</a>. */
-  @Test void testJoinSubQueryRemoveRuleWithQuantifierSome() {
-    final String sql = "SELECT empno FROM emp JOIN dept on "
-        + "emp.deptno >= SOME(SELECT deptno FROM dept)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .check();
-  }
 
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
    * Subquery in join conditions rewrite fails if referencing a column
    * from the right-hand side table</a>. */
-  @Test void testJoinSubQueryRewriteWithBothSidesColumns() {
-    final String sql = "SELECT empno FROM emp JOIN dept on "
-        + "emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .checkUnchanged();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
    * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
-  @Test void testJoinSubQueryRemoveRuleWithNotExists() {
-    final String sql = "select *\n"
-        + "from (select 1 id) t1\n"
-        + "left join (select 2 id) t2\n"
-        + "on not exists(select *\n"
-        + "               from (select 3 id) p\n"
-        + "               where p.id = t2.id)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
    * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
-  @Test void testJoinSubQueryRemoveRuleWithOrExists() {
-    final String sql = "select *\n"
-        + "from (select 1 id) t1\n"
-        + "left join (select 2 id) t2\n"
-        + "on t1.id = t2.id or exists(select *\n"
-        + "                           from (select 3 id) p\n"
-        + "                           where p.id = t2.id)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
    * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
-  @Test void testJoinSubQueryRemoveRuleWithOrNotExists() {
-    final String sql = "select *\n"
-        + "from (select 1 id) t1\n"
-        + "left join (select 2 id) t2\n"
-        + "on t1.id = t2.id or not exists(select *\n"
-        + "                               from (select 3 id) p\n"
-        + "                               where p.id = t2.id)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
    * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
-  @Test void testJoinSubQueryRemoveRuleWithAndNotExists() {
-    final String sql = "select *\n"
-        + "from (select 1 id union all select 2) t1\n"
-        + "left join (select 2 id) t2\n"
-        + "on t1.id = t2.id and not exists(select *\n"
-        + "                                from (select 3 id) p\n"
-        + "                                where p.id = t1.id)";
-    sql(sql)
-        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2295">[CALCITE-2295]
-   * Correlated SubQuery with Project will generate error plan</a>. */
-  @Test public void testDecorrelationWithProject() throws Exception {
-    final String sql = "select sal,\n"
-        + "exists (select * from emp_b where emp.deptno = emp_b.deptno)\n"
-        + "from sales.emp";
-    sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3296">[CALCITE-3296]
@@ -10536,19 +6943,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6870">[CALCITE-6870]
    * The FilterToCalcRule/ProjectToCalcRule should not convert a Filter/Project to Calc
    * when it contains Subquery</a>. */
-  @Test void testFilterToCalc() {
-    final String sql = "select ename from emp where sal > all (select comm from emp)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_TO_CALC)
-        .checkUnchanged();
-  }
 
-  @Test void testProjectToCalc() {
-    final String sql = "select  sal > all (select comm from emp) from emp";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_TO_CALC)
-        .checkUnchanged();
-  }
 
   /**
    * Test case for
@@ -10612,29 +7007,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * Treat agg expressions that can ignore distinct constraint as
    * distinct in AggregateExpandDistinctAggregatesRule when all the
    * other agg expressions are distinct and have same arguments</a>. */
-  @Test void testMaxReuseDistinctAttrWithMixedOptionality() {
-    final String sql = "select sum(distinct deptno), count(distinct deptno), "
-        + "max(deptno) from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES).check();
-  }
 
-  @Test void testMinReuseDistinctAttrWithMixedOptionality() {
-    final String sql = "select sum(distinct deptno), count(distinct deptno), "
-        + "min(deptno) from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES).check();
-  }
 
-  @Test void testBitAndReuseDistinctAttrWithMixedOptionality() {
-    final String sql = "select sum(distinct deptno), count(distinct deptno), "
-        + "bit_and(deptno) from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES).check();
-  }
 
-  @Test void testBitOrReuseDistinctAttrWithMixedOptionality() {
-    final String sql = "select sum(distinct deptno), count(distinct deptno), "
-        + "bit_or(deptno) from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES).check();
-  }
 
   @Test void testProjectJoinTransposeItem() {
     ProjectJoinTransposeRule projectJoinTransposeRule =
@@ -10669,7 +7044,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .relFn(b -> {
           // Build a rel equivalent to sql:
-          // SELECT name FROM (SELECT count(*) cnt_star, count(empno) cnt_en FROM sales.emp)
+          // SELECT dname FROM (SELECT count(*) cnt_star, count(empno) cnt_en FROM sales.emp)
           // cross join sales.dept
           // limit 10
 
@@ -10701,45 +7076,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testSimplifyItemIsNotNull() {
-    final String sql = "select *\n"
-        + "from sales.customer as t1\n"
-        + "where t1.c_nationkey[0] is not null";
 
-    sql(sql)
-        .withDynamicTable()
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
-  @Test void testSimplifyItemIsNull() {
-    String sql = "select * from sales.customer as t1 where t1.c_nationkey[0] is null";
-
-    sql(sql)
-        .withDynamicTable()
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
-   * FilterJoinRule cannot simplify left join to inner join for `WHERE
-   * RHS.C1 IS NOT NULL OR RHS.C2 IS NOT NULL`</a>.
-   *
-   * <p>This tests the case where the condition contains an OR between
-   * the IS NOT NULL filters. */
-  @Test void testFilterJoinRuleOrIsNotNull() {
-    final String sql = "select * from\n"
-        + "emp LHS\n"
-        + "left join dept RHS on LHS.EMPNO = RHS.DEPTNO\n"
-        + "where\n"
-        + "RHS.DEPTNO is not null\n"
-        + "OR RHS.NAME is not null";
-
-    sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
@@ -10748,18 +7085,6 @@ class RelOptRulesTest extends RelOptTestBase {
    *
    * <p>This tests the case where the condition contains an AND
    * between the IS NOT NULL filters. */
-  @Test void testFilterJoinRuleAndIsNotNull() {
-    final String sql = "select * from\n"
-        + "emp LHS\n"
-        + "left join dept RHS on LHS.EMPNO = RHS.DEPTNO\n"
-        + "where\n"
-        + "RHS.DEPTNO is not null\n"
-        + "AND RHS.NAME is not null";
-
-    sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
 
   @Test void testJoinCommuteRuleWithAlwaysTrueConditionAllowed() {
     checkJoinCommuteRuleWithAlwaysTrueConditionDisallowed(true);
@@ -10964,19 +7289,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testLoptOptimizeJoinRulePrioritizeSelfJoin() {
-    HepProgram program = new HepProgramBuilder()
-        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
-        .build();
-
-    sql("select e.empno from emp e"
-        + " inner join dept d on d.deptno = e.deptno"
-        + " inner join emp e2 on e.empno = e2.empno")
-        .withPre(program)
-        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6788">[CALCITE-6788]
@@ -11045,31 +7357,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6874">[CALCITE-6874]
    * FilterCalcMergeRule/ProjectCalcMergeRule should not merge a Filter/Project to Calc
    * when it contains Subquery</a>. */
-  @Test void testFilterCalcMergeRule() {
-    final String sql = "select deptno from sales.emp where\n"
-        + "exists (select deptno from sales.emp where empno < 20)\n";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
-        .build();
-    sql(sql)
-        .withPre(program)
-        .withRule(CoreRules.FILTER_CALC_MERGE)
-        .checkUnchanged();
-  }
 
-  @Test void testProjectCalcMergeRule() {
-    final String sql = "select exists (select deptno from sales.emp)\n"
-        + "from (select deptno from sales.emp where empno < 20)\n";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .addRuleInstance(CoreRules.FILTER_TO_CALC)
-        .build();
-    sql(sql)
-        .withPre(program)
-        .withRule(CoreRules.PROJECT_CALC_MERGE)
-        .checkUnchanged();
-  }
 
   /**
    * Test case of
@@ -11143,74 +7431,12 @@ class RelOptRulesTest extends RelOptTestBase {
         + "emp, emp_b, dept, dept_nested "
         + "where emp.empno = emp_b.empno "
         + "and emp_b.deptno = dept.deptno "
-        + "and dept.name = dept_nested.name "
+        + "and dept.dname = dept_nested.dname "
         + "and dept_nested.deptno = emp.deptno "
         + "and emp.sal + emp_b.sal = dept.deptno + dept_nested.deptno")
         .withPre(program)
         .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
         .check();
-  }
-
-  /**
-   * Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
-   * Add Rule to convert INTERSECT to EXISTS</a>. */
-  @Test void testIntersectToExistsRuleOneField() {
-    String sql = "SELECT a.ename FROM emp AS a\n"
-        + "INTERSECT\n"
-        + "SELECT b.name FROM dept AS b";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
-        .check();
-  }
-
-  /**
-   * Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
-   * Add Rule to convert INTERSECT to EXISTS</a>. */
-  @Test void testIntersectToExistsRulePrimaryKey() {
-    String sql = "SELECT a.empno FROM emp AS a\n"
-        + "INTERSECT\n"
-        + "SELECT b.empno FROM emp AS b";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
-        .check();
-  }
-
-  /**
-   * Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
-   * Add Rule to convert INTERSECT to EXISTS</a>. */
-  @Test void testIntersectToExistsRuleMultiFields() {
-    String sql = "SELECT a.ename, a.job FROM emp AS a\n"
-        + "INTERSECT\n"
-        + "SELECT b.ename, b.job FROM emp AS b";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
-        .check();
-  }
-
-  /**
-   * Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
-   * Add Rule to convert INTERSECT to EXISTS</a>. */
-  @Test void testIntersectToExistsRuleMultiIntersect() {
-    String sql = "SELECT a.ename FROM emp AS a\n"
-        + "INTERSECT\n"
-        + "SELECT b.name FROM dept AS b\n"
-        + "INTERSECT\n"
-        + "SELECT c.ename FROM emp AS c";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
-        .check();
-  }
-
-  /**
-   * Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
-   * Add Rule to convert INTERSECT to EXISTS</a>. */
-  @Test void testIntersectToExistsRuleWithAll() {
-    String sql = "SELECT a.ename FROM emp AS a\n"
-        + "INTERSECT ALL\n"
-        + "SELECT b.name FROM dept AS b";
-    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
-        .checkUnchanged();
   }
 
   /** Test case of
@@ -11261,217 +7487,12 @@ class RelOptRulesTest extends RelOptTestBase {
     }).check();
   }
 
-  @Test void testExpandFilterDisjunctionForTable() {
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUNCTION_GLOBAL)
-        .build();
 
-    sql("select e.empno from emp as e, empnullables as en "
-        + "where e.empno = en.empno "
-        + "and "
-        + "( "
-        + "  (e.mgr > 100 and en.sal < 200) "
-        + "  or "
-        + "  e.comm < 50 "
-        + ") ")
-        .withPre(program)
-        .withRule(CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
-
-  @Test void testExpandJoinDisjunctionForTable() {
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXPAND_JOIN_DISJUNCTION_GLOBAL)
-        .build();
-
-    sql("select e.empno from emp as e inner join empnullables as en "
-        + "on e.empno = en.empno "
-        + "and "
-        + "( "
-        + "  (e.mgr > 100 and en.sal < 200) "
-        + "  or "
-        + "  (e.comm < 50 and en.deptno > 10) "
-        + ") ")
-        .withPre(program)
-        .withRule(CoreRules.JOIN_CONDITION_PUSH)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
-   * Add rule for convert Minus to Filter</a>. */
-  @Test void testMinusToFilterRuleWithTwoFilters() {
-    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
-        + "EXCEPT\n"
-        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
-   * Add rule for convert Minus to Filter</a>. */
-  @Test void testMinusToFilterRuleWithOneFilter() {
-    final String sql = "SELECT mgr, comm FROM emp\n"
-        + "EXCEPT\n"
-        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
-        .check();
-  }
 
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
    * Create an optimization rule to eliminate UNION
    * from the same source with different filters</a>. */
-  @Test void testMinusToFilterRuleNWayWithMultiSources() {
-    final String sql = "SELECT deptno FROM emp WHERE deptno > 6\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM dept WHERE deptno > 8\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM emp WHERE deptno > 12\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM dept WHERE deptno > 10\n";
-    sql(sql)
-        .withPreRule(CoreRules.MINUS_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testMinusToFilterRuleFourWayWithForSources() {
-    final String sql = "SELECT deptno FROM emp WHERE deptno = 12\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM dept WHERE deptno = 5\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM empnullables WHERE deptno = 6\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM deptnullables WHERE deptno = 10\n";
-    sql(sql)
-        .withPreRule(CoreRules.MINUS_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
-        .checkUnchanged();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testMinusToFilterNWayWithSubquery() {
-    final String sql = "SELECT deptno FROM emp WHERE deptno > 12\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM dept WHERE deptno = 5\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM emp e1 WHERE EXISTS (\n"
-        + "    SELECT 1 FROM emp e2\n"
-        + "    WHERE e2.comm = e1.comm)\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM dept WHERE deptno = 10\n"
-        + "EXCEPT\n"
-        + "SELECT deptno FROM emp WHERE deptno > 20\n";
-    sql(sql)
-        .withPreRule(CoreRules.MINUS_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testUnionToFilterRuleWithTwoFilters() {
-    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
-        + "UNION\n"
-        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testUnionToFilterRuleWithOneFilter() {
-    final String sql = "SELECT mgr, comm FROM emp\n"
-        + "UNION\n"
-        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testUnionToFilterRuleNWayWithMultiSources() {
-    final String sql = "SELECT deptno FROM emp WHERE deptno = 12\n"
-        + "UNION\n"
-        + "SELECT deptno FROM dept WHERE deptno = 5\n"
-        + "UNION\n"
-        + "SELECT deptno FROM emp WHERE deptno = 6\n"
-        + "UNION\n"
-        + "SELECT deptno FROM dept WHERE deptno = 10\n";
-    sql(sql)
-        .withPreRule(CoreRules.UNION_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testIntersectToFilterRuleWithTwoFilters() {
-    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
-        + "INTERSECT\n"
-        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.INTERSECT_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testIntersectToFilterRuleWithOneFilter() {
-    final String sql = "SELECT mgr, comm FROM emp\n"
-        + "INTERSECT\n"
-        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.INTERSECT_FILTER_TO_FILTER)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-  @Test void testIntersectToFilterRuleNWayWithMultiSources() {
-    final String sql = "SELECT deptno FROM emp WHERE deptno < 12\n"
-        + "INTERSECT\n"
-        + "SELECT deptno FROM dept WHERE deptno > 5\n"
-        + "INTERSECT\n"
-        + "SELECT deptno FROM emp WHERE deptno > 6\n"
-        + "INTERSECT\n"
-        + "SELECT deptno FROM dept WHERE deptno < 10\n";
-    sql(sql)
-        .withPreRule(CoreRules.INTERSECT_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.INTERSECT_FILTER_TO_FILTER)
-        .check();
-  }
 
   @Test void testExpandFilterDisjunctionForJoinInput() {
     HepProgram program = new HepProgramBuilder()
@@ -11510,11 +7531,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testAggregateMinMaxToLimitRule() {
-    final String sql = "select min(deptno), max(deptno) from emp";
-    sql(sql).withRule(CoreRules.AGGREGATE_MIN_MAX_TO_LIMIT)
-        .check();
-  }
 
   @Test void testOuterJoinForDphyp() {
     HepProgram program = new HepProgramBuilder()
@@ -11737,107 +7753,19 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
    * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
-  @Test void testFullJoinToLeftAndRightJoin() {
-    final String query = "select * from emp e1\n"
-        + "full join emp e2\n"
-        + "on e1.sal = e2.sal and e1.mgr is null";
-    sql(query)
-        .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
-        .check();
-  }
 
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
    * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
-  @Test void testFullJoinToLeftAndRightJoinNonDeterministic() {
-    final String query = "select * from emp e1\n"
-        + "full join emp e2\n"
-        + "on rand() > 0.5";
-    sql(query)
-        .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
-        .checkUnchanged();
-  }
 
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7086">[CALCITE-7086]
    * Implement a rule that performs the inverse operation of AggregateCaseToFilterRule</a>. */
-  @Test void testAggregateFilterToCase() {
-    final String sql = "select coalesce(sum_match, 0) as sum0_match, sum_distinct_not_match,\n"
-        + " count_distinct_match, count_star_match from (\n"
-        + " select\n"
-        + " sum(sal) filter(where deptno = 10) as sum_match,\n"
-        + " sum(distinct empno) filter(where deptno = 20) as sum_distinct_not_match,\n"
-        + " count(distinct deptno) filter(where job = 'CLERK') as count_distinct_match,\n"
-        + " count(*) filter(where deptno = 40) as count_star_match\n"
-        + " from emp\n"
-        + " )";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_AGGREGATE_MERGE)
-        .build();
-
-    sql(sql)
-        .withPre(program)
-        .withRule(CoreRules.AGGREGATE_FILTER_TO_CASE)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7104">[CALCITE-7104]
-   * Remove duplicate sort keys</a>. */
-  @Test void testSortRemoveDuplicateKeys() {
-    final String query = "select d1\n"
-        + " from (select deptno as d1, deptno as d2 from dept) as tmp\n"
-        + " order by d1, d2, d1 desc\n";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7104">[CALCITE-7104]
-   * Remove duplicate sort keys</a>. */
-  @Test void testSortRemoveDuplicateKeysJoin() {
-    final String query = "select * from (select deptno as d1, deptno as d2 from emp) as t1\n"
-        + " join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7222">[CALCITE-7222]
-   * SortRemoveDuplicateKeysRule miss fetch and offset infomation</a>. */
-  @Test void testSortRemoveDuplicateKeysWithPK() {
-    final String query = "select * from (select empno as a, deptno as b from emp) t"
-        + " order by a, b limit 1 offset 2";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7222">[CALCITE-7222]
-   * SortRemoveDuplicateKeysRule miss fetch and offset infomation</a>. */
-  @Test void testSortRemoveDuplicateKeysWithLimit() {
-    final String query = "select * from (select empno as a, empno as b from emp) t"
-        + " order by a, b limit 1 offset 2";
-    sql(query)
-        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-        .check();
-  }
 
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
    * Optimize queries with GROUPING SETS by converting them
    * into equivalent UNION ALL of GROUP BY operations</a>. */
-  @Test void testAggregateGroupingSetsToUnionRule() {
-    final String sql = "SELECT deptno, job, sal, SUM(comm)\n"
-        + "FROM emp\n"
-        + "GROUP BY GROUPING SETS ((deptno, job), (deptno, sal))";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_GROUPING_SETS_TO_UNION)
-        .check();
-  }
 
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
@@ -12179,18 +8107,6 @@ class RelOptRulesTest extends RelOptTestBase {
             PruneEmptyRules.PROJECT_INSTANCE)
         .withRule(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
         .check();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7395">[CALCITE-7395]
-   * ProjectMergeRule incorrectly merges PROJECTs with correlation variables</a>. */
-  @Test void testProjectMergeRuleWithCorrelation() {
-    final String sql = "SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)\n"
-        + "FROM (SELECT ARRAY[1,2,3] as x) s";
-
-    sql(sql)
-        .withRule(CoreRules.PROJECT_MERGE)
-        .checkUnchanged();
   }
 
   /** Test case of

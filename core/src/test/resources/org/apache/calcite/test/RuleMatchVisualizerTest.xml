@@ -18,19 +18,19 @@
 <Root>
   <TestCase name="testHepPlanner">
     <Resource name="sql">
-      <![CDATA[select a.name from dept a
+      <![CDATA[select a.dname from dept a
 union all
-select b.name from dept b
-order by name limit 10]]>
+select b.dname from dept b
+order by dname limit 10]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-  LogicalProject(NAME=[$0])
+  LogicalProject(DNAME=[$0])
     LogicalUnion(all=[true])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -39,10 +39,10 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalUnion(all=[true])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-      LogicalProject(NAME=[$1])
+      LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -58,7 +58,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
       },
       "1001":{
         "label":"#1001-LogicalProject",
-        "explanation":"{NAME=$1}",
+        "explanation":"{DNAME=$1}",
         "set":"default",
         "inputs":[ "1000" ]
       },
@@ -70,7 +70,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
       },
       "1003":{
         "label":"#1003-LogicalProject",
-        "explanation":"{NAME=$0}",
+        "explanation":"{DNAME=$0}",
         "set":"default",
         "inputs":[ "1002" ]
       },
@@ -123,17 +123,17 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   </TestCase>
   <TestCase name="testVolcanoPlanner">
     <Resource name="sql">
-      <![CDATA[select a.name from dept a]]>
+      <![CDATA[select a.dname from dept a]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(NAME=[$1])
+LogicalProject(DNAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableProject(NAME=[$1])
+EnumerableProject(DNAME=[$1])
   EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -171,13 +171,13 @@ EnumerableProject(NAME=[$1])
       },
       "1003":{
         "label":"#1003-LogicalProject",
-        "explanation":"{NAME=$1}",
+        "explanation":"{DNAME=$1}",
         "set":"set-1",
         "inputs":[ "1000" ]
       },
       "1004":{
         "label":"subset#1004-set#1-\nENUMERABLE.[]",
-        "explanation":"{subset=rel#1004:RelSubset#1.ENUMERABLE.[], NAME=$1}",
+        "explanation":"{subset=rel#1004:RelSubset#1.ENUMERABLE.[], DNAME=$1}",
         "set":"set-1",
         "kind":"subset",
         "inputs":[ "1005" ]
@@ -215,7 +215,7 @@ EnumerableProject(NAME=[$1])
       },
       "1008":{
         "label":"#1008-EnumerableProject",
-        "explanation":"{NAME=$1}",
+        "explanation":"{DNAME=$1}",
         "set":"set-1",
         "inputs":[ "1006" ]
       }

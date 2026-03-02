@@ -1,0 +1,452 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to converting project sub-queries to correlates.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testDecorrelationWithProject -------------------------------------------------
+# PROJECT_SUB_QUERY_TO_CORRELATE expands an EXISTS in a project, then
+# lateDecorrelate=true decorrelates (converting LogicalCorrelate to
+# LogicalJoin). Not using !ok: emp_b is not in scott database.
+# [CALCITE-2295] Correlated SubQuery with Project will generate error plan
+
+select sal,
+exists (select * from emp_b where emp.deptno = emp_b.deptno)
+from sales.emp;
+LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "subQueryRules, NONE"
+LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f1=[true])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "subQueryRules, lateDecorrelate=true, NONE"
+
+# testExpandProjectExists ------------------------------------------------------
+# Tests that an EXISTS sub-query in a project is expanded to a left join.
+
+select empno,
+  exists (select deptno from emp where empno < 20) as d
+from emp;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], D=[EXISTS({
+LogicalFilter(condition=[<($0, 20)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(EMPNO=[$0], D=[IS NOT NULL($9)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalFilter(condition=[<($0, 20)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, subQueryRules, NONE"
+
+# testExpandProjectIn ----------------------------------------------------------
+# Tests that an IN sub-query in a project is expanded to a left join.
+
+select empno,
+  deptno in (select deptno from emp where empno < 20) as d
+from emp;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], D=[IN($7, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($10), true, false)])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[<($0, 20)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, subQueryRules, NONE"
+
+# testExpandProjectInComposite -------------------------------------------------
+# Tests that a composite IN sub-query (tuple IN) in a project is expanded.
+
+select empno, (empno, deptno) in (
+    select empno, deptno from emp where empno < 20) as d
+from emp;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], D=[IN($0, $7, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($11), true, false)])
+  LogicalJoin(condition=[AND(=($0, $9), =($7, $10))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], i=[true])
+      LogicalFilter(condition=[<($0, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, subQueryRules, NONE"
+
+# testExpandProjectInNullable --------------------------------------------------
+# Tests that an IN sub-query where the left-hand side is nullable is expanded
+# with null-handling logic.
+
+with e2 as (
+  select empno, case when deptno > 0 then deptno else null end as deptno
+  from emp)
+select empno,
+  deptno in (select deptno from e2 where empno < 20) as d
+from e2;
++-------+-------+
+| EMPNO | D     |
++-------+-------+
+|  7369 | false |
+|  7499 | false |
+|  7521 | false |
+|  7566 | false |
+|  7654 | false |
+|  7698 | false |
+|  7782 | false |
+|  7788 | false |
+|  7839 | false |
+|  7844 | false |
+|  7876 | false |
+|  7900 | false |
+|  7902 | false |
+|  7934 | false |
++-------+-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], D=[IN(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER), {
+LogicalProject(DEPTNO=[$1])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, NONE"
+LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false)])
+  LogicalJoin(condition=[=(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+        LogicalProject(DEPTNO=[$1])
+          LogicalFilter(condition=[<($0, 20)])
+            LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(DEPTNO=[$1])
+        LogicalFilter(condition=[<($0, 20)])
+          LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, subQueryRules, NONE"
+
+# testExpandProjectInWithTwoCorrelatedSubQueries --------------------------------
+# Tests that two correlated IN sub-queries in a project are both expanded,
+# preserving correct field references (CALCITE-5655).
+
+select empno, deptno in (
+  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
+or deptno in (
+  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)
+from sales.empnullables as e;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[OR(IN($2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), IN($2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, NONE"
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
+        LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+          LogicalProject(DEPTNO=[$0], i=[true])
+            LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+      LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+      LogicalProject(DEPTNO=[$0], i=[true])
+        LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules, NONE"
+
+# testExpandProjectInWithTwoSubQueries -----------------------------------------
+# Tests that two uncorrelated IN sub-queries in a project are both expanded
+# (CALCITE-5655).
+
+select empno, deptno in (
+  select deptno from sales.deptnullables where dname = 'dept1')
+or deptno in (
+  select deptno from sales.deptnullables where dname = 'dept2')
+from sales.empnullables;
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept1')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept2')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, NONE"
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($9, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), CASE(=($13, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($16), true, <($14, $13), null:BOOLEAN, false))])
+  LogicalJoin(condition=[=($7, $15)], joinType=[left])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[=($7, $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalFilter(condition=[=($1, 'dept1')])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalProject(DEPTNO=[$0], i=[true])
+          LogicalFilter(condition=[=($1, 'dept1')])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+      LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalFilter(condition=[=($1, 'dept2')])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+    LogicalProject(DEPTNO=[$0], i=[true])
+      LogicalFilter(condition=[=($1, 'dept2')])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules, NONE"
+
+# testExpandProjectScalar ------------------------------------------------------
+# Tests expanding an uncorrelated scalar sub-query in a project (SELECT clause).
+
+select empno,
+  (select deptno from emp where empno < 20) as d
+from emp;
++-------+---+
+| EMPNO | D |
++-------+---+
+|  7369 |   |
+|  7499 |   |
+|  7521 |   |
+|  7566 |   |
+|  7654 |   |
+|  7698 |   |
+|  7782 |   |
+|  7788 |   |
+|  7839 |   |
+|  7844 |   |
+|  7876 |   |
+|  7900 |   |
+|  7902 |   |
+|  7934 |   |
++-------+---+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], D=[$SCALAR_QUERY({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], D=[$9])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[<($0, 20)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules, NONE"
+
+# testSomeWithTwoCorrelatedSubQueries ------------------------------------------
+# Tests that two correlated SOME sub-queries in a filter are both expanded,
+# preserving correct field references (CALCITE-5655).
+
+select empno from sales.empnullables as e
+where deptno > some(
+  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
+or deptno < some(
+  select deptno from sales.deptnullables where e.ename = dname and deptno < 20);
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(> SOME($2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), < SOME($2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))], variablesSet=[[$cor0]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
+    LogicalFilter(condition=[OR(CASE(IS NULL($6), false, =($4, 0), false, IS TRUE(>($2, $3)), true, >($4, $5), null:BOOLEAN, >($2, $3)), CASE(IS NULL($10), false, =($8, 0), false, IS TRUE(<($2, $7)), true, >($8, $9), null:BOOLEAN, <($2, $7)))])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+        LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()], d=[COUNT($0)], trueLiteral=[LITERAL_AGG(true)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalAggregate(group=[{}], m=[MAX($0)], c=[COUNT()], d=[COUNT($0)], trueLiteral=[LITERAL_AGG(true)])
+          LogicalProject(DEPTNO=[$0])
+            LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules, NONE"
+
+# testSomeWithTwoSubQueries ----------------------------------------------------
+# Tests that two uncorrelated SOME sub-queries in a filter are both expanded
+# (CALCITE-5655).
+
+select empno from sales.empnullables
+where deptno > some(
+  select deptno from sales.deptnullables where dname = 'dept1')
+or deptno < some(
+  select deptno from sales.deptnullables where dname = 'dept2');
+# Not using !ok: query uses the sales schema, which is not in the scott database.
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(> SOME($1, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept1')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), < SOME($1, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept2')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+    LogicalFilter(condition=[OR(CASE(=($3, 0), false, IS TRUE(>($1, $2)), true, >($3, $4), null:BOOLEAN, >($1, $2)), CASE(=($6, 0), false, IS TRUE(<($1, $5)), true, >($6, $7), null:BOOLEAN, <($1, $5)))])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()], d=[COUNT($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalFilter(condition=[=($1, 'dept1')])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalAggregate(group=[{}], m=[MAX($0)], c=[COUNT()], d=[COUNT($0)])
+          LogicalProject(DEPTNO=[$0])
+            LogicalFilter(condition=[=($1, 'dept2')])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules, NONE"
+
+# End project-sub-query-to-correlate.iq

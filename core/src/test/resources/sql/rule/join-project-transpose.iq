@@ -1,0 +1,951 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to transposing joins with projects and
+# other join transformations.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testAsofOptJoin -------------------------------------------------------------
+# JOIN_REDUCE_EXPRESSIONS should not reduce expressions in an ASOF join.
+
+SELECT *
+FROM (VALUES (NULL, ROW(0, 1)), (1, ROW(0, 2))) AS t1(k, t)
+ASOF JOIN (VALUES (2, ROW(0, 3))) AS t2(k, t)
+MATCH_CONDITION t2.t < t1.t
+ON t1.k = t2.k;
++---+---+----+----+
+| K | T | K0 | T0 |
++---+---+----+----+
++---+---+----+----+
+(0 rows)
+
+!ok
+LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
+    LogicalProject(K=[$0], T=[$1])
+      LogicalUnion(all=[true])
+        LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[ROW(0, 1)])
+          LogicalValues(tuples=[[{ 0 }]])
+        LogicalProject(EXPR$0=[1], EXPR$1=[ROW(0, 2)])
+          LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(K=[2], T=[ROW(0, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE"
+LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
+    LogicalProject(K=[$0], T=[$1])
+      LogicalUnion(all=[true])
+        LogicalProject(EXPR$0=[null:INTEGER], EXPR$1=[ROW(0, 1)])
+          LogicalValues(tuples=[[{ 0 }]])
+        LogicalProject(EXPR$0=[1], EXPR$1=[ROW(0, 2)])
+          LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(K=[2], T=[ROW(0, 3)])
+      LogicalValues(tuples=[[{ 0 }]])
+!sub-plan "NONE, JOIN_REDUCE_EXPRESSIONS"
+
+# testFullJoinToLeftAndRightJoin ---------------------------------------
+# FULL_TO_LEFT_AND_RIGHT_JOIN rewrites a full join as left join union right join.
+# [CALCITE-7077]
+
+select * from emp e1
+full join emp e2
+on e1.sal = e2.sal and e1.mgr is null;
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |        |        |           |      |            |         |         |         |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |        |        |           |      |            |         |         |         |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |        |        |           |      |            |         |         |         |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |        |        |           |      |            |         |         |         |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |        |        |           |      |            |         |         |         |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |        |        |           |      |            |         |         |         |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |        |        |           |      |            |         |         |         |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |        |        |           |      |            |         |         |         |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |        |        |           |      |            |         |         |         |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |        |        |           |      |            |         |         |         |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |        |        |           |      |            |         |         |         |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |        |        |           |      |            |         |         |         |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |        |        |           |      |            |         |         |         |
+|       |        |           |      |            |         |         |        |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|       |        |           |      |            |         |         |        |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|       |        |           |      |            |         |         |        |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|       |        |           |      |            |         |         |        |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|       |        |           |      |            |         |         |        |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|       |        |           |      |            |         |         |        |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|       |        |           |      |            |         |         |        |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|       |        |           |      |            |         |         |        |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|       |        |           |      |            |         |         |        |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|       |        |           |      |            |         |         |        |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|       |        |           |      |            |         |         |        |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|       |        |           |      |            |         |         |        |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|       |        |           |      |            |         |         |        |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+(27 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[AND(=($5, $14), IS NULL($3))], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[AND(=($5, $14), IS NULL($3))], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[OR(<>($5, $14), IS NOT NULL($3))])
+      LogicalJoin(condition=[AND(=($5, $14), IS NULL($3))], joinType=[right])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FULL_TO_LEFT_AND_RIGHT_JOIN"
+
+# testFullJoinToLeftAndRightJoinNonDeterministic -----------------------
+# FULL_TO_LEFT_AND_RIGHT_JOIN should not fire when the condition is
+# non-deterministic.
+# [CALCITE-7077]
+
+select * from emp e1
+full join emp e2
+on rand() > 0.5;
+# Not using !ok: result is non-deterministic.
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[>(RAND(), 0.5E0)], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[>(RAND(), 0.5E0)], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FULL_TO_LEFT_AND_RIGHT_JOIN"
+
+# testJoinConditinExpandIsNotDistinctFromRule --------------------------
+# JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM rewrites IS NOT DISTINCT FROM
+# in a join condition.
+# [CALCITE-6927]
+
+select t1.ENAME from empnullables as t1
+join
+empnullables as t2
+on t1.ENAME is not distinct from t2.ENAME;
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $10)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[AND(=(COALESCE($1, ''), COALESCE($10, '')), =(IS NULL($1), IS NULL($10)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
+
+# testJoinConditinExpandIsNotDistinctFromRuleArray ---------------------
+# JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM rewrites IS NOT DISTINCT FROM
+# in a join condition for array-typed columns.
+# [CALCITE-6927]
+
+select t1.ADMINS from DEPT_NESTED_EXPANDED as t1
+join
+DEPT_NESTED_EXPANDED as t2
+on t1.ADMINS is not distinct from t2.ADMINS;
+# Not using !ok: query uses DEPT_NESTED_EXPANDED, which is not in the scott database.
+LogicalProject(ADMINS=[$3])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $8)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+!sub-plan "NONE"
+LogicalProject(ADMINS=[$3])
+  LogicalJoin(condition=[AND(=(COALESCE($3, CAST(ARRAY()):VARCHAR(5) NOT NULL ARRAY NOT NULL), COALESCE($8, CAST(ARRAY()):VARCHAR(5) NOT NULL ARRAY NOT NULL)), =(IS NULL($3), IS NULL($8)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+!sub-plan "NONE, JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
+
+# testJoinConditionOrExpansionRule -------------------------------------
+# JOIN_EXPAND_OR_TO_UNION_RULE rewrites a join with an OR condition
+# as a union of joins with AND conditions.
+
+select *
+from EMP as p1
+inner join EMP as p2 on p1.empno = p2.empno or p1.mgr = p2.mgr;
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+(42 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =($3, $12))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(=($3, $12), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_EXPAND_OR_TO_UNION_RULE"
+
+# testJoinConditionOrExpansionRule2 ------------------------------------
+# JOIN_EXPAND_OR_TO_UNION_RULE rewrites a complex OR join condition
+# with multiple AND sub-conditions.
+
+select * from empnullables as t1 inner join empnullables as t2
+on (t1.empno = t2.empno
+and t1.job = 'Job1'
+and t1.ename in ('a', 'bb', 'cc')
+and t1.sal > 120 and t1.sal < 3000
+and t1.mgr = t1.comm)
+or
+(t1.deptno = t2.deptno
+and t2.job = 'Job2'
+and t2.ename in ('a', 'bb', 'cc')
+and t2.sal > 110 and t2.sal < 3000
+and t1.mgr + 10 < ln(15))
+or
+(t1.ename = 'Jensen'
+and t2.comm > 10)
+or
+t1.mgr between 10.0 and 20;
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(AND(=($0, $9), =($2, 'Job1'), SEARCH($1, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($5, Sarg[(120..3000)]), =($3, $6)), AND(=($7, $16), =($11, 'Job2'), SEARCH($10, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($14, Sarg[(110..3000)]), <(CAST(+($3, 10)):DOUBLE, LN(15))), AND(=($1, 'Jensen'), >($15, 10)), SEARCH(CAST($3):DECIMAL(11, 1), Sarg[[10.0:DECIMAL(11, 1)..20.0:DECIMAL(11, 1)]]:DECIMAL(11, 1)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[AND(=($0, $9), =($2, 'Job1'), SEARCH($1, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($5, Sarg[(120..3000)]), =($3, $6))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalJoin(condition=[AND(=($7, $16), =($11, 'Job2'), SEARCH($10, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($14, Sarg[(110..3000)]), <(CAST(+($3, 10)):DOUBLE, LN(15)), OR(<>($0, $9), <>($2, 'Job1'), SEARCH($1, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($5, Sarg[(-∞..120], [3000..+∞)]), <>($3, $6)))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalJoin(condition=[AND(OR(AND(=($1, 'Jensen'), >($15, 10)), SEARCH(CAST($3):DECIMAL(11, 1), Sarg[[10.0:DECIMAL(11, 1)..20.0:DECIMAL(11, 1)]]:DECIMAL(11, 1))), OR(<>($0, $9), <>($2, 'Job1'), SEARCH($1, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($5, Sarg[(-∞..120], [3000..+∞)]), <>($3, $6)), OR(<>($7, $16), <>($11, 'Job2'), SEARCH($10, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($14, Sarg[(-∞..110], [3000..+∞)]), >=(CAST(+($3, 10)):DOUBLE, LN(15))))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "NONE, JOIN_EXPAND_OR_TO_UNION_RULE"
+
+# testJoinConditionOrExpansionRuleLeft ---------------------------------
+# JOIN_EXPAND_OR_TO_UNION_RULE rewrites a left join with an OR condition.
+# [CALCITE-6930]
+
+select *
+from EMP as p1
+left join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal;
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+(18 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =($5, $14))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(=($5, $14), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[null:INTEGER], $f10=[null:VARCHAR(20)], $f11=[null:VARCHAR(10)], $f12=[null:INTEGER], $f13=[null:TIMESTAMP(0)], $f14=[null:INTEGER], $f15=[null:INTEGER], $f16=[null:INTEGER], $f17=[null:BOOLEAN])
+      LogicalJoin(condition=[=($5, $14)], joinType=[anti])
+        LogicalJoin(condition=[=($0, $9)], joinType=[anti])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_EXPAND_OR_TO_UNION_RULE"
+
+# testJoinConditionOrExpansionRuleMultiOr ------------------------------
+# JOIN_EXPAND_OR_TO_UNION_RULE rewrites a join with more than two OR
+# sub-conditions.
+# [CALCITE-6930]
+
+select *
+from EMP as p1
+inner join EMP as p2 on  p1.mgr < p2.mgr or
+p1.empno = p2.empno or p1.sal < 0 or ln(p1.sal) < 10;
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+(196 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(<($3, $12), =($0, $9), <($5, 0), <(LN($5), 10.0E0))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[<($3, $12)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(=($0, $9), >=($3, $12))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(OR(<($5, 0), <(LN($5), 10.0E0)), >=($3, $12), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_EXPAND_OR_TO_UNION_RULE"
+
+# testJoinConditionOrExpansionRuleRight --------------------------------
+# JOIN_EXPAND_OR_TO_UNION_RULE rewrites a right join with an OR condition.
+# [CALCITE-6930]
+
+select *
+from EMP as p1
+right join DEPT as p2 on p1.empno = p2.deptno or p1.ename < p2.dname;
++-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME      | LOC      |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |      20 | RESEARCH   | DALLAS   |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |      30 | SALES      | CHICAGO  |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |      40 | OPERATIONS | BOSTON   |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |      20 | RESEARCH   | DALLAS   |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |      30 | SALES      | CHICAGO  |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |      40 | OPERATIONS | BOSTON   |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |      20 | RESEARCH   | DALLAS   |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |      30 | SALES      | CHICAGO  |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |      40 | OPERATIONS | BOSTON   |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |      20 | RESEARCH   | DALLAS   |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |      40 | OPERATIONS | BOSTON   |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |      20 | RESEARCH   | DALLAS   |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |      30 | SALES      | CHICAGO  |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |      40 | OPERATIONS | BOSTON   |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |      20 | RESEARCH   | DALLAS   |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |      30 | SALES      | CHICAGO  |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |      40 | OPERATIONS | BOSTON   |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |      20 | RESEARCH   | DALLAS   |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |      30 | SALES      | CHICAGO  |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |      40 | OPERATIONS | BOSTON   |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |      20 | RESEARCH   | DALLAS   |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |      30 | SALES      | CHICAGO  |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |      40 | OPERATIONS | BOSTON   |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |      20 | RESEARCH   | DALLAS   |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |      30 | SALES      | CHICAGO  |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |      40 | OPERATIONS | BOSTON   |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |      20 | RESEARCH   | DALLAS   |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |      30 | SALES      | CHICAGO  |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |      40 | OPERATIONS | BOSTON   |
+|       |        |           |      |            |         |         |        |      10 | ACCOUNTING | NEW YORK |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
+(31 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[OR(=($0, $9), <($1, CAST($10):VARCHAR(20) NOT NULL))], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[AND(<($1, CAST($10):VARCHAR(20) NOT NULL), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject($f0=[null:INTEGER], $f1=[null:VARCHAR(20)], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[null:INTEGER], $f6=[null:INTEGER], $f7=[null:INTEGER], $f8=[null:BOOLEAN], DEPTNO=[$0], DNAME=[$1])
+      LogicalJoin(condition=[<($3, CAST($1):VARCHAR(20) NOT NULL)], joinType=[anti])
+        LogicalJoin(condition=[=($2, $0)], joinType=[anti])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, JOIN_EXPAND_OR_TO_UNION_RULE"
+
+# testJoinProjectTranspose2 --------------------------------------------
+# JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
+# above the null-generating side of a left join.
+# [CALCITE-1338]
+
+select *
+from dept a
+left join (select dname, 1 from dept) as b
+on a.dname = b.dname;
++--------+------------+----------+------------+--------+
+| DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
++--------+------------+----------+------------+--------+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING |      1 |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   |      1 |
+|     30 | SALES      | CHICAGO  | SALES      |      1 |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS |      1 |
++--------+------------+----------+------------+--------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTranspose3 --------------------------------------------
+# JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
+# above the null-generating side of a right join.
+# [CALCITE-1338]
+
+select *
+from (select dname, 1 from dept) as a
+right join dept b
+on a.dname = b.dname;
++------------+--------+--------+------------+----------+
+| DNAME      | EXPR$1 | DEPTNO | DNAME0     | LOC      |
++------------+--------+--------+------------+----------+
+| ACCOUNTING |      1 |     10 | ACCOUNTING | NEW YORK |
+| OPERATIONS |      1 |     40 | OPERATIONS | BOSTON   |
+| RESEARCH   |      1 |     20 | RESEARCH   | DALLAS   |
+| SALES      |      1 |     30 | SALES      | CHICAGO  |
++------------+--------+--------+------------+----------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
+  LogicalJoin(condition=[=($0, $3)], joinType=[right])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
+  LogicalJoin(condition=[=($0, $3)], joinType=[right])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTranspose4 --------------------------------------------
+# JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
+# the right project of a left join has a non-strong expression
+# (y is not null).
+# [CALCITE-1338]
+
+select *
+from dept a
+left join (select cast(x as varchar(20)) as dname, y is not null from
+(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b
+on a.dname = b.dname;
++--------+------------+----------+--------+--------+
+| DEPTNO | DNAME      | LOC      | DNAME0 | EXPR$1 |
++--------+------------+----------+--------+--------+
+|     10 | ACCOUNTING | NEW YORK |        |        |
+|     20 | RESEARCH   | DALLAS   |        |        |
+|     30 | SALES      | CHICAGO  |        |        |
+|     40 | OPERATIONS | BOSTON   |        |        |
++--------+------------+----------+--------+--------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
+  LogicalJoin(condition=[=($2, $3)], joinType=[left])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], EXPR$1=[IS NOT NULL($1)])
+      LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
+  LogicalJoin(condition=[=($2, $3)], joinType=[left])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], EXPR$1=[IS NOT NULL($1)])
+      LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
+!sub-plan "NONE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTranspose5 --------------------------------------------
+# JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
+# the right project of a left join has a non-strong expression (1 + 1).
+# [CALCITE-1338]
+
+select *
+from dept a
+left join (select dname, 1 + 1 from dept) as b
+on a.dname = b.dname;
++--------+------------+----------+------------+--------+
+| DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
++--------+------------+----------+------------+--------+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING |      2 |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   |      2 |
+|     30 | SALES      | CHICAGO  | SALES      |      2 |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS |      2 |
++--------+------------+----------+------------+--------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[+(1, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[+(1, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTranspose6 --------------------------------------------
+# JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
+# both the left and right projects of a full join have literals.
+# [CALCITE-1338]
+
+select *
+from (select dname, 1 from dept) a
+full join (select dname, 1 from dept) as b
+on a.dname = b.dname;
++------------+--------+------------+---------+
+| DNAME      | EXPR$1 | DNAME0     | EXPR$10 |
++------------+--------+------------+---------+
+| ACCOUNTING |      1 | ACCOUNTING |       1 |
+| OPERATIONS |      1 | OPERATIONS |       1 |
+| RESEARCH   |      1 | RESEARCH   |       1 |
+| SALES      |      1 | SALES      |       1 |
++------------+--------+------------+---------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[full])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[full])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTranspose7 --------------------------------------------
+# JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should transpose when all
+# expressions in the right project of a left join are strong.
+# [CALCITE-1338]
+
+select *
+from dept a
+left join (select dname from dept) as b
+ on a.dname = b.dname;
++--------+------------+----------+------------+
+| DEPTNO | DNAME      | LOC      | DNAME0     |
++--------+------------+----------+------------+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   |
+|     30 | SALES      | CHICAGO  | SALES      |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS |
++--------+------------+----------+------------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3])
+    LogicalJoin(condition=[=($1, $3)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTranspose8 --------------------------------------------
+# JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should transpose when all
+# expressions including (deptno > 10 and cast(null as boolean)) in the
+# right project of a left join are strong.
+# [CALCITE-1338]
+
+select *
+from dept a
+left join (
+  select dname, deptno > 10 and cast(null as boolean)
+  from dept) as b
+on a.dname = b.dname;
++--------+------------+----------+------------+--------+
+| DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
++--------+------------+----------+------------+--------+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING | false  |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   |        |
+|     30 | SALES      | CHICAGO  | SALES      |        |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS |        |
++--------+------------+----------+------------+--------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+  LogicalJoin(condition=[=($1, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], EXPR$1=[AND(>($0, 10), null)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[AND(>($2, 10), null)])
+    LogicalJoin(condition=[=($1, $3)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+
+# testJoinProjectTransposeWindow ---------------------------------------
+# JOIN_PROJECT_BOTH_TRANSPOSE should transpose a join with a project
+# containing a window function on the right side.
+
+select *
+from dept a
+join (select rank() over (order by dname) as r, 1 + 1 from dept) as b
+on a.deptno = b.r;
++--------+-------+-----+---+--------+
+| DEPTNO | DNAME | LOC | R | EXPR$1 |
++--------+-------+-----+---+--------+
++--------+-------+-----+---+--------+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
+  LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(R=[RANK() OVER (ORDER BY $1)], EXPR$1=[+(1, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):BIGINT NOT NULL], R=[$2], EXPR$1=[$3])
+    LogicalJoin(condition=[=(CAST($0):BIGINT NOT NULL, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(R=[RANK() OVER (ORDER BY $1)], EXPR$1=[+(1, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PROJECT_BOTH_TRANSPOSE"
+
+# testNotPushExpression ------------------------------------------------
+# JOIN_PUSH_EXPRESSIONS should not push an expression that is not
+# a pure join condition (e.g. IS NOT NULL on a non-join column).
+
+select 1 from emp inner join dept
+on emp.deptno=dept.deptno and emp.ename is not null;
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, JOIN_PUSH_EXPRESSIONS"
+
+# End join-project-transpose.iq

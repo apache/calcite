@@ -220,12 +220,12 @@ public class FixtureTest {
   /** Tests metadata. */
   @Test void testMetadata() {
     final RelMetadataFixture f = Fixtures.forMetadata();
-    f.withSql("select name as dname from dept")
-          .assertColumnOriginSingle("DEPT", "NAME", false);
-    f.withSql("select upper(name) as dname from dept")
-        .assertColumnOriginSingle("DEPT", "NAME", true);
-    f.withSql("select name||ename from dept,emp")
-        .assertColumnOriginDouble("DEPT", "NAME", "EMP", "ENAME", true);
+    f.withSql("select dname from dept")
+          .assertColumnOriginSingle("DEPT", "DNAME", false);
+    f.withSql("select upper(dname) as dname from dept")
+        .assertColumnOriginSingle("DEPT", "DNAME", true);
+    f.withSql("select dname||ename from dept,emp")
+        .assertColumnOriginDouble("DEPT", "DNAME", "EMP", "ENAME", true);
     f.withSql("select 'Minstrelsy' as dname from dept")
         .assertColumnOriginIsEmpty();
   }
