@@ -348,7 +348,7 @@ public abstract class QuidemTest {
             relNode = RelDecorrelator.decorrelateQuery(relNode, relBuilder);
           }
 
-          x.echo(Arrays.asList(RelOptUtil.toString(relNode).split("\n")));
+          x.echo(ImmutableList.of(RelOptUtil.toString(relNode)));
         }
       } else {
         x.echo(content);
