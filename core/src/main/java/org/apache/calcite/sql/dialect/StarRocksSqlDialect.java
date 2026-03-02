@@ -104,6 +104,10 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     return true;
   }
 
+  @Override public boolean supportsSQL99Between() {
+    return false;
+  }
+
   @Override public RexNode prepareUnparse(RexNode arg) {
     return RelToSqlConverterUtil.unparseIsTrueOrFalse(arg);
   }
