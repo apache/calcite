@@ -228,8 +228,7 @@ public class CoreQuidemTest extends QuidemTest {
       }
       if (line.startsWith("sub-plan ")) {
         String args = line.substring("sub-plan ".length());
-        return new QuidemTest.SubPlanCommand(
-            SqlParserImpl.FACTORY, lines, content, args);
+        return new QuidemTest.SubPlanCommand(lines, content, args);
       }
       return null;
     }

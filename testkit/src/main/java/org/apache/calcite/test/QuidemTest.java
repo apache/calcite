@@ -83,6 +83,7 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -95,6 +96,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.runtime.SqlFunctions.resetThreadSequences;
 import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
@@ -209,15 +211,11 @@ public abstract class QuidemTest {
 
     private final ImmutableList<String> lines;
     private final ImmutableList<String> content;
-    private final SqlParserImplFactory parserFactory;
     private final String args;
 
-    SubPlanCommand(SqlParserImplFactory parserFactory,
-        List<String> lines, List<String> content,
-        String args) {
+    SubPlanCommand(List<String> lines, List<String> content, String args) {
       this.lines = ImmutableList.copyOf(lines);
       this.content = ImmutableList.copyOf(content);
-      this.parserFactory = parserFactory;
       this.args = args;
     }
 
@@ -423,9 +421,8 @@ public abstract class QuidemTest {
     final int commonPrefixLength = firstFile.getAbsolutePath().length() - first.length();
     final File dir = firstFile.getParentFile();
     final List<String> paths = new ArrayList<>();
-    try {
-      Files.walk(dir.toPath())
-          .filter(p -> p.toString().endsWith(".iq"))
+    try (Stream<Path> stream = Files.walk(dir.toPath())) {
+      stream.filter(p -> p.toString().endsWith(".iq"))
           .forEach(p ->
               paths.add(
                   n2u(p.toAbsolutePath().toString()
@@ -733,7 +730,7 @@ public abstract class QuidemTest {
         : s;
   }
 
-  private void resetThreadConfig() {
+  private static void resetThreadConfig() {
     resetThreadSequences();
     Prepare.THREAD_INSUBQUERY_THRESHOLD.push(DEFAULT_IN_SUB_QUERY_THRESHOLD);
     Prepare.THREAD_EXPAND.push(false);
