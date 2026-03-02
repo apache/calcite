@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.test.CalciteAssert;
 
 import com.google.common.collect.ImmutableList;
@@ -36,7 +37,7 @@ class RelToSqlConverterStructsTest {
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(CalciteAssert.SchemaSpec.MY_DB, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
-        UnaryOperator.identity(), null, ImmutableList.of());
+        UnaryOperator.identity(), null, ImmutableList.of(), StandardConvertletTable.INSTANCE);
   }
 
   @Test void testNestedSchemaSelectStar() {
