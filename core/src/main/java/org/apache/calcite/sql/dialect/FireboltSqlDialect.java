@@ -181,10 +181,6 @@ public class FireboltSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public boolean supportsSQL99Between() {
-    return false;
-  }
-
   @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       RelToSqlConverterUtil.specialOperatorByName("SUBSTR")
