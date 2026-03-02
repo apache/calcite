@@ -569,27 +569,9 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
 # Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
 
 select cast(time '12:34:56' as timestamp) from emp as e;
-+---------------------+
-| EXPR$0              |
-+---------------------+
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-| 2026-03-01 12:34:56 |
-+---------------------+
-(14 rows)
-
-!ok
+EXPR$0 TIMESTAMP NOT NULL
+!type
+# Not '!ok' because execution results depend on the current date.
 LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE"
