@@ -374,6 +374,14 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     if (values.get(0) == N) {
       return N;
     }
+    if (values.size() == 1) {
+      if (values.get(0) instanceof BigDecimal) {
+        BigDecimal bigDecimal = (BigDecimal) values.get(0);
+        return bigDecimal.longValue();
+      } else {
+        return values.get(0);
+      }
+    }
     final Long v = (Long) values.get(0);
     final TimeUnitRange unit = (TimeUnitRange) values.get(1);
     switch (unit) {
