@@ -1,0 +1,169 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules for merging Sort/Limit operators
+# (LIMIT_MERGE, SORT_PROJECT_TRANSPOSE).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testLimitMerge ---------------------------------------------------------------
+# LIMIT_MERGE should merge two nested LIMIT operators into one, keeping the
+# smaller fetch value.
+
+select deptno from
+(select deptno from emp where sal > 100 limit 10000)
+limit 10;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(fetch=[10])
+      LogicalSort(fetch=[10000])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(fetch=[10])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_REMOVE"
+
+# testLimitMerge1 --------------------------------------------------------------
+# LIMIT_MERGE should merge two nested LIMIT operators, keeping the smaller
+# fetch when the inner has ORDER BY.
+
+select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10000)
+limit 10;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(fetch=[10])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+
+# testLimitMerge2 --------------------------------------------------------------
+# LIMIT_MERGE should merge two nested LIMIT operators, keeping the smaller
+# fetch when the inner has ORDER BY and inner fetch is smaller.
+
+select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10)
+limit 10000;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(fetch=[10000])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+
+# testLimitMerge3 --------------------------------------------------------------
+# LIMIT_MERGE should not merge when the outer has ORDER BY (different semantics);
+# PROJECT_REMOVE collapses the identity project.
+
+select deptno from
+(select deptno from emp where sal > 100 limit 100)
+order by deptno desc;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(sort0=[$7], dir0=[DESC])
+      LogicalSort(fetch=[100])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$7], dir0=[DESC])
+    LogicalSort(fetch=[100])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_REMOVE"
+
+# testLimitMerge4 --------------------------------------------------------------
+# LIMIT_MERGE should not merge when the inner and outer have different ORDER BY
+# keys; the projects are merged instead.
+
+select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10)
+order by deptno limit 10000;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
+    LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+
+# testLimitMerge5 --------------------------------------------------------------
+# LIMIT_MERGE should merge when the inner fetch (10000) is greater than the
+# outer fetch (10); the projects are merged.
+
+select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10000)
+order by deptno limit 10;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
+    LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+
+# testLimitMergeBigint ---------------------------------------------------------
+# LIMIT_MERGE should handle BIGINT fetch values (> Integer.MAX_VALUE).
+
+select deptno from
+(select deptno from emp where sal > 100 limit 3100000000)
+limit 3000000000;
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(fetch=[3000000000:BIGINT])
+      LogicalSort(fetch=[3100000000:BIGINT])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(fetch=[3000000000:BIGINT])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+
+# End limit-merge.iq

@@ -169,6 +169,207 @@ LogicalProject(EXPR$0=[$1], T2=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
 
+# testEmptyFilterProjectUnion --------------------------------------------------
+# Filters, projects, and empty sets work together correctly via rule chaining.
+# Plan should be same as for select * from (values (30, 3)) as t(x, y).
+
+select * from (
+select * from (values (10, 1), (30, 3)) as t (x, y)
+union all
+select * from (values (20, 2))
+)
+where x + y > 30;
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(+($0, $1), 30)])
+    LogicalUnion(all=[true])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 20, 2 }]])
+!sub-plan "NONE"
+LogicalProject(X=[$0], Y=[$1])
+  LogicalValues(tuples=[[{ 30, 3 }]])
+!sub-plan "NONE, FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
+
+# testEmptyFilterProjectUnion2 -------------------------------------------------
+# UNION DISTINCT with a filter reduces correctly when one branch becomes empty.
+# [CALCITE-6955] PruneEmptyRules does not handle the all attribute of SetOp correctly
+
+select * from (
+select * from (values (10, 1), (30, 3), (30, 3)) as t (x, y)
+union
+select * from (values (20, 2))
+)
+where x + y > 30;
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(+($0, $1), 30)])
+    LogicalUnion(all=[false])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }, { 30, 3 }]])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 20, 2 }]])
+!sub-plan "NONE"
+LogicalProject(X=[$0], Y=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
+!sub-plan "NONE, FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
+
+# testIntersectToDistinct -------------------------------------------------------
+# INTERSECT_TO_DISTINCT rewrites a 3-way INTERSECT DISTINCT into aggregation.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect
+select * from emp where deptno = 30;
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($9, 3)])
+    LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+      LogicalUnion(all=[true])
+        LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($7, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($7, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
+
+# testIntersectToDistinctAll ----------------------------------------------------
+# INTERSECT_TO_DISTINCT ignores the INTERSECT ALL branch: only rewrites DISTINCT
+# parts of a mixed INTERSECT query.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect all
+select * from emp where deptno = 30;
+LogicalIntersect(all=[true])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalIntersect(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($9, 2)])
+      LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+        LogicalUnion(all=[true])
+          LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
+
+# testIntersectToDistinctAllNoAggregatePushdown ---------------------------------
+# INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN ignores INTERSECT ALL branch.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect all
+select * from emp where deptno = 30;
+LogicalIntersect(all=[true])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalIntersect(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[AND(>($9, 0), >($10, 0))])
+      LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], count_i0=[COUNT() FILTER $9], count_i1=[COUNT() FILTER $10])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f10=[=($9, 0)], $f11=[=($9, 1)])
+          LogicalUnion(all=[true])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[0])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+                LogicalFilter(condition=[=($7, 10)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[1])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+                LogicalFilter(condition=[=($7, 20)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+
+# testIntersectToDistinctNoAggregatePushdown ------------------------------------
+# INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN rewrites a 3-way INTERSECT DISTINCT
+# without pushing aggregate into each branch.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect
+select * from emp where deptno = 30;
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(>($9, 0), >($10, 0), >($11, 0))])
+    LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], count_i0=[COUNT() FILTER $9], count_i1=[COUNT() FILTER $10], count_i2=[COUNT() FILTER $11])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f10=[=($9, 0)], $f11=[=($9, 1)], $f12=[=($9, 2)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[0])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[1])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[2])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 30)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+
 # testIntersectToExistsRuleMultiFields -----------------------------------------
 # INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with multiple fields.
 # [CALCITE-6836]
@@ -623,6 +824,102 @@ LogicalAggregate(group=[{0, 1}])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, INTERSECT_TO_SEMI_JOIN"
 
+# testMergeSetOpMixed ----------------------------------------------------------
+# UNION_MERGE and INTERSECT_MERGE do nothing if inputs have different set operators.
+
+select * from emp where deptno = 10
+union
+select * from emp where deptno = 20
+intersect
+select * from emp where deptno = 30;
+LogicalUnion(all=[false])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 30)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalUnion(all=[false])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 30)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, UNION_MERGE, INTERSECT_MERGE"
+
+# testMinusMergeRule -----------------------------------------------------------
+# MINUS_MERGE collapses a 3-level EXCEPT ALL tree into a single EXCEPT ALL.
+
+select * from (
+select * from (
+  select dname, deptno from
+  (
+    select dname, deptno, count(1) from dept group by dname, deptno
+    except all
+    select dname, deptno, 1 from dept
+  ) subq
+  except all
+  select dname, deptno from
+  (
+    select dname, deptno, 1 from dept
+    except all
+    select dname, deptno, count(1) from dept group by dname, deptno
+  ) subq2
+) a
+except all
+select dname, deptno from dept
+) aa;
+LogicalProject(DNAME=[$0], DEPTNO=[$1])
+  LogicalMinus(all=[true])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalMinus(all=[true])
+        LogicalProject(DNAME=[$0], DEPTNO=[$1])
+          LogicalMinus(all=[true])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DNAME=[$0], DEPTNO=[$1])
+          LogicalMinus(all=[true])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalMinus(all=[true])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalMinus(all=[true])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, MINUS_MERGE"
+
 # testMinusToAntiJoinRule ------------------------------------------------------
 # MINUS_TO_ANTI_JOIN rewrites 2-way EXCEPT DISTINCT to anti-join + aggregate.
 # [CALCITE-6948]
@@ -690,6 +987,117 @@ LogicalProject(ENAME=[CAST($0):VARCHAR])
       LogicalProject(ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "NONE, MINUS_MERGE, MINUS_TO_ANTI_JOIN"
+
+# testMinusToDistinct ----------------------------------------------------------
+# MINUS_TO_DISTINCT rewrites a 3-way EXCEPT DISTINCT into aggregation.
+
+select EMPNO, ENAME, JOB from emp where deptno = 10
+except
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except
+select EMPNO, ENAME, JOB from emp where deptno = 30;
+LogicalMinus(all=[false])
+  LogicalMinus(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalFilter(condition=[AND(>($3, 0), =($4, 0), =($5, 0))])
+    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4], agg#2=[COUNT() FILTER $5])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)], $f5=[=($3, 2)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+            LogicalFilter(condition=[=($7, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+            LogicalFilter(condition=[=($7, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[2])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
+
+# testMinusToDistinctAll -------------------------------------------------------
+# MINUS_TO_DISTINCT ignores the EXCEPT ALL branch: only rewrites DISTINCT parts.
+
+select EMPNO, ENAME, JOB from emp where deptno = 10
+except
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except all
+select EMPNO, ENAME, JOB from emp where deptno = 30;
+LogicalMinus(all=[true])
+  LogicalMinus(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalMinus(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
+      LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)])
+          LogicalUnion(all=[true])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
+
+# testMinusToDistinctAllAndDistinct --------------------------------------------
+# MINUS_TO_DISTINCT rewrites the outer EXCEPT DISTINCT but not the inner EXCEPT ALL.
+
+select EMPNO, ENAME, JOB from emp where deptno = 10
+except all
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except
+select EMPNO, ENAME, JOB from emp where deptno = 30;
+LogicalMinus(all=[false])
+  LogicalMinus(all=[true])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
+    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+            LogicalMinus(all=[true])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+                LogicalFilter(condition=[=($7, 10)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+                LogicalFilter(condition=[=($7, 20)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, MINUS_TO_DISTINCT, PROJECT_MERGE"
 
 # testMinusToFilterNWayWithSubquery --------------------------------------------
 # MINUS_FILTER_TO_FILTER merges same-source inputs in n-way EXCEPT containing a correlated subquery.
@@ -1741,6 +2149,133 @@ LogicalProject(SAL=[$5])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, JOIN_RIGHT_UNION_TRANSPOSE"
+
+# testSortUnionTranspose -------------------------------------------------------
+# SORT_UNION_TRANSPOSE pushes a Sort with fetch past a Union.
+# [CALCITE-889]
+
+select a.dname from dept a
+union all
+select b.dname from dept b
+order by dname limit 10;
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalProject(DNAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE"
+
+# testSortUnionTranspose2 ------------------------------------------------------
+# SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH pushes a Sort without fetch past a Union.
+# [CALCITE-889]
+
+select a.dname from dept a
+union all
+select b.dname from dept b
+order by dname;
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(DNAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
+
+# testSortUnionTranspose3 ------------------------------------------------------
+# SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH does not loop when fetch is zero.
+# [CALCITE-987] Push limit 0 will result in an infinite loop
+
+select a.dname from dept a
+union all
+select b.dname from dept b
+order by dname limit 0;
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+  LogicalProject(DNAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
+
+# testUnionMergeRule -----------------------------------------------------------
+# UNION_MERGE collapses a 3-level UNION ALL tree into a single UNION ALL.
+
+select * from (
+select * from (
+  select dname, deptno from dept
+  union all
+  select dname, deptno from
+  (
+    select dname, deptno, count(1) from dept group by dname, deptno
+    union all
+    select dname, deptno, count(1) from dept group by dname, deptno
+  ) subq
+) a
+union all
+select dname, deptno from dept
+) aa;
+LogicalProject(DNAME=[$0], DEPTNO=[$1])
+  LogicalUnion(all=[true])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalUnion(all=[true])
+        LogicalProject(DNAME=[$1], DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DNAME=[$0], DEPTNO=[$1])
+          LogicalUnion(all=[true])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalUnion(all=[true])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, UNION_MERGE"
 
 # testUnionToFilterRuleNWayWithMultiSources ------------------------------------
 # UNION_FILTER_TO_FILTER merges n-way UNION from multiple sources into combined filters.

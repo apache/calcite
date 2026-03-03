@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
@@ -177,8 +178,14 @@ public abstract class QuidemTest {
    *   <li>{@code bloat=N} &mdash; allows merging expressions up to N nodes
    *       larger; equivalent to
    *       {@code .withRelBuilderConfig(b -> b.withBloat(N))}
+   *   <li>{@code decorrelate=true} &mdash; decorrelates after SQL-to-RelNode
+   *       conversion by calling {@link SqlToRelConverter#decorrelate};
+   *       equivalent to {@code .withDecorrelate(true)}
    *   <li>{@code expand=true} &mdash; expands sub-queries during
    *       SQL-to-RelNode conversion; equivalent to {@code .withExpand(true)}
+   *   <li>{@code inSubQueryThreshold=N} &mdash; sets how many items an IN-list
+   *       may have before it is converted to a join/sub-query; equivalent to
+   *       {@code .withInSubQueryThreshold(N)}
    *   <li>{@code relBuilderSimplify=false} &mdash; disables
    *       {@link org.apache.calcite.rex.RexSimplify} during RelNode
    *       construction, so CASE/CAST expressions appear unsimplified;
@@ -222,6 +229,7 @@ public abstract class QuidemTest {
       if (execute) {
         // Parse config tokens (lowercase-starting) and rule names (UPPERCASE)
         boolean aggregateUnique = false;
+        boolean decorrelate = false;
         boolean relBuilderSimplify = true;
         boolean expand = false;
         boolean lateDecorrelate = false;
@@ -230,6 +238,7 @@ public abstract class QuidemTest {
         boolean simplifyValues = true;
         boolean subQueryRules = false;
         int bloat = -1; // -1 means "use default"
+        int inSubQueryThreshold = -1; // -1 means "use default"
         final List<RelOptRule> rules = new ArrayList<>();
         for (String token : PATTERN.matcher(args).replaceAll("").split(",")) {
           final String name = token.trim();
@@ -241,6 +250,11 @@ public abstract class QuidemTest {
               aggregateUnique = true;
             } else if (name.startsWith("bloat=")) {
               bloat = parseInt(name.substring("bloat=".length()));
+            } else if (name.startsWith("inSubQueryThreshold=")) {
+              inSubQueryThreshold =
+                  parseInt(name.substring("inSubQueryThreshold=".length()));
+            } else if (name.equals("decorrelate=true")) {
+              decorrelate = true;
             } else if (name.equals("expand=true")) {
               expand = true;
             } else if (name.equals("lateDecorrelate=true")) {
@@ -267,6 +281,7 @@ public abstract class QuidemTest {
         final boolean expand0 = expand;
         final boolean simplifyValues0 = simplifyValues;
         final int bloat0 = bloat;
+        final int inSubQueryThreshold0 = inSubQueryThreshold;
         SqlTestFactory testFactory = SqlTestFactory.INSTANCE
             .withValidatorConfig(c -> c.withIdentifierExpansion(true))
             .withSqlToRelConfig(c -> c.withExpand(expand0))
@@ -289,11 +304,16 @@ public abstract class QuidemTest {
           testFactory = testFactory.withSqlToRelConfig(c ->
               c.addRelBuilderConfigTransform(b -> b.withBloat(bloat0)));
         }
+        if (inSubQueryThreshold0 >= 0) {
+          testFactory = testFactory.withSqlToRelConfig(c ->
+              c.withInSubQueryThreshold(inSubQueryThreshold0));
+        }
         if (operatorTableBigQuery) {
           testFactory = testFactory.withOperatorTable(opTab ->
               SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
                   SqlLibrary.BIG_QUERY));
         }
+        final boolean decorrelate0 = decorrelate;
         final boolean lateDecorrelate0 = lateDecorrelate;
         final boolean trim0 = trim;
         final SqlTestFactory factory0 = testFactory;
@@ -311,10 +331,15 @@ public abstract class QuidemTest {
               requireNonNull(converter.validator).validate(sqlQuery);
           RelNode relNode =
               converter.convertQuery(validatedQuery, false, true).project();
-          // trim=true: apply flattenTypes then trimUnusedFields, matching
+          // decorrelate=true / trim=true: matching
           // AbstractSqlTester.convertSqlToRel2 behavior
-          if (trim0) {
+          if (decorrelate0 || trim0) {
             relNode = converter.flattenTypes(relNode, true);
+          }
+          if (decorrelate0) {
+            relNode = converter.decorrelate(sqlQuery, relNode);
+          }
+          if (trim0) {
             relNode = converter.trimUnusedFields(true, relNode);
           }
 
@@ -664,7 +689,26 @@ public abstract class QuidemTest {
 
   public static RelOptRule getCoreRule(String ruleName) {
     try {
-      Field ruleField = CoreRules.class.getField(ruleName);
+      // Support "ClassName.FIELD_NAME" syntax for non-CoreRules rule classes.
+      // E.g. "PruneEmptyRules.PROJECT_INSTANCE"
+      final Class<?> ruleClass;
+      final String fieldName;
+      int dotIndex = ruleName.indexOf('.');
+      if (dotIndex >= 0) {
+        String className = ruleName.substring(0, dotIndex);
+        fieldName = ruleName.substring(dotIndex + 1);
+        switch (className) {
+        case "PruneEmptyRules":
+          ruleClass = PruneEmptyRules.class;
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown rule class: " + className);
+        }
+      } else {
+        ruleClass = CoreRules.class;
+        fieldName = ruleName;
+      }
+      Field ruleField = ruleClass.getField(fieldName);
       Object o = ruleField.get(null);
 
       if (o instanceof RelOptRule) {

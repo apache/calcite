@@ -166,6 +166,110 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, FILTER_INTO_JOIN"
 
+# testJoinConditionPushdown1 --------------------------------------------------
+# FILTER_INTO_JOIN and JOIN_CONDITION_PUSH move WHERE predicates into join
+# conditions and propagate equality constraints between joins.
+# [CALCITE-5073]
+
+select *
+from emp e1, emp e2, dept d2
+where e1.deptno = d2.deptno and e2.deptno = d2.deptno;
+# Not using !ok: uses emp/dept which requires deterministic result
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], DEPTNO1=[$18], DNAME=[$19])
+  LogicalFilter(condition=[AND(=($7, $18), =($16, $18))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], DEPTNO1=[$18], DNAME=[$19])
+  LogicalJoin(condition=[=($7, $18)], joinType=[inner])
+    LogicalJoin(condition=[=($7, $16)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+
+# testJoinConditionPushdown2 --------------------------------------------------
+# JOIN_CONDITION_PUSH infers e.deptno = e.empno from the join condition.
+# [CALCITE-5073]
+
+select *
+from emp e, dept d
+where e.deptno = d.deptno and e.empno = d.deptno;
+# Not using !ok: self-referential condition produces empty result
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalFilter(condition=[AND(=($7, $9), =($0, $9))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalFilter(condition=[=($7, $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+
+# testJoinConditionPushdown3 --------------------------------------------------
+# JOIN_CONDITION_PUSH does not push conditions from a FULL JOIN (unchanged).
+# [CALCITE-5073]
+
+select *
+from emp e full join dept d
+on e.deptno = d.deptno and e.empno = d.deptno;
+# Not using !ok: FULL JOIN with self-referential condition may give empty result
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+
+# testJoinConditionPushdown5 --------------------------------------------------
+# JOIN_CONDITION_PUSH does not push conditions from a LEFT JOIN (unchanged).
+# [CALCITE-5073]
+
+select *
+from emp e left join dept d
+on e.deptno = d.deptno and e.empno = d.deptno;
+# Not using !ok: LEFT JOIN with self-referential condition
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+
+# testJoinConditionPushdown6 --------------------------------------------------
+# JOIN_CONDITION_PUSH infers a condition on the left side of a RIGHT JOIN.
+# [CALCITE-5073]
+
+select *
+from emp e right join dept d
+on e.deptno = d.deptno and e.empno = d.deptno;
+# Not using !ok: RIGHT JOIN with self-referential condition
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[right])
+    LogicalFilter(condition=[=($7, $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+
 # testLeftOuterJoinSimplificationToInner --------------------------------------
 # FILTER_INTO_JOIN converts a left outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the right side.
@@ -188,6 +292,34 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, FILTER_INTO_JOIN"
 
+# testMergeFilter -------------------------------------------------------------
+# FILTER_PROJECT_TRANSPOSE + FILTER_MERGE combines duplicate filters.
+
+select dname from (
+  select *
+  from dept
+  where deptno = 10)
+where deptno = 10;
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
++------------+
+(1 row)
+
+!ok
+LogicalProject(DNAME=[$1])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[=($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE, FILTER_MERGE"
+
 # testPushAboveFiltersIntoInnerJoinCondition ----------------------------------
 # FILTER_INTO_JOIN removes a redundant WHERE predicate that is already present
 # in the inner join condition.
@@ -207,6 +339,32 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testPushFilterThroughJoinWithNonDeterministic --------------------------------
+# FILTER_PROJECT_TRANSPOSE pushes the filter past the project, but
+# FILTER_INTO_JOIN and JOIN_CONDITION_PUSH do not push it into the join because
+# RAND() is non-deterministic.
+# [CALCITE-7373]
+
+select * from (
+  select * from dept inner join
+     emp on dept.deptno = emp.deptno) r
+where 0.9 <= rand();
+# Not using !ok: RAND() gives non-deterministic results
+LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalFilter(condition=[<=(CAST(0.9:DECIMAL(2, 1)):DOUBLE NOT NULL, RAND())])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+    LogicalFilter(condition=[<=(CAST(0.9:DECIMAL(2, 1)):DOUBLE NOT NULL, RAND())])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
 # testPushFilterWithIsNotDistinctFromPastJoin ---------------------------------
 # FILTER_INTO_JOIN moves an IS NOT DISTINCT FROM predicate from the WHERE
@@ -229,6 +387,26 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE, FILTER_INTO_JOIN"
+
+# testPushJoinConditionWithNonDeterministic ------------------------------------
+# FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, and JOIN_CONDITION_PUSH do not
+# push a join condition containing RAND() (non-deterministic) out of the join.
+# [CALCITE-7373]
+
+select * from (
+  select * from dept inner join
+     emp on dept.deptno = emp.deptno and emp.mgr <= rand()) r;
+# Not using !ok: RAND() gives non-deterministic results
+LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[AND(=($0, $9), <=(CAST($5):DOUBLE, RAND()))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[AND(=($0, $9), <=(CAST($5):DOUBLE, RAND()))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
 # testRightOuterJoinSimplificationToInner -------------------------------------
 # FILTER_INTO_JOIN converts a right outer join to inner when the WHERE clause

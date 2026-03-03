@@ -1,0 +1,194 @@
+!use scott
+!set outputformat mysql
+
+select deptno, count(distinct ename)
+from emp group by deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      5 |
+|     30 |      6 |
++--------+--------+
+(3 rows)
+
+!ok
+
+select deptno, count(distinct ename), sum(sal)
+from emp group by deptno;
++--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2   |
++--------+--------+----------+
+|     10 |      3 |  8750.00 |
+|     20 |      5 | 10875.00 |
+|     30 |      6 |  9400.00 |
++--------+--------+----------+
+(3 rows)
+
+!ok
+
+select deptno, job, count(distinct ename)
+from emp group by rollup(deptno,job);
++--------+-----------+--------+
+| DEPTNO | JOB       | EXPR$2 |
++--------+-----------+--------+
+|     10 | CLERK     |      1 |
+|     10 | MANAGER   |      1 |
+|     10 | PRESIDENT |      1 |
+|     10 |           |      3 |
+|     20 | ANALYST   |      2 |
+|     20 | CLERK     |      2 |
+|     20 | MANAGER   |      1 |
+|     20 |           |      5 |
+|     30 | CLERK     |      1 |
+|     30 | MANAGER   |      1 |
+|     30 | SALESMAN  |      4 |
+|     30 |           |      6 |
+|        |           |     14 |
++--------+-----------+--------+
+(13 rows)
+
+!ok
+
+select deptno, job, count(distinct ename), sum(sal)
+from emp group by rollup(deptno,job);
++--------+-----------+--------+----------+
+| DEPTNO | JOB       | EXPR$2 | EXPR$3   |
++--------+-----------+--------+----------+
+|     10 | CLERK     |      1 |  1300.00 |
+|     10 | MANAGER   |      1 |  2450.00 |
+|     10 | PRESIDENT |      1 |  5000.00 |
+|     10 |           |      3 |  8750.00 |
+|     20 | ANALYST   |      2 |  6000.00 |
+|     20 | CLERK     |      2 |  1900.00 |
+|     20 | MANAGER   |      1 |  2975.00 |
+|     20 |           |      5 | 10875.00 |
+|     30 | CLERK     |      1 |   950.00 |
+|     30 | MANAGER   |      1 |  2850.00 |
+|     30 | SALESMAN  |      4 |  5600.00 |
+|     30 |           |      6 |  9400.00 |
+|        |           |     14 | 29025.00 |
++--------+-----------+--------+----------+
+(13 rows)
+
+!ok
+
+select deptno, count(distinct deptno, job) as cddj,
+  sum(sal) as s
+from emp group by deptno;
++--------+------+----------+
+| DEPTNO | CDDJ | S        |
++--------+------+----------+
+|     10 |    3 |  8750.00 |
+|     20 |    3 | 10875.00 |
+|     30 |    3 |  9400.00 |
++--------+------+----------+
+(3 rows)
+
+!ok
+
+select deptno, count(distinct ename) as cde,
+count(distinct job, ename) as cdje,
+count(distinct deptno, job) as cddj,
+sum(sal) as s
+from emp group by deptno;
++--------+-----+------+------+----------+
+| DEPTNO | CDE | CDJE | CDDJ | S        |
++--------+-----+------+------+----------+
+|     10 |   3 |    3 |    3 |  8750.00 |
+|     20 |   5 |    5 |    3 | 10875.00 |
+|     30 |   6 |    6 |    3 |  9400.00 |
++--------+-----+------+------+----------+
+(3 rows)
+
+!ok
+
+select deptno, count(distinct ename), count(distinct job, ename),
+count(distinct deptno, job), sum(sal)
+from emp group by deptno;
++--------+--------+--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4   |
++--------+--------+--------+--------+----------+
+|     10 |      3 |      3 |      3 |  8750.00 |
+|     20 |      5 |      5 |      3 | 10875.00 |
+|     30 |      6 |      6 |      3 |  9400.00 |
++--------+--------+--------+--------+----------+
+(3 rows)
+
+!ok
+
+select deptno, count(distinct ename),
+  count(distinct job)
+from emp group by deptno;
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |      3 |      3 |
+|     20 |      5 |      3 |
+|     30 |      6 |      3 |
++--------+--------+--------+
+(3 rows)
+
+!ok
+
+select count(distinct ename), count(distinct job)
+from emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     14 |      5 |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno, count(distinct ename),
+  count(distinct job, ename),
+  count(distinct deptno, job), sum(sal)
+from emp group by deptno;
++--------+--------+--------+--------+----------+
+| DEPTNO | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4   |
++--------+--------+--------+--------+----------+
+|     10 |      3 |      3 |      3 |  8750.00 |
+|     20 |      5 |      5 |      3 | 10875.00 |
+|     30 |      6 |      6 |      3 |  9400.00 |
++--------+--------+--------+--------+----------+
+(3 rows)
+
+!ok
+
+select max(deptno), count(distinct ename)
+from emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     30 |     14 |
++--------+--------+
+(1 row)
+
+!ok
+
+select deptno,
+count(distinct sal) FILTER (WHERE sal > 1000),
+count(distinct sal) FILTER (WHERE sal > 500)
+from emp group by deptno;
++--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     10 |      3 |      3 |
+|     20 |      3 |      4 |
+|     30 |      4 |      5 |
++--------+--------+--------+
+(3 rows)
+
+!ok
+
+# BIT_AND does not support DECIMAL type (sal is DECIMAL(7, 2))
+SELECT empno, SUM(distinct sal), MIN(sal),
+MIN(distinct sal), MAX(distinct sal),
+bit_and(distinct sal), bit_or(sal), count(distinct sal)
+from emp group by empno, deptno;
+Cannot apply 'BIT_AND' to arguments of type 'BIT_AND(<DECIMAL(7, 2)>)'
+!error
+
+# End aggregate-distinct-test.iq
