@@ -4948,6 +4948,12 @@ public class SqlFunctions {
     return s.charAt(0);
   }
 
+  public static char toChar(Object o){
+    return o instanceof Character ? (Character) o
+        : o instanceof CharSequence ? ((CharSequence) o).charAt(0)
+        : (Character) cannotConvert(o, char.class);
+  }
+
   public static Character toCharBoxed(String s) {
     return s.charAt(0);
   }
