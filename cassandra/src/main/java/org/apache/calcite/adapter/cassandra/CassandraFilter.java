@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -47,6 +48,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -98,7 +101,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
   }
 
   @Override public CassandraFilter copy(RelTraitSet traitSet, RelNode input,
-      RexNode condition) {
+      RexNode condition, Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new CassandraFilter(getCluster(), traitSet, input, condition,
         partitionKeys, clusteringKeys, implicitFieldCollations);
   }

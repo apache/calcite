@@ -103,12 +103,13 @@ public abstract class AbstractRelNode implements RelNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs,
+      Set<CorrelationId> variableSet) {
     // Note that empty set equals empty set, so relational expressions
     // with zero inputs do not generally need to implement their own copy
     // method.
     if (getInputs().equals(inputs)
-        && traitSet == getTraitSet()) {
+        && traitSet == getTraitSet() && variableSet == getVariablesSet()) {
       return this;
     }
     throw new AssertionError("Relational expression should override copy. "
