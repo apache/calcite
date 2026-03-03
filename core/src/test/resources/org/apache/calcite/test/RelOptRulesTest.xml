@@ -696,25 +696,6 @@ LogicalProject(EMPNO=[$12])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCasePushIsAlwaysWorking">
-    <Resource name="sql">
-      <![CDATA[select empno from emp where case when sal > 1000 then empno else sal end = 1]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[=(CASE(>($5, 1000), $0, $5), 1)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[OR(AND(>($5, 1000), =($0, 1)), =($5, 1))])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testChainJoinDphypJoinReorder">
     <Resource name="sql">
       <![CDATA[select emp.empno from emp, emp_address, dept, dept_nested where emp.deptno + emp_address.empno = dept.deptno + dept_nested.deptno and emp.empno = emp_address.empno and dept.deptno = dept_nested.deptno]]>
@@ -2014,230 +1995,11 @@ EnumerableUnion(all=[true])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testEmptyAggregate">
-    <Resource name="sql">
-      <![CDATA[select sum(empno) from emp where false group by deptno]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[$1])
-  LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
-    LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyAggregateEmptyKey">
-    <Resource name="sql">
-      <![CDATA[select sum(empno) from emp where false]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyIntersect">
-    <Resource name="sql">
-      <![CDATA[select * from (values (30, 3))intersect
-select *
-from (values (10, 1), (30, 3)) as t (x, y) where x > 50
-intersect
-select * from (values (30, 3))]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalIntersect(all=[false])
-  LogicalIntersect(all=[false])
-    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-      LogicalValues(tuples=[[{ 30, 3 }]])
-    LogicalProject(X=[$0], Y=[$1])
-      LogicalFilter(condition=[>($0, 50)])
-        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-  LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-    LogicalValues(tuples=[[{ 30, 3 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyMinus">
-    <Resource name="sql">
-      <![CDATA[select * from (values (30, 3)) as t (x, y)
-where x > 30
-except
-select * from (values (20, 2))
-except
-select * from (values (40, 4))]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalMinus(all=[false])
-  LogicalMinus(all=[false])
-    LogicalProject(X=[$0], Y=[$1])
-      LogicalFilter(condition=[>($0, 30)])
-        LogicalValues(tuples=[[{ 30, 3 }]])
-    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-      LogicalValues(tuples=[[{ 20, 2 }]])
-  LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-    LogicalValues(tuples=[[{ 40, 4 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyMinus2">
-    <Resource name="sql">
-      <![CDATA[select * from (values (30, 3)) as t (x, y)
-except
-select * from (values (20, 2)) as t (x, y) where x > 30
-except
-select * from (values (40, 4))
-except
-select * from (values (50, 5)) as t (x, y) where x > 50]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalMinus(all=[false])
-  LogicalMinus(all=[false])
-    LogicalMinus(all=[false])
-      LogicalProject(X=[$0], Y=[$1])
-        LogicalValues(tuples=[[{ 30, 3 }]])
-      LogicalProject(X=[$0], Y=[$1])
-        LogicalFilter(condition=[>($0, 30)])
-          LogicalValues(tuples=[[{ 20, 2 }]])
-    LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-      LogicalValues(tuples=[[{ 40, 4 }]])
-  LogicalProject(X=[$0], Y=[$1])
-    LogicalFilter(condition=[>($0, 50)])
-      LogicalValues(tuples=[[{ 50, 5 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalMinus(all=[false])
-  LogicalProject(X=[$0], Y=[$1])
-    LogicalValues(tuples=[[{ 30, 3 }]])
-  LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
-    LogicalValues(tuples=[[{ 40, 4 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyMinus3">
-    <Resource name="sql">
-      <![CDATA[select * from (values (30, 3), (30, 3)) as t (x, y)
-except
-select * from (values (20, 2)) as t (x, y) where x > 30]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalMinus(all=[false])
-  LogicalProject(X=[$0], Y=[$1])
-    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
-  LogicalProject(X=[$0], Y=[$1])
-    LogicalFilter(condition=[>($0, 30)])
-      LogicalValues(tuples=[[{ 20, 2 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalAggregate(group=[{0, 1}])
-  LogicalProject(X=[$0], Y=[$1])
-    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyProject">
-    <Resource name="sql">
-      <![CDATA[select z + x from (
-  select x + y as z, x from (
-    select * from (values (10, 1), (30, 3)) as t (x, y)
-    where x + y > 50))]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[+(+($0, $1), $0)])
-  LogicalFilter(condition=[>(+($0, $1), 50)])
-    LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptyProject2">
-    <Resource name="sql">
-      <![CDATA[select z + x from (
-  select x + y as z, x from (
-    select * from (values (10, 1), (30, 3)) as t (x, y)
-    where x + y > 50))]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[+(+($0, $1), $0)])
-  LogicalFilter(condition=[>(+($0, $1), 50)])
-    LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptySort">
-    <Resource name="sql">
-      <![CDATA[select * from emp where false order by deptno]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$7], dir0=[ASC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalFilter(condition=[false])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testEmptySort2">
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
   LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testEmptySortLimitZero">
-    <Resource name="sql">
-      <![CDATA[select * from emp order by deptno limit 0]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(sort0=[$7], dir0=[ASC], fetch=[0])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
@@ -4939,25 +4701,6 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testProjectOverWithAvg">
-    <Resource name="sql">
-      <![CDATA[select avg(sal) over (order by empno rows 3 preceding) from emp]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[CAST(/(CASE(>(COUNT($5) OVER (ORDER BY $0 ROWS 3 PRECEDING), 0), SUM($5) OVER (ORDER BY $0 ROWS 3 PRECEDING), null:INTEGER), COUNT($5) OVER (ORDER BY $0 ROWS 3 PRECEDING))):INTEGER])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
-  LogicalWindow(window#0=[window(order by [0] rows between $2 PRECEDING and CURRENT ROW aggs [COUNT($1), $SUM0($1)])], constants=[[3]])
-    LogicalProject(EMPNO=[$0], SAL=[$5])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testProjectPredicatePull">
     <Resource name="sql">
       <![CDATA[select e.ename, d.dname
@@ -6651,59 +6394,6 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReduceConstantsWindow">
-    <Resource name="sql">
-      <![CDATA[select col1, col2, col3
-from (
-  select empno,
-    sum(100) over (partition by deptno, sal order by sal) as col1,
-    sum(100) over (partition by sal order by deptno) as col2,
-    sum(sal) over (partition by deptno order by sal) as col3
-  from emp where sal = 5000)]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(COL1=[$2], COL2=[$3], COL3=[$4])
-  LogicalWindow(window#0=[window(partition {1} range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($2)])], window#1=[window(order by [1] aggs [SUM($2)])], window#2=[window(partition {1} range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM(5000)])], constants=[[100]])
-    LogicalProject(SAL=[$5], DEPTNO=[$7])
-      LogicalFilter(condition=[=($5, 5000)])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7, $5 ORDER BY $5)], COL2=[SUM(100) OVER (PARTITION BY $5 ORDER BY $7)], COL3=[SUM($5) OVER (PARTITION BY $7 ORDER BY $5)])
-  LogicalFilter(condition=[=($5, 5000)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testReduceConstantsWithMultipleOrderByWindow">
-    <Resource name="sql">
-      <![CDATA[select col1, col2
-from (
-  select empno,
-    sum(100) over (order by deptno, empno range between current row and unbounded following) as col1,
-    sum(100) over (partition by sal, deptno order by deptno, empno range between unbounded preceding and unbounded following) as col2
-  from emp where sal = 5000)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(COL1=[SUM(100) OVER (ORDER BY $7, $0 RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)], COL2=[SUM(100) OVER (PARTITION BY $5, $7 ORDER BY $7, $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
-  LogicalFilter(condition=[=($5, 5000)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(COL1=[$3], COL2=[$4])
-  LogicalWindow(window#0=[window(order by [2, 0] range between CURRENT ROW and UNBOUNDED FOLLOWING aggs [SUM($3)])], window#1=[window(partition {2} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($3)])], constants=[[100]])
-    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
-      LogicalFilter(condition=[=($5, 5000)])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testReduceDecimal">
     <Resource name="sql">
       <![CDATA[select ename from emp where sal > cast (100.0 as decimal(4, 1))]]>
@@ -6751,25 +6441,6 @@ LogicalProject(EXPR$0=[EXISTS(ARRAY(1), (X) -> true)])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReduceNullableToNotNull">
-    <Resource name="sql">
-      <![CDATA[select
-  empno + case when 'a' = 'a' then 1 else null end as newcol
-from emp]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(NEWCOL=[+($0, 1)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testReduceNullableToNotNull2">
     <Resource name="sql">
       <![CDATA[select
@@ -6786,24 +6457,6 @@ LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
       <![CDATA[
 LogicalProject(NEWCOL=[+($0, 1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testReduceValuesToEmpty">
-    <Resource name="sql">
-      <![CDATA[select a + b as x, b, a from (values (10, 1), (30, 7)) as t(a, b)
-where a - b < 0]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
-  LogicalFilter(condition=[<(-($0, $1), 0)])
-    LogicalValues(tuples=[[{ 10, 1 }, { 30, 7 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>

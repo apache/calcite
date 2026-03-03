@@ -187,9 +187,10 @@ LogicalProject(ENAME=[$0])
 # testSortRemoveConstantKeyWhenOrderByIsNull -----------------------------------
 # SORT_REMOVE_CONSTANT_KEYS should remove NULL literal sort keys.
 # [CALCITE-873]
+# Not using !ok (or !type) because executing SQL causes a runtime error.
+# Re-enable when [CALCITE-7427] is fixed.
 
 SELECT * FROM emp ORDER BY deptno, null, empno;
-# Not using !ok: ORDER BY null literal causes a SQL error in this context.
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalSort(sort0=[$7], sort1=[$9], sort2=[$0], dir0=[ASC], dir1=[ASC], dir2=[ASC])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$9=[null:NULL])

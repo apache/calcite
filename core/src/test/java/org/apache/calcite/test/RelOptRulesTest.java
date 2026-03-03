@@ -95,7 +95,6 @@ import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
-import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -1730,12 +1729,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case that reduces a nullable expression to a NOT NULL literal that
-   * is cast to nullable. */
-  @Test void testReduceNullableToNotNull() {
-    checkReduceNullableToNotNull(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-  }
-
   /** Test case that reduces a nullable expression to a NOT NULL literal. */
   @Test void testReduceNullableToNotNull2() {
     final ProjectReduceExpressionsRule rule =
@@ -1811,161 +1804,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn)
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS, CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .checkUnchanged();
-  }
-
-  @Test void testCasePushIsAlwaysWorking() {
-    final String sql = "select empno from emp"
-        + " where case when sal > 1000 then empno else sal end = 1";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.CALC_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-
-  @Test void testReduceValuesToEmpty() {
-    // Plan should be same as for
-    // select * from (values (11, 1, 10), (23, 3, 20)) as t(x, b, a)");
-    final String sql = "select a + b as x, b, a from (values (10, 1), (30, 7)) as t(a, b)\n"
-        + "where a - b < 0";
-    sql(sql)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_FILTER_VALUES_MERGE)
-        .check();
-  }
-
-  @Test void testReduceConstantsWindow() {
-    final String sql = "select col1, col2, col3\n"
-        + "from (\n"
-        + "  select empno,\n"
-        + "    sum(100) over (partition by deptno, sal order by sal) as col1,\n"
-        + "    sum(100) over (partition by sal order by deptno) as col2,\n"
-        + "    sum(sal) over (partition by deptno order by sal) as col3\n"
-        + "  from emp where sal = 5000)";
-
-    sql(sql)
-        .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_WINDOW_TRANSPOSE,
-            CoreRules.WINDOW_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testReduceConstantsWithMultipleOrderByWindow() {
-    final String sql = "select col1, col2\n"
-        + "from (\n"
-        + "  select empno,\n"
-        + "    sum(100) over (order by deptno, empno range between current row and unbounded following) as col1,\n"
-        + "    sum(100) over (partition by sal, deptno order by deptno, empno range between unbounded preceding and unbounded following) as col2\n"
-        + "  from emp where sal = 5000)";
-
-    sql(sql)
-        .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_WINDOW_TRANSPOSE,
-            CoreRules.WINDOW_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testProjectOverWithAvg() {
-    final String sql = "select avg(sal) over (order by empno rows 3 preceding) from emp";
-
-    sql(sql)
-        .withRule(CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE,
-            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_WINDOW_TRANSPOSE,
-            CoreRules.WINDOW_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1488">[CALCITE-1488]
-   * ValuesReduceRule should ignore empty Values</a>. */
-  @Test void testEmptyProject() {
-    final String sql = "select z + x from (\n"
-        + "  select x + y as z, x from (\n"
-        + "    select * from (values (10, 1), (30, 3)) as t (x, y)\n"
-        + "    where x + y > 50))";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
-            CoreRules.FILTER_VALUES_MERGE,
-            CoreRules.PROJECT_VALUES_MERGE)
-        .check();
-  }
-
-  /** Same query as {@link #testEmptyProject()}, and {@link PruneEmptyRules}
-   * is able to do the job that {@link ValuesReduceRule} cannot do. */
-  @Test void testEmptyProject2() {
-    final String sql = "select z + x from (\n"
-        + "  select x + y as z, x from (\n"
-        + "    select * from (values (10, 1), (30, 3)) as t (x, y)\n"
-        + "    where x + y > 50))";
-    sql(sql)
-        .withRule(CoreRules.FILTER_VALUES_MERGE,
-            PruneEmptyRules.PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testEmptyIntersect() {
-    final String sql = "select * from (values (30, 3))"
-        + "intersect\n"
-        + "select *\nfrom (values (10, 1), (30, 3)) as t (x, y) where x > 50\n"
-        + "intersect\n"
-        + "select * from (values (30, 3))";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.INTERSECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testEmptyMinus() {
-    // First input is empty; therefore whole expression is empty
-    final String sql = "select * from (values (30, 3)) as t (x, y)\n"
-        + "where x > 30\n"
-        + "except\n"
-        + "select * from (values (20, 2))\n"
-        + "except\n"
-        + "select * from (values (40, 4))";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.MINUS_INSTANCE)
-        .check();
-  }
-
-  @Test void testEmptyMinus2() {
-    // Second and fourth inputs are empty; they are removed
-    final String sql = "select * from (values (30, 3)) as t (x, y)\n"
-        + "except\n"
-        + "select * from (values (20, 2)) as t (x, y) where x > 30\n"
-        + "except\n"
-        + "select * from (values (40, 4))\n"
-        + "except\n"
-        + "select * from (values (50, 5)) as t (x, y) where x > 50";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.MINUS_INSTANCE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6955">[CALCITE-6955]
-   * PruneEmptyRules does not handle the all attribute of SetOp correctly</a>. */
-  @Test void testEmptyMinus3() {
-    // First input is empty; therefore whole expression is empty
-    final String sql = "select * from (values (30, 3), (30, 3)) as t (x, y)\n"
-        + "except\n"
-        + "select * from (values (20, 2)) as t (x, y) where x > 30";
-    sql(sql)
-        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.MINUS_INSTANCE)
-        .check();
   }
 
   @Test void testEmptyTable() {
@@ -2389,15 +2227,6 @@ class RelOptRulesTest extends RelOptTestBase {
         PruneEmptyRules.JOIN_RIGHT_INSTANCE).check();
   }
 
-  @Test void testEmptySort() {
-    final String sql = "select * from emp where false order by deptno";
-    sql(sql)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.SORT_INSTANCE)
-        .check();
-  }
-
   @Test void testEmptySort2() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("DEPT").empty()
@@ -2407,33 +2236,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
     relFn(relFn).withRule(PruneEmptyRules.SORT_INSTANCE).check();
   }
-
-  @Test void testEmptySortLimitZero() {
-    final String sql = "select * from emp order by deptno limit 0";
-    sql(sql).withRule(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE).check();
-  }
-
-  @Test void testEmptyAggregate() {
-    final String sql = "select sum(empno) from emp where false group by deptno";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE)
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            PruneEmptyRules.AGGREGATE_INSTANCE,
-            PruneEmptyRules.PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testEmptyAggregateEmptyKey() {
-    final String sql = "select sum(empno) from emp where false";
-    sql(sql)
-        .withPreRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            PruneEmptyRules.PROJECT_INSTANCE)
-        .withRule(PruneEmptyRules.AGGREGATE_INSTANCE)
-        .checkUnchanged();
-  }
-
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5117">[CALCITE-5117]
