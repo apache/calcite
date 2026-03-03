@@ -34,6 +34,7 @@ select sum(salary) OVER (order by enroll_date
                             and INTERVAL 365 DAYS following),
     salary, enroll_date
 FROM empsalary;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 EXPR$0 INTEGER(10)
 SALARY INTEGER(10)
 ENROLL_DATE DATE
@@ -205,6 +206,7 @@ select * from (select empno, deptno, last_value(deptno) over (order by empno) f1
 first_value(deptno) over (order by empno desc) f3,
 count(deptno) over (order by empno) f2
 from emp) where f2 > 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EMPNO=[$0], DEPTNO=[$1], F1=[$2], F3=[$3], F2=[$4])
   LogicalFilter(condition=[>($4, 10)])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[LAST_VALUE($7) OVER (ORDER BY $0)], F3=[FIRST_VALUE($7) OVER (ORDER BY $0 DESC)], F2=[COUNT($7) OVER (ORDER BY $0)])
@@ -227,6 +229,7 @@ select
  sum(deptno) over(partition by empno order by sal) as sum1,
  sum(deptno) over(partition by deptno order by sal) as sum2
 from emp;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(COUNT1=[COUNT() OVER (PARTITION BY $0 ORDER BY $5)], COUNT2=[COUNT() OVER (PARTITION BY $7 ORDER BY $5)], SUM1=[SUM($7) OVER (PARTITION BY $0 ORDER BY $5)], SUM2=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE"
@@ -241,6 +244,7 @@ LogicalProject(COUNT1=[$9], COUNT2=[$11], SUM1=[$10], SUM2=[$12])
 
 select deptno, f1, f2 from (select *, last_value(deptno) over (order by empno) f2
 from (select *, first_value(deptno) over (order by empno) f1 from emp));
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$7], F1=[$9], F2=[LAST_VALUE($7) OVER (ORDER BY $0)])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], F1=[FIRST_VALUE($7) OVER (ORDER BY $0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -255,6 +259,7 @@ LogicalProject(DEPTNO=[$7], F1=[$9], F2=[$10])
 # PROJECT_WINDOW_TRANSPOSE pushes a Project through a Window.
 
 select count(empno) over(), deptno from emp;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[COUNT($0) OVER ()], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE"
@@ -273,6 +278,7 @@ from (
     sum(100) over (partition by  deptno order by sal) as col1,
   sum(1000) over(partition by deptno order by sal) as col2
   from emp);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5)], COL2=[SUM(1000) OVER (PARTITION BY $7 ORDER BY $5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "NONE"

@@ -427,6 +427,7 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 select * from emp e right join (
   select * from dept d) d on e.deptno = d.deptno
 FETCH NEXT ? ROWS ONLY;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 EMPNO SMALLINT(5)
 ENAME VARCHAR(10)
 JOB VARCHAR(9)
@@ -463,6 +464,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 select * from emp e left join (
   select * from dept d) d on e.deptno = d.deptno
 OFFSET ? ROWS;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 EMPNO SMALLINT(5) NOT NULL
 ENAME VARCHAR(10)
 JOB VARCHAR(9)

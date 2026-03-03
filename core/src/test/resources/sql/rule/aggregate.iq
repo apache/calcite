@@ -114,6 +114,7 @@ select empno, sum(sal), min(sal), max(sal),
  grouping(deptno)
 from emp
 group by empno, deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EMPNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4], EXPR$4=[$5], EXPR$5=[$6], EXPR$6=[$7], EXPR$7=[$8])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM($2)], EXPR$2=[MIN($2)], EXPR$3=[MAX($2)], EXPR$4=[BIT_AND($2)], EXPR$5=[BIT_OR($2)], EXPR$6=[COUNT(DISTINCT $2)], EXPR$7=[GROUPING($1)])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])

@@ -107,6 +107,7 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE, 
 # including NaN, Infinity
 
 SELECT power(1004.3, 2);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[POWER(1004.3:DECIMAL(5, 1), 2)])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE"
@@ -122,6 +123,7 @@ LogicalProject(EXPR$0=[1008618.4899999999E0:DOUBLE])
 # including NaN, Infinity
 
 SELECT 1.0 / 0.0e0;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[/(1.0:DECIMAL(2, 1), 0.0E0:DOUBLE)])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE"
@@ -569,6 +571,7 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
 # Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
 
 select cast(time '12:34:56' as timestamp) from emp as e;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 EXPR$0 TIMESTAMP NOT NULL
 !type
 # Not '!ok' because execution results depend on the current date.
@@ -642,6 +645,7 @@ coalesce(2,null), row(7+8)
 from dept d inner join emp e
 on d.deptno = e.deptno + (5-5)
 where d.deptno=(7+8) and d.deptno=(8+7) and d.deptno=coalesce(2,null);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)], EXPR$3=[null:INTEGER], EXPR$4=[CASE(IS NOT NULL(2), 2, null:INTEGER)], EXPR$5=[ROW(+(7, 8))])
   LogicalFilter(condition=[AND(=($0, +(7, 8)), =($0, CASE(IS NOT NULL(2), 2, null:INTEGER)))])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
@@ -1254,6 +1258,7 @@ LogicalProject(COL1=[$0])
 
 select * from emp e1, emp e2
 where coalesce(e1.mgr, -1) = coalesce(e2.mgr, -1);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalFilter(condition=[=(CASE(IS NOT NULL($3), CAST($3):INTEGER NOT NULL, -1), CASE(IS NOT NULL($12), CAST($12):INTEGER NOT NULL, -1))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -1272,6 +1277,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # result
 
 select split('1|2|3', '|');
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[SPLIT('1|2|3', '|')])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE, operatorTable=BIG_QUERY"
@@ -1285,6 +1291,7 @@ LogicalProject(EXPR$0=[ARRAY('1':VARCHAR, '2':VARCHAR, '3':VARCHAR)])
 # that returns NULL
 
 select split('1|2|3', NULL);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[SPLIT('1|2|3', null:NULL)])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE, operatorTable=BIG_QUERY"
@@ -1298,6 +1305,7 @@ LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
 # that returns NULL
 
 select split(NULL, '|');
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[SPLIT(null:NULL, '|')])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE, operatorTable=BIG_QUERY"
@@ -1311,6 +1319,7 @@ LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
 # that returns NULL
 
 select split(NULL, NULL);
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[SPLIT(null:NULL, null:NULL)])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "NONE, operatorTable=BIG_QUERY"

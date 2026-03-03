@@ -30,6 +30,7 @@
 select deptno from
 (select deptno from emp where sal > 100 limit 10000)
 limit 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[10])
@@ -50,6 +51,7 @@ LogicalProject(DEPTNO=[$7])
 select deptno from
 (select deptno from emp where sal > 100 order by sal desc limit 10000)
 limit 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(fetch=[10])
@@ -70,6 +72,7 @@ LogicalProject(DEPTNO=[$7])
 select deptno from
 (select deptno from emp where sal > 100 order by sal desc limit 10)
 limit 10000;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(fetch=[10000])
@@ -90,6 +93,7 @@ LogicalProject(DEPTNO=[$7])
 select deptno from
 (select deptno from emp where sal > 100 limit 100)
 order by deptno desc;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(sort0=[$7], dir0=[DESC])
@@ -111,6 +115,7 @@ LogicalProject(DEPTNO=[$7])
 select deptno from
 (select deptno from emp where sal > 100 order by sal desc limit 10)
 order by deptno limit 10000;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
@@ -132,6 +137,7 @@ LogicalProject(DEPTNO=[$7])
 select deptno from
 (select deptno from emp where sal > 100 order by sal desc limit 10000)
 order by deptno limit 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
@@ -152,6 +158,7 @@ LogicalProject(DEPTNO=[$7])
 select deptno from
 (select deptno from emp where sal > 100 limit 3100000000)
 limit 3000000000;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[3000000000:BIGINT])

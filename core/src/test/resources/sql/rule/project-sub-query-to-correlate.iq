@@ -31,6 +31,7 @@
 select sal,
 exists (select * from emp_b where emp.deptno = emp_b.deptno)
 from sales.emp;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
 LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])

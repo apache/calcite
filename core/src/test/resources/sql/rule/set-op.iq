@@ -179,6 +179,7 @@ union all
 select * from (values (20, 2))
 )
 where x + y > 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(X=[$0], Y=[$1])
   LogicalFilter(condition=[>(+($0, $1), 30)])
     LogicalUnion(all=[true])
@@ -201,6 +202,7 @@ union
 select * from (values (20, 2))
 )
 where x + y > 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(X=[$0], Y=[$1])
   LogicalFilter(condition=[>(+($0, $1), 30)])
     LogicalUnion(all=[false])
@@ -222,6 +224,7 @@ intersect
 select * from emp where deptno = 20
 intersect
 select * from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalIntersect(all=[false])
   LogicalIntersect(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -261,6 +264,7 @@ intersect
 select * from emp where deptno = 20
 intersect all
 select * from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalIntersect(all=[true])
   LogicalIntersect(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -299,6 +303,7 @@ intersect
 select * from emp where deptno = 20
 intersect all
 select * from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalIntersect(all=[true])
   LogicalIntersect(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -339,6 +344,7 @@ intersect
 select * from emp where deptno = 20
 intersect
 select * from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalIntersect(all=[false])
   LogicalIntersect(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -832,6 +838,7 @@ union
 select * from emp where deptno = 20
 intersect
 select * from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -879,6 +886,7 @@ select * from (
 except all
 select dname, deptno from dept
 ) aa;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DNAME=[$0], DEPTNO=[$1])
   LogicalMinus(all=[true])
     LogicalProject(DNAME=[$0], DEPTNO=[$1])
@@ -996,6 +1004,7 @@ except
 select EMPNO, ENAME, JOB from emp where deptno = 20
 except
 select EMPNO, ENAME, JOB from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalMinus(all=[false])
   LogicalMinus(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
@@ -1032,6 +1041,7 @@ except
 select EMPNO, ENAME, JOB from emp where deptno = 20
 except all
 select EMPNO, ENAME, JOB from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalMinus(all=[true])
   LogicalMinus(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
@@ -1069,6 +1079,7 @@ except all
 select EMPNO, ENAME, JOB from emp where deptno = 20
 except
 select EMPNO, ENAME, JOB from emp where deptno = 30;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalMinus(all=[false])
   LogicalMinus(all=[true])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
@@ -1304,6 +1315,7 @@ LogicalAggregate(group=[{0, 1}])
 select r1.sal from
 (select * from emp e1 union all select * from emp e2) r1,
 emp r2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 +---------+
 | SAL     |
 +---------+
@@ -1730,6 +1742,7 @@ LogicalProject(SAL=[$5])
 select r1.sal from
 emp r1,
 (select * from emp e1 union all select * from emp e2) r2;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 +---------+
 | SAL     |
 +---------+
@@ -2158,6 +2171,7 @@ select a.dname from dept a
 union all
 select b.dname from dept b
 order by dname limit 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalProject(DNAME=[$0])
     LogicalUnion(all=[true])
@@ -2184,6 +2198,7 @@ select a.dname from dept a
 union all
 select b.dname from dept b
 order by dname;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalProject(DNAME=[$0])
     LogicalUnion(all=[true])
@@ -2210,6 +2225,7 @@ select a.dname from dept a
 union all
 select b.dname from dept b
 order by dname limit 0;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
   LogicalProject(DNAME=[$0])
     LogicalUnion(all=[true])
@@ -2245,6 +2261,7 @@ select * from (
 union all
 select dname, deptno from dept
 ) aa;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DNAME=[$0], DEPTNO=[$1])
   LogicalUnion(all=[true])
     LogicalProject(DNAME=[$0], DEPTNO=[$1])

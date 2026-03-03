@@ -102,6 +102,7 @@ select * from (
   on e.deptno = d.deptno
   and d.deptno = 10)
 where deptno = 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0], ENAME=[$1])
   LogicalFilter(condition=[=($0, 10)])
     LogicalProject(DEPTNO=[$9], ENAME=[$1])
@@ -121,6 +122,7 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 # FILTER_VALUES_MERGE merges a filter with an underlying VALUES node.
 
 select a, b from (values (10, 'x'), (20, 'y')) as t(a, b) where a < 15;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(A=[$0], B=[$1])
   LogicalFilter(condition=[<($0, 15)])
     LogicalValues(tuples=[[{ 10, 'x' }, { 20, 'y' }]])
@@ -135,6 +137,7 @@ LogicalProject(A=[$0], B=[$1])
 select a + b as x, b, a
 from (values (10, 1), (30, 7), (20, 3)) as t(a, b)
 where a - b < 21;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
   LogicalFilter(condition=[<(-($0, $1), 21)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 7 }, { 20, 3 }]])

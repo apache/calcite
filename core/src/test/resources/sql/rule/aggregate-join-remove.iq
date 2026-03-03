@@ -28,6 +28,7 @@
 
 select distinct e.deptno from sales.emp e
 left outer join sales.dept d on e.deptno = d.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}])
   LogicalProject(DEPTNO=[$7])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
@@ -45,6 +46,7 @@ select e.deptno, count(distinct e.job)
 from sales.emp e
 left outer join sales.dept d on e.deptno = d.deptno
 group by e.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], JOB=[$2])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
@@ -63,6 +65,7 @@ select e.deptno, count(distinct d.dname)
 from sales.emp e
 left outer join sales.dept d on e.deptno = d.deptno
 group by e.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], DNAME=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
@@ -81,6 +84,7 @@ LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $10)])
 select distinct d.deptno
 from sales.emp e
 right outer join sales.dept d on e.deptno = d.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}])
   LogicalProject(DEPTNO=[$9])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
@@ -98,6 +102,7 @@ select d.deptno, count(distinct d.dname)
 from sales.emp e
 right outer join sales.dept d on e.deptno = d.deptno
 group by d.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$9], DNAME=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
@@ -115,6 +120,7 @@ select d.deptno, count(distinct e.job)
 from sales.emp e
 right outer join sales.dept d on e.deptno = d.deptno
 group by d.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$9], JOB=[$2])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
@@ -135,6 +141,7 @@ SELECT distinct e.deptno
 FROM sales.emp e
 LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno
 LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}])
   LogicalProject(DEPTNO=[$7])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])
@@ -157,6 +164,7 @@ FROM sales.emp e
 LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno
 LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno
 GROUP BY e.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], DNAME0=[$12])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])
@@ -179,6 +187,7 @@ SELECT distinct e.deptno, d2.dname
 FROM sales.emp e
 LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno
 LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(DEPTNO=[$7], DNAME=[$12])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])
@@ -202,6 +211,7 @@ FROM sales.emp e
 LEFT JOIN sales.dept d1 ON e.deptno = d1.deptno
 LEFT JOIN sales.dept d2 ON e.deptno = d2.deptno
 GROUP BY e.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1, $2)])
   LogicalProject(DEPTNO=[$7], DNAME=[$10], DNAME0=[$12])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])
@@ -226,6 +236,7 @@ select e.deptno, count(distinct e.slacker)
 from sales.emp e
 left outer join sales.dept d on e.deptno = d.deptno
 group by e.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], SLACKER=[$8])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])

@@ -638,6 +638,7 @@ select 1 from emp d
 inner join emp e on d.deptno = e.deptno
 inner join emp f on e.deptno = f.deptno
 where d.deptno > 7;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 +--------+
 | EXPR$0 |
 +--------+

@@ -27,6 +27,7 @@
 
 select ename from emp
 where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$0])
   LogicalFilter(condition=[AND(=($0, 'Sebastian'), <($1, 100))])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
@@ -63,6 +64,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 
 select e.ename from emp e, dept d
 where e.deptno = d.deptno and e.ename = 'foo';
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[AND(=($7, $9), =($1, 'foo'))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -83,6 +85,7 @@ LogicalProject(ENAME=[$1])
 
 select e1.ename from emp e1, dept d, emp e2
 where e1.deptno = d.deptno and e1.empno = e2.empno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[AND(=($7, $9), =($0, $11))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -109,6 +112,7 @@ LogicalProject(ENAME=[$1])
 
 select e.ename from emp e, dept d, bonus b
 where e.deptno = d.deptno and e.ename = b.ename and d.dname = b.job;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[AND(=($7, $9), =($1, $11), =($10, $12))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -134,6 +138,7 @@ LogicalProject(ENAME=[$1])
 
 select e1.ename from emp e1, dept d, emp e2
 where e1.deptno = d.deptno and d.deptno = e2.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[AND(=($7, $9), =($9, $18))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -160,6 +165,7 @@ LogicalProject(ENAME=[$1])
 select e.* from
 (select ename, trim(job), sal * 2, deptno from emp) e, dept d
 where e.deptno = d.deptno;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(ENAME=[$0], EXPR$1=[$1], EXPR$2=[$2], DEPTNO=[$3])
   LogicalFilter(condition=[=($3, $4)])
     LogicalJoin(condition=[true], joinType=[inner])
