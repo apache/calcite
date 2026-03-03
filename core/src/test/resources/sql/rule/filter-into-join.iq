@@ -49,6 +49,43 @@ LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "EXPAND_FILTER_DISJUNCTION_GLOBAL, FILTER_INTO_JOIN"
 
+# testFilterIntoJoinMissingVariableCor -----------------------------------------
+# FILTER_INTO_JOIN pushes an equality filter into a join even when the filter
+# also contains a correlated scalar subquery (the subquery part stays in the
+# join's outer filter, only the equality predicate is pushed down).
+
+SELECT E.EMPNO
+FROM EMP E
+JOIN DEPT D ON E.DEPTNO = D.DEPTNO
+WHERE E.EMPNO > 10 AND D.DEPTNO = (
+    SELECT MIN(D_INNER.DEPTNO)
+    FROM DEPT D_INNER
+    WHERE D_INNER.DEPTNO = E.DEPTNO);
+# Not using !ok: query uses a correlated subquery not supported by the scott database.
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(>($0, 10), =($9, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject(DEPTNO=[$0])
+    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})))], variablesSet=[[$cor0]])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=($9, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+  LogicalProject(DEPTNO=[$0])
+    LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalFilter(condition=[>($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN"
+
 # testFilterJoinRuleAndIsNotNull -----------------------------------------------
 # FILTER_INTO_JOIN simplifies a left join to inner when the WHERE clause
 # [CALCITE-5247]

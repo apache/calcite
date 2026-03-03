@@ -1317,18 +1317,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.JOIN_RIGHT_UNION_TRANSPOSE).checkUnchanged();
   }
 
-  @Test void testMergeFilterWithJoinCondition() {
-    final String sql = "select d.dname, e.ename\n"
-        + " from emp e inner join dept d\n"
-        + " on e.deptno=d.deptno\n"
-        + " where d.dname='Propane'";
-    sql(sql)
-        .withRule(CoreRules.JOIN_EXTRACT_FILTER,
-            CoreRules.FILTER_TO_CALC,
-            CoreRules.PROJECT_TO_CALC,
-            CoreRules.CALC_MERGE)
-        .check();
-  }
 
   /** Similar to {@link #testJoinConditionPushdown1()} but semi join
    * from which more equality conditions can be inferred. */
@@ -1537,19 +1525,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withProgram(program).check();
   }
 
-  @Test void testManyFiltersOnTopOfMultiJoinShouldCollapse() {
-    HepProgram program = new HepProgramBuilder()
-        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
-        .addRuleCollection(
-            Arrays.asList(CoreRules.FILTER_MULTI_JOIN_MERGE,
-                CoreRules.PROJECT_MULTI_JOIN_MERGE))
-        .build();
-    final String sql = "select * from (select * from emp e1 left outer join dept d\n"
-        + "on e1.deptno = d.deptno\n"
-        + "where d.deptno > 3) where ename LIKE 'bar'";
-    sql(sql).withProgram(program).check();
-  }
 
   // see HIVE-9645
 
@@ -3078,14 +3053,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testPullConstantIntoFilter() {
-    final String sql = "select * from (select * from sales.emp where deptno = 10)\n"
-        + "where deptno + 5 > empno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
 
   @Test void testPullUpPredicatesFromUnionWithProject() {
     final String sql = "select empno = null from emp where comm = 2\n"
@@ -3106,18 +3073,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1995">[CALCITE-1995]
-   * Remove predicates from Filter if they can be proved to be always true or
-   * false</a>. */
-  @Test void testSimplifyFilter() {
-    final String sql = "select * from (select * from sales.emp where deptno > 10)\n"
-        + "where empno > 3 and deptno > 5";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
-  }
 
   @Test void testPullConstantIntoJoin() {
     final String sql = "select * from (select * from sales.emp where empno = 10) as e\n"
@@ -3779,22 +3734,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7319">[CALCITE-7319]
-   * FILTER_INTO_JOIN rule loses correlation variable context in HepPlanner</a>. */
-  @Test void testFilterIntoJoinMissingVariableCor() {
-    final String sql = "SELECT E.EMPNO\n"
-        + "FROM EMP E\n"
-        + "JOIN DEPT D ON E.DEPTNO = D.DEPTNO\n"
-        + "WHERE  E.EMPNO > 10 AND D.DEPTNO = (\n"
-        + "  SELECT MIN(D_INNER.DEPTNO)\n"
-        + "  FROM DEPT D_INNER\n"
-        + "  WHERE D_INNER.DEPTNO = E.DEPTNO)";
-    sql(sql)
-        .withExpand(false)
-        .withDecorrelate(false)
-        .withRule(CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-931">[CALCITE-931]
@@ -5662,28 +5601,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
 
 
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
-   * Create an optimization rule to eliminate UNION
-   * from the same source with different filters</a>. */
-
-  @Test void testExpandFilterDisjunctionForJoinInput() {
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUNCTION_LOCAL)
-        .build();
-
-    sql("select e.empno from emp as e, empnullables as en, emp_b as eb\n"
-        + "where e.empno = en.empno and e.empno = eb.empno\n"
-        + "and\n"
-        + "(\n"
-        + "  (e.mgr > 100 and eb.sal < 200)\n"
-        + "  or\n"
-        + "  (en.comm < 50 and eb.deptno > 10)\n"
-        + ")")
-        .withPre(program)
-        .withRule(CoreRules.JOIN_CONDITION_PUSH, CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
 
   @Test void testExpandJoinDisjunctionForJoinInput() {
     HepProgram program = new HepProgramBuilder()
