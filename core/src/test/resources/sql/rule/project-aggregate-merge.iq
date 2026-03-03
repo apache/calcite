@@ -52,20 +52,12 @@ LogicalProject(EXPR$0=[+($1, $3)])
   LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[+($1, $2)])
   LogicalAggregate(group=[{0, 1}], SS=[SUM($2)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
-
-# testProjectAggregateMergeNonNumericLiteral ----------------------------------
-# Tests that PROJECT_AGGREGATE_MERGE does nothing with non-numeric literals
-# and does not throw an exception.
-
-# Not using !ok: this test uses a custom catalog (NULLABLE table) not in scott.
-# Not using !sub-plan: this test uses a custom catalog (NULLABLE table) not in
-# the mock catalog used by !sub-plan.
+!sub-plan "PROJECT_AGGREGATE_MERGE"
 
 # testProjectAggregateMergeNoOp -----------------------------------------------
 # Tests that PROJECT_AGGREGATE_MERGE does nothing when all aggregate calls are
@@ -96,12 +88,12 @@ LogicalProject(EXPR$0=[+(+($1, $3), $2)])
   LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[+(+($1, $3), $2)])
   LogicalAggregate(group=[{0, 1}], MS=[MIN($2)], SS=[SUM($2)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+!sub-plan "PROJECT_AGGREGATE_MERGE"
 
 # testProjectAggregateMergeNoOpForNonSum --------------------------------------
 # Tests that PROJECT_AGGREGATE_MERGE does nothing for non-SUM aggregate calls.
@@ -123,12 +115,12 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
   LogicalAggregate(group=[{}], M=[MAX($0)])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
   LogicalAggregate(group=[{}], M=[MAX($0)])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+!sub-plan "PROJECT_AGGREGATE_MERGE"
 
 # testProjectAggregateMergeSum0 -----------------------------------------------
 # Tests that PROJECT_AGGREGATE_MERGE converts COALESCE(SUM(x), 0) into SUM0(x).
@@ -149,12 +141,12 @@ LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
   LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
     LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(SS0=[$0])
   LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
     LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+!sub-plan "PROJECT_AGGREGATE_MERGE"
 
 # testProjectAggregateMergeSum01 ----------------------------------------------
 # Tests that PROJECT_AGGREGATE_MERGE converts COALESCE(SUM(CAST(x)), 0) to
@@ -169,12 +161,12 @@ LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
   LogicalAggregate(group=[{}], agg#0=[SUM($0)])
     LogicalProject($f0=[CAST($3):TINYINT])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(SS0=[CAST($0):INTEGER NOT NULL])
   LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
     LogicalProject($f0=[CAST($3):TINYINT])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+!sub-plan "PROJECT_AGGREGATE_MERGE"
 
 # testProjectAggregateMergeSum0AndSum -----------------------------------------
 # As testProjectAggregateMergeSum0, but SUM is also used directly so it cannot
@@ -196,11 +188,11 @@ LogicalProject(EXPR$0=[*($0, 2)], SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NO
   LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
     LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[*($0, 2)], SS0=[$1])
   LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], agg#1=[$SUM0($0)])
     LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_AGGREGATE_MERGE"
+!sub-plan "PROJECT_AGGREGATE_MERGE"
 
 # End project-aggregate-merge.iq

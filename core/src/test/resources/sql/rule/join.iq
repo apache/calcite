@@ -52,14 +52,14 @@ LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
     LogicalJoin(condition=[=($7, $9)], joinType=[semi])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, JOIN_ADD_REDUNDANT_SEMI_JOIN"
+!sub-plan "JOIN_ADD_REDUNDANT_SEMI_JOIN"
 
 # testExtractJoinFilterRule ---------------------------------------------------
 # JOIN_EXTRACT_FILTER moves a join condition into a Filter above a cross join.
@@ -90,12 +90,12 @@ LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[=($7, $9)])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, JOIN_EXTRACT_FILTER"
+!sub-plan "JOIN_EXTRACT_FILTER"
 
 # End join.iq

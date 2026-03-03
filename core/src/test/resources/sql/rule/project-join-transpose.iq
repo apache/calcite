@@ -30,8 +30,14 @@
 
 SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)
 FROM (SELECT ARRAY[1,2,3] as x) s;
-# Not using !ok: query uses ARRAY constructor not supported in the scott database.
++-----------+
+| EXPR$0    |
++-----------+
+| [2, 3, 4] |
++-----------+
+(1 row)
 
+!ok
 LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
 LogicalProject(EXPR$0=[+($0, 1)])
   Uncollect
@@ -40,7 +46,7 @@ LogicalProject(EXPR$0=[+($0, 1)])
 })])
   LogicalProject(X=[ARRAY(1, 2, 3)])
     LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
 LogicalProject(EXPR$0=[+($0, 1)])
   Uncollect
@@ -49,27 +55,46 @@ LogicalProject(EXPR$0=[+($0, 1)])
 })])
   LogicalProject(X=[ARRAY(1, 2, 3)])
     LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "NONE, PROJECT_MERGE"
+!sub-plan "PROJECT_MERGE"
 
 # testProjectMergeShouldIgnoreOver --------------------------------------------
 # PROJECT_MERGE should not merge a Project over a Project that contains OVER
 # (window function), as that would nest an OVER inside an OVER.
 
-select row_number() over (order by deptno), col1
+select row_number() over (order by deptno) as r, col1
 from (
   select deptno,
     sum(100) over (partition by  deptno order by sal) as col1
   from emp);
-# Not using !ok: query uses window functions whose results are not verified here.
++----+------+
+| R  | COL1 |
++----+------+
+|  1 |  100 |
+| 10 |  300 |
+| 11 |  300 |
+| 12 |  400 |
+| 13 |  500 |
+| 14 |  600 |
+|  2 |  200 |
+|  3 |  300 |
+|  4 |  100 |
+|  5 |  200 |
+|  6 |  300 |
+|  7 |  500 |
+|  8 |  500 |
+|  9 |  100 |
++----+------+
+(14 rows)
 
-LogicalProject(EXPR$0=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
+!ok
+LogicalProject(R=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
   LogicalProject(DEPTNO=[$7], COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
+!sub-plan ""
+LogicalProject(R=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
   LogicalProject(DEPTNO=[$7], COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_MERGE"
+!sub-plan "PROJECT_MERGE"
 
 # testProjectSetOpTranspose ---------------------------------------------------
 # [CALCITE-3004] Should not push over past union but its operands can since
@@ -85,7 +110,7 @@ LogicalProject(JOB=[$2], EXPR$1=[SUM(+($5, 100)) OVER (PARTITION BY $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1)])
   LogicalUnion(all=[true])
     LogicalProject(JOB=[$2], DEPTNO=[$7], EXPR$0=[+($5, 100)])
@@ -94,7 +119,7 @@ LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], EXPR$0=[+($5, 100)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE"
+!sub-plan "PROJECT_SET_OP_TRANSPOSE"
 
 # testPushProjectPastFilter ---------------------------------------------------
 # PROJECT_FILTER_TRANSPOSE pushes a Project through a Filter.
@@ -111,12 +136,12 @@ and upper(ename) = 'FOO';
 LogicalProject(EXPR$0=[+($0, $7)])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[+($0, $4)])
   LogicalFilter(condition=[AND(=($2, *(10, $3)), =(UPPER($1), 'FOO'))])
     LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], COMM=[$6], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
 
 # testPushProjectPastFilter2 --------------------------------------------------
 # [CALCITE-1778] Query with "WHERE CASE" throws AssertionError "Cast for just
@@ -137,13 +162,13 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[0])
     LogicalFilter(condition=[CASE(<($3, 10), true, false)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject($f0=[0])
     LogicalFilter(condition=[<($0, 10)])
       LogicalProject(MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
 
 # testPushProjectPastFilter3 --------------------------------------------------
 # [CALCITE-3975] ProjectFilterTransposeRule should succeed for project that
@@ -164,12 +189,12 @@ and upper(ename) = 'FOO';
 LogicalProject(X=[+($0, $7)], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(X=[+($0, $7)], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_FILTER_TRANSPOSE"
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
 
 # testPushProjectPastFullJoin -------------------------------------------------
 # PROJECT_JOIN_TRANSPOSE should not push a non-strong expression past a
@@ -203,7 +228,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[full])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE($1, 11, $2)])
@@ -212,7 +237,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastFullJoinStrong -------------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a strong expression past a full outer join.
@@ -245,7 +270,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[full])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$1])
@@ -254,7 +279,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastInnerJoin ------------------------------------------------
 # [CALCITE-1753] PushProjector should only preserve expressions if the
@@ -276,7 +301,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$1])
@@ -285,7 +310,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastInnerJoinStrong ------------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a strong expression past an inner join.
@@ -306,7 +331,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$1])
@@ -315,7 +340,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastJoin -----------------------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a project past an inner join.
@@ -333,14 +358,14 @@ LogicalProject(EXPR$0=[+($5, $12)])
   LogicalJoin(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[+($1, $4)])
   LogicalJoin(condition=[AND(=($0, $3), $2)], joinType=[inner])
     LogicalProject(ENAME=[$1], SAL=[$5], EXPR$0=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], COMM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastLeftJoin -------------------------------------------------
 # [CALCITE-1753] PROJECT_JOIN_TRANSPOSE should not push a non-strong expression
@@ -374,7 +399,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$1])
@@ -383,7 +408,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastLeftJoinSwap ---------------------------------------------
 # PROJECT_JOIN_TRANSPOSE should not push non-strong expr into the
@@ -405,7 +430,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($5, $0)], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE($2, 11, $3)])
@@ -414,7 +439,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalProject(ENAME=[$1], EXPR$0=[<($5, 11)], EXPR$1=[*(-1, $5)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastLeftJoinSwapStrong ---------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a strong expression past the null-generating
@@ -436,7 +461,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($5, $0)], joinType=[left])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$2])
@@ -445,7 +470,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalProject(ENAME=[$1], EXPR$1=[CASE(<($5, 11), *(-1, $5), $5)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastOutJoinWithCastNonNullExpr --------------------------------
 # [CALCITE-4982] NonNull field shouldn't be pushed down into leaf of outer-join
@@ -482,7 +507,7 @@ LogicalProject(C1=[+($0, 1)], C2=[CASE(IS NOT NULL($14), CAST($14):VARCHAR(10) N
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(C1=[$2], C2=[CASE(IS NOT NULL($5), CAST($5):VARCHAR(10) NOT NULL, $3, CAST($1):VARCHAR(10) NOT NULL, '':VARCHAR(10))])
   LogicalJoin(condition=[=($0, $4)], joinType=[left])
     LogicalProject(DEPTNO=[$1], JOB0=[$4], C1=[$2], EXPR$1=[IS NOT NULL($4)])
@@ -493,7 +518,7 @@ LogicalProject(C1=[$2], C2=[CASE(IS NOT NULL($5), CAST($5):VARCHAR(10) NOT NULL,
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastRightJoin ------------------------------------------------
 # PROJECT_JOIN_TRANSPOSE should not push a non-strong expression into the
@@ -515,7 +540,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[right])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[CASE($1, 11, $2)])
@@ -524,7 +549,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastRightJoinStrong ------------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a strong expression past a right join.
@@ -546,7 +571,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($1, $9)], joinType=[right])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$1])
@@ -555,7 +580,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastRightJoinSwap --------------------------------------------
 # PROJECT_JOIN_TRANSPOSE should not push a non-strong expression into the
@@ -589,7 +614,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($5, $0)], joinType=[right])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$2])
@@ -598,7 +623,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalProject(ENAME=[$1], EXPR$1=[CASE(<($5, 11), 11, *(-1, $5))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastRightJoinSwapStrong --------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a strong expression past a right join
@@ -632,7 +657,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
       LogicalJoin(condition=[=($5, $0)], joinType=[right])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
   LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
     LogicalProject(EXPR$1=[$2])
@@ -641,7 +666,7 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
         LogicalProject(ENAME=[$1], EXPR$1=[CASE(<($5, 11), *(-1, $5), $5)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectPastSetOp ----------------------------------------------------
 # PROJECT_SET_OP_TRANSPOSE pushes a Project through a Union all set-op.
@@ -689,7 +714,7 @@ LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalUnion(all=[true])
   LogicalProject(SAL=[$5])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -697,75 +722,91 @@ LogicalUnion(all=[true])
   LogicalProject(SAL=[$5])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_SET_OP_TRANSPOSE"
+!sub-plan "PROJECT_SET_OP_TRANSPOSE"
 
 # testPushProjectWithOverPastJoin1 --------------------------------------------
 # [CALCITE-2343] Should not push over whose columns are all from left child
 # past join since join will affect row count.
 
 select e.sal + b.comm,
-count(e.empno) over (partition by e.deptno)
-from emp e join bonus b
-on e.ename = b.ename and e.deptno = 10;
-# Not using !ok: query uses window functions whose results are not verified here.
+  count(e.empno) over (partition by e.deptno)
+from emp e
+join bonus b on e.ename = b.ename and e.deptno = 10;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
 
+!ok
 LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[COUNT($0) OVER (PARTITION BY $7)])
   LogicalJoin(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[+($2, $6)], EXPR$1=[COUNT($0) OVER (PARTITION BY $3)])
   LogicalJoin(condition=[AND(=($1, $5), $4)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7], EXPR$0=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], COMM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectWithOverPastJoin2 --------------------------------------------
 # Should not push over whose columns are all from right child past join since
 # join will affect row count.
 
-select e.sal + b.comm,
-count(b.sal) over (partition by b.job)
-from emp e join bonus b
-on e.ename = b.ename and e.deptno = 10;
-# Not using !ok: query uses window functions whose results are not verified here.
+select e.sal + b.comm as x,
+  count(b.sal) over (partition by b.job) as c
+from emp e
+join bonus b on e.ename = b.ename and e.deptno = 10;
++---+---+
+| X | C |
++---+---+
++---+---+
+(0 rows)
 
-LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[COUNT($11) OVER (PARTITION BY $10)])
+!ok
+
+LogicalProject(X=[+($5, $12)], C=[COUNT($11) OVER (PARTITION BY $10)])
   LogicalJoin(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[+($1, $6)], EXPR$1=[COUNT($5) OVER (PARTITION BY $4)])
+!sub-plan ""
+LogicalProject(X=[+($1, $6)], C=[COUNT($5) OVER (PARTITION BY $4)])
   LogicalJoin(condition=[AND(=($0, $3), $2)], joinType=[inner])
     LogicalProject(ENAME=[$1], SAL=[$5], EXPR$0=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testPushProjectWithOverPastJoin3 --------------------------------------------
 # Should not push over past join but should push the operands of over past join.
 
-select e.sal + b.comm,
-sum(b.sal + b.sal + 100) over (partition by b.job)
-from emp e join bonus b
-on e.ename = b.ename and e.deptno = 10;
-# Not using !ok: query uses window functions whose results are not verified here.
+select e.sal + b.comm as x,
+  sum(b.sal + b.sal + 100) over (partition by b.job) as s
+from emp e
+join bonus b on e.ename = b.ename and e.deptno = 10;
++---+---+
+| X | S |
++---+---+
++---+---+
+(0 rows)
 
-LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[SUM(+(+($11, $11), 100)) OVER (PARTITION BY $10)])
+!ok
+LogicalProject(X=[+($5, $12)], S=[SUM(+(+($11, $11), 100)) OVER (PARTITION BY $10)])
   LogicalJoin(condition=[AND(=($1, $9), =($7, 10))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[+($1, $5)], EXPR$1=[SUM($6) OVER (PARTITION BY $4)])
+!sub-plan ""
+LogicalProject(X=[+($1, $5)], S=[SUM($6) OVER (PARTITION BY $4)])
   LogicalJoin(condition=[AND(=($0, $3), $2)], joinType=[inner])
     LogicalProject(ENAME=[$1], SAL=[$5], EXPR$0=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], JOB=[$1], COMM=[$3], EXPR$0=[+(+($2, $2), 100)])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "NONE, PROJECT_JOIN_TRANSPOSE"
+!sub-plan "PROJECT_JOIN_TRANSPOSE"
 
 # testReduceValuesUnderProject ------------------------------------------------
 # PROJECT_MERGE + PROJECT_VALUES_MERGE reduce expressions in VALUES clauses.
@@ -782,8 +823,8 @@ select a + b from (values (10, 1), (20, 3)) as t(a, b);
 !ok
 LogicalProject(EXPR$0=[+($0, $1)])
   LogicalValues(tuples=[[{ 10, 1 }, { 20, 3 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 11 }, { 23 }]])
-!sub-plan "NONE, PROJECT_MERGE, PROJECT_VALUES_MERGE"
+!sub-plan "PROJECT_MERGE, PROJECT_VALUES_MERGE"
 
 # End project-join-transpose.iq

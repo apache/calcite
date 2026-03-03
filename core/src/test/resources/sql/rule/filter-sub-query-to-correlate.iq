@@ -26,7 +26,7 @@
 # [CALCITE-5680] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries with only literal operands in subquery remove
 # phase.
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
 select empno from sales.empnullables as e
 where 1 in (
@@ -73,7 +73,7 @@ LogicalProject(EMPNO=[$0])
 # [CALCITE-5680] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries with only literal operands in subquery remove
 # phase.
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
 select empno from sales.empnullables
 where 1 in (
@@ -134,7 +134,7 @@ LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($5, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[OR(IS NOT NULL($9), <($5, 100))])
@@ -165,7 +165,7 @@ LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -196,7 +196,7 @@ LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($5, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[<($5, 100)])
@@ -228,7 +228,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($5, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[OR(IS NOT NULL($10), <($5, 100))])
@@ -308,7 +308,7 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($5, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[OR(IS NOT NULL($11), <($5, 100))])
@@ -322,7 +322,7 @@ LogicalProject(EMPNO=[$0])
 # testExpandFilterInCorrelatedWithTwoSubQueries -------------------------------
 # [CALCITE-5655] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries in subquery remove phase.
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
 select empno from sales.empnullables as e
 where deptno in (
@@ -437,7 +437,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })), <($5, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[OR(<($9, $10), <($5, 100))])
@@ -489,7 +489,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($5, $9)])
@@ -523,7 +523,7 @@ LogicalProject(SAL=[$5])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalFilter(condition=[=($5, $11)])

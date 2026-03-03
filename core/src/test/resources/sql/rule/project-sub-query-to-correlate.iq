@@ -25,19 +25,19 @@
 # testDecorrelationWithProject -------------------------------------------------
 # PROJECT_SUB_QUERY_TO_CORRELATE expands an EXISTS in a project, then
 # lateDecorrelate=true decorrelates (converting LogicalCorrelate to
-# LogicalJoin). Not using !ok: emp_b is not in scott database.
+# LogicalJoin).
 # [CALCITE-2295] Correlated SubQuery with Project will generate error plan
+# Not using !ok: emp_b is not in scott database.
 
 select sal,
 exists (select * from emp_b where emp.deptno = emp_b.deptno)
 from sales.emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
 LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -293,7 +293,7 @@ select empno, deptno in (
 or deptno in (
   select deptno from sales.deptnullables where dname = 'dept2')
 from sales.empnullables;
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(EMPNO=[$0], EXPR$1=[OR(IN($7, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[=($1, 'dept1')])
@@ -360,7 +360,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], D=[$9])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -419,7 +419,7 @@ where deptno > some(
   select deptno from sales.deptnullables where dname = 'dept1')
 or deptno < some(
   select deptno from sales.deptnullables where dname = 'dept2');
-# Not using !ok: query uses the sales schema, which is not in the scott database.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[OR(> SOME($1, {
 LogicalProject(DEPTNO=[$0])

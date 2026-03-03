@@ -57,7 +57,7 @@ LogicalFilter(condition=[<($0, 20)])
 })], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalJoin(condition=[true], joinType=[left])
@@ -73,12 +73,14 @@ LogicalProject(EMPNO=[$0])
 # testExpandJoinScalar --------------------------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites scalar sub-queries in a LEFT JOIN ON
 # clause.
+# Not using !ok: use !error because query should (and does) throw runtime error
 
 select empno
 from emp left join dept
 on (select deptno from emp where empno < 20)
  < (select deptno from emp where empno > 100);
-# Not using !ok: scalar subquery returns more than one row with scott data.
+more than one value in agg SINGLE_VALUE
+!error
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[<($SCALAR_QUERY({
 LogicalProject(DEPTNO=[$7])
@@ -91,7 +93,7 @@ LogicalProject(DEPTNO=[$7])
 }))], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10], $f0=[$11])
@@ -135,7 +137,7 @@ LogicalFilter(condition=[=($0, $cor0.ID)])
 })))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }, { 2 }]])
     LogicalValues(tuples=[[{ 2 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalProject(ID=[$0], ID0=[$2])
     LogicalJoin(condition=[AND(=($0, $2), IS NULL($1))], joinType=[left])
@@ -145,7 +147,7 @@ LogicalProject(ID=[$0], ID0=[$1])
           LogicalFilter(condition=[=($0, $cor0.ID)])
             LogicalValues(tuples=[[{ 3 }]])
       LogicalValues(tuples=[[{ 2 }]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # testJoinSubQueryRemoveRuleWithNotExists -------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites NOT EXISTS in a LEFT JOIN ON clause.
@@ -171,7 +173,7 @@ LogicalFilter(condition=[=($0, $cor0.ID0)])
 }))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 2 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalProject(ID=[$0], ID0=[$1])
     LogicalJoin(condition=[IS NULL($2)], joinType=[left])
@@ -181,7 +183,7 @@ LogicalProject(ID=[$0], ID0=[$1])
         LogicalProject(i=[true])
           LogicalFilter(condition=[=($0, $cor0.ID)])
             LogicalValues(tuples=[[{ 3 }]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # testJoinSubQueryRemoveRuleWithNotIn -----------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites NOT IN in a JOIN ON clause.
@@ -201,7 +203,7 @@ LogicalProject(DEPTNO=[$0])
 }))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$11], DNAME=[$12])
     LogicalJoin(condition=[IS NULL($10)], joinType=[inner])
@@ -210,7 +212,7 @@ LogicalProject(EMPNO=[$0])
         LogicalProject(DEPTNO=[$0], i=[true])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # testJoinSubQueryRemoveRuleWithOrExists --------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites OR EXISTS in a LEFT JOIN ON clause.
@@ -236,7 +238,7 @@ LogicalFilter(condition=[=($0, $cor0.ID0)])
 }))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 2 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalProject(ID=[$0], ID0=[$1])
     LogicalJoin(condition=[OR(=($0, $1), IS NOT NULL($2))], joinType=[left])
@@ -246,7 +248,7 @@ LogicalProject(ID=[$0], ID0=[$1])
         LogicalProject(i=[true])
           LogicalFilter(condition=[=($0, $cor0.ID)])
             LogicalValues(tuples=[[{ 3 }]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # testJoinSubQueryRemoveRuleWithOrNotExists -----------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites OR NOT EXISTS in a LEFT JOIN ON clause.
@@ -272,7 +274,7 @@ LogicalFilter(condition=[=($0, $cor0.ID0)])
 })))], joinType=[left], variablesSet=[[$cor0]])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 2 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(ID=[$0], ID0=[$1])
   LogicalProject(ID=[$0], ID0=[$1])
     LogicalJoin(condition=[OR(=($0, $1), IS NULL($2))], joinType=[left])
@@ -282,7 +284,7 @@ LogicalProject(ID=[$0], ID0=[$1])
         LogicalProject(i=[true])
           LogicalFilter(condition=[=($0, $cor0.ID)])
             LogicalValues(tuples=[[{ 3 }]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # testJoinSubQueryRemoveRuleWithQuantifierSome --------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites >= SOME sub-query in a JOIN ON clause.
@@ -358,7 +360,7 @@ LogicalProject(DEPTNO=[$0])
 })], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$12], DNAME=[$13])
     LogicalJoin(condition=[CAST(OR(AND(IS TRUE(>=($7, $9)), <>($10, 0)), AND(>($10, $11), null, <>($10, 0), IS NOT TRUE(>=($7, $9))), AND(>=($7, $9), <>($10, 0), IS NOT TRUE(>=($7, $9)), <=($10, $11)))):BOOLEAN NOT NULL], joinType=[inner])
@@ -369,7 +371,7 @@ LogicalProject(EMPNO=[$0])
             LogicalProject(DEPTNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # testJoinSubQueryRewriteWithBothSidesColumns ---------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE does not rewrite when sub-query references both
@@ -384,7 +386,7 @@ LogicalProject(DEPTNO=[$0])
 })], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[>= SOME(+($7, $9), {
 LogicalProject(DEPTNO=[$0])
@@ -392,6 +394,6 @@ LogicalProject(DEPTNO=[$0])
 })], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, JOIN_SUB_QUERY_TO_CORRELATE"
+!sub-plan "JOIN_SUB_QUERY_TO_CORRELATE"
 
 # End join-sub-query-to-correlate.iq

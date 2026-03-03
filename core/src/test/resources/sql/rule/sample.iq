@@ -37,12 +37,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[>($7, 10)])
     Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$7])
   Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[0])
     LogicalFilter(condition=[>($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_SAMPLE_TRANSPOSE"
+!sub-plan "FILTER_SAMPLE_TRANSPOSE"
 
 # testFilterSampleTransposeWithSystem -----------------------------------------
 # FILTER_SAMPLE_TRANSPOSE should push the Filter past a system sample.
@@ -59,12 +59,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[>($7, 10)])
     Sample(mode=[system], rate=[0.5], repeatableSeed=[-])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$7])
   Sample(mode=[system], rate=[0.5], repeatableSeed=[0])
     LogicalFilter(condition=[>($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_SAMPLE_TRANSPOSE"
+!sub-plan "FILTER_SAMPLE_TRANSPOSE"
 
 # testFilterSampleTransposeWithSystemAndSeed ----------------------------------
 # FILTER_SAMPLE_TRANSPOSE should push the Filter past a system sample with seed.
@@ -81,12 +81,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[>($7, 10)])
     Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$7])
   Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
     LogicalFilter(condition=[>($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_SAMPLE_TRANSPOSE"
+!sub-plan "FILTER_SAMPLE_TRANSPOSE"
 
 # testSampleToFilter ----------------------------------------------------------
 # SAMPLE_TO_FILTER should convert a Bernoulli sample to a filter on RAND().
@@ -100,11 +100,11 @@ DEPTNO TINYINT(3)
 LogicalProject(DEPTNO=[$7])
   Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[<(RAND(), 0.5:DECIMAL(2, 1))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, SAMPLE_TO_FILTER"
+!sub-plan "SAMPLE_TO_FILTER"
 
 # testSampleToFilterWithSeed --------------------------------------------------
 # SAMPLE_TO_FILTER should convert a seeded Bernoulli sample to a filter
@@ -119,10 +119,10 @@ DEPTNO TINYINT(3)
 LogicalProject(DEPTNO=[$7])
   Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[10])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$7])
   LogicalFilter(condition=[<(RAND(10), 0.5:DECIMAL(2, 1))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, SAMPLE_TO_FILTER"
+!sub-plan "SAMPLE_TO_FILTER"
 
 # End sample.iq

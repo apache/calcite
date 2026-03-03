@@ -34,23 +34,22 @@ select sum(salary) OVER (order by enroll_date
                             and INTERVAL 365 DAYS following),
     salary, enroll_date
 FROM empsalary;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: execution gives
+#  Cannot invoke "java.lang.Integer.intValue()" because "<local21>" is null
 EXPR$0 INTEGER(10)
 SALARY INTEGER(10)
 ENROLL_DATE DATE
 !type
-# Not '!ok' because execution gives
-#  Cannot invoke "java.lang.Integer.intValue()" because "<local21>" is null
 LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
   LogicalWindow(window#0=[window(order by [1] range between $2 PRECEDING and $2 FOLLOWING aggs [COUNT($0), SUM($0)])])
     LogicalProject(EXPR$2=[$2], EXPR$3=[$3], $2=[*(365, 86400000:INTERVAL DAY)])
       LogicalValues(tuples=[[{ 'x', 10, 5200, 2007-08-01 }, { null, null, null, null }]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
   LogicalWindow(window#0=[window(order by [1] range between $2 PRECEDING and $2 FOLLOWING aggs [COUNT($0), SUM($0)])])
     LogicalProject(EXPR$2=[$2], EXPR$3=[$3], $2=[*(365, 86400000:INTERVAL DAY)])
       LogicalValues(tuples=[[{ 'x', 10, 5200, 2007-08-01 }, { null, null, null, null }]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
 
 # testFilterTableFunctionScanTranspose -----------------------------------------
 # FILTER_TABLE_FUNCTION_TRANSPOSE pushes a Filter past a TableFunctionScan.
@@ -64,13 +63,13 @@ LogicalProject(DNAME=[$0])
     LogicalTableFunctionScan(invocation=[TFRT(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) DNAME)])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DNAME=[$0])
   LogicalTableFunctionScan(invocation=[TFRT(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) DNAME)])
     LogicalFilter(condition=[=($0, '1')])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_TABLE_FUNCTION_TRANSPOSE"
+!sub-plan "FILTER_TABLE_FUNCTION_TRANSPOSE"
 
 # testNestedAggregates ---------------------------------------------------------
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW converts a windowed aggregate on top of
@@ -88,14 +87,14 @@ LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION 
   LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
     LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
   LogicalWindow(window#0=[window(partition {0} aggs [SUM($1), COUNT($1)])])
     LogicalProject(DEPTNO=[$0], $1=[+(+($1, *(2, $2)), *(3, $3))])
       LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
         LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # testNestedConstantWindow -----------------------------------------------------
 # PROJECT_WINDOW_TRANSPOSE should correctly adjust column indices in window
@@ -143,28 +142,35 @@ LogicalProject(DEPTNO=[$1], F1=[$2], F2=[$3])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[$9])
       LogicalWindow(window#0=[window(order by [0] rows between $9 PRECEDING and $10 FOLLOWING aggs [FIRST_VALUE($7)])], constants=[[2, 1]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 LogicalProject(DEPTNO=[$1], F1=[$2], F2=[$3])
   LogicalWindow(window#0=[window(order by [0] rows between $3 PRECEDING and $4 FOLLOWING aggs [LAST_VALUE($1)])], constants=[[2, 1]])
     LogicalWindow(window#0=[window(order by [0] rows between $2 PRECEDING and $3 FOLLOWING aggs [FIRST_VALUE($1)])], constants=[[2, 1]])
       LogicalProject(EMPNO=[$0], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
 
 # testNotPushFilterPastWindowWhenPredicateNotOnPartitionKey --------------------
 # FILTER_WINDOW_TRANSPOSE should NOT push a Filter past a Window when the
 # filter predicate is not on the partition key.
 # [CALCITE-6011]
-# Not using !ok: uses mock catalog.
 
-select * from
-(select DNAME, DEPTNO, count(*) over (partition by DNAME) from dept) t
+select *
+from (select DNAME, DEPTNO, count(*) over (partition by DNAME)
+    from dept) t
 where DEPTNO = 0;
++-------+--------+--------+
+| DNAME | DEPTNO | EXPR$2 |
++-------+--------+--------+
++-------+--------+--------+
+(0 rows)
+
+!ok
 LogicalProject(DNAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
   LogicalFilter(condition=[=($1, 0)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[COUNT() OVER (PARTITION BY $1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
   LogicalFilter(condition=[=($0, 0)])
     LogicalWindow(window#0=[window(partition {1} aggs [COUNT()])])
@@ -186,7 +192,7 @@ LogicalProject(EXPR$0=[SUM(+($0, 1)) OVER (PARTITION BY $1)], EXPR$1=[COUNT($4) 
     Uncollect
       LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[SUM($2) OVER (PARTITION BY $0)], EXPR$1=[COUNT($3) OVER ()])
   LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])
     LogicalProject(DNAME=[$1], EMPLOYEES=[$3], EXPR$0=[+($0, 1)])
@@ -195,29 +201,42 @@ LogicalProject(EXPR$0=[SUM($2) OVER (PARTITION BY $0)], EXPR$1=[COUNT($3) OVER (
       Uncollect
         LogicalProject(EMPLOYEES=[$cor1.EMPLOYEES])
           LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "NONE, PROJECT_CORRELATE_TRANSPOSE"
+!sub-plan "PROJECT_CORRELATE_TRANSPOSE"
 
 # testProjectToWindowRuleForMultiOver ------------------------------------------
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW preserves column aliases when a Project
 # contains multiple OVER windows with different ORDER BY directions.
 # [CALCITE-7369]
 
-select * from (select empno, deptno, last_value(deptno) over (order by empno) f1,
-first_value(deptno) over (order by empno desc) f3,
-count(deptno) over (order by empno) f2
-from emp) where f2 > 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select *
+from (select empno, deptno,
+    last_value(deptno) over (order by empno) f1,
+    first_value(deptno) over (order by empno desc) f3,
+    count(deptno) over (order by empno) f2
+  from emp)
+where f2 > 10;
++-------+--------+----+----+----+
+| EMPNO | DEPTNO | F1 | F3 | F2 |
++-------+--------+----+----+----+
+|  7876 |     20 | 20 | 10 | 11 |
+|  7900 |     30 | 30 | 10 | 12 |
+|  7902 |     20 | 20 | 10 | 13 |
+|  7934 |     10 | 10 | 10 | 14 |
++-------+--------+----+----+----+
+(4 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], DEPTNO=[$1], F1=[$2], F3=[$3], F2=[$4])
   LogicalFilter(condition=[>($4, 10)])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[LAST_VALUE($7) OVER (ORDER BY $0)], F3=[FIRST_VALUE($7) OVER (ORDER BY $0 DESC)], F2=[COUNT($7) OVER (ORDER BY $0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], DEPTNO=[$1], F1=[$2], F3=[$3], F2=[$4])
   LogicalFilter(condition=[>($4, 10)])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], F1=[$9], F3=[$11], F2=[$10])
       LogicalWindow(window#0=[window(order by [0] aggs [LAST_VALUE($7), COUNT($7)])], window#1=[window(order by [0 DESC] aggs [FIRST_VALUE($7)])])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # testProjectToWindowRuleForMultipleWindows ------------------------------------
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW splits a Project with multiple window
@@ -232,28 +251,50 @@ from emp;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(COUNT1=[COUNT() OVER (PARTITION BY $0 ORDER BY $5)], COUNT2=[COUNT() OVER (PARTITION BY $7 ORDER BY $5)], SUM1=[SUM($7) OVER (PARTITION BY $0 ORDER BY $5)], SUM2=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(COUNT1=[$9], COUNT2=[$11], SUM1=[$10], SUM2=[$12])
   LogicalWindow(window#0=[window(partition {0} order by [5] aggs [COUNT(), SUM($7)])], window#1=[window(partition {7} order by [5] aggs [COUNT(), SUM($7)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # testProjectToWindowRuleForNestedOver -----------------------------------------
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW handles nested OVER windows.
 # [CALCITE-7369]
 
-select deptno, f1, f2 from (select *, last_value(deptno) over (order by empno) f2
-from (select *, first_value(deptno) over (order by empno) f1 from emp));
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select deptno, f1, f2
+from (select *, last_value(deptno) over (order by empno) f2
+  from (select *, first_value(deptno) over (order by empno) f1
+    from emp));
++--------+----+----+
+| DEPTNO | F1 | F2 |
++--------+----+----+
+|     10 | 20 | 10 |
+|     10 | 20 | 10 |
+|     10 | 20 | 10 |
+|     20 | 20 | 20 |
+|     20 | 20 | 20 |
+|     20 | 20 | 20 |
+|     20 | 20 | 20 |
+|     20 | 20 | 20 |
+|     30 | 20 | 30 |
+|     30 | 20 | 30 |
+|     30 | 20 | 30 |
+|     30 | 20 | 30 |
+|     30 | 20 | 30 |
+|     30 | 20 | 30 |
++--------+----+----+
+(14 rows)
+
+!ok
 LogicalProject(DEPTNO=[$7], F1=[$9], F2=[LAST_VALUE($7) OVER (ORDER BY $0)])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], F1=[FIRST_VALUE($7) OVER (ORDER BY $0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$7], F1=[$9], F2=[$10])
   LogicalWindow(window#0=[window(order by [0] aggs [LAST_VALUE($7)])])
     LogicalWindow(window#0=[window(order by [0] aggs [FIRST_VALUE($7)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # testProjectWindowTransposeRule -----------------------------------------------
 # PROJECT_WINDOW_TRANSPOSE pushes a Project through a Window.
@@ -262,12 +303,12 @@ select count(empno) over(), deptno from emp;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[COUNT($0) OVER ()], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$2], DEPTNO=[$1])
   LogicalWindow(window#0=[window(aggs [COUNT($0)])])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
 
 # testProjectWindowTransposeRuleWithConstants ----------------------------------
 # PROJECT_WINDOW_TRANSPOSE pushes a Project through a Window that has constants.
@@ -278,15 +319,35 @@ from (
     sum(100) over (partition by  deptno order by sal) as col1,
   sum(1000) over(partition by deptno order by sal) as col2
   from emp);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+------+
+| COL1 | COL2 |
++------+------+
+|  100 | 1000 |
+|  100 | 1000 |
+|  100 | 1000 |
+|  200 | 2000 |
+|  200 | 2000 |
+|  300 | 3000 |
+|  300 | 3000 |
+|  300 | 3000 |
+|  300 | 3000 |
+|  400 | 4000 |
+|  500 | 5000 |
+|  500 | 5000 |
+|  500 | 5000 |
+|  600 | 6000 |
++------+------+
+(14 rows)
+
+!ok
 LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5)], COL2=[SUM(1000) OVER (PARTITION BY $7 ORDER BY $5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(COL1=[$2], COL2=[$3])
   LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($2), SUM($3)])], constants=[[100, 1000]])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_MERGE, PROJECT_WINDOW_TRANSPOSE"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_MERGE, PROJECT_WINDOW_TRANSPOSE"
 
 # testPushFilterPastWindowWithDoubleWindows ------------------------------------
 # FILTER_WINDOW_TRANSPOSE pushes a Filter past a Window with two different
@@ -302,7 +363,7 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1], CNT=[$2], ALL_SUM=[$3])
   LogicalFilter(condition=[=($1, 1)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0], CNT=[COUNT() OVER (PARTITION BY $1, $0)], ALL_SUM=[SUM(1) OVER (PARTITION BY $0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DNAME=[$1], DEPTNO=[$0], CNT=[$2], ALL_SUM=[$3])
   LogicalFilter(condition=[=($0, 1)])
     LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])], window#1=[window(partition {0} aggs [SUM($2)])], constants=[[1]])
@@ -313,17 +374,29 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], CNT=[$2], ALL_SUM=[$3])
 # FILTER_WINDOW_TRANSPOSE pushes a Filter past a Window when the filter
 # predicate is on the single partition key.
 # [CALCITE-6011]
-# Not using !ok: uses mock catalog.
 
-select * from
-(select DNAME, DEPTNO, count(*) over (partition by DEPTNO) from dept)
+select *
+from (select DNAME, DEPTNO,
+    count(*) over (partition by DEPTNO) as c
+  from dept)
 where DEPTNO > 0;
-LogicalProject(DNAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
++------------+--------+---+
+| DNAME      | DEPTNO | C |
++------------+--------+---+
+| ACCOUNTING |     10 | 1 |
+| OPERATIONS |     40 | 1 |
+| RESEARCH   |     20 | 1 |
+| SALES      |     30 | 1 |
++------------+--------+---+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$0], DEPTNO=[$1], C=[$2])
   LogicalFilter(condition=[>($1, 0)])
-    LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[COUNT() OVER (PARTITION BY $0)])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[COUNT() OVER (PARTITION BY $0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
-LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+!sub-plan ""
+LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
   LogicalWindow(window#0=[window(partition {0} aggs [COUNT()])])
     LogicalFilter(condition=[>($0, 0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -342,7 +415,7 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
   LogicalFilter(condition=[>($1, 0)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[COUNT() OVER (PARTITION BY $1, $0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
   LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])])
     LogicalFilter(condition=[>($0, 0)])
@@ -371,12 +444,12 @@ LogicalProject(ENAME=[$0], R=[$1])
   LogicalFilter(condition=[<($1, 2)])
     LogicalProject(ENAME=[$1], R=[RANK() OVER (PARTITION BY $7 ORDER BY $5)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(ENAME=[$0], R=[$1])
   LogicalFilter(condition=[<($1, 2)])
     LogicalProject(ENAME=[$1], R=[RANK() OVER (PARTITION BY $7 ORDER BY $5)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_PROJECT_TRANSPOSE"
 
 # testPushFilterWithRankExpr ---------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE should not push a Filter past a Project that contains
@@ -398,12 +471,12 @@ LogicalProject(ENAME=[$0], R=[$1])
   LogicalFilter(condition=[<($1, 2)])
     LogicalProject(ENAME=[$1], R=[+(RANK() OVER (PARTITION BY $7 ORDER BY $5), 1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(ENAME=[$0], R=[$1])
   LogicalFilter(condition=[<($1, 2)])
     LogicalProject(ENAME=[$1], R=[+(RANK() OVER (PARTITION BY $7 ORDER BY $5), 1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_PROJECT_TRANSPOSE"
 
 # testWindowFunctionOnAggregations ---------------------------------------------
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW converts a query with a window function
@@ -431,13 +504,13 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$2], EXPR$2=[SUM($2) OVER (PARTITION BY $1 O
   LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)], EXPR$1=[SUM($2)])
     LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1], EXPR$1=[$2], EXPR$2=[$3])
   LogicalWindow(window#0=[window(partition {1} order by [2] aggs [SUM($2)])])
     LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)], EXPR$1=[SUM($2)])
       LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # testWindowMissingConstantInDigest --------------------------------------------
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW correctly distinguishes windows with
@@ -489,7 +562,7 @@ LogicalUnion(all=[true])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(S=[SUM(1000) OVER (PARTITION BY $7 ORDER BY $5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalUnion(all=[true])
   LogicalProject(S=[$2])
     LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($2)])], constants=[[100]])
@@ -499,6 +572,6 @@ LogicalUnion(all=[true])
     LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($2)])], constants=[[1000]])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+!sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # End filter-project-transpose.iq

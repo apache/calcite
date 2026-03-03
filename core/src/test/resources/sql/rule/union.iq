@@ -48,7 +48,7 @@ LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -59,7 +59,7 @@ LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, INTERSECT_MERGE"
+!sub-plan "INTERSECT_MERGE"
 
 # testMergeMinus --------------------------------------------------------------
 # MINUS_MERGE should merge nested EXCEPT into a single n-way EXCEPT.
@@ -90,7 +90,7 @@ LogicalMinus(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalMinus(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -101,7 +101,7 @@ LogicalMinus(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, MINUS_MERGE"
+!sub-plan "MINUS_MERGE"
 
 # testMergeMinusRightDeep -----------------------------------------------------
 # MINUS_MERGE should not merge a right-deep EXCEPT tree.
@@ -134,7 +134,7 @@ LogicalMinus(all=[false])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($7, 30)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalMinus(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -147,7 +147,7 @@ LogicalMinus(all=[false])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($7, 30)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, MINUS_MERGE"
+!sub-plan "MINUS_MERGE"
 
 # testMergeUnionAll -----------------------------------------------------------
 # UNION_MERGE should merge nested UNION ALL into a single n-way UNION ALL.
@@ -189,7 +189,7 @@ LogicalUnion(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalUnion(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -200,7 +200,7 @@ LogicalUnion(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, UNION_MERGE"
+!sub-plan "UNION_MERGE"
 
 # testMergeUnionDistinct ------------------------------------------------------
 # UNION_MERGE should merge nested UNION DISTINCT into a single n-way UNION.
@@ -242,7 +242,7 @@ LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -253,7 +253,7 @@ LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, UNION_MERGE"
+!sub-plan "UNION_MERGE"
 
 # testMergeUnionMixed ---------------------------------------------------------
 # UNION_MERGE should not merge nested UNION ALL and UNION DISTINCT.
@@ -295,7 +295,7 @@ LogicalUnion(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalUnion(all=[true])
   LogicalUnion(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -307,7 +307,7 @@ LogicalUnion(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, UNION_MERGE"
+!sub-plan "UNION_MERGE"
 
 # testMergeUnionMixed2 --------------------------------------------------------
 # UNION_MERGE should merge UNION ALL and UNION into a single n-way UNION.
@@ -349,7 +349,7 @@ LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -360,7 +360,7 @@ LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, UNION_MERGE"
+!sub-plan "UNION_MERGE"
 
 # testUnionToDistinctRule -----------------------------------------------------
 # UNION_TO_DISTINCT converts a UNION (distinct) to UNION ALL + Aggregate.
@@ -382,13 +382,13 @@ LogicalUnion(all=[false])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DEPTNO=[$0], DNAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalAggregate(group=[{0, 1}])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, UNION_TO_DISTINCT"
+!sub-plan "UNION_TO_DISTINCT"
 
 # End union.iq

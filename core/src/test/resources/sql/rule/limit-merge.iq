@@ -27,10 +27,26 @@
 # LIMIT_MERGE should merge two nested LIMIT operators into one, keeping the
 # smaller fetch value.
 
-select deptno from
-(select deptno from emp where sal > 100 limit 10000)
+select deptno
+from (select deptno from emp where sal > 100 limit 10000)
 limit 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(10 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[10])
@@ -69,10 +85,26 @@ LogicalProject(DEPTNO=[$7])
 # LIMIT_MERGE should merge two nested LIMIT operators, keeping the smaller
 # fetch when the inner has ORDER BY and inner fetch is smaller.
 
-select deptno from
-(select deptno from emp where sal > 100 order by sal desc limit 10)
+select deptno
+from (select deptno from emp where sal > 100 order by sal desc limit 10)
 limit 10000;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(10 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(fetch=[10000])
@@ -112,10 +144,29 @@ LogicalProject(DEPTNO=[$7])
 # LIMIT_MERGE should not merge when the inner and outer have different ORDER BY
 # keys; the projects are merged instead.
 
-select deptno from
-(select deptno from emp where sal > 100 order by sal desc limit 10)
+select deptno
+from (select deptno
+  from emp
+  where sal > 100
+  order by sal desc limit 10)
 order by deptno limit 10000;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(10 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
@@ -134,10 +185,29 @@ LogicalProject(DEPTNO=[$7])
 # LIMIT_MERGE should merge when the inner fetch (10000) is greater than the
 # outer fetch (10); the projects are merged.
 
-select deptno from
-(select deptno from emp where sal > 100 order by sal desc limit 10000)
+select deptno
+from (select deptno
+  from emp
+  where sal > 100
+  order by sal desc limit 10000)
 order by deptno limit 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
++--------+
+(10 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
@@ -154,11 +224,11 @@ LogicalProject(DEPTNO=[$7])
 
 # testLimitMergeBigint ---------------------------------------------------------
 # LIMIT_MERGE should handle BIGINT fetch values (> Integer.MAX_VALUE).
+# Not using !ok: Fetch size is too large for EnumerableLimit to implement
 
-select deptno from
-(select deptno from emp where sal > 100 limit 3100000000)
+select deptno
+from (select deptno from emp where sal > 100 limit 3100000000)
 limit 3000000000;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[3000000000:BIGINT])

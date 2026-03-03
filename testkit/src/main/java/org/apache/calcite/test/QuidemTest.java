@@ -208,7 +208,7 @@ public abstract class QuidemTest {
    * </ul>
    *
    * <p>Examples: {@code "NONE"} (initial plan, no rules),
-   * {@code "NONE, AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
+   * {@code "AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
    * {@code "aggregateUnique=true, NONE"} (initial plan with aggregateUnique),
    * {@code "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
    * (plan after rule, with expressions not pre-simplified by RelBuilder). */

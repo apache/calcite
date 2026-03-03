@@ -41,13 +41,13 @@ LogicalProject(EMPNO=[$0])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "NONE, EXPAND_FILTER_DISJUNCTION_GLOBAL"
+!sub-plan "EXPAND_FILTER_DISJUNCTION_GLOBAL"
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(=($0, $9), OR(AND(>($3, 100), <($14, 200)), <($6, 50)))], joinType=[inner])
     LogicalFilter(condition=[OR(>($3, 100), <($6, 50))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "NONE, EXPAND_FILTER_DISJUNCTION_GLOBAL, FILTER_INTO_JOIN"
+!sub-plan "EXPAND_FILTER_DISJUNCTION_GLOBAL, FILTER_INTO_JOIN"
 
 # testFilterJoinRuleAndIsNotNull -----------------------------------------------
 # FILTER_INTO_JOIN simplifies a left join to inner when the WHERE clause
@@ -60,19 +60,25 @@ left join dept RHS on LHS.EMPNO = RHS.DEPTNO
 where
 RHS.DEPTNO is not null
 AND RHS.DNAME is not null;
-# Not using !ok: result row order is non-deterministic for a join with select *
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalFilter(condition=[AND(IS NOT NULL($9), IS NOT NULL($10))])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], DNAME=[CAST($10):VARCHAR(10)])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testFilterJoinRuleOrIsNotNull ------------------------------------------------
 # FILTER_INTO_JOIN simplifies a left join to inner when the WHERE clause
@@ -91,80 +97,127 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], DNAME=[CAST($10):VARCHAR(10)])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testFullOuterJoinSimplificationToInner --------------------------------------
 # FILTER_INTO_JOIN converts a full outer join to inner when both left and
 # right sides have null-rejecting WHERE predicates.
 
-select 1 from sales.dept d full outer join sales.emp e
-on d.deptno = e.deptno
-where d.dname = 'Charlie' and e.sal > 100;
-# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
-LogicalProject(EXPR$0=[1])
-  LogicalFilter(condition=[AND(=($1, 'Charlie'), >($7, 100))])
+select 1 as uno
+from dept d
+full outer join emp e on d.deptno = e.deptno
+where d.dname = 'SALES' and e.sal > 100;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(6 rows)
+
+!ok
+LogicalProject(UNO=[1])
+  LogicalFilter(condition=[AND(=($1, 'SALES'), >($7, 100))])
     LogicalJoin(condition=[=($0, $9)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[1])
+!sub-plan ""
+LogicalProject(UNO=[1])
   LogicalProject(DEPTNO=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-      LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalFilter(condition=[=($1, 'SALES')])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testFullOuterJoinSimplificationToLeftOuter ----------------------------------
 # FILTER_INTO_JOIN converts a full outer join to left outer when only the
 # left side has a null-rejecting WHERE predicate.
 
-select 1 from sales.dept d full outer join sales.emp e
-on d.deptno = e.deptno
-where d.dname = 'Charlie';
-# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
-LogicalProject(EXPR$0=[1])
-  LogicalFilter(condition=[=($1, 'Charlie')])
+select 1 as uno
+from dept d
+full outer join emp e on d.deptno = e.deptno
+where d.dname = 'SALES';
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(6 rows)
+
+!ok
+LogicalProject(UNO=[1])
+  LogicalFilter(condition=[=($1, 'SALES')])
     LogicalJoin(condition=[=($0, $9)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[1])
+!sub-plan ""
+LogicalProject(UNO=[1])
   LogicalProject(DEPTNO=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
-      LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalFilter(condition=[=($1, 'SALES')])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testFullOuterJoinSimplificationToRightOuter ---------------------------------
 # FILTER_INTO_JOIN converts a full outer join to right outer when only the
 # right side has a null-rejecting WHERE predicate.
 
-select 1 from sales.dept d full outer join sales.emp e
-on d.deptno = e.deptno
+select 1 as uno
+from dept d
+full outer join emp e on d.deptno = e.deptno
 where e.sal > 100;
-# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
-LogicalProject(EXPR$0=[1])
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(14 rows)
+
+!ok
+LogicalProject(UNO=[1])
   LogicalFilter(condition=[>($7, 100)])
     LogicalJoin(condition=[=($0, $9)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[1])
+!sub-plan ""
+LogicalProject(UNO=[1])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
     LogicalJoin(condition=[=($0, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testJoinConditionPushdown1 --------------------------------------------------
 # FILTER_INTO_JOIN and JOIN_CONDITION_PUSH move WHERE predicates into join
@@ -174,7 +227,83 @@ LogicalProject(EXPR$0=[1])
 select *
 from emp e1, emp e2, dept d2
 where e1.deptno = d2.deptno and e2.deptno = d2.deptno;
-# Not using !ok: uses emp/dept which requires deterministic result
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+---------+------------+----------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 | DEPTNO1 | DNAME      | LOC      |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+---------+------------+----------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |      30 | SALES      | CHICAGO  |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |      30 | SALES      | CHICAGO  |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |      20 | RESEARCH   | DALLAS   |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |      10 | ACCOUNTING | NEW YORK |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+---------+------------+----------+
+(70 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], DEPTNO1=[$18], DNAME=[$19])
   LogicalFilter(condition=[AND(=($7, $18), =($16, $18))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -182,14 +311,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], DEPTNO1=[$18], DNAME=[$19])
   LogicalJoin(condition=[=($7, $18)], joinType=[inner])
     LogicalJoin(condition=[=($7, $16)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
 # testJoinConditionPushdown2 --------------------------------------------------
 # JOIN_CONDITION_PUSH infers e.deptno = e.empno from the join condition.
@@ -198,19 +327,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 select *
 from emp e, dept d
 where e.deptno = d.deptno and e.empno = d.deptno;
-# Not using !ok: self-referential condition produces empty result
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalFilter(condition=[AND(=($7, $9), =($0, $9))])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalFilter(condition=[=($7, $0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
 # testJoinConditionPushdown3 --------------------------------------------------
 # JOIN_CONDITION_PUSH does not push conditions from a FULL JOIN (unchanged).
@@ -224,31 +359,51 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
 # testJoinConditionPushdown5 --------------------------------------------------
 # JOIN_CONDITION_PUSH does not push conditions from a LEFT JOIN (unchanged).
 # [CALCITE-5073]
 
 select *
-from emp e left join dept d
-on e.deptno = d.deptno and e.empno = d.deptno;
-# Not using !ok: LEFT JOIN with self-referential condition
+from emp e
+left join dept d on e.deptno = d.deptno and e.empno = d.deptno;
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |         |       |     |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |         |       |     |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |         |       |     |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |         |       |     |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |         |       |     |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |         |       |     |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |         |       |     |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |         |       |     |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |         |       |     |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |         |       |     |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |         |       |     |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |         |       |     |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |         |       |     |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |         |       |     |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
 # testJoinConditionPushdown6 --------------------------------------------------
 # JOIN_CONDITION_PUSH infers a condition on the left side of a RIGHT JOIN.
@@ -262,35 +417,35 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[AND(=($7, $9), =($0, $9))], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[right])
     LogicalFilter(condition=[=($7, $0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
 # testLeftOuterJoinSimplificationToInner --------------------------------------
 # FILTER_INTO_JOIN converts a left outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the right side.
 
-select 1 from sales.dept d left outer join sales.emp e
+select 1 from dept d left outer join emp e
 on d.deptno = e.deptno
 where e.sal > 100;
-# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
+# Not using !ok: uses dept/emp which requires mock catalog
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[>($7, 100)])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[1])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testMergeFilter -------------------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE + FILTER_MERGE combines duplicate filters.
@@ -313,32 +468,39 @@ LogicalProject(DNAME=[$1])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DNAME=[$1])
   LogicalProject(DEPTNO=[$0], DNAME=[$1])
     LogicalFilter(condition=[=($0, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE, FILTER_MERGE"
+!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_MERGE"
 
 # testPushAboveFiltersIntoInnerJoinCondition ----------------------------------
 # FILTER_INTO_JOIN removes a redundant WHERE predicate that is already present
 # in the inner join condition.
 
-select * from sales.dept d inner join sales.emp e
-on d.deptno = e.deptno and d.deptno > e.mgr
+select *
+from dept d
+inner join emp e on d.deptno = e.deptno and d.deptno > e.mgr
 where d.deptno > e.mgr;
-# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
++--------+-------+-----+-------+-------+-----+-----+----------+-----+------+---------+
+| DEPTNO | DNAME | LOC | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO0 |
++--------+-------+-----+-------+-------+-----+-----+----------+-----+------+---------+
++--------+-------+-----+-------+-------+-----+-----+----------+-----+------+---------+
+(0 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalFilter(condition=[>($0, $5)])
     LogicalJoin(condition=[AND(=($0, $9), >($0, $5))], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalJoin(condition=[AND(=($0, $9), >($0, $5))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testPushFilterThroughJoinWithNonDeterministic --------------------------------
 # FILTER_PROJECT_TRANSPOSE pushes the filter past the project, but
@@ -357,36 +519,55 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$
       LogicalJoin(condition=[=($0, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
     LogicalFilter(condition=[<=(CAST(0.9:DECIMAL(2, 1)):DOUBLE NOT NULL, RAND())])
       LogicalJoin(condition=[=($0, $9)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
+!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
 # testPushFilterWithIsNotDistinctFromPastJoin ---------------------------------
 # FILTER_INTO_JOIN moves an IS NOT DISTINCT FROM predicate from the WHERE
 # clause into the join condition.
 
-SELECT * FROM
-emp t1 INNER JOIN
-emp t2
-ON t1.deptno = t2.deptno
+SELECT *
+FROM emp t1
+INNER JOIN emp t2 ON t1.deptno = t2.deptno
 WHERE t1.ename is not distinct from t2.ename;
-# Not using !ok: result row order is non-deterministic for a self-join
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |   7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |      20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |   7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |      30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |   7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |      30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |   7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |      20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |   7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |      30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |   7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |      30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |   7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |      10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |   7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |      20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |   7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |      10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |   7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |      30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |   7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |      20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |   7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |      30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |   7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |      20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |   7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |      10 |
++-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalFilter(condition=[OR(AND(IS NULL($1), IS NULL($10)), IS TRUE(=($1, $10)))])
     LogicalJoin(condition=[=($7, $16)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[AND(=($7, $16), IS NOT DISTINCT FROM($1, $10))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # testPushJoinConditionWithNonDeterministic ------------------------------------
 # FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, and JOIN_CONDITION_PUSH do not
@@ -401,33 +582,46 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$
   LogicalJoin(condition=[AND(=($0, $9), <=(CAST($5):DOUBLE, RAND()))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalJoin(condition=[AND(=($0, $9), <=(CAST($5):DOUBLE, RAND()))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
+!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
 # testRightOuterJoinSimplificationToInner -------------------------------------
 # FILTER_INTO_JOIN converts a right outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the left side.
 
-select 1 from sales.dept d right outer join sales.emp e
-on d.deptno = e.deptno
-where d.dname = 'Charlie';
-# Not using !ok: uses sales.dept/sales.emp which requires mock catalog
-LogicalProject(EXPR$0=[1])
-  LogicalFilter(condition=[=($1, 'Charlie')])
+select 1 as uno
+from dept d
+right outer join emp e on d.deptno = e.deptno
+where d.dname = 'SALES';
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(6 rows)
+
+!ok
+LogicalProject(UNO=[1])
+  LogicalFilter(condition=[=($1, 'SALES')])
     LogicalJoin(condition=[=($0, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
-LogicalProject(EXPR$0=[1])
+!sub-plan ""
+LogicalProject(UNO=[1])
   LogicalProject(DEPTNO=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-      LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalFilter(condition=[=($1, 'SALES')])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN"
+!sub-plan "FILTER_INTO_JOIN"
 
 # End filter-into-join.iq

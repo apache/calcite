@@ -4899,6 +4899,20 @@ LogicalProject(EMPNO=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectAggregateMergeNonNumericLiteral">
+    <Resource name="sql">
+      <![CDATA[select hiredate, coalesce(hiredate, {ts '1969-12-31 00:00:00'}) as c1
+from sales.nullable
+group by hiredate]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(HIREDATE=[$0], C1=[CASE(IS NOT NULL($0), CAST($0):TIMESTAMP(0) NOT NULL, 1969-12-31 00:00:00)])
+  LogicalAggregate(group=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, NULLABLE]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectCorrelateTranspose">
     <Resource name="sql">
       <![CDATA[select t1.dname, t2.ename

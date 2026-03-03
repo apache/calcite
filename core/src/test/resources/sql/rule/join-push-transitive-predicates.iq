@@ -125,10 +125,26 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # [CALCITE-7302]
 # when the join condition involves a BETWEEN predicate.
 
-With dept_temp as (SELECT deptno, dname FROM dept where deptno between 30 and 50),
-emp_temp as (Select ename, deptno from emp)
-select * from dept_temp inner join emp_temp on dept_temp.deptno = emp_temp.deptno;
-# Not using !ok: query involves join with non-deterministic row ordering.
+With dept_temp as
+  (SELECT deptno, dname FROM dept where deptno between 30 and 50),
+emp_temp as
+  (Select ename, deptno from emp)
+select *
+from dept_temp
+inner join emp_temp on dept_temp.deptno = emp_temp.deptno;
++--------+-------+--------+---------+
+| DEPTNO | DNAME | ENAME  | DEPTNO0 |
++--------+-------+--------+---------+
+|     30 | SALES | ALLEN  |      30 |
+|     30 | SALES | BLAKE  |      30 |
+|     30 | SALES | JAMES  |      30 |
+|     30 | SALES | MARTIN |      30 |
+|     30 | SALES | TURNER |      30 |
+|     30 | SALES | WARD   |      30 |
++--------+-------+--------+---------+
+(6 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2], DEPTNO0=[$3])
   LogicalJoin(condition=[=($0, $3)], joinType=[inner])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
@@ -136,7 +152,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2], DEPTNO0=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2], DEPTNO0=[$3])
   LogicalJoin(condition=[=($0, $3)], joinType=[inner])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
@@ -145,7 +161,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2], DEPTNO0=[$3])
     LogicalFilter(condition=[SEARCH($1, Sarg[[30..50]])])
       LogicalProject(ENAME=[$1], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testJoinPushTransitivePredicatesNullabilityIssue -----------------------------
 # Tests that JOIN_PUSH_TRANSITIVE_PREDICATES handles nullable columns correctly
@@ -170,14 +186,14 @@ LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DATE_COL_NULL=[null:DATE])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
   LogicalJoin(condition=[=($1, $0)], joinType=[inner])
     LogicalValues(tuples=[[]])
     LogicalFilter(condition=[=($0, 2023-08-07)])
       LogicalProject(DATE_COL_NULL=[null:DATE])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceAggregate ---------------------------------------------
 # Tests that transitive predicates are inferred and pushed through an Aggregate.
@@ -212,7 +228,7 @@ LogicalProject(EXPR$0=[1])
         LogicalFilter(condition=[>($7, 7)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($0, $9)], joinType=[inner])
     LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
@@ -221,7 +237,7 @@ LogicalProject(EXPR$0=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceComplexPredicate --------------------------------------
 # Tests that only the simple component of a complex predicate is inferred and
@@ -244,7 +260,7 @@ LogicalProject(EXPR$0=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[=($5, $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
@@ -252,7 +268,7 @@ LogicalProject(EXPR$0=[1])
     LogicalFilter(condition=[>($7, 7)])
       LogicalFilter(condition=[=($5, $7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceConjunctInPullUp --------------------------------------
 # Tests that a conjunct with multiple IN/OR conditions is correctly inferred
@@ -334,14 +350,14 @@ LogicalProject(EXPR$0=[1])
     LogicalFilter(condition=[SEARCH($7, Sarg[7, 9, (10..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[SEARCH($7, Sarg[7, 9, (10..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[SEARCH($7, Sarg[7, 9, (10..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceConstantEquiPredicate ---------------------------------
 # Tests that a constant equi-predicate (1 = 1) does not trigger transitive
@@ -430,12 +446,12 @@ LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceFullOuterJoin -----------------------------------------
 # Tests that transitive predicates are NOT pushed through a full outer join
@@ -525,13 +541,13 @@ LogicalProject(EXPR$0=[1])
     LogicalJoin(condition=[=($7, $16)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[AND(>($7, 7), >($16, 9))])
     LogicalJoin(condition=[=($7, $16)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceJoin --------------------------------------------------
 # Tests that a filter predicate on one side of a join is inferred and pushed to
@@ -621,417 +637,265 @@ LogicalProject(EXPR$0=[1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceJoin3way ----------------------------------------------
 # Tests that transitive predicates are inferred and pushed across a three-way
 # join, propagating predicates to all three tables.
 
-select 1 from emp d
+select 1 as uno
+from emp d
 inner join emp e on d.deptno = e.deptno
 inner join emp f on e.deptno = f.deptno
-where d.deptno > 7;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
-(368 rows)
+where d.deptno > 27;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(216 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($16, $25)], joinType=[inner])
     LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-      LogicalFilter(condition=[>($7, 7)])
+      LogicalFilter(condition=[>($7, 27)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($16, $25)], joinType=[inner])
     LogicalJoin(condition=[=($7, $16)], joinType=[inner])
-      LogicalFilter(condition=[>($7, 7)])
+      LogicalFilter(condition=[>($7, 27)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalFilter(condition=[>($7, 7)])
+      LogicalFilter(condition=[>($7, 27)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalFilter(condition=[>($7, 7)])
+    LogicalFilter(condition=[>($7, 27)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceJoin3wayAgg -------------------------------------------
 # Tests that transitive predicates from an Aggregate are inferred and pushed
@@ -1127,7 +991,7 @@ LogicalProject(EXPR$0=[1])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($9, $18)], joinType=[inner])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
@@ -1139,7 +1003,7 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceJoinUsingStar -----------------------------------------
 # [CALCITE-2274] Tests that filter predicates are inferred while using a
@@ -1161,7 +1025,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($7, 4)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[=($16, $7)], joinType=[inner])
     LogicalFilter(condition=[=($7, 4)])
@@ -1169,7 +1033,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($7, 4)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceLeftOuterJoin -----------------------------------------
 # Tests that transitive predicates from the left side of a left outer join are
@@ -1261,7 +1125,7 @@ LogicalProject(EXPR$0=[1])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[>($16, 9)])
     LogicalJoin(condition=[=($7, $16)], joinType=[left])
@@ -1269,7 +1133,7 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceNoPullUpExprs -----------------------------------------
 # Tests that no predicate is inferred when the filter condition mixes columns
@@ -1308,13 +1172,13 @@ LogicalProject(EXPR$0=[1])
     LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), >($6, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), >($6, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferencePreventProjectPullUp ----------------------------------
 # Tests that transitive inference is prevented when the Project renames a column
@@ -1335,14 +1199,14 @@ LogicalProject(EXPR$0=[1])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalProject(DEPTNO=[$6])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceProject -----------------------------------------------
 # Tests that a filter predicate below a Project is inferred and pushed to the
@@ -1433,7 +1297,7 @@ LogicalProject(EXPR$0=[1])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -1441,7 +1305,7 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferencePullUpThruAlias ---------------------------------------
 # Tests that a predicate on an aliased column (comm aliased as deptno) is
@@ -1462,7 +1326,7 @@ LogicalProject(EXPR$0=[1])
       LogicalFilter(condition=[>($6, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalProject(DEPTNO=[$6])
@@ -1470,7 +1334,7 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceRightOuterJoin ----------------------------------------
 # Tests that transitive predicates from the right side of a right outer join
@@ -1562,7 +1426,7 @@ LogicalProject(EXPR$0=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalFilter(condition=[>($7, 9)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[>($7, 7)])
     LogicalJoin(condition=[=($7, $16)], joinType=[right])
@@ -1570,7 +1434,7 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalFilter(condition=[>($7, 9)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceUnion -------------------------------------------------
 # Tests that transitive predicates are inferred from a union subquery and pushed
@@ -1728,7 +1592,7 @@ LogicalProject(EXPR$0=[1])
         LogicalFilter(condition=[>($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalUnion(all=[true])
@@ -1740,7 +1604,7 @@ LogicalProject(EXPR$0=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceUnion3way ---------------------------------------------
 # Tests that transitive predicates are inferred from a three-way union subquery
@@ -1975,7 +1839,7 @@ LogicalProject(EXPR$0=[1])
         LogicalFilter(condition=[>($7, 1)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalUnion(all=[true])
@@ -1991,7 +1855,7 @@ LogicalProject(EXPR$0=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceUnion3wayOr -------------------------------------------
 # Tests that transitive inference is not applied when the union subquery
@@ -2226,7 +2090,7 @@ LogicalProject(EXPR$0=[1])
         LogicalFilter(condition=[>($7, 1)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($1, $9)], joinType=[inner])
     LogicalUnion(all=[true])
@@ -2241,7 +2105,7 @@ LogicalProject(EXPR$0=[1])
         LogicalFilter(condition=[>($7, 1)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testTransitiveInferenceUnionAlwaysTrue ---------------------------------------
 # [CALCITE-443] Tests that when one arm of a UNION has no filter, the inferred
@@ -2271,7 +2135,7 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
   LogicalJoin(condition=[=($0, $1)], joinType=[inner])
     LogicalProject(DEPTNO=[$7])
@@ -2284,6 +2148,6 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE, FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # End join-push-transitive-predicates.iq

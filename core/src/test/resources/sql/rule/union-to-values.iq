@@ -30,7 +30,15 @@ with t1(a, y) as (select * from (values (1, 2), (3, null), (7369, null), (7499, 
 select *
 from t1
 where (t1.a, t1.y) in ((1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5));
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------+----+
+| A    | Y  |
++------+----+
+|    1 |  2 |
+| 7499 | 30 |
++------+----+
+(2 rows)
+
+!ok
 LogicalProject(A=[$0], Y=[$1])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
     LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
@@ -90,14 +98,21 @@ LogicalProject(A=[$0], Y=[$1])
 # testUnionToValuesByInList3 ----------------------------------------------------
 # UNION_TO_VALUES with IN-list containing an integer CAST.
 
-select * from dept where deptno in (12, 34, cast(56.4 as int));
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select * from dept where deptno in (12, 34, cast(30.4 as int));
++--------+-------+---------+
+| DEPTNO | DNAME | LOC     |
++--------+-------+---------+
+|     30 | SALES | CHICAGO |
++--------+-------+---------+
+(1 row)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}])
       LogicalUnion(all=[true])
-        LogicalProject(EXPR$0=[56])
+        LogicalProject(EXPR$0=[30])
           LogicalValues(tuples=[[{ 0 }]])
         LogicalValues(tuples=[[{ 12 }, { 34 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, NONE"
@@ -105,14 +120,22 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}])
-      LogicalValues(tuples=[[{ 56 }, { 12 }, { 34 }]])
+      LogicalValues(tuples=[[{ 30 }, { 12 }, { 34 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
 # testUnionToValuesByInList4 ----------------------------------------------------
 # UNION_TO_VALUES with IN-list of doubles (promotes comparison to double).
 
-select * from dept where deptno in (12, 34, cast(56.4 as double));
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select *
+from dept
+where deptno in (12, 34, cast(56.4 as double));
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($2, $3)], joinType=[inner])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):DOUBLE NOT NULL])
@@ -137,9 +160,19 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 # testUnionToValuesByInList5 ----------------------------------------------------
 # UNION_TO_VALUES with an IN predicate in the SELECT list.
 
-select deptno in (12, 34, cast(56.4 as double)) from dept;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
-LogicalProject(EXPR$0=[CAST(OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($6)))):BOOLEAN NOT NULL])
+select deptno in (12, 34, cast(56.4 as double)) as b from dept;
++-------+
+| B     |
++-------+
+| false |
+| false |
+| false |
+| false |
++-------+
+(4 rows)
+
+!ok
+LogicalProject(B=[CAST(OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($6)))):BOOLEAN NOT NULL])
   LogicalJoin(condition=[=($4, $5)], joinType=[left])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], $f0=[$2], $f1=[$3], DEPTNO0=[CAST($0):DOUBLE NOT NULL])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -163,7 +196,7 @@ LogicalProject(EXPR$0=[CAST(OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), n
           LogicalProject(EXPR$0=[56.4E0:DOUBLE])
             LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, NONE"
-LogicalProject(EXPR$0=[CAST(OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($6)))):BOOLEAN NOT NULL])
+LogicalProject(B=[CAST(OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($6)))):BOOLEAN NOT NULL])
   LogicalJoin(condition=[=($4, $5)], joinType=[left])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], $f0=[$2], $f1=[$3], DEPTNO0=[CAST($0):DOUBLE NOT NULL])
       LogicalJoin(condition=[true], joinType=[inner])
@@ -184,13 +217,23 @@ from (values (1, 'a'), (2, 'b')) as t(x, y)
 union
 select *
 from (values (1, 'a'), (2, 'b'), (1, 'b'), (2, 'c'), (2, 'c')) as t(x, y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | b |
+| 2 | b |
+| 2 | c |
++---+---+
+(4 rows)
+
+!ok
 LogicalUnion(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
@@ -202,13 +245,22 @@ from (values ('a'), ('b')) as t(x)
 union
 select *
 from (values ('a'), ('b'), ('b'), ('c'), ('c')) as t(y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+
+| X |
++---+
+| a |
+| b |
+| c |
++---+
+(3 rows)
+
+!ok
 LogicalUnion(all=[false])
   LogicalProject(X=[$0])
     LogicalValues(tuples=[[{ 'a' }, { 'b' }]])
   LogicalProject(Y=[$0])
     LogicalValues(tuples=[[{ 'a' }, { 'b' }, { 'b' }, { 'c' }, { 'c' }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 'a' }, { 'b' }, { 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
@@ -220,13 +272,20 @@ from (values (5.0)) as t(x)
 union
 select *
 from (values (5)) as t(y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+
+| X   |
++-----+
+| 5.0 |
++-----+
+(1 row)
+
+!ok
 LogicalUnion(all=[false])
   LogicalProject(X=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5.0 }]])
   LogicalProject(Y=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 5.0 }]])
 !sub-plan "PROJECT_REMOVE, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
@@ -238,13 +297,20 @@ from (values (cast(5.0 as int))) as t(x)
 union
 select *
 from (values (5)) as t(y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+
+| X |
++---+
+| 5 |
++---+
+(1 row)
+
+!ok
 LogicalUnion(all=[false])
   LogicalProject(X=[$0])
     LogicalValues(tuples=[[{ 5 }]])
   LogicalProject(Y=[$0])
     LogicalValues(tuples=[[{ 5 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 5 }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
@@ -256,13 +322,26 @@ from (values (1, 'a'), (2, 'b')) as t(x, y)
 union all
 select *
 from (values (1, 'a'), (2, 'b'), (1, 'b'), (2, 'c'), (2, 'c')) as t(x, y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | a |
+| 1 | b |
+| 2 | b |
+| 2 | b |
+| 2 | c |
+| 2 | c |
++---+---+
+(7 rows)
+
+!ok
 LogicalUnion(all=[true])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
@@ -274,13 +353,26 @@ from (values ('a'), ('b')) as t(x)
 union all
 select *
 from (values ('a'), ('b'), ('b'), ('c'), ('c')) as t(y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+
+| X |
++---+
+| a |
+| a |
+| b |
+| b |
+| b |
+| c |
+| c |
++---+
+(7 rows)
+
+!ok
 LogicalUnion(all=[true])
   LogicalProject(X=[$0])
     LogicalValues(tuples=[[{ 'a' }, { 'b' }]])
   LogicalProject(Y=[$0])
     LogicalValues(tuples=[[{ 'a' }, { 'b' }, { 'b' }, { 'c' }, { 'c' }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 'a' }, { 'b' }, { 'a' }, { 'b' }, { 'b' }, { 'c' }, { 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
@@ -292,13 +384,21 @@ from (values (5.0)) as t(x)
 union all
 select *
 from (values (5)) as t(y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-----+
+| X   |
++-----+
+| 5.0 |
+| 5.0 |
++-----+
+(2 rows)
+
+!ok
 LogicalUnion(all=[true])
   LogicalProject(X=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5.0 }]])
   LogicalProject(Y=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 5.0 }, { 5.0 }]])
 !sub-plan "PROJECT_REMOVE, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
@@ -310,13 +410,21 @@ from (values (cast(5.0 as int))) as t(x)
 union all
 select *
 from (values (5)) as t(y);
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++---+
+| X |
++---+
+| 5 |
+| 5 |
++---+
+(2 rows)
+
+!ok
 LogicalUnion(all=[true])
   LogicalProject(X=[$0])
     LogicalValues(tuples=[[{ 5 }]])
   LogicalProject(Y=[$0])
     LogicalValues(tuples=[[{ 5 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[{ 5 }, { 5 }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
