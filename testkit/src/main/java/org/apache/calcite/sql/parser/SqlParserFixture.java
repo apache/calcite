@@ -189,6 +189,10 @@ public class SqlParserFixture {
         convertToLinux, parserChecker);
   }
 
+  public SqlParserFixture withQuoting(Quoting quoting) {
+    return withConfig(c -> c.withQuoting(quoting));
+  }
+
   /**
    * Sets whether to convert actual strings to Linux (converting Windows
    * CR-LF line endings to Linux LF) before comparing them to expected.
