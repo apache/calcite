@@ -26,10 +26,15 @@
 # UNION_TO_VALUES merges a UNION ALL into a single VALUES node; with
 # inSubQueryThreshold=0 an IN-list is converted to a join+aggregate+union.
 
-with t1(a, y) as (select * from (values (1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5)) as t1)
+with t1(a, y) as (
+    select *
+    from (values (1, 2), (3, null), (7369, null),
+        (7499, 30), (null, 20), (null, 5)) as t1)
 select *
 from t1
-where (t1.a, t1.y) in ((1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5));
+where (t1.a, t1.y) in (
+    (1, 2), (3, null), (7369, null),
+    (7499, 30), (null, 20), (null, 5));
 +------+----+
 | A    | Y  |
 +------+----+
@@ -65,10 +70,15 @@ LogicalProject(A=[$0], Y=[$1])
 # testUnionToValuesByInList2 ----------------------------------------------------
 # UNION_TO_VALUES with IN-list containing CAST expressions.
 
-with t1(a, y) as (select * from (values (1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5)) as t1)
+with t1(a, y) as (
+    select *
+    from (values (1, 2), (3, null), (7369, null),
+        (7499, 30), (null, 20), (null, 5)) as t1)
 select *
 from t1
-where (t1.a, t1.y) in ((cast(1.1 as int), 2), (3, null), (7369, null), (7499, 30), (null, cast(20.2 as int)), (null, 5));
+where (t1.a, t1.y) in (
+    (cast(1.1 as int), 2), (3, null), (7369, null),
+    (7499, 30), (null, cast(20.2 as int)), (null, 5));
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(A=[$0], Y=[$1])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])

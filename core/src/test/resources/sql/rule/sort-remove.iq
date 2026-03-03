@@ -333,7 +333,10 @@ LogicalSort(sort0=[$0], dir0=[ASC])
 # duplicate sort keys.
 # [CALCITE-7222]
 
-select * from (select empno as a, empno as b from emp) t order by a, b limit 1 offset 2;
+select *
+from (select empno as a, empno as b from emp) t
+order by a, b
+limit 1 offset 2;
 +------+------+
 | A    | B    |
 +------+------+
@@ -356,7 +359,10 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
 # a primary key column.
 # [CALCITE-7222]
 
-select * from (select empno as a, deptno as b from emp) t order by a, b limit 1 offset 2;
+select *
+from (select empno as a, deptno as b from emp) t
+order by a, b
+limit 1 offset 2;
 +------+----+
 | A    | B  |
 +------+----+

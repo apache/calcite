@@ -377,7 +377,9 @@ LogicalProject(EMPNO=[$0])
 # JOIN_SUB_QUERY_TO_CORRELATE does not rewrite when sub-query references both
 # sides of the join (plan is unchanged).
 
-SELECT empno FROM emp JOIN dept on emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept);
+SELECT empno
+FROM emp
+JOIN dept ON emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept);
 # Not using !ok: >= SOME subquery with both-sides columns is not supported by H2.
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[>= SOME(+($7, $9), {

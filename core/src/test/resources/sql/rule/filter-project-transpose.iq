@@ -207,7 +207,11 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
 # Not using !ok: uses correlated EXISTS subquery not reliably executable in HSQLDB.
 
 SELECT e1.empno
-FROM emp e1 where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno);
+FROM emp e1
+WHERE EXISTS (
+    select empno, deptno
+    from dept d2
+    where e1.deptno = d2.deptno);
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[IS NOT NULL($9)])
     LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])

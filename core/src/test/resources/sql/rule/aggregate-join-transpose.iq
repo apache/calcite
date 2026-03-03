@@ -467,7 +467,9 @@ LogicalProject(DNAME=[$3], SUM_SAL=[$1], C=[$2])
 # testPushAggregateThroughJoinOnEmptyLogicalValues ----------------------------
 # [CALCITE-3076] Should not throw when the join input is an empty LogicalValues.
 
-select count(*) volume, sum(C1.sal) C1_sum_sal from (select sal, ename from emp where 1=2) C1 inner join (select ename from emp) C2   on C1.ename = C2.ename;
+select count(*) volume, sum(C1.sal) C1_sum_sal
+from (select sal, ename from emp where 1=2) C1
+inner join (select ename from emp) C2 on C1.ename = C2.ename;
 +--------+------------+
 | VOLUME | C1_SUM_SAL |
 +--------+------------+

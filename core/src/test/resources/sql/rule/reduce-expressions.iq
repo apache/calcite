@@ -46,7 +46,8 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 # PROJECT_REDUCE_EXPRESSIONS does not modify an ASOF join plan (checkUnchanged).
 
 SELECT *
-FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)
+FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2),
+    (1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)
 ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)
 MATCH_CONDITION t2.t < t1.t
 ON t1.k = t2.k;
@@ -253,7 +254,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testFilterReduceCrash -------------------------------------------------------
 # [CALCITE-7070] FILTER_REDUCE_EXPRESSIONS crashes on expression BETWEEN ( NULL) AND X.
 
-SELECT + 54 FROM emp WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) NOT BETWEEN ( NULL ) AND 89;
+SELECT + 54
+FROM emp
+WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) NOT BETWEEN ( NULL ) AND 89;
 +--------+
 | EXPR$0 |
 +--------+
@@ -335,7 +338,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # [CALCITE-2726] FILTER_REDUCE_EXPRESSIONS should not oversimplify CASE in a
 # compound WHERE condition.
 
-select * from emp where MGR > 0 and case when MGR > 0 then deptno / MGR else null end > 1;
+select *
+from emp
+where MGR > 0
+    and case when MGR > 0 then deptno / MGR else null end > 1;
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -699,7 +705,10 @@ LogicalProject(EXPR$0=[false])
 # testReduceConstants3 -------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
 
-select e.mgr is not distinct from f.mgr from emp e join emp f on (e.mgr=f.mgr) where e.mgr is null;
+select e.mgr is not distinct from f.mgr
+from emp e
+join emp f on (e.mgr=f.mgr)
+where e.mgr is null;
 +--------+
 | EXPR$0 |
 +--------+
@@ -929,7 +938,9 @@ LogicalProject(DEPTNO=[$0])
 # testReduceConstantsDupNot2 -------------------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with three predicates.
 
-select d.deptno from dept d where not(d.deptno=7 and d.dname='foo' and d.deptno=8);
+select d.deptno
+from dept d
+where not(d.deptno=7 and d.dname='foo' and d.deptno=8);
 +--------+
 | DEPTNO |
 +--------+
@@ -1230,7 +1241,8 @@ ARRAY[ROW(1+2, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['x'||'y', 8+8])],
 CARDINALITY(ARRAY[2*3, 2*2, 1*4]),
 CARDINALITY(ARRAY[ROW(4*3, 'm'), ROW(4+6, 'b')]),
 CARDINALITY(ARRAY[MAP['ac'||'bd', 1+8], MAP['gi'||'jl', 1+9]]),
-CARDINALITY(ARRAY[ROW(1+7, ARRAY[1+4, 4+2], ROW('t', 5+5), MAP['y'||'z', 9+9])]);
+CARDINALITY(ARRAY[ROW(1+7, ARRAY[1+4, 4+2],
+    ROW('t', 5+5), MAP['y'||'z', 9+9])]);
 +--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
 | EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  | EXPR$4                         | EXPR$5    | EXPR$6           | EXPR$7                     | EXPR$8                         | EXPR$9 | EXPR$10 | EXPR$11 | EXPR$12 |
 +--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
@@ -1291,7 +1303,9 @@ LogicalProject(SAL=[$5])
 # Not using !ok: uses mock catalog only.
 
 select *
-from (select (case when sal > 1000 then null else false end) as caseCol from emp)
+from (
+    select (case when sal > 1000 then null else false end) as caseCol
+    from emp)
 where NOT(caseCol);
 LogicalProject(CASECOL=[$0])
   LogicalFilter(condition=[NOT($0)])
