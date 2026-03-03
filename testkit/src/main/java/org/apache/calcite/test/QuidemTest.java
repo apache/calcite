@@ -234,6 +234,7 @@ public abstract class QuidemTest {
         boolean expand = false;
         boolean lateDecorrelate = false;
         boolean operatorTableBigQuery = false;
+        boolean throwIfNotUnique = true;
         boolean trim = false;
         boolean simplifyValues = true;
         boolean subQueryRules = false;
@@ -267,13 +268,21 @@ public abstract class QuidemTest {
               simplifyValues = false;
             } else if (name.equals("subQueryRules")) {
               subQueryRules = true;
+            } else if (name.equals("throwIfNotUnique=false")) {
+              throwIfNotUnique = false;
             } else if (name.equals("trim=true")) {
               trim = true;
             } else {
               throw new IllegalArgumentException("Unknown config token: " + name);
             }
           } else {
-            rules.add(getCoreRule(name));
+            if (!throwIfNotUnique
+                && name.equals("AGGREGATE_EXPAND_WITHIN_DISTINCT")) {
+              rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
+                  .withThrowIfNotUnique(false).toRule());
+            } else {
+              rules.add(getCoreRule(name));
+            }
           }
         }
 

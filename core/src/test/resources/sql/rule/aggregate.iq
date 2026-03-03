@@ -487,6 +487,33 @@ LogicalAggregate(group=[{0, 1}])
 LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_VALUES"
 
+# testDigestOfApproximateDistinctAggregateCall ---------------------------------
+# AGGREGATE_PROJECT_MERGE merges a Project into an Aggregate, treating
+# COUNT(DISTINCT) and APPROX_COUNT_DISTINCT as different aggregate calls.
+# Not using !ok: approx_count_distinct is not supported in the scott HSQLDB.
+
+select *
+from (
+select deptno, count(distinct empno) from emp group by deptno
+union all
+select deptno, approx_count_distinct(empno) from emp group by deptno);
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT(APPROXIMATE DISTINCT $1)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{7}], EXPR$1=[COUNT(APPROXIMATE DISTINCT $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE"
+
 # testGroupByBooleanLiteralSimple ----------------------------------------------
 # AggregateProjectConstantToDummyJoinRule replaces a constant group-by key
 # (boolean literal true) with a join to a single-row Values.
@@ -769,5 +796,23 @@ LogicalAggregate(group=[{0, 1}])
       LogicalProject(JOB=[$2], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_AGGREGATE"
+
+# testRemoveDistinctOnAgg ------------------------------------------------------
+# AGGREGATE_REMOVE removes the aggregate when the group key contains a primary
+# key, since each group has exactly one row. PROJECT_MERGE then merges projects.
+# Not using !ok: bit_and, bit_or may not be supported in the scott HSQLDB.
+
+select empno, sum(distinct sal), min(sal),
+    min(distinct sal), max(distinct sal),
+    bit_and(distinct sal), bit_or(sal), count(distinct sal)
+from sales.emp group by empno, deptno;
+LogicalProject(EMPNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$3], EXPR$4=[$4], EXPR$5=[$5], EXPR$6=[$6], EXPR$7=[$7])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM(DISTINCT $2)], EXPR$2=[MIN($2)], EXPR$4=[MAX($2)], EXPR$5=[BIT_AND($2)], EXPR$6=[BIT_OR($2)], EXPR$7=[COUNT(DISTINCT $2)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], EXPR$1=[$5], EXPR$2=[$5], EXPR$3=[$5], EXPR$4=[$5], EXPR$5=[$5], EXPR$6=[$5], EXPR$7=[1:BIGINT])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 
 # End aggregate.iq

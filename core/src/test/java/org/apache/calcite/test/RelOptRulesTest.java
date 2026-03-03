@@ -65,9 +65,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
-import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
@@ -415,48 +413,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testReduceNot() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-
-    final String sql = "select *\n"
-        + "from (select (case when sal > 1000 then null else false end) as caseCol from emp)\n"
-        + "where NOT(caseCol)";
-    sql(sql).withPlanner(hepPlanner)
-        .checkUnchanged();
-  }
-
-  @Test void testReduceNestedCaseWhen() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-
-    final String sql = "select sal\n"
-            + "from emp\n"
-            + "where case when (sal = 1000) then\n"
-            + "(case when sal = 1000 then null else 1 end is null) else\n"
-            + "(case when sal = 2000 then null else 1 end is null) end is true";
-    sql(sql).withPlanner(hepPlanner)
-        .check();
-  }
-
-  @Test void testDigestOfApproximateDistinctAggregateCall() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(AggregateProjectMergeRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.AGGREGATE_PROJECT_MERGE);
-
-    final String sql = "select *\n"
-            + "from (\n"
-            + "select deptno, count(distinct empno) from emp group by deptno\n"
-            + "union all\n"
-            + "select deptno, approx_count_distinct(empno) from emp group by deptno)";
-    sql(sql).withPlanner(hepPlanner)
-        .check();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1479">[CALCITE-1479]
@@ -573,50 +529,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.FILTER_SORT_TRANSPOSE).checkUnchanged();
   }
 
-  @Test void testReduceOrCaseWhen() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-
-    final String sql = "select sal\n"
-        + "from emp\n"
-        + "where case when sal = 1000 then null else 1 end is null\n"
-        + "OR case when sal = 2000 then null else 1 end is null";
-    sql(sql).withPlanner(hepPlanner)
-        .check();
-  }
-
-  @Test void testReduceNullableCase() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-
-    final String sql = "SELECT CASE WHEN 1=2 "
-        + "THEN cast((values(1)) as integer) "
-        + "ELSE 2 end from (values(1))";
-    sql(sql)
-        .withExpand(true)
-        .withPlanner(hepPlanner)
-        .checkUnchanged();
-  }
-
-  @Test void testReduceNullableCase2() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-
-    final String sql = "SELECT deptno, ename, CASE WHEN 1=2 "
-        + "THEN substring(ename, 1, cast(2 as int)) ELSE NULL end from emp"
-        + " group by deptno, ename, case when 1=2 then substring(ename,1, cast(2 as int))  else null end";
-    sql(sql)
-        .withExpand(true)
-        .withPlanner(hepPlanner)
-        .checkUnchanged();
-  }
-
   /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
    * should not create IS NOT NULL filter if join condition is not strong wrt
    * each key. */
@@ -627,22 +539,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withFactory(t ->
             t.withOperatorTable(opTab -> SqlValidatorTest.operatorTableFor(SqlLibrary.ORACLE)))
         .withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
-  }
-
-  @Test void testStrengthenJoinType() {
-    // The "Filter(... , right.c IS NOT NULL)" above a left join is pushed into
-    // the join, makes it an inner join, and then disappears because c is NOT
-    // NULL.
-    final String sql = "select *\n"
-        + "from dept left join emp on dept.deptno = emp.deptno\n"
-        + "where emp.deptno is not null and emp.sal > 100";
-    sql(sql)
-        .withDecorrelate(true)
-        .withTrim(true)
-        .withPreRule(CoreRules.PROJECT_MERGE,
-            CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.FILTER_INTO_JOIN)
-        .check();
   }
 
   /** Test case for
@@ -801,22 +697,6 @@ class RelOptRulesTest extends RelOptTestBase {
           .build();
     };
     relFn(relFn).withRule(CoreRules.JOIN_TO_MULTI_JOIN).check();
-  }
-
-
-  private RelOptFixture basePushFilterPastAggWithGroupingSets() {
-    return sql("${sql}")
-        .withPreRule(CoreRules.PROJECT_MERGE,
-            CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE);
-  }
-
-  @Test void testPushFilterPastAggWithGroupingSets1() {
-    basePushFilterPastAggWithGroupingSets().checkUnchanged();
-  }
-
-  @Test void testPushFilterPastAggWithGroupingSets2() {
-    basePushFilterPastAggWithGroupingSets().check();
   }
 
   /** Test case for
@@ -1221,239 +1101,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
 
 
-  @Test void testRemoveDistinctOnAgg() {
-    final String sql = "SELECT empno, SUM(distinct sal), MIN(sal), "
-        + "MIN(distinct sal), MAX(distinct sal), "
-        + "bit_and(distinct sal), bit_or(sal), count(distinct sal) "
-        + "from sales.emp group by empno, deptno\n";
-    sql(sql)
-        .withRule(CoreRules.AGGREGATE_REMOVE,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5985">[CALCITE-5985]
-   * FilterTableFunctionTransposeRule should not use "Logical" RelNodes</a>. */
-
-
-  /** Tests {@link AggregateExpandWithinDistinctRule}. The generated query
-   * throws if arguments are not functionally dependent on the distinct key. */
-  @Test void testWithinDistinct() {
-    final String sql = "SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** As {@link #testWithinDistinct()}, but the generated query does not throw
-   * if arguments are not functionally dependent on the distinct key.
-   *
-   * @see AggregateExpandWithinDistinctRule.Config#throwIfNotUnique() */
-  @Test void testWithinDistinctNoThrow() {
-    final String sql = "SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
-            .config.withThrowIfNotUnique(false).toRule())
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Tests {@link AggregateExpandWithinDistinctRule}. If all aggregate calls
-   * have the same distinct keys, there is no need for multiple grouping
-   * sets. */
-  @Test void testWithinDistinctUniformDistinctKeys() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) WITHIN DISTINCT (job),\n"
-        + " AVG(comm) WITHIN DISTINCT (job)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Tests {@link AggregateExpandWithinDistinctRule}. If all aggregate calls
-   * have the same distinct keys, and we're not checking for true uniqueness,
-   * there is no need for filtering in the outer aggregate. */
-  @Test void testWithinDistinctUniformDistinctKeysNoThrow() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) WITHIN DISTINCT (job),\n"
-        + " AVG(comm) WITHIN DISTINCT (job)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(
-            CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
-                .withThrowIfNotUnique(false).toRule())
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Tests that {@link AggregateExpandWithinDistinctRule} treats
-   * "COUNT(DISTINCT x)" as if it were "COUNT(x) WITHIN DISTINCT (x)". */
-  @Test void testWithinDistinctCountDistinct() {
-    final String sql = "SELECT deptno,\n"
-        + "  SUM(sal) WITHIN DISTINCT (comm) AS ss_c,\n"
-        + "  COUNT(DISTINCT job) cdj,\n"
-        + "  COUNT(job) WITHIN DISTINCT (job) AS cj_j,\n"
-        + "  COUNT(DISTINCT job) WITHIN DISTINCT (job) AS cdj_j,\n"
-        + "  COUNT(DISTINCT job) FILTER (WHERE sal > 1000) AS cdj_filtered\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT
-            .config.withThrowIfNotUnique(false).toRule())
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4726">[CALCITE-4726]
-   * Support aggregate calls with a FILTER clause in
-   * AggregateExpandWithinDistinctRule</a>.
-   *
-   * <p>Tests {@link AggregateExpandWithinDistinctRule} with different
-   * distinct keys and different filters for each aggregate call. */
-  @Test void testWithinDistinctFilteredAggs() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),\n"
-        + " AVG(comm) WITHIN DISTINCT (sal) FILTER (WHERE ename LIKE '%ok%')\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5846">[CALCITE-5846]
-   * Preserve FILTER clause for non-distinct aggregate calls with
-   * AggregateExpandWithinDistinctRule</a>.
-   *
-   * <p>Tests {@link AggregateExpandWithinDistinctRule} with a non-distinct aggregate with a FILTER
-   * clause and a distinct aggregate in the same query. */
-  @Test void testWithinDistinctPreservesNonDistinctAggFilters() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) FILTER (WHERE sal > 1000),\n"
-        + " SUM(sal) WITHIN DISTINCT (job)\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6595">[CALCITE-6595]
-   * Preserve collation for non-distinct aggregate calls with AggregateExpandWithinDistinctRule</a>.
-   *
-   * <p>Test that AggregateExpandWithinDistinctRule preserves collation on non-distinct aggregates
-   * with a WITHIN GROUP clause in a query that also includes a distinct aggregate. */
-  @Test void testWithinDistinctPreservesNonDistinctCollation() {
-    final String sql = "SELECT SUM(sal) WITHIN DISTINCT (job),\n"
-        + "LISTAGG(ename, '; ') WITHIN GROUP (ORDER BY sal DESC)\n"
-        + " FROM Emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Tests {@link AggregateExpandWithinDistinctRule}. Includes multiple
-   * different filters for the aggregate calls, and all aggregate calls have the
-   * same distinct keys, so there is no need to filter based on
-   * {@code GROUPING()}. */
-  @Test void testWithinDistinctFilteredAggsUniformDistinctKeys() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),\n"
-        + " AVG(comm) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%')\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Tests {@link AggregateExpandWithinDistinctRule}. Includes multiple
-   * different filters for the aggregate calls, and all aggregate calls have the
-   * same distinct keys, so there is no need to filter based on
-   * {@code GROUPING()}. Does <em>not</em> throw if not unique. */
-  @Test void testWithinDistinctFilteredAggsUniformDistinctKeysNoThrow() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE comm > 10),\n"
-        + " AVG(comm) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%')\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(
-            CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
-                .withThrowIfNotUnique(false).toRule())
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** Tests {@link AggregateExpandWithinDistinctRule}. Includes multiple
-   * identical filters for the aggregate calls. The filters should be
-   * re-used. */
-  @Test void testWithinDistinctFilteredAggsSameFilter() {
-    final String sql = "SELECT deptno,\n"
-        + " SUM(sal) WITHIN DISTINCT (job) FILTER (WHERE ename LIKE '%ok%'),\n"
-        + " AVG(comm) WITHIN DISTINCT (sal) FILTER (WHERE ename LIKE '%ok%')\n"
-        + "FROM emp\n"
-        + "GROUP BY deptno";
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
-        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
-        .build();
-    sql(sql).withProgram(program).check();
-  }
-
-  /** As {@link #testPushProjectPastFilter3()} but pushes down project and
-   * filter expressions whole. */
-  @Test void testPushProjectPastFilter3b() {
-    checkPushProjectPastFilter3(CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS)
-        .check();
-  }
-
-  /** As {@link #testPushProjectPastFilter3()} but pushes down project
-   * expressions whole. */
-  @Test void testPushProjectPastFilter3c() {
-    checkPushProjectPastFilter3(
-        CoreRules.PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS)
-        .check();
-  }
-
-  RelOptFixture checkPushProjectPastFilter3(ProjectFilterTransposeRule rule) {
-    final String sql = "select empno + deptno as x, ename, job, mgr,\n"
-        + "  hiredate, sal, comm, slacker\n"
-        + "from emp\n"
-        + "where sal = 10 * comm\n"
-        + "and upper(ename) = 'FOO'";
-    return sql(sql).withRule(rule);
-  }
-
   @Test void testProjectCorrelateTransposeDynamic() {
     ProjectCorrelateTransposeRule customPCTrans =
         ProjectCorrelateTransposeRule.Config.DEFAULT
@@ -1467,19 +1114,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withDynamicTable()
         .withRule(customPCTrans)
         .checkUnchanged();
-  }
-
-  @Test void testProjectCorrelateTransposeRuleLeftCorrelate() {
-    final String sql = "SELECT e1.empno\n"
-        + "FROM emp e1 "
-        + "where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno)";
-    sql(sql)
-        .withDecorrelate(false)
-        .withExpand(true)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE,
-            CoreRules.PROJECT_FILTER_TRANSPOSE,
-            CoreRules.PROJECT_CORRELATE_TRANSPOSE)
-        .check();
   }
 
   @Test void testProjectCorrelateTransposeRuleSemiCorrelate() {
@@ -1561,26 +1195,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** As {@link #testProjectSetOpTranspose()};
    * should not push over past correlate but its operands can since correlate
    * will affect row count. */
-
-  /** Tests that the default instance of {@link FilterProjectTransposeRule}
-   * does not push a Filter that contains a correlating variable.
-   *
-   * @see #testFilterProjectTranspose() */
-  @Test void testFilterProjectTransposePreventedByCorrelation() {
-    final String sql = "SELECT e.empno\n"
-        + "FROM emp as e\n"
-        + "WHERE exists (\n"
-        + "  SELECT *\n"
-        + "  FROM (\n"
-        + "    SELECT deptno * 2 AS twiceDeptno\n"
-        + "    FROM dept) AS d\n"
-        + "  WHERE e.deptno = d.twiceDeptno)";
-    sql(sql)
-        .withDecorrelate(false)
-        .withExpand(true)
-        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .checkUnchanged();
-  }
 
   /** Tests a variant of {@link FilterProjectTransposeRule}
    * that pushes a Filter that contains a correlating variable. */

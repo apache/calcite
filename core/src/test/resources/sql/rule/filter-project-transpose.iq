@@ -51,6 +51,30 @@ LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DA
       LogicalValues(tuples=[[{ 'x', 10, 5200, 2007-08-01 }, { null, null, null, null }]])
 !sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_WINDOW_TRANSPOSE"
 
+# testFilterProjectTransposePreventedByCorrelation -----------------------------
+# FILTER_PROJECT_TRANSPOSE does not push a Filter containing a correlated
+# variable past a Project (expand=true, decorrelate=false, checkUnchanged).
+# Not using !ok: uses correlated EXISTS subquery not reliably executable in HSQLDB.
+
+SELECT e.empno
+FROM emp as e
+WHERE exists (
+  SELECT *
+  FROM (
+    SELECT deptno * 2 AS twiceDeptno
+    FROM dept) AS d
+  WHERE e.deptno = d.twiceDeptno);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+            LogicalProject(TWICEDEPTNO=[*($0, 2)])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, FILTER_PROJECT_TRANSPOSE"
+
 # testFilterTableFunctionScanTranspose -----------------------------------------
 # FILTER_TABLE_FUNCTION_TRANSPOSE pushes a Filter past a TableFunctionScan.
 # [CALCITE-5985]
@@ -176,6 +200,36 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
     LogicalWindow(window#0=[window(partition {1} aggs [COUNT()])])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, FILTER_PROJECT_TRANSPOSE, FILTER_WINDOW_TRANSPOSE, PROJECT_REMOVE"
+
+# testProjectCorrelateTransposeRuleLeftCorrelate --------------------------------
+# PROJECT_CORRELATE_TRANSPOSE pushes a Project into a left-type Correlate.
+# [CALCITE-6878]
+# Not using !ok: uses correlated EXISTS subquery not reliably executable in HSQLDB.
+
+SELECT e1.empno
+FROM emp e1 where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IS NOT NULL($1)])
+    LogicalProject(EMPNO=[$0], $f0=[$2])
+      LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{1}])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject($f0=[$0])
+          LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+            LogicalProject($f0=[true])
+              LogicalFilter(condition=[=($cor2.DEPTNO, $0)])
+                LogicalProject(DEPTNO=[$0])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, FILTER_PROJECT_TRANSPOSE, PROJECT_FILTER_TRANSPOSE, PROJECT_CORRELATE_TRANSPOSE"
 
 # testProjectCorrelateTransposeWithOver ----------------------------------------
 # PROJECT_CORRELATE_TRANSPOSE should not push a Project with windowed aggregates

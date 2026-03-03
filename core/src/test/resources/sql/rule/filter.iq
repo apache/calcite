@@ -127,6 +127,50 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_MERGE, FILTER_INTO_JOIN"
 
+# testPushFilterPastAggWithGroupingSets1 ---------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE does not push a filter past an aggregate with
+# ROLLUP grouping sets (checkUnchanged).
+# Not using !ok: result row order is non-deterministic.
+
+select ddeptno, dname, c from
+(select deptno ddeptno, dname dname, count(*) as c
+from dept group by rollup(deptno,dname)) t
+where dname = 'Charlie';
+LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+  LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+    LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+  LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+    LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testPushFilterPastAggWithGroupingSets2 ---------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE pushes a filter past an aggregate with non-ROLLUP
+# grouping sets.
+# Not using !ok: result row order is non-deterministic.
+
+select dname, ddeptno, c from
+(select dname dname, deptno ddeptno, count(*) as c
+from dept group by grouping sets ((dname,deptno),(dname))) t
+where dname = 'Charlie';
+LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
+  LogicalFilter(condition=[=($0, 'Charlie')])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
+      LogicalProject(DNAME=[$1], DDEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
+    LogicalFilter(condition=[=($0, 'Charlie')])
+      LogicalProject(DNAME=[$1], DDEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+
 # testReduceValuesUnderFilter --------------------------------------------------
 # FILTER_VALUES_MERGE merges a filter with an underlying VALUES node.
 

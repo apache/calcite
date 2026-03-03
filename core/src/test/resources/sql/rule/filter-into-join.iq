@@ -624,4 +624,48 @@ LogicalProject(UNO=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN"
 
+# testStrengthenJoinType -------------------------------------------------------
+# FILTER_INTO_JOIN strengthens a left outer join to inner join when the WHERE
+# clause has a null-rejecting predicate on the right side.
+
+select dept.*, emp.ename
+from dept left join emp on dept.deptno = emp.deptno
+where emp.deptno is not null and emp.sal > 100;
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | ENAME  |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK | CLARK  |
+|     10 | ACCOUNTING | NEW YORK | KING   |
+|     10 | ACCOUNTING | NEW YORK | MILLER |
+|     20 | RESEARCH   | DALLAS   | ADAMS  |
+|     20 | RESEARCH   | DALLAS   | FORD   |
+|     20 | RESEARCH   | DALLAS   | JONES  |
+|     20 | RESEARCH   | DALLAS   | SCOTT  |
+|     20 | RESEARCH   | DALLAS   | SMITH  |
+|     30 | SALES      | CHICAGO  | ALLEN  |
+|     30 | SALES      | CHICAGO  | BLAKE  |
+|     30 | SALES      | CHICAGO  | JAMES  |
+|     30 | SALES      | CHICAGO  | MARTIN |
+|     30 | SALES      | CHICAGO  | TURNER |
+|     30 | SALES      | CHICAGO  | WARD   |
++--------+------------+----------+--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2])
+  LogicalFilter(condition=[AND(>($3, 100), IS NOT NULL($4))])
+    LogicalJoin(condition=[=($0, $4)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[CAST($2):VARCHAR(20)], SAL=[CAST($3):INTEGER], DEPTNO0=[CAST($4):INTEGER])
+    LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>($1, 100)])
+        LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN"
+
 # End filter-into-join.iq
