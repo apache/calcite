@@ -319,6 +319,10 @@ public class PhysTypeImpl implements PhysType {
     body.add(Expressions.declare(mod, parameterC, null));
     for (RelFieldCollation collation : collations) {
       final int index = collation.getFieldIndex();
+      // NULL literal (Void) is always null; comparing null == null yields 0, skip.
+      if (fieldClass(index) == Void.class) {
+        continue;
+      }
       final RelDataType fieldType = rowType.getFieldList().get(index).getType();
       final Expression fieldComparator = generateCollatorExpression(fieldType.getCollation());
       Expression arg0 = fieldReference(parameterV0, index);
@@ -443,6 +447,10 @@ public class PhysTypeImpl implements PhysType {
     body.add(Expressions.declare(mod, parameterC, null));
     for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
       final int index = fieldCollation.getFieldIndex();
+      // NULL literal (Void) is always null; comparing null == null yields 0, skip.
+      if (fieldClass(index) == Void.class) {
+        continue;
+      }
       final RelDataType fieldType = rowType.getFieldList().get(index).getType();
       final Expression fieldComparator = generateCollatorExpression(fieldType.getCollation());
       Expression arg0 = fieldReference(parameterV0, index);
