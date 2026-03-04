@@ -66,6 +66,185 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE"
 
+# testAggregateMerge1 ---------------------------------------------------------
+# AggregateMergeRule should merge 2 aggregates into a single aggregate.
+# Not using !ok: complex result.
+
+select deptno c, min(y), max(z) z,
+sum(r), sum(m) n, sum(x) sal from (
+   select deptno, ename, sum(sal) x, max(sal) z,
+      min(sal) y, count(hiredate) m, count(mgr) r
+   from emp group by deptno, ename) t
+group by deptno;
+LogicalAggregate(group=[{1}], EXPR$1=[MIN($4)], Z=[MAX($3)], EXPR$3=[SUM($6)], N=[SUM($5)], SAL=[SUM($2)])
+  LogicalAggregate(group=[{1, 7}], X=[SUM($5)], Z=[MAX($5)], Y=[MIN($5)], M=[COUNT()], R=[COUNT($3)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{7}], EXPR$1=[MIN($5)], Z=[MAX($5)], EXPR$3=[COUNT($3)], N=[COUNT()], SAL=[SUM($5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge10 --------------------------------------------------------
+# [CALCITE-7162] AggregateMergeRule throws 'type mismatch' AssertionError.
+# Not using !ok: complex result.
+
+SELECT min(mn), max(mx)
+FROM (
+    SELECT min(deptno) mn, max(deptno) mx
+    FROM dept
+    GROUP BY dname);
+LogicalAggregate(group=[{}], EXPR$0=[MIN($1)], EXPR$1=[MAX($2)])
+  LogicalAggregate(group=[{1}], MN=[MIN($0)], MX=[MAX($0)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge2 ---------------------------------------------------------
+# AggregateMergeRule should merge 2 aggregates into a single aggregate,
+# top aggregate is not simple aggregate.
+# Not using !ok: complex result.
+
+select deptno, empno, sum(x), sum(y)
+from (
+  select ename, empno, deptno, sum(sal) x, count(mgr) y
+    from emp
+  group by deptno, ename, empno) t
+group by grouping sets(deptno, empno);
+LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$2=[$2], EXPR$3=[$3])
+  LogicalAggregate(group=[{0, 2}], groups=[[{0}, {2}]], EXPR$2=[SUM($3)], EXPR$3=[SUM($4)])
+    LogicalAggregate(group=[{0, 1, 7}], X=[SUM($5)], Y=[COUNT($3)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$2=[$2], EXPR$3=[$3])
+  LogicalAggregate(group=[{0, 7}], groups=[[{0}, {7}]], EXPR$2=[SUM($5)], EXPR$3=[COUNT($3)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge3 ---------------------------------------------------------
+# AggregateMergeRule should not merge 2 aggregates into a single aggregate,
+# since lower aggregate is not simple aggregate.
+# Not using !ok: complex result.
+
+select deptno, sum(x) from (
+ select ename, deptno, sum(sal) x from
+   emp group by cube(deptno, ename)) t
+group by deptno;
+LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
+  LogicalAggregate(group=[{1, 7}], groups=[[{1, 7}, {1}, {7}, {}]], X=[SUM($5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
+  LogicalAggregate(group=[{1, 7}], groups=[[{1, 7}, {1}, {7}, {}]], X=[SUM($5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge4 ---------------------------------------------------------
+# AggregateMergeRule should not merge 2 aggregates since it contains distinct
+# aggregate function.
+# Not using !ok: complex result.
+
+select deptno, sum(x) from (
+  select ename, deptno, count(distinct sal) x
+    from emp group by deptno, ename) t
+group by deptno;
+LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
+  LogicalAggregate(group=[{1, 7}], X=[COUNT(DISTINCT $5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
+  LogicalAggregate(group=[{1, 7}], X=[COUNT(DISTINCT $5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge5 ---------------------------------------------------------
+# AggregateMergeRule should not merge 2 aggregates since AVG doesn't support
+# splitting.
+# Not using !ok: complex result.
+
+select deptno, avg(x) from (
+  select mgr, deptno, avg(sal) x from
+    emp group by deptno, mgr) t
+group by deptno;
+LogicalAggregate(group=[{1}], EXPR$1=[AVG($2)])
+  LogicalAggregate(group=[{3, 7}], X=[AVG($5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{1}], EXPR$1=[AVG($2)])
+  LogicalAggregate(group=[{3, 7}], X=[AVG($5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge6 ---------------------------------------------------------
+# AggregateMergeRule should not merge 2 aggregates since top agg has no group
+# key, and lower agg function is COUNT.
+# Not using !ok: complex result.
+
+select sum(x) from (
+select mgr, deptno, count(sal) x from
+emp group by deptno, mgr) t;
+LogicalAggregate(group=[{}], EXPR$0=[SUM($2)])
+  LogicalAggregate(group=[{3, 7}], X=[COUNT()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($2)])
+  LogicalAggregate(group=[{3, 7}], X=[COUNT()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge7 ---------------------------------------------------------
+# AggregateMergeRule should not merge 2 aggregates since top agg contains empty
+# grouping set, and lower agg function is COUNT.
+# Not using !ok: complex result.
+
+select mgr, deptno, sum(x) from (
+  select mgr, deptno, count(sal) x from
+    emp group by deptno, mgr) t
+group by cube(mgr, deptno);
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
+  LogicalAggregate(group=[{3, 7}], X=[COUNT()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalProject(MGR=[$1], DEPTNO=[$0], EXPR$2=[$2])
+  LogicalProject(DEPTNO=[$1], MGR=[$0], EXPR$2=[$2])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
+      LogicalAggregate(group=[{3, 7}], X=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge8 ---------------------------------------------------------
+# AggregateMergeRule should merge 2 aggregates since both top and bottom
+# aggregates contain empty grouping set and they are mergable.
+# Not using !ok: complex result.
+
+select sum(x) x, min(y) z from (
+  select sum(sal) x, min(sal) y from emp);
+LogicalAggregate(group=[{}], X=[SUM($0)], Z=[MIN($1)])
+  LogicalAggregate(group=[{}], X=[SUM($5)], Y=[MIN($5)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{}], X=[SUM($5)], Z=[MIN($5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
+# testAggregateMerge9 ---------------------------------------------------------
+# [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError.
+# Not using !ok: complex result.
+
+SELECT sum(deptno)
+FROM (
+    SELECT sum(deptno) AS deptno
+    FROM dept
+    GROUP BY dname);
+LogicalAggregate(group=[{}], EXPR$0=[SUM($1)])
+  LogicalAggregate(group=[{1}], DEPTNO=[SUM($0)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, PROJECT_MERGE"
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
+
 # testAggregateProjectMerge ---------------------------------------------------
 # Tests that AggregateProjectMergeRule merges a Project into an Aggregate.
 
