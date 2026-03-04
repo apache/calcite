@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testProjectJoinRemove1 ------------------------------------------------------
+# testProjectJoinRemove1 -------------------------------------------------------
 # PROJECT_JOIN_JOIN_REMOVE should remove the second left join when d2 is a
 # duplicate of d1.
 
@@ -65,7 +65,7 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_JOIN_JOIN_REMOVE"
 
-# testProjectJoinRemove10 -----------------------------------------------------
+# testProjectJoinRemove10 ------------------------------------------------------
 # PROJECT_JOIN_REMOVE should remove the left join when all projected columns
 # come from the left (non-null-generating) side.
 
@@ -102,7 +102,7 @@ LogicalProject(DEPTNO=[$7], ENAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_JOIN_REMOVE"
 
-# testProjectJoinRemove2 ------------------------------------------------------
+# testProjectJoinRemove2 -------------------------------------------------------
 # PROJECT_JOIN_JOIN_REMOVE should not remove d2 when the project references d1.
 
 SELECT e.deptno, d1.deptno
@@ -145,7 +145,7 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_JOIN_JOIN_REMOVE"
 
-# testProjectJoinRemove3 ------------------------------------------------------
+# testProjectJoinRemove3 -------------------------------------------------------
 # PROJECT_JOIN_JOIN_REMOVE should not remove a join when the tables differ.
 
 SELECT e1.deptno, d.deptno
@@ -244,7 +244,7 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_JOIN_JOIN_REMOVE"
 
-# testProjectJoinRemove4 ------------------------------------------------------
+# testProjectJoinRemove4 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should remove the left join when the project only uses
 # columns from the preserved side.
 
@@ -281,7 +281,7 @@ LogicalProject(DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_JOIN_REMOVE"
 
-# testProjectJoinRemove5 ------------------------------------------------------
+# testProjectJoinRemove5 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove the join when EMP.DEPTNO is not a
 # unique key.
 
@@ -376,7 +376,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_JOIN_REMOVE"
 
-# testProjectJoinRemove6 ------------------------------------------------------
+# testProjectJoinRemove6 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove the join when the project uses
 # a column from the null-generating side.
 
@@ -415,7 +415,7 @@ LogicalProject(DEPTNO=[$7], DNAME=[$10])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_JOIN_REMOVE"
 
-# testProjectJoinRemove7 ------------------------------------------------------
+# testProjectJoinRemove7 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should remove a right join when the project only uses
 # columns from the preserved (right) side.
 
@@ -452,7 +452,7 @@ LogicalProject(DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_JOIN_REMOVE"
 
-# testProjectJoinRemove8 ------------------------------------------------------
+# testProjectJoinRemove8 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove a right join when EMP.DEPTNO is not a
 # unique key.
 
@@ -547,7 +547,7 @@ LogicalProject(DEPTNO=[$16])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_JOIN_REMOVE"
 
-# testProjectJoinRemove9 ------------------------------------------------------
+# testProjectJoinRemove9 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove a right join when the project uses
 # a column from the null-generating (left) side.
 

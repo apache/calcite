@@ -1314,7 +1314,7 @@ select cast(1 as decimal(3, 4));
 Value 1 cannot be represented as a DECIMAL(3, 4)
 !error
 
-# test the maximum value that can be stored
+# Test the maximum value that can be stored
 select cast(99999 as decimal(2, -3));
 +--------+
 | EXPR$0 |

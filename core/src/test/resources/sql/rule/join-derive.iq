@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testJoinDeriveIsNotNullFilterRule1 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule1 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filters for both
 # inputs of an inner join.
 
@@ -90,7 +90,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule10 -----------------------------------------
+# testJoinDeriveIsNotNullFilterRule10 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
 # the join condition IS NOT DISTINCT FROM is not a strong predicate.
 
@@ -159,7 +159,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule11 -----------------------------------------
+# testJoinDeriveIsNotNullFilterRule11 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
 # it is a cartesian product (OR condition).
 # Note: No !ok or !type because empnullables does not exist in the scott database.
@@ -179,7 +179,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule12 -----------------------------------------
+# testJoinDeriveIsNotNullFilterRule12 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter for one
 # of the join keys (ename) but not for the IS NOT DISTINCT FROM key.
 # Note: No !ok or !type because empnullables does not exist in the scott database.
@@ -202,7 +202,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule13 -----------------------------------------
+# testJoinDeriveIsNotNullFilterRule13 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter if join
 # condition is not strong wrt each key (COALESCE is not strong).
 # Note: No !ok or !type because empnullables does not exist in the scott database.
@@ -222,7 +222,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule15 -----------------------------------------
+# testJoinDeriveIsNotNullFilterRule15 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter only for
 # the first operand of NULLIF.
 # Note: No !ok or !type because empnullables does not exist in the scott database.
@@ -243,7 +243,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule2 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule2 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filter for the
 # right input only, since the left input's child already has one.
 
@@ -316,7 +316,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule3 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule3 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filters for both
 # sides of a non-equality inner join condition.
 
@@ -407,7 +407,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule4 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule4 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter for both
 # join keys.
 # Note: No !ok or !type because empnullables does not exist in the scott database.
@@ -429,7 +429,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule5 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule5 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filter for the
 # right input only, since the left input's ancestor already has one.
 # Note: No !ok or !type because empnullables does not exist in the scott database.
@@ -457,7 +457,7 @@ LogicalProject(DEPTNO=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule6 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule6 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
 # it is a full join.
 
@@ -523,7 +523,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule7 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule7 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
 # it is a left join.
 
@@ -588,7 +588,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule8 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule8 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
 # it is a right join.
 
@@ -653,7 +653,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
-# testJoinDeriveIsNotNullFilterRule9 ------------------------------------------
+# testJoinDeriveIsNotNullFilterRule9 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
 # both sides already have one.
 

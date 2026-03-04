@@ -36,8 +36,10 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -64,6 +66,10 @@ class LintTest {
   private static final Pattern CALCITE_PATTERN =
       compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
   private static final Pattern PATTERN = compile("^ *(// )?");
+  /** Pattern matching a test header in a .iq file, e.g.
+   * {@code # testFoo --...--} (80 chars total). */
+  private static final Pattern IQ_TEST_HEADER =
+      compile("^# test[A-Za-z][A-Za-z0-9]* -*$");
 
   private static final String TERMINOLOGY_ERROR_MSG =
       "Message contains '%s' word; use one of the following instead: %s";
@@ -230,6 +236,39 @@ class LintTest {
                 Sort sort = Sort.parse(nextLine);
                 if (sort != null) {
                   line.state().sortConsumer = new SortConsumer(sort);
+                }
+              }
+            })
+
+        // In .iq files, lines matching '# test[A-Za-z]+' must be exactly
+        // 80 chars long (padded with '-') and have a name unique across files.
+        .add(line -> line.filename().endsWith(".iq")
+                && line.matches("^# test[A-Za-z].*"),
+            line -> {
+              final String s = line.line();
+              // Check format: must match '# test[A-Za-z]+ -*' exactly
+              if (!IQ_TEST_HEADER.matcher(s).matches()) {
+                line.state().message(
+                    "Test header must match '# test[A-Za-z]+ -*'", line);
+              } else if (s.length() != 80) {
+                line.state().message(
+                    "Test header must be exactly 80 chars (is " + s.length()
+                        + ")",
+                    line);
+              } else {
+                // Extract the test name (the word beginning with 'test')
+                final String name = s.substring(2, s.indexOf(' ', 2));
+                final Message msg =
+                    new Message(line.source(), line.fnr(),
+                        "Duplicate .iq test name '" + name + "'");
+                final GlobalState g = line.globalState();
+                synchronized (g) {
+                  final Message prev = g.iqTestNames.put(name, msg);
+                  if (prev != null) {
+                    // Duplicate: report both occurrences
+                    g.messages.add(prev);
+                    g.messages.add(msg);
+                  }
                 }
               }
             })
@@ -564,6 +603,9 @@ class LintTest {
   private static class GlobalState {
     int fileCount = 0;
     final List<Message> messages = new ArrayList<>();
+    /** Test names seen in .iq files: name to first-occurrence location.
+     * Guarded by {@code this}. */
+    final Map<String, Message> iqTestNames = new LinkedHashMap<>();
   }
 
   /** Internal state of the lint rules, per file. */

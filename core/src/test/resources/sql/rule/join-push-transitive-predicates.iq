@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testInferringPredicatesWithNotOperatorInJoinCondition -----------------------
+# testInferringPredicatesWithNotOperatorInJoinCondition ------------------------
 # [CALCITE-2275] Tests that JoinPushTransitivePredicatesRule correctly handles
 # a NOT IN condition in the join condition, pushing the NOT predicate to the
 # left side and the equivalent SEARCH predicate to the right side.

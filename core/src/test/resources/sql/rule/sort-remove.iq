@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testSortNotRemoveWhenIsOrderAndLimit ----------------------------------------
+# testSortNotRemoveWhenIsOrderAndLimit -----------------------------------------
 # SORT_REMOVE_REDUNDANT should not remove sort when input has potentially more
 # than one row.
 
@@ -110,7 +110,7 @@ LogicalSort(fetch=[0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemovalAllKeysConstant ----------------------------------------------
+# testSortRemovalAllKeysConstant -----------------------------------------------
 # SORT_REMOVE_CONSTANT_KEYS should remove all sort keys when they are all
 # constant (group-by column filtered with equality).
 
@@ -146,7 +146,7 @@ LogicalProject(C=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_CONSTANT_KEYS"
 
-# testSortRemoveConstantKeyDoesNotRemoveOrderByRand ---------------------------
+# testSortRemoveConstantKeyDoesNotRemoveOrderByRand ----------------------------
 # SORT_REMOVE_CONSTANT_KEYS should not remove ORDER BY RAND() because RAND()
 # is non-deterministic.
 # [CALCITE-6507]
@@ -166,7 +166,7 @@ LogicalProject(ENAME=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_CONSTANT_KEYS"
 
-# testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger --------------------
+# testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger ---------------------
 # SORT_REMOVE_CONSTANT_KEYS should not remove ORDER BY RAND_INTEGER() because
 # RAND_INTEGER() is non-deterministic.
 # [CALCITE-6507]
@@ -204,7 +204,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_CONSTANT_KEYS"
 
-# testSortRemoveDuplicateKeys -------------------------------------------------
+# testSortRemoveDuplicateKeys --------------------------------------------------
 # SORT_REMOVE_DUPLICATE_KEYS should remove duplicate sort keys.
 # [CALCITE-7104]
 
@@ -233,7 +233,7 @@ LogicalProject(D1=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "SORT_REMOVE_DUPLICATE_KEYS"
 
-# testSortRemoveDuplicateKeysJoin ---------------------------------------------
+# testSortRemoveDuplicateKeysJoin ----------------------------------------------
 # SORT_REMOVE_DUPLICATE_KEYS should remove duplicate sort keys in a join.
 # [CALCITE-7104]
 
@@ -333,7 +333,7 @@ LogicalSort(sort0=[$0], dir0=[ASC])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_DUPLICATE_KEYS"
 
-# testSortRemoveDuplicateKeysWithLimit ----------------------------------------
+# testSortRemoveDuplicateKeysWithLimit -----------------------------------------
 # SORT_REMOVE_DUPLICATE_KEYS should preserve fetch and offset when removing
 # duplicate sort keys.
 # [CALCITE-7222]
@@ -359,7 +359,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_DUPLICATE_KEYS"
 
-# testSortRemoveDuplicateKeysWithPK -------------------------------------------
+# testSortRemoveDuplicateKeysWithPK --------------------------------------------
 # SORT_REMOVE_DUPLICATE_KEYS should preserve fetch and offset when the sort has
 # a primary key column.
 # [CALCITE-7222]
@@ -385,7 +385,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_DUPLICATE_KEYS"
 
-# testSortRemoveWhenAggregateMaxRowCntIsOne -----------------------------------
+# testSortRemoveWhenAggregateMaxRowCntIsOne ------------------------------------
 # SORT_REMOVE_REDUNDANT should remove sort when aggregate produces at most one
 # row.
 # [CALCITE-5994]
@@ -410,7 +410,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemoveWhenHasOffset -------------------------------------------------
+# testSortRemoveWhenHasOffset --------------------------------------------------
 # SORT_REMOVE_REDUNDANT should not remove sort when it has an offset.
 # [CALCITE-6009]
 
@@ -446,7 +446,7 @@ LogicalSort(offset=[1], fetch=[20])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch --------------
+# testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch ---------------
 # SORT_REMOVE_REDUNDANT should remove LIMIT when aggregate produces at most one
 # row and the limit is greater than 1.
 # [CALCITE-6009]
@@ -471,7 +471,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch -----------------
+# testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch ------------------
 # SORT_REMOVE_REDUNDANT should remove LIMIT when VALUES row count is less than
 # or equal to the limit.
 # [CALCITE-6009]
@@ -500,7 +500,7 @@ LogicalProject(T1=[$0])
   LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2 ----------------
+# testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch2 -----------------
 # SORT_REMOVE_REDUNDANT should handle BIGINT fetch values.
 # [CALCITE-7181]
 
@@ -516,7 +516,7 @@ LogicalProject(T1=[$0])
   LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemoveWhenIsOrderAndLimit -------------------------------------------
+# testSortRemoveWhenIsOrderAndLimit --------------------------------------------
 # SORT_REMOVE_REDUNDANT should remove ORDER BY with LIMIT when input aggregate
 # has at most one row.
 # [CALCITE-6038]
@@ -540,7 +540,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SORT_REMOVE_REDUNDANT"
 
-# testSortRemoveWhenLimitMaxRowCntIsOne ---------------------------------------
+# testSortRemoveWhenLimitMaxRowCntIsOne ----------------------------------------
 # SORT_REMOVE_REDUNDANT should remove sort when input is limited to one row.
 # [CALCITE-5994]
 

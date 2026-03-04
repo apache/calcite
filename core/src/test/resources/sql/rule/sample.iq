@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testFilterSampleTransposeWithBernoulli --------------------------------------
+# testFilterSampleTransposeWithBernoulli ---------------------------------------
 # FILTER_SAMPLE_TRANSPOSE should push the Filter past a Bernoulli sample.
 # [CALCITE-6031]
 
@@ -44,7 +44,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_SAMPLE_TRANSPOSE"
 
-# testFilterSampleTransposeWithSystem -----------------------------------------
+# testFilterSampleTransposeWithSystem ------------------------------------------
 # FILTER_SAMPLE_TRANSPOSE should push the Filter past a system sample.
 # [CALCITE-6031]
 # Note: No !ok or !type because system TABLESAMPLE cannot be planned
@@ -66,7 +66,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_SAMPLE_TRANSPOSE"
 
-# testFilterSampleTransposeWithSystemAndSeed ----------------------------------
+# testFilterSampleTransposeWithSystemAndSeed -----------------------------------
 # FILTER_SAMPLE_TRANSPOSE should push the Filter past a system sample with seed.
 # [CALCITE-6031]
 # Note: No !ok or !type because system TABLESAMPLE cannot be planned
@@ -88,7 +88,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_SAMPLE_TRANSPOSE"
 
-# testSampleToFilter ----------------------------------------------------------
+# testSampleToFilter -----------------------------------------------------------
 # SAMPLE_TO_FILTER should convert a Bernoulli sample to a filter on RAND().
 # [CALCITE-5971]
 
@@ -106,7 +106,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "SAMPLE_TO_FILTER"
 
-# testSampleToFilterWithSeed --------------------------------------------------
+# testSampleToFilterWithSeed ---------------------------------------------------
 # SAMPLE_TO_FILTER should convert a seeded Bernoulli sample to a filter
 # on RAND(seed).
 # [CALCITE-5971]

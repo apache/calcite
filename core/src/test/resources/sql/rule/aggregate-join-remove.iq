@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testAggregateJoinRemove1 ----------------------------------------------------
+# testAggregateJoinRemove1 -----------------------------------------------------
 # Should remove the left join since the aggregate has no call and
 # only uses column in the left input of the bottom join as group key.
 
@@ -49,7 +49,7 @@ LogicalAggregate(group=[{7}])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove10 ---------------------------------------------------
+# testAggregateJoinRemove10 ----------------------------------------------------
 # Similar to testAggregateJoinRemove1; should not remove the bottom join since
 # the aggregate uses column in the right input of bottom join.
 
@@ -75,7 +75,7 @@ LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $10, $12)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
-# testAggregateJoinRemove11 ---------------------------------------------------
+# testAggregateJoinRemove11 ----------------------------------------------------
 # Similar to testAggregateJoinRemove3 but with agg call referencing the last
 # column of the left input.
 
@@ -106,7 +106,7 @@ LogicalAggregate(group=[{2}], C=[COUNT(DISTINCT $3)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove2 ----------------------------------------------------
+# testAggregateJoinRemove2 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1 but has aggregate call with distinct.
 
 select e.deptno, count(distinct e.job)
@@ -124,7 +124,7 @@ LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $2)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove3 ----------------------------------------------------
+# testAggregateJoinRemove3 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1 but should not remove the left join
 # since the aggregate uses column in the right input of the bottom join.
 
@@ -154,7 +154,7 @@ LogicalAggregate(group=[{7}], C=[COUNT(DISTINCT $10)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove4 ----------------------------------------------------
+# testAggregateJoinRemove4 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1 but right join.
 
 select distinct d.deptno
@@ -171,7 +171,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove5 ----------------------------------------------------
+# testAggregateJoinRemove5 -----------------------------------------------------
 # Similar to testAggregateJoinRemove2 but right join.
 
 select d.deptno, count(distinct d.dname) as c
@@ -199,7 +199,7 @@ LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove6 ----------------------------------------------------
+# testAggregateJoinRemove6 -----------------------------------------------------
 # Similar to testAggregateJoinRemove3 but right join.
 
 select d.deptno, count(distinct e.job)
@@ -219,7 +219,7 @@ LogicalAggregate(group=[{9}], EXPR$1=[COUNT(DISTINCT $2)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
-# testAggregateJoinRemove7 ----------------------------------------------------
+# testAggregateJoinRemove7 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1; should remove the bottom join since
 # the aggregate has no aggregate call.
 
@@ -251,7 +251,7 @@ LogicalAggregate(group=[{7}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
-# testAggregateJoinRemove8 ----------------------------------------------------
+# testAggregateJoinRemove8 -----------------------------------------------------
 # Similar to testAggregateJoinRemove7 but has aggregate call.
 
 SELECT e.deptno, COUNT(DISTINCT d2.dname)
@@ -274,7 +274,7 @@ LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $10)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
-# testAggregateJoinRemove9 ----------------------------------------------------
+# testAggregateJoinRemove9 -----------------------------------------------------
 # Similar to testAggregateJoinRemove7 but uses columns in the right input
 # of the top join.
 

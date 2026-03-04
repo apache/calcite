@@ -63,7 +63,7 @@ LogicalProject(UNO=[1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_ADD_REDUNDANT_SEMI_JOIN"
 
-# testExtractJoinFilterRule ---------------------------------------------------
+# testExtractJoinFilterRule ----------------------------------------------------
 # JOIN_EXTRACT_FILTER moves a join condition into a Filter above a cross join.
 
 select 1 as uno

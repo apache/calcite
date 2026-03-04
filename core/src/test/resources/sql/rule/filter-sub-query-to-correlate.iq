@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testAll ---------------------------------------------------------------------
+# testAll ----------------------------------------------------------------------
 
 select *
 from emp e1
@@ -66,7 +66,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testAnyInProjectNonNullable -------------------------------------------------
+# testAnyInProjectNonNullable --------------------------------------------------
 # [CALCITE-1706] ANY sub-query in Project is non-nullable, plan should have cast.
 
 select dname, deptno > ANY (
@@ -98,7 +98,7 @@ LogicalProject(DNAME=[$1], B=[CAST(OR(AND(IS TRUE(>($0, $2)), <>($3, 0)), AND(>(
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testAnyInProjectNullable ----------------------------------------------------
+# testAnyInProjectNullable -----------------------------------------------------
 # [CALCITE-1706] ANY sub-query in Project is nullable, plan should not have cast.
 # Not using !ok: fails with "RuntimeException: while resolving method
 # 'eq[class java.lang.String, short]'" # in CoreQuidemTest2. Add '!ok' when
@@ -125,7 +125,7 @@ LogicalProject(DEPTNO=[$0], B=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3, $2)
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testDecorrelateExists -------------------------------------------------------
+# testDecorrelateExists --------------------------------------------------------
 
 select *
 from emp
@@ -168,7 +168,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testDecorrelateTwoExists ----------------------------------------------------
+# testDecorrelateTwoExists -----------------------------------------------------
 # [CALCITE-1511] AssertionError while decorrelating query with two EXISTS
 # sub-queries.
 
@@ -225,7 +225,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testDecorrelateTwoIn --------------------------------------------------------
+# testDecorrelateTwoIn ---------------------------------------------------------
 # [CALCITE-1537] Unnecessary project expression in multi-sub-query plan.
 
 select sal
@@ -263,7 +263,7 @@ LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testDecorrelateUncorrelatedInAndCorrelatedExists ----------------------------
+# testDecorrelateUncorrelatedInAndCorrelatedExists -----------------------------
 # [CALCITE-2028] Un-correlated IN sub-query should be converted into a Join,
 # rather than a Correlate without correlation variables.
 
@@ -305,7 +305,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testExistsWithAtLeastOneRowSubQuery -----------------------------------------
+# testExistsWithAtLeastOneRowSubQuery ------------------------------------------
 # [CALCITE-5117] EXISTS subquery is optimized when Metadata RowCount > 0.
 
 select *
@@ -364,7 +364,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "subQueryRules"
 
-# testExpandFilterConstantInCorrelatedWithTwoSubQueries -----------------------
+# testExpandFilterConstantInCorrelatedWithTwoSubQueries ------------------------
 # [CALCITE-5680] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries with only literal operands in subquery remove
 # phase.
@@ -412,7 +412,7 @@ LogicalProject(EMPNO=[$0])
                     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
 !sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
 
-# testExpandFilterConstantInWithTwoSubQueries ---------------------------------
+# testExpandFilterConstantInWithTwoSubQueries ----------------------------------
 # [CALCITE-5680] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries with only literal operands in subquery remove
 # phase.
@@ -457,7 +457,7 @@ LogicalProject(EMPNO=[$0])
                   LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
 !sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
 
-# testExpandFilterExists ------------------------------------------------------
+# testExpandFilterExists -------------------------------------------------------
 # An EXISTS filter that can be converted into true/false.
 
 select empno
@@ -489,7 +489,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testExpandFilterExistsSimple ------------------------------------------------
+# testExpandFilterExistsSimple -------------------------------------------------
 # An EXISTS filter that can be converted into a semi-join.
 
 select empno
@@ -519,7 +519,7 @@ LogicalProject(EMPNO=[$0])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testExpandFilterExistsSimpleAnd ---------------------------------------------
+# testExpandFilterExistsSimpleAnd ----------------------------------------------
 # An EXISTS filter that can be converted into a semi-join.
 
 select empno
@@ -551,7 +551,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testExpandFilterIn ----------------------------------------------------------
+# testExpandFilterIn -----------------------------------------------------------
 
 select empno
 from emp
@@ -583,7 +583,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testExpandFilterIn3Value ----------------------------------------------------
+# testExpandFilterIn3Value -----------------------------------------------------
 # An IN filter that requires full 3-value logic (true, false, unknown).
 
 select empno
@@ -630,7 +630,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, subQueryRules"
 
-# testExpandFilterInComposite -------------------------------------------------
+# testExpandFilterInComposite --------------------------------------------------
 
 select empno
 from emp
@@ -662,7 +662,7 @@ LogicalProject(EMPNO=[$0])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testExpandFilterInCorrelatedWithTwoSubQueries -------------------------------
+# testExpandFilterInCorrelatedWithTwoSubQueries --------------------------------
 # [CALCITE-5655] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries in subquery remove phase.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
@@ -712,7 +712,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
 !sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
 
-# testExpandFilterInWithTwoSubQueries -----------------------------------------
+# testExpandFilterInWithTwoSubQueries ------------------------------------------
 # [CALCITE-5655] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries in subquery remove phase.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
@@ -760,7 +760,7 @@ LogicalProject(EMPNO=[$0])
             LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
 !sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
 
-# testExpandFilterScalar ------------------------------------------------------
+# testExpandFilterScalar -------------------------------------------------------
 
 select empno
 from emp
@@ -797,7 +797,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testExpandWhereComparisonCorrelated -----------------------------------------
+# testExpandWhereComparisonCorrelated ------------------------------------------
 
 select empno
 from emp as e
@@ -844,7 +844,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testInOptimizationBothNotNull -----------------------------------------------
+# testInOptimizationBothNotNull ------------------------------------------------
 # [CALCITE-7317] SubQueryRemoveRule skips NULL-safety checks for IN subqueries
 # when both the keys and the subquery columns are NOT NULL.
 
@@ -1027,7 +1027,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalValues(tuples=[[]])
 !sub-plan "subQueryRules"
 
-# testSelectAnyCorrelated -----------------------------------------------------
+# testSelectAnyCorrelated ------------------------------------------------------
 
 select empno > ANY (
   select deptno from dept where emp.job = dept.dname) as b
@@ -1073,7 +1073,7 @@ LogicalProject(B=[CAST(OR(AND(IS TRUE(>($0, $9)), IS NOT TRUE(OR(IS NULL($12), =
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testSelectNotInCorrelated ---------------------------------------------------
+# testSelectNotInCorrelated ----------------------------------------------------
 # [CALCITE-1494] Inefficient plan for correlated sub-queries.
 
 select sal,
@@ -1117,7 +1117,7 @@ LogicalProject(SAL=[$5], B=[IS NULL($10)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testSome --------------------------------------------------------------------
+# testSome ---------------------------------------------------------------------
 
 select *
 from emp e1
@@ -1161,7 +1161,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testSomeWithEquality --------------------------------------------------------
+# testSomeWithEquality ---------------------------------------------------------
 
 select *
 from emp e1
@@ -1202,7 +1202,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testSomeWithEquality2 -------------------------------------------------------
+# testSomeWithEquality2 --------------------------------------------------------
 
 select *
 from emp e1
@@ -1282,7 +1282,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalValues(tuples=[[]])
 !sub-plan "subQueryRules"
 
-# testSomeWithNotEquality -----------------------------------------------------
+# testSomeWithNotEquality ------------------------------------------------------
 
 select *
 from emp e1
@@ -1356,7 +1356,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "subQueryRules"
 
-# testWhereAnyCorrelatedInSelect ----------------------------------------------
+# testWhereAnyCorrelatedInSelect -----------------------------------------------
 
 select *
 from emp
@@ -1391,7 +1391,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testWhereExpressionInCorrelated ---------------------------------------------
+# testWhereExpressionInCorrelated ----------------------------------------------
 
 select ename
 from (
@@ -1437,7 +1437,7 @@ LogicalProject(ENAME=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testWhereExpressionInCorrelated2 --------------------------------------------
+# testWhereExpressionInCorrelated2 ---------------------------------------------
 
 select dname
 from (
@@ -1469,7 +1469,7 @@ LogicalProject(DNAME=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testWhereInCorrelated -------------------------------------------------------
+# testWhereInCorrelated --------------------------------------------------------
 # [CALCITE-1494] Inefficient plan for correlated sub-queries. In planAfter,
 # there must be only one scan each of emp and dept.
 
@@ -1499,7 +1499,7 @@ LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testWhereInJoinCorrelated ---------------------------------------------------
+# testWhereInJoinCorrelated ----------------------------------------------------
 
 select empno
 from emp as e
@@ -1536,7 +1536,7 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "subQueryRules"
 
-# testWhereNotInCorrelated ----------------------------------------------------
+# testWhereNotInCorrelated -----------------------------------------------------
 # [CALCITE-1493] Wrong plan for NOT IN correlated queries.
 
 select sal
@@ -1581,7 +1581,7 @@ LogicalProject(SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testWhereNotInCorrelated2 ---------------------------------------------------
+# testWhereNotInCorrelated2 ----------------------------------------------------
 # [CALCITE-1493] Wrong plan for NOT IN correlated queries.
 
 select *
@@ -1616,7 +1616,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "lateDecorrelate=true, subQueryRules"
 
-# testWhereOrSubQuery ---------------------------------------------------------
+# testWhereOrSubQuery ----------------------------------------------------------
 # [CALCITE-1546] Sub-queries connected by OR.
 
 select *

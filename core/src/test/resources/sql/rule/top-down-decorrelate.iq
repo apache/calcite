@@ -420,7 +420,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[+($5, $10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMPDEFAULTS]])
 !sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
 
-# testTopDownGeneralDecorrelateForSubqueryWithCube ----------------------------
+# testTopDownGeneralDecorrelateForSubqueryWithCube -----------------------------
 # [CALCITE-7031] Correlated SOME with GROUP BY CUBE in subquery
 
 # Not using !ok: EMP_B is not in the scott database.
@@ -449,7 +449,7 @@ LogicalProject(EMPNO=[$0])
             LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 !sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
 
-# testTopDownGeneralDecorrelateForSubqueryWithJoin ----------------------------
+# testTopDownGeneralDecorrelateForSubqueryWithJoin -----------------------------
 # [CALCITE-7031] Correlated SOME with join inside subquery
 
 # Not using !ok: EMPNULLABLES is not in the scott database.
@@ -509,7 +509,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[$10])
           LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
 
-# testTopDownGeneralDecorrelateForSubqueryWithSort ----------------------------
+# testTopDownGeneralDecorrelateForSubqueryWithSort -----------------------------
 # [CALCITE-7031] Correlated SOME with ORDER BY LIMIT in subquery
 
 # Not using !ok: EMP_B is not in the scott database.

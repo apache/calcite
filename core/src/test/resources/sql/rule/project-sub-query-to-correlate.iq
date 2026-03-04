@@ -237,7 +237,7 @@ LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST(
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, subQueryRules"
 
-# testExpandProjectInWithTwoCorrelatedSubQueries --------------------------------
+# testExpandProjectInWithTwoCorrelatedSubQueries -------------------------------
 # Tests that two correlated IN sub-queries in a project are both expanded,
 # preserving correct field references (CALCITE-5655).
 

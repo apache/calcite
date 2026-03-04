@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testAggregateExtractProjectRule ---------------------------------------------
+# testAggregateExtractProjectRule ----------------------------------------------
 # AggregateExtractProjectRule extracts a Project from an Aggregate, pushing
 # unused columns down.
 # Not using !ok: SLACKER column is in mock catalog but not scott.
@@ -55,7 +55,7 @@ LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {0}, {2}]], EXPR$2=[SUM($1)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AggregateExtractProjectRule.SCAN"
 
-# testAggregateExtractProjectRuleWithGroupingSets2 ----------------------------
+# testAggregateExtractProjectRuleWithGroupingSets2 -----------------------------
 # AggregateExtractProjectRule extracts a Project from an Aggregate when a column
 # is used in both a grouping set and an aggregate argument.
 # Not using !ok: SLACKER column is in mock catalog but not scott.
@@ -72,7 +72,7 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]], EXPR$2=[SUM($0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AggregateExtractProjectRule.SCAN"
 
-# testAggregateGroupingSetsProjectMerge ---------------------------------------
+# testAggregateGroupingSetsProjectMerge ----------------------------------------
 # Tests that AggregateProjectMergeRule merges a Project into an Aggregate
 # that uses grouping sets (ROLLUP).
 
@@ -150,7 +150,7 @@ LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[$4], J
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_GROUPING_SETS_TO_UNION"
 
-# testAggregateMerge1 ---------------------------------------------------------
+# testAggregateMerge1 ----------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates into a single aggregate.
 
 select deptno c, min(y), max(z) z,
@@ -179,7 +179,7 @@ LogicalAggregate(group=[{7}], EXPR$1=[MIN($5)], Z=[MAX($5)], EXPR$3=[COUNT($3)],
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge10 --------------------------------------------------------
+# testAggregateMerge10 ---------------------------------------------------------
 # [CALCITE-7162] AggregateMergeRule throws 'type mismatch' AssertionError.
 
 SELECT min(mn), max(mx)
@@ -203,7 +203,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge2 ---------------------------------------------------------
+# testAggregateMerge2 ----------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates into a single aggregate,
 # top aggregate is not simple aggregate.
 
@@ -247,7 +247,7 @@ LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$2=[$2], EXPR$3=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge3 ---------------------------------------------------------
+# testAggregateMerge3 ----------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates into a single aggregate,
 # since lower aggregate is not simple aggregate.
 
@@ -277,7 +277,7 @@ LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge4 ---------------------------------------------------------
+# testAggregateMerge4 ----------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since it contains distinct
 # aggregate function.
 
@@ -306,7 +306,7 @@ LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge5 ---------------------------------------------------------
+# testAggregateMerge5 ----------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since AVG doesn't support
 # splitting.
 
@@ -335,7 +335,7 @@ LogicalAggregate(group=[{1}], EXPR$1=[AVG($2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge6 ---------------------------------------------------------
+# testAggregateMerge6 ----------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since top agg has no group
 # key, and lower agg function is COUNT.
 
@@ -361,7 +361,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge7 ---------------------------------------------------------
+# testAggregateMerge7 ----------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since top agg contains empty
 # grouping set, and lower agg function is COUNT.
 
@@ -409,7 +409,7 @@ LogicalProject(MGR=[$1], DEPTNO=[$0], EXPR$2=[$2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge8 ---------------------------------------------------------
+# testAggregateMerge8 ----------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates since both top and bottom
 # aggregates contain empty grouping set and they are mergable.
 
@@ -433,7 +433,7 @@ LogicalAggregate(group=[{}], X=[SUM($5)], Z=[MIN($5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateMerge9 ---------------------------------------------------------
+# testAggregateMerge9 ----------------------------------------------------------
 # [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError.
 
 SELECT sum(deptno)
@@ -457,7 +457,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_MERGE"
 
-# testAggregateProjectMerge ---------------------------------------------------
+# testAggregateProjectMerge ----------------------------------------------------
 # Tests that AggregateProjectMergeRule merges a Project into an Aggregate.
 
 select x, sum(z), y
@@ -496,7 +496,7 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE"
 
-# testAggregateRemove1 --------------------------------------------------------
+# testAggregateRemove1 ---------------------------------------------------------
 # AggregateRemoveRule removes a GROUP BY where the grouping keys include a
 # unique key (empno), so all aggregate functions are splittable.
 
@@ -535,7 +535,7 @@ LogicalProject(EMPNO=[$0], S=[$3], I=[$3], X=[$3], A=[$3], O=[$3], C=[CASE(IS NO
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 
-# testAggregateRemove2 --------------------------------------------------------
+# testAggregateRemove2 ---------------------------------------------------------
 # AggregateRemoveRule removes a GROUP BY with all-unique keys (DISTINCT on empno,
 # deptno where empno is unique), so the Aggregate is eliminated.
 
@@ -570,7 +570,7 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "aggregateUnique=true, AGGREGATE_REMOVE, PROJECT_MERGE"
 
-# testAggregateRemove3 --------------------------------------------------------
+# testAggregateRemove3 ---------------------------------------------------------
 # AggregateRemoveRule removes a GROUP BY where the grouping keys include a
 # unique key (empno); COUNT(mgr) is transformed to a CASE because mgr is
 # nullable.
@@ -607,7 +607,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[CASE(IS NOT NULL($3), 1:BIGINT, 0:BIGINT)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 
-# testAggregateRemove4 --------------------------------------------------------
+# testAggregateRemove4 ---------------------------------------------------------
 # AggregateRemoveRule does not apply because AVG is not splittable.
 
 select empno, max(sal), avg(sal)
@@ -644,7 +644,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[$2], EXPR$2=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 
-# testAggregateRemove5 --------------------------------------------------------
+# testAggregateRemove5 ---------------------------------------------------------
 # AggregateRemoveRule does not apply because the aggregate uses non-simple
 # grouping sets (CUBE).
 
@@ -698,7 +698,7 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 
-# testAggregateRemove6 --------------------------------------------------------
+# testAggregateRemove6 ---------------------------------------------------------
 # AggregateRemoveRule does not apply because deptno is not a unique key.
 
 select deptno, max(sal)
@@ -722,7 +722,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 
-# testAggregateRemove7 --------------------------------------------------------
+# testAggregateRemove7 ---------------------------------------------------------
 # The top Aggregate is removed because the filter "deptno=100" makes the
 # input already distinct by "mgr".
 
@@ -1018,7 +1018,7 @@ LogicalProject(EXPR$0=[$6])
         LogicalValues(tuples=[[{ false, true, 'ab', 2022-01-01 }]])
 !sub-plan "AGGREGATE_PROJECT_CONSTANT_TO_DUMMY_JOIN"
 
-# testPullAggregateThroughUnion -----------------------------------------------
+# testPullAggregateThroughUnion ------------------------------------------------
 # Tests that AggregateUnionAggregateRule can convert
 # a union of two 'select distinct' queries to a 'select distinct'
 # of a union.
@@ -1065,7 +1065,7 @@ LogicalAggregate(group=[{0, 1}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_UNION_AGGREGATE"
 
-# testPullAggregateThroughUnion2 ----------------------------------------------
+# testPullAggregateThroughUnion2 -----------------------------------------------
 # Like testPullAggregateThroughUnion, but uses the FIRST and SECOND variants
 # of AggregateUnionAggregateRule applied together.
 

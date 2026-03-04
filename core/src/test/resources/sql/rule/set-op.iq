@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testAggregateUnionTransposeWithAllInputsUnique --------------------------------
+# testAggregateUnionTransposeWithAllInputsUnique -------------------------------
 # AGGREGATE_UNION_TRANSPOSE is a no-op if all inputs to UNION are already unique.
 
 select deptno, SUM(t) as s
@@ -234,7 +234,7 @@ LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
 !sub-plan "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
 
-# testIntersectToDistinct -------------------------------------------------------
+# testIntersectToDistinct ------------------------------------------------------
 # INTERSECT_TO_DISTINCT rewrites a 3-way INTERSECT DISTINCT into aggregation.
 
 select * from emp where deptno = 10
@@ -279,7 +279,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
 
-# testIntersectToDistinctAll ----------------------------------------------------
+# testIntersectToDistinctAll ---------------------------------------------------
 # INTERSECT_TO_DISTINCT ignores the INTERSECT ALL branch: only rewrites DISTINCT
 # parts of a mixed INTERSECT query.
 
@@ -325,7 +325,7 @@ LogicalIntersect(all=[true])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
 
-# testIntersectToDistinctAllNoAggregatePushdown ---------------------------------
+# testIntersectToDistinctAllNoAggregatePushdown --------------------------------
 # INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN ignores INTERSECT ALL branch.
 
 select * from emp where deptno = 10
@@ -371,7 +371,7 @@ LogicalIntersect(all=[true])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
 
-# testIntersectToDistinctNoAggregatePushdown ------------------------------------
+# testIntersectToDistinctNoAggregatePushdown -----------------------------------
 # INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN rewrites a 3-way INTERSECT DISTINCT
 # without pushing aggregate into each branch.
 

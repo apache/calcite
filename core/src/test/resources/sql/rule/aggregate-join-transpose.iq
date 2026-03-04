@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testPushAggregateFunctionsThroughJoin ---------------------------------------
+# testPushAggregateFunctionsThroughJoin ----------------------------------------
 # Pushes a variety of aggregate functions (MIN, SUM, MAX, COUNT) through an inner join.
 
 select e.job,
@@ -57,7 +57,7 @@ LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)],
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateSumNoGroup -------------------------------------------------
+# testPushAggregateSumNoGroup --------------------------------------------------
 # Pushes COUNT(*) through a join with no GROUP BY.
 
 select count(*)
@@ -85,7 +85,7 @@ LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateSumThroughJoin ---------------------------------------------
+# testPushAggregateSumThroughJoin ----------------------------------------------
 # SUM is the easiest aggregate function to split; pushes it through an inner join.
 
 select e.job,sum(sal)
@@ -119,7 +119,7 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateSumThroughJoinAfterAggregateReduce -------------------------
+# testPushAggregateSumThroughJoinAfterAggregateReduce --------------------------
 # Like testPushAggregateSumThroughJoin but also uses AggregateReduceFunctionsRule.
 
 select sum(sal)
@@ -152,7 +152,7 @@ LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_REDUCE_FUNCTIONS, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateSumWithoutGroupKeyThroughJoin ------------------------------
+# testPushAggregateSumWithoutGroupKeyThroughJoin -------------------------------
 # Pushes SUM through a join that has no GROUP BY keys.
 
 select sum(sal)
@@ -184,7 +184,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin1 -----------------------------------------------
+# testPushAggregateThroughJoin1 ------------------------------------------------
 # AGGREGATE_JOIN_TRANSPOSE_EXTENDED pushes aggregate through a join on non-join keys.
 
 select e.job,d.dname
@@ -215,7 +215,7 @@ LogicalJoin(condition=[=($0, $1)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin2 -----------------------------------------------
+# testPushAggregateThroughJoin2 ------------------------------------------------
 # Like testPushAggregateThroughJoin1 but the join condition includes extra predicates.
 
 select e.job,d.dname
@@ -250,7 +250,7 @@ LogicalAggregate(group=[{0, 2}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin3 -----------------------------------------------
+# testPushAggregateThroughJoin3 ------------------------------------------------
 # [CALCITE-2278] AGGREGATE_JOIN_TRANSPOSE_EXTENDED does not push through a join
 # with a non-equi join condition (checkUnchanged).
 
@@ -289,7 +289,7 @@ LogicalAggregate(group=[{0, 9}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "aggregateUnique=true, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin4 -----------------------------------------------
+# testPushAggregateThroughJoin4 ------------------------------------------------
 # [CALCITE-1544] AggregateJoinTransposeRule fails to preserve row type.
 
 select e.deptno
@@ -319,7 +319,7 @@ LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin5 -----------------------------------------------
+# testPushAggregateThroughJoin5 ------------------------------------------------
 # Pushes aggregate through a join when both sides have the same join key.
 
 select e.deptno, d.deptno
@@ -350,7 +350,7 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin6 -----------------------------------------------
+# testPushAggregateThroughJoin6 ------------------------------------------------
 # [CALCITE-2195] AggregateJoinTransposeRule fails to aggregate over unique column.
 
 select sum(B.sal)
@@ -381,7 +381,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin7 -----------------------------------------------
+# testPushAggregateThroughJoin7 ------------------------------------------------
 # Pushes ANY_VALUE(DISTINCT ...) through a join over a distinct sub-query.
 
 select any_value(distinct B.sal)
@@ -411,7 +411,7 @@ LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoin8 -----------------------------------------------
+# testPushAggregateThroughJoin8 ------------------------------------------------
 # Pushes SINGLE_VALUE(DISTINCT ...) through a join over a distinct sub-query.
 
 select single_value(distinct B.sal)
@@ -435,7 +435,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoinDistinct ----------------------------------------
+# testPushAggregateThroughJoinDistinct -----------------------------------------
 # [CALCITE-2249] Should not push a DISTINCT aggregate into a join.
 
 select d.dname,
@@ -466,7 +466,7 @@ LogicalProject(DNAME=[$3], SUM_SAL=[$1], C=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoinOnEmptyLogicalValues ----------------------------
+# testPushAggregateThroughJoinOnEmptyLogicalValues -----------------------------
 # [CALCITE-3076] Should not throw when the join input is an empty LogicalValues.
 
 select count(*) volume, sum(C1.sal) C1_sum_sal
@@ -498,7 +498,7 @@ LogicalAggregate(group=[{}], VOLUME=[$SUM0($0)], C1_SUM_SAL=[SUM($1)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, FILTER_REDUCE_EXPRESSIONS, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughJoinWithUniqueInput ---------------------------------
+# testPushAggregateThroughJoinWithUniqueInput ----------------------------------
 # [CALCITE-2278] Fails to split aggregate call if input has distinct rows.
 
 select A.job, B.mgr, A.deptno,
@@ -545,7 +545,7 @@ LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin1 ------------------------------------------
+# testPushAggregateThroughOuterJoin1 -------------------------------------------
 # Outer join, group by on non-join keys, group by on non-null generating side only.
 
 select e.ename
@@ -577,7 +577,7 @@ LogicalAggregate(group=[{0}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin10 -----------------------------------------
+# testPushAggregateThroughOuterJoin10 ------------------------------------------
 # Outer join with aggregate functions; should not push through (checkUnchanged).
 
 select count(e.ename)
@@ -609,7 +609,7 @@ LogicalProject(EXPR$0=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin11 -----------------------------------------
+# testPushAggregateThroughOuterJoin11 ------------------------------------------
 # AGGREGATE_JOIN_TRANSPOSE_EXTENDED does not push through a left outer join
 # with a non-equi join condition (checkUnchanged).
 
@@ -648,7 +648,7 @@ LogicalAggregate(group=[{0, 9}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "aggregateUnique=true, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin12 -----------------------------------------
+# testPushAggregateThroughOuterJoin12 ------------------------------------------
 # Right outer join; group by on key same as join key, on null generating side.
 
 select e.job
@@ -681,7 +681,7 @@ LogicalAggregate(group=[{0}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin13 -----------------------------------------
+# testPushAggregateThroughOuterJoin13 ------------------------------------------
 # Full outer join; group by on key same as join key, on one side.
 
 select e.job
@@ -714,7 +714,7 @@ LogicalAggregate(group=[{0}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin14 -----------------------------------------
+# testPushAggregateThroughOuterJoin14 ------------------------------------------
 # Full outer join; group by on key same as join key, on both sides.
 
 select e.mgr, d.mgr
@@ -753,7 +753,7 @@ LogicalProject(MGR=[$1], MGR0=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin15 -----------------------------------------
+# testPushAggregateThroughOuterJoin15 ------------------------------------------
 # Full outer join; group by on both sides on non-join keys.
 
 select e.ename, d.mgr
@@ -792,7 +792,7 @@ LogicalAggregate(group=[{0, 3}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin16 -----------------------------------------
+# testPushAggregateThroughOuterJoin16 ------------------------------------------
 # Full outer join; group by key is subset of join keys.
 
 select e.job
@@ -828,7 +828,7 @@ LogicalAggregate(group=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin2 ------------------------------------------
+# testPushAggregateThroughOuterJoin2 -------------------------------------------
 # Outer join, group by on non-join keys, on null generating side only.
 
 select d.ename
@@ -860,7 +860,7 @@ LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin3 ------------------------------------------
+# testPushAggregateThroughOuterJoin3 -------------------------------------------
 # Outer join, group by on both sides on non-join keys.
 
 select e.ename, d.mgr
@@ -892,7 +892,7 @@ LogicalAggregate(group=[{0, 3}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin4 ------------------------------------------
+# testPushAggregateThroughOuterJoin4 -------------------------------------------
 # Outer join, group by key same as join key, group by on non-null generating side.
 
 select e.job
@@ -924,7 +924,7 @@ LogicalProject(JOB=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin5 ------------------------------------------
+# testPushAggregateThroughOuterJoin5 -------------------------------------------
 # Outer join, group by key same as join key, group by on null generating side.
 
 select d.dname
@@ -956,7 +956,7 @@ LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin6 ------------------------------------------
+# testPushAggregateThroughOuterJoin6 -------------------------------------------
 # Outer join, group by key same as join key, group by on both sides.
 
 select e.job,d.dname
@@ -987,7 +987,7 @@ LogicalJoin(condition=[=($0, $1)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin7 ------------------------------------------
+# testPushAggregateThroughOuterJoin7 -------------------------------------------
 # Outer join, group by key is subset of join keys, group by on non-null generating side.
 
 select e.job
@@ -1022,7 +1022,7 @@ LogicalAggregate(group=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin8 ------------------------------------------
+# testPushAggregateThroughOuterJoin8 -------------------------------------------
 # Outer join, group by key is a subset of join keys, group by on null generating side.
 
 select d.dname
@@ -1057,7 +1057,7 @@ LogicalAggregate(group=[{2}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushAggregateThroughOuterJoin9 ------------------------------------------
+# testPushAggregateThroughOuterJoin9 -------------------------------------------
 # Outer join, group by key is subset of join keys, group by on both sides.
 
 select e.job, d.dname
@@ -1092,7 +1092,7 @@ LogicalAggregate(group=[{0, 2}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
-# testPushDistinctAggregateIntoJoin -------------------------------------------
+# testPushDistinctAggregateIntoJoin --------------------------------------------
 # [CALCITE-2249] Should not push a DISTINCT aggregate into a join (checkUnchanged).
 
 select count(distinct sal)

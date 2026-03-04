@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testIncorrectInType -----------------------------------------------------------
+# testIncorrectInType ----------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN should not match an IN with a literal right side.
 
 select ename
@@ -431,7 +431,7 @@ LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_FILTER_TRANSPOSE, SEMI_JOIN_REMOVE"
 
-# testSemiJoinReduceConstants ---------------------------------------------------
+# testSemiJoinReduceConstants --------------------------------------------------
 # JOIN_REDUCE_EXPRESSIONS reduces a constant in a semi-join condition.
 # Not using !ok: deptno = 200 doesn't exist in scott, result would be empty.
 # [CALCITE-571]
@@ -468,7 +468,7 @@ LogicalProject(SAL=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "expand=true, trim=true, PROJECT_TO_SEMI_JOIN, JOIN_REDUCE_EXPRESSIONS"
 
-# testSemiJoinRule --------------------------------------------------------------
+# testSemiJoinRule -------------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN converts a join on DISTINCT to a semi-join.
 
 select dept.deptno, dept.dname
@@ -500,7 +500,7 @@ LogicalJoin(condition=[=($0, $2)], joinType=[semi])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
 
-# testSemiJoinRuleDoNotMatchAggregate -------------------------------------------
+# testSemiJoinRuleDoNotMatchAggregate ------------------------------------------
 # JOIN_ON_UNIQUE_TO_SEMI_JOIN should not match a join with non-trivial Aggregate.
 
 select *
@@ -723,7 +723,7 @@ LogicalJoin(condition=[=($7, $9)], joinType=[semi])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "expand=true, decorrelate=true, trim=true, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
 
-# testSemiJoinRuleWithJoinOnUniqueInputWithAlias --------------------------------
+# testSemiJoinRuleWithJoinOnUniqueInputWithAlias -------------------------------
 # JOIN_ON_UNIQUE_TO_SEMI_JOIN preserves column aliases.
 # [CALCITE-5391]
 

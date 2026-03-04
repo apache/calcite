@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testFilterProjectTransposeRule2 ---------------------------------------------
+# testFilterProjectTransposeRule2 ----------------------------------------------
 # FILTER_PROJECT_TRANSPOSE should not push the Filter past the Project
 # when the Filter contains a Subquery with correlation.
 # [CALCITE-6873]
@@ -61,7 +61,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_PROJECT_TRANSPOSE"
 
-# testFilterProjectTransposeRule3 ---------------------------------------------
+# testFilterProjectTransposeRule3 ----------------------------------------------
 # FILTER_PROJECT_TRANSPOSE should push the Filter past the Project
 # when the Filter does not contain a correlated Subquery.
 

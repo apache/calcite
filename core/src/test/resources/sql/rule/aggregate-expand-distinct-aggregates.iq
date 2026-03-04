@@ -103,7 +103,7 @@ LogicalProject(DNAME=[$0], EXPR$1=[CAST($1):BIGINT NOT NULL], EXPR$2=[CAST($2):I
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
 
-# testDistinctCount1 ----------------------------------------------------------
+# testDistinctCount1 -----------------------------------------------------------
 # Tests expansion of COUNT(DISTINCT) in a group-by query without non-distinct
 # aggregates.
 
@@ -128,7 +128,7 @@ LogicalAggregate(group=[{1}], EXPR$1=[COUNT($0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_EXPAND_DISTINCT_AGGREGATES, AGGREGATE_PROJECT_MERGE"
 
-# testDistinctCount2 ----------------------------------------------------------
+# testDistinctCount2 -----------------------------------------------------------
 # Tests expansion of COUNT(DISTINCT) alongside a non-distinct SUM in a
 # group-by query.
 
@@ -476,7 +476,7 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_EXPAND_DISTINCT_AGGREGATES, AGGREGATE_PROJECT_MERGE"
 
-# testDistinctNonDistinctAggregates -------------------------------------------
+# testDistinctNonDistinctAggregates --------------------------------------------
 # Tests expansion of a DISTINCT AVG alongside a non-distinct COUNT(*).
 
 select emp.empno, count(*), avg(distinct dept.deptno)
@@ -741,7 +741,7 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):INTEGER NOT NULL], EXPR$2=[$2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_EXPAND_DISTINCT_AGGREGATES"
 
-# testDistinctWithFilterWithoutGroupBy ----------------------------------------
+# testDistinctWithFilterWithoutGroupBy -----------------------------------------
 # Tests expansion of COUNT(DISTINCT) with a FILTER clause and no GROUP BY.
 
 SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
@@ -1008,7 +1008,7 @@ LogicalProject(SAL=[$0], EXPR$1=[$1], EXPR$2=[$3], EXPR$3=[$5])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN"
 
-# testMultipleDistinctWithSameArgsDifferentFilterUsingJoin --------------------
+# testMultipleDistinctWithSameArgsDifferentFilterUsingJoin ---------------------
 # Tests that COUNT(DISTINCT sal) with two different FILTER conditions on the
 # same column creates two separate join branches.
 

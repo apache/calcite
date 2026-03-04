@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testAsofOptJoin -------------------------------------------------------------
+# testAsofOptJoin --------------------------------------------------------------
 # JOIN_REDUCE_EXPRESSIONS should not reduce expressions in an ASOF join.
 
 SELECT *
@@ -61,7 +61,7 @@ LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
       LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "JOIN_REDUCE_EXPRESSIONS"
 
-# testFullJoinToLeftAndRightJoin ---------------------------------------
+# testFullJoinToLeftAndRightJoin -----------------------------------------------
 # FULL_TO_LEFT_AND_RIGHT_JOIN rewrites a full join as left join union right join.
 # [CALCITE-7077]
 
@@ -118,7 +118,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FULL_TO_LEFT_AND_RIGHT_JOIN"
 
-# testFullJoinToLeftAndRightJoinNonDeterministic -----------------------
+# testFullJoinToLeftAndRightJoinNonDeterministic -------------------------------
 # FULL_TO_LEFT_AND_RIGHT_JOIN should not fire when the condition is
 # non-deterministic.
 # [CALCITE-7077]
@@ -154,7 +154,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FULL_TO_LEFT_AND_RIGHT_JOIN"
 
-# testJoinConditinExpandIsNotDistinctFromRule --------------------------
+# testJoinConditinExpandIsNotDistinctFromRule ----------------------------------
 # JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM rewrites IS NOT DISTINCT FROM
 # in a join condition.
 # [CALCITE-6927]
@@ -175,7 +175,7 @@ LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
 
-# testJoinConditinExpandIsNotDistinctFromRuleArray ---------------------
+# testJoinConditinExpandIsNotDistinctFromRuleArray -----------------------------
 # JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM rewrites IS NOT DISTINCT FROM
 # in a join condition for array-typed columns.
 # [CALCITE-6927]
@@ -196,7 +196,7 @@ LogicalProject(ADMINS=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
 !sub-plan "JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
 
-# testJoinConditionOrExpansionRule -------------------------------------
+# testJoinConditionOrExpansionRule ---------------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a join with an OR condition
 # as a union of joins with AND conditions.
 
@@ -267,7 +267,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
 
-# testJoinConditionOrExpansionRule2 ------------------------------------
+# testJoinConditionOrExpansionRule2 --------------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a complex OR join condition
 # with multiple AND sub-conditions.
 
@@ -309,7 +309,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
 
-# testJoinConditionOrExpansionRuleLeft ---------------------------------
+# testJoinConditionOrExpansionRuleLeft -----------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a left join with an OR condition.
 # [CALCITE-6930]
 
@@ -362,7 +362,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
 
-# testJoinConditionOrExpansionRuleMultiOr ------------------------------
+# testJoinConditionOrExpansionRuleMultiOr --------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a join with more than two OR
 # sub-conditions.
 # [CALCITE-6930]
@@ -592,7 +592,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
 
-# testJoinConditionOrExpansionRuleRight --------------------------------
+# testJoinConditionOrExpansionRuleRight ----------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a right join with an OR condition.
 # [CALCITE-6930]
 
@@ -658,7 +658,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
 
-# testJoinProjectTranspose2 --------------------------------------------
+# testJoinProjectTranspose2 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
 # above the null-generating side of a left join.
 # [CALCITE-1338]
@@ -691,7 +691,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTranspose3 --------------------------------------------
+# testJoinProjectTranspose3 ----------------------------------------------------
 # JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
 # above the null-generating side of a right join.
 # [CALCITE-1338]
@@ -724,7 +724,7 @@ LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTranspose4 --------------------------------------------
+# testJoinProjectTranspose4 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
 # the right project of a left join has a non-strong expression
 # (y is not null).
@@ -762,7 +762,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
       LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
 !sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTranspose5 --------------------------------------------
+# testJoinProjectTranspose5 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
 # the right project of a left join has a non-strong expression (1 + 1).
 # [CALCITE-1338]
@@ -795,7 +795,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTranspose6 --------------------------------------------
+# testJoinProjectTranspose6 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
 # both the left and right projects of a full join have literals.
 # [CALCITE-1338]
@@ -830,7 +830,7 @@ LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTranspose7 --------------------------------------------
+# testJoinProjectTranspose7 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should transpose when all
 # expressions in the right project of a left join are strong.
 # [CALCITE-1338]
@@ -863,7 +863,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTranspose8 --------------------------------------------
+# testJoinProjectTranspose8 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should transpose when all
 # expressions including (deptno > 10 and cast(null as boolean)) in the
 # right project of a left join are strong.
@@ -899,7 +899,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
-# testJoinProjectTransposeWindow ---------------------------------------
+# testJoinProjectTransposeWindow -----------------------------------------------
 # JOIN_PROJECT_BOTH_TRANSPOSE should transpose a join with a project
 # containing a window function on the right side.
 
@@ -931,7 +931,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_PROJECT_BOTH_TRANSPOSE"
 
-# testNotPushExpression ------------------------------------------------
+# testNotPushExpression --------------------------------------------------------
 # JOIN_PUSH_EXPRESSIONS should not push an expression that is not
 # a pure join condition (e.g. IS NOT NULL on a non-join column).
 

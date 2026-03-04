@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testMergeIntersect ----------------------------------------------------------
+# testMergeIntersect -----------------------------------------------------------
 # INTERSECT_MERGE should merge nested INTERSECT into a single n-way INTERSECT.
 
 select * from emp where deptno = 10
@@ -61,7 +61,7 @@ LogicalIntersect(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "INTERSECT_MERGE"
 
-# testMergeMinus --------------------------------------------------------------
+# testMergeMinus ---------------------------------------------------------------
 # MINUS_MERGE should merge nested EXCEPT into a single n-way EXCEPT.
 
 select * from emp where deptno = 10
@@ -103,7 +103,7 @@ LogicalMinus(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "MINUS_MERGE"
 
-# testMergeMinusRightDeep -----------------------------------------------------
+# testMergeMinusRightDeep ------------------------------------------------------
 # MINUS_MERGE should not merge a right-deep EXCEPT tree.
 
 select * from emp where deptno = 10
@@ -149,7 +149,7 @@ LogicalMinus(all=[false])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "MINUS_MERGE"
 
-# testMergeUnionAll -----------------------------------------------------------
+# testMergeUnionAll ------------------------------------------------------------
 # UNION_MERGE should merge nested UNION ALL into a single n-way UNION ALL.
 
 select * from emp where deptno = 10
@@ -202,7 +202,7 @@ LogicalUnion(all=[true])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "UNION_MERGE"
 
-# testMergeUnionDistinct ------------------------------------------------------
+# testMergeUnionDistinct -------------------------------------------------------
 # UNION_MERGE should merge nested UNION DISTINCT into a single n-way UNION.
 
 select * from emp where deptno = 10
@@ -255,7 +255,7 @@ LogicalUnion(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "UNION_MERGE"
 
-# testMergeUnionMixed ---------------------------------------------------------
+# testMergeUnionMixed ----------------------------------------------------------
 # UNION_MERGE should not merge nested UNION ALL and UNION DISTINCT.
 
 select * from emp where deptno = 10
@@ -309,7 +309,7 @@ LogicalUnion(all=[true])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "UNION_MERGE"
 
-# testMergeUnionMixed2 --------------------------------------------------------
+# testMergeUnionMixed2 ---------------------------------------------------------
 # UNION_MERGE should merge UNION ALL and UNION into a single n-way UNION.
 
 select * from emp where deptno = 10
@@ -362,7 +362,7 @@ LogicalUnion(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "UNION_MERGE"
 
-# testPullConstantThroughUnion ------------------------------------------------
+# testPullConstantThroughUnion -------------------------------------------------
 # UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull constant columns (literal 2)
 # out of a UNION ALL and add a Project above.
 
@@ -499,7 +499,7 @@ LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
-# testUnionToDistinctRule -----------------------------------------------------
+# testUnionToDistinctRule ------------------------------------------------------
 # UNION_TO_DISTINCT converts a UNION (distinct) to UNION ALL + Aggregate.
 
 select deptno, dname from dept

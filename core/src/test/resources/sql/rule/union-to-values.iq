@@ -22,7 +22,7 @@
 !use scott
 !set outputformat mysql
 
-# testUnionToValuesByInList -----------------------------------------------------
+# testUnionToValuesByInList ----------------------------------------------------
 # UNION_TO_VALUES merges a UNION ALL into a single VALUES node; with
 # inSubQueryThreshold=0 an IN-list is converted to a join+aggregate+union.
 
@@ -67,7 +67,7 @@ LogicalProject(A=[$0], Y=[$1])
       LogicalValues(tuples=[[{ 3, null }, { 7369, null }, { null, 20 }, { null, 5 }, { 1, 2 }, { 7499, 30 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByInList2 ----------------------------------------------------
+# testUnionToValuesByInList2 ---------------------------------------------------
 # UNION_TO_VALUES with IN-list containing CAST expressions.
 
 with t1(a, y) as (
@@ -105,7 +105,7 @@ LogicalProject(A=[$0], Y=[$1])
       LogicalValues(tuples=[[{ 1, 2 }, { 3, null }, { 7369, null }, { null, 20 }, { null, 5 }, { 7499, 30 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByInList3 ----------------------------------------------------
+# testUnionToValuesByInList3 ---------------------------------------------------
 # UNION_TO_VALUES with IN-list containing an integer CAST.
 
 select * from dept where deptno in (12, 34, cast(30.4 as int));
@@ -133,7 +133,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalValues(tuples=[[{ 30 }, { 12 }, { 34 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByInList4 ----------------------------------------------------
+# testUnionToValuesByInList4 ---------------------------------------------------
 # UNION_TO_VALUES with IN-list of doubles (promotes comparison to double).
 
 select *
@@ -167,7 +167,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalValues(tuples=[[{ 12.0E0 }, { 34.0E0 }, { 56.4E0 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByInList5 ----------------------------------------------------
+# testUnionToValuesByInList5 ---------------------------------------------------
 # UNION_TO_VALUES with an IN predicate in the SELECT list.
 
 select deptno in (12, 34, cast(56.4 as double)) as b from dept;
@@ -219,7 +219,7 @@ LogicalProject(B=[CAST(OR(AND(IS NOT NULL($6), <>($2, 0)), AND(<($3, $2), null, 
         LogicalValues(tuples=[[{ 12.0E0 }, { 34.0E0 }, { 56.4E0 }]])
 !sub-plan "expand=true, simplifyValues=false, inSubQueryThreshold=0, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnion ------------------------------------------------------
+# testUnionToValuesByUnion -----------------------------------------------------
 # UNION_TO_VALUES collapses UNION (distinct) of two VALUES into one VALUES.
 
 select *
@@ -247,7 +247,7 @@ LogicalUnion(all=[false])
 LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnion2 -----------------------------------------------------
+# testUnionToValuesByUnion2 ----------------------------------------------------
 # UNION_TO_VALUES collapses UNION (distinct) of two single-column VALUES.
 
 select *
@@ -274,7 +274,7 @@ LogicalUnion(all=[false])
 LogicalValues(tuples=[[{ 'a' }, { 'b' }, { 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnion3 -----------------------------------------------------
+# testUnionToValuesByUnion3 ----------------------------------------------------
 # UNION_TO_VALUES collapses UNION (distinct) of DECIMAL and INTEGER VALUES.
 
 select *
@@ -299,7 +299,7 @@ LogicalUnion(all=[false])
 LogicalValues(tuples=[[{ 5.0 }]])
 !sub-plan "PROJECT_REMOVE, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnion4 -----------------------------------------------------
+# testUnionToValuesByUnion4 ----------------------------------------------------
 # UNION_TO_VALUES collapses UNION (distinct) when both inputs have same type.
 
 select *
@@ -324,7 +324,7 @@ LogicalUnion(all=[false])
 LogicalValues(tuples=[[{ 5 }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnionAll ---------------------------------------------------
+# testUnionToValuesByUnionAll --------------------------------------------------
 # UNION_TO_VALUES collapses UNION ALL of two VALUES into one VALUES.
 
 select *
@@ -355,7 +355,7 @@ LogicalUnion(all=[true])
 LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnionAll2 --------------------------------------------------
+# testUnionToValuesByUnionAll2 -------------------------------------------------
 # UNION_TO_VALUES collapses UNION ALL of two single-column VALUES.
 
 select *
@@ -386,7 +386,7 @@ LogicalUnion(all=[true])
 LogicalValues(tuples=[[{ 'a' }, { 'b' }, { 'a' }, { 'b' }, { 'b' }, { 'c' }, { 'c' }]])
 !sub-plan "PROJECT_REMOVE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnionAll3 --------------------------------------------------
+# testUnionToValuesByUnionAll3 -------------------------------------------------
 # UNION_TO_VALUES collapses UNION ALL of DECIMAL and INTEGER VALUES.
 
 select *
@@ -412,7 +412,7 @@ LogicalUnion(all=[true])
 LogicalValues(tuples=[[{ 5.0 }, { 5.0 }]])
 !sub-plan "PROJECT_REMOVE, PROJECT_VALUES_MERGE, UNION_TO_VALUES"
 
-# testUnionToValuesByUnionAll4 --------------------------------------------------
+# testUnionToValuesByUnionAll4 -------------------------------------------------
 # UNION_TO_VALUES collapses UNION ALL when both inputs have same type.
 
 select *

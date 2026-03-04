@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testUnnestDecorrelate -------------------------------------------------------
+# testUnnestDecorrelate --------------------------------------------------------
 # UNNEST_PROJECT_DECORRELATE converts a Correlate + Unnest with an intermediate
 # Project into a plain Unnest.
 # [CALCITE-7196]
@@ -56,7 +56,7 @@ Uncollect
     LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "UNNEST_PROJECT_DECORRELATE"
 
-# testUnnestDecorrelate2 ------------------------------------------------------
+# testUnnestDecorrelate2 -------------------------------------------------------
 # UNNEST_PROJECT_DECORRELATE converts a Correlate + Unnest with ordinality
 # and an intermediate Project into a plain Unnest with ordinality.
 # [CALCITE-7196]
@@ -89,7 +89,7 @@ Uncollect(withOrdinality=[true])
     LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "UNNEST_PROJECT_DECORRELATE"
 
-# testUnnestDecorrelate3 ------------------------------------------------------
+# testUnnestDecorrelate3 -------------------------------------------------------
 # UNNEST_DECORRELATE converts a Correlate + Unnest (after PROJECT_REMOVE has
 # removed the intermediate Project) into a plain Unnest.
 # [CALCITE-7196]
@@ -122,7 +122,7 @@ Uncollect
     LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "PROJECT_REMOVE, UNNEST_DECORRELATE"
 
-# testUnnestDecorrelate4 ------------------------------------------------------
+# testUnnestDecorrelate4 -------------------------------------------------------
 # UNNEST_DECORRELATE converts a Correlate + Unnest over a table column
 # (after PROJECT_REMOVE) into a plain Unnest over the table.
 # [CALCITE-7196]
@@ -145,7 +145,7 @@ LogicalProject(ENAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 !sub-plan "PROJECT_REMOVE, UNNEST_DECORRELATE"
 
-# testUnnestDecorrelate5 ------------------------------------------------------
+# testUnnestDecorrelate5 -------------------------------------------------------
 # UNNEST_DECORRELATE converts a Correlate + Unnest where the unnested value
 # is a struct field (after PROJECT_REMOVE) into a plain Unnest.
 # [CALCITE-7196]

@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testExpandFilterDisjunctionForTable -----------------------------------------
+# testExpandFilterDisjunctionForTable ------------------------------------------
 # FILTER_INTO_JOIN after EXPAND_FILTER_DISJUNCTION_GLOBAL pushes disjunctive
 # filter predicates into join conditions.
 
@@ -149,7 +149,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN"
 
-# testFullOuterJoinSimplificationToInner --------------------------------------
+# testFullOuterJoinSimplificationToInner ---------------------------------------
 # FILTER_INTO_JOIN converts a full outer join to inner when both left and
 # right sides have null-rejecting WHERE predicates.
 
@@ -185,7 +185,7 @@ LogicalProject(UNO=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN"
 
-# testFullOuterJoinSimplificationToLeftOuter ----------------------------------
+# testFullOuterJoinSimplificationToLeftOuter -----------------------------------
 # FILTER_INTO_JOIN converts a full outer join to left outer when only the
 # left side has a null-rejecting WHERE predicate.
 
@@ -220,7 +220,7 @@ LogicalProject(UNO=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN"
 
-# testFullOuterJoinSimplificationToRightOuter ---------------------------------
+# testFullOuterJoinSimplificationToRightOuter ----------------------------------
 # FILTER_INTO_JOIN converts a full outer join to right outer when only the
 # right side has a null-rejecting WHERE predicate.
 
@@ -263,7 +263,7 @@ LogicalProject(UNO=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN"
 
-# testJoinConditionPushdown1 --------------------------------------------------
+# testJoinConditionPushdown1 ---------------------------------------------------
 # FILTER_INTO_JOIN and JOIN_CONDITION_PUSH move WHERE predicates into join
 # conditions and propagate equality constraints between joins.
 # [CALCITE-5073]
@@ -364,7 +364,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
-# testJoinConditionPushdown2 --------------------------------------------------
+# testJoinConditionPushdown2 ---------------------------------------------------
 # JOIN_CONDITION_PUSH infers e.deptno = e.empno from the join condition.
 # [CALCITE-5073]
 
@@ -391,7 +391,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
-# testJoinConditionPushdown3 --------------------------------------------------
+# testJoinConditionPushdown3 ---------------------------------------------------
 # JOIN_CONDITION_PUSH does not push conditions from a FULL JOIN (unchanged).
 # [CALCITE-5073]
 
@@ -410,7 +410,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
-# testJoinConditionPushdown5 --------------------------------------------------
+# testJoinConditionPushdown5 ---------------------------------------------------
 # JOIN_CONDITION_PUSH does not push conditions from a LEFT JOIN (unchanged).
 # [CALCITE-5073]
 
@@ -449,7 +449,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
-# testJoinConditionPushdown6 --------------------------------------------------
+# testJoinConditionPushdown6 ---------------------------------------------------
 # JOIN_CONDITION_PUSH infers a condition on the left side of a RIGHT JOIN.
 # [CALCITE-5073]
 
@@ -469,7 +469,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 
-# testLeftOuterJoinSimplificationToInner --------------------------------------
+# testLeftOuterJoinSimplificationToInner ---------------------------------------
 # FILTER_INTO_JOIN converts a left outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the right side.
 
@@ -512,7 +512,7 @@ LogicalProject(EXPR$0=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN"
 
-# testMergeFilter -------------------------------------------------------------
+# testMergeFilter --------------------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE + FILTER_MERGE combines duplicate filters.
 
 select dname from (
@@ -540,7 +540,7 @@ LogicalProject(DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_MERGE"
 
-# testPushAboveFiltersIntoInnerJoinCondition ----------------------------------
+# testPushAboveFiltersIntoInnerJoinCondition -----------------------------------
 # FILTER_INTO_JOIN removes a redundant WHERE predicate that is already present
 # in the inner join condition.
 
@@ -593,7 +593,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
-# testPushFilterWithIsNotDistinctFromPastJoin ---------------------------------
+# testPushFilterWithIsNotDistinctFromPastJoin ----------------------------------
 # FILTER_INTO_JOIN moves an IS NOT DISTINCT FROM predicate from the WHERE
 # clause into the join condition.
 
@@ -654,7 +654,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
-# testRightOuterJoinSimplificationToInner -------------------------------------
+# testRightOuterJoinSimplificationToInner --------------------------------------
 # FILTER_INTO_JOIN converts a right outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the left side.
 

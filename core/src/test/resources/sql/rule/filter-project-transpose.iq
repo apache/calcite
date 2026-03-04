@@ -202,7 +202,7 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, FILTER_PROJECT_TRANSPOSE, FILTER_WINDOW_TRANSPOSE, PROJECT_REMOVE"
 
-# testProjectCorrelateTransposeRuleLeftCorrelate --------------------------------
+# testProjectCorrelateTransposeRuleLeftCorrelate -------------------------------
 # PROJECT_CORRELATE_TRANSPOSE pushes a Project into a left-type Correlate.
 # [CALCITE-6878]
 # Not using !ok: uses correlated EXISTS subquery not reliably executable in HSQLDB.
@@ -458,7 +458,7 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], CNT=[$2], ALL_SUM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, FILTER_PROJECT_TRANSPOSE, FILTER_WINDOW_TRANSPOSE, PROJECT_REMOVE"
 
-# testPushFilterPastWindowWithOnePartitionColumn --------------------------------
+# testPushFilterPastWindowWithOnePartitionColumn -------------------------------
 # FILTER_WINDOW_TRANSPOSE pushes a Filter past a Window when the filter
 # predicate is on the single partition key.
 # [CALCITE-6011]
@@ -490,7 +490,7 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, FILTER_PROJECT_TRANSPOSE, FILTER_WINDOW_TRANSPOSE, PROJECT_REMOVE"
 
-# testPushFilterPastWindowWithTwoPartitionColumns --------------------------------
+# testPushFilterPastWindowWithTwoPartitionColumns ------------------------------
 # FILTER_WINDOW_TRANSPOSE pushes a Filter past a Window with two partition
 # columns when the filter predicate is on one of the partition keys.
 # [CALCITE-6011]

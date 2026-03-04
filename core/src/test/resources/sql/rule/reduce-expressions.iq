@@ -23,7 +23,7 @@
 !use scott
 !set outputformat mysql
 
-# testAlreadyFalseEliminatesFilter -------------------------------------------------------
+# testAlreadyFalseEliminatesFilter ---------------------------------------------
 # Tests that a filter with a false condition is eliminated.
 
 select * from (values (1,2)) where false;
@@ -42,7 +42,7 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testAsofOpt -------------------------------------------------------
+# testAsofOpt ------------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not modify an ASOF join plan (checkUnchanged).
 
 SELECT *
@@ -94,7 +94,7 @@ LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, CALC_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
-# testCastRemove -------------------------------------------------------
+# testCastRemove ---------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not remove a CAST in a complex CASE with
 # COALESCE (checkUnchanged).
 
@@ -123,7 +123,7 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE, 
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS"
 
-# testCorrelationScalarAggAndFilter -------------------------------------------
+# testCorrelationScalarAggAndFilter --------------------------------------------
 # [CALCITE-2110] Reduce-expressions rules should not change a plan with a
 # correlated scalar sub-query (checkUnchanged).
 # Not using !ok: fails with "Correlation variable $cor0 should be defined"
@@ -200,7 +200,7 @@ LogicalProject(EXPR$0=[Infinity:DOUBLE])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS"
 
-# testExpressionPreceding -------------------------------------------------------
+# testExpressionPreceding ------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not modify a plan when applied after a window
 # function has already been expanded (checkUnchanged).
 
@@ -240,7 +240,7 @@ LogicalProject(W_COUNT=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_REDUCE_EXPRESSIONS"
 
-# testExpressionSimplification1 -------------------------------------------------------
+# testExpressionSimplification1 ------------------------------------------------
 # [CALCITE-5169] 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'.
 # ename <> '' and ename <> '3' should be simplified to Sarg.
 
@@ -277,7 +277,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testExpressionSimplification2 -------------------------------------------------------
+# testExpressionSimplification2 ------------------------------------------------
 # [CALCITE-5169] 'xx < 1 OR xx > 1' cannot be simplified to 'xx <> 1'.
 # (ename < '' or ename > '') and (ename < '3' or ename > '3') should be simplified to Sarg too.
 
@@ -314,7 +314,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testFilterReduceCrash -------------------------------------------------------
+# testFilterReduceCrash --------------------------------------------------------
 # [CALCITE-7070] FILTER_REDUCE_EXPRESSIONS crashes on expression BETWEEN ( NULL) AND X.
 
 SELECT + 54
@@ -335,7 +335,7 @@ LogicalProject(EXPR$0=[54])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testNoOversimplificationBelowIsNull -------------------------------------------------------
+# testNoOversimplificationBelowIsNull ------------------------------------------
 # [CALCITE-2726] FILTER_REDUCE_EXPRESSIONS should not oversimplify conditions
 # below IS NULL.
 
@@ -359,7 +359,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testOrAlwaysTrue -------------------------------------------------------
+# testOrAlwaysTrue -------------------------------------------------------------
 # Tests that "sal is null or sal is not null" is always true and the filter is removed.
 
 select *
@@ -379,7 +379,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testOrAlwaysTrue2 -------------------------------------------------------
+# testOrAlwaysTrue2 ------------------------------------------------------------
 # Tests that "sal is not null or sal is null" is always true and the filter is removed.
 
 select *
@@ -399,7 +399,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testOversimplifiedCaseStatement -------------------------------------------------------
+# testOversimplifiedCaseStatement ----------------------------------------------
 # [CALCITE-2726] FILTER_REDUCE_EXPRESSIONS should not oversimplify CASE in a
 # compound WHERE condition.
 
@@ -423,7 +423,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testPredicatePull -------------------------------------------------------
+# testPredicatePull ------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS pulls constants from filter predicates into a
 # rollup aggregate's project.
 
@@ -494,7 +494,7 @@ LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_OVER_SUM_TO_SUM0_RULE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_MERGE, PROJECT_WINDOW_TRANSPOSE, WINDOW_REDUCE_EXPRESSIONS"
 
-# testPullConstantIntoJoin ----------------------------------------------------
+# testPullConstantIntoJoin -----------------------------------------------------
 # JOIN_PUSH_TRANSITIVE_PREDICATES + JOIN_REDUCE_EXPRESSIONS pull empno = 10
 # into the join condition.
 
@@ -615,7 +615,7 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testPullUpPredicatesFromProject1 -------------------------------------------------------
+# testPullUpPredicatesFromProject1 ---------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces expressions in a project using constants
 # inferred from the filter (comm <> 2 becomes false, comm = 2 becomes true).
 
@@ -638,7 +638,7 @@ LogicalProject(EXPR$0=[false], EXPR$1=[true])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, PROJECT_REDUCE_EXPRESSIONS"
 
-# testPullUpPredicatesFromProject2 --------------------------------------------
+# testPullUpPredicatesFromProject2 ---------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS + PROJECT_REDUCE_EXPRESSIONS reduce expressions
 # (comm = 2 becomes true, empno <> 1 becomes false).
 
@@ -692,7 +692,7 @@ LogicalUnion(all=[true])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
-# testRand -------------------------------------------------------
+# testRand ---------------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces ROUND(RAND()) but preserves it when used
 # in a filter with BETWEEN/IN conditions.
 # Not using !ok: results are nondeterministic.
@@ -714,7 +714,7 @@ LogicalProject(UNO=[1], A=[$1])
       LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceCase -------------------------------------------------------
+# testReduceCase ---------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a CASE expression with a false condition
 # to the else branch, unifying numeric types.
 
@@ -750,7 +750,7 @@ LogicalProject(NEWCOL=[1.0E0:FLOAT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceCaseNullabilityChange -------------------------------------------------------
+# testReduceCaseNullabilityChange ----------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a CASE expression that has a constant
 # condition (1 IS NOT NULL is always true), changing nullability.
 
@@ -787,7 +787,7 @@ LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceCastAndConsts -------------------------------------------------------
+# testReduceCastAndConsts ------------------------------------------------------
 # Tests that constant expressions inside a cast can be reduced.
 
 select *
@@ -809,7 +809,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceCasts -------------------------------------------------------
+# testReduceCasts --------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS, and FILTER_REDUCE_EXPRESSIONS
 # remove redundant casts (e.g., CAST(integer AS integer) becomes the column itself).
 
@@ -844,7 +844,7 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceCastTimeUnchanged -------------------------------------------------------
+# testReduceCastTimeUnchanged --------------------------------------------------
 # Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
 # Not using !ok: execution results depend on the current date.
 
@@ -859,7 +859,7 @@ LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceCompositeInSubQuery -------------------------------------------------------
+# testReduceCompositeInSubQuery ------------------------------------------------
 # [CALCITE-6887] FILTER_REDUCE_EXPRESSIONS reduces a constant expression in an
 # OR condition that contains a composite IN subquery.
 
@@ -912,7 +912,7 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "aggregateUnique=true, FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstants -------------------------------------------------------
+# testReduceConstants ----------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, and
 # JOIN_REDUCE_EXPRESSIONS reduce constant expressions in project, filter, and
 # join. With relBuilderSimplify=false, CASE from COALESCE is not pre-simplified.
@@ -942,7 +942,7 @@ LogicalProject(EXPR$0=[3], EXPR$1=[22], EXPR$2=[26], EXPR$3=[null:INTEGER], EXPR
   LogicalValues(tuples=[[]])
 !sub-plan "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstants2 -------------------------------------------------------
+# testReduceConstants2 ---------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, and
 # JOIN_REDUCE_EXPRESSIONS do not change the plan when simplifyValues is false
 # (checkUnchanged).
@@ -964,7 +964,7 @@ LogicalProject(EXPR$0=[false])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "simplifyValues=false, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstants3 -------------------------------------------------------
+# testReduceConstants3 ---------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
 
 select e.mgr is not distinct from f.mgr
@@ -991,7 +991,7 @@ LogicalProject(EXPR$0=[IS NULL($12)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsCaseEquals -------------------------------------------------------
+# testReduceConstantsCaseEquals ------------------------------------------------
 # [HIVE-9644] Reduces a CASE expression to a simpler condition.
 # Equivalent to 'deptno = 10'.
 
@@ -1020,7 +1020,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsCaseEquals2 -------------------------------------------------------
+# testReduceConstantsCaseEquals2 -----------------------------------------------
 # Reduces a CASE expression with null else branch.
 # Equivalent to 'case when deptno = 20 then false when deptno = 10 then true else null end'.
 
@@ -1049,7 +1049,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsCaseEquals3 -------------------------------------------------------
+# testReduceConstantsCaseEquals3 -----------------------------------------------
 # Reduces a CASE expression with duplicate WHEN branches.
 # Equivalent to 'deptno = 30 or deptno = 10'.
 
@@ -1101,7 +1101,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDup2 -------------------------------------------------------
+# testReduceConstantsDup2 ------------------------------------------------------
 # [CALCITE-935] Improve how ReduceExpressionsRule handles duplicate constraints.
 
 select *
@@ -1123,7 +1123,7 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
   LogicalValues(tuples=[[]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDup3 -------------------------------------------------------
+# testReduceConstantsDup3 ------------------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b).
 
 select d.deptno
@@ -1148,7 +1148,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDup3Null -------------------------------------------------------
+# testReduceConstantsDup3Null --------------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), with nullable column.
 
 select e.empno
@@ -1183,7 +1183,7 @@ LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDupNot -------------------------------------------------------
+# testReduceConstantsDupNot ----------------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), with NOT.
 
 select d.deptno
@@ -1208,7 +1208,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDupNot2 -------------------------------------------------------
+# testReduceConstantsDupNot2 ---------------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with three predicates.
 
 select d.deptno
@@ -1233,7 +1233,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDupNot2Null -------------------------------------------------------
+# testReduceConstantsDupNot2Null -----------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with nullable column.
 
 select e.empno
@@ -1269,7 +1269,7 @@ LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDupNotNull -------------------------------------------------------
+# testReduceConstantsDupNotNull ------------------------------------------------
 # [CALCITE-3198] Enhance RexSimplify to handle (x<>a or x<>b), NOT with single nullable column.
 
 select e.empno
@@ -1304,7 +1304,7 @@ LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsDynamicFunction -------------------------------------------------------
+# testReduceConstantsDynamicFunction -------------------------------------------
 # Tests that a dynamic function (CURRENT_TIMESTAMP) is not reduced.
 # Not using !ok: results are time-dependent.
 
@@ -1325,7 +1325,7 @@ LogicalProject(SAL=[$0], T=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsEliminatesFilter -------------------------------------------------------
+# testReduceConstantsEliminatesFilter ------------------------------------------
 # Tests that a filter with WHERE NULL (same as WHERE FALSE) produces an empty result.
 
 select *
@@ -1346,7 +1346,7 @@ LogicalProject(X=[$0], Y=[$1])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsIsNotNull -------------------------------------------------------
+# testReduceConstantsIsNotNull -------------------------------------------------
 # Tests that "empno=10 and empno is not null" is unchanged (redundant IS NOT NULL).
 
 select empno
@@ -1368,7 +1368,7 @@ LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsIsNull -------------------------------------------------------
+# testReduceConstantsIsNull ----------------------------------------------------
 # Tests that "empno=10 and empno is null" reduces to an empty result.
 
 select empno
@@ -1389,7 +1389,7 @@ LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsNegated -------------------------------------------------------
+# testReduceConstantsNegated ---------------------------------------------------
 # Tests that "empno=10 and not(empno=10)" reduces to an empty result.
 
 select empno
@@ -1410,7 +1410,7 @@ LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsNegatedInverted -------------------------------------------------------
+# testReduceConstantsNegatedInverted -------------------------------------------
 # Tests that "empno>10 and empno<=10" reduces to an empty result.
 
 select empno
@@ -1431,7 +1431,7 @@ LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsNull -------------------------------------------------------
+# testReduceConstantsNull ------------------------------------------------------
 # [CALCITE-1860] Duplicate null predicates cause NullPointerException in RexUtil.
 
 select *
@@ -1476,7 +1476,7 @@ LogicalProject(N=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsNullEqualsOne -------------------------------------------------------
+# testReduceConstantsNullEqualsOne ---------------------------------------------
 # [HIVE-9645] Tests that cast(null as integer) = 1 reduces to empty result.
 
 select count(1) as c
@@ -1500,7 +1500,7 @@ LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalValues(tuples=[[]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsProjectNullable -------------------------------------------------------
+# testReduceConstantsProjectNullable -------------------------------------------
 # [CALCITE-902] Match nullability when reducing expressions in a Project.
 
 select mgr from emp where mgr=10;
@@ -1520,7 +1520,7 @@ LogicalProject(MGR=[CAST(10):INTEGER])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsWindow -------------------------------------------------------
+# testReduceConstantsWindow ----------------------------------------------------
 # WINDOW_REDUCE_EXPRESSIONS reduces sum(100) to a constant in a window.
 
 select col1, col2, col3
@@ -1581,7 +1581,7 @@ LogicalProject(COL1=[$3], COL2=[$4])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_MERGE, PROJECT_WINDOW_TRANSPOSE, WINDOW_REDUCE_EXPRESSIONS"
 
-# testReduceConstantsWithRow -------------------------------------------------------
+# testReduceConstantsWithRow ---------------------------------------------------
 # [CALCITE-7140] Improve constant reduction of expressions containing SqlRowOperator.
 
 SELECT 1+1, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['a'||'b', 6+6],
@@ -1610,7 +1610,7 @@ LogicalProject(EXPR$0=[2], EXPR$1=[ARRAY(2, 4)], EXPR$2=[ROW('a', 6)], EXPR$3=[M
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceExpressionsNot -------------------------------------------------------
+# testReduceExpressionsNot -----------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS does not reduce NOT(col1) when col1 is a boolean
 # from a VALUES clause (checkUnchanged).
 
@@ -1634,7 +1634,7 @@ LogicalProject(COL1=[$0])
     LogicalValues(tuples=[[{ false }, { true }]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceNestedCaseWhen ----------------------------------------------------
+# testReduceNestedCaseWhen -----------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS simplifies a nested CASE when condition.
 # Not using !ok: uses mock catalog only.
 
@@ -1685,7 +1685,7 @@ LogicalProject(EXPR$0=[CAST(2):INTEGER])
     LogicalValues(tuples=[[{ 1 }]])
 !sub-plan "expand=true, PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceNullableCase2 -------------------------------------------------------
+# testReduceNullableCase2 ------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not simplify CASE WHEN 1=2 when already
 # reduced to null during conversion (expand=true, checkUnchanged).
 # Not using !ok: result row order is non-deterministic.
@@ -1714,7 +1714,7 @@ LogicalProject(NEWCOL=[+($0, 1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS"
 
-# testReduceOrCaseWhen -------------------------------------------------------
+# testReduceOrCaseWhen ---------------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS should reduce OR(IS NULL(CASE...), IS NULL(CASE...))
 # to SEARCH(sal, Sarg[1000, 2000]).
 
@@ -1738,7 +1738,7 @@ LogicalProject(SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS"
 
-# testReduceValuesToEmpty -------------------------------------------------------
+# testReduceValuesToEmpty ------------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE reduce
 # a filtered VALUES with no matching rows to empty Values.
 
@@ -1759,7 +1759,7 @@ LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
 LogicalValues(tuples=[[]])
 !sub-plan "FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE"
 
-# testSkipReduceConstantsCaseEquals -------------------------------------------
+# testSkipReduceConstantsCaseEquals --------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS should not reduce CASE from COALESCE when it
 # compares two non-constant expressions.
 
