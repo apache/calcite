@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.util.Puffin;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
@@ -606,7 +607,8 @@ class LintTest {
             + "  }\n"
             + "}\n",
         "GuavaCharSource{memory}:7:"
-            + "Lines must be sorted; '  case b' should be before '  case c'");
+            + "Lines must be sorted; '  case b' should be before '  case c'"
+            + " (move to line 5)");
 
     // Cases after "until" are checked against the same sorted list.
     checkSortSpec(
@@ -622,7 +624,8 @@ class LintTest {
             + "  }\n"
             + "}\n",
         "GuavaCharSource{memory}:9:"
-            + "Lines must be sorted; '  case a' should be before '  case x'");
+            + "Lines must be sorted; '  case a' should be before '  case x'"
+            + " (move to line 4)");
 
     // Change '#}' to '##}': consumer stops at the same-indent '}', so
     // the second switch's cases are not compared. No violations.
@@ -649,7 +652,8 @@ class LintTest {
             + "  }\n"
             + "}\n",
         "GuavaCharSource{memory}:4:"
-            + "Lines must be sorted; 'a' should be before 'c'");
+            + "Lines must be sorted; 'a' should be before 'c'"
+            + " (move to line 3)");
 
     // Specification spread over multiple lines using '\' continuation.
     checkSortSpec(
@@ -663,7 +667,8 @@ class LintTest {
             + "  }\n"
             + "}\n",
         "GuavaCharSource{memory}:6:"
-            + "Lines must be sorted; 'a' should be before 'c'");
+            + "Lines must be sorted; 'a' should be before 'c'"
+            + " (move to line 5)");
   }
 
   private void checkSortSpec(String code, String... expectedMessages) {
@@ -754,7 +759,7 @@ class LintTest {
       implements Consumer<Puffin.Line<GlobalState, FileState>> {
     final Sort sort;
     final Comparator<String> comparator = String.CASE_INSENSITIVE_ORDER;
-    final List<String> lines = new ArrayList<>();
+    final PairList<String, Integer> lines = PairList.of();
     boolean done = false;
 
     SortConsumer(Sort sort) {
@@ -791,19 +796,22 @@ class LintTest {
     private void addLine(Puffin.Line<GlobalState, FileState> line,
         String thisLine) {
       if (!lines.isEmpty()) {
-        final String prevLine = lines.get(lines.size() - 1);
+        final String prevLine = lines.left(lines.size() - 1);
         if (comparator.compare(prevLine, thisLine) > 0) {
-          final String earlierLine =
-              Util.filter(lines, s -> comparator.compare(s, thisLine) > 0)
-                  .iterator().next();
-          line.state().message(
-              String.format(Locale.ROOT,
-                  "Lines must be sorted; '%s' should be before '%s'",
-                  thisLine, earlierLine),
-              line);
+          for (int i = 0; i < lines.size(); i++) {
+            if (comparator.compare(lines.left(i), thisLine) > 0) {
+              line.state().message(
+                  String.format(Locale.ROOT,
+                      "Lines must be sorted; '%s' should be before '%s'"
+                          + " (move to line %d)",
+                      thisLine, lines.left(i), lines.right(i)),
+                  line);
+              break;
+            }
+          }
         }
       }
-      lines.add(thisLine);
+      lines.add(thisLine, line.fnr());
     }
   }
 }
