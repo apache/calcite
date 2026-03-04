@@ -30,6 +30,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -206,6 +207,8 @@ public abstract class QuidemTest {
    *       table; equivalent to
    *       {@code .withFactory(t -> t.withOperatorTable(o ->
    *       getOperatorTable(SqlLibrary.BIG_QUERY)))}
+   *   <li>{@code AggregateExtractProjectRule.SCAN} &mdash; uses the
+   *       {@link AggregateExtractProjectRule#SCAN} rule instance
    *   <li>{@code subQueryRules} &mdash; applies
    *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules before the
    *       main rules; equivalent to {@code .withSubQueryRules()}
@@ -719,6 +722,9 @@ public abstract class QuidemTest {
         String className = ruleName.substring(0, dotIndex);
         fieldName = ruleName.substring(dotIndex + 1);
         switch (className) {
+        case "AggregateExtractProjectRule":
+          ruleClass = AggregateExtractProjectRule.class;
+          break;
         case "PruneEmptyRules":
           ruleClass = PruneEmptyRules.class;
           break;

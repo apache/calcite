@@ -22,6 +22,56 @@
 !use scott
 !set outputformat mysql
 
+# testAggregateExtractProjectRule ---------------------------------------------
+# AggregateExtractProjectRule extracts a Project from an Aggregate, pushing
+# unused columns down.
+# Not using !ok: SLACKER column is in mock catalog but not scott.
+
+select sum(sal)
+from emp;
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AggregateExtractProjectRule.SCAN"
+
+# testAggregateExtractProjectRuleWithGroupingSets ------------------------------
+# AggregateExtractProjectRule extracts a Project from an Aggregate that uses
+# grouping sets.
+# Not using !ok: SLACKER column is in mock catalog but not scott.
+
+select empno, deptno, sum(sal)
+from emp
+group by grouping sets ((empno, deptno),(deptno),(empno));
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]], EXPR$2=[SUM($2)])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {0}, {2}]], EXPR$2=[SUM($1)])
+  LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AggregateExtractProjectRule.SCAN"
+
+# testAggregateExtractProjectRuleWithGroupingSets2 ----------------------------
+# AggregateExtractProjectRule extracts a Project from an Aggregate when a column
+# is used in both a grouping set and an aggregate argument.
+# Not using !ok: SLACKER column is in mock catalog but not scott.
+
+select empno, deptno, sum(empno)
+from emp
+group by grouping sets ((empno, deptno),(deptno),(empno));
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]], EXPR$2=[SUM($0)])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]], EXPR$2=[SUM($0)])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AggregateExtractProjectRule.SCAN"
+
 # testAggregateGroupingSetsProjectMerge ---------------------------------------
 # Tests that AggregateProjectMergeRule merges a Project into an Aggregate
 # that uses grouping sets (ROLLUP).

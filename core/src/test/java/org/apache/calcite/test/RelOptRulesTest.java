@@ -2283,94 +2283,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withPlanner(hepPlanner).checkUnchanged();
   }
 
-  private void basePushAggThroughUnion() {
-    sql("${sql}")
-        .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.AGGREGATE_UNION_TRANSPOSE)
-        .check();
-  }
-
-  @Test void testPushSumConstantThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumNullConstantThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumNullableThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumNullableNOGBYThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushCountStarThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushCountNullableThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushMaxNullableThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushMinThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushAvgThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumCountStarThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumConstantGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumNullConstantGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumNullableGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushCountStarGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushCountNullableGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushMaxNullableGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushMinGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushAvgGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushSumCountStarGroupingSetsThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
-  @Test void testPushCountFilterThroughUnion() {
-    basePushAggThroughUnion();
-  }
-
   @Test void testPushBoolAndBoolOrThroughUnion() {
     sql("${sql}")
         .withFactory(f ->
@@ -2383,26 +2295,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
 
-
-  private void basePullConstantTroughAggregate() {
-    sql("${sql}")
-        .withRule(CoreRules.PROJECT_MERGE,
-            CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-  @Test void testPullConstantThroughConstLast() {
-    basePullConstantTroughAggregate();
-  }
-
-  @Test void testPullConstantThroughAggregateSimpleNonNullable() {
-    basePullConstantTroughAggregate();
-  }
-
-  @Test void testPullConstantThroughAggregatePermuted() {
-    basePullConstantTroughAggregate();
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
@@ -2417,26 +2309,6 @@ class RelOptRulesTest extends RelOptTestBase {
           p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
         })
         .check();
-  }
-
-  @Test void testPullConstantThroughAggregatePermutedConstFirst() {
-    basePullConstantTroughAggregate();
-  }
-
-  @Test void testPullConstantThroughAggregatePermutedConstGroupBy() {
-    basePullConstantTroughAggregate();
-  }
-
-  @Test void testPullConstantThroughAggregateConstGroupBy() {
-    basePullConstantTroughAggregate();
-  }
-
-  @Test void testPullConstantThroughAggregateAllConst() {
-    basePullConstantTroughAggregate();
-  }
-
-  @Test void testPullConstantThroughAggregateAllLiterals() {
-    basePullConstantTroughAggregate();
   }
 
   /** Test case for
@@ -2456,37 +2328,6 @@ class RelOptRulesTest extends RelOptTestBase {
           p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
         })
         .check();
-  }
-
-  @Test void testAggregateExtractProjectRule() {
-    final String sql = "select sum(sal)\n"
-        + "from emp";
-    HepProgram pre = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .build();
-    sql(sql).withPre(pre).withRule(AggregateExtractProjectRule.SCAN).check();
-  }
-
-  @Test void testAggregateExtractProjectRuleWithGroupingSets() {
-    final String sql = "select empno, deptno, sum(sal)\n"
-        + "from emp\n"
-        + "group by grouping sets ((empno, deptno),(deptno),(empno))";
-    HepProgram pre = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .build();
-    sql(sql).withPre(pre).withRule(AggregateExtractProjectRule.SCAN).check();
-  }
-
-  /** Test with column used in both grouping set and argument to aggregate
-   * function. */
-  @Test void testAggregateExtractProjectRuleWithGroupingSets2() {
-    final String sql = "select empno, deptno, sum(empno)\n"
-        + "from emp\n"
-        + "group by grouping sets ((empno, deptno),(deptno),(empno))";
-    HepProgram pre = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE)
-        .build();
-    sql(sql).withPre(pre).withRule(AggregateExtractProjectRule.SCAN).check();
   }
 
   @Test void testAggregateExtractProjectRuleWithFilter() {

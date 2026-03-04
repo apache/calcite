@@ -1,0 +1,169 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for AGGREGATE_PROJECT_PULL_UP_CONSTANTS rule.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testPullConstantThroughAggregateAllConst -------------------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a GROUP BY key that is a
+# constant expression.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select 4, 2+3, max(five) from (
+  select *, 4 as four, 2+3 as two_plus_three, 5 as five, deptno+42 as deptno42 from emp
+) group by 4, 2+3;
+LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+  LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], FIVE=[5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
+  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
+    LogicalProject(EXPR$0=[4], FIVE=[5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughAggregateAllLiterals ----------------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes multiple GROUP BY keys that are
+# all literal.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select 4, 2+3, max(5) from (
+  select *, 4 as four, 2+3 as two_plus_three, 5 as five, deptno+42 as deptno42 from emp
+) group by 4, 2+3;
+LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+  LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], $f2=[5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
+  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
+    LogicalProject(EXPR$0=[4], $f2=[5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughAggregateConstGroupBy ---------------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes GROUP BY keys that are constant.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select 4, 2+3, max(mgr) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by 4, 2+3;
+LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+  LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
+  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
+    LogicalProject(EXPR$0=[4], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughAggregatePermuted -------------------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes constant keys from a GROUP BY
+# with multiple keys in non-trivial order.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select deptno, max(mgr) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by deptno, four, two_plus_three, deptno42;
+LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
+  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$1=[MAX($4)])
+    LogicalProject(DEPTNO=[$7], FOUR=[4], TWO_PLUS_THREE=[+(2, 3)], DEPTNO42=[+($7, 42)], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    LogicalProject(DEPTNO=[$7], DEPTNO42=[+($7, 42)], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughAggregatePermutedConstFirst ---------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a constant key from GROUP BY when
+# it appears first.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select deptno, max(mgr) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by four, deptno;
+LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    LogicalProject(FOUR=[4], DEPTNO=[$7], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughAggregatePermutedConstGroupBy -------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a constant expression (42+24)
+# from GROUP BY.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select deptno, max(mgr) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by 42+24, deptno;
+LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    LogicalProject($f0=[+(42, 24)], DEPTNO=[$7], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughAggregateSimpleNonNullable ----------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a non-nullable constant key from
+# GROUP BY.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select deptno, max(ename) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by deptno, four;
+LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    LogicalProject(DEPTNO=[$7], FOUR=[4], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughConstLast ---------------------------------------------
+# AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a constant key from GROUP BY when
+# it appears last.
+# Not using !ok: GROUP BY results are unordered without ORDER BY.
+
+select deptno, max(mgr) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by deptno, four;
+LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# End pull-constant-through-aggregate.iq
