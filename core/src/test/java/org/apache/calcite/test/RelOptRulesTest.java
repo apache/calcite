@@ -1965,40 +1965,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testLeftEmptyInnerJoin() {
-    // Plan should be empty
-    final String sql = "select * from (\n"
-        + "select * from emp where false) as e\n"
-        + "join dept as d on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
-  @Test void testLeftEmptyLeftJoin() {
-    // Plan should be empty
-    final String sql = "select * from (\n"
-        + "  select * from emp where false) e\n"
-        + "left join dept d on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
-  @Test void testLeftEmptyRightJoin() {
-    // Plan should be equivalent to "select * from emp right join dept".
-    // Cannot optimize away the join because of RIGHT.
-    final String sql = "select * from (\n"
-        + "  select * from emp where false) e\n"
-        + "right join dept d on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
-  @Test void testLeftEmptyFullJoin() {
-    // Plan should be equivalent to "select * from emp full join dept".
-    // Cannot optimize away the join because of FULL.
-    final String sql = "select * from (\n"
-        + "  select * from emp where false) e\n"
-        + "full join dept d on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
   @Test void testLeftEmptySemiJoin() {
     checkLeftEmptySemiOrAntiJoin(JoinRelType.SEMI);
   }
@@ -2018,40 +1984,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .project(b.field("EMPNO"))
         .build();
     checkEmptyJoin(relFn(relFn));
-  }
-
-  @Test void testRightEmptyInnerJoin() {
-    // Plan should be empty
-    final String sql = "select * from emp e\n"
-        + "join (select * from dept where false) as d\n"
-        + "on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
-  @Test void testRightEmptyLeftJoin() {
-    // Plan should be equivalent to "select * from emp left join dept".
-    // Cannot optimize away the join because of LEFT.
-    final String sql = "select * from emp e\n"
-        + "left join (select * from dept where false) as d\n"
-        + "on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
-  @Test void testRightEmptyRightJoin() {
-    // Plan should be empty
-    final String sql = "select * from emp e\n"
-        + "right join (select * from dept where false) as d\n"
-        + "on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
-  }
-
-  @Test void testRightEmptyFullJoin() {
-    // Plan should be equivalent to "select * from emp full join dept".
-    // Cannot optimize away the join because of FULL.
-    final String sql = "select * from emp e\n"
-        + "full join (select * from dept where false) as d\n"
-        + "on e.deptno = d.deptno";
-    checkEmptyJoin(sql(sql));
   }
 
   @Test void testRightEmptySemiJoin() {
@@ -2235,102 +2167,6 @@ class RelOptRulesTest extends RelOptTestBase {
             b.field("DEPTNO"))
         .build();
     relFn(relFn).withRule(PruneEmptyRules.SORT_INSTANCE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5117">[CALCITE-5117]
-   * Optimize the EXISTS sub-query by Metadata RowCount</a>. */
-  @Test void testExistsWithAtLeastOneRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where EXISTS (\n"
-        + "  select count(*) from emp e where d.deptno = e.deptno)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testExistsWithNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where NOT EXISTS (\n"
-        + "  select count(*) from emp e having false)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6650">[CALCITE-6650]
-   * Optimize the IN sub-query and SOME sub-query
-   * by Metadata RowCount</a>. */
-  @Test void testInWithNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where deptno in (\n"
-        + "  select deptno from emp e where false)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testNotInWithNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where deptno not in (\n"
-        + "  select deptno from emp e where false)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
-   * SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when
-   * both the keys and the subquery columns are NOT NULL</a>. */
-  @Test void testInOptimizationBothNotNull() {
-    final String sql = "select * from emp as e1\n"
-        + "where empno in (\n"
-        + "  select empno from emp e2)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
-   * SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when
-   * both the keys and the subquery columns are NOT NULL</a>. */
-  @Test void testNotInNullableSubqueryColumn() {
-    final String sql = "select * from empnullables as e1\n"
-        + "where coalesce(deptno, 0) not in (\n"
-        + "  select deptno from empnullables e2)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7317">[CALCITE-7317]
-   * SubQueryRemoveRule should skip NULL-safety checks for IN subqueries when
-   * both the keys and the subquery columns are NOT NULL</a>. */
-  @Test void testNotInNullableKey() {
-    final String sql = "select * from empnullables as e1\n"
-        + "where deptno not in (\n"
-        + "  select coalesce(deptno, 0) from empnullables e2)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testSomeWithGreaterThanNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where deptno > some(\n"
-        + "  select deptno from emp e where false)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testSomeWithLessThanOrEqualNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where deptno <= some(\n"
-        + "  select deptno from emp e where false)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testUniqueWithNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where unique(\n"
-        + "  select deptno from emp e where false)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Test void testNotUniqueWithNoRowSubQuery() {
-    final String sql = "select * from dept as d\n"
-        + "where not unique(\n"
-        + "  select deptno from emp e where false)";
-    sql(sql).withSubQueryRules().check();
   }
 
   /** Test case for
@@ -2604,17 +2440,6 @@ class RelOptRulesTest extends RelOptTestBase {
     basePullConstantTroughAggregate();
   }
 
-  @Test void testPullConstantThroughUnion() {
-    final String sql = "select 2, deptno, job from emp as e1\n"
-        + "union all\n"
-        + "select 2, deptno, job from emp as e2";
-    sql(sql)
-        .withTrim(true)
-        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
    * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
@@ -2631,40 +2456,6 @@ class RelOptRulesTest extends RelOptTestBase {
           p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
           p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
         })
-        .check();
-  }
-
-  @Test void testPullConstantThroughUnion2() {
-    // Negative test: constants should not be pulled up
-    final String sql = "select 2, deptno, job from emp as e1\n"
-        + "union all\n"
-        + "select 1, deptno, job from emp as e2";
-    sql(sql)
-        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
-            CoreRules.PROJECT_MERGE)
-        .checkUnchanged();
-  }
-
-  @Test void testPullConstantThroughUnion3() {
-    // We should leave at least a single column in each Union input
-    final String sql = "select 2, 3 from emp as e1\n"
-        + "union all\n"
-        + "select 2, 3 from emp as e2";
-    sql(sql)
-        .withTrim(true)
-        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-  @Test void testPullConstantThroughUnionSameTypeNullableField() {
-    final String sql = "select deptno, ename from empnullables where deptno = 1\n"
-        + "union all\n"
-        + "select deptno, ename from empnullables where deptno = 1";
-    sql(sql)
-        .withTrim(true)
-        .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
-            CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -2780,51 +2571,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
-   * getPredicates from a union is not correct</a>. */
-
-
-
-  @Test void testPullConstantIntoProject() {
-    final String sql = "select deptno, deptno + 1, empno + deptno\n"
-        + "from sales.emp\n"
-        + "where deptno = 10";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Tests propagation of a filter derived from an "IS NOT DISTINCT FROM"
-   * predicate.
-   *
-   * <p>By the time the rule sees the predicate, it has been converted to
-   * "deptno = 10 OR (deptno IS NULL AND 10 IS NULL)", so
-   * {@link #testPullConstantIntoProjectWithIsNotDistinctFromDate()} is a purer
-   * test of the functionality. */
-  @Test void testPullConstantIntoProjectWithIsNotDistinctFrom() {
-    final String sql = "select deptno, deptno + 1, empno + deptno\n"
-        + "from sales.emp\n"
-        + "where deptno is not distinct from 10";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  @Test void testPullConstantIntoProjectWithIsNotDistinctFromForNull() {
-    final String sql = "select mgr, deptno\n"
-        + "from sales.emp\n"
-        + "where mgr is not distinct from null";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5336">[CALCITE-5336]
    * Infer constants from predicates with IS NOT DISTINCT FROM operator</a>.
    *
@@ -2856,35 +2602,6 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
 
-  @Test void testPullUpPredicatesFromUnionWithProject() {
-    final String sql = "select empno = null from emp where comm = 2\n"
-        + "union all\n"
-        + "select comm = 2 from emp where comm = 2";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-          .check();
-  }
-
-
-  @Test void testPullUpPredicatesFromProject2() {
-    final String sql = "select comm = 2, empno <> 1 from emp where comm = 2 and empno = 1";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-
-  @Test void testPullConstantIntoJoin() {
-    final String sql = "select * from (select * from sales.emp where empno = 10) as e\n"
-        + "left join sales.dept as d on e.empno = d.deptno";
-    sql(sql).withPre(getTransitiveProgram())
-        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
   @Test void testPullConstantIntoJoin2() {
     final String sql = "select * from (select * from sales.emp where empno = 10) as e\n"
         + "join sales.dept as d on e.empno = d.deptno and e.deptno + e.empno = d.deptno + 5";
@@ -2896,28 +2613,6 @@ class RelOptRulesTest extends RelOptTestBase {
                 CoreRules.JOIN_REDUCE_EXPRESSIONS))
         .build();
     sql(sql).withPre(getTransitiveProgram()).withProgram(program).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2110">[CALCITE-2110]
-   * ArrayIndexOutOfBoundsException in RexSimplify when using
-   * ReduceExpressionsRule.JOIN_INSTANCE</a>. */
-  @Test void testCorrelationScalarAggAndFilter() {
-    final String sql = "SELECT e1.empno\n"
-        + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
-        + "and e1.deptno < 10 and d1.deptno < 15\n"
-        + "and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)";
-    sql(sql)
-        .withDecorrelate(true)
-        .withTrim(true)
-        .withExpand(true)
-        .withPreRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-            CoreRules.FILTER_REDUCE_EXPRESSIONS,
-            CoreRules.JOIN_REDUCE_EXPRESSIONS)
-        .checkUnchanged();
   }
 
   /** Test case for

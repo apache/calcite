@@ -22,6 +22,43 @@
 !use scott
 !set outputformat mysql
 
+# testExistsWithAtLeastOneRowSubQuery -----------------------------------------
+# [CALCITE-5117] EXISTS subquery is optimized when Metadata RowCount > 0.
+# Not using !ok: result contains all dept rows.
+
+select * from dept as d
+where EXISTS (
+  select count(*) from emp e where d.deptno = e.deptno);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules, NONE"
+
+# testExistsWithNoRowSubQuery --------------------------------------------------
+# [CALCITE-5117] NOT EXISTS subquery is optimized when Metadata RowCount = 0.
+# Not using !ok: result contains all dept rows.
+
+select * from dept as d
+where NOT EXISTS (
+  select count(*) from emp e having false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[NOT(EXISTS({
+LogicalValues(tuples=[[]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules, NONE"
+
 # testExpandFilterConstantInCorrelatedWithTwoSubQueries -----------------------
 # [CALCITE-5680] Wrong field reference lookup due to same intermediate table
 # alias of multiple sub-queries with only literal operands in subquery remove
@@ -499,6 +536,201 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(SAL=[$5])
             LogicalFilter(condition=[=($0, $cor0.EMPNO)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules, NONE"
+
+# testInOptimizationBothNotNull -----------------------------------------------
+# [CALCITE-7317] SubQueryRemoveRule skips NULL-safety checks for IN subqueries
+# when both the keys and the subquery columns are NOT NULL.
+# Not using !ok: result contains all emp rows.
+
+select * from emp as e1
+where empno in (
+  select empno from emp e2);
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IN($0, {
+LogicalProject(EMPNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules, NONE"
+
+# testInWithNoRowSubQuery ------------------------------------------------------
+# [CALCITE-6650] IN subquery is optimized when Metadata RowCount = 0.
+# Not using !ok: result is empty but column header may differ.
+
+select * from dept as d
+where deptno in (
+  select deptno from emp e where false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[IN($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules, NONE"
+
+# testNotInNullableKey ---------------------------------------------------------
+# [CALCITE-7317] SubQueryRemoveRule does not skip NULL-safety checks for NOT IN
+# subqueries when the key is nullable.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select * from sales.empnullables as e1
+where deptno not in (
+  select coalesce(deptno, 0) from sales.empnullables e2);
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IN($7, {
+LogicalProject(EXPR$0=[CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(=($9, 0), AND(IS NULL($12), >=($10, $9), IS NOT NULL($7)))])
+      LogicalJoin(condition=[=($7, $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalProject(c=[$0], ck=[$0])
+            LogicalAggregate(group=[{}], c=[COUNT()])
+              LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(EXPR$0=[CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "subQueryRules, NONE"
+
+# testNotInNullableSubqueryColumn ----------------------------------------------
+# [CALCITE-7317] SubQueryRemoveRule does not skip NULL-safety checks for NOT IN
+# subqueries when the subquery column is nullable.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select * from sales.empnullables as e1
+where coalesce(deptno, 0) not in (
+  select deptno from sales.empnullables e2);
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IN(CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0), {
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[NOT(AND(OR(IS NOT NULL($12), <($10, $9)), <>($9, 0)))])
+      LogicalJoin(condition=[=(CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0), $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(DEPTNO=[$7])
+              LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "subQueryRules, NONE"
+
+# testNotInWithNoRowSubQuery ---------------------------------------------------
+# [CALCITE-6650] NOT IN subquery is optimized when Metadata RowCount = 0.
+# Not using !ok: result contains all dept rows.
+
+select * from dept as d
+where deptno not in (
+  select deptno from emp e where false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[NOT(IN($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules, NONE"
+
+# testNotUniqueWithNoRowSubQuery -----------------------------------------------
+# NOT UNIQUE of an empty subquery evaluates to false, so zero dept rows match.
+# Not using !ok: result is 0 rows from dept.
+
+select * from dept as d
+where not unique(
+  select deptno from emp e where false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[NOT(UNIQUE({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules, NONE"
+
+# testSomeWithGreaterThanNoRowSubQuery -----------------------------------------
+# [CALCITE-6650] SOME subquery is optimized when Metadata RowCount = 0.
+# Not using !ok: result is 0 rows.
+
+select * from dept as d
+where deptno > some(
+  select deptno from emp e where false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[> SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules, NONE"
+
+# testSomeWithLessThanOrEqualNoRowSubQuery -------------------------------------
+# [CALCITE-6650] SOME subquery is optimized when Metadata RowCount = 0.
+# Not using !ok: result is 0 rows.
+
+select * from dept as d
+where deptno <= some(
+  select deptno from emp e where false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[<= SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules, NONE"
+
+# testUniqueWithNoRowSubQuery --------------------------------------------------
+# UNIQUE of an empty subquery evaluates to true, so all dept rows match.
+# Not using !ok: result contains all dept rows.
+
+select * from dept as d
+where unique(
+  select deptno from emp e where false);
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[UNIQUE({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "subQueryRules, NONE"
 
 # testWhereInJoinCorrelated ---------------------------------------------------

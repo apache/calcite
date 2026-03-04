@@ -123,6 +123,42 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(10))):DOUBLE, 
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS"
 
+# testCorrelationScalarAggAndFilter -------------------------------------------
+# [CALCITE-2110] Reduce-expressions rules should not change a plan with a
+# correlated scalar sub-query (checkUnchanged).
+# Not using !ok: result has multiple rows.
+
+SELECT e1.empno
+FROM emp e1, dept d1 where e1.deptno = d1.deptno
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno);
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $4), >($1, $5))], joinType=[inner])
+    LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+      LogicalFilter(condition=[<($2, 10)])
+        LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[<($0, 15)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+      LogicalProject(EMPNO=[$0], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, trim=true"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $4), >($1, $5))], joinType=[inner])
+    LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+      LogicalFilter(condition=[<($2, 10)])
+        LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[<($0, 15)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+      LogicalProject(EMPNO=[$0], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, trim=true, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+
 # testDoubleReduction ----------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a POWER expression to a floating-point
 # constant. Without [CALCITE-2067], the result was 1008618.49 (less accurate).
@@ -447,6 +483,80 @@ LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "PROJECT_OVER_SUM_TO_SUM0_RULE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_MERGE, PROJECT_WINDOW_TRANSPOSE, WINDOW_REDUCE_EXPRESSIONS"
 
+# testPullConstantIntoJoin ----------------------------------------------------
+# JOIN_PUSH_TRANSITIVE_PREDICATES + JOIN_REDUCE_EXPRESSIONS pull empno = 10
+# into the join condition.
+# Not using !ok: result has 0 rows (no emp with empno = 10 in scott).
+
+select * from (select * from emp where empno = 10) as e
+left join dept as d on e.empno = d.deptno;
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[=($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES, JOIN_REDUCE_EXPRESSIONS"
+
+# testPullConstantIntoProject --------------------------------------------------
+# JOIN_PUSH_TRANSITIVE_PREDICATES + PROJECT_REDUCE_EXPRESSIONS pull the constant
+# deptno = 10 into a project, replacing references with the literal 10.
+# Not using !ok: uses schema-qualified table name.
+
+select deptno, deptno + 1, empno + deptno
+from emp
+where deptno = 10;
+LogicalProject(DEPTNO=[$7], EXPR$1=[+($7, 1)], EXPR$2=[+($0, $7)])
+  LogicalFilter(condition=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
+  LogicalFilter(condition=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES, PROJECT_REDUCE_EXPRESSIONS"
+
+# testPullConstantIntoProjectWithIsNotDistinctFrom -----------------------------
+# JOIN_PUSH_TRANSITIVE_PREDICATES + FILTER/PROJECT_REDUCE_EXPRESSIONS pull the
+# constant deptno IS NOT DISTINCT FROM 10 into a project.
+# Not using !ok: uses schema-qualified table name.
+
+select deptno, deptno + 1, empno + deptno
+from emp
+where deptno is not distinct from 10;
+LogicalProject(DEPTNO=[$7], EXPR$1=[+($7, 1)], EXPR$2=[+($0, $7)])
+  LogicalFilter(condition=[OR(AND(IS NULL($7), IS NULL(10)), IS TRUE(=($7, 10)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
+  LogicalFilter(condition=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
+
+# testPullConstantIntoProjectWithIsNotDistinctFromForNull ----------------------
+# [CALCITE-5336] FILTER_REDUCE_EXPRESSIONS and PROJECT_REDUCE_EXPRESSIONS
+# handle mgr IS NOT DISTINCT FROM NULL.
+# Not using !ok: uses schema-qualified table name.
+
+select mgr, deptno
+from emp
+where mgr is not distinct from null;
+LogicalProject(MGR=[$3], DEPTNO=[$7])
+  LogicalFilter(condition=[OR(AND(IS NULL($3), IS NULL(null:INTEGER)), IS TRUE(=($3, null)))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(MGR=[null:INTEGER], DEPTNO=[$7])
+  LogicalFilter(condition=[IS NULL($3)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
+
 # testPullNull -------------------------------------------------------
 # Tests that constant values are pulled into the project when they are known from the filter.
 
@@ -490,6 +600,52 @@ LogicalProject(EXPR$0=[false], EXPR$1=[true])
   LogicalFilter(condition=[=($6, 2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testPullUpPredicatesFromProject2 --------------------------------------------
+# FILTER_REDUCE_EXPRESSIONS + PROJECT_REDUCE_EXPRESSIONS reduce expressions
+# (comm = 2 becomes true, empno <> 1 becomes false).
+
+select comm = 2, empno <> 1 from emp where comm = 2 and empno = 1;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
++--------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EXPR$0=[=($6, 2)], EXPR$1=[<>($0, 1)])
+  LogicalFilter(condition=[AND(=($6, 2), =($0, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalProject(EXPR$0=[true], EXPR$1=[false])
+  LogicalFilter(condition=[AND(=($6, 2), =($0, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
+
+# testPullUpPredicatesFromUnionWithProject -------------------------------------
+# FILTER_REDUCE_EXPRESSIONS + PROJECT_REDUCE_EXPRESSIONS reduce constants
+# pulled from a filter into a union.
+# Not using !ok: result has 0 rows (comm = 2 matches no scott emp).
+
+select empno = null from emp where comm = 2
+union all
+select comm = 2 from emp where comm = 2;
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[null:BOOLEAN])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[=($6, 2)])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[null:BOOLEAN])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[true])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
 # testRand -------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces ROUND(RAND()) but preserves it when used

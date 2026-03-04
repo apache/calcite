@@ -362,6 +362,101 @@ LogicalUnion(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "UNION_MERGE"
 
+# testPullConstantThroughUnion ------------------------------------------------
+# UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull constant columns (literal 2)
+# out of a UNION ALL and add a Project above.
+# Not using !ok: result has 28 rows.
+
+select 2, deptno, job from emp as e1
+union all
+select 2, deptno, job from emp as e2;
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true"
+LogicalProject(EXPR$0=[2], DEPTNO=[$0], JOB=[$1])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughUnion2 ------------------------------------------------
+# Negative test: UNION_PULL_UP_CONSTANTS does not fire when constants differ
+# across inputs.
+# Not using !ok: result has 28 rows.
+
+select 2, deptno, job from emp as e1
+union all
+select 1, deptno, job from emp as e2;
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[1], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[1], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughUnion3 ------------------------------------------------
+# UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull both constant columns out, but
+# leave at least one column in each input to keep the UNION well-formed.
+# Not using !ok: result has 28 rows.
+
+select 2, 3 from emp as e1
+union all
+select 2, 3 from emp as e2;
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], EXPR$1=[3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[2], EXPR$1=[3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true"
+LogicalProject(EXPR$0=[2], EXPR$1=[3])
+  LogicalUnion(all=[true])
+    LogicalProject(EXPR$0=[2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
+# testPullConstantThroughUnionSameTypeNullableField ----------------------------
+# UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull constant deptno (= 1) from both
+# UNION inputs.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select deptno, ename from sales.empnullables where deptno = 1
+union all
+select deptno, ename from sales.empnullables where deptno = 1;
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=($1, 1)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalProject(DEPTNO=[$1], ENAME=[$0])
+    LogicalFilter(condition=[=($1, 1)])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "trim=true"
+LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
+  LogicalUnion(all=[true])
+    LogicalProject(ENAME=[$0])
+      LogicalFilter(condition=[=($1, 1)])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalProject(ENAME=[$0])
+      LogicalFilter(condition=[=($1, 1)])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+
 # testUnionToDistinctRule -----------------------------------------------------
 # UNION_TO_DISTINCT converts a UNION (distinct) to UNION ALL + Aggregate.
 
