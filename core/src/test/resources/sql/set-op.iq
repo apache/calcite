@@ -295,4 +295,35 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[3], proj#0..1=[{exprs}])
     EnumerableValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
 !plan
 
+# [CALCITE-7429] Query with MINUS fails with "Unable to implement EnumerableMinus(all=[false])"
+!use scott
+SELECT deptno FROM dept WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM emp e1 WHERE EXISTS (
+    SELECT 1 FROM emp e2
+    WHERE e2.comm = e1.comm);
++--------+
+| DEPTNO |
++--------+
+|     20 |
+|     40 |
++--------+
+(2 rows)
+
+!ok
+
+SELECT deptno FROM dept WHERE deptno > 12
+INTERSECT
+SELECT deptno FROM emp e1 WHERE EXISTS (
+    SELECT 1 FROM emp e2
+    WHERE e2.comm = e1.comm);
++--------+
+| DEPTNO |
++--------+
+|     30 |
++--------+
+(1 row)
+
+!ok
+
 # End set-op.iq
