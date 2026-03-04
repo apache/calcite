@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.util.Util.last;
 
@@ -588,7 +589,7 @@ public class SubQueryRemoveRule
     //   when e.deptno is null then null       -- (2) key NULL check
     //   when dt.i is not null then true       -- (3) match found
     //   when ct.ck < ct.c then null           -- (4) NULLs exist in subquery
-    //   else false                             -- (5) no match
+    //   else false                            -- (5) no match
     //   end
     // from emp as e
     // left join (
@@ -602,7 +603,7 @@ public class SubQueryRemoveRule
     // select e.deptno,
     //   case
     //   when dt.i is not null then true       -- (3) match found
-    //   else false                             -- (5) no match
+    //   else false                            -- (5) no match
     //   end
     // from emp as e
     // left join (select distinct deptno, true as i from emp) as dt
@@ -622,6 +623,43 @@ public class SubQueryRemoveRule
     // from emp as e
     // inner join (select distinct deptno from emp) as dt
     //   on e.deptno = dt.deptno
+    //
+    // For multi-column IN where at least one key or RHS column is nullable, a
+    // single wildcard LEFT JOIN handles both exact and partial-null matches,
+    // while all-null RHS rows are excluded from dt and detected via ct.ck < ct.c:
+    //
+    // select e.empno, (e.empno, e.comm) in (select empno, comm from emp)
+    // from emp as e
+    //
+    // becomes
+    //
+    // select e.empno,
+    //   case
+    //   when ct.c = 0 then false                     -- (1) empty subquery check
+    //   when e.comm is null then null                -- (2) nullable key NULL check
+    //   when dt.i is not null and dt.em then true    -- (3) exact match (all cols non-null)
+    //   when dt.i is not null then null              -- (4) partial-null match (UNKNOWN)
+    //   when ct.ck < ct.c then null                  -- (5) all-null row exists (UNKNOWN)
+    //   else false                                   -- (6) no match
+    //   end
+    // from emp as e
+    // inner join (
+    //   select count(*) as c,
+    //          count(*) filter (where not (empno is null and comm is null)) as ck
+    //   from emp) as ct on true
+    // left join (
+    //   select empno, comm, true as i,
+    //          max(empno is not null and comm is not null) as em
+    //   from emp
+    //   where empno is not null or comm is not null  -- all-null rows excluded
+    //   group by empno, comm) as dt
+    //   on (e.empno = dt.empno or dt.empno is null)  -- wildcard per-column condition
+    //   and (e.comm = dt.comm or dt.comm is null)
+    //
+    // All-null rows (empno IS NULL AND comm IS NULL) are excluded from dt because
+    // the wildcard condition matches every LHS key, causing duplicate join output
+    // rows for LHS keys that also have exact group matches. They are instead
+    // caught by the global ct.ck < ct.c check (branch 5).
 
     builder.push(e.rel);
     final List<RexNode> fields = new ArrayList<>(builder.fields());
@@ -668,6 +706,7 @@ public class SubQueryRemoveRule
     final RexLiteral unknownLiteral =
         builder.getRexBuilder().makeNullLiteral(trueLiteral.getType());
     boolean needsNullSafety = false;
+    boolean needsNullRowJoin = false;
     if (allLiterals) {
       final List<RexNode> conditions =
           Pair.zip(expressionOperands, fields).stream()
@@ -724,6 +763,7 @@ public class SubQueryRemoveRule
           (logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN
            || logic == RelOptUtil.Logic.UNKNOWN_AS_TRUE)
           && (!keyIsNulls.isEmpty() || anyFieldNullable);
+      needsNullRowJoin = needsNullSafety && fields.size() > 1;
 
       switch (logic) {
       case TRUE:
@@ -762,8 +802,21 @@ public class SubQueryRemoveRule
         }
         // fall through
       default:
-        builder.aggregate(builder.groupKey(fields),
-            builder.literalAgg(true).as("i"));
+        if (needsNullRowJoin) {
+          // Exclude all-null rows from dt (they are detected by ct.ck < ct.c instead).
+          // Add em (exact-match) column to distinguish exact groups from partial-null groups.
+          List<RexNode> anyFieldNotNull =
+              fields.stream().map(builder::isNotNull).collect(Collectors.toList());
+          builder.filter(builder.or(anyFieldNotNull));
+          RexNode allNotNull =
+              builder.and(fields.stream().map(builder::isNotNull).collect(Collectors.toList()));
+          builder.aggregate(builder.groupKey(fields),
+              builder.literalAgg(true).as("i"),
+              builder.max(allNotNull).as("em"));
+        } else {
+          builder.aggregate(builder.groupKey(fields),
+              builder.literalAgg(true).as("i"));
+        }
       }
     }
 
@@ -773,10 +826,22 @@ public class SubQueryRemoveRule
     }
     builder.as(dtAlias);
     int refOffset = offset;
-    final List<RexNode> conditions =
-        Pair.zip(expressionOperands, builder.fields()).stream()
-            .map(pair -> builder.equals(pair.left, RexUtil.shift(pair.right, refOffset)))
-            .collect(Collectors.toList());
+    final List<RexNode> conditions;
+    if (needsNullRowJoin) {
+      // Per-column wildcard condition: (key = col OR col IS NULL).
+      final List<RexNode> dtFields = builder.fields();
+      conditions = IntStream.range(0, expressionOperands.size())
+          .mapToObj(k -> {
+            RexNode col = RexUtil.shift(dtFields.get(k), refOffset);
+            return builder.or(builder.equals(expressionOperands.get(k), col),
+                builder.isNull(col));
+          })
+          .collect(Collectors.toList());
+    } else {
+      conditions = Pair.zip(expressionOperands, builder.fields()).stream()
+          .map(pair -> builder.equals(pair.left, RexUtil.shift(pair.right, refOffset)))
+          .collect(Collectors.toList());
+    }
     switch (logic) {
     case TRUE:
       builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
@@ -826,16 +891,29 @@ public class SubQueryRemoveRule
       operands.add(builder.isNotNull(builder.field(dtAlias, "cs")),
           trueLiteral);
     } else {
-      operands.add(builder.isNotNull(last(builder.fields())),
-          trueLiteral);
+      if (needsNullRowJoin) {
+        // em=true: exact match (all RHS cols non-null) → TRUE.
+        operands.add(
+            builder.and(
+                ImmutableList.of(
+                builder.isNotNull(builder.field(dtAlias, "i")),
+                builder.call(SqlStdOperatorTable.IS_TRUE,
+                    builder.field(dtAlias, "em")))),
+            trueLiteral);
+        // em=false: partial-null match → UNKNOWN.
+        operands.add(builder.isNotNull(builder.field(dtAlias, "i")), b);
+      } else {
+        operands.add(builder.isNotNull(builder.field(dtAlias, "i")),
+            trueLiteral);
+      }
     }
 
     if (!allLiterals) {
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
-        // only reference ctAlias if we created it
         if (needsNullSafety) {
+          // ct.ck < ct.c: RHS has a null (single-col) or all-null row (multi-col) → UNKNOWN.
           operands.add(
               builder.lessThan(builder.field(ctAlias, "ck"),
                   builder.field(ctAlias, "c")),
