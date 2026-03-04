@@ -64,10 +64,6 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
                     .appendIfNotNull(result.physType.comparer())
                     .append(Expressions.constant(all)));
       }
-
-      // Once the first input has chosen its format, ask for the same for
-      // other inputs.
-      pref = pref.of(result.format);
     }
 
     builder.add(requireNonNull(intersectExp, "intersectExp"));
