@@ -3004,7 +3004,7 @@ In the following:
 | b s | POW(numeric1, numeric2)                      | Returns *numeric1* raised to the power *numeric2*
 | b c h q m o f s p r | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
 | p r | RANDOM()                                     | Generates a random double between 0 and 1 inclusive
-| s | REGEXP(string, regexp)                         | Equivalent to `string1 RLIKE string2`
+| s h | REGEXP(string, regexp)                         | Equivalent to `string1 RLIKE string2`
 | b | REGEXP_CONTAINS(string, regexp)                | Returns whether *string* is a partial match for the *regexp*
 | b | REGEXP_EXTRACT(string, regexp [, position [, occurrence]]) | Returns the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Returns NULL if there is no match
 | b | REGEXP_EXTRACT_ALL(string, regexp)             | Returns an array of all substrings in *string* that matches the *regexp*. Returns an empty array if there is no match
