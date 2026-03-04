@@ -11761,4 +11761,14 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
+   * Add regexp function (enabled in Hive library)</a>. */
+  @Test void testRegexpWithHive() {
+    final String query = "select \"brand_name\"\n"
+        + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') ";
+    final String expectedSpark = "SELECT `brand_name`\nFROM "
+        + "`foodmart`.`product`\nWHERE `brand_name` REGEXP '[a-zA-Z]'";
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedSpark);
+  }
 }

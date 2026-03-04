@@ -445,4 +445,21 @@ public abstract class RelToSqlConverterUtil {
       writer.endList(frame);
     }
   }
+
+  /**
+   * Unparses REGEXP function calls by converting from function call format
+   * (e.g., REGEXP(column, pattern)) to infix operator format (e.g., column REGEXP pattern).
+   */
+  public static void unparseRegexp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.operandCount() != 2) {
+      throw new IllegalArgumentException("REGEXP operator requires exactly 2 operands");
+    }
+
+    final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "", "");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep("REGEXP", true);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endList(frame);
+  }
+
 }
