@@ -1,0 +1,644 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for the TopDownGeneralDecorrelator (CALCITE-7031).
+# Most tests use FILTER_SUB_QUERY_TO_MARK_CORRELATE or
+# PROJECT_SUB_QUERY_TO_MARK_CORRELATE rules, followed by late decorrelation
+# using the TopDownGeneralDecorrelator.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testMarkJoinMarkerColumnTypeNullableMismatch ---------------------------------
+# [CALCITE-7397] Error in simplifying join condition when creating LEFT MARK JOIN
+
+select sal,
+  cast(null as int) in (
+    select cast(null as int)
+    from dept) as has_null
+from emp;
++---------+----------+
+| SAL     | HAS_NULL |
++---------+----------+
+| 1100.00 |          |
+| 1250.00 |          |
+| 1250.00 |          |
+| 1300.00 |          |
+| 1500.00 |          |
+| 1600.00 |          |
+| 2450.00 |          |
+| 2850.00 |          |
+| 2975.00 |          |
+| 3000.00 |          |
+| 3000.00 |          |
+| 5000.00 |          |
+|  800.00 |          |
+|  950.00 |          |
++---------+----------+
+(14 rows)
+
+!ok
+LogicalProject(SAL=[$5], HAS_NULL=[IN(null:INTEGER, {
+LogicalProject(EXPR$0=[null:INTEGER])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(SAL=[$5], HAS_NULL=[$9])
+  LogicalJoin(condition=[null:BOOLEAN], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[null:INTEGER])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE"
+
+# testTopDownGeneralDecorrelateForCannotRemoveD --------------------------------
+# EXISTS with non-equi condition: cannot remove the inner D relation
+
+# Not using !ok: EMPNULLABLES is not in the scott database.
+select empno from emp where
+  exists(select * from empnullables where emp.deptno > empnullables.deptno);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[>($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $18)], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[>($9, $7)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForCountScalar ----------------------------------
+# Correlated scalar subquery using COUNT in a project
+
+select deptno,
+  (select count(empno) from emp where dept.deptno = emp.deptno)
+from dept;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      5 |
+|     30 |      6 |
+|     40 |      0 |
++--------+--------+
+(4 rows)
+
+!ok
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject(EMPNO=[$0])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], DEPTNO0=[$1], $f2=[CASE(IS NOT NULL($2), $2, 0)])
+      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForFilterExists ---------------------------------
+# [CALCITE-7031] Correlated EXISTS in WHERE clause
+
+select empno from emp where
+  exists(select * from dept where dept.deptno = emp.deptno);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($0, $cor0.DEPTNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $9)], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForFilterNotExists ------------------------------
+# [CALCITE-7031] Correlated NOT EXISTS in WHERE clause
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  not exists(select * from emp_b where emp.ename = emp_b.ename);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $1)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $10)], joinType=[anti])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForFilterNotIn ----------------------------------
+# [CALCITE-7031] Correlated NOT IN in WHERE clause
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  empno not in (select empno from emp_b where emp.ename = emp_b.ename);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT(IN($0, {
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=($cor0.ENAME, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[NOT($9)])
+    LogicalJoin(condition=[AND(=($0, $9), IS NOT DISTINCT FROM($1, $10))], joinType=[left_mark])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForFilterScalar ---------------------------------
+# [CALCITE-7031] Correlated scalar aggregate subquery in WHERE clause
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  sal > (select avg(sal) from emp_b where emp.ename = emp_b.ename);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[>($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($cor0.ENAME, $1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $9), >($5, $10))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}], EXPR$0=[AVG($0)])
+      LogicalProject(SAL=[$5], ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForFilterSome -----------------------------------
+# [CALCITE-7031] Correlated SOME in WHERE clause
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  empno > some(select empno from emp_b where emp.ename = emp_b.ename);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($0, {
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=($cor0.ENAME, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(>($0, $9), IS NOT DISTINCT FROM($1, $10))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForLateralJoin ----------------------------------
+# [CALCITE-7031] LATERAL join (already a Correlate, no sub-query to mark)
+
+select empno from emp,
+  lateral (select * from dept where emp.deptno = dept.deptno);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $11)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForMeasure --------------------------------------
+# [CALCITE-7411] Correlated SCALAR_QUERY in PROJECT with GROUP BY
+
+# Not using !ok: complex result with decimal arithmetic.
+select job,
+  (select
+      cast(sum(i.sal) - sum(coalesce(i.comm, 0)) as decimal(10, 2)) / sum(i.sal)
+    from emp as i
+    where i.job = e.job) as profitmargin,
+  count(*) as "count"
+from emp as e
+group by job;
+LogicalProject(variablesSet=[[$cor0]], JOB=[$0], PROFITMARGIN=[$SCALAR_QUERY({
+LogicalProject(EXPR$0=[/(CAST(-($0, $1)):DECIMAL(10, 2), $0)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[SUM($1)])
+    LogicalProject(SAL=[$5], $f1=[$6])
+      LogicalFilter(condition=[=($2, $cor0.JOB)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], count=[$1])
+  LogicalAggregate(group=[{0}], count=[COUNT()])
+    LogicalProject(JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(JOB=[$0], PROFITMARGIN=[$2], count=[$1])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[left])
+    LogicalAggregate(group=[{0}], count=[COUNT()])
+      LogicalProject(JOB=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject($f0=[/(CAST(-($1, $2)):DECIMAL(10, 2), $1)], JOB=[$0])
+      LogicalAggregate(group=[{2}], agg#0=[SUM($0)], agg#1=[SUM($1)])
+        LogicalProject(SAL=[$5], COMM=[$6], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForProjectExists --------------------------------
+# [CALCITE-7031] EXISTS subquery in SELECT list (project)
+
+select dept.deptno,
+  exists(select 1 from emp e where e.deptno = dept.deptno) as has_employees
+from dept;
++--------+---------------+
+| DEPTNO | HAS_EMPLOYEES |
++--------+---------------+
+|     10 | true          |
+|     20 | true          |
+|     30 | true          |
+|     40 | false         |
++--------+---------------+
+(4 rows)
+
+!ok
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], HAS_EMPLOYEES=[EXISTS({
+LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(DEPTNO=[$0], HAS_EMPLOYEES=[$2])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $9)], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForProjectIn ------------------------------------
+# [CALCITE-7031] IN subquery in SELECT list (project)
+
+select emp.deptno,
+  emp.deptno in (select dept.deptno from dept where dept.deptno < emp.empno)
+from emp;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | true   |
+|     10 | true   |
+|     10 | true   |
+|     20 | true   |
+|     20 | true   |
+|     20 | true   |
+|     20 | true   |
+|     20 | true   |
+|     30 | true   |
+|     30 | true   |
+|     30 | true   |
+|     30 | true   |
+|     30 | true   |
+|     30 | true   |
++--------+--------+
+(14 rows)
+
+!ok
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$7], EXPR$1=[IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[<($0, $cor0.EMPNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
+  LogicalJoin(condition=[AND(=($7, $9), IS NOT DISTINCT FROM($0, $10))], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], EMPNO=[$2])
+      LogicalJoin(condition=[<($0, $2)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForProjectScalar --------------------------------
+# [CALCITE-7031] Correlated scalar subquery in SELECT list
+
+# Not using !ok: EMPDEFAULTS is not in the scott database.
+select empno, sal +
+  (select avg(sal) from empdefaults where emp.deptno = empdefaults.deptno)
+from emp;
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[+($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPDEFAULTS]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0], EXPR$1=[+($5, $10)])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}], EXPR$0=[AVG($0)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalFilter(condition=[IS NOT NULL($7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPDEFAULTS]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForSubqueryWithCube ----------------------------
+# [CALCITE-7031] Correlated SOME with GROUP BY CUBE in subquery
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  sal < some(select avg(sal) from emp_b where emp.job = emp_b.job group by cube(deptno));
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[< SOME($5, {
+LogicalProject(EXPR$0=[$1])
+  LogicalAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$0=[AVG($1)])
+    LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalFilter(condition=[=($cor0.JOB, $2)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(<($5, $9), IS NOT DISTINCT FROM($2, $10))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[$3], JOB=[$0])
+      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(JOB=[$2])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0, 2}], groups=[[{0, 2}, {2}]], EXPR$0=[AVG($1)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5], JOB=[$2])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForSubqueryWithJoin ----------------------------
+# [CALCITE-7031] Correlated SOME with join inside subquery
+
+# Not using !ok: EMPNULLABLES is not in the scott database.
+select empno from emp where sal > some(
+  select sal from empnullables, (select empno from emp_b where emp.deptno = emp_b.deptno)
+  b where empnullables.empno = b.empno);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($5, {
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[=($0, $9)])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalProject(EMPNO=[$0])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(>($5, $9), IS NOT DISTINCT FROM($7, $10))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(SAL=[$5], DEPTNO0=[$10])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForSubqueryWithSetOp ----------------------------
+# [CALCITE-7031] Correlated scalar subquery over UNION ALL
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno, (select sum(deptno) from (
+  select deptno from emp_b where emp.empno = emp_b.empno
+  union all select deptno from empnullables where emp.empno = empnullables.empno))
+from emp;
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7])
+      LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0], EXPR$1=[$10])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{1}], EXPR$0=[SUM($0)])
+      LogicalUnion(all=[true])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForSubqueryWithSort ----------------------------
+# [CALCITE-7031] Correlated SOME with ORDER BY LIMIT in subquery
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  sal > some(select sal from emp_b where emp.deptno = emp_b.deptno
+    order by emp_b.sal limit 5);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($5, {
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[5])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(>($5, $9), IS NOT DISTINCT FROM($7, $10))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[<=($2, 5)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7], $f2=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $5 NULLS LAST)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForTwoLevelCorrelate ----------------------------
+# [CALCITE-7031] Two-level correlated EXISTS (three tables)
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  exists(select * from emp_b where emp.ename = emp_b.ename and
+    exists(select * from empnullables where emp.empno = empnullables.empno and
+      emp_b.deptno = empnullables.deptno));
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($cor0.ENAME, $1), EXISTS({
+LogicalFilter(condition=[AND(=($cor0.EMPNO, $0), =($cor2.DEPTNO, $7))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+}))], variablesSet=[[$cor2]])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $19), IS NOT DISTINCT FROM($1, $20))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($10, $21), IS NOT DISTINCT FROM($11, $22), IS NOT DISTINCT FROM($7, $23))], joinType=[semi])
+      LogicalJoin(condition=[=($11, $1)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+        LogicalProject(EMPNO=[$0], ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[AND(=($9, $0), =($11, $7))], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalAggregate(group=[{0, 1, 2}])
+          LogicalProject(EMPNO0=[$10], ENAME0=[$11], DEPTNO=[$7])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+              LogicalProject(EMPNO=[$0], ENAME=[$1])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForTwoLevelCorrelate2 ---------------------------
+# [CALCITE-7031] Two-level correlated EXISTS (outer + inner correlation)
+
+# Not using !ok: EMP_B is not in the scott database.
+select empno from emp where
+  exists(select * from emp_b where emp.ename = emp_b.ename and
+    exists(select * from empnullables where emp.empno = empnullables.empno));
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($cor0.ENAME, $1), EXISTS({
+LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $19), IS NOT DISTINCT FROM($1, $20))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($10, $21), IS NOT DISTINCT FROM($11, $22))], joinType=[semi])
+      LogicalJoin(condition=[=($11, $1)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+        LogicalProject(EMPNO=[$0], ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalProject(EMPNO=[$0], ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# testTopDownGeneralDecorrelateForTwoLevelCorrelate3 ---------------------------
+# [CALCITE-7031] Two-level correlated EXISTS with BONUS table
+
+select deptno from emp e where exists (select * from dept d where exists
+  (select * from bonus ea where ea.ename = e.ename and d.deptno = e.deptno));
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($0, $cor0.ENAME), =($cor1.DEPTNO, $cor0.DEPTNO))])
+  LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+})], variablesSet=[[$cor1]])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $11), IS NOT DISTINCT FROM($7, $12))], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($2, $8), IS NOT DISTINCT FROM($3, $9), IS NOT DISTINCT FROM($0, $10))], joinType=[semi])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0, 1}])
+          LogicalProject(ENAME=[$1], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+        LogicalProject(ENAME=[$2], DEPTNO0=[$3], DEPTNO=[$0])
+          LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalAggregate(group=[{0, 1}])
+              LogicalProject(ENAME=[$1], DEPTNO=[$7])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+
+# End top-down-decorrelate.iq

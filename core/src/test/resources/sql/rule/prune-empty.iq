@@ -385,6 +385,77 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
+# testLeftJoinRemoveConditionIsAlwaysFalse -------------------------------------
+# [CALCITE-7071] LEFT JOIN where condition is always false: right input becomes
+# empty, and JOIN_RIGHT_INSTANCE removes the join.
+
+select e.deptno
+from emp e
+left join dept d on e.deptno = d.deptno and e.deptno between 3 and 1;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[false], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$7])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[null:INTEGER], DNAME=[null:VARCHAR(10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "JOIN_CONDITION_PUSH, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+
+# testPruneEmptyRuleForLeftMarkJoin --------------------------------------------
+# [CALCITE-7396] PruneEmptyRules does not support LEFT_MARK JOIN.
+# Pre-rules convert NOT IN to a LEFT_MARK JOIN; FILTER_REDUCE_EXPRESSIONS
+# reduces the inner 'false' condition; PROJECT_INSTANCE propagates empty.
+# Then JOIN_RIGHT_INSTANCE handles the LEFT_MARK JOIN with empty right input.
+
+select * from dept
+where deptno not in (select deptno from emp where false);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[NOT($2)])
+      LogicalJoin(condition=[=($0, $2)], joinType=[left_mark])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalValues(tuples=[[]])
+!sub-plan "FILTER_SUB_QUERY_TO_MARK_CORRELATE, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[NOT($2)])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], markCol=[false])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_SUB_QUERY_TO_MARK_CORRELATE, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+
 # testRightEmptyFullJoin -------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, FULL join → left side is padded
 # with nulls (cannot eliminate join).
@@ -516,5 +587,43 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+
+# testRightJoinRemoveConditionIsAlwaysFalse ------------------------------------
+# [CALCITE-7071] RIGHT JOIN where condition is always false: left input becomes
+# empty, and JOIN_LEFT_INSTANCE removes the join.
+
+select e.deptno
+from dept d
+right join emp e on e.deptno = d.deptno and e.deptno between 3 and 1;
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     10 |
+|     10 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(DEPTNO=[$9])
+  LogicalJoin(condition=[false], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$9])
+  LogicalProject(DEPTNO=[null:INTEGER], DNAME=[null:VARCHAR(10)], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO0=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "JOIN_CONDITION_PUSH, PruneEmptyRules.JOIN_LEFT_INSTANCE"
 
 # End prune-empty.iq

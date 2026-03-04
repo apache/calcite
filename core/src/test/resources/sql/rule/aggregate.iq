@@ -66,6 +66,40 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE"
 
+# testAggregateGroupingSetsToUnionRuleGroupingGrouId ---------------------------
+# [CALCITE-7116] AGGREGATE_GROUPING_SETS_TO_UNION converts GROUPING SETS with
+# GROUPING() and GROUP_ID() functions.
+
+# Not using !ok: GROUP_ID() may not be supported by HSQLDB.
+select deptno, job, sal, sum(comm),
+  grouping(deptno) as deptno_flag,
+  grouping(job) as job_flag,
+  grouping(sal) as sal_flag,
+  grouping(deptno, sal) as deptno_sal_flag,
+  group_id() as group_id
+from emp
+group by grouping sets ((deptno, job),(deptno, job, sal),(deptno, sal));
+LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[$4], JOB_FLAG=[$5], SAL_FLAG=[$6], DEPTNO_SAL_FLAG=[$7], GROUP_ID=[0:BIGINT])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {0, 1}, {0, 2}]], EXPR$3=[SUM($3)], DEPTNO_FLAG=[GROUPING($0)], JOB_FLAG=[GROUPING($1)], SAL_FLAG=[GROUPING($2)], DEPTNO_SAL_FLAG=[GROUPING($0, $2)])
+    LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[$4], JOB_FLAG=[$5], SAL_FLAG=[$6], DEPTNO_SAL_FLAG=[$7], GROUP_ID=[0:BIGINT])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[$2], EXPR$3=[$3], DEPTNO_FLAG=[0:BIGINT], JOB_FLAG=[0:BIGINT], SAL_FLAG=[0:BIGINT], DEPTNO_SAL_FLAG=[0:BIGINT])
+      LogicalAggregate(group=[{0, 1, 2}], EXPR$3=[SUM($3)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], JOB=[$1], SAL=[null:INTEGER], EXPR$3=[$2], DEPTNO_FLAG=[0:BIGINT], JOB_FLAG=[0:BIGINT], SAL_FLAG=[1:BIGINT], DEPTNO_SAL_FLAG=[1:BIGINT])
+      LogicalAggregate(group=[{0, 1}], EXPR$3=[SUM($3)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], JOB=[null:VARCHAR(10)], SAL=[$1], EXPR$3=[$2], DEPTNO_FLAG=[0:BIGINT], JOB_FLAG=[1:BIGINT], SAL_FLAG=[0:BIGINT], DEPTNO_SAL_FLAG=[0:BIGINT])
+      LogicalAggregate(group=[{0, 2}], EXPR$3=[SUM($3)])
+        LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], COMM=[$6])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_GROUPING_SETS_TO_UNION"
+
 # testAggregateMerge1 ---------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates into a single aggregate.
 
@@ -1119,6 +1153,44 @@ LogicalAggregate(group=[{0, 1}])
       LogicalProject(JOB=[$2], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_AGGREGATE"
+
+# testReduceAggregateFunctionsByGroup ------------------------------------------
+# [CALCITE-5000] AGGREGATE_REDUCE_FUNCTIONS simplifies aggregate calls whose
+# argument is in the GROUP BY key.
+
+select sal, max(sal) as sal_max, min(sal) as sal_min,
+  avg(sal) sal_avg, any_value(sal) as sal_val, first_value(sal) as sal_first,
+  last_value(sal) as sal_last
+from emp group by sal, deptno;
++---------+---------+---------+---------+---------+-----------+----------+
+| SAL     | SAL_MAX | SAL_MIN | SAL_AVG | SAL_VAL | SAL_FIRST | SAL_LAST |
++---------+---------+---------+---------+---------+-----------+----------+
+| 1100.00 | 1100.00 | 1100.00 | 1100.00 | 1100.00 |   1100.00 |  1100.00 |
+| 1250.00 | 1250.00 | 1250.00 | 1250.00 | 1250.00 |   1250.00 |  1250.00 |
+| 1300.00 | 1300.00 | 1300.00 | 1300.00 | 1300.00 |   1300.00 |  1300.00 |
+| 1500.00 | 1500.00 | 1500.00 | 1500.00 | 1500.00 |   1500.00 |  1500.00 |
+| 1600.00 | 1600.00 | 1600.00 | 1600.00 | 1600.00 |   1600.00 |  1600.00 |
+| 2450.00 | 2450.00 | 2450.00 | 2450.00 | 2450.00 |   2450.00 |  2450.00 |
+| 2850.00 | 2850.00 | 2850.00 | 2850.00 | 2850.00 |   2850.00 |  2850.00 |
+| 2975.00 | 2975.00 | 2975.00 | 2975.00 | 2975.00 |   2975.00 |  2975.00 |
+| 3000.00 | 3000.00 | 3000.00 | 3000.00 | 3000.00 |   3000.00 |  3000.00 |
+| 5000.00 | 5000.00 | 5000.00 | 5000.00 | 5000.00 |   5000.00 |  5000.00 |
+|  800.00 |  800.00 |  800.00 |  800.00 |  800.00 |    800.00 |   800.00 |
+|  950.00 |  950.00 |  950.00 |  950.00 |  950.00 |    950.00 |   950.00 |
++---------+---------+---------+---------+---------+-----------+----------+
+(12 rows)
+
+!ok
+LogicalProject(SAL=[$0], SAL_MAX=[$2], SAL_MIN=[$3], SAL_AVG=[$4], SAL_VAL=[$5], SAL_FIRST=[$6], SAL_LAST=[$7])
+  LogicalAggregate(group=[{0, 1}], SAL_MAX=[MAX($0)], SAL_MIN=[MIN($0)], SAL_AVG=[AVG($0)], SAL_VAL=[ANY_VALUE($0)], SAL_FIRST=[FIRST_VALUE($0)], SAL_LAST=[LAST_VALUE($0)])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(SAL=[$0], SAL_MAX=[$0], SAL_MIN=[$0], SAL_AVG=[$0], SAL_VAL=[$0], SAL_FIRST=[$0], SAL_LAST=[$0])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_REDUCE_FUNCTIONS, PROJECT_MERGE"
 
 # testRemoveDistinctOnAgg ------------------------------------------------------
 # AGGREGATE_REMOVE removes the aggregate when the group key contains a primary

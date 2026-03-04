@@ -102,4 +102,44 @@ LogicalProject(UNO=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_EXTRACT_FILTER"
 
+# testSwapRightToLeftOnly ------------------------------------------------------
+# [CALCITE-7089] JOIN_COMMUTE_RIGHT_TO_LEFT converts RIGHT OUTER JOIN to LEFT
+# OUTER JOIN (unlike JOIN_COMMUTE, does not swap INNER joins).
+
+select 1
+from dept d right outer join emp e
+on d.deptno = e.deptno;
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[=($0, $9)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[$9], DNAME=[$10], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO0=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($9, $7)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "JOIN_COMMUTE_RIGHT_TO_LEFT"
+
 # End join.iq

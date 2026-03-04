@@ -50,6 +50,7 @@ import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.sql2rel.TopDownGeneralDecorrelator;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -196,6 +197,11 @@ public abstract class QuidemTest {
    *   <li>{@code lateDecorrelate=true} &mdash; applies
    *       {@link RelDecorrelator#decorrelateQuery} after the main rules;
    *       equivalent to {@code .withLateDecorrelate(true)}
+   *   <li>{@code topDownGeneralDecorrelate=true} &mdash; when used with
+   *       {@code lateDecorrelate=true}, applies
+   *       {@link TopDownGeneralDecorrelator#decorrelateQuery} instead of
+   *       {@link RelDecorrelator#decorrelateQuery};
+   *       equivalent to {@code .withTopDownGeneralDecorrelate(true)}
    *   <li>{@code operatorTable=BIG_QUERY} &mdash; uses BigQuery operator
    *       table; equivalent to
    *       {@code .withFactory(t -> t.withOperatorTable(o ->
@@ -233,6 +239,7 @@ public abstract class QuidemTest {
         boolean relBuilderSimplify = true;
         boolean expand = false;
         boolean lateDecorrelate = false;
+        boolean topDownGeneralDecorrelate = false;
         boolean operatorTableBigQuery = false;
         boolean throwIfNotUnique = true;
         boolean trim = false;
@@ -260,6 +267,8 @@ public abstract class QuidemTest {
               expand = true;
             } else if (name.equals("lateDecorrelate=true")) {
               lateDecorrelate = true;
+            } else if (name.equals("topDownGeneralDecorrelate=true")) {
+              topDownGeneralDecorrelate = true;
             } else if (name.equals("operatorTable=BIG_QUERY")) {
               operatorTableBigQuery = true;
             } else if (name.equals("relBuilderSimplify=false")) {
@@ -324,6 +333,7 @@ public abstract class QuidemTest {
         }
         final boolean decorrelate0 = decorrelate;
         final boolean lateDecorrelate0 = lateDecorrelate;
+        final boolean topDownGeneralDecorrelate0 = topDownGeneralDecorrelate;
         final boolean trim0 = trim;
         final SqlTestFactory factory0 = testFactory;
 
@@ -378,7 +388,9 @@ public abstract class QuidemTest {
           if (lateDecorrelate0) {
             final RelBuilder relBuilder =
                 RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), null);
-            relNode = RelDecorrelator.decorrelateQuery(relNode, relBuilder);
+            relNode = topDownGeneralDecorrelate0
+                ? TopDownGeneralDecorrelator.decorrelateQuery(relNode, relBuilder)
+                : RelDecorrelator.decorrelateQuery(relNode, relBuilder);
           }
 
           final String s = RelOptUtil.toString(relNode);
