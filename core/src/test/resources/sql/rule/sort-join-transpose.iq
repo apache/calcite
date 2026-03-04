@@ -26,8 +26,10 @@
 # testSortJoinCopyInnerJoinOrderBy ---------------------------------------------
 # SORT_JOIN_COPY should copy the Sort to the preserving side of an inner join.
 
-select * from emp join dept on
-emp.deptno = dept.deptno order by sal;
+select *
+from emp
+join dept on emp.deptno = dept.deptno
+order by sal;
 +-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME      | LOC      |
 +-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -67,7 +69,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testSortJoinCopyInnerJoinOrderByLimit ----------------------------------------
 # SORT_JOIN_COPY should copy the Sort but not the fetch to the preserving side.
 
-select * from emp e join (
+select *
+from emp e
+join (
   select * from dept d) d on e.deptno = d.deptno
 order by sal limit 10;
 +-------+--------+----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -108,8 +112,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # SORT_JOIN_COPY should copy Sort keys to both sides when each key comes from
 # a different input.
 
-select * from emp e join  dept d on
- e.deptno = d.deptno order by e.sal,d.dname;
+select *
+from emp e
+join dept d on e.deptno = d.deptno
+order by e.sal,d.dname;
 +-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME      | LOC      |
 +-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -150,7 +156,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testSortJoinTranspose1 -------------------------------------------------------
 # SORT_JOIN_TRANSPOSE should push Sort past the preserving side of a left join.
 
-select * from emp e left join (
+select *
+from emp e
+left join (
   select * from dept d) d on e.deptno = d.deptno
 order by sal limit 10;
 +-------+--------+----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -190,7 +198,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testSortJoinTranspose10 ------------------------------------------------------
 # SORT_JOIN_TRANSPOSE should handle large BIGINT fetch and offset values.
 
-select * from emp e left join (
+select *
+from emp e
+left join (
   select * from dept d) d on e.deptno = d.deptno
 limit 3000000000 offset 2500000000;
 # Not using !ok: LIMIT 3000000000 OFFSET 2500000000 overflows H2 implementation limits.
@@ -214,7 +224,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testSortJoinTranspose2 -------------------------------------------------------
 # SORT_JOIN_TRANSPOSE should push Sort past the preserving side of a right join.
 
-select * from emp e right join (
+select *
+from emp e
+right join (
   select * from dept d) d on e.deptno = d.deptno
 order by dname;
 +-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -260,7 +272,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # SORT_JOIN_TRANSPOSE should not push Sort when keys come from both sides of
 # the join.
 
-select * from emp e left join (
+select *
+from emp e
+left join (
   select * from dept) d on e.deptno = d.deptno
 order by sal, dname limit 10;
 +-------+--------+----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -300,7 +314,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # SORT_JOIN_TRANSPOSE should not fire again after it has already pushed the Sort.
 # [CALCITE-1498]
 
-select * from emp e right join (
+select *
+from emp e
+right join (
   select * from dept d) d on e.deptno = d.deptno
 limit 10;
 +-------+--------+-----------+------+------------+---------+---------+--------+---------+------------+----------+
@@ -342,8 +358,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # SORT_JOIN_TRANSPOSE should push LIMIT+OFFSET past a count-preserving join.
 # [CALCITE-1507]
 
-select d.deptno, empno from dept d
-right join emp e using (deptno) limit 10 offset 2;
+select d.deptno, empno
+from dept d
+right join emp e using (deptno)
+limit 10 offset 2;
 +--------+-------+
 | DEPTNO | EMPNO |
 +--------+-------+
@@ -381,8 +399,10 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 # non-preserving side is count-preserving against the join condition.
 # [CALCITE-1507]
 
-select d.deptno, empno from dept d
-left join emp e using (deptno) order by d.deptno offset 1;
+select d.deptno, empno
+from dept d
+left join emp e using (deptno)
+order by d.deptno offset 1;
 +--------+-------+
 | DEPTNO | EMPNO |
 +--------+-------+
@@ -425,8 +445,9 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 # [CALCITE-6983]
 # Not using !ok: the query has a parameter
 
-select * from emp e right join (
-  select * from dept d) d on e.deptno = d.deptno
+select *
+from emp e
+right join (select * from dept d) d on e.deptno = d.deptno
 FETCH NEXT ? ROWS ONLY;
 EMPNO SMALLINT(5)
 ENAME VARCHAR(10)
@@ -462,8 +483,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # [CALCITE-6983]
 # Not using !ok: the query has a parameter
 
-select * from emp e left join (
-  select * from dept d) d on e.deptno = d.deptno
+select *
+from emp e
+left join (select * from dept d) d on e.deptno = d.deptno
 OFFSET ? ROWS;
 EMPNO SMALLINT(5) NOT NULL
 ENAME VARCHAR(10)
@@ -497,7 +519,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # SORT_PROJECT_TRANSPOSE should push Sort past a Project when the sort key is a
 # monotone expression (cast to same type).
 
-select d.deptno from dept d
+select d.deptno
+from dept d
 order by cast(d.deptno as integer) offset 1;
 +--------+
 | DEPTNO |
@@ -525,7 +548,8 @@ LogicalProject(DEPTNO=[$0])
 # SORT_PROJECT_TRANSPOSE should push Sort past a Project when the sort key is a
 # monotone cast (DOUBLE preserves integer ordering).
 
-select d.deptno from dept d
+select d.deptno
+from dept d
 order by cast(d.deptno as double) offset 1;
 +--------+
 | DEPTNO |
@@ -553,7 +577,8 @@ LogicalProject(DEPTNO=[$0])
 # SORT_JOIN_TRANSPOSE should not push Sort past a Project when the sort key is
 # a non-monotone cast (VARCHAR ordering differs from integer ordering).
 
-select d.deptno from dept d
+select d.deptno
+from dept d
 order by cast(d.deptno as varchar(10)) offset 1;
 +--------+
 | DEPTNO |

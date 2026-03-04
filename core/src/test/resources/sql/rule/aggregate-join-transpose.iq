@@ -60,7 +60,9 @@ LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)],
 # testPushAggregateSumNoGroup -------------------------------------------------
 # Pushes COUNT(*) through a join with no GROUP BY.
 
-select count(*) from emp join dept on job = dname;
+select count(*)
+from emp
+join dept on job = dname;
 +--------+
 | EXPR$0 |
 +--------+
@@ -271,21 +273,21 @@ LogicalAggregate(group=[{0, 1}])
         LogicalFilter(condition=[=($0, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "aggregateUnique=true, NONE"
+!sub-plan "aggregateUnique=true"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE"
+!sub-plan "aggregateUnique=true, AGGREGATE_PROJECT_MERGE"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+!sub-plan "aggregateUnique=true, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushAggregateThroughJoin4 -----------------------------------------------
 # [CALCITE-1544] AggregateJoinTransposeRule fails to preserve row type.
@@ -503,7 +505,9 @@ select A.job, B.mgr, A.deptno,
 max(B.hiredate1) as hiredate1, sum(B.comm1) as comm1
 from emp as A
 join (select mgr, sal, max(hiredate) as hiredate1,
-    sum(comm) as comm1 from emp group by mgr, sal) as B
+    sum(comm) as comm1
+  from emp
+  group by mgr, sal) as B
 on A.sal=B.sal
 group by A.job, B.mgr, A.deptno;
 +-----------+------+--------+------------+---------+
@@ -628,21 +632,21 @@ LogicalAggregate(group=[{0, 1}])
         LogicalFilter(condition=[=($0, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "aggregateUnique=true, NONE"
+!sub-plan "aggregateUnique=true"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE"
+!sub-plan "aggregateUnique=true, AGGREGATE_PROJECT_MERGE"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "aggregateUnique=true, NONE, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+!sub-plan "aggregateUnique=true, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushAggregateThroughOuterJoin12 -----------------------------------------
 # Right outer join; group by on key same as join key, on null generating side.
@@ -1091,8 +1095,9 @@ LogicalAggregate(group=[{0, 2}])
 # testPushDistinctAggregateIntoJoin -------------------------------------------
 # [CALCITE-2249] Should not push a DISTINCT aggregate into a join (checkUnchanged).
 
-select count(distinct sal) from emp
- join dept on job = dname;
+select count(distinct sal)
+from emp
+join dept on job = dname;
 +--------+
 | EXPR$0 |
 +--------+

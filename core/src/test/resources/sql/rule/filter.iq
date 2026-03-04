@@ -27,9 +27,12 @@
 # when the Filter contains a Subquery with correlation.
 # [CALCITE-6873]
 
-select * from (select deptno from emp) as d
+select *
+from (select deptno from emp) as d
 where NOT EXISTS (
-  select count(*) from emp e where e.deptno = d.deptno);
+  select count(*)
+  from emp e
+  where e.deptno = d.deptno);
 +--------+
 | DEPTNO |
 +--------+
@@ -62,7 +65,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 # FILTER_PROJECT_TRANSPOSE should push the Filter past the Project
 # when the Filter does not contain a correlated Subquery.
 
-select * from (select deptno from emp) as d
+select *
+from (select deptno from emp) as d
 where NOT EXISTS (
   select count(*) from emp e);
 +--------+
@@ -95,7 +99,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 # FILTER_MERGE merges identical filters arising from a JOIN ON clause and a
 # WHERE clause.
 
-select * from (
+select *
+from (
   select d.deptno, e.ename
   from emp as e
   join dept as d
@@ -130,12 +135,20 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
 # testPushFilterPastAggWithGroupingSets1 ---------------------------------------
 # FILTER_AGGREGATE_TRANSPOSE does not push a filter past an aggregate with
 # ROLLUP grouping sets (checkUnchanged).
-# Not using !ok: result row order is non-deterministic.
 
-select ddeptno, dname, c from
-(select deptno ddeptno, dname dname, count(*) as c
-from dept group by rollup(deptno,dname)) t
+select ddeptno, dname, c
+from (
+  select deptno ddeptno, dname, count(*) as c
+  from dept
+  group by rollup(deptno,dname)) t
 where dname = 'Charlie';
++---------+-------+---+
+| DDEPTNO | DNAME | C |
++---------+-------+---+
++---------+-------+---+
+(0 rows)
+
+!ok
 LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
   LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
     LogicalFilter(condition=[=($1, 'Charlie')])
@@ -152,12 +165,20 @@ LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
 # testPushFilterPastAggWithGroupingSets2 ---------------------------------------
 # FILTER_AGGREGATE_TRANSPOSE pushes a filter past an aggregate with non-ROLLUP
 # grouping sets.
-# Not using !ok: result row order is non-deterministic.
 
-select dname, ddeptno, c from
-(select dname dname, deptno ddeptno, count(*) as c
-from dept group by grouping sets ((dname,deptno),(dname))) t
+select dname, ddeptno, c
+from (
+  select dname dname, deptno ddeptno, count(*) as c
+  from dept
+  group by grouping sets ((dname,deptno),(dname))) t
 where dname = 'Charlie';
++-------+---------+---+
+| DNAME | DDEPTNO | C |
++-------+---------+---+
++-------+---------+---+
+(0 rows)
+
+!ok
 LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
   LogicalFilter(condition=[=($0, 'Charlie')])
     LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
@@ -174,7 +195,9 @@ LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
 # testReduceValuesUnderFilter --------------------------------------------------
 # FILTER_VALUES_MERGE merges a filter with an underlying VALUES node.
 
-select a, b from (values (10, 'x'), (20, 'y')) as t(a, b) where a < 15;
+select a, b
+from (values (10, 'x'), (20, 'y')) as t(a, b)
+where a < 15;
 +----+---+
 | A  | B |
 +----+---+

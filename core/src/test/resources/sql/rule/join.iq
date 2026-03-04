@@ -26,34 +26,36 @@
 # JOIN_ADD_REDUNDANT_SEMI_JOIN adds a SemiJoin as a pre-filter to improve
 # performance.
 
-select 1 from emp inner join dept on emp.deptno = dept.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
+select 1 as uno
+from emp
+inner join dept on emp.deptno = dept.deptno;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan ""
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
     LogicalJoin(condition=[=($7, $9)], joinType=[semi])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -64,34 +66,36 @@ LogicalProject(EXPR$0=[1])
 # testExtractJoinFilterRule ---------------------------------------------------
 # JOIN_EXTRACT_FILTER moves a join condition into a Filter above a cross join.
 
-select 1 from emp inner join dept on emp.deptno=dept.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
+select 1 as uno
+from emp
+inner join dept on emp.deptno=dept.deptno;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan ""
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalFilter(condition=[=($7, $9)])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])

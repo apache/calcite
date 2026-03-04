@@ -25,22 +25,23 @@
 # testAggregateUnionTransposeWithAllInputsUnique --------------------------------
 # AGGREGATE_UNION_TRANSPOSE is a no-op if all inputs to UNION are already unique.
 
-select deptno, SUM(t) from (
-select distinct deptno, 1 as t from emp e1
-union all
-select distinct deptno, 2 as t from emp e2)
+select deptno, SUM(t) as s
+from (
+  select distinct deptno, 1 as t from emp e1
+  union all
+  select distinct deptno, 2 as t from emp e2)
 group by deptno;
-+--------+--------+
-| DEPTNO | EXPR$1 |
-+--------+--------+
-|     10 |      3 |
-|     20 |      3 |
-|     30 |      3 |
-+--------+--------+
++--------+---+
+| DEPTNO | S |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
 (3 rows)
 
 !ok
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(DEPTNO=[$7], T=[1])
@@ -49,7 +50,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(DEPTNO=[$7], T=[1])
@@ -63,13 +64,14 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input has a non-nullable column.
 # [CALCITE-6642]
 
-select deptno, SUM(t) from (
-select deptno, 1 as t from emp e1
-union all
-select deptno, nullif(sal, 0) as t from emp e2)
+select deptno, SUM(t) as s
+from (
+  select deptno, 1 as t from emp e1
+  union all
+  select deptno, nullif(sal, 0) as t from emp e2)
 group by deptno;
 +--------+----------+
-| DEPTNO | EXPR$1   |
+| DEPTNO | S        |
 +--------+----------+
 |     10 |  8753.00 |
 |     20 | 10880.00 |
@@ -78,19 +80,19 @@ group by deptno;
 (3 rows)
 
 !ok
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7], T=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_UNION_TRANSPOSE"
@@ -99,22 +101,23 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input is unique.
 # [CALCITE-4616]
 
-select deptno, SUM(t) from (
-select deptno, 1 as t from emp e1
-union all
-select distinct deptno, 2 as t from emp e2)
+select deptno, SUM(t) as s
+from (
+  select deptno, 1 as t from emp e1
+  union all
+  select distinct deptno, 2 as t from emp e2)
 group by deptno;
-+--------+--------+
-| DEPTNO | EXPR$1 |
-+--------+--------+
-|     10 |      5 |
-|     20 |      7 |
-|     30 |      8 |
-+--------+--------+
++--------+---+
+| DEPTNO | S |
++--------+---+
+|     10 | 5 |
+|     20 | 7 |
+|     30 | 8 |
++--------+---+
 (3 rows)
 
 !ok
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7], T=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -122,12 +125,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalAggregate(group=[{0, 1}])
         LogicalProject(DEPTNO=[$7], T=[2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -136,35 +139,36 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # testAggregateUnionTransposeWithTopLevelGroupSetRemapping ---------------------
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when top-level group set is remapped.
 
-select count(t1), t2 from (
-select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from emp e1
-union all
-select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from emp e2)
+select count(t1) as c, t2
+from (
+  select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from emp e1
+  union all
+  select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from emp e2)
 group by t2;
-+--------+----+
-| EXPR$0 | T2 |
-+--------+----+
-|      0 |  1 |
-|      0 |  2 |
-+--------+----+
++---+----+
+| C | T2 |
++---+----+
+| 0 |  1 |
+| 0 |  2 |
++---+----+
 (2 rows)
 
 !ok
-LogicalProject(EXPR$0=[$1], T2=[$0])
-  LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+LogicalProject(C=[$1], T2=[$0])
+  LogicalAggregate(group=[{1}], C=[COUNT($0)])
     LogicalUnion(all=[true])
       LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE"
-LogicalProject(EXPR$0=[$1], T2=[$0])
-  LogicalAggregate(group=[{0}], EXPR$0=[$SUM0($1)])
+LogicalProject(C=[$1], T2=[$0])
+  LogicalAggregate(group=[{0}], C=[$SUM0($1)])
     LogicalUnion(all=[true])
-      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+      LogicalAggregate(group=[{1}], C=[COUNT($0)])
         LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalAggregate(group=[{1}], EXPR$0=[COUNT($0)])
+      LogicalAggregate(group=[{1}], C=[COUNT($0)])
         LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -203,13 +207,20 @@ LogicalProject(X=[$0], Y=[$1])
 # UNION DISTINCT with a filter reduces correctly when one branch becomes empty.
 # [CALCITE-6955] PruneEmptyRules does not handle the all attribute of SetOp correctly
 
-select * from (
-select * from (values (10, 1), (30, 3), (30, 3)) as t (x, y)
-union
-select * from (values (20, 2))
-)
+select *
+from (
+  select * from (values (10, 1), (30, 3), (30, 3)) as t (x, y)
+  union
+  select * from (values (20, 2)))
 where x + y > 30;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++----+---+
+| X  | Y |
++----+---+
+| 30 | 3 |
++----+---+
+(1 row)
+
+!ok
 LogicalProject(X=[$0], Y=[$1])
   LogicalFilter(condition=[>(+($0, $1), 30)])
     LogicalUnion(all=[false])
@@ -277,7 +288,13 @@ intersect
 select * from emp where deptno = 20
 intersect all
 select * from emp where deptno = 30;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[true])
   LogicalIntersect(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -363,7 +380,13 @@ intersect
 select * from emp where deptno = 20
 intersect
 select * from emp where deptno = 30;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 LogicalIntersect(all=[false])
   LogicalIntersect(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -857,7 +880,16 @@ union
 select * from emp where deptno = 20
 intersect
 select * from emp where deptno = 30;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++-------+--------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
 LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -1160,7 +1192,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
 # testMinusToFilterNWayWithSubquery --------------------------------------------
 # MINUS_FILTER_TO_FILTER merges same-source inputs in n-way EXCEPT containing a correlated subquery.
 # [CALCITE-7002]
-
+# Not using !ok: throws "Unable to implement EnumerableMinus(all=[false])";
+# bug [CALCITE-7429] logged.
 SELECT deptno FROM emp WHERE deptno > 12
 EXCEPT
 SELECT deptno FROM dept WHERE deptno = 5
@@ -1172,7 +1205,6 @@ EXCEPT
 SELECT deptno FROM dept WHERE deptno = 10
 EXCEPT
 SELECT deptno FROM emp WHERE deptno > 20;
-# Not using !ok: EnumerableMinus with correlated subquery is not supported by H2.
 LogicalMinus(all=[false])
   LogicalFilter(condition=[>($0, 12)])
     LogicalProject(DEPTNO=[$7])
@@ -1359,9 +1391,9 @@ LogicalAggregate(group=[{0, 1}])
 # testPushJoinThroughUnionOnLeft -----------------------------------------------
 # JOIN_LEFT_UNION_TRANSPOSE distributes a join over a UNION ALL on the left input.
 
-select r1.sal from
-(select * from emp e1 union all select * from emp e2) r1,
-emp r2;
+select r1.sal
+from (select * from emp e1 union all select * from emp e2) r1,
+  emp r2;
 +---------+
 | SAL     |
 +---------+
@@ -1785,10 +1817,408 @@ LogicalProject(SAL=[$5])
 # testPushJoinThroughUnionOnRight ----------------------------------------------
 # JOIN_RIGHT_UNION_TRANSPOSE distributes a join over a UNION ALL on the right input.
 
-select r1.sal from
-emp r1,
-(select * from emp e1 union all select * from emp e2) r2;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+select r1.sal
+from emp r1,
+  (select * from emp e1 union all select * from emp e2) r2;
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(392 rows)
+
+!ok
 +---------+
 | SAL     |
 +---------+
@@ -2258,7 +2688,21 @@ select a.dname from dept a
 union all
 select b.dname from dept b
 order by dname;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| ACCOUNTING |
+| OPERATIONS |
+| OPERATIONS |
+| RESEARCH   |
+| RESEARCH   |
+| SALES      |
+| SALES      |
++------------+
+(8 rows)
+
+!ok
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalProject(DNAME=[$0])
     LogicalUnion(all=[true])
@@ -2313,21 +2757,44 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 # testUnionMergeRule -----------------------------------------------------------
 # UNION_MERGE collapses a 3-level UNION ALL tree into a single UNION ALL.
 
-select * from (
-select * from (
-  select dname, deptno from dept
-  union all
-  select dname, deptno from
-  (
-    select dname, deptno, count(1) from dept group by dname, deptno
+select *
+from (
+  select * from (
+    select dname, deptno from dept
     union all
-    select dname, deptno, count(1) from dept group by dname, deptno
-  ) subq
-) a
-union all
-select dname, deptno from dept
+    select dname, deptno
+    from (
+      select dname, deptno, count(1) from dept group by dname, deptno
+      union all
+      select dname, deptno, count(1) from dept group by dname, deptno
+    ) subq
+  ) a
+  union all
+  select dname, deptno from dept
 ) aa;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++------------+--------+
+| DNAME      | DEPTNO |
++------------+--------+
+| ACCOUNTING |     10 |
+| ACCOUNTING |     10 |
+| ACCOUNTING |     10 |
+| ACCOUNTING |     10 |
+| OPERATIONS |     40 |
+| OPERATIONS |     40 |
+| OPERATIONS |     40 |
+| OPERATIONS |     40 |
+| RESEARCH   |     20 |
+| RESEARCH   |     20 |
+| RESEARCH   |     20 |
+| RESEARCH   |     20 |
+| SALES      |     30 |
+| SALES      |     30 |
+| SALES      |     30 |
+| SALES      |     30 |
++------------+--------+
+(16 rows)
+
+!ok
 LogicalProject(DNAME=[$0], DEPTNO=[$1])
   LogicalUnion(all=[true])
     LogicalProject(DNAME=[$0], DEPTNO=[$1])

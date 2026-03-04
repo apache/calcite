@@ -27,8 +27,9 @@
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites EXISTS in a LEFT JOIN ON clause.
 
 select empno
-from emp left join dept
-on exists (select deptno from emp where empno < 20);
+from emp
+left join dept
+  on exists (select deptno from emp where empno < 20);
 +-------+
 | EMPNO |
 +-------+
@@ -68,7 +69,7 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(i=[true])
             LogicalFilter(condition=[<($0, 20)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "subQueryRules, NONE"
+!sub-plan "subQueryRules"
 
 # testExpandJoinScalar --------------------------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites scalar sub-queries in a LEFT JOIN ON
@@ -110,7 +111,7 @@ LogicalProject(EMPNO=[$0])
             LogicalProject(DEPTNO=[$7])
               LogicalFilter(condition=[>($0, 100)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "subQueryRules, NONE"
+!sub-plan "subQueryRules"
 
 # testJoinSubQueryRemoveRuleWithAndNotExists ----------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites AND NOT EXISTS in a LEFT JOIN ON clause.
@@ -188,7 +189,9 @@ LogicalProject(ID=[$0], ID0=[$1])
 # testJoinSubQueryRemoveRuleWithNotIn -----------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites NOT IN in a JOIN ON clause.
 
-SELECT empno FROM emp JOIN dept on emp.deptno not in (SELECT deptno FROM dept);
+SELECT empno
+FROM emp
+JOIN dept on emp.deptno not in (SELECT deptno FROM dept);
 +-------+
 | EMPNO |
 +-------+
@@ -289,7 +292,9 @@ LogicalProject(ID=[$0], ID0=[$1])
 # testJoinSubQueryRemoveRuleWithQuantifierSome --------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites >= SOME sub-query in a JOIN ON clause.
 
-SELECT empno FROM emp JOIN dept on emp.deptno >= SOME(SELECT deptno FROM dept);
+SELECT empno
+FROM emp
+JOIN dept on emp.deptno >= SOME(SELECT deptno FROM dept);
 +-------+
 | EMPNO |
 +-------+

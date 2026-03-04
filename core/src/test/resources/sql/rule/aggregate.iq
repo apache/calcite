@@ -70,10 +70,12 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
 # AggregateMergeRule should merge 2 aggregates into a single aggregate.
 
 select deptno c, min(y), max(z) z,
-sum(r), sum(m) n, sum(x) sal from (
-   select deptno, ename, sum(sal) x, max(sal) z,
-      min(sal) y, count(hiredate) m, count(mgr) r
-   from emp group by deptno, ename) t
+sum(r), sum(m) n, sum(x) sal
+from (
+  select deptno, ename, sum(sal) x, max(sal) z,
+    min(sal) y, count(hiredate) m, count(mgr) r
+  from emp
+  group by deptno, ename) t
 group by deptno;
 +----+---------+---------+--------+---+----------+
 | C  | EXPR$1  | Z       | EXPR$3 | N | SAL      |
@@ -124,7 +126,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
 select deptno, empno, sum(x), sum(y)
 from (
   select ename, empno, deptno, sum(sal) x, count(mgr) y
-    from emp
+  from emp
   group by deptno, ename, empno) t
 group by grouping sets(deptno, empno);
 +--------+-------+----------+--------+
@@ -165,9 +167,11 @@ LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$2=[$2], EXPR$3=[$3])
 # AggregateMergeRule should not merge 2 aggregates into a single aggregate,
 # since lower aggregate is not simple aggregate.
 
-select deptno, sum(x) from (
- select ename, deptno, sum(sal) x from
-   emp group by cube(deptno, ename)) t
+select deptno, sum(x)
+from (
+  select ename, deptno, sum(sal) x
+  from emp
+  group by cube(deptno, ename)) t
 group by deptno;
 +--------+----------+
 | DEPTNO | EXPR$1   |
@@ -193,9 +197,11 @@ LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
 # AggregateMergeRule should not merge 2 aggregates since it contains distinct
 # aggregate function.
 
-select deptno, sum(x) from (
+select deptno, sum(x)
+from (
   select ename, deptno, count(distinct sal) x
-    from emp group by deptno, ename) t
+  from emp
+  group by deptno, ename) t
 group by deptno;
 +--------+--------+
 | DEPTNO | EXPR$1 |
@@ -220,9 +226,11 @@ LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
 # AggregateMergeRule should not merge 2 aggregates since AVG doesn't support
 # splitting.
 
-select deptno, avg(x) from (
-  select mgr, deptno, avg(sal) x from
-    emp group by deptno, mgr) t
+select deptno, avg(x)
+from (
+  select mgr, deptno, avg(sal) x
+  from emp
+  group by deptno, mgr) t
 group by deptno;
 +--------+---------+
 | DEPTNO | EXPR$1  |
@@ -247,9 +255,11 @@ LogicalAggregate(group=[{1}], EXPR$1=[AVG($2)])
 # AggregateMergeRule should not merge 2 aggregates since top agg has no group
 # key, and lower agg function is COUNT.
 
-select sum(x) from (
-select mgr, deptno, count(sal) x from
-emp group by deptno, mgr) t;
+select sum(x)
+from (
+  select mgr, deptno, count(sal) x
+  from emp
+  group by deptno, mgr) t;
 +--------+
 | EXPR$0 |
 +--------+
@@ -271,9 +281,11 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($2)])
 # AggregateMergeRule should not merge 2 aggregates since top agg contains empty
 # grouping set, and lower agg function is COUNT.
 
-select mgr, deptno, sum(x) from (
-  select mgr, deptno, count(sal) x from
-    emp group by deptno, mgr) t
+select mgr, deptno, sum(x)
+from (
+  select mgr, deptno, count(sal) x
+  from emp
+  group by deptno, mgr) t
 group by cube(mgr, deptno);
 +------+--------+--------+
 | MGR  | DEPTNO | EXPR$2 |
@@ -317,8 +329,10 @@ LogicalProject(MGR=[$1], DEPTNO=[$0], EXPR$2=[$2])
 # AggregateMergeRule should merge 2 aggregates since both top and bottom
 # aggregates contain empty grouping set and they are mergable.
 
-select sum(x) x, min(y) z from (
-  select sum(sal) x, min(sal) y from emp);
+select sum(x) x, min(y) z
+from (
+  select sum(sal) x, min(sal) y
+  from emp);
 +----------+--------+
 | X        | Z      |
 +----------+--------+
@@ -467,10 +481,10 @@ select distinct empno, deptno from emp;
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(EMPNO=[$0], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "aggregateUnique=true, NONE"
+!sub-plan "aggregateUnique=true"
 LogicalProject(EMPNO=[$0], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "aggregateUnique=true, NONE, AGGREGATE_REMOVE, PROJECT_MERGE"
+!sub-plan "aggregateUnique=true, AGGREGATE_REMOVE, PROJECT_MERGE"
 
 # testAggregateRemove3 --------------------------------------------------------
 # AggregateRemoveRule removes a GROUP BY where the grouping keys include a
@@ -629,10 +643,10 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 # input already distinct by "mgr".
 
 select mgr, sum(sum_sal)
-from
-(select mgr, deptno, sum(sal) sum_sal
- from emp
- group by mgr, deptno)
+from (
+  select mgr, deptno, sum(sal) sum_sal
+  from emp
+  group by mgr, deptno)
 where deptno=100
 group by mgr;
 +-----+--------+
@@ -661,7 +675,8 @@ LogicalProject(MGR=[$0], SUM_SAL=[$2])
 # input is also an Aggregate) to a SemiJoin.
 # [CALCITE-5740]
 
-select distinct emp.deptno from emp
+select distinct emp.deptno
+from emp
 join (select distinct mgr from emp) d on emp.deptno = d.mgr;
 +--------+
 | DEPTNO |
@@ -789,9 +804,9 @@ LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }]])
 
 select *
 from (
-select deptno, count(distinct empno) from emp group by deptno
-union all
-select deptno, approx_count_distinct(empno) from emp group by deptno);
+  select deptno, count(distinct empno) from emp group by deptno
+  union all
+  select deptno, approx_count_distinct(empno) from emp group by deptno);
 +--------+--------+
 | DEPTNO | EXPR$1 |
 +--------+--------+
@@ -1108,18 +1123,39 @@ LogicalAggregate(group=[{0, 1}])
 # testRemoveDistinctOnAgg ------------------------------------------------------
 # AGGREGATE_REMOVE removes the aggregate when the group key contains a primary
 # key, since each group has exactly one row. PROJECT_MERGE then merges projects.
-# Not using !ok: bit_and, bit_or may not be supported in the scott HSQLDB.
 
-select empno, sum(distinct sal), min(sal),
-    min(distinct sal), max(distinct sal),
-    bit_and(distinct sal), bit_or(sal), count(distinct sal)
-from sales.emp group by empno, deptno;
-LogicalProject(EMPNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$3], EXPR$4=[$4], EXPR$5=[$5], EXPR$6=[$6], EXPR$7=[$7])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[SUM(DISTINCT $2)], EXPR$2=[MIN($2)], EXPR$4=[MAX($2)], EXPR$5=[BIT_AND($2)], EXPR$6=[BIT_OR($2)], EXPR$7=[COUNT(DISTINCT $2)])
-    LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])
+select empno, sum(distinct mgr) as s, min(mgr) as i,
+    min(distinct mgr) as id, max(distinct mgr) as xd,
+    bit_and(distinct mgr) as ad, bit_or(mgr) as o, count(distinct mgr) as cd
+from emp
+group by empno, deptno;
++-------+------+------+------+------+------+------+----+
+| EMPNO | S    | I    | ID   | XD   | AD   | O    | CD |
++-------+------+------+------+------+------+------+----+
+|  7369 | 7902 | 7902 | 7902 | 7902 | 7902 | 7902 |  1 |
+|  7499 | 7698 | 7698 | 7698 | 7698 | 7698 | 7698 |  1 |
+|  7521 | 7698 | 7698 | 7698 | 7698 | 7698 | 7698 |  1 |
+|  7566 | 7839 | 7839 | 7839 | 7839 | 7839 | 7839 |  1 |
+|  7654 | 7698 | 7698 | 7698 | 7698 | 7698 | 7698 |  1 |
+|  7698 | 7839 | 7839 | 7839 | 7839 | 7839 | 7839 |  1 |
+|  7782 | 7839 | 7839 | 7839 | 7839 | 7839 | 7839 |  1 |
+|  7788 | 7566 | 7566 | 7566 | 7566 | 7566 | 7566 |  1 |
+|  7839 |      |      |      |      |      |      |  0 |
+|  7844 | 7698 | 7698 | 7698 | 7698 | 7698 | 7698 |  1 |
+|  7876 | 7788 | 7788 | 7788 | 7788 | 7788 | 7788 |  1 |
+|  7900 | 7698 | 7698 | 7698 | 7698 | 7698 | 7698 |  1 |
+|  7902 | 7566 | 7566 | 7566 | 7566 | 7566 | 7566 |  1 |
+|  7934 | 7782 | 7782 | 7782 | 7782 | 7782 | 7782 |  1 |
++-------+------+------+------+------+------+------+----+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], S=[$2], I=[$3], ID=[$3], XD=[$4], AD=[$5], O=[$6], CD=[$7])
+  LogicalAggregate(group=[{0, 1}], S=[SUM(DISTINCT $2)], I=[MIN($2)], XD=[MAX($2)], AD=[BIT_AND($2)], O=[BIT_OR($2)], CD=[COUNT(DISTINCT $2)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
-LogicalProject(EMPNO=[$0], EXPR$1=[$5], EXPR$2=[$5], EXPR$3=[$5], EXPR$4=[$5], EXPR$5=[$5], EXPR$6=[$5], EXPR$7=[1:BIGINT])
+LogicalProject(EMPNO=[$0], S=[$3], I=[$3], ID=[$3], XD=[$3], AD=[$3], O=[$3], CD=[CASE(IS NOT NULL($3), 1:BIGINT, 0:BIGINT)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "AGGREGATE_REMOVE, PROJECT_MERGE"
 

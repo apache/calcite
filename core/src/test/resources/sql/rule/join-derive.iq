@@ -185,8 +185,9 @@ LogicalProject(DEPTNO=[$7])
 # Note: No !ok or !type because empnullables does not exist in the scott database.
 
 select t1.deptno
-from empnullables t1 inner join
-empnullables t2 on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr;
+from empnullables t1
+inner join empnullables t2
+  on t1.ename = t2.ename and t1.mgr is not distinct from t2.mgr;
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), IS NOT DISTINCT FROM($3, $12))], joinType=[inner])
@@ -434,9 +435,11 @@ LogicalProject(DEPTNO=[$7])
 # Note: No !ok or !type because empnullables does not exist in the scott database.
 
 select t1.deptno
-from (select ename, deptno+1 as deptno from
-empnullables where ename is not null) t1 inner join
-empnullables t2 on t1.ename = t2.ename;
+from (
+  select ename, deptno+1 as deptno
+  from empnullables
+  where ename is not null) t1
+inner join empnullables t2 on t1.ename = t2.ename;
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(DEPTNO=[$1])
   LogicalJoin(condition=[=($0, $3)], joinType=[inner])

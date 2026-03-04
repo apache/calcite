@@ -244,7 +244,8 @@ LogicalProject(JOB=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:
 # AGGREGATE_FILTER_TRANSPOSE pulls a filter out from below an aggregate and
 # places it above.
 
-select ename, sal, deptno from (
+select ename, sal, deptno
+from (
   select ename, sal, deptno
   from emp
   where sal > 5000)
@@ -271,7 +272,8 @@ LogicalFilter(condition=[>($1, 5000)])
 # AGGREGATE_FILTER_TRANSPOSE pulls a filter from below an aggregate with
 # grouping sets (ROLLUP).
 
-select ename, sal, deptno from (
+select ename, sal, deptno
+from (
   select ename, sal, deptno
   from emp
   where sal > 5000)
@@ -330,7 +332,9 @@ LogicalProject(DNAME=[$0], C=[$1])
 # redundant outer aggregate.
 # [CALCITE-1109]
 
-select emp.deptno, count(*) from emp where emp.sal > '12'
+select emp.deptno, count(*)
+from emp
+where emp.sal > '12'
 group by emp.deptno;
 +--------+--------+
 | DEPTNO | EXPR$1 |
@@ -358,8 +362,10 @@ LogicalAggregate(group=[{1}], EXPR$1=[$SUM0($2)])
 # (plan unchanged because the condition references an aggregate function).
 # [CALCITE-799]
 
-select deptno from emp
-group by deptno having count(*) > 1;
+select deptno
+from emp
+group by deptno
+having count(*) > 1;
 # Not using !ok: result row order is non-deterministic.
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[>($1, 1)])
@@ -379,9 +385,12 @@ LogicalProject(DEPTNO=[$0])
 # past the aggregate, but retains conditions that reference aggregate calls.
 # [CALCITE-434]
 
-select dept1.c1 from (
-select dept.dname as c1, count(*) as c2
-from dept where dept.dname > 'b' group by dept.dname) dept1
+select dept1.c1
+from (
+  select dept.dname as c1, count(*) as c2
+  from dept
+  where dept.dname > 'b'
+  group by dept.dname) dept1
 where dept1.c1 > 'c' and (dept1.c2 > 30 or dept1.c1 < 'z');
 +----+
 | C1 |

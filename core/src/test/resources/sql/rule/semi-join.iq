@@ -25,7 +25,8 @@
 # testIncorrectInType -----------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN should not match an IN with a literal right side.
 
-select ename from emp
+select ename
+from emp
 where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100;
 +-------+
 | ENAME |
@@ -43,13 +44,23 @@ LogicalProject(ENAME=[$0])
 # testPushFilterThroughSemiJoin ------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH push filters
 # through a semi-join.
-# Not using !ok: result row order is non-deterministic.
 # [CALCITE-438]
 
-select * from (
-  select * from dept where dept.deptno in (
+select *
+from (
+  select *
+  from dept
+  where dept.deptno in (
     select emp.deptno from emp))R
 where R.deptno <=10;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
++--------+------------+----------+
+(1 row)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalFilter(condition=[<=($0, 10)])
     LogicalJoin(condition=[=($0, $2)], joinType=[semi])
@@ -68,7 +79,8 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 # testPushSemiJoinPastFilter ---------------------------------------------------
 # SEMI_JOIN_FILTER_TRANSPOSE pushes a semi-join past a filter.
 
-select e.ename from emp e, dept d
+select e.ename
+from emp e, dept d
 where e.deptno = d.deptno and e.ename = 'foo';
 +-------+
 | ENAME |
@@ -95,7 +107,8 @@ LogicalProject(ENAME=[$1])
 # testPushSemiJoinPastJoinRuleLeft ---------------------------------------------
 # SEMI_JOIN_JOIN_TRANSPOSE pushes a semi-join to the left input of a join.
 
-select e1.ename from emp e1, dept d, emp e2
+select e1.ename
+from emp e1, dept d, emp e2
 where e1.deptno = d.deptno and e1.empno = e2.empno;
 +--------+
 | ENAME  |
@@ -142,7 +155,8 @@ LogicalProject(ENAME=[$1])
 # SEMI_JOIN_JOIN_TRANSPOSE cannot push a semi-join whose keys come from both
 # inputs of the bottom join, but JOIN_ADD_REDUNDANT_SEMI_JOIN still fires.
 
-select e.ename from emp e, dept d, bonus b
+select e.ename
+from emp e, dept d, bonus b
 where e.deptno = d.deptno and e.ename = b.ename and d.dname = b.job;
 +-------+
 | ENAME |
@@ -174,9 +188,86 @@ LogicalProject(ENAME=[$1])
 # testPushSemiJoinPastJoinRuleRight --------------------------------------------
 # SEMI_JOIN_JOIN_TRANSPOSE pushes a semi-join to the right input of a join.
 
-select e1.ename from emp e1, dept d, emp e2
+select e1.ename
+from emp e1, dept d, emp e2
 where e1.deptno = d.deptno and d.deptno = e2.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| CLARK  |
+| CLARK  |
+| CLARK  |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| KING   |
+| KING   |
+| KING   |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MILLER |
+| MILLER |
+| MILLER |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
++--------+
+(70 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[AND(=($7, $9), =($9, $18))])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -349,6 +440,13 @@ select e1.sal
 from (select * from emp where deptno = 200) as e1
 where e1.deptno in (
   select e2.deptno from emp e2 where e2.sal = 100);
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
 LogicalProject(SAL=[$0])
   LogicalJoin(condition=[=($1, $2)], joinType=[semi])
     LogicalFilter(condition=[=($1, 200)])
@@ -372,11 +470,21 @@ LogicalProject(SAL=[$0])
 
 # testSemiJoinRule --------------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN converts a join on DISTINCT to a semi-join.
-# Not using !ok: result row order is non-deterministic for a join.
 
-select dept.deptno, dept.dname from dept join (
+select dept.deptno, dept.dname
+from dept join (
   select distinct deptno from emp
   where sal > 100) using (deptno);
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     30 | SALES      |
++--------+------------+
+(3 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -394,11 +502,31 @@ LogicalJoin(condition=[=($0, $2)], joinType=[semi])
 
 # testSemiJoinRuleDoNotMatchAggregate -------------------------------------------
 # JOIN_ON_UNIQUE_TO_SEMI_JOIN should not match a join with non-trivial Aggregate.
-# Not using !ok: result row order is non-deterministic.
 
 select *
 from emp
 where exists(select * from dept where emp.deptno = dept.deptno);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -416,12 +544,24 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 
 # testSemiJoinRuleExists -------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN converts a join from EXISTS to a semi-join.
-# Not using !ok: result row order is non-deterministic.
 
-select * from dept where exists (
-  select * from emp
+select *
+from dept
+where exists (
+  select *
+  from emp
   where emp.deptno = dept.deptno
   and emp.sal > 100);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
++--------+------------+----------+
+(3 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -439,11 +579,24 @@ LogicalJoin(condition=[=($0, $2)], joinType=[semi])
 
 # testSemiJoinRuleFull ---------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN does not apply to FULL joins.
-# Not using !ok: result row order is non-deterministic.
 
-select dept.deptno, dept.dname from dept full join (
-  select distinct deptno from emp
+select dept.deptno, dept.dname
+from dept
+full join (
+  select distinct deptno
+  from emp
   where sal > 100) using (deptno);
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     30 | SALES      |
+|     40 | OPERATIONS |
++--------+------------+
+(4 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -468,7 +621,8 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 select dname
 from dept
 left join (
-  select distinct deptno from emp
+  select distinct deptno
+  from emp
   where sal > 100) using (deptno);
 +------------+
 | DNAME      |
@@ -500,7 +654,8 @@ LogicalProject(DNAME=[$1])
 select dept.deptno, dept.dname
 from dept
 right join (
-  select distinct deptno from emp
+  select distinct deptno
+  from emp
   where sal > 100) using (deptno);
 +--------+------------+
 | DEPTNO | DNAME      |

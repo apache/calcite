@@ -26,7 +26,8 @@
 # Tests that BIT_AND (non-distinct) can share the inner aggregate with
 # DISTINCT agg-calls on the same column.
 
-select sum(distinct deptno), count(distinct deptno), bit_and(deptno) from emp;
+select sum(distinct deptno), count(distinct deptno), bit_and(deptno)
+from emp;
 +--------+--------+--------+
 | EXPR$0 | EXPR$1 | EXPR$2 |
 +--------+--------+--------+
@@ -49,7 +50,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_A
 # Tests that BIT_OR (non-distinct) can share the inner aggregate with
 # DISTINCT agg-calls on the same column.
 
-select sum(distinct deptno), count(distinct deptno), bit_or(deptno) from emp;
+select sum(distinct deptno), count(distinct deptno), bit_or(deptno)
+from emp;
 +--------+--------+--------+
 | EXPR$0 | EXPR$1 | EXPR$2 |
 +--------+--------+--------+
@@ -158,7 +160,9 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[CAST($2):INTEGER NOT NULL])
 # Tests expansion of COUNT(DISTINCT) with a non-distinct SUM in a group-by query.
 # [CALCITE-1293]
 
-select count(distinct deptno), sum(sal) from emp group by deptno;
+select count(distinct deptno), sum(sal)
+from emp
+group by deptno;
 +--------+----------+
 | EXPR$0 | EXPR$1   |
 +--------+----------+
@@ -685,8 +689,9 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)], EXPR$2=[MIN($3)], EXPR$3=[SUM($1
 # but the same group set.
 
 SELECT COUNT(DISTINCT c) FILTER (WHERE d),
-COUNT(DISTINCT d) FILTER (WHERE c)
-FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm from emp);
+  COUNT(DISTINCT d) FILTER (WHERE c)
+FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm
+  from emp);
 +--------+--------+
 | EXPR$0 | EXPR$1 |
 +--------+--------+
@@ -912,7 +917,8 @@ LogicalProject(CD=[$1], C=[$2])
 # [CALCITE-3404]
 # DISTINCT agg-calls on the same column.
 
-select sum(distinct deptno), count(distinct deptno), max(deptno) from emp;
+select sum(distinct deptno), count(distinct deptno), max(deptno)
+from emp;
 +--------+--------+--------+
 | EXPR$0 | EXPR$1 | EXPR$2 |
 +--------+--------+--------+
@@ -935,7 +941,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[MAX($
 # Tests that MIN (non-distinct) can share the inner aggregate with
 # DISTINCT agg-calls on the same column.
 
-select sum(distinct deptno), count(distinct deptno), min(deptno) from emp;
+select sum(distinct deptno), count(distinct deptno), min(deptno)
+from emp;
 +--------+--------+--------+
 | EXPR$0 | EXPR$1 | EXPR$2 |
 +--------+--------+--------+

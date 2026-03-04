@@ -26,7 +26,9 @@
 # MULTI_JOIN_OPTIMIZE_BUSHY does not reorder a left outer join
 # (result should be unchanged).
 
-select emp.ename from emp LEFT JOIN emp AS emp1 on emp.ename = emp1.ename;
+select emp.ename
+from emp
+LEFT JOIN emp AS emp1 on emp.ename = emp1.ename;
 +--------+
 | ENAME  |
 +--------+
@@ -114,8 +116,9 @@ LogicalProject(EMPNO=[$0])
 # FILTER_CALC_MERGE cannot merge a Filter into a Calc when the Filter contains
 # a subquery (result should be unchanged).
 
-select deptno from emp where
-exists (select deptno from emp where empno < 20);
+select deptno
+from emp
+where exists (select deptno from emp where empno < 20);
 +--------+
 | DEPTNO |
 +--------+
@@ -142,7 +145,9 @@ LogicalFilter(condition=[<($0, 20)])
 # FILTER_TO_CALC does not convert a Filter containing a subquery to a Calc
 # (result should be unchanged).
 
-select ename from emp where sal > all (select comm from emp);
+select ename
+from emp
+where sal > all (select comm from emp);
 +-------+
 | ENAME |
 +-------+
@@ -169,8 +174,8 @@ LogicalProject(COMM=[$6])
 # LIMIT_MERGE cannot merge LIMIT 10 into OFFSET 100 when there is no inner
 # FETCH (result should be unchanged).
 
-select deptno from
-(select deptno from emp where sal > 100 offset 100)
+select deptno
+from (select deptno from emp where sal > 100 offset 100)
 limit 10;
 +--------+
 | DEPTNO |
@@ -245,24 +250,33 @@ LogicalProject(EMPNO=[$0])
 
 select *
 from (
-    select *
-    from emp e1 left outer join dept d on e1.deptno = d.deptno
-    where d.deptno > 3)
+  select *
+  from emp e1
+  left outer join (select deptno, dname from dept) d
+    on e1.deptno = d.deptno
+  where d.deptno > 3)
 where ename like 'bar';
-# Not using !ok: the result depends on column order which differs between mock
-# catalog (DEPT has 2 cols) and scott (DEPT has 3 cols).
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalFilter(condition=[LIKE($1, 'bar')])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
       LogicalFilter(condition=[>($9, 3)])
         MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($7, $9)]], projFields=[[ALL, ALL]])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalProject(DEPTNO=[$0], DNAME=[$1])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_TO_MULTI_JOIN"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($7, $9)]], projFields=[[{0, 1, 2, 3, 4, 5, 6, 7, 8}, {0, 1}]], postJoinFilter=[AND(LIKE($1, 'bar'), >($9, 3))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "JOIN_TO_MULTI_JOIN, FILTER_MULTI_JOIN_MERGE, PROJECT_MULTI_JOIN_MERGE, FILTER_MULTI_JOIN_MERGE"
 
 # testMergeFilterWithJoinCondition ---------------------------------------------
@@ -323,7 +337,8 @@ LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 # PROJECT_TO_CALC does not convert a Project containing a subquery to a Calc
 # (result should be unchanged).
 
-select  sal > all (select comm from emp) from emp;
+select sal > all (select comm from emp)
+from emp;
 +--------+
 | EXPR$0 |
 +--------+
@@ -383,8 +398,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # PROJECT_JOIN_TRANSPOSE pushes a project past a join with IS NOT DISTINCT FROM
 # in the join condition.
 
-select e.sal + b.comm from emp e inner join bonus b
-on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10;
+select e.sal + b.comm
+from emp e
+inner join bonus b
+  on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job)
+    and e.deptno = 10;
 +--------+
 | EXPR$0 |
 +--------+

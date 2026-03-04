@@ -39,7 +39,7 @@ LogicalProject(EXPR$0=[$1])
     LogicalProject(DEPTNO=[$7], EMPNO=[$0])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EXPR$0=[$1])
   LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
     LogicalValues(tuples=[[]])
@@ -64,7 +64,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalProject(EMPNO=[$0])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
@@ -96,7 +96,7 @@ LogicalIntersect(all=[false])
         LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     LogicalValues(tuples=[[{ 30, 3 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[]])
 !sub-plan "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.INTERSECT_INSTANCE"
 
@@ -125,7 +125,7 @@ LogicalMinus(all=[false])
       LogicalValues(tuples=[[{ 20, 2 }]])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     LogicalValues(tuples=[[{ 40, 4 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[]])
 !sub-plan "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
 
@@ -160,7 +160,7 @@ LogicalMinus(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalFilter(condition=[>($0, 50)])
       LogicalValues(tuples=[[{ 50, 5 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalMinus(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 30, 3 }]])
@@ -189,7 +189,7 @@ LogicalMinus(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalFilter(condition=[>($0, 30)])
       LogicalValues(tuples=[[{ 20, 2 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
@@ -214,7 +214,7 @@ select z + x from (
 LogicalProject(EXPR$0=[+(+($0, $1), $0)])
   LogicalFilter(condition=[>(+($0, $1), 50)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[]])
 !sub-plan "PROJECT_FILTER_VALUES_MERGE, FILTER_VALUES_MERGE, PROJECT_VALUES_MERGE"
 
@@ -235,7 +235,7 @@ select z + x from (
 LogicalProject(EXPR$0=[+(+($0, $1), $0)])
   LogicalFilter(condition=[>(+($0, $1), 50)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[]])
 !sub-plan "FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE"
 
@@ -254,7 +254,7 @@ LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.SORT_INSTANCE"
 
@@ -272,24 +272,36 @@ select * from emp order by deptno limit 0;
 LogicalSort(sort0=[$7], dir0=[ASC], fetch=[0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalValues(tuples=[[]])
 !sub-plan "PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE"
 
 # testLeftEmptyFullJoin --------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, FULL join → right side is padded
 # with nulls (cannot eliminate join).
-# Not using !ok: result contains all dept rows with null emp columns.
 
-select * from (select * from emp where false) as e
-full join dept as d on e.deptno = d.deptno;
+select *
+from (select * from emp where false) as e
+full join dept as d
+  on e.deptno = d.deptno;
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+|       |       |     |     |          |     |      |        |      10 | ACCOUNTING | NEW YORK |
+|       |       |     |     |          |     |      |        |      20 | RESEARCH   | DALLAS   |
+|       |       |     |     |          |     |      |        |      30 | SALES      | CHICAGO  |
+|       |       |     |     |          |     |      |        |      40 | OPERATIONS | BOSTON   |
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+(4 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[full])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[null:INTEGER], ENAME=[null:VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN], DEPTNO0=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -297,34 +309,48 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 
 # testLeftEmptyInnerJoin -------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, INNER join → result is empty.
-# Not using !ok: join columns have duplicate names.
 
-select * from (select * from emp where false) as e
+select *
+from (select * from emp where false) as e
 join dept as d on e.deptno = d.deptno;
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testLeftEmptyLeftJoin --------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, LEFT join → result is empty.
-# Not using !ok: join columns have duplicate names.
 
-select * from (select * from emp where false) e
+select *
+from (select * from emp where false) e
 left join dept d on e.deptno = d.deptno;
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
@@ -332,17 +358,28 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testLeftEmptyRightJoin -------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, RIGHT join → right side is padded
 # with nulls (cannot eliminate join).
-# Not using !ok: result contains all dept rows with null emp columns.
 
-select * from (select * from emp where false) e
+select *
+from (select * from emp where false) e
 right join dept d on e.deptno = d.deptno;
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+|       |       |     |     |          |     |      |        |      10 | ACCOUNTING | NEW YORK |
+|       |       |     |     |          |     |      |        |      20 | RESEARCH   | DALLAS   |
+|       |       |     |     |          |     |      |        |      30 | SALES      | CHICAGO  |
+|       |       |     |     |          |     |      |        |      40 | OPERATIONS | BOSTON   |
++-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
+(4 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[right])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[null:INTEGER], ENAME=[null:VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN], DEPTNO0=[$0], DNAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -353,15 +390,38 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # with nulls (cannot eliminate join).
 # Not using !ok: result contains all emp rows with null dept columns.
 
-select * from emp e
-full join (select * from dept where false) as d on e.deptno = d.deptno;
+select *
+from emp e
+full join (select * from dept where false) as d
+  on e.deptno = d.deptno;
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |         |       |     |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |         |       |     |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |         |       |     |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |         |       |     |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |         |       |     |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |         |       |     |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |         |       |     |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |         |       |     |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |         |       |     |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |         |       |     |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |         |       |     |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |         |       |     |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |         |       |     |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |         |       |     |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[CAST($0):INTEGER], ENAME=[CAST($1):VARCHAR(20)], JOB=[CAST($2):VARCHAR(10)], MGR=[$3], HIREDATE=[CAST($4):TIMESTAMP(0)], SAL=[CAST($5):INTEGER], COMM=[CAST($6):INTEGER], DEPTNO=[CAST($7):INTEGER], SLACKER=[CAST($8):BOOLEAN], DEPTNO0=[null:INTEGER], DNAME=[null:VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -369,17 +429,24 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 
 # testRightEmptyInnerJoin ------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, INNER join → result is empty.
-# Not using !ok: join columns have duplicate names.
 
-select * from emp e
+select *
+from emp e
 join (select * from dept where false) as d on e.deptno = d.deptno;
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
@@ -387,17 +454,39 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testRightEmptyLeftJoin -------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, LEFT join → left side is padded
 # with nulls (cannot eliminate join).
-# Not using !ok: result contains all emp rows with null dept columns.
 
-select * from emp e
-left join (select * from dept where false) as d on e.deptno = d.deptno;
+select *
+from emp e
+left join (select * from dept where false) as d
+  on e.deptno = d.deptno;
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |         |       |     |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |         |       |     |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |         |       |     |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |         |       |     |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |         |       |     |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |         |       |     |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |         |       |     |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |         |       |     |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |         |       |     |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |         |       |     |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |         |       |     |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |         |       |     |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |         |       |     |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |         |       |     |
++-------+--------+-----------+------+------------+---------+---------+--------+---------+-------+-----+
+(14 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[null:INTEGER], DNAME=[null:VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -405,17 +494,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 
 # testRightEmptyRightJoin ------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, RIGHT join → result is empty.
-# Not using !ok: join columns have duplicate names.
 
-select * from emp e
-right join (select * from dept where false) as d on e.deptno = d.deptno;
+select *
+from emp e
+right join (select * from dept where false) as d
+  on e.deptno = d.deptno;
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!sub-plan ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
 !sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"

@@ -28,8 +28,10 @@
 # a NOT IN condition in the join condition, pushing the NOT predicate to the
 # left side and the equivalent SEARCH predicate to the right side.
 
-select * from emp d
-join emp e on e.deptno = d.deptno and d.deptno not in (4, 6);
+select *
+from emp d
+join emp e
+  on e.deptno = d.deptno and d.deptno not in (4, 6);
 +-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
 +-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
@@ -111,14 +113,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[AND(=($16, $7), NOT(OR(=($7, 4), =($7, 6))))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false, NONE"
+!sub-plan "relBuilderSimplify=false"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[=($16, $7)], joinType=[inner])
     LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false, NONE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!sub-plan "relBuilderSimplify=false, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testInfiniteLoopWithBetweenAnd -----------------------------------------------
 # Tests that JOIN_PUSH_TRANSITIVE_PREDICATES does not cause an infinite loop
@@ -198,40 +200,45 @@ LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
 # testTransitiveInferenceAggregate ---------------------------------------------
 # Tests that transitive predicates are inferred and pushed through an Aggregate.
 
-select 1 from (select deptno, count(*) from emp where deptno > 7
-group by deptno) d inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
+select 1 as uno
+from (
+  select deptno, count(*) as c
+  from emp
+  where deptno > 7
+  group by deptno) d
+inner join emp e on d.deptno = e.deptno;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($7, 7)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(UNO=[1])
   LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($7, 7)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -243,7 +250,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that only the simple component of a complex predicate is inferred and
 # pushed; non-transferable sub-expressions are not propagated.
 
-select 1 from emp d
+select 1
+from emp d
 inner join emp e on d.deptno = e.deptno
 where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno
 and d.comm + d.deptno > d.comm/2;
@@ -274,7 +282,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that a conjunct with multiple IN/OR conditions is correctly inferred
 # and pushed to the other side of the join.
 
-select 1 from emp d
+select 1
+from emp d
 inner join emp e on d.deptno = e.deptno
 where d.deptno in (7, 9) or d.deptno > 10;
 +--------+
@@ -363,7 +372,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that a constant equi-predicate (1 = 1) does not trigger transitive
 # inference (plan is unchanged).
 
-select 1 from emp d
+select 1
+from emp d
 inner join emp e on d.deptno = e.deptno where 1 = 1;
 +--------+
 | EXPR$0 |
@@ -457,8 +467,10 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates are NOT pushed through a full outer join
 # (plan is unchanged).
 
-select 1 from emp d full outer join emp e
-on d.deptno = e.deptno where d.deptno > 7 and e.deptno > 9;
+select 1
+from emp d
+full outer join emp e
+  on d.deptno = e.deptno where d.deptno > 7 and e.deptno > 9;
 +--------+
 | EXPR$0 |
 +--------+
@@ -553,7 +565,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that a filter predicate on one side of a join is inferred and pushed to
 # the other side.
 
-select 1 from emp d
+select 1
+from emp d
 inner join emp e on d.deptno = e.deptno where e.deptno > 7;
 +--------+
 | EXPR$0 |
@@ -901,8 +914,12 @@ LogicalProject(UNO=[1])
 # Tests that transitive predicates from an Aggregate are inferred and pushed
 # across a three-way join.
 
-select 1 from
-(select deptno, count(*) from emp where deptno > 7 group by deptno) d
+select 1
+from (
+  select deptno, count(*)
+  from emp
+  where deptno > 7
+  group by deptno) d
 inner join emp e on d.deptno = e.deptno
 inner join emp f on e.deptno = f.deptno;
 +--------+
@@ -1009,9 +1026,10 @@ LogicalProject(EXPR$0=[1])
 # [CALCITE-2274] Tests that filter predicates are inferred while using a
 # dynamic star (*) in a subquery.
 
-SELECT * FROM emp d JOIN
-(SELECT * FROM emp WHERE deptno = 4) e
-ON e.deptno = d.deptno;
+SELECT *
+FROM emp d
+JOIN (SELECT * FROM emp WHERE deptno = 4) e
+  ON e.deptno = d.deptno;
 +-------+-------+-----+-----+----------+-----+------+--------+--------+--------+------+------+-----------+------+-------+---------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | EMPNO0 | ENAME0 | JOB0 | MGR0 | HIREDATE0 | SAL0 | COMM0 | DEPTNO0 |
 +-------+-------+-----+-----+----------+-----+------+--------+--------+--------+------+------+-----------+------+-------+---------+
@@ -1039,7 +1057,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # Tests that transitive predicates from the left side of a left outer join are
 # inferred and pushed to the right side.
 
-select 1 from emp d
+select 1
+from emp d
 left outer join emp e on d.deptno = e.deptno
 where d.deptno > 7 and e.deptno > 9;
 +--------+
@@ -1139,7 +1158,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that no predicate is inferred when the filter condition mixes columns
 # (making pull-up impossible).
 
-select 1 from emp d
+select 1
+from emp d
 inner join emp e on d.deptno = e.deptno
 where d.deptno in (7, 9) or d.comm > 10;
 +--------+
@@ -1184,7 +1204,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive inference is prevented when the Project renames a column
 # (comm -> deptno), making it impossible to pull up the predicate.
 
-select 1 from (select comm as deptno from emp where deptno > 7) d
+select 1
+from (select comm as deptno from emp where deptno > 7) d
 inner join emp e on d.deptno = e.deptno;
 +--------+
 | EXPR$0 |
@@ -1212,7 +1233,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that a filter predicate below a Project is inferred and pushed to the
 # other side of the join.
 
-select 1 from (select * from emp where deptno > 7) d
+select 1
+from (select * from emp where deptno > 7) d
 inner join emp e on d.deptno = e.deptno;
 +--------+
 | EXPR$0 |
@@ -1311,7 +1333,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that a predicate on an aliased column (comm aliased as deptno) is
 # correctly pulled up and inferred on the other side of the join.
 
-select 1 from (select comm as deptno from emp where comm > 7) d
+select 1
+from (select comm as deptno from emp where comm > 7) d
 inner join emp e on d.deptno = e.deptno;
 +--------+
 | EXPR$0 |
@@ -1340,7 +1363,8 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates from the right side of a right outer join
 # are inferred and pushed to the left side.
 
-select 1 from emp d
+select 1
+from emp d
 right outer join emp e on d.deptno = e.deptno
 where d.deptno > 7 and e.deptno > 9;
 +--------+
@@ -1440,9 +1464,11 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates are inferred from a union subquery and pushed
 # to the other side of the join.
 
-select 1 from
-(select deptno from emp where deptno > 7
-union all select deptno from emp where deptno > 10) d
+select 1
+from (
+  select deptno from emp where deptno > 7
+  union all
+  select deptno from emp where deptno > 10) d
 inner join emp e on d.deptno = e.deptno;
 +--------+
 | EXPR$0 |
@@ -1610,12 +1636,13 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates are inferred from a three-way union subquery
 # and pushed to the other side of the join (using the weakest predicate).
 
-select 1 from
-(select deptno from emp where deptno > 7
-union all
-select deptno from emp where deptno > 10
-union all
-select deptno from emp where deptno > 1) d
+select 1
+from (
+  select deptno from emp where deptno > 7
+  union all
+  select deptno from emp where deptno > 10
+  union all
+  select deptno from emp where deptno > 1) d
 inner join emp e on d.deptno = e.deptno;
 +--------+
 | EXPR$0 |
@@ -1861,12 +1888,13 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive inference is not applied when the union subquery
 # contains OR conditions with non-uniform predicates (plan is unchanged).
 
-select 1 from
-(select empno, deptno from emp where deptno > 7 or empno < 10
-union all
-select empno, deptno from emp where deptno > 10 or empno < deptno
-union all
-select empno, deptno from emp where deptno > 1) d
+select 1
+from (
+  select empno, deptno from emp where deptno > 7 or empno < 10
+  union all
+  select empno, deptno from emp where deptno > 10 or empno < deptno
+  union all
+  select empno, deptno from emp where deptno > 1) d
 inner join emp e on d.deptno = e.deptno;
 +--------+
 | EXPR$0 |
@@ -2111,11 +2139,12 @@ LogicalProject(EXPR$0=[1])
 # [CALCITE-443] Tests that when one arm of a UNION has no filter, the inferred
 # predicate from the other side of the join is pushed correctly.
 
-select d.deptno, e.deptno from
-(select deptno from emp where deptno < 4) d
-inner join
-(select deptno from emp where deptno > 7
-union all select deptno from emp) e
+select d.deptno, e.deptno
+from (select deptno from emp where deptno < 4) d
+inner join (
+  select deptno from emp where deptno > 7
+  union all
+  select deptno from emp) e
 on d.deptno = e.deptno;
 +--------+--------+
 | DEPTNO | DEPTNO |

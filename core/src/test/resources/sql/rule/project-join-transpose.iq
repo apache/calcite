@@ -100,18 +100,54 @@ LogicalProject(R=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
 # [CALCITE-3004] Should not push over past union but its operands can since
 # setop will affect row count.
 
-select job, sum(sal + 100) over (partition by deptno) from
-(select * from emp e1 union all select * from emp e2);
-# Not using !ok: query uses window functions whose results are not verified here.
+select job, sum(sal + 100) over (partition by deptno) as ss
+from (
+  select * from emp e1
+  union all
+  select * from emp e2);
++-----------+----------+
+| JOB       | SS       |
++-----------+----------+
+| ANALYST   | 22750.00 |
+| ANALYST   | 22750.00 |
+| ANALYST   | 22750.00 |
+| ANALYST   | 22750.00 |
+| CLERK     | 18100.00 |
+| CLERK     | 18100.00 |
+| CLERK     | 20000.00 |
+| CLERK     | 20000.00 |
+| CLERK     | 22750.00 |
+| CLERK     | 22750.00 |
+| CLERK     | 22750.00 |
+| CLERK     | 22750.00 |
+| MANAGER   | 18100.00 |
+| MANAGER   | 18100.00 |
+| MANAGER   | 20000.00 |
+| MANAGER   | 20000.00 |
+| MANAGER   | 22750.00 |
+| MANAGER   | 22750.00 |
+| PRESIDENT | 18100.00 |
+| PRESIDENT | 18100.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
+| SALESMAN  | 20000.00 |
++-----------+----------+
+(28 rows)
 
-LogicalProject(JOB=[$2], EXPR$1=[SUM(+($5, 100)) OVER (PARTITION BY $7)])
+!ok
+LogicalProject(JOB=[$2], SS=[SUM(+($5, 100)) OVER (PARTITION BY $7)])
   LogicalUnion(all=[true])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
-LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1)])
+LogicalProject(JOB=[$0], SS=[SUM($2) OVER (PARTITION BY $1)])
   LogicalUnion(all=[true])
     LogicalProject(JOB=[$2], DEPTNO=[$7], EXPR$0=[+($5, 100)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -124,20 +160,22 @@ LogicalProject(JOB=[$0], EXPR$1=[SUM($2) OVER (PARTITION BY $1)])
 # testPushProjectPastFilter ---------------------------------------------------
 # PROJECT_FILTER_TRANSPOSE pushes a Project through a Filter.
 
-select empno + deptno from emp where sal = 10 * comm
+select empno + deptno as ed
+from emp
+where sal = 10 * comm
 and upper(ename) = 'FOO';
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++----+
+| ED |
++----+
++----+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[+($0, $7)])
+LogicalProject(ED=[+($0, $7)])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
-LogicalProject(EXPR$0=[+($0, $4)])
+LogicalProject(ED=[+($0, $4)])
   LogicalFilter(condition=[AND(=($2, *(10, $3)), =(UPPER($1), 'FOO'))])
     LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], COMM=[$6], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -345,8 +383,10 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 # testPushProjectPastJoin -----------------------------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a project past an inner join.
 
-select e.sal + b.comm from emp e inner join bonus b
-on e.ename = b.ename and e.deptno = 10;
+select e.sal + b.comm
+from emp e
+inner join bonus b
+  on e.ename = b.ename and e.deptno = 10;
 +--------+
 | EXPR$0 |
 +--------+
@@ -671,8 +711,8 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$0])
 # testPushProjectPastSetOp ----------------------------------------------------
 # PROJECT_SET_OP_TRANSPOSE pushes a Project through a Union all set-op.
 
-select sal from
-(select * from emp e1 union all select * from emp e2);
+select sal
+from (select * from emp e1 union all select * from emp e2);
 +---------+
 | SAL     |
 +---------+
@@ -811,17 +851,18 @@ LogicalProject(X=[+($1, $5)], S=[SUM($6) OVER (PARTITION BY $4)])
 # testReduceValuesUnderProject ------------------------------------------------
 # PROJECT_MERGE + PROJECT_VALUES_MERGE reduce expressions in VALUES clauses.
 
-select a + b from (values (10, 1), (20, 3)) as t(a, b);
-+--------+
-| EXPR$0 |
-+--------+
-|     11 |
-|     23 |
-+--------+
+select a + b as x
+from (values (10, 1), (20, 3)) as t(a, b);
++----+
+| X  |
++----+
+| 11 |
+| 23 |
++----+
 (2 rows)
 
 !ok
-LogicalProject(EXPR$0=[+($0, $1)])
+LogicalProject(X=[+($0, $1)])
   LogicalValues(tuples=[[{ 10, 1 }, { 20, 3 }]])
 !sub-plan ""
 LogicalValues(tuples=[[{ 11 }, { 23 }]])

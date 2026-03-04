@@ -27,7 +27,8 @@
 # FILTER_INTO_JOIN after EXPAND_FILTER_DISJUNCTION_GLOBAL pushes disjunctive
 # filter predicates into join conditions.
 
-select e.empno from emp as e, empnullables as en
+select e.empno
+from emp as e, empnullables as en
 where e.empno = en.empno
 and
 (
@@ -53,6 +54,8 @@ LogicalProject(EMPNO=[$0])
 # FILTER_INTO_JOIN pushes an equality filter into a join even when the filter
 # also contains a correlated scalar subquery (the subquery part stays in the
 # join's outer filter, only the equality predicate is pushed down).
+# Not using !ok: fails with "Correlation variable $cor0 should be defined"
+# in CoreQuidemTest2. Add '!ok' when [CALCITE-7430] is fixed.
 
 SELECT E.EMPNO
 FROM EMP E
@@ -61,7 +64,6 @@ WHERE E.EMPNO > 10 AND D.DEPTNO = (
     SELECT MIN(D_INNER.DEPTNO)
     FROM DEPT D_INNER
     WHERE D_INNER.DEPTNO = E.DEPTNO);
-# Not using !ok: query uses a correlated subquery not supported by the scott database.
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[AND(>($0, 10), =($9, $SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
@@ -91,8 +93,8 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
 # [CALCITE-5247]
 # requires both sides to be non-null (AND of IS NOT NULL).
 
-select * from
-emp LHS
+select *
+from emp LHS
 left join dept RHS on LHS.EMPNO = RHS.DEPTNO
 where
 RHS.DEPTNO is not null
@@ -122,13 +124,18 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # [CALCITE-5247]
 # requires at least one nullable column to be non-null (OR of IS NOT NULL).
 
-select * from
-emp LHS
+select *
+from emp LHS
 left join dept RHS on LHS.EMPNO = RHS.DEPTNO
-where
-RHS.DEPTNO is not null
-OR RHS.DNAME is not null;
-# Not using !ok: result row order is non-deterministic for a join with select *
+where RHS.DEPTNO is not null
+  OR RHS.DNAME is not null;
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME | LOC |
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
++-------+-------+-----+-----+----------+-----+------+--------+---------+-------+-----+
+(0 rows)
+
+!ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalFilter(condition=[OR(IS NOT NULL($9), IS NOT NULL($10))])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
@@ -466,10 +473,31 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # FILTER_INTO_JOIN converts a left outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the right side.
 
-select 1 from dept d left outer join emp e
-on d.deptno = e.deptno
+select 1
+from dept d
+left outer join emp e on d.deptno = e.deptno
 where e.sal > 100;
-# Not using !ok: uses dept/emp which requires mock catalog
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[>($7, 100)])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])

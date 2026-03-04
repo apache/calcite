@@ -65,9 +65,9 @@ LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
 # FULL_TO_LEFT_AND_RIGHT_JOIN rewrites a full join as left join union right join.
 # [CALCITE-7077]
 
-select * from emp e1
-full join emp e2
-on e1.sal = e2.sal and e1.mgr is null;
+select *
+from emp e1
+full join emp e2 on e1.sal = e2.sal and e1.mgr is null;
 +-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | EMPNO0 | ENAME0 | JOB0      | MGR0 | HIREDATE0  | SAL0    | COMM0   | DEPTNO0 |
 +-------+--------+-----------+------+------------+---------+---------+--------+--------+--------+-----------+------+------------+---------+---------+---------+
@@ -123,9 +123,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # non-deterministic.
 # [CALCITE-7077]
 # Not using !ok: uses !type because result is non-deterministic.
-select * from emp e1
-full join emp e2
-on rand() > 0.5;
+select *
+from emp e1
+full join emp e2 on rand() > 0.5;
 EMPNO SMALLINT(5)
 ENAME VARCHAR(10)
 JOB VARCHAR(9)
@@ -159,10 +159,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # in a join condition.
 # [CALCITE-6927]
 
-select t1.ENAME from empnullables as t1
-join
-empnullables as t2
-on t1.ENAME is not distinct from t2.ENAME;
+select t1.ENAME
+from empnullables as t1
+join empnullables as t2
+  on t1.ENAME is not distinct from t2.ENAME;
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $10)], joinType=[inner])
@@ -180,10 +180,10 @@ LogicalProject(ENAME=[$1])
 # in a join condition for array-typed columns.
 # [CALCITE-6927]
 
-select t1.ADMINS from DEPT_NESTED_EXPANDED as t1
-join
-DEPT_NESTED_EXPANDED as t2
-on t1.ADMINS is not distinct from t2.ADMINS;
+select t1.ADMINS
+from DEPT_NESTED_EXPANDED as t1
+join DEPT_NESTED_EXPANDED as t2
+  on t1.ADMINS is not distinct from t2.ADMINS;
 # Not using !ok: query uses DEPT_NESTED_EXPANDED, which is not in the scott database.
 LogicalProject(ADMINS=[$3])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $8)], joinType=[inner])
@@ -271,7 +271,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a complex OR join condition
 # with multiple AND sub-conditions.
 
-select * from empnullables as t1 inner join empnullables as t2
+select *
+from empnullables as t1
+inner join empnullables as t2
 on (t1.empno = t2.empno
 and t1.job = 'Job1'
 and t1.ename in ('a', 'bb', 'cc')
@@ -730,8 +732,9 @@ LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
 
 select *
 from dept a
-left join (select cast(x as varchar(20)) as dname, y is not null from
-(values (2, cast(null as integer)), (2, 1)) as t(x, y)) b
+left join (
+  select cast(x as varchar(20)) as dname, y is not null
+  from (values (2, cast(null as integer)), (2, 1)) as t(x, y)) b
 on a.dname = b.dname;
 +--------+------------+----------+--------+--------+
 | DEPTNO | DNAME      | LOC      | DNAME0 | EXPR$1 |
@@ -767,7 +770,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
 select *
 from dept a
 left join (select dname, 1 + 1 from dept) as b
-on a.dname = b.dname;
+  on a.dname = b.dname;
 +--------+------------+----------+------------+--------+
 | DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
 +--------+------------+----------+------------+--------+
@@ -800,7 +803,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
 select *
 from (select dname, 1 from dept) a
 full join (select dname, 1 from dept) as b
-on a.dname = b.dname;
+  on a.dname = b.dname;
 +------------+--------+------------+---------+
 | DNAME      | EXPR$1 | DNAME0     | EXPR$10 |
 +------------+--------+------------+---------+
@@ -902,7 +905,9 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
 
 select *
 from dept a
-join (select rank() over (order by dname) as r, 1 + 1 from dept) as b
+join (
+  select rank() over (order by dname) as r, 1 + 1
+  from dept) as b
 on a.deptno = b.r;
 +--------+-------+-----+---+--------+
 | DEPTNO | DNAME | LOC | R | EXPR$1 |
@@ -930,8 +935,10 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
 # JOIN_PUSH_EXPRESSIONS should not push an expression that is not
 # a pure join condition (e.g. IS NOT NULL on a non-join column).
 
-select 1 from emp inner join dept
-on emp.deptno=dept.deptno and emp.ename is not null;
+select 1
+from emp
+inner join dept
+  on emp.deptno=dept.deptno and emp.ename is not null;
 +--------+
 | EXPR$0 |
 +--------+

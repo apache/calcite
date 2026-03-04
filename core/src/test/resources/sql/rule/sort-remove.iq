@@ -27,8 +27,8 @@
 # SORT_REMOVE_REDUNDANT should not remove sort when input has potentially more
 # than one row.
 
-select * from
-(SELECT * FROM emp limit 100)
+select *
+from (SELECT * FROM emp limit 100)
 ORDER BY 1 LIMIT 10;
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
@@ -64,8 +64,8 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
 # testSortNotRemoveWhenLimitFetchIsZeroHasOrder --------------------------------
 # SORT_REMOVE_REDUNDANT should not remove sort with LIMIT 0.
 
-select * from
-(SELECT * FROM emp limit 1)
+select *
+from (SELECT * FROM emp limit 1)
 ORDER BY 1 LIMIT 0;
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
@@ -170,9 +170,11 @@ LogicalProject(ENAME=[$0])
 # SORT_REMOVE_CONSTANT_KEYS should not remove ORDER BY RAND_INTEGER() because
 # RAND_INTEGER() is non-deterministic.
 # [CALCITE-6507]
+# Not using !ok: uses !type because results are nondeterministic
 
 SELECT ename FROM emp ORDER BY RAND_INTEGER(2);
-# Not using !ok: result is non-deterministic.
+ENAME VARCHAR(10)
+!type
 LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[RAND_INTEGER(2)])
@@ -235,8 +237,10 @@ LogicalProject(D1=[$0])
 # SORT_REMOVE_DUPLICATE_KEYS should remove duplicate sort keys in a join.
 # [CALCITE-7104]
 
-select * from (select deptno as d1, deptno as d2 from emp) as t1
-join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST;
+select *
+from (select deptno as d1, deptno as d2 from emp) as t1
+join emp t2 on t1.d1 = t2.deptno
+order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST;
 +----+----+-------+--------+-----------+------+------------+---------+---------+--------+
 | D1 | D2 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +----+----+-------+--------+-----------+------+------------+---------+---------+--------+
@@ -410,8 +414,9 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 # SORT_REMOVE_REDUNDANT should not remove sort when it has an offset.
 # [CALCITE-6009]
 
-select * from
-(select * from emp limit 10) t limit 20 offset 1;
+select *
+from (select * from emp limit 10) t
+limit 20 offset 1;
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -471,8 +476,9 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 # or equal to the limit.
 # [CALCITE-6009]
 
-select * from
-(VALUES 1,2,3,4,5,6) as t1 limit 10;
+select *
+from (VALUES 1,2,3,4,5,6) as t1
+limit 10;
 +----+
 | T1 |
 +----+
@@ -498,8 +504,9 @@ LogicalProject(T1=[$0])
 # SORT_REMOVE_REDUNDANT should handle BIGINT fetch values.
 # [CALCITE-7181]
 
-select * from
-(VALUES 1,2,3,4,5,6) as t1 limit 9823372036854775807;
+select *
+from (VALUES 1,2,3,4,5,6) as t1
+limit 9823372036854775807;
 # Not using !ok: LIMIT 9823372036854775807 overflows H2/HSQLDB integer range.
 LogicalSort(fetch=[9823372036854775807:DECIMAL(19, 0)])
   LogicalProject(T1=[$0])

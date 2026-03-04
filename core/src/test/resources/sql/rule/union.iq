@@ -365,66 +365,108 @@ LogicalUnion(all=[false])
 # testPullConstantThroughUnion ------------------------------------------------
 # UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull constant columns (literal 2)
 # out of a UNION ALL and add a Project above.
-# Not using !ok: result has 28 rows.
 
-select 2, deptno, job from emp as e1
+select 2 as c2, dname from dept as e1
 union all
-select 2, deptno, job from emp as e2;
+select 2, dname from dept as d2;
++----+------------+
+| C2 | DNAME      |
++----+------------+
+|  2 | ACCOUNTING |
+|  2 | ACCOUNTING |
+|  2 | OPERATIONS |
+|  2 | OPERATIONS |
+|  2 | RESEARCH   |
+|  2 | RESEARCH   |
+|  2 | SALES      |
+|  2 | SALES      |
++----+------------+
+(8 rows)
+
+!ok
 LogicalUnion(all=[true])
-  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(C2=[2], DNAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EXPR$0=[2], DNAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "trim=true"
-LogicalProject(EXPR$0=[2], DEPTNO=[$0], JOB=[$1])
+LogicalProject(C2=[2], DNAME=[$0])
   LogicalUnion(all=[true])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$7], JOB=[$2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughUnion2 ------------------------------------------------
 # Negative test: UNION_PULL_UP_CONSTANTS does not fire when constants differ
 # across inputs.
-# Not using !ok: result has 28 rows.
 
-select 2, deptno, job from emp as e1
+select 2 as c2, deptno from dept as d1
 union all
-select 1, deptno, job from emp as e2;
+select 1, deptno from dept as d2;
++----+--------+
+| C2 | DEPTNO |
++----+--------+
+|  1 |     10 |
+|  1 |     20 |
+|  1 |     30 |
+|  1 |     40 |
+|  2 |     10 |
+|  2 |     20 |
+|  2 |     30 |
+|  2 |     40 |
++----+--------+
+(8 rows)
+
+!ok
 LogicalUnion(all=[true])
-  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject(EXPR$0=[1], DEPTNO=[$7], JOB=[$2])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(C2=[2], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EXPR$0=[1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan ""
 LogicalUnion(all=[true])
-  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject(EXPR$0=[1], DEPTNO=[$7], JOB=[$2])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(C2=[2], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EXPR$0=[1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughUnion3 ------------------------------------------------
 # UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull both constant columns out, but
 # leave at least one column in each input to keep the UNION well-formed.
-# Not using !ok: result has 28 rows.
 
-select 2, 3 from emp as e1
+select 2 as c2, 3 as c3 from dept as d1
 union all
-select 2, 3 from emp as e2;
+select 2, 3 from dept as d2;
++----+----+
+| C2 | C3 |
++----+----+
+|  2 |  3 |
+|  2 |  3 |
+|  2 |  3 |
+|  2 |  3 |
+|  2 |  3 |
+|  2 |  3 |
+|  2 |  3 |
+|  2 |  3 |
++----+----+
+(8 rows)
+
+!ok
 LogicalUnion(all=[true])
+  LogicalProject(C2=[2], C3=[3])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(EXPR$0=[2], EXPR$1=[3])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject(EXPR$0=[2], EXPR$1=[3])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "trim=true"
-LogicalProject(EXPR$0=[2], EXPR$1=[3])
+LogicalProject(C2=[2], C3=[3])
   LogicalUnion(all=[true])
-    LogicalProject(EXPR$0=[2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[2])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(C2=[2])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(C2=[2])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !sub-plan "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughUnionSameTypeNullableField ----------------------------
@@ -460,7 +502,9 @@ LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
 # testUnionToDistinctRule -----------------------------------------------------
 # UNION_TO_DISTINCT converts a UNION (distinct) to UNION ALL + Aggregate.
 
-select deptno, dname from dept union select deptno, dname from dept;
+select deptno, dname from dept
+union
+select deptno, dname from dept;
 +--------+------------+
 | DEPTNO | DNAME      |
 +--------+------------+

@@ -64,8 +64,12 @@ LogicalProject(DEPTNO=[$7])
 # LIMIT_MERGE should merge two nested LIMIT operators, keeping the smaller
 # fetch when the inner has ORDER BY.
 
-select deptno from
-(select deptno from emp where sal > 100 order by sal desc limit 10000)
+select deptno
+from (
+  select deptno
+  from emp
+  where sal > 100
+  order by sal desc limit 10000)
 limit 10;
 # Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(DEPTNO=[$0])
@@ -86,7 +90,11 @@ LogicalProject(DEPTNO=[$7])
 # fetch when the inner has ORDER BY and inner fetch is smaller.
 
 select deptno
-from (select deptno from emp where sal > 100 order by sal desc limit 10)
+from (
+  select deptno
+  from emp
+  where sal > 100
+  order by sal desc limit 10)
 limit 10000;
 +--------+
 | DEPTNO |
@@ -122,10 +130,34 @@ LogicalProject(DEPTNO=[$7])
 # LIMIT_MERGE should not merge when the outer has ORDER BY (different semantics);
 # PROJECT_REMOVE collapses the identity project.
 
-select deptno from
-(select deptno from emp where sal > 100 limit 100)
+select deptno
+from (
+  select deptno
+  from emp
+  where sal > 100
+  limit 100)
 order by deptno desc;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+
+| DEPTNO |
++--------+
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     30 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     20 |
+|     10 |
+|     10 |
+|     10 |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(sort0=[$7], dir0=[DESC])

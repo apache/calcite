@@ -213,8 +213,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[CASE(=($2, 0), null:INTEGER, $1)], EXPR$2=[$
 # Not using !ok: WITHIN DISTINCT is not supported in the scott HSQLDB.
 
 SELECT SUM(sal) WITHIN DISTINCT (job),
-LISTAGG(ename, '; ') WITHIN GROUP (ORDER BY sal DESC)
- FROM Emp
+  LISTAGG(ename, '; ') WITHIN GROUP (ORDER BY sal DESC)
+FROM Emp
 GROUP BY deptno;
 LogicalProject(EXPR$0=[$1], EXPR$1=[$2])
   LogicalAggregate(group=[{0}], EXPR$0=[SUM($1) WITHIN DISTINCT ($2)], EXPR$1=[LISTAGG($3, $4) WITHIN GROUP ([1 DESC])])

@@ -80,7 +80,8 @@ LogicalProject(EMPNO=[$0])
 # [CALCITE-5985]
 # Not using !ok: table function cannot be executed in the scott database.
 
-select * from table(tfrt(cursor(select dname from dept)))
+select *
+from table(tfrt(cursor(select dname from dept)))
 where dname = '1';
 LogicalProject(DNAME=[$0])
   LogicalFilter(condition=[=($0, '1')])
@@ -220,7 +221,7 @@ LogicalProject(EMPNO=[$0])
         LogicalProject($f0=[true])
           LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "expand=true, NONE"
+!sub-plan "expand=true"
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[IS NOT NULL($1)])
     LogicalProject(EMPNO=[$0], $f0=[$2])
@@ -358,7 +359,27 @@ LogicalProject(DEPTNO=[$7], F1=[$9], F2=[$10])
 # PROJECT_WINDOW_TRANSPOSE pushes a Project through a Window.
 
 select count(empno) over(), deptno from emp;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
++--------+--------+
+| EXPR$0 | DEPTNO |
++--------+--------+
+|     14 |     10 |
+|     14 |     10 |
+|     14 |     10 |
+|     14 |     20 |
+|     14 |     20 |
+|     14 |     20 |
+|     14 |     20 |
+|     14 |     20 |
+|     14 |     30 |
+|     14 |     30 |
+|     14 |     30 |
+|     14 |     30 |
+|     14 |     30 |
+|     14 |     30 |
++--------+--------+
+(14 rows)
+
+!ok
 LogicalProject(EXPR$0=[COUNT($0) OVER ()], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan ""
@@ -375,7 +396,7 @@ select col1, col2
 from (
   select empno,
     sum(100) over (partition by  deptno order by sal) as col1,
-  sum(1000) over(partition by deptno order by sal) as col2
+    sum(1000) over (partition by deptno order by sal) as col2
   from emp);
 +------+------+
 | COL1 | COL2 |
@@ -411,12 +432,21 @@ LogicalProject(COL1=[$2], COL2=[$3])
 # FILTER_WINDOW_TRANSPOSE pushes a Filter past a Window with two different
 # window specifications when the filter predicate is on a common partition key.
 # [CALCITE-6011]
-# Not using !ok: uses mock catalog.
 
-select * from
-(select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) as cnt,
-sum(1) over (partition by DEPTNO) as all_sum from dept) t
+select *
+from (
+  select DNAME, DEPTNO,
+    count(*) over (partition by DNAME, DEPTNO) as cnt,
+    sum(1) over (partition by DEPTNO) as all_sum
+  from dept) t
 where DEPTNO = 1;
++-------+--------+-----+---------+
+| DNAME | DEPTNO | CNT | ALL_SUM |
++-------+--------+-----+---------+
++-------+--------+-----+---------+
+(0 rows)
+
+!ok
 LogicalProject(DNAME=[$0], DEPTNO=[$1], CNT=[$2], ALL_SUM=[$3])
   LogicalFilter(condition=[=($1, 1)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0], CNT=[COUNT() OVER (PARTITION BY $1, $0)], ALL_SUM=[SUM(1) OVER (PARTITION BY $0)])
@@ -464,11 +494,21 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
 # FILTER_WINDOW_TRANSPOSE pushes a Filter past a Window with two partition
 # columns when the filter predicate is on one of the partition keys.
 # [CALCITE-6011]
-# Not using !ok: uses mock catalog.
 
 select * from
 (select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) from dept)
 where DEPTNO > 0;
++------------+--------+--------+
+| DNAME      | DEPTNO | EXPR$2 |
++------------+--------+--------+
+| ACCOUNTING |     10 |      1 |
+| OPERATIONS |     40 |      1 |
+| RESEARCH   |     20 |      1 |
+| SALES      |     30 |      1 |
++------------+--------+--------+
+(4 rows)
+
+!ok
 LogicalProject(DNAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
   LogicalFilter(condition=[>($1, 0)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[COUNT() OVER (PARTITION BY $1, $0)])
