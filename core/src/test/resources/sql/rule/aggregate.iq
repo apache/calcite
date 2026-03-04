@@ -68,7 +68,6 @@ LogicalProject(X=[$0], EXPR$1=[$2], Y=[$1])
 
 # testAggregateMerge1 ---------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates into a single aggregate.
-# Not using !ok: complex result.
 
 select deptno c, min(y), max(z) z,
 sum(r), sum(m) n, sum(x) sal from (
@@ -76,6 +75,16 @@ sum(r), sum(m) n, sum(x) sal from (
       min(sal) y, count(hiredate) m, count(mgr) r
    from emp group by deptno, ename) t
 group by deptno;
++----+---------+---------+--------+---+----------+
+| C  | EXPR$1  | Z       | EXPR$3 | N | SAL      |
++----+---------+---------+--------+---+----------+
+| 10 | 1300.00 | 5000.00 |      2 | 3 |  8750.00 |
+| 20 |  800.00 | 3000.00 |      5 | 5 | 10875.00 |
+| 30 |  950.00 | 2850.00 |      6 | 6 |  9400.00 |
++----+---------+---------+--------+---+----------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{1}], EXPR$1=[MIN($4)], Z=[MAX($3)], EXPR$3=[SUM($6)], N=[SUM($5)], SAL=[SUM($2)])
   LogicalAggregate(group=[{1, 7}], X=[SUM($5)], Z=[MAX($5)], Y=[MIN($5)], M=[COUNT()], R=[COUNT($3)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -86,13 +95,20 @@ LogicalAggregate(group=[{7}], EXPR$1=[MIN($5)], Z=[MAX($5)], EXPR$3=[COUNT($3)],
 
 # testAggregateMerge10 --------------------------------------------------------
 # [CALCITE-7162] AggregateMergeRule throws 'type mismatch' AssertionError.
-# Not using !ok: complex result.
 
 SELECT min(mn), max(mx)
 FROM (
     SELECT min(deptno) mn, max(deptno) mx
     FROM dept
     GROUP BY dname);
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     10 |     40 |
++--------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[MIN($1)], EXPR$1=[MAX($2)])
   LogicalAggregate(group=[{1}], MN=[MIN($0)], MX=[MAX($0)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -104,7 +120,6 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
 # testAggregateMerge2 ---------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates into a single aggregate,
 # top aggregate is not simple aggregate.
-# Not using !ok: complex result.
 
 select deptno, empno, sum(x), sum(y)
 from (
@@ -112,6 +127,30 @@ from (
     from emp
   group by deptno, ename, empno) t
 group by grouping sets(deptno, empno);
++--------+-------+----------+--------+
+| DEPTNO | EMPNO | EXPR$2   | EXPR$3 |
++--------+-------+----------+--------+
+|     10 |       |  8750.00 |      2 |
+|     20 |       | 10875.00 |      5 |
+|     30 |       |  9400.00 |      6 |
+|        |  7369 |   800.00 |      1 |
+|        |  7499 |  1600.00 |      1 |
+|        |  7521 |  1250.00 |      1 |
+|        |  7566 |  2975.00 |      1 |
+|        |  7654 |  1250.00 |      1 |
+|        |  7698 |  2850.00 |      1 |
+|        |  7782 |  2450.00 |      1 |
+|        |  7788 |  3000.00 |      1 |
+|        |  7839 |  5000.00 |      0 |
+|        |  7844 |  1500.00 |      1 |
+|        |  7876 |  1100.00 |      1 |
+|        |  7900 |   950.00 |      1 |
+|        |  7902 |  3000.00 |      1 |
+|        |  7934 |  1300.00 |      1 |
++--------+-------+----------+--------+
+(17 rows)
+
+!ok
 LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$2=[$2], EXPR$3=[$3])
   LogicalAggregate(group=[{0, 2}], groups=[[{0}, {2}]], EXPR$2=[SUM($3)], EXPR$3=[SUM($4)])
     LogicalAggregate(group=[{0, 1, 7}], X=[SUM($5)], Y=[COUNT($3)])
@@ -125,12 +164,22 @@ LogicalProject(DEPTNO=[$1], EMPNO=[$0], EXPR$2=[$2], EXPR$3=[$3])
 # testAggregateMerge3 ---------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates into a single aggregate,
 # since lower aggregate is not simple aggregate.
-# Not using !ok: complex result.
 
 select deptno, sum(x) from (
  select ename, deptno, sum(sal) x from
    emp group by cube(deptno, ename)) t
 group by deptno;
++--------+----------+
+| DEPTNO | EXPR$1   |
++--------+----------+
+|     10 | 17500.00 |
+|     20 | 21750.00 |
+|     30 | 18800.00 |
+|        | 58050.00 |
++--------+----------+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
   LogicalAggregate(group=[{1, 7}], groups=[[{1, 7}, {1}, {7}, {}]], X=[SUM($5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -143,12 +192,21 @@ LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
 # testAggregateMerge4 ---------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since it contains distinct
 # aggregate function.
-# Not using !ok: complex result.
 
 select deptno, sum(x) from (
   select ename, deptno, count(distinct sal) x
     from emp group by deptno, ename) t
 group by deptno;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     20 |      5 |
+|     30 |      6 |
++--------+--------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
   LogicalAggregate(group=[{1, 7}], X=[COUNT(DISTINCT $5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -161,12 +219,21 @@ LogicalAggregate(group=[{1}], EXPR$1=[SUM($2)])
 # testAggregateMerge5 ---------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since AVG doesn't support
 # splitting.
-# Not using !ok: complex result.
 
 select deptno, avg(x) from (
   select mgr, deptno, avg(sal) x from
     emp group by deptno, mgr) t
 group by deptno;
++--------+---------+
+| DEPTNO | EXPR$1  |
++--------+---------+
+|     10 | 2916.66 |
+|     20 | 1968.75 |
+|     30 | 2080.00 |
++--------+---------+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{1}], EXPR$1=[AVG($2)])
   LogicalAggregate(group=[{3, 7}], X=[AVG($5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -179,11 +246,18 @@ LogicalAggregate(group=[{1}], EXPR$1=[AVG($2)])
 # testAggregateMerge6 ---------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since top agg has no group
 # key, and lower agg function is COUNT.
-# Not using !ok: complex result.
 
 select sum(x) from (
 select mgr, deptno, count(sal) x from
 emp group by deptno, mgr) t;
++--------+
+| EXPR$0 |
++--------+
+|     14 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM($2)])
   LogicalAggregate(group=[{3, 7}], X=[COUNT()])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -196,12 +270,38 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($2)])
 # testAggregateMerge7 ---------------------------------------------------------
 # AggregateMergeRule should not merge 2 aggregates since top agg contains empty
 # grouping set, and lower agg function is COUNT.
-# Not using !ok: complex result.
 
 select mgr, deptno, sum(x) from (
   select mgr, deptno, count(sal) x from
     emp group by deptno, mgr) t
 group by cube(mgr, deptno);
++------+--------+--------+
+| MGR  | DEPTNO | EXPR$2 |
++------+--------+--------+
+| 7566 |     20 |      2 |
+| 7566 |        |      2 |
+| 7698 |     30 |      5 |
+| 7698 |        |      5 |
+| 7782 |     10 |      1 |
+| 7782 |        |      1 |
+| 7788 |     20 |      1 |
+| 7788 |        |      1 |
+| 7839 |     10 |      1 |
+| 7839 |     20 |      1 |
+| 7839 |     30 |      1 |
+| 7839 |        |      3 |
+| 7902 |     20 |      1 |
+| 7902 |        |      1 |
+|      |     10 |      1 |
+|      |     10 |      3 |
+|      |     20 |      5 |
+|      |     30 |      6 |
+|      |        |      1 |
+|      |        |     14 |
++------+--------+--------+
+(20 rows)
+
+!ok
 LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], EXPR$2=[SUM($2)])
   LogicalAggregate(group=[{3, 7}], X=[COUNT()])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -216,10 +316,17 @@ LogicalProject(MGR=[$1], DEPTNO=[$0], EXPR$2=[$2])
 # testAggregateMerge8 ---------------------------------------------------------
 # AggregateMergeRule should merge 2 aggregates since both top and bottom
 # aggregates contain empty grouping set and they are mergable.
-# Not using !ok: complex result.
 
 select sum(x) x, min(y) z from (
   select sum(sal) x, min(sal) y from emp);
++----------+--------+
+| X        | Z      |
++----------+--------+
+| 29025.00 | 800.00 |
++----------+--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], X=[SUM($0)], Z=[MIN($1)])
   LogicalAggregate(group=[{}], X=[SUM($5)], Y=[MIN($5)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -230,13 +337,20 @@ LogicalAggregate(group=[{}], X=[SUM($5)], Z=[MIN($5)])
 
 # testAggregateMerge9 ---------------------------------------------------------
 # [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError.
-# Not using !ok: complex result.
 
 SELECT sum(deptno)
 FROM (
     SELECT sum(deptno) AS deptno
     FROM dept
     GROUP BY dname);
++--------+
+| EXPR$0 |
++--------+
+|    100 |
++--------+
+(1 row)
+
+!ok
 LogicalAggregate(group=[{}], EXPR$0=[SUM($1)])
   LogicalAggregate(group=[{1}], DEPTNO=[SUM($0)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -678,6 +792,19 @@ from (
 select deptno, count(distinct empno) from emp group by deptno
 union all
 select deptno, approx_count_distinct(empno) from emp group by deptno);
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 |      3 |
+|     10 |      3 |
+|     20 |      5 |
+|     20 |      5 |
+|     30 |      6 |
+|     30 |      6 |
++--------+--------+
+(6 rows)
+
+!ok
 LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
