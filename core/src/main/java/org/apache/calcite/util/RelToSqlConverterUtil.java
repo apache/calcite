@@ -391,6 +391,24 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
+   * Transformation Map type from {@code MAP<VARCHAR,INTEGER>} to {@code Map<STRING,INTEGER>}.
+   */
+  public static SqlDataTypeSpec getCastSpecSparkSqlMapType(SqlDialect dialect,
+      RelDataType type, SqlParserPos pos) {
+    MapSqlType mapSqlType = (MapSqlType) type;
+    SqlDataTypeSpec keySpec = (SqlDataTypeSpec) dialect.getCastSpec(mapSqlType.getKeyType());
+    SqlDataTypeSpec valueSpec =
+        (SqlDataTypeSpec) dialect.getCastSpec(mapSqlType.getValueType());
+    SqlDataTypeSpec nonNullKeySpec =
+        requireNonNull(keySpec, "keySpec").withNullable(false);
+    SqlDataTypeSpec nonNullValueSpec =
+        requireNonNull(valueSpec, "valueSpec").withNullable(false);
+    SqlMapTypeNameSpec sqlMapTypeNameSpec =
+        new SqlMapTypeNameSpec(nonNullKeySpec, nonNullValueSpec, pos);
+    return new SqlDataTypeSpec(sqlMapTypeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
    * ClickHouseSqlMapTypeNameSpec to parse or unparse SQL MAP type to {@code Map(VARCHAR, VARCHAR)}.
    */
   public static class ClickHouseSqlMapTypeNameSpec extends SqlMapTypeNameSpec {
