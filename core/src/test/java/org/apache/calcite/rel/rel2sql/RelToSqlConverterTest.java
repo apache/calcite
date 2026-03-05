@@ -2849,6 +2849,44 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7433">[CALCITE-7433]
+   * Invalid unparse for cast to map type in Spark</a>.
+   */
+  @Test void testCastMapSpark() {
+    final String query = "select cast(MAP['a',1,'b',2,'c',3]"
+        + " as MAP<varchar,integer>)";
+    final String expectedSpark =
+        "SELECT CAST(MAP ('a', 1, 'b', 2, 'c', 3) AS MAP< STRING, INTEGER >)\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query)
+        .withSpark().ok(expectedSpark);
+
+    final String query1 = "select cast(MAP['a',ARRAY[1,2,3]]"
+        + " as MAP<varchar,integer array>)";
+    final String expectedSpark1 =
+        "SELECT CAST(MAP ('a', ARRAY (1, 2, 3)) AS MAP< STRING, ARRAY< INTEGER > >)\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query1)
+        .withSpark().ok(expectedSpark1);
+
+    final String query2 = "select cast(MAP['a',ARRAY[1.0,2.0,3.0]]"
+        + " as MAP<varchar,real array>)";
+    final String expectedSpark2 =
+        "SELECT CAST(MAP ('a', ARRAY (1.0, 2.0, 3.0)) AS MAP< STRING, ARRAY< REAL > >)\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query2)
+        .withSpark().ok(expectedSpark2);
+
+    final String query3 = "select cast(MAP['a',MAP['b','c']]"
+        + " as MAP<varchar,MAP<varchar,varchar>>)";
+    final String expectedSpark3 =
+        "SELECT CAST(MAP ('a', MAP ('b', 'c')) AS MAP< STRING, MAP< STRING, STRING > >)\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query3)
+        .withSpark().ok(expectedSpark3);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7055">[CALCITE-7055]
    * Invalid unparse for cast to array type in StarRocks</a>.
    */
