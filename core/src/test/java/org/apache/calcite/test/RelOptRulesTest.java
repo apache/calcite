@@ -23,7 +23,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableLimitSort;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.enumerable.EnumerableSort;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -69,9 +68,7 @@ import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
-import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
-import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
@@ -146,7 +143,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -1805,70 +1801,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testEmptyTable() {
-    // table is transformed to empty values and extra project will be removed.
-    final String sql = "select * from EMPTY_PRODUCTS\n";
-    sql(sql)
-        .withRule(
-            PruneEmptyRules.EMPTY_TABLE_INSTANCE,
-            PruneEmptyRules.PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testJoinWithConstantRowOnRight() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from emp e cross join (select 5, 5) c";
-
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
-        .check();
-  }
-
-  @Test void testJoinWithConstantRowOnLeft() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from (select 5, 5) c cross join emp e";
-
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
-        .check();
-  }
-
-  @Test void testInnerJoinWithConstantRowOnLeft() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from (select 5 as nm) c inner join emp e on e.empno = c.nm";
-
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
-        .check();
-  }
-
-  @Test void testInnerJoinWithConstantRowOnRight() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from emp e inner join (select 5 as nm) c  on e.empno = c.nm";
-
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
-        .check();
-  }
-
-  @Test void testRightJoinWithConstantRowOnLeft() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from (select 5 as nm) c right join emp e on e.empno = c.nm";
-
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
-        .check();
-  }
-
-  @Test void testLeftJoinWithConstantRowOnRight() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from emp e left join (select 5 as nm) c  on e.empno = c.nm";
-
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
-        .check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7389">[CALCITE-7389]
    * PruneJoinSingleValue rule causes type mismatch in EXISTS</a>. */
@@ -1895,72 +1827,6 @@ class RelOptRulesTest extends RelOptTestBase {
             builder.equals(builder.field(2, 0, 0), builder.field(2, 1, 0)))
         .build())
         .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
-        .check();
-  }
-
-  @Test void testInnerJoinWithTimeStampSingleRowOnRight() {
-    final String sql = "select e.empno, e.ename, c.t"
-        + " from emp e inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono";
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testLeftJoinWithTimeStampSingleRowOnRight() {
-    final String sql = "select e.empno, e.ename, c.t "
-        + "from emp e left join (select 7934 as ono, current_timestamp as t) c "
-        + "  on e.empno = c.ono";
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testCrossJoinWithTimeStampSingleRowOnRight() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from emp e cross join (select 5, current_timestamp) c";
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE)
-        .check();
-  }
-  @Test void testInnerJoinWithTimeStampSingleRowOnLeft() {
-    final String sql = "select e.empno, e.ename, c.t"
-        + " from (select 7934 as ono, current_timestamp as t) c inner join emp e on e.empno=c.ono";
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testRightJoinWithTimeStampSingleRowOnLeft() {
-    final String sql = "select e.empno, e.ename, c.t "
-        + "from (select 7934 as ono, current_timestamp as t) c right join emp e "
-        + "  on e.empno = c.ono";
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testCrossJoinWithTimeStampSingleRowOnLeft() {
-    final String sql = "select e.empno, e.ename, c.*"
-        + " from (select 5, current_timestamp) c cross join emp e ";
-    sql(sql)
-        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
-        .check();
-  }
-
-  @Test void testEmptyTableTransformsComplexQueryToSingleTableScan() {
-    final String sql = "select products.PRODUCTID, products.NAME from products left join\n"
-        + "(select * from products as e\n"
-        + " inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID\n"
-        + " where e.SUPPLIERID > 10) dt\n"
-        + " on products.PRODUCTID = dt.PRODUCTID";
-    Collection<RelOptRule> rules =
-        Arrays.asList(PruneEmptyRules.EMPTY_TABLE_INSTANCE,
-            PruneEmptyRules.JOIN_RIGHT_INSTANCE,
-            PruneEmptyRules.FILTER_INSTANCE,
-            PruneEmptyRules.PROJECT_INSTANCE,
-            CoreRules.PROJECT_MERGE);
-    sql(sql)
-        .withProgram(HepProgram.builder().addRuleCollection(rules).build())
         .check();
   }
 
@@ -2021,21 +1887,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .project(b.field("EMPNO"))
         .build();
     checkEmptyJoin(relFn(relFn));
-  }
-
-  @Test void testCorrelateWithoutCorrelationToEmpty() {
-    String sql = "select * from emp e where exists (select 1 from dept where empno=null)";
-    List<RelOptRule> rules =
-        Arrays.asList(CoreRules.FILTER_REDUCE_EXPRESSIONS,
-        PruneEmptyRules.PROJECT_INSTANCE,
-        PruneEmptyRules.AGGREGATE_INSTANCE,
-        PruneEmptyRules.JOIN_RIGHT_INSTANCE,
-        PruneEmptyRules.CORRELATE_RIGHT_INSTANCE);
-    sql(sql)
-        .withExpand(false)
-        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withProgram(HepProgram.builder().addRuleCollection(rules).build())
-        .check();
   }
 
   @Test void testCorrelateWithoutCorrelationToEmptyInVolcano() {
@@ -2601,56 +2452,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2078">[CALCITE-2078]
    * Aggregate functions in OVER clause</a>. */
 
-  @Test void testMeasureSort() {
-    final String sql = "select deptno, c1\n"
-        + "from (select deptno, job, count(*) + 1 as measure c1\n"
-        + "  from emp)\n"
-        + "order by deptno";
-    sql(sql)
-        .withRule(MeasureRules.PROJECT_SORT)
-        .check();
-  }
-
-  @Test void testMeasureAggregate() {
-    final String sql = "select deptno, c1\n"
-        + "from (select deptno, job, count(*) + 1 as measure c1\n"
-        + "  from emp)\n"
-        + "group by deptno";
-    sql(sql)
-        .withRule(MeasureRules.AGGREGATE,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .check();
-  }
-
-  /** Tests use of a measure in a non-aggregate query. Calls
-   * {@link RelOptFixture#checkUnchanged()} because Sql-to-rel has done the
-   * necessary work already. */
-  @Test void testMeasureWithoutGroupBy() {
-    final String sql = "with empm as\n"
-        + "  (select *, avg(sal) as measure avgSal from emp)\n"
-        + "select deptno, avgSal\n"
-        + "from empm";
-    sql(sql)
-        .withRule(MeasureRules.AGGREGATE2,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .checkUnchanged();
-  }
-
-  @Test void testMeasureWithoutGroupByWithOrderBy() {
-    final String sql = "with empm as\n"
-        + "  (select *, avg(sal) as measure avgSal from emp)\n"
-        + "select deptno, avgSal\n"
-        + "from empm\n"
-        + "order by 2 desc limit 3";
-    sql(sql)
-        .withRule(MeasureRules.PROJECT_SORT,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .check();
-  }
-
   @Disabled
   @Test void testMeasureJoin() {
     final String sql = "with deptm as\n"
@@ -2667,25 +2468,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(MeasureRules.AGGREGATE,
             CoreRules.PROJECT_MERGE,
             MeasureRules.PROJECT)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6600">[CALCITE-6600]
-   * AggregateJoinTransposeRule can throw ArrayIndexOutOfBoundsException when applied
-   * on a SemiJoin</a>.*/
-  @Test void testPushAggregateThroughSemiJoin() {
-    final String sql = "select distinct sal\n"
-        + "from (select * from sales.emp e where e.job in\n"
-        + "(select d.dname from sales.dept d))";
-    sql(sql)
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withRule(CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_TO_SEMI_JOIN,
-            CoreRules.AGGREGATE_PROJECT_MERGE,
-            CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
         .check();
   }
 
@@ -2785,16 +2567,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
     relFn(relFn).withRule(rule).checkUnchanged();
   }
-
-  @Test void testPushJoinCondDownToProject() {
-    final String sql = "select d.deptno, e.deptno from sales.dept d, sales.emp e\n"
-        + " where d.deptno + 10 = e.deptno * 2";
-    sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_PUSH_EXPRESSIONS)
-        .check();
-  }
-
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-931">[CALCITE-931]
@@ -2920,51 +2692,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.PROJECT_FILTER_TRANSPOSE).check();
   }
 
-  @Test void testFlattenUncorrelatedCallBelowEquals() {
-    final String sql = "select * from emp e1 where exists ("
-        + "select * from emp e2 where e1.deptno = (e2.deptno+30))";
-    sql(sql).withDecorrelate(false)
-        .withExpand(true)
-        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
-        .check();
-  }
-
-  @Test void testCallOverCorrelationVariableIsNotFlattened() {
-    final String sql = "select * from emp e1 where exists ("
-        + "select * from emp e2 where (e1.deptno+30) = e2.deptno)";
-    sql(sql).withDecorrelate(false)
-        .withExpand(true)
-        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
-        .checkUnchanged();
-  }
-
-  @Test void testFlattenUncorrelatedTwoLevelCallBelowEqualsSucceeds() {
-    final String sql = "select * from emp e1 where exists ("
-        + "select * from emp e2 where e1.deptno = (2 * e2.deptno+30))";
-    sql(sql).withDecorrelate(false)
-        .withExpand(true)
-        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
-        .check();
-  }
-
-  @Test void testUncorrelatedCallBelowNonComparisonOpIsNotFlattened() {
-    final String sql = "select * from emp e1 where exists ("
-        + "select * from emp e2 where (e1.deptno + (e2.deptno+30)) > 0)";
-    sql(sql).withDecorrelate(false)
-        .withExpand(true)
-        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
-        .checkUnchanged();
-  }
-
-  @Test void testUncorrelatedCallInConjunctionIsFlattenedOnlyIfSiblingOfCorrelation() {
-    final String sql = "select * from emp e1 where exists ("
-        + "select * from emp e2 where (e2.empno+50) < 20 and e1.deptno >= (30+e2.deptno))";
-    sql(sql).withDecorrelate(false)
-        .withExpand(true)
-        .withRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule())
-        .check();
-  }
-
   @Disabled("[CALCITE-1045]")
   @Test void testExpandJoinIn() {
     final String sql = "select empno\n"
@@ -2996,141 +2723,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
-  @Test void testCustomColumnResolvingInNonCorrelatedSubQuery() {
-    final String sql = "select *\n"
-        + "from struct.t t1\n"
-        + "where c0 in (\n"
-        + "  select f1.c0 from struct.t t2)";
-    sql(sql).withSubQueryRules().withTrim(true).check();
-  }
-
-  @Test void testCustomColumnResolvingInCorrelatedSubQuery() {
-    final String sql = "select *\n"
-        + "from struct.t t1\n"
-        + "where c0 = (\n"
-        + "  select max(f1.c0) from struct.t t2 where t1.k0 = t2.k0)";
-    sql(sql).withSubQueryRules().withTrim(true).check();
-  }
-
-  @Test void testCustomColumnResolvingInCorrelatedSubQuery2() {
-    final String sql = "select *\n"
-        + "from struct.t t1\n"
-        + "where c0 in (\n"
-        + "  select f1.c0 from struct.t t2 where t1.c2 = t2.c2)";
-    sql(sql).withSubQueryRules().withTrim(true).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
-   * RelDecorrelator use wrong output map for LogicalAggregate decorrelate</a>. */
-  @Test void testDecorrelateAggWithConstantGroupKey() {
-    final String sql = "SELECT *\n"
-        + "FROM emp A\n"
-        + "where sal in (SELECT max(sal)\n"
-        + "  FROM emp B\n"
-        + "  where A.mgr = B.empno\n"
-        + "  group by deptno, 'abc')";
-    sql(sql)
-        .withExpand(true)
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .withRule() // empty program
-        .check();
-  }
-
-  /** Test case for CALCITE-2744 for aggregate decorrelate with multi-param agg call
-   * but without group key. */
-  @Test void testDecorrelateAggWithMultiParamsAggCall() {
-    final String sql = "SELECT * FROM (SELECT MYAGG(sal, 1) AS c FROM emp) as m,\n"
-        + " LATERAL TABLE(ramp(m.c)) AS T(s)";
-    sql(sql)
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .withRule() // empty program
-        .checkUnchanged();
-  }
-
-  /** Same as {@link #testDecorrelateAggWithMultiParamsAggCall}
-   * but with a constant group key. */
-  @Test void testDecorrelateAggWithMultiParamsAggCall2() {
-    final String sql = "SELECT * FROM "
-        + "(SELECT MYAGG(sal, 1) AS c FROM emp group by empno, 'abc') as m,\n"
-        + " LATERAL TABLE(ramp(m.c)) AS T(s)";
-    sql(sql)
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .withRule() // empty program
-        .checkUnchanged();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6681">[CALCITE-6681]
-   * NullPointerException in ProjectCorrelateTransposeRule</a>. */
-  @Test void testLateralTransposeWithDecorrelateFalse() {
-    final String sql = "WITH "
-        + "  t1(a, ts) AS (VALUES('a', 1)),"
-        + "  t2(a, ts, x) AS (SELECT ename as a, empno as ts, mgr as x FROM emp)\n"
-        + "SELECT * FROM t1\n"
-        + "LEFT JOIN LATERAL (\n"
-        + "    SELECT x FROM t2\n"
-        + "    WHERE t2.a = t1.a AND t2.ts <= t1.ts\n"
-        + "    LIMIT 1\n"
-        + ") ON true\n"
-        + "LEFT JOIN LATERAL (\n"
-        + "    SELECT x\n"
-        + "    FROM t2\n"
-        + "    WHERE t2.a = t1.a\n"
-        + ") ON true";
-    sql(sql).withDecorrelate(false)
-        .withRule(CoreRules.PROJECT_CORRELATE_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6681">[CALCITE-6681]
-   * NullPointerException in ProjectCorrelateTransposeRule</a>. */
-  @Test void testLateralTransposeWithDecorrelateTrue() {
-    final String sql = "WITH "
-        + "  t1(a, ts) AS (VALUES('a', 1)),"
-        + "  t2(a, ts, x) AS (SELECT ename as a, empno as ts, mgr as x FROM emp)\n"
-        + "SELECT * FROM t1\n"
-        + "LEFT JOIN LATERAL (\n"
-        + "    SELECT x FROM t2\n"
-        + "    WHERE t2.a = t1.a AND t2.ts <= t1.ts\n"
-        + "    LIMIT 1\n"
-        + ") ON true\n"
-        + "LEFT JOIN LATERAL (\n"
-        + "    SELECT x\n"
-        + "    FROM t2\n"
-        + "    WHERE t2.a = t1.a\n"
-        + ") ON true";
-    sql(sql).withDecorrelate(true)
-        .withRule(CoreRules.PROJECT_CORRELATE_TRANSPOSE)
-        .checkUnchanged();
-  }
-
-  /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
-   * failing during the decorrelation phase. The correlation variable is used at two levels
-   * deep. */
-  @Test void testTwoLevelDecorrelate() {
-    final String sql = "SELECT d1.dname, d1.deptno + (\n"
-        + "SELECT e1.empno\n"
-        + "FROM emp e1\n"
-        + "WHERE d1.deptno = e1.deptno and\n"
-        + "    e1.sal = (SELECT max(sal)\n"
-        + "              FROM emp e2\n"
-        + "              WHERE e1.sal = e2.sal and\n"
-        + "                  e1.deptno = e2.deptno and\n"
-        + "                  d1.deptno < e2.deptno))\n"
-        + "FROM dept d1";
-
-    sql(sql)
-        .withSubQueryRules()
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .check();
-  }
-
   @Test void testCorrelatedFilterWithVariable() {
     // select *
     // from dept
@@ -3158,39 +2750,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
-   * failing during the decorrelation phase. The correlation variable is used at the second
-   * level and is not used in the first level */
-  @Test void testCorrelatedVariableAtSecondLevel() {
-    final String sql = "SELECT d1.dname, d1.deptno +(\n"
-        + "SELECT e1.empno\n"
-        + "FROM emp e1\n"
-        + "WHERE e1.sal = (SELECT max(sal)\n"
-        + "                FROM emp e2\n"
-        + "                WHERE e1.sal = e2.sal and\n"
-        + "                    e1.deptno = e2.deptno and\n"
-        + "                    d1.deptno < e2.deptno))\n"
-        + "FROM dept d1";
-    sql(sql)
-        .withSubQueryRules()
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateProjectWithFetchOne() {
-    final String query = "SELECT dname, "
-        + "(SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) "
-        + "FROM dept";
-    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7289">[CALCITE-7289]
    * Select NULL subquery throwing exception</a>. */
   @Test void testNullSelect() {
@@ -3204,131 +2763,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7391">[CALCITE-7391]
    * FILTER_REDUCE_EXPRESSIONS crashes on expression where 123 in (SELECT NULL FROM emps)</a>. */
-  @Test void testNullSelect2() {
-    final String sql = "SELECT * from emp where 123 in (select null from dept)";
-    sql(sql)
-        .withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
-            CoreRules.FILTER_PROJECT_TRANSPOSE,
-            CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateProjectWithFetchOneDesc() {
-    final String query = "SELECT dname, "
-        + "(SELECT emp.sal FROM emp WHERE dept.deptno = emp.deptno "
-        + "ORDER BY emp.sal desc nulls last LIMIT 1) "
-        + "FROM dept";
-    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateFilterWithFetchOne() {
-    final String query = "SELECT dname FROM dept "
-        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
-        + "ORDER BY emp.sal limit 1)";
-    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateFilterWithFetchOneDesc() {
-    final String query = "SELECT dname FROM dept "
-        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
-        + "ORDER BY emp.sal desc nulls last limit 1)";
-    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateFilterWithFetchOneDesc1() {
-    final String query = "SELECT dname FROM dept "
-        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
-        + "ORDER BY emp.sal desc limit 1)";
-    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateProjectWithMultiKeyAndFetchOne() {
-    final String query = "SELECT dname, "
-        + "(SELECT sal FROM emp where dept.deptno = emp.deptno "
-        + "order by year(hiredate), emp.sal limit 1) FROM dept";
-    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateProjectWithMultiKeyAndFetchOne1() {
-    final String query = "SELECT dname, "
-        + "(SELECT sal FROM emp where dept.deptno = emp.deptno and dept.dname = emp.ename "
-        + "order by year(hiredate), emp.sal limit 1) FROM dept";
-    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
-   * RelDecorrelator can't decorrelate query with limit 1</a>.
-   */
-  @Test void testDecorrelateFilterWithMultiKeyAndFetchOne() {
-    final String query = "SELECT dname FROM dept "
-        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
-        + "order by year(hiredate), emp.sal desc limit 1)";
-    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
-        .withLateDecorrelate(true)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
-   * Converting predicates on date dimension columns into date ranges</a>,
-   * specifically a rule that converts {@code EXTRACT(YEAR FROM ...) = constant}
-   * to a range. */
-  @Test void testExtractYearToRange() {
-    final String sql = "select *\n"
-        + "from sales.emp_b as e\n"
-        + "where extract(year from birthdate) = 2014";
-    sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
-        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
-        .check();
-  }
-
-  @Test void testExtractYearMonthToRange() {
-    final String sql = "select *\n"
-        + "from sales.emp_b as e\n"
-        + "where extract(year from birthdate) = 2014"
-        + "and extract(month from birthdate) = 4";
-    sql(sql).withRule(DateRangeRules.FILTER_INSTANCE)
-        .withContext(c -> Contexts.of(CalciteConnectionConfig.DEFAULT, c))
-        .check();
-  }
-
   @Test void testFilterRemoveIsNotDistinctFromRule() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
@@ -3861,37 +3295,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6176">[CALCITE-6176]
    * JOIN_SUB_QUERY_TO_CORRELATE rule incorrectly handles EXISTS in LEFT JOIN ON clause</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3296">[CALCITE-3296]
-   * Decorrelator gives empty result after decorrelating sort rel with
-   * null offset and fetch</a>.
-   */
-  @Test void testDecorrelationWithSort() {
-    final String sql = "SELECT e1.empno\n"
-        + "FROM emp e1, dept d1 where e1.deptno = d1.deptno\n"
-        + "and e1.deptno < 10 and d1.deptno < 15\n"
-        + "and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)\n"
-        + "order by e1.empno";
-
-    sql(sql)
-        .withRule() // empty program
-        .withExpand(true)
-        .withDecorrelate(true)
-        .checkUnchanged();
-  }
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3319">[CALCITE-3319]
-   * AssertionError for ReduceDecimalsRule</a>. */
-  @Test void testReduceDecimal() {
-    final String sql = "select ename from emp where sal > cast (100.0 as decimal(4, 1))";
-    sql(sql)
-        .withRule(CoreRules.FILTER_TO_CALC,
-            CoreRules.CALC_REDUCE_DECIMALS)
-        .check();
-  }
 
   /**
    * Test case for

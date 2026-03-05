@@ -334,6 +334,11 @@ public class CoreRules {
   public static final FilterMultiJoinMergeRule FILTER_MULTI_JOIN_MERGE =
       FilterMultiJoinMergeRule.Config.DEFAULT.toRule();
 
+  /** Rule that flattens uncorrelated calls in a correlated {@link Filter}. */
+  public static final FilterFlattenCorrelatedConditionRule
+      FILTER_FLATTEN_CORRELATED_CONDITION =
+      FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule();
+
   /** Rule that replaces {@code IS NOT DISTINCT FROM}
    * in a {@link Filter} with logically equivalent operations. */
   public static final FilterRemoveIsNotDistinctFromRule

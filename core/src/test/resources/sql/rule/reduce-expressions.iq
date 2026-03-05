@@ -1610,6 +1610,39 @@ LogicalProject(EXPR$0=[2], EXPR$1=[ARRAY(2, 4)], EXPR$2=[ROW('a', 6)], EXPR$3=[M
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "PROJECT_REDUCE_EXPRESSIONS"
 
+# testReduceDecimal ------------------------------------------------------------
+# FILTER_TO_CALC, CALC_REDUCE_DECIMALS reduce a CAST to DECIMAL.
+# [CALCITE-3319]
+
+select ename
+from emp
+where sal > cast (100.0 as decimal(4, 1));
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[10:BIGINT], expr#10=[*($t5, $t9)], expr#11=[Reinterpret($t10)], expr#12=[Reinterpret($t11)], expr#13=[100.0:DECIMAL(11, 1)], expr#14=[Reinterpret($t13)], expr#15=[>($t12, $t14)], proj#0..8=[{exprs}], $condition=[$t15])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_TO_CALC, CALC_REDUCE_DECIMALS"
+
 # testReduceExpressionsNot -----------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS does not reduce NOT(col1) when col1 is a boolean
 # from a VALUES clause (checkUnchanged).
@@ -1636,13 +1669,19 @@ LogicalProject(COL1=[$0])
 
 # testReduceNestedCaseWhen -----------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS simplifies a nested CASE when condition.
-# Not using !ok: uses mock catalog only.
 
 select sal
 from emp
 where case when (sal = 1000) then
 (case when sal = 1000 then null else 1 end is null) else
 (case when sal = 2000 then null else 1 end is null) end is true;
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
 LogicalProject(SAL=[$5])
   LogicalFilter(condition=[IS TRUE(CASE(=($5, 1000), IS NULL(CASE(=($5, 1000), null:INTEGER, 1)), IS NULL(CASE(=($5, 2000), null:INTEGER, 1))))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1654,13 +1693,21 @@ LogicalProject(SAL=[$5])
 
 # testReduceNot ----------------------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS does not simplify NOT of a nullable CASE (checkUnchanged).
-# Not using !ok: uses mock catalog only.
 
 select *
 from (
     select (case when sal > 1000 then null else false end) as caseCol
     from emp)
 where NOT(caseCol);
++---------+
+| CASECOL |
++---------+
+| false   |
+| false   |
++---------+
+(2 rows)
+
+!ok
 LogicalProject(CASECOL=[$0])
   LogicalFilter(condition=[NOT($0)])
     LogicalProject(CASECOL=[AND(>($5, 1000), null)])
@@ -1675,11 +1722,20 @@ LogicalProject(CASECOL=[$0])
 # testReduceNullableCase -------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not simplify CASE WHEN 1=2 when the THEN
 # branch contains a scalar subquery (expand=true, checkUnchanged).
-# Not using !ok: uses scalar subquery not supported in HSQLDB.
 
-SELECT CASE WHEN 1=2 THEN cast((values(1)) as integer) ELSE 2 end
-from (values(1));
-LogicalProject(EXPR$0=[CAST(2):INTEGER])
+SELECT CASE WHEN 1=2
+       THEN cast((values(1)) as integer)
+       ELSE 2 end AS x
+FROM (VALUES(1));
++---+
+| X |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+LogicalProject(X=[CAST(2):INTEGER])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 1 }]])
@@ -1688,25 +1744,65 @@ LogicalProject(EXPR$0=[CAST(2):INTEGER])
 # testReduceNullableCase2 ------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not simplify CASE WHEN 1=2 when already
 # reduced to null during conversion (expand=true, checkUnchanged).
-# Not using !ok: result row order is non-deterministic.
 
 SELECT deptno, ename,
-  CASE WHEN 1=2 THEN substring(ename, 1, cast(2 as int)) ELSE NULL end
-from emp
-group by deptno, ename,
+  CASE WHEN 1=2 THEN substring(ename, 1, cast(2 as int)) ELSE NULL end AS x
+FROM emp
+GROUP BY deptno, ename,
   case when 1=2 then substring(ename,1, cast(2 as int)) else null end;
++--------+--------+---+
+| DEPTNO | ENAME  | X |
++--------+--------+---+
+|     10 | CLARK  |   |
+|     10 | KING   |   |
+|     10 | MILLER |   |
+|     20 | ADAMS  |   |
+|     20 | FORD   |   |
+|     20 | JONES  |   |
+|     20 | SCOTT  |   |
+|     20 | SMITH  |   |
+|     30 | ALLEN  |   |
+|     30 | BLAKE  |   |
+|     30 | JAMES  |   |
+|     30 | MARTIN |   |
+|     30 | TURNER |   |
+|     30 | WARD   |   |
++--------+--------+---+
+(14 rows)
+
+!ok
 LogicalAggregate(group=[{0, 1, 2}])
-  LogicalProject(DEPTNO=[$7], ENAME=[$1], EXPR$2=[null:VARCHAR(20)])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1], X=[null:VARCHAR(20)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "expand=true, PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceNullableToNotNull --------------------------------------------------
 # [CALCITE-902] PROJECT_REDUCE_EXPRESSIONS reduces a nullable CASE expression
 # whose condition is always true to a NOT NULL literal.
-# Not using !ok: result row order is non-deterministic.
 
 select empno + case when 'a' = 'a' then 1 else null end as newcol
 from emp;
++--------+
+| NEWCOL |
++--------+
+|   7370 |
+|   7500 |
+|   7522 |
+|   7567 |
+|   7655 |
+|   7699 |
+|   7783 |
+|   7789 |
+|   7840 |
+|   7845 |
+|   7877 |
+|   7901 |
+|   7903 |
+|   7935 |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "relBuilderSimplify=false"
@@ -1831,9 +1927,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # PROJECT_REDUCE_EXPRESSIONS reduces a compile-time SPLIT expression.
 # [CALCITE-5882] Compile-time evaluation of SPLIT function returns incorrect
 # result
+# Not using !ok: the 'split' function resides in the BigQuery operator table
 
 select split('1|2|3', '|');
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
 LogicalProject(EXPR$0=[SPLIT('1|2|3', '|')])
   LogicalValues(tuples=[[{ 0 }]])
 !sub-plan "operatorTable=BIG_QUERY"

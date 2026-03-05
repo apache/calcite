@@ -1,0 +1,979 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for decorrelation.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testCallOverCorrelationVariableIsNotFlattened --------------------------------
+# FilterFlattenCorrelatedConditionRule does not flatten a call that is over a
+# correlation variable (the correlated expression is on the left side of the
+# equals).
+
+select *
+from emp e1
+where exists (
+  select *
+  from emp e2
+  where (e1.deptno+30) = e2.deptno);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[=(+($cor0.DEPTNO, 30), $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[=(+($cor0.DEPTNO, 30), $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, FILTER_FLATTEN_CORRELATED_CONDITION"
+# testCorrelatedVariableAtSecondLevel ------------------------------------------
+# RelDecorrelator handles a correlated variable used at the second level.
+
+SELECT d1.dname,
+  d1.deptno
+    + (SELECT e1.empno
+        FROM emp e1
+        WHERE e1.sal =
+          (SELECT max(sal)
+            FROM emp e2
+            WHERE e1.sal = e2.sal and
+              e1.deptno = e2.deptno and
+              d1.deptno < e2.deptno))
+FROM dept d1;
+SINGLE_VALUE
+!error
+LogicalProject(DNAME=[$1], EXPR$1=[+($0, $2)])
+  LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalProject(EMPNO=[$0])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalFilter(condition=[=($5, $9)])
+            LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5, 7}])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+                LogicalProject(SAL=[$5])
+                  LogicalFilter(condition=[AND(=($cor0.SAL, $5), =($cor0.DEPTNO, $7), <($cor2.DEPTNO, $7))])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, subQueryRules"
+LogicalProject(DNAME=[$1], EXPR$1=[+($0, $3)])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+      LogicalProject(DEPTNO00=[$11], EMPNO=[$0])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], SAL0=[CAST($9):INTEGER], DEPTNO0=[CAST($10):INTEGER], DEPTNO00=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
+          LogicalJoin(condition=[AND(=($5, $9), =($7, $10))], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalFilter(condition=[=($0, $3)])
+              LogicalAggregate(group=[{0, 1, 2}], EXPR$0=[MAX($3)])
+                LogicalProject(SAL0=[$9], DEPTNO0=[$10], DEPTNO00=[$11], SAL=[$5])
+                  LogicalJoin(condition=[AND(=($9, $5), =($10, $7), <($11, $7))], joinType=[inner])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                    LogicalJoin(condition=[true], joinType=[inner])
+                      LogicalAggregate(group=[{0, 1}])
+                        LogicalProject(SAL=[$5], DEPTNO=[$7])
+                          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                      LogicalProject(DEPTNO=[$0])
+                        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "trim=true, lateDecorrelate=true, subQueryRules"
+
+# testCustomColumnResolvingInCorrelatedSubQuery --------------------------------
+# SubQueryRemoveRule decorrelates a correlated subquery using struct.t column
+# resolving.
+# Not using !ok: uses mock catalog only.
+
+select *
+from struct.t t1
+where c0 = (
+  select max(f1.c0)
+  from struct.t t2
+  where t1.k0 = t2.k0);
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+    LogicalFilter(condition=[=($4, $9)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject("F1"."C0"=[$5])
+            LogicalFilter(condition=[=($cor0."K0", $0)])
+              LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+!sub-plan "trim=true, subQueryRules"
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8], "K0"0=[CAST($9):VARCHAR(20)], EXPR$0=[$10])
+    LogicalJoin(condition=[AND(=($0, $9), =($4, $10))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+      LogicalAggregate(group=[{0}], EXPR$0=[MAX($1)])
+        LogicalProject("K0"=[$0], "F1"."C0"=[$5])
+          LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+!sub-plan "trim=true, lateDecorrelate=true, subQueryRules"
+
+# testCustomColumnResolvingInCorrelatedSubQuery2 -------------------------------
+# SubQueryRemoveRule decorrelates a correlated IN subquery using struct.t column
+# resolving.
+# Not using !ok: uses mock catalog only.
+
+select *
+from struct.t t1
+where c0 in (
+  select f1.c0
+  from struct.t t2
+  where t1.c2 = t2.c2);
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+    LogicalFilter(condition=[=($4, $9)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+        LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(C0=[$5])
+            LogicalFilter(condition=[=($cor0."F1"."C2", $7)])
+              LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+!sub-plan "trim=true, subQueryRules"
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalJoin(condition=[AND(=($7, $10), =($4, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(C0=[$5], "F1"."C2"=[$7])
+        LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+!sub-plan "trim=true, lateDecorrelate=true, subQueryRules"
+
+# testCustomColumnResolvingInNonCorrelatedSubQuery -----------------------------
+# SubQueryRemoveRule decorrelates a non-correlated IN subquery using struct.t
+# column resolving.
+# Not using !ok: uses mock catalog only.
+
+select *
+from struct.t t1
+where c0 in (select f1.c0 from struct.t t2);
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+    LogicalJoin(condition=[=($4, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(C0=[$5])
+          LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+!sub-plan "trim=true, subQueryRules"
+LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+  LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8])
+    LogicalJoin(condition=[=($4, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(C0=[$5])
+          LogicalTableScan(table=[[CATALOG, STRUCT, T]])
+!sub-plan "trim=true, lateDecorrelate=true, subQueryRules"
+
+# testDecorrelateAggWithConstantGroupKey ---------------------------------------
+# RelDecorrelator handles aggregate with a constant group key when
+# decorrelating.
+
+SELECT *
+FROM emp A
+where sal in (SELECT max(sal)
+  FROM emp B
+  where A.mgr = B.empno
+  group by deptno, 'abc');
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[AND(=($3, $10), =($5, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[$2], EMPNO=[$1])
+      LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, lateDecorrelate=true, trim=true, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[AND(=($3, $10), =($5, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[$2], EMPNO=[$1])
+      LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, lateDecorrelate=true, trim=true, NONE"
+
+# testDecorrelateAggWithMultiParamsAggCall -------------------------------------
+# RelDecorrelator leaves unchanged a LATERAL with a multi-arg aggregate.
+# Not using !ok: uses mock catalog only.
+
+SELECT *
+FROM (SELECT MYAGG(sal, 1) AS c FROM emp) as m,
+  LATERAL TABLE(ramp(m.c)) AS T(s);
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+!sub-plan "lateDecorrelate=true, trim=true, NONE"
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalAggregate(group=[{}], C=[MYAGG($0, $1)])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+!sub-plan "lateDecorrelate=true, trim=true, NONE"
+
+# testDecorrelateAggWithMultiParamsAggCall2 ------------------------------------
+# RelDecorrelator leaves unchanged a LATERAL with a multi-arg aggregate and
+# constant group key.
+# Not using !ok: uses mock catalog only.
+
+SELECT *
+FROM (SELECT MYAGG(sal, 1) AS c FROM emp group by empno, 'abc') as m,
+  LATERAL TABLE(ramp(m.c)) AS T(s);
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalProject(C=[$2])
+    LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
+      LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+!sub-plan "lateDecorrelate=true, trim=true, NONE"
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+  LogicalProject(C=[$2])
+    LogicalAggregate(group=[{0, 1}], C=[MYAGG($2, $3)])
+      LogicalProject(EMPNO=[$0], $f1=['abc'], SAL=[$5], $f3=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalTableFunctionScan(invocation=[RAMP($cor0.C)], rowType=[RecordType(INTEGER I)])
+!sub-plan "lateDecorrelate=true, trim=true, NONE"
+
+# testDecorrelateFilterWithFetchOne --------------------------------------------
+# RelDecorrelator decorrelates a scalar subquery with LIMIT 1 in a WHERE
+# condition.
+
+SELECT dname
+FROM dept
+WHERE 10 > (
+  SELECT emp.sal
+  FROM emp
+  where dept.deptno = emp.deptno
+  ORDER BY emp.sal limit 1);
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[>(10, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+          LogicalProject(SAL=[$5])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):INTEGER])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>(10, $1)])
+        LogicalAggregate(group=[{1}], agg#0=[MIN($0)])
+          LogicalProject(SAL=[$5], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, FILTER_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateFilterWithFetchOneDesc ----------------------------------------
+# RelDecorrelator decorrelates a scalar subquery with LIMIT 1 DESC NULLS LAST
+# in a WHERE condition.
+
+SELECT dname
+FROM dept
+WHERE 10 > (
+  SELECT emp.sal
+  FROM emp
+  where dept.deptno = emp.deptno
+  ORDER BY emp.sal desc nulls last limit 1);
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[>(10, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[1])
+          LogicalProject(SAL=[$5])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):INTEGER])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>(10, $1)])
+        LogicalAggregate(group=[{1}], agg#0=[MAX($0)])
+          LogicalProject(SAL=[$5], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, FILTER_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateFilterWithFetchOneDesc1 ---------------------------------------
+# RelDecorrelator decorrelates a scalar subquery with LIMIT 1 DESC in a WHERE
+# condition.
+
+SELECT dname
+FROM dept
+WHERE 10 > (
+  SELECT emp.sal
+  FROM emp
+  where dept.deptno = emp.deptno
+  ORDER BY emp.sal desc limit 1);
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[>(10, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+          LogicalProject(SAL=[$5])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], SAL=[CAST($2):INTEGER], DEPTNO0=[CAST($3):INTEGER], rn=[CAST($4):BIGINT])
+    LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>(10, $0)])
+        LogicalFilter(condition=[<=($2, 1)])
+          LogicalProject(SAL=[$5], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $5 DESC NULLS FIRST)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, FILTER_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateFilterWithMultiKeyAndFetchOne ---------------------------------
+# RelDecorrelator decorrelates a scalar subquery with multiple ORDER BY keys
+# and LIMIT 1 in a WHERE condition.
+
+SELECT dname
+FROM dept
+WHERE 10 > (
+  SELECT emp.sal
+  FROM emp
+  where dept.deptno = emp.deptno
+  order by year(hiredate), emp.sal desc limit 1);
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[>(10, $2)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(SAL=[$0])
+          LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC], fetch=[1])
+            LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)])
+              LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], SAL=[CAST($2):INTEGER], DEPTNO0=[CAST($3):INTEGER])
+    LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[>(10, $0)])
+        LogicalProject(SAL=[$0], DEPTNO=[$2])
+          LogicalFilter(condition=[<=($3, 1)])
+            LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY EXTRACT(FLAG(YEAR), $4) NULLS LAST, $5 DESC NULLS FIRST)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, FILTER_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateProjectWithFetchOne -------------------------------------------
+# RelDecorrelator decorrelates a scalar subquery with LIMIT 1 in a SELECT
+# expression.
+
+SELECT dname,
+  (SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) as sal
+FROM dept;
++------------+---------+
+| DNAME      | SAL     |
++------------+---------+
+| ACCOUNTING | 1300.00 |
+| OPERATIONS |         |
+| RESEARCH   |  800.00 |
+| SALES      |  950.00 |
++------------+---------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1], SAL=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+      LogicalProject(SAL=[$5])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1], SAL=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{1}], agg#0=[MIN($0)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, PROJECT_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateProjectWithFetchOneDesc ---------------------------------------
+# RelDecorrelator decorrelates a scalar subquery with LIMIT 1 DESC NULLS LAST
+# in a SELECT expression.
+
+SELECT dname,
+  (SELECT emp.sal
+    FROM emp
+    WHERE dept.deptno = emp.deptno
+    ORDER BY emp.sal desc nulls last LIMIT 1) as sal
+FROM dept;
++------------+---------+
+| DNAME      | SAL     |
++------------+---------+
+| ACCOUNTING | 5000.00 |
+| OPERATIONS |         |
+| RESEARCH   | 3000.00 |
+| SALES      | 2850.00 |
++------------+---------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1], SAL=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[DESC-nulls-last], fetch=[1])
+      LogicalProject(SAL=[$5])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1], SAL=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{1}], agg#0=[MAX($0)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, PROJECT_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateProjectWithMultiKeyAndFetchOne --------------------------------
+# RelDecorrelator decorrelates a scalar subquery with multiple ORDER BY keys
+# and LIMIT 1 in a SELECT expression.
+
+SELECT dname,
+  (SELECT sal
+    FROM emp
+    where dept.deptno = emp.deptno
+    order by year(hiredate), emp.sal limit 1) as sal
+FROM dept;
++------------+---------+
+| DNAME      | SAL     |
++------------+---------+
+| ACCOUNTING | 2450.00 |
+| OPERATIONS |         |
+| RESEARCH   |  800.00 |
+| SALES      |  950.00 |
++------------+---------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1], SAL=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(SAL=[$0])
+      LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC], fetch=[1])
+        LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1], SAL=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(SAL=[$0], DEPTNO=[$2])
+      LogicalFilter(condition=[<=($3, 1)])
+        LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)], DEPTNO=[$7], rn=[ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY EXTRACT(FLAG(YEAR), $4) NULLS LAST, $5 NULLS LAST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, PROJECT_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelateProjectWithMultiKeyAndFetchOne1 -------------------------------
+# RelDecorrelator decorrelates a scalar subquery with multiple correlation keys,
+# ORDER BY keys and LIMIT 1 in a SELECT expression.
+
+SELECT dname,
+  (SELECT sal
+    FROM emp
+    where dept.deptno = emp.deptno and dept.dname = emp.ename
+    order by year(hiredate), emp.sal limit 1) AS sal
+FROM dept;
++------------+-----+
+| DNAME      | SAL |
++------------+-----+
+| ACCOUNTING |     |
+| OPERATIONS |     |
+| RESEARCH   |     |
+| SALES      |     |
++------------+-----+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1], SAL=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 1}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(SAL=[$0])
+      LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC], fetch=[1])
+        LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)])
+          LogicalFilter(condition=[AND(=($cor0.DEPTNO, $7), =(CAST($cor0.DNAME):VARCHAR(20) NOT NULL, $1))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_SUB_QUERY_TO_CORRELATE"
+LogicalProject(DNAME=[$1], SAL=[$4])
+  LogicalJoin(condition=[AND(=($0, $5), =($3, $6))], joinType=[left])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[$0], DNAME0=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(SAL=[$0], DEPTNO=[$2], ENAME=[$3])
+      LogicalFilter(condition=[<=($4, 1)])
+        LogicalProject(SAL=[$5], EXPR$1=[EXTRACT(FLAG(YEAR), $4)], DEPTNO=[$7], ENAME=[$1], rn=[ROW_NUMBER() OVER (PARTITION BY $7, $1 ORDER BY EXTRACT(FLAG(YEAR), $4) NULLS LAST, $5 NULLS LAST)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, PROJECT_SUB_QUERY_TO_CORRELATE"
+
+# testDecorrelationWithSort ----------------------------------------------------
+# Decorrelator produces the same result as the original after sorting.
+# Not using !ok: fails with "Correlation variable $cor0 should be defined"
+# in CoreQuidemTest2. Add '!ok' when [CALCITE-7430] is fixed.
+
+SELECT e1.empno
+FROM emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)
+order by e1.empno;
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(EMPNO=[$0])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10], EMPNO0=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
+      LogicalJoin(condition=[AND(=($0, $11), >($5, $12))], joinType=[inner])
+        LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+          LogicalFilter(condition=[<($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalFilter(condition=[<($0, 15)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+          LogicalProject(EMPNO=[$0], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, NONE"
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(EMPNO=[$0])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10], EMPNO0=[CAST($11):INTEGER], EXPR$0=[CAST($12):INTEGER])
+      LogicalJoin(condition=[AND(=($0, $11), >($5, $12))], joinType=[inner])
+        LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+          LogicalFilter(condition=[<($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalFilter(condition=[<($0, 15)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
+          LogicalProject(EMPNO=[$0], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, NONE"
+
+# testFlattenUncorrelatedCallBelowEquals ---------------------------------------
+# FilterFlattenCorrelatedConditionRule flattens an uncorrelated call below
+# an equals condition.
+
+select *
+from emp e1
+where exists (
+  select *
+  from emp e2
+  where e1.deptno = (e2.deptno+30));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[=($cor0.DEPTNO, +($7, 30))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $9)])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 30)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, FILTER_FLATTEN_CORRELATED_CONDITION"
+# testFlattenUncorrelatedTwoLevelCallBelowEqualsSucceeds -----------------------
+# FilterFlattenCorrelatedConditionRule flattens a two-level uncorrelated call
+# below an equals condition.
+
+select *
+from emp e1
+where exists (
+  select *
+  from emp e2
+  where e1.deptno = (2 * e2.deptno+30));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[=($cor0.DEPTNO, +(*(2, $7), 30))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $9)])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+(*(2, $7), 30)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, FILTER_FLATTEN_CORRELATED_CONDITION"
+# testLateralTransposeWithDecorrelateFalse -------------------------------------
+# ProjectCorrelateTransposeRule does not transpose when decorrelate=false.
+
+WITH
+  t1(a, ts) AS (VALUES('a', 1)),
+  t2(a, ts, x) AS (SELECT ename as a, empno as ts, mgr as x FROM emp)
+SELECT *
+FROM t1
+LEFT JOIN LATERAL (
+    SELECT x
+    FROM t2
+    WHERE t2.a = t1.a AND t2.ts <= t1.ts
+    LIMIT 1) ON true
+LEFT JOIN LATERAL (
+    SELECT x
+    FROM t2
+    WHERE t2.a = t1.a) ON true;
++---+----+---+----+
+| A | TS | X | X0 |
++---+----+---+----+
+| a |  1 |   |    |
++---+----+---+----+
+(1 row)
+
+!ok
+LogicalProject(A=[$0], TS=[$1], X=[$2], X0=[$3])
+  LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 1}])
+      LogicalValues(tuples=[[{ 'a', 1 }]])
+      LogicalSort(fetch=[1])
+        LogicalProject(X=[$2])
+          LogicalFilter(condition=[AND(=($0, CAST($cor0.A):VARCHAR(20) NOT NULL), <=($1, $cor0.TS))])
+            LogicalProject(A=[$1], TS=[$0], X=[$3])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(X=[$2])
+      LogicalFilter(condition=[=($0, CAST($cor2.A):VARCHAR(20) NOT NULL)])
+        LogicalProject(A=[$1], TS=[$0], X=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=false, NONE"
+LogicalProject(A=[$0], TS=[$1], X=[$2], X0=[$3])
+  LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0, 1}])
+      LogicalValues(tuples=[[{ 'a', 1 }]])
+      LogicalSort(fetch=[1])
+        LogicalProject(X=[$2])
+          LogicalFilter(condition=[AND(=($0, CAST($cor0.A):VARCHAR(20) NOT NULL), <=($1, $cor0.TS))])
+            LogicalProject(A=[$1], TS=[$0], X=[$3])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(X=[$2])
+      LogicalFilter(condition=[=($0, CAST($cor2.A):VARCHAR(20) NOT NULL)])
+        LogicalProject(A=[$1], TS=[$0], X=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=false, PROJECT_CORRELATE_TRANSPOSE"
+# testLateralTransposeWithDecorrelateTrue --------------------------------------
+# ProjectCorrelateTransposeRule does not transpose when decorrelate=true
+# (correlation is removed by the SQL-to-rel converter).
+
+WITH
+  t1(a, ts) AS (VALUES('a', 1)),
+  t2(a, ts, x) AS (SELECT ename as a, empno as ts, mgr as x FROM emp)
+SELECT *
+FROM t1
+LEFT JOIN LATERAL (
+    SELECT x
+    FROM t2
+    WHERE t2.a = t1.a AND t2.ts <= t1.ts
+    LIMIT 1) ON true
+LEFT JOIN LATERAL (
+    SELECT x
+    FROM t2
+    WHERE t2.a = t1.a) ON true;
++---+----+---+----+
+| A | TS | X | X0 |
++---+----+---+----+
+| a |  1 |   |    |
++---+----+---+----+
+(1 row)
+
+!ok
+LogicalProject(A=[$0], TS=[$1], X=[$2], X0=[$4])
+  LogicalJoin(condition=[=($3, $5)], joinType=[left])
+    LogicalProject(EXPR$0=[$0], EXPR$1=[$1], X=[$4], EXPR$00=[CAST($0):VARCHAR(20) NOT NULL])
+      LogicalJoin(condition=[AND(=($1, $5), =($2, $6))], joinType=[left])
+        LogicalProject(EXPR$0=[$0], EXPR$1=[$1], EXPR$00=[CAST($0):VARCHAR(20) NOT NULL], EXPR$10=[$1])
+          LogicalValues(tuples=[[{ 'a', 1 }]])
+        LogicalFilter(condition=[<=($3, 1)])
+          LogicalProject(X=[$2], EXPR$1=[$3], EXPR$00=[$4], rn=[ROW_NUMBER() OVER (PARTITION BY $3, $4)])
+            LogicalJoin(condition=[AND(=($0, $4), <=($1, $3))], joinType=[inner])
+              LogicalProject(A=[$1], TS=[$0], X=[$3])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalProject(EXPR$1=[$1], EXPR$00=[CAST($0):VARCHAR(20) NOT NULL])
+                LogicalValues(tuples=[[{ 'a', 1 }]])
+    LogicalProject(X=[$3], A=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, NONE"
+LogicalProject(A=[$0], TS=[$1], X=[$2], X0=[$4])
+  LogicalJoin(condition=[=($3, $5)], joinType=[left])
+    LogicalProject(EXPR$0=[$0], EXPR$1=[$1], X=[$4], EXPR$00=[CAST($0):VARCHAR(20) NOT NULL])
+      LogicalJoin(condition=[AND(=($1, $5), =($2, $6))], joinType=[left])
+        LogicalProject(EXPR$0=[$0], EXPR$1=[$1], EXPR$00=[CAST($0):VARCHAR(20) NOT NULL], EXPR$10=[$1])
+          LogicalValues(tuples=[[{ 'a', 1 }]])
+        LogicalFilter(condition=[<=($3, 1)])
+          LogicalProject(X=[$2], EXPR$1=[$3], EXPR$00=[$4], rn=[ROW_NUMBER() OVER (PARTITION BY $3, $4)])
+            LogicalJoin(condition=[AND(=($0, $4), <=($1, $3))], joinType=[inner])
+              LogicalProject(A=[$1], TS=[$0], X=[$3])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalProject(EXPR$1=[$1], EXPR$00=[CAST($0):VARCHAR(20) NOT NULL])
+                LogicalValues(tuples=[[{ 'a', 1 }]])
+    LogicalProject(X=[$3], A=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, PROJECT_CORRELATE_TRANSPOSE"
+
+# testNullSelect2 --------------------------------------------------------------
+# FILTER_REDUCE_EXPRESSIONS does not crash on `123 in (select null from dept)`.
+
+SELECT *
+from emp
+where 123 in (select null from dept);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IN(123, {
+LogicalProject(EXPR$0=[null:INTEGER])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(cs=[true])
+          LogicalProject(EXPR$0=[null:INTEGER])
+            LogicalFilter(condition=[false])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_SUB_QUERY_TO_CORRELATE, FILTER_PROJECT_TRANSPOSE, PROJECT_REDUCE_EXPRESSIONS"
+
+# testTwoLevelDecorrelate ------------------------------------------------------
+# RelDecorrelator handles a correlated variable at two levels deep.
+
+SELECT d1.dname,
+  d1.deptno
+    + (SELECT e1.empno
+        FROM emp e1
+        WHERE d1.deptno = e1.deptno
+        and e1.sal =
+          (SELECT max(sal)
+            FROM emp e2
+            WHERE e1.sal = e2.sal
+            and e1.deptno = e2.deptno
+            and d1.deptno < e2.deptno)) as x
+FROM dept d1;
++------------+---+
+| DNAME      | X |
++------------+---+
+| ACCOUNTING |   |
+| OPERATIONS |   |
+| RESEARCH   |   |
+| SALES      |   |
++------------+---+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1], X=[+($0, $2)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalProject(EMPNO=[$0])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+          LogicalFilter(condition=[AND(=($cor0.DEPTNO, $7), =($5, $9))])
+            LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{5, 7}])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+                LogicalProject(SAL=[$5])
+                  LogicalFilter(condition=[AND(=($cor1.SAL, $5), =($cor1.DEPTNO, $7), <($cor0.DEPTNO, $7))])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, subQueryRules"
+LogicalProject(DNAME=[$1], X=[+($0, $3)])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+      LogicalProject(DEPTNO0=[$10], EMPNO=[$0])
+        LogicalFilter(condition=[AND(=($10, $7), =($5, $9))])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[$12], DEPTNO0=[$9])
+            LogicalJoin(condition=[AND(=($5, $10), =($7, $11))], joinType=[left])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{0, 1, 2}], EXPR$0=[MAX($3)])
+                LogicalProject(DEPTNO0=[$9], SAL0=[$10], DEPTNO00=[$11], SAL=[$5])
+                  LogicalJoin(condition=[AND(=($10, $5), =($11, $7), <($9, $7))], joinType=[inner])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                    LogicalJoin(condition=[true], joinType=[inner])
+                      LogicalProject(DEPTNO=[$0])
+                        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                      LogicalAggregate(group=[{0, 1}])
+                        LogicalProject(SAL=[$5], DEPTNO=[$7])
+                          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true, lateDecorrelate=true, subQueryRules"
+
+# testUncorrelatedCallBelowNonComparisonOpIsNotFlattened -----------------------
+# FilterFlattenCorrelatedConditionRule does not flatten when the call is
+# below a non-comparison operator.
+
+select *
+from emp e1
+where exists (
+  select *
+  from emp e2
+  where (e1.deptno + (e2.deptno+30)) > 0);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[>(+($cor0.DEPTNO, +($7, 30)), 0)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[>(+($cor0.DEPTNO, +($7, 30)), 0)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, FILTER_FLATTEN_CORRELATED_CONDITION"
+# testUncorrelatedCallInConjunctionIsFlattenedOnlyIfSiblingOfCorrelation -------
+# FilterFlattenCorrelatedConditionRule flattens an uncorrelated call in a
+# conjunction only if it is a sibling of the correlation.
+
+select *
+from emp e1
+where exists (
+  select *
+  from emp e2
+  where (e2.empno+50) < 20 and e1.deptno >= (30+e2.deptno));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[AND(<(+($0, 50), 20), >=($cor0.DEPTNO, +(30, $7)))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, NONE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NOT NULL($9)])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[AND(<(+($0, 50), 20), >=($cor0.DEPTNO, $9))])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+(30, $7)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=false, FILTER_FLATTEN_CORRELATED_CONDITION"
+# End decorrelate.iq

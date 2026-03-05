@@ -495,8 +495,8 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
 # columns when the filter predicate is on one of the partition keys.
 # [CALCITE-6011]
 
-select * from
-(select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) from dept)
+select *
+from (select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) from dept)
 where DEPTNO > 0;
 +------------+--------+--------+
 | DNAME      | DEPTNO | EXPR$2 |
@@ -526,7 +526,9 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
 
 select e1.ename, r
 from (
-  select ename,   rank() over(partition by  deptno order by sal) as r   from emp) e1
+  select ename,
+    rank() over (partition by  deptno order by sal) as r
+  from emp) e1
 where r < 2;
 +--------+---+
 | ENAME  | R |

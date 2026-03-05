@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.avatica.AvaticaUtils;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
@@ -32,7 +33,10 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.DateRangeRules;
+import org.apache.calcite.rel.rules.MeasureRules;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
+import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
@@ -209,6 +213,11 @@ public abstract class QuidemTest {
    *       getOperatorTable(SqlLibrary.BIG_QUERY)))}
    *   <li>{@code AggregateExtractProjectRule.SCAN} &mdash; uses the
    *       {@link AggregateExtractProjectRule#SCAN} rule instance
+   *   <li>{@code DateRangeRules.FILTER_INSTANCE} &mdash; uses the
+   *       {@link DateRangeRules#FILTER_INSTANCE} rule instance
+   *   <li>{@code MeasureRules.AGGREGATE} and other MeasureRules fields
+   *   <li>{@code SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE}
+   *       and other SingleValuesOptimizationRules fields
    *   <li>{@code subQueryRules} &mdash; applies
    *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules before the
    *       main rules; equivalent to {@code .withSubQueryRules()}
@@ -238,6 +247,7 @@ public abstract class QuidemTest {
       if (execute) {
         // Parse config tokens (lowercase-starting) and rule names (UPPERCASE)
         boolean aggregateUnique = false;
+        boolean connectionConfig = false;
         boolean decorrelate = false;
         boolean relBuilderSimplify = true;
         boolean expand = false;
@@ -259,6 +269,8 @@ public abstract class QuidemTest {
             // config token
             if (name.equals("aggregateUnique=true")) {
               aggregateUnique = true;
+            } else if (name.equals("connectionConfig=true")) {
+              connectionConfig = true;
             } else if (name.startsWith("bloat=")) {
               bloat = parseInt(name.substring("bloat=".length()));
             } else if (name.startsWith("inSubQueryThreshold=")) {
@@ -266,8 +278,12 @@ public abstract class QuidemTest {
                   parseInt(name.substring("inSubQueryThreshold=".length()));
             } else if (name.equals("decorrelate=true")) {
               decorrelate = true;
+            } else if (name.equals("decorrelate=false")) {
+              decorrelate = false; // same as default, used for documentation
             } else if (name.equals("expand=true")) {
               expand = true;
+            } else if (name.equals("expand=false")) {
+              expand = false; // same as default, used for documentation
             } else if (name.equals("lateDecorrelate=true")) {
               lateDecorrelate = true;
             } else if (name.equals("topDownGeneralDecorrelate=true")) {
@@ -334,6 +350,11 @@ public abstract class QuidemTest {
               SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
                   SqlLibrary.BIG_QUERY));
         }
+        if (connectionConfig) {
+          testFactory = testFactory.withPlannerContext(c ->
+              Contexts.of(CalciteConnectionConfig.DEFAULT, c));
+        }
+        final boolean connectionConfig0 = connectionConfig;
         final boolean decorrelate0 = decorrelate;
         final boolean lateDecorrelate0 = lateDecorrelate;
         final boolean topDownGeneralDecorrelate0 = topDownGeneralDecorrelate;
@@ -382,7 +403,12 @@ public abstract class QuidemTest {
             for (RelOptRule rule : rules) {
               builder.addRuleInstance(rule);
             }
-            final HepPlanner hepPlanner = new HepPlanner(builder.build());
+            final org.apache.calcite.plan.Context context0 =
+                connectionConfig0
+                    ? Contexts.of(CalciteConnectionConfig.DEFAULT)
+                    : Contexts.empty();
+            final HepPlanner hepPlanner =
+                new HepPlanner(builder.build(), context0);
             hepPlanner.setRoot(relNode);
             relNode = hepPlanner.findBestExp();
           }
@@ -725,8 +751,17 @@ public abstract class QuidemTest {
         case "AggregateExtractProjectRule":
           ruleClass = AggregateExtractProjectRule.class;
           break;
+        case "DateRangeRules":
+          ruleClass = DateRangeRules.class;
+          break;
+        case "MeasureRules":
+          ruleClass = MeasureRules.class;
+          break;
         case "PruneEmptyRules":
           ruleClass = PruneEmptyRules.class;
+          break;
+        case "SingleValuesOptimizationRules":
+          ruleClass = SingleValuesOptimizationRules.class;
           break;
         default:
           throw new IllegalArgumentException("Unknown rule class: " + className);

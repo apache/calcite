@@ -418,7 +418,8 @@ LogicalProject(EMPNO=[$0])
 # phase.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
-select empno from sales.empnullables
+select empno
+from sales.empnullables
 where 1 in (
   select deptno from sales.deptnullables where dname = 'dept1')
 or 2 in (
@@ -667,7 +668,8 @@ LogicalProject(EMPNO=[$0])
 # alias of multiple sub-queries in subquery remove phase.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
-select empno from sales.empnullables as e
+select empno
+from sales.empnullables as e
 where deptno in (
   select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
 or deptno in (
@@ -717,7 +719,8 @@ LogicalProject(EMPNO=[$0])
 # alias of multiple sub-queries in subquery remove phase.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
-select empno from sales.empnullables
+select empno
+from sales.empnullables
 where deptno in (
   select deptno from sales.deptnullables where dname = 'dept1')
 or deptno in (
@@ -848,7 +851,8 @@ LogicalProject(EMPNO=[$0])
 # [CALCITE-7317] SubQueryRemoveRule skips NULL-safety checks for IN subqueries
 # when both the keys and the subquery columns are NOT NULL.
 
-select * from emp as e1
+select *
+from emp as e1
 where empno in (
   select empno from emp e2);
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -918,7 +922,8 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 # subqueries when the key is nullable.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
-select * from sales.empnullables as e1
+select *
+from sales.empnullables as e1
 where deptno not in (
   select coalesce(deptno, 0) from sales.empnullables e2);
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -947,7 +952,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # subqueries when the subquery column is nullable.
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
 
-select * from sales.empnullables as e1
+select *
+from sales.empnullables as e1
 where coalesce(deptno, 0) not in (
   select deptno from sales.empnullables e2);
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -1586,7 +1592,7 @@ LogicalProject(SAL=[$5])
 
 select *
 from emp e1
-  where e1.empno NOT IN (
+where e1.empno NOT IN (
     select empno
     from (select ename, empno, sal as r from emp) e2
     where r > 2 and e1.ename= e2.ename);

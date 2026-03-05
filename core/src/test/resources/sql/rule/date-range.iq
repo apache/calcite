@@ -1,0 +1,59 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for DateRangeRules (converting date predicates into date ranges).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testExtractYearMonthToRange --------------------------------------------------
+# DateRangeRules converts EXTRACT(YEAR ...) = year AND EXTRACT(MONTH ...) =
+# month to a range.
+# Not using !ok: uses mock catalog only (EMP_B table with BIRTHDATE column).
+
+select *
+from sales.emp_b as e
+where extract(year from birthdate) = 2014
+and extract(month from birthdate) = 4;
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[AND(=(EXTRACT(FLAG(YEAR), $9), 2014), =(EXTRACT(FLAG(MONTH), $9), 4))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[SEARCH($9, Sarg[[2014-04-01..2014-05-01)])])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "connectionConfig=true, DateRangeRules.FILTER_INSTANCE"
+
+# testExtractYearToRange -------------------------------------------------------
+# DateRangeRules converts EXTRACT(YEAR FROM ...) = constant to a range.
+# Not using !ok: uses mock catalog only (EMP_B table with BIRTHDATE column).
+
+select *
+from sales.emp_b as e
+where extract(year from birthdate) = 2014;
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[=(EXTRACT(FLAG(YEAR), $9), 2014)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], BIRTHDATE=[$9])
+  LogicalFilter(condition=[SEARCH($9, Sarg[[2014-01-01..2015-01-01)])])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!sub-plan "connectionConfig=true, DateRangeRules.FILTER_INSTANCE"
+
+# End date-range.iq

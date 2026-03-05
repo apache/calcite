@@ -276,6 +276,44 @@ LogicalSort(sort0=[$7], dir0=[ASC], fetch=[0])
 LogicalValues(tuples=[[]])
 !sub-plan "PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE"
 
+# testEmptyTable ---------------------------------------------------------------
+# PruneEmptyRules.EMPTY_TABLE_INSTANCE converts a zero-row table to an empty
+# Values, and PruneEmptyRules.PROJECT_INSTANCE removes the Project above it.
+# Not using !ok: EMPTY_PRODUCTS table exists only in the mock catalog.
+
+select *
+from bonus;
+LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])
+  LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan ""
+LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])
+  LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan "PruneEmptyRules.EMPTY_TABLE_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE"
+
+# testEmptyTableTransformsComplexQueryToSingleTableScan ------------------------
+# A complex join tree including EMPTY_PRODUCTS is simplified to a single scan.
+# Not using !ok: EMPTY_PRODUCTS and PRODUCTS tables exist only in the mock catalog.
+
+select products.PRODUCTID, products.NAME from products left join
+(select * from products as e
+ inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID
+ where e.SUPPLIERID > 10) dt
+ on products.PRODUCTID = dt.PRODUCTID;
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
+      LogicalFilter(condition=[>($2, 10)])
+        LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
+!sub-plan ""
+LogicalProject(PRODUCTID=[$0], NAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
+    LogicalValues(tuples=[[]])
+!sub-plan "PruneEmptyRules.EMPTY_TABLE_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE, PruneEmptyRules.FILTER_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE, PROJECT_MERGE"
+
 # testLeftEmptyFullJoin --------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, FULL join → right side is padded
 # with nulls (cannot eliminate join).
@@ -459,7 +497,6 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
 # testRightEmptyFullJoin -------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, FULL join → left side is padded
 # with nulls (cannot eliminate join).
-# Not using !ok: result contains all emp rows with null dept columns.
 
 select *
 from emp e

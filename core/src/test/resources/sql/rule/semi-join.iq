@@ -41,6 +41,32 @@ LogicalProject(ENAME=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "trim=true"
 
+# testPushAggregateThroughSemiJoin ---------------------------------------------
+# PROJECT_TO_SEMI_JOIN, AGGREGATE_JOIN_TRANSPOSE_EXTENDED push an aggregate
+# through a semi-join.
+# [CALCITE-6600]
+
+select distinct sal
+from (select *
+  from emp e
+  where e.job in (select d.dname from dept d));
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, trim=true, subQueryRules, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
 # testPushFilterThroughSemiJoin ------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH push filters
 # through a semi-join.
@@ -336,10 +362,31 @@ LogicalProject(ENAME=[$0], J=[$1], S2=[$2], DEPTNO=[$3])
 # testRemoveSemiJoin -----------------------------------------------------------
 # SEMI_JOIN_REMOVE removes a redundant semi-join when the join is already
 # enforced by an inner join.
-# Not using !ok: result row order is non-deterministic for a join.
 
-select e.ename from emp e, dept d
+select e.ename
+from emp e, dept d
 where e.deptno = d.deptno;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
     LogicalJoin(condition=[=($7, $9)], joinType=[semi])
@@ -356,10 +403,87 @@ LogicalProject(ENAME=[$1])
 # testRemoveSemiJoinRight ------------------------------------------------------
 # SEMI_JOIN_REMOVE removes a redundant semi-join on the right side of a join
 # when the join is already enforced by a transitive inner join.
-# Not using !ok: result row order is non-deterministic for a join.
 
-select e1.ename from emp e1, dept d, emp e2
+select e1.ename
+from emp e1, dept d, emp e2
 where e1.deptno = d.deptno and d.deptno = e2.deptno;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| CLARK  |
+| CLARK  |
+| CLARK  |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| KING   |
+| KING   |
+| KING   |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MILLER |
+| MILLER |
+| MILLER |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
++--------+
+(70 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
@@ -382,11 +506,18 @@ LogicalProject(ENAME=[$1])
 # testRemoveSemiJoinRightWithFilter --------------------------------------------
 # SEMI_JOIN_REMOVE removes a redundant semi-join on the right side of a join
 # when the join is already enforced by a transitive inner join, with a filter.
-# Not using !ok: result row order is non-deterministic for a join.
 
-select e1.ename from emp e1, dept d, emp e2
+select e1.ename
+from emp e1, dept d, emp e2
 where e1.deptno = d.deptno and d.deptno = e2.deptno
 and d.dname = 'foo';
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
@@ -412,10 +543,17 @@ LogicalProject(ENAME=[$1])
 # testRemoveSemiJoinWithFilter -------------------------------------------------
 # SEMI_JOIN_REMOVE removes a redundant semi-join when the join is already
 # enforced by an inner join, with a filter on the left side.
-# Not using !ok: result row order is non-deterministic for a join.
 
-select e.ename from emp e, dept d
+select e.ename
+from emp e, dept d
 where e.deptno = d.deptno and e.ename = 'foo';
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
 LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
     LogicalFilter(condition=[=($1, 'foo')])
@@ -433,7 +571,6 @@ LogicalProject(ENAME=[$1])
 
 # testSemiJoinReduceConstants --------------------------------------------------
 # JOIN_REDUCE_EXPRESSIONS reduces a constant in a semi-join condition.
-# Not using !ok: deptno = 200 doesn't exist in scott, result would be empty.
 # [CALCITE-571]
 
 select e1.sal

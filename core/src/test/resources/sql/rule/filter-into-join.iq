@@ -515,7 +515,8 @@ LogicalProject(EXPR$0=[1])
 # testMergeFilter --------------------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE + FILTER_MERGE combines duplicate filters.
 
-select dname from (
+select dname
+from (
   select *
   from dept
   where deptno = 10)
@@ -573,9 +574,11 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$
 # RAND() is non-deterministic.
 # [CALCITE-7373]
 
-select * from (
-  select * from dept inner join
-     emp on dept.deptno = emp.deptno) r
+select *
+from (
+  select *
+  from dept
+  inner join emp on dept.deptno = emp.deptno) r
 where 0.9 <= rand();
 # Not using !ok: RAND() gives non-deterministic results
 LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
@@ -634,14 +637,46 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "FILTER_INTO_JOIN"
 
+# testPushJoinCondDownToProject ------------------------------------------------
+# FILTER_INTO_JOIN, JOIN_PUSH_EXPRESSIONS push conditions into projects below a join.
+
+select d.deptno, e.deptno
+from dept d, emp e
+where d.deptno + 10 = e.deptno * 2;
++--------+--------+
+| DEPTNO | DEPTNO |
++--------+--------+
+|     10 |     10 |
+|     10 |     10 |
+|     10 |     10 |
+|     30 |     20 |
+|     30 |     20 |
+|     30 |     20 |
+|     30 |     20 |
+|     30 |     20 |
++--------+--------+
+(8 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DEPTNO0=[$9])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO0=[$10], SLACKER=[$11])
+    LogicalJoin(condition=[=($2, $12)], joinType=[inner])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[+($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[*($7, 2)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_PUSH_EXPRESSIONS"
+
 # testPushJoinConditionWithNonDeterministic ------------------------------------
 # FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, and JOIN_CONDITION_PUSH do not
 # push a join condition containing RAND() (non-deterministic) out of the join.
 # [CALCITE-7373]
 
-select * from (
-  select * from dept inner join
-     emp on dept.deptno = emp.deptno and emp.mgr <= rand()) r;
+select *
+from (
+  select *
+  from dept
+  inner join emp on dept.deptno = emp.deptno and emp.mgr <= rand()) r;
 # Not using !ok: RAND() gives non-deterministic results
 LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalJoin(condition=[AND(=($0, $9), <=(CAST($5):DOUBLE, RAND()))], joinType=[inner])

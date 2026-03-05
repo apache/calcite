@@ -22,6 +22,25 @@
 !use scott
 !set outputformat mysql
 
+# testCorrelateWithoutCorrelationToEmpty ---------------------------------------
+# A correlated EXISTS subquery with a null-producing condition is pruned to empty.
+
+select *
+from emp e
+where exists (select 1 from dept where empno=null);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalValues(tuples=[[]])
+!sub-plan "expand=false, subQueryRules"
+LogicalValues(tuples=[[]])
+!sub-plan "expand=false, subQueryRules, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE, PruneEmptyRules.CORRELATE_RIGHT_INSTANCE"
+
 # testMergeIntersect -----------------------------------------------------------
 # INTERSECT_MERGE should merge nested INTERSECT into a single n-way INTERSECT.
 
