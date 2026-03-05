@@ -375,6 +375,24 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
+   * Used to ensure that Map types can be correctly converted.
+   */
+  public static SqlDataTypeSpec getCastSpecSparkSqlMapType(SqlDialect dialect,
+      RelDataType type, SqlParserPos pos) {
+    MapSqlType mapSqlType = (MapSqlType) type;
+    SqlDataTypeSpec keySpec = (SqlDataTypeSpec) dialect.getCastSpec(mapSqlType.getKeyType());
+    SqlDataTypeSpec valueSpec =
+        (SqlDataTypeSpec) dialect.getCastSpec(mapSqlType.getValueType());
+    SqlDataTypeSpec nonNullKeySpec =
+        requireNonNull(keySpec, "keySpec").withNullable(false);
+    SqlDataTypeSpec nonNullValueSpec =
+        requireNonNull(valueSpec, "valueSpec").withNullable(false);
+    SqlMapTypeNameSpec sqlMapTypeNameSpec =
+        new SqlMapTypeNameSpec(nonNullKeySpec, nonNullValueSpec, pos);
+    return new SqlDataTypeSpec(sqlMapTypeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
    * Transformation ARRAY type from {@code VARCHAR ARRAY} to {@code Array<VARCHAR>}.
    */
   public static SqlDataTypeSpec getCastSpecAngleBracketArrayType(SqlDialect dialect,

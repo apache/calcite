@@ -166,6 +166,9 @@ public class SparkSqlDialect extends SqlDialect {
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec("STRING", type.getSqlTypeName(),
               SqlParserPos.ZERO), SqlParserPos.ZERO);
+    case MAP:
+      return RelToSqlConverterUtil.getCastSpecSparkSqlMapType(this, type,
+          SqlParserPos.ZERO);
     case ARRAY:
       return RelToSqlConverterUtil.getCastSpecAngleBracketArrayType(this, type,
           SqlParserPos.ZERO);
