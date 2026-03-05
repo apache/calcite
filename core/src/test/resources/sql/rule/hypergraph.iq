@@ -1,0 +1,119 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for HypergraphOptimizeRule (HYPER_GRAPH_OPTIMIZE).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testHypergraph0 --------------------------------------------------------------
+# Test case for [CALCITE-7191] Hypergraph creation with incorrect hyperedges.
+# Not using !ok: BONUS table is empty in Scott, results are not useful.
+
+select a.ename, bc.dname
+from bonus a
+inner join (
+    select b.empno, b.ename, c.dname
+    from emp b
+    inner join dept c on b.deptno = c.deptno) bc
+on a.ename = bc.ename;
+LogicalProject(ENAME=[$0], DNAME=[$14])
+  HyperGraph(edges=[{0}——[INNER, =(node(0)_field(0), node(1)_field(1))]——{1},{1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH"
+LogicalProject(ENAME=[$11], DNAME=[$1])
+  LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[=($9, $1)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_MERGE"
+
+# testHypergraph1 --------------------------------------------------------------
+# Test case for [CALCITE-7191] Hypergraph creation with incorrect hyperedges.
+# Not using !ok: EMP_ADDRESS table does not exist in Scott.
+
+select a.ename, bcde.dname
+from bonus a
+inner join (
+    select b.empno, b.ename, c.dname
+    from emp b
+    inner join dept c on b.deptno = c.deptno
+    inner join emp_address d on d.empno = b.empno
+    inner join salgrade e on b.sal = e.hisal) bcde
+on a.ename = bcde.ename;
+LogicalProject(ENAME=[$0], DNAME=[$14])
+  HyperGraph(edges=[{0}——[INNER, =(node(0)_field(0), node(1)_field(1))]——{1},{1}——[INNER, =(node(1)_field(5), node(4)_field(2))]——{4},{1}——[INNER, =(node(3)_field(0), node(1)_field(0))]——{3},{1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2}])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+!sub-plan "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH"
+LogicalProject(ENAME=[$17], DNAME=[$7])
+  LogicalJoin(condition=[=($0, $8)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalJoin(condition=[=($10, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalJoin(condition=[=($9, $1)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_MERGE"
+
+# testHypergraph2 --------------------------------------------------------------
+# Test case for [CALCITE-7191] Hypergraph creation with incorrect hyperedges.
+# Not using !ok: EMP_ADDRESS table does not exist in Scott.
+
+select ab.ename, cdef.dname
+from (select a.ename from bonus a inner join emp b on a.ename = b.ename) ab
+inner join (
+    select c.empno, c.ename, d.dname
+    from emp c
+    inner join dept d on c.deptno = d.deptno
+    inner join emp_address e on e.empno = c.empno
+    inner join salgrade f on c.sal = f.hisal) cdef
+on ab.ename = cdef.ename;
+LogicalProject(ENAME=[$0], DNAME=[$23])
+  HyperGraph(edges=[{0}——[INNER, =(node(0)_field(0), node(2)_field(1))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(1))]——{1},{2}——[INNER, =(node(2)_field(5), node(5)_field(2))]——{5},{2}——[INNER, =(node(4)_field(0), node(2)_field(0))]——{4},{2}——[INNER, =(node(2)_field(7), node(3)_field(0))]——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+!sub-plan "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH"
+LogicalProject(ENAME=[$26], DNAME=[$16])
+  LogicalJoin(condition=[=($0, $17)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalJoin(condition=[=($23, $1)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($10, $2)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+        LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalJoin(condition=[=($9, $1)], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_MERGE"
+
+# End hypergraph.iq

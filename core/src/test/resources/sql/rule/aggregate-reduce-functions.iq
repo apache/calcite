@@ -1,0 +1,171 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for AggregateReduceFunctionsRule.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testNoReduceAverage ----------------------------------------------------------
+# Tests that AggregateReduceFunctionsRule with no functions to reduce
+# leaves AVG unchanged.
+# Not using !ok: AVG return type differs between Calcite and HSQLDB.
+
+select dname, max(dname), avg(deptno), min(dname)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=NONE"
+
+# testNoReduceSum --------------------------------------------------------------
+# Tests that AggregateReduceFunctionsRule with no functions to reduce
+# leaves SUM unchanged.
+# Not using !ok: aggregate return types differ between Calcite and HSQLDB.
+
+select dname, sum(deptno)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=NONE"
+
+# testReduceAllAggregateFunctions ----------------------------------------------
+# Tests that AggregateReduceFunctionsRule reduces all configured functions.
+# Not using !ok: STDDEV/VAR functions not available in Scott HSQLDB.
+
+select dname, stddev_pop(deptno), avg(deptno), stddev_samp(deptno), var_pop(deptno), var_samp(deptno)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], EXPR$2=[AVG($1)], EXPR$3=[STDDEV_SAMP($1)], EXPR$4=[VAR_POP($1)], EXPR$5=[VAR_SAMP($1)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:DECIMAL(2, 1))):INTEGER NOT NULL], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[CAST(POWER(/(-($1, /(*($2, $2), $3)), CASE(=($3, 1), null:BIGINT, -($3, 1))), 0.5:DECIMAL(2, 1))):INTEGER], EXPR$4=[CAST(/(-($1, /(*($2, $2), $3)), $3)):INTEGER NOT NULL], EXPR$5=[CAST(/(-($1, /(*($2, $2), $3)), CASE(=($3, 1), null:BIGINT, -($3, 1)))):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], agg#0=[$SUM0($2)], agg#1=[$SUM0($1)], agg#2=[COUNT()])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1], $f2=[*($1, $1)])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=AVG|SUM|STDDEV_POP|STDDEV_SAMP|VAR_POP|VAR_SAMP"
+
+# testReduceAverageAndSumWithNoReduceStddevAndVar ------------------------------
+# Tests that AggregateReduceFunctionsRule reduces only AVG and SUM.
+# Not using !ok: STDDEV/VAR functions not available in Scott HSQLDB.
+
+select dname, stddev_pop(deptno), avg(deptno), var_pop(deptno)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], EXPR$2=[AVG($1)], EXPR$3=[VAR_POP($1)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[$4])
+  LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], agg#1=[$SUM0($1)], agg#2=[COUNT()], EXPR$3=[VAR_POP($1)])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=AVG|SUM"
+
+# testReduceAverageAndVarWithNoReduceStddev ------------------------------------
+# Tests that AggregateReduceFunctionsRule reduces only AVG and VAR_POP.
+# Not using !ok: STDDEV/VAR functions not available in Scott HSQLDB.
+
+select dname, stddev_pop(deptno), avg(deptno), var_pop(deptno)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], EXPR$2=[AVG($1)], EXPR$3=[VAR_POP($1)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NULL], EXPR$3=[CAST(/(-($4, /(*($2, $2), $3)), $3)):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1)], agg#1=[SUM($1)], agg#2=[COUNT()], agg#3=[SUM($2)])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1], $f2=[*($1, $1)])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=AVG|VAR_POP"
+
+# testReduceAverageWithNoReduceSum ---------------------------------------------
+# Tests that AggregateReduceFunctionsRule reduces only AVG, not SUM.
+# Not using !ok: aggregate return types differ between Calcite and HSQLDB.
+
+select dname, max(dname), avg(deptno), min(dname)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($0)], EXPR$2=[AVG($1)], EXPR$3=[MIN($0)])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[$0], EXPR$2=[CAST(/($1, $2)):INTEGER NOT NULL], EXPR$3=[$0])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[COUNT()])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=AVG"
+
+# testReduceWithNonTypePredicate -----------------------------------------------
+# Tests that AggregateReduceFunctionsRule with extra condition reduces only
+# WITHIN DISTINCT aggregate calls.
+# Not using !ok: AVG WITHIN DISTINCT may not be supported in Scott HSQLDB.
+
+select avg(sal), avg(sal) within distinct (deptno)
+from emp;
+LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], EXPR$1=[AVG($0) WITHIN DISTINCT ($1)])
+  LogicalProject(SAL=[$5], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[$0], EXPR$1=[CAST(/($1, $2)):INTEGER])
+  LogicalProject(EXPR$0=[$0], $f1=[CASE(=($2, 0), null:INTEGER, $1)], $f2=[$2])
+    LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], agg#1=[$SUM0($0) WITHIN DISTINCT ($1)], agg#2=[COUNT() WITHIN DISTINCT ($1)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "withinDistinctOnly=true"
+
+# testVarianceStddevWithFilter -------------------------------------------------
+# Test case for [CALCITE-7192] AggregateReduceFunctionsRule lost FILTER
+# condition in STDDEV/VAR function decomposition.
+# Not using !ok: STDDEV/VAR functions not available in Scott HSQLDB.
+
+select dname,
+    stddev_pop(deptno) filter (where deptno > 10),
+    stddev_samp(deptno) filter (where deptno > 20),
+    var_pop(deptno) filter (where deptno > 30),
+    var_samp(deptno) filter (where deptno > 40),
+    avg(deptno) filter (where deptno > 50)
+from dept
+group by dname;
+LogicalAggregate(group=[{0}], EXPR$1=[STDDEV_POP($1) FILTER $2], EXPR$2=[STDDEV_SAMP($1) FILTER $3], EXPR$3=[VAR_POP($1) FILTER $4], EXPR$4=[VAR_SAMP($1) FILTER $5], EXPR$5=[AVG($1) FILTER $6])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[>($0, 10)], $f3=[>($0, 20)], $f4=[>($0, 30)], $f5=[>($0, 40)], $f6=[>($0, 50)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "NONE"
+LogicalProject(DNAME=[$0], EXPR$1=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:DECIMAL(2, 1))):INTEGER], EXPR$2=[CAST(POWER(/(-($4, /(*($5, $5), $6)), CASE(=($6, 1), null:BIGINT, -($6, 1))), 0.5:DECIMAL(2, 1))):INTEGER], EXPR$3=[CAST(/(-($7, /(*($8, $8), $9)), $9)):INTEGER], EXPR$4=[CAST(/(-($10, /(*($11, $11), $12)), CASE(=($12, 1), null:BIGINT, -($12, 1)))):INTEGER], EXPR$5=[CAST(/($13, $14)):INTEGER])
+  LogicalAggregate(group=[{0}], agg#0=[SUM($7) FILTER $2], agg#1=[SUM($1) FILTER $2], agg#2=[COUNT() FILTER $2], agg#3=[SUM($7) FILTER $3], agg#4=[SUM($1) FILTER $3], agg#5=[COUNT() FILTER $3], agg#6=[SUM($7) FILTER $4], agg#7=[SUM($1) FILTER $4], agg#8=[COUNT() FILTER $4], agg#9=[SUM($7) FILTER $5], agg#10=[SUM($1) FILTER $5], agg#11=[COUNT() FILTER $5], agg#12=[SUM($1) FILTER $6], agg#13=[COUNT() FILTER $6])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[*($1, $1)])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[>($0, 10)], $f3=[>($0, 20)], $f4=[>($0, 30)], $f5=[>($0, 40)], $f6=[>($0, 50)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "functionsToReduce=STDDEV_POP|STDDEV_SAMP|VAR_POP|VAR_SAMP|AVG"
+
+# End aggregate-reduce-functions.iq

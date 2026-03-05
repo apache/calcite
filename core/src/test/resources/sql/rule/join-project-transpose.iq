@@ -658,6 +658,33 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
 
+# testJoinProjectTranspose1 ----------------------------------------------------
+# Tests JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER and RIGHT variant.
+# Not using !ok: result has too many rows (3-way non-equi join).
+
+select a.dname
+from dept a
+left join dept b on b.deptno > 10
+right join dept c on b.deptno > 10;
+LogicalProject(DNAME=[$0])
+  LogicalJoin(condition=[$1], joinType=[right])
+    LogicalProject(DNAME=[$1], $f4=[$5])
+      LogicalJoin(condition=[$4], joinType=[left])
+        LogicalProject(DEPTNO=[$0], DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[>($0, 10)], $f4=[>($0, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_JOIN_TRANSPOSE, PROJECT_MERGE"
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[>($2, 10)], joinType=[right])
+    LogicalJoin(condition=[>($2, 10)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_JOIN_TRANSPOSE, PROJECT_MERGE, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER, PROJECT_MERGE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER, PROJECT_MERGE"
+
 # testJoinProjectTranspose2 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
 # above the null-generating side of a left join.

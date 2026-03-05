@@ -25,13 +25,16 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
+import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.MeasureRules;
@@ -44,6 +47,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -95,6 +99,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -260,6 +265,9 @@ public abstract class QuidemTest {
         boolean subQueryRules = false;
         int bloat = -1; // -1 means "use default"
         int inSubQueryThreshold = -1; // -1 means "use default"
+        boolean bottomUp = false;
+        String functionsToReduceStr = null;
+        boolean withinDistinctOnly = false;
         final List<RelOptRule> rules = new ArrayList<>();
         for (String token : PATTERN.matcher(args).replaceAll("").split(",")) {
           final String name = token.trim();
@@ -300,6 +308,12 @@ public abstract class QuidemTest {
               throwIfNotUnique = false;
             } else if (name.equals("trim=true")) {
               trim = true;
+            } else if (name.equals("bottomUp=true")) {
+              bottomUp = true;
+            } else if (name.startsWith("functionsToReduce=")) {
+              functionsToReduceStr = name.substring("functionsToReduce=".length());
+            } else if (name.equals("withinDistinctOnly=true")) {
+              withinDistinctOnly = true;
             } else {
               throw new IllegalArgumentException("Unknown config token: " + name);
             }
@@ -397,9 +411,31 @@ public abstract class QuidemTest {
             relNode = prePlanner.findBestExp();
           }
 
+          // Create custom AggregateReduceFunctionsRule if requested
+          if (functionsToReduceStr != null) {
+            final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
+            if (!functionsToReduceStr.equals("NONE")) {
+              for (String fn : functionsToReduceStr.split("\\|")) {
+                functions.add(SqlKind.valueOf(fn.trim()));
+              }
+            }
+            rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+                .withOperandFor(LogicalAggregate.class)
+                .withFunctionsToReduce(functions)
+                .toRule());
+          }
+          if (withinDistinctOnly) {
+            rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+                .withExtraCondition(call -> call.distinctKeys != null)
+                .toRule());
+          }
+
           // Apply main rules using a single HepPlanner
           if (!rules.isEmpty()) {
             final HepProgramBuilder builder = new HepProgramBuilder();
+            if (bottomUp) {
+              builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
+            }
             for (RelOptRule rule : rules) {
               builder.addRuleInstance(rule);
             }

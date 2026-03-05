@@ -55,7 +55,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
-import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -65,7 +64,6 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
-import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
@@ -144,7 +142,6 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -265,67 +262,6 @@ class RelOptRulesTest extends RelOptTestBase {
     fixture()
         .sql(sql)
         .withPlanner(hepPlanner)
-        .check();
-  }
-
-  private HepProgram createHypergraphProgram() {
-    return new HepProgramBuilder().addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE)
-        .addRuleInstance(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE)
-        .addRuleInstance(CoreRules.PROJECT_MERGE)
-        .addRuleInstance(CoreRules.PROJECT_REMOVE)
-        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
-        .build();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7191">[CALCITE-7191]
-   * Hypergraph creation with incorrect hyperedges</a>. */
-  @Test void testHypergraph0() {
-    HepProgram program = createHypergraphProgram();
-    String innerJoinSql = "select a.ename, bc.dname from bonus a inner join "
-        + "(select b.empno, b.ename, c.dname from emp b inner join dept c on b.deptno = c.deptno) bc "
-        + "on a.ename = bc.ename";
-
-    sql(innerJoinSql).withPre(program)
-        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7191">[CALCITE-7191]
-   * Hypergraph creation with incorrect hyperedges</a>. */
-  @Test void testHypergraph1() {
-    HepProgram program = createHypergraphProgram();
-    String innerJoinSql = "select a.ename, bcde.dname "
-        + "from bonus a "
-        + "inner join ("
-        + "  select b.empno, b.ename, c.dname "
-        + "  from emp b "
-        + "  inner join dept c on b.deptno = c.deptno "
-        + "  inner join emp_address d on d.empno = b.empno "
-        + "  inner join salgrade e on b.sal = e.hisal"
-        + ") bcde on a.ename = bcde.ename";
-
-    sql(innerJoinSql).withPre(program)
-        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7191">[CALCITE-7191]
-   * Hypergraph creation with incorrect hyperedges</a>. */
-  @Test void testHypergraph2() {
-    HepProgram program = createHypergraphProgram();
-    String innerJoinSql = "select ab.ename, cdef.dname "
-        + "from (select a.ename from bonus a inner join emp b on a.ename = b.ename) ab "
-        + "inner join ("
-        + "  select c.empno, c.ename, d.dname "
-        + "  from emp c "
-        + "  inner join dept d on c.deptno = d.deptno "
-        + "  inner join emp_address e on e.empno = c.empno "
-        + "  inner join salgrade f on c.sal = f.hisal"
-        + ") cdef on ab.ename = cdef.ename";
-
-    sql(innerJoinSql).withPre(program)
-        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -825,22 +761,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
-  @Test void testJoinProjectTranspose1() {
-    final String sql = "select a.dname\n"
-        + "from dept a\n"
-        + "left join dept b on b.deptno > 10\n"
-        + "right join dept c on b.deptno > 10\n";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_JOIN_TRANSPOSE,
-            CoreRules.PROJECT_MERGE)
-        .withRule(CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER,
-            CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER,
-            CoreRules.PROJECT_MERGE)
-        .check();
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
    * JoinProjectTransposeRule should not pull a literal above the
@@ -1016,31 +936,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
    * Adding a cast around the null literal in aggregate rules</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7192">[CALCITE-7192]
-   * AggregateReduceFunctionsRule lost FILTER condition in STDDEV/VAR function decomposition</a>. */
-  @Test void testVarianceStddevWithFilter() {
-    // Test to ensure FILTER conditions are correctly propagated to decomposed aggregates
-    // for all functions that use the `reduceStddev` method
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(
-            EnumSet.of(SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP,
-                      SqlKind.VAR_POP, SqlKind.VAR_SAMP, SqlKind.AVG))
-        .toRule();
-    final String sql = "select dname, "
-        + "stddev_pop(deptno) filter (where deptno > 10), "
-        + "stddev_samp(deptno) filter (where deptno > 20), "
-        + "var_pop(deptno) filter (where deptno > 30), "
-        + "var_samp(deptno) filter (where deptno > 40), "
-        + "avg(deptno) filter (where deptno > 50)\n"
-        + "from sales.dept group by dname";
-    sql(sql)
-        .withRule(rule)
-        .check();
-  }
-
 
   /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6349">
    * [CALCITE-6349] CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes on expression
@@ -2948,86 +2843,6 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS,
             CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS)
         .check();
-  }
-
-  @Test void testReduceAverageWithNoReduceSum() {
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(EnumSet.of(SqlKind.AVG))
-        .toRule();
-    final String sql = "select dname, max(dname), avg(deptno), min(dname)\n"
-        + "from sales.dept group by dname";
-    sql(sql).withRule(rule).check();
-  }
-
-  @Test void testNoReduceAverage() {
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
-        .toRule();
-    String sql = "select dname, max(dname), avg(deptno), min(dname)"
-        + " from sales.dept group by dname";
-    sql(sql).withRule(rule).checkUnchanged();
-  }
-
-  @Test void testNoReduceSum() {
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(EnumSet.noneOf(SqlKind.class))
-        .toRule();
-    String sql = "select dname, sum(deptno)"
-            + " from sales.dept group by dname";
-    sql(sql).withRule(rule).checkUnchanged();
-  }
-
-  @Test void testReduceAverageAndVarWithNoReduceStddev() {
-    // configure rule to reduce AVG and VAR_POP functions
-    // other functions like SUM, STDDEV won't be reduced
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(EnumSet.of(SqlKind.AVG, SqlKind.VAR_POP))
-        .toRule();
-    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
-        + " var_pop(deptno)\n"
-        + "from sales.dept group by dname";
-    sql(sql).withRule(rule).check();
-  }
-
-  @Test void testReduceAverageAndSumWithNoReduceStddevAndVar() {
-    // configure rule to reduce AVG and SUM functions
-    // other functions like VAR_POP, STDDEV_POP won't be reduced
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(EnumSet.of(SqlKind.AVG, SqlKind.SUM))
-        .toRule();
-    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
-        + " var_pop(deptno)\n"
-        + "from sales.dept group by dname";
-    sql(sql).withRule(rule).check();
-  }
-
-  @Test void testReduceAllAggregateFunctions() {
-    // configure rule to reduce all used functions
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withOperandFor(LogicalAggregate.class)
-        .withFunctionsToReduce(
-            EnumSet.of(SqlKind.AVG, SqlKind.SUM, SqlKind.STDDEV_POP,
-                SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP))
-        .toRule();
-    final String sql = "select dname, stddev_pop(deptno), avg(deptno),"
-        + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
-        + "from sales.dept group by dname";
-    sql(sql).withRule(rule).check();
-  }
-
-  @Test void testReduceWithNonTypePredicate() {
-    // Make sure we can reduce with more specificity than just agg function type.
-    final RelOptRule rule = AggregateReduceFunctionsRule.Config.DEFAULT
-        .withExtraCondition(call -> call.distinctKeys != null)
-        .toRule();
-    final String sql = "select avg(sal), avg(sal) within distinct (deptno)\n"
-        + "from emp";
-    sql(sql).withRule(rule).check();
   }
 
   /** Test case for
