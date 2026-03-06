@@ -309,20 +309,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Test case for
-   * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6317">
-   * [CALCITE-6317] Incorrect constant replacement when group keys are NULL</a>. */
-
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
-   * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7375">[CALCITE-7375]
-   * ProjectWindowTransposeRule does not correctly adjust column indices in window bounds</a>. */
-
-  /**
-   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
    * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
    * and XML_EXTRACT is incorrect</a>. */
@@ -343,11 +329,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1479">[CALCITE-1479]
-   * AssertionError in ReduceExpressionsRule on multi-column IN
-   * sub-query</a>. */
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2865">[CALCITE-2865]
@@ -394,31 +375,6 @@ class RelOptRulesTest extends RelOptTestBase {
           is(RelFieldCollation.Direction.DESCENDING));
     }
   }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
-   * Create an optimization pass which can convert some cases of Correlate + Unnest
-   * to Unnest</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
-   * Create an optimization pass which can convert some cases of Correlate + Unnest
-   * to Unnest</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
-   * Create an optimization pass which can convert some cases of Correlate + Unnest
-   * to Unnest</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
-   * Create an optimization pass which can convert some cases of Correlate + Unnest
-   * to Unnest</a>. */
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7196">[CALCITE-7196]
-   * Create an optimization pass which can convert some cases of Correlate + Unnest
-   * to Unnest</a>. */
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6878">[CALCITE-6878]
@@ -761,36 +717,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1338">[CALCITE-1338]
-   * JoinProjectTransposeRule should not pull a literal above the
-   * null-generating side of a join</a>. */
-
-  /** As {@link #testJoinProjectTranspose2()};
-   * should not transpose since the left project of right join has literal. */
-
-  /** As {@link #testJoinProjectTranspose2()};
-   * should not transpose since the right project of left join has not-strong
-   * expression {@code y is not null}. */
-
-  /** As {@link #testJoinProjectTranspose2()};
-   * should not transpose since the right project of left join has not-strong
-   * expression {@code 1 + 1}. */
-
-  /** As {@link #testJoinProjectTranspose2()};
-   * should not transpose since both the left project and right project have
-   * literal. */
-
-  /** As {@link #testJoinProjectTranspose2()};
-   * Should transpose since all expressions in the right project of left join
-   * are strong. */
-
-  /** As {@link #testJoinProjectTranspose2()};
-   * should transpose since all expressions including
-   * {@code deptno > 10 and cast(null as boolean)} in the right project of left
-   * join are strong. */
-
-
   @Test void testSortRemovalOneKeyConstant() {
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -932,10 +858,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1621">[CALCITE-1621]
-   * Adding a cast around the null literal in aggregate rules</a>. */
 
   /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6349">
    * [CALCITE-6349] CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes on expression
@@ -1080,10 +1002,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "unnest(t1.employees) as t2";
     sql(sql).withRule(customPCTrans).check();
   }
-
-  /** As {@link #testProjectSetOpTranspose()};
-   * should not push over past correlate but its operands can since correlate
-   * will affect row count. */
 
   /** Tests a variant of {@link FilterProjectTransposeRule}
    * that pushes a Filter that contains a correlating variable. */

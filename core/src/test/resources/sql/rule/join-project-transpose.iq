@@ -660,12 +660,66 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 
 # testJoinProjectTranspose1 ----------------------------------------------------
 # Tests JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER and RIGHT variant.
-# Not using !ok: result has too many rows (3-way non-equi join).
 
 select a.dname
 from dept a
 left join dept b on b.deptno > 10
 right join dept c on b.deptno > 10;
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| ACCOUNTING |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| OPERATIONS |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| RESEARCH   |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
+| SALES      |
++------------+
+(48 rows)
+
+!ok
 LogicalProject(DNAME=[$0])
   LogicalJoin(condition=[$1], joinType=[right])
     LogicalProject(DNAME=[$1], $f4=[$5])

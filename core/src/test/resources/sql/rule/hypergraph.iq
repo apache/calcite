@@ -33,6 +33,13 @@ inner join (
     from emp b
     inner join dept c on b.deptno = c.deptno) bc
 on a.ename = bc.ename;
++-------+-------+
+| ENAME | DNAME |
++-------+-------+
++-------+-------+
+(0 rows)
+
+!ok
 LogicalProject(ENAME=[$0], DNAME=[$14])
   HyperGraph(edges=[{0}——[INNER, =(node(0)_field(0), node(1)_field(1))]——{1},{1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2}])
     LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
