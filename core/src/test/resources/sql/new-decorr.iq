@@ -401,4 +401,62 @@ EnumerableCalc(expr#0..3=[{inputs}], ENAME=[$t1], JOB=[$t2], SAL=[$t3])
 !plan
 !}
 
+# [CALCITE-7434] Error in new decorrelation algorithm caused by FilterJoinRule omitting variablesSet
+SELECT E.EMPNO
+FROM EMP E
+JOIN DEPT D ON E.DEPTNO = D.DEPTNO
+WHERE E.EMPNO > 10 AND D.DEPTNO = (
+    SELECT MIN(D_INNER.DEPTNO)
+    FROM DEPT D_INNER
+    WHERE D_INNER.DEPTNO = E.DEPTNO);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
+SELECT e1.empno
+FROM emp e1,
+  dept d1
+where e1.deptno = d1.deptno
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno);
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+
+SELECT e1.empno
+FROM emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.deptno < 10 and d1.deptno < 15
+and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)
+order by e1.empno;
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+
 # End new-decorr.iq
