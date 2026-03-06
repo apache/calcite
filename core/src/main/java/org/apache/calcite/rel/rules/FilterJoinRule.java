@@ -36,6 +36,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -249,6 +250,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
     // create a FilterRel on top of the join if needed
     relBuilder.filter(
+        filter == null ? ImmutableSet.of() : filter.getVariablesSet(),
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
     call.transformTo(relBuilder.build());
