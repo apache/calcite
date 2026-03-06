@@ -71,6 +71,13 @@ public class CoreRules {
       AGGREGATE_PROJECT_PULL_UP_CONSTANTS =
       AggregateProjectPullUpConstantsRule.Config.DEFAULT.toRule();
 
+  /** Rule that replaces constant group-by keys in an {@link Aggregate}
+   * with a dummy join to a single-row {@link org.apache.calcite.rel.core.Values},
+   * allowing the aggregate to be applied to a partitioned relation. */
+  public static final AggregateProjectConstantToDummyJoinRule
+      AGGREGATE_PROJECT_CONSTANT_TO_DUMMY_JOIN =
+      AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule();
+
   /** More general form of {@link #AGGREGATE_PROJECT_PULL_UP_CONSTANTS}
    * that matches any relational expression. */
   public static final AggregateProjectPullUpConstantsRule
@@ -326,6 +333,11 @@ public class CoreRules {
    * @see #PROJECT_MULTI_JOIN_MERGE */
   public static final FilterMultiJoinMergeRule FILTER_MULTI_JOIN_MERGE =
       FilterMultiJoinMergeRule.Config.DEFAULT.toRule();
+
+  /** Rule that flattens uncorrelated calls in a correlated {@link Filter}. */
+  public static final FilterFlattenCorrelatedConditionRule
+      FILTER_FLATTEN_CORRELATED_CONDITION =
+      FilterFlattenCorrelatedConditionRule.Config.DEFAULT.toRule();
 
   /** Rule that replaces {@code IS NOT DISTINCT FROM}
    * in a {@link Filter} with logically equivalent operations. */

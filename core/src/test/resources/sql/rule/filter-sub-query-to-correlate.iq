@@ -1,0 +1,1669 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to converting filter sub-queries to correlates.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testAll ----------------------------------------------------------------------
+
+select *
+from emp e1
+where e1.empno > ALL (select deptno from dept);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(<= SOME($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[NOT(CAST(OR(AND(IS TRUE(<=($0, $9)), <>($10, 0)), AND(>($10, $11), null, <>($10, 0), IS NOT TRUE(<=($0, $9))), AND(<=($0, $9), <>($10, 0), IS NOT TRUE(<=($0, $9)), <=($10, $11)))):BOOLEAN NOT NULL)])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(m=[$0], c=[$1], d=[$1])
+          LogicalAggregate(group=[{}], m=[MAX($0)], c=[COUNT()])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testAnyInProjectNonNullable --------------------------------------------------
+# [CALCITE-1706] ANY sub-query in Project is non-nullable, plan should have cast.
+
+select dname, deptno > ANY (
+  select deptno from emp) as b
+from dept;
++------------+-------+
+| DNAME      | B     |
++------------+-------+
+| ACCOUNTING | false |
+| OPERATIONS | true  |
+| RESEARCH   | true  |
+| SALES      | true  |
++------------+-------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1], B=[> SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DNAME=[$1], B=[CAST(OR(AND(IS TRUE(>($0, $2)), <>($3, 0)), AND(>($3, $4), null, <>($3, 0), IS NOT TRUE(>($0, $2))), AND(>($0, $2), <>($3, 0), IS NOT TRUE(>($0, $2)), <=($3, $4)))):BOOLEAN NOT NULL])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(m=[$0], c=[$1], d=[$1])
+      LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testAnyInProjectNullable -----------------------------------------------------
+# [CALCITE-1706] ANY sub-query in Project is nullable, plan should not have cast.
+# Not using !ok: fails with "RuntimeException: while resolving method
+# 'eq[class java.lang.String, short]'" # in CoreQuidemTest2. Add '!ok' when
+# [CALCITE-7429] is fixed.
+
+select deptno, dname = ANY (
+  select mgr from emp) as b
+from dept;
+LogicalProject(DEPTNO=[$0], B=[IN($1, {
+LogicalProject(MGR=[$3])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], B=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3, $2), null, <>($2, 0), IS NULL($5)))])
+  LogicalJoin(condition=[=($1, $4)], joinType=[left])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+        LogicalProject(MGR=[$3])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testDecorrelateExists --------------------------------------------------------
+
+select *
+from emp
+where EXISTS (
+  select * from emp e where emp.deptno = e.deptno);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f1=[true])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testDecorrelateTwoExists -----------------------------------------------------
+# [CALCITE-1511] AssertionError while decorrelating query with two EXISTS
+# sub-queries.
+
+select *
+from emp
+where EXISTS (
+  select * from emp e where emp.deptno = e.deptno)
+AND NOT EXISTS (
+  select * from emp ee where ee.job = emp.job AND ee.sal=34);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), NOT(EXISTS({
+LogicalFilter(condition=[AND(=($2, $cor0.JOB), =($5, 34))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NULL($12)])
+    LogicalJoin(condition=[=($2, $11)], joinType=[left])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[$0], $f1=[true])
+          LogicalAggregate(group=[{0}])
+            LogicalProject(DEPTNO=[$7])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(JOB=[$0], $f1=[true])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(JOB=[$2])
+            LogicalFilter(condition=[=($5, 34)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testDecorrelateTwoIn ---------------------------------------------------------
+# [CALCITE-1537] Unnecessary project expression in multi-sub-query plan.
+
+select sal
+from emp
+where empno IN (
+  select deptno from dept where emp.job = dept.dname)
+AND empno IN (
+  select empno from emp e where emp.ename = e.ename);
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[AND(IN($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}), IN($0, {
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=($cor0.ENAME, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[AND(=($1, $12), =($0, $11))], joinType=[inner])
+    LogicalJoin(condition=[AND(=($2, $10), =($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testDecorrelateUncorrelatedInAndCorrelatedExists -----------------------------
+# [CALCITE-2028] Un-correlated IN sub-query should be converted into a Join,
+# rather than a Correlate without correlation variables.
+
+select *
+from emp
+WHERE job in (
+  select job from emp ee where ee.sal=34)
+AND EXISTS (
+  select * from emp e where emp.deptno = e.deptno);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(IN($2, {
+LogicalProject(JOB=[$2])
+  LogicalFilter(condition=[=($5, 34)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $10)], joinType=[inner])
+    LogicalJoin(condition=[=($2, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(JOB=[$2])
+          LogicalFilter(condition=[=($5, 34)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f1=[true])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testExistsWithAtLeastOneRowSubQuery ------------------------------------------
+# [CALCITE-5117] EXISTS subquery is optimized when Metadata RowCount > 0.
+
+select *
+from dept as d
+where EXISTS (
+  select count(*) from emp e where d.deptno = e.deptno);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules"
+
+# testExistsWithNoRowSubQuery --------------------------------------------------
+# [CALCITE-5117] NOT EXISTS subquery is optimized when Metadata RowCount = 0.
+
+select *
+from dept as d
+where NOT EXISTS (
+  select count(*) from emp e having false);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[NOT(EXISTS({
+LogicalValues(tuples=[[]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules"
+
+# testExpandFilterConstantInCorrelatedWithTwoSubQueries ------------------------
+# [CALCITE-5680] Wrong field reference lookup due to same intermediate table
+# alias of multiple sub-queries with only literal operands in subquery remove
+# phase.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select empno
+from sales.empnullables as e
+where 1 in (
+  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
+or 2 in (
+  select deptno from sales.deptnullables where e.ename = dname and deptno < 20);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(IN(1, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), IN(2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))], variablesSet=[[$cor0]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1])
+    LogicalFilter(condition=[OR(CASE(=($2, false), null:BOOLEAN, IS NOT NULL($2), true, false), CASE(=($3, false), null:BOOLEAN, IS NOT NULL($3), true, false))])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+        LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+          LogicalProject(EMPNO=[$0], ENAME=[$1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+            LogicalAggregate(group=[{0}])
+              LogicalProject(cs=[IS NOT NULL($0)])
+                LogicalFilter(condition=[OR(=(1, $0), IS NULL($0))])
+                  LogicalProject(DEPTNO=[$0])
+                    LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+                      LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+          LogicalAggregate(group=[{0}])
+            LogicalProject(cs=[IS NOT NULL($0)])
+              LogicalFilter(condition=[OR(=(2, $0), IS NULL($0))])
+                LogicalProject(DEPTNO=[$0])
+                  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+
+# testExpandFilterConstantInWithTwoSubQueries ----------------------------------
+# [CALCITE-5680] Wrong field reference lookup due to same intermediate table
+# alias of multiple sub-queries with only literal operands in subquery remove
+# phase.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select empno
+from sales.empnullables
+where 1 in (
+  select deptno from sales.deptnullables where dname = 'dept1')
+or 2 in (
+  select deptno from sales.deptnullables where dname = 'dept2');
+LogicalFilter(condition=[OR(IN(1, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept1')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), IN(2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept2')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true"
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(CASE(IS NULL($2), false, =($1, false), null:BOOLEAN, IS NOT NULL($1), true, false), CASE(IS NULL($4), false, =($3, false), null:BOOLEAN, IS NOT NULL($3), true, false))])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+          LogicalAggregate(group=[{0}], c=[COUNT()])
+            LogicalProject(cs=[IS NOT NULL($0)])
+              LogicalFilter(condition=[OR(=(1, $0), IS NULL($0))])
+                LogicalProject(DEPTNO=[$0])
+                  LogicalFilter(condition=[=($1, 'dept1')])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+      LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+        LogicalAggregate(group=[{0}], c=[COUNT()])
+          LogicalProject(cs=[IS NOT NULL($0)])
+            LogicalFilter(condition=[OR(=(2, $0), IS NULL($0))])
+              LogicalProject(DEPTNO=[$0])
+                LogicalFilter(condition=[=($1, 'dept2')])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+
+# testExpandFilterExists -------------------------------------------------------
+# An EXISTS filter that can be converted into true/false.
+
+select empno
+from emp
+where exists (select deptno from emp where empno < 20)
+or emp.sal < 100;
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(EXISTS({
+LogicalFilter(condition=[<($0, 20)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($5, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(IS NOT NULL($9), <($5, 100))])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(i=[true])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testExpandFilterExistsSimple -------------------------------------------------
+# An EXISTS filter that can be converted into a semi-join.
+
+select empno
+from emp
+where exists (select deptno from emp where empno < 20);
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[<($0, 20)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[<($0, 20)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testExpandFilterExistsSimpleAnd ----------------------------------------------
+# An EXISTS filter that can be converted into a semi-join.
+
+select empno
+from emp
+where exists (select deptno from emp where empno < 20)
+and emp.sal < 100;
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(EXISTS({
+LogicalFilter(condition=[<($0, 20)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($5, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[<($5, 100)])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(i=[true])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testExpandFilterIn -----------------------------------------------------------
+
+select empno
+from emp
+where deptno in (select deptno from emp where empno < 20)
+or emp.sal < 100;
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(IN($7, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($5, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(IS NOT NULL($10), <($5, 100))])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testExpandFilterIn3Value -----------------------------------------------------
+# An IN filter that requires full 3-value logic (true, false, unknown).
+
+select empno
+from emp
+where empno
+ < case deptno in (select case when deptno > 0 then deptno else null end
+                   from emp where empno < 20)
+   when true then 10
+   when false then 20
+   else 30
+   end;
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[<($0, CASE(=(IN($7, {
+LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), true), 10, =(IN($7, {
+LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), false), 20, 30))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[<($0, CASE(=(CASE(=($9, 0), false, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), true), 10, =(CASE(=($9, 0), false, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), false), 20, 30))])
+      LogicalJoin(condition=[=($7, $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+              LogicalFilter(condition=[<($0, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "relBuilderSimplify=false, subQueryRules"
+
+# testExpandFilterInComposite --------------------------------------------------
+
+select empno
+from emp
+where (empno, deptno) in (
+  select empno, deptno from emp where empno < 20)
+or emp.sal < 100;
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(IN($0, $7, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), <($5, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(IS NOT NULL($11), <($5, 100))])
+      LogicalJoin(condition=[AND(=($0, $9), =($7, $10))], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7], i=[true])
+          LogicalFilter(condition=[<($0, 20)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testExpandFilterInCorrelatedWithTwoSubQueries --------------------------------
+# [CALCITE-5655] Wrong field reference lookup due to same intermediate table
+# alias of multiple sub-queries in subquery remove phase.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select empno
+from sales.empnullables as e
+where deptno in (
+  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
+or deptno in (
+  select deptno from sales.deptnullables where e.ename = dname and deptno < 20);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(IN($2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), IN($2, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))], variablesSet=[[$cor0]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
+    LogicalFilter(condition=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
+        LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+          LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
+            LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+                LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+              LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+                LogicalProject(DEPTNO=[$0])
+                  LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+              LogicalProject(DEPTNO=[$0], i=[true])
+                LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+          LogicalProject(DEPTNO=[$0], i=[true])
+            LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+
+# testExpandFilterInWithTwoSubQueries ------------------------------------------
+# [CALCITE-5655] Wrong field reference lookup due to same intermediate table
+# alias of multiple sub-queries in subquery remove phase.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select empno
+from sales.empnullables
+where deptno in (
+  select deptno from sales.deptnullables where dname = 'dept1')
+or deptno in (
+  select deptno from sales.deptnullables where dname = 'dept2');
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(IN($1, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept1')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}), IN($1, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($1, 'dept2')])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+}))])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true"
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+    LogicalFilter(condition=[OR(CASE(=($2, 0), false, IS NULL($1), null:BOOLEAN, IS NOT NULL($5), true, <($3, $2), null:BOOLEAN, false), CASE(=($6, 0), false, IS NULL($1), null:BOOLEAN, IS NOT NULL($9), true, <($7, $6), null:BOOLEAN, false))])
+      LogicalJoin(condition=[=($1, $8)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalJoin(condition=[=($1, $4)], joinType=[left])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+                LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+              LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+                LogicalProject(DEPTNO=[$0])
+                  LogicalFilter(condition=[=($1, 'dept1')])
+                    LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+            LogicalProject(DEPTNO=[$0], i=[true])
+              LogicalFilter(condition=[=($1, 'dept1')])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalFilter(condition=[=($1, 'dept2')])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+        LogicalProject(DEPTNO=[$0], i=[true])
+          LogicalFilter(condition=[=($1, 'dept2')])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+
+# testExpandFilterScalar -------------------------------------------------------
+
+select empno
+from emp
+where (select deptno from emp where empno < 20)
+ < (select deptno from emp where empno > 100)
+or emp.sal < 100;
+SINGLE_VALUE
+!error
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[OR(<($SCALAR_QUERY({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}), $SCALAR_QUERY({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($0, 100)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})), <($5, 100))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(<($9, $10), <($5, 100))])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+            LogicalProject(DEPTNO=[$7])
+              LogicalFilter(condition=[<($0, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalFilter(condition=[>($0, 100)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testExpandWhereComparisonCorrelated ------------------------------------------
+
+select empno
+from emp as e
+where sal = (
+  select max(sal) from emp e2 where e2.empno = e.empno);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[=($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($5, $9)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject(SAL=[$5])
+            LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testInOptimizationBothNotNull ------------------------------------------------
+# [CALCITE-7317] SubQueryRemoveRule skips NULL-safety checks for IN subqueries
+# when both the keys and the subquery columns are NOT NULL.
+
+select *
+from emp as e1
+where empno in (
+  select empno from emp e2);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IN($0, {
+LogicalProject(EMPNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testInWithNoRowSubQuery ------------------------------------------------------
+# [CALCITE-6650] IN subquery is optimized when Metadata RowCount = 0.
+
+select *
+from dept as d
+where deptno in (
+  select deptno from emp e where false);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[IN($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules"
+
+# testNotInNullableKey ---------------------------------------------------------
+# [CALCITE-7317] SubQueryRemoveRule does not skip NULL-safety checks for NOT IN
+# subqueries when the key is nullable.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select *
+from sales.empnullables as e1
+where deptno not in (
+  select coalesce(deptno, 0) from sales.empnullables e2);
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IN($7, {
+LogicalProject(EXPR$0=[CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(=($9, 0), AND(IS NULL($12), >=($10, $9), IS NOT NULL($7)))])
+      LogicalJoin(condition=[=($7, $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalProject(c=[$0], ck=[$0])
+            LogicalAggregate(group=[{}], c=[COUNT()])
+              LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(EXPR$0=[CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "subQueryRules"
+
+# testNotInNullableSubqueryColumn ----------------------------------------------
+# [CALCITE-7317] SubQueryRemoveRule does not skip NULL-safety checks for NOT IN
+# subqueries when the subquery column is nullable.
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select *
+from sales.empnullables as e1
+where coalesce(deptno, 0) not in (
+  select deptno from sales.empnullables e2);
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IN(CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0), {
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[NOT(AND(OR(IS NOT NULL($12), <($10, $9)), <>($9, 0)))])
+      LogicalJoin(condition=[=(CASE(IS NOT NULL($7), CAST($7):INTEGER NOT NULL, 0), $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+            LogicalProject(DEPTNO=[$7])
+              LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "subQueryRules"
+
+# testNotInWithNoRowSubQuery ---------------------------------------------------
+# [CALCITE-6650] NOT IN subquery is optimized when Metadata RowCount = 0.
+
+select *
+from dept as d
+where deptno not in (
+  select deptno from emp e where false);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[NOT(IN($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules"
+
+# testNotUniqueWithNoRowSubQuery -----------------------------------------------
+# NOT UNIQUE of an empty subquery evaluates to false, so zero dept rows match.
+
+select *
+from dept as d
+where not unique(
+  select deptno from emp e where false);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[NOT(UNIQUE({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules"
+
+# testSelectAnyCorrelated ------------------------------------------------------
+
+select empno > ANY (
+  select deptno from dept where emp.job = dept.dname) as b
+from emp;
++-------+
+| B     |
++-------+
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
+| false |
++-------+
+(14 rows)
+
+!ok
+LogicalProject(variablesSet=[[$cor0]], B=[> SOME($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(B=[CAST(OR(AND(IS TRUE(>($0, $9)), IS NOT TRUE(OR(IS NULL($12), =($10, 0)))), AND(IS TRUE(>($10, $11)), null, IS NOT TRUE(OR(IS NULL($12), =($10, 0))), IS NOT TRUE(>($0, $9))), AND(>($0, $9), IS NOT TRUE(OR(IS NULL($12), =($10, 0))), IS NOT TRUE(>($0, $9)), IS NOT TRUE(>($10, $11))))):BOOLEAN NOT NULL])
+  LogicalJoin(condition=[=($2, $13)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(m=[$2], c=[CASE(IS NOT NULL($3), $3, 0)], d=[CASE(IS NOT NULL($3), $3, 0)], trueLiteral=[$4], DNAME=[$0])
+      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(JOB=[$2])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], m=[MIN($1)], c=[COUNT()], trueLiteral=[LITERAL_AGG(true)])
+          LogicalProject(DNAME=[$1], DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testSelectNotInCorrelated ----------------------------------------------------
+# [CALCITE-1494] Inefficient plan for correlated sub-queries.
+
+select sal,
+  empno NOT IN (
+    select deptno
+    from dept
+    where emp.job=dept.dname) as b
+ from emp;
++---------+------+
+| SAL     | B    |
++---------+------+
+| 1100.00 | true |
+| 1250.00 | true |
+| 1250.00 | true |
+| 1300.00 | true |
+| 1500.00 | true |
+| 1600.00 | true |
+| 2450.00 | true |
+| 2850.00 | true |
+| 2975.00 | true |
+| 3000.00 | true |
+| 3000.00 | true |
+| 5000.00 | true |
+|  800.00 | true |
+|  950.00 | true |
++---------+------+
+(14 rows)
+
+!ok
+LogicalProject(variablesSet=[[$cor0]], SAL=[$5], B=[NOT(IN($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(SAL=[$5], B=[IS NULL($10)])
+  LogicalJoin(condition=[AND(=($0, $9), =($2, $11))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], i=[true], DNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testSome ---------------------------------------------------------------------
+
+select *
+from emp e1
+where e1.empno > SOME (select deptno from dept);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[> SOME($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(AND(IS TRUE(>($0, $9)), <>($10, 0)), AND(>($10, $11), null, <>($10, 0), IS NOT TRUE(>($0, $9))), AND(>($0, $9), <>($10, 0), IS NOT TRUE(>($0, $9)), <=($10, $11)))])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(m=[$0], c=[$1], d=[$1])
+          LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testSomeWithEquality ---------------------------------------------------------
+
+select *
+from emp e1
+where e1.deptno = SOME (select deptno from dept);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testSomeWithEquality2 --------------------------------------------------------
+
+select *
+from emp e1
+where e1.ename= SOME (select dname from dept);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IN($1, {
+LogicalProject(DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($1, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DNAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testSomeWithGreaterThanNoRowSubQuery -----------------------------------------
+# [CALCITE-6650] SOME subquery is optimized when Metadata RowCount = 0.
+
+select *
+from dept as d
+where deptno > some(
+  select deptno from emp e where false);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[> SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules"
+
+# testSomeWithLessThanOrEqualNoRowSubQuery -------------------------------------
+# [CALCITE-6650] SOME subquery is optimized when Metadata RowCount = 0.
+
+select *
+from dept as d
+where deptno <= some (
+  select deptno from emp e where false);
++--------+-------+-----+
+| DEPTNO | DNAME | LOC |
++--------+-------+-----+
++--------+-------+-----+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[<= SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalValues(tuples=[[]])
+!sub-plan "subQueryRules"
+
+# testSomeWithNotEquality ------------------------------------------------------
+
+select *
+from emp e1
+where e1.deptno <> SOME (select deptno from dept);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[<> SOME($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(AND(<>($10, $9), <=($10, 1), OR(<>($7, $11), null), <>($9, 0)), AND(=($10, 1), <>($7, $11), <>($9, 0), OR(=($10, $9), >($10, 1))), AND(<>($9, 0), OR(=($10, $9), >($10, 1)), <>($10, 1)))])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(c=[$0], d=[$0], m=[$1])
+          LogicalAggregate(group=[{}], c=[COUNT()], m=[MAX($0)])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testUniqueWithNoRowSubQuery --------------------------------------------------
+# UNIQUE of an empty subquery evaluates to true, so all dept rows match.
+
+select *
+from dept as d
+where unique(
+  select deptno from emp e where false);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[UNIQUE({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "subQueryRules"
+
+# testWhereAnyCorrelatedInSelect -----------------------------------------------
+
+select *
+from emp
+where empno > ANY (
+  select deptno from dept where emp.job = dept.dname);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[> SOME($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], m=[$9], c=[CAST($10):BIGINT], d=[CAST($11):BIGINT], trueLiteral=[$12], DNAME=[CAST($13):VARCHAR(10)])
+    LogicalJoin(condition=[AND(=($2, $13), OR(AND(>($0, $9), IS NOT TRUE(OR(IS NULL($12), =($10, 0)))), AND(>($0, $9), IS NOT TRUE(OR(IS NULL($12), =($10, 0))), IS NOT TRUE(>($0, $9)), IS NOT TRUE(>($10, $11)))))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(m=[$2], c=[CASE(IS NOT NULL($3), $3, 0)], d=[CASE(IS NOT NULL($3), $3, 0)], trueLiteral=[$4], DNAME=[$0])
+        LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+          LogicalAggregate(group=[{0}])
+            LogicalProject(JOB=[$2])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{0}], m=[MIN($1)], c=[COUNT()], trueLiteral=[LITERAL_AGG(true)])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testWhereExpressionInCorrelated ----------------------------------------------
+
+select ename
+from (
+  select ename, deptno, sal + 1 as salPlus from emp) as e
+where deptno in (
+  select deptno from emp where sal + 1 = e.salPlus);
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(ENAME=[$0])
+  LogicalFilter(condition=[IN($1, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[=(+($5, 1), $cor0.SALPLUS)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7], SALPLUS=[+($5, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(ENAME=[$0])
+  LogicalJoin(condition=[AND(=($2, $4), =($1, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7], SALPLUS=[+($5, 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], $f9=[+($5, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testWhereExpressionInCorrelated2 ---------------------------------------------
+
+select dname
+from (
+  select dname, deptno, deptno - 10 as deptnoMinus from dept) as d
+where deptno in (
+  select deptno from emp where sal + 1 = d.deptnoMinus);
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$0])
+  LogicalFilter(condition=[IN($1, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[=(+($5, 1), $cor0.DEPTNOMINUS)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], DEPTNOMINUS=[-($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DNAME=[$0])
+  LogicalJoin(condition=[AND(=($2, $4), =($1, $3))], joinType=[inner])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], DEPTNOMINUS=[-($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], $f9=[+($5, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testWhereInCorrelated --------------------------------------------------------
+# [CALCITE-1494] Inefficient plan for correlated sub-queries. In planAfter,
+# there must be only one scan each of emp and dept.
+
+select sal
+from emp
+where empno IN (
+  select deptno from dept where emp.job = dept.dname);
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[IN($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[AND(=($2, $10), =($0, $9))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testWhereInJoinCorrelated ----------------------------------------------------
+
+select empno
+from emp as e
+join dept as d using (deptno)
+where e.sal in (
+  select e2.sal from emp as e2 where e2.deptno > e.deptno);
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IN($5, {
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[>($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+    LogicalFilter(condition=[=($5, $11)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+        LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(SAL=[$5])
+            LogicalFilter(condition=[>($7, $cor0.DEPTNO)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "subQueryRules"
+
+# testWhereNotInCorrelated -----------------------------------------------------
+# [CALCITE-1493] Wrong plan for NOT IN correlated queries.
+
+select sal
+from emp
+where empno NOT IN (
+  select deptno from dept
+  where emp.job = dept.dname);
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1500.00 |
+| 1600.00 |
+| 2450.00 |
+| 2850.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+|  800.00 |
+|  950.00 |
++---------+
+(14 rows)
+
+!ok
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[NOT(IN($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[=($cor0.JOB, $1)])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[IS NULL($10)])
+    LogicalJoin(condition=[AND(=($0, $9), =($2, $11))], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], i=[true], DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testWhereNotInCorrelated2 ----------------------------------------------------
+# [CALCITE-1493] Wrong plan for NOT IN correlated queries.
+
+select *
+from emp e1
+where e1.empno NOT IN (
+    select empno
+    from (select ename, empno, sal as r from emp) e2
+    where r > 2 and e1.ename= e2.ename);
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IN($0, {
+LogicalProject(EMPNO=[$1])
+  LogicalFilter(condition=[AND(>($2, 2), =($cor0.ENAME, $0))])
+    LogicalProject(ENAME=[$1], EMPNO=[$0], R=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[IS NULL($10)])
+    LogicalJoin(condition=[AND(=($0, $9), =($1, $11))], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$1], i=[true], ENAME=[$0])
+        LogicalFilter(condition=[>($2, 2)])
+          LogicalProject(ENAME=[$1], EMPNO=[$0], R=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# testWhereOrSubQuery ----------------------------------------------------------
+# [CALCITE-1546] Sub-queries connected by OR.
+
+select *
+from emp
+where sal = 4
+or empno NOT IN (select deptno from dept);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[OR(=($5, 4), NOT(IN($0, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[OR(=($5, 4), IS NULL($10))])
+      LogicalJoin(condition=[=($0, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[$0], i=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, subQueryRules"
+
+# End filter-sub-query-to-correlate.iq

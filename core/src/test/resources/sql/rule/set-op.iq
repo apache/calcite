@@ -1,0 +1,2937 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to set operations (INTERSECT, MINUS, UNION).
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testAggregateUnionTransposeWithAllInputsUnique -------------------------------
+# AGGREGATE_UNION_TRANSPOSE is a no-op if all inputs to UNION are already unique.
+
+select deptno, SUM(t) as s
+from (
+  select distinct deptno, 1 as t from emp e1
+  union all
+  select distinct deptno, 2 as t from emp e2)
+group by deptno;
++--------+---+
+| DEPTNO | S |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_UNION_TRANSPOSE"
+
+# testAggregateUnionTransposeWithOneInputNonNullable ---------------------------
+# AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input has a non-nullable column.
+# [CALCITE-6642]
+
+select deptno, SUM(t) as s
+from (
+  select deptno, 1 as t from emp e1
+  union all
+  select deptno, nullif(sal, 0) as t from emp e2)
+group by deptno;
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8753.00 |
+|     20 | 10880.00 |
+|     30 |  9406.00 |
++--------+----------+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], T=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_UNION_TRANSPOSE"
+
+# testAggregateUnionTransposeWithOneInputUnique --------------------------------
+# AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input is unique.
+# [CALCITE-4616]
+
+select deptno, SUM(t) as s
+from (
+  select deptno, 1 as t from emp e1
+  union all
+  select distinct deptno, 2 as t from emp e2)
+group by deptno;
++--------+---+
+| DEPTNO | S |
++--------+---+
+|     10 | 5 |
+|     20 | 7 |
+|     30 | 8 |
++--------+---+
+(3 rows)
+
+!ok
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], T=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$7], T=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}], S=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalProject(DEPTNO=[$7], T=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_UNION_TRANSPOSE"
+
+# testAggregateUnionTransposeWithTopLevelGroupSetRemapping ---------------------
+# AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when top-level group set is remapped.
+
+select count(t1) as c, t2
+from (
+  select (case when deptno=0 then 1 else null end) as t1, 1 as t2 from emp e1
+  union all
+  select (case when deptno=0 then 1 else null end) as t1, 2 as t2 from emp e2)
+group by t2;
++---+----+
+| C | T2 |
++---+----+
+| 0 |  1 |
+| 0 |  2 |
++---+----+
+(2 rows)
+
+!ok
+LogicalProject(C=[$1], T2=[$0])
+  LogicalAggregate(group=[{1}], C=[COUNT($0)])
+    LogicalUnion(all=[true])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE"
+LogicalProject(C=[$1], T2=[$0])
+  LogicalAggregate(group=[{0}], C=[$SUM0($1)])
+    LogicalUnion(all=[true])
+      LogicalAggregate(group=[{1}], C=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{1}], C=[COUNT($0)])
+        LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
+
+# testEmptyFilterProjectUnion --------------------------------------------------
+# Filters, projects, and empty sets work together correctly via rule chaining.
+# Plan should be same as for select * from (values (30, 3)) as t(x, y).
+
+select *
+from (
+  select * from (values (10, 1), (30, 3)) as t (x, y)
+  union all
+  select * from (values (20, 2)))
+where x + y > 30;
++----+---+
+| X  | Y |
++----+---+
+| 30 | 3 |
++----+---+
+(1 row)
+
+!ok
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(+($0, $1), 30)])
+    LogicalUnion(all=[true])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 20, 2 }]])
+!sub-plan ""
+LogicalProject(X=[$0], Y=[$1])
+  LogicalValues(tuples=[[{ 30, 3 }]])
+!sub-plan "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
+
+# testEmptyFilterProjectUnion2 -------------------------------------------------
+# UNION DISTINCT with a filter reduces correctly when one branch becomes empty.
+# [CALCITE-6955] PruneEmptyRules does not handle the all attribute of SetOp correctly
+
+select *
+from (
+  select * from (values (10, 1), (30, 3), (30, 3)) as t (x, y)
+  union
+  select * from (values (20, 2)))
+where x + y > 30;
++----+---+
+| X  | Y |
++----+---+
+| 30 | 3 |
++----+---+
+(1 row)
+
+!ok
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(+($0, $1), 30)])
+    LogicalUnion(all=[false])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }, { 30, 3 }]])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 20, 2 }]])
+!sub-plan ""
+LogicalProject(X=[$0], Y=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
+!sub-plan "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
+
+# testIntersectToDistinct ------------------------------------------------------
+# INTERSECT_TO_DISTINCT rewrites a 3-way INTERSECT DISTINCT into aggregation.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect
+select * from emp where deptno = 30;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[=($9, 3)])
+    LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+      LogicalUnion(all=[true])
+        LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($7, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($7, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
+
+# testIntersectToDistinctAll ---------------------------------------------------
+# INTERSECT_TO_DISTINCT ignores the INTERSECT ALL branch: only rewrites DISTINCT
+# parts of a mixed INTERSECT query.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect all
+select * from emp where deptno = 30;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[true])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalIntersect(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($9, 2)])
+      LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+        LogicalUnion(all=[true])
+          LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
+
+# testIntersectToDistinctAllNoAggregatePushdown --------------------------------
+# INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN ignores INTERSECT ALL branch.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect all
+select * from emp where deptno = 30;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[true])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalIntersect(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[AND(>($9, 0), >($10, 0))])
+      LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], count_i0=[COUNT() FILTER $9], count_i1=[COUNT() FILTER $10])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f10=[=($9, 0)], $f11=[=($9, 1)])
+          LogicalUnion(all=[true])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[0])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+                LogicalFilter(condition=[=($7, 10)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[1])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+                LogicalFilter(condition=[=($7, 20)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+
+# testIntersectToDistinctNoAggregatePushdown -----------------------------------
+# INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN rewrites a 3-way INTERSECT DISTINCT
+# without pushing aggregate into each branch.
+
+select * from emp where deptno = 10
+intersect
+select * from emp where deptno = 20
+intersect
+select * from emp where deptno = 30;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[AND(>($9, 0), >($10, 0), >($11, 0))])
+    LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], count_i0=[COUNT() FILTER $9], count_i1=[COUNT() FILTER $10], count_i2=[COUNT() FILTER $11])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f10=[=($9, 0)], $f11=[=($9, 1)], $f12=[=($9, 2)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[0])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[1])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], i=[2])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+              LogicalFilter(condition=[=($7, 30)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+
+# testIntersectToExistsRuleMultiFields -----------------------------------------
+# INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with multiple fields.
+# [CALCITE-6836]
+
+SELECT a.ename, a.job FROM emp AS a
+INTERSECT
+SELECT b.ename, b.job FROM emp AS b;
++--------+-----------+
+| ENAME  | JOB       |
++--------+-----------+
+| ADAMS  | CLERK     |
+| ALLEN  | SALESMAN  |
+| BLAKE  | MANAGER   |
+| CLARK  | MANAGER   |
+| FORD   | ANALYST   |
+| JAMES  | CLERK     |
+| JONES  | MANAGER   |
+| KING   | PRESIDENT |
+| MARTIN | SALESMAN  |
+| MILLER | CLERK     |
+| SCOTT  | ANALYST   |
+| SMITH  | CLERK     |
+| TURNER | SALESMAN  |
+| WARD   | SALESMAN  |
++--------+-----------+
+(14 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($cor0.ENAME, $0), =($cor0.JOB, $1))])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRuleMultiIntersect --------------------------------------
+# INTERSECT_TO_EXISTS rewrites nested INTERSECT to correlated EXISTS subqueries.
+# [CALCITE-6836]
+
+SELECT a.ename FROM emp AS a
+INTERSECT
+SELECT b.dname FROM dept AS b
+INTERSECT
+SELECT c.ename FROM emp AS c;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalAggregate(group=[{0}])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor1.ENAME, $0)])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor1]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRuleOneField --------------------------------------------
+# INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with one field.
+# [CALCITE-6836]
+
+SELECT a.ename FROM emp AS a
+INTERSECT
+SELECT b.dname FROM dept AS b;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalAggregate(group=[{0}])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRulePrimaryKey ------------------------------------------
+# INTERSECT_TO_EXISTS on a primary-key column skips the outer Aggregate.
+# [CALCITE-6836]
+
+SELECT a.empno FROM emp AS a
+INTERSECT
+SELECT b.empno FROM emp AS b;
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_EXISTS"
+
+# testIntersectToExistsRuleWithAll ---------------------------------------------
+# INTERSECT_TO_EXISTS does not rewrite INTERSECT ALL (only INTERSECT DISTINCT).
+# [CALCITE-6836]
+
+SELECT a.ename FROM emp AS a
+INTERSECT ALL
+SELECT b.dname FROM dept AS b;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[true])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalIntersect(all=[true])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "INTERSECT_TO_EXISTS"
+
+# testIntersectToFilterRuleNWayWithMultiSources --------------------------------
+# INTERSECT_FILTER_TO_FILTER merges n-way INTERSECT from multiple sources into combined filters.
+# [CALCITE-7002]
+
+SELECT CAST(deptno AS INTEGER) AS deptno FROM emp WHERE deptno < 12
+INTERSECT
+SELECT CAST(deptno AS INTEGER) AS deptno FROM dept WHERE deptno > 5
+INTERSECT
+SELECT CAST(deptno AS INTEGER) AS deptno FROM emp WHERE deptno > 6
+INTERSECT
+SELECT CAST(deptno AS INTEGER) AS deptno FROM dept WHERE deptno < 10;
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[<($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[<($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(6..12)])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(5..10)])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+
+# testIntersectToFilterRuleWithOneFilter ---------------------------------------
+# INTERSECT_FILTER_TO_FILTER rewrites INTERSECT into a single filter when one input has no filter.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp
+INTERSECT
+SELECT mgr, comm FROM emp WHERE comm = 5;
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+
+# testIntersectToFilterRuleWithTwoFilters --------------------------------------
+# INTERSECT_FILTER_TO_FILTER rewrites INTERSECT into AND of two filters.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+INTERSECT
+SELECT mgr, comm FROM emp WHERE comm = 5;
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[AND(=($0, 12), =($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+
+# testIntersectToSemiJoin ------------------------------------------------------
+# INTERSECT_TO_SEMI_JOIN rewrites 2-way INTERSECT DISTINCT to semi-join + aggregate.
+# [CALCITE-6880]
+
+select ename from emp where deptno = 10
+intersect
+select ename from emp where deptno = 20;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoin2 -----------------------------------------------------
+# INTERSECT_TO_SEMI_JOIN rewrites n-way INTERSECT to chained semi-joins (after INTERSECT_MERGE).
+# [CALCITE-7000]
+# Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
+
+select ename from emp where deptno = 10
+intersect
+select deptno from emp where ename in ('a', 'b')
+intersect
+select ename from empnullables;
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+    LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "INTERSECT_MERGE"
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+      LogicalProject(ENAME=[CAST($0):VARCHAR])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[CAST($0):VARCHAR])
+        LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[CAST($0):VARCHAR])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "INTERSECT_MERGE, INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoinAll ---------------------------------------------------
+# INTERSECT_TO_SEMI_JOIN applies only to INTERSECT DISTINCT; INTERSECT ALL is left unchanged.
+# [CALCITE-6880]
+
+select ename from emp where deptno = 10
+intersect
+select ename from emp where deptno = 20
+intersect all
+select ename from emp where deptno = 30;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[true])
+  LogicalIntersect(all=[false])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalIntersect(all=[true])
+  LogicalAggregate(group=[{0}])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+      LogicalProject(ENAME=[$1])
+        LogicalFilter(condition=[=($7, 10)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalFilter(condition=[=($7, 20)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoinCoercion ----------------------------------------------
+# INTERSECT_TO_SEMI_JOIN handles column type coercion between INTERSECT inputs.
+# [CALCITE-6880]
+
+select ename from emp where deptno = 10
+intersect
+select job from emp where deptno = 20;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(JOB=[CAST($2):VARCHAR(20) NOT NULL])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(JOB=[CAST($2):VARCHAR(20) NOT NULL])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_SEMI_JOIN"
+
+# testIntersectToSemiJoinMultiCol ----------------------------------------------
+# INTERSECT_TO_SEMI_JOIN rewrites INTERSECT with multiple columns to a multi-condition semi-join.
+# [CALCITE-6880]
+
+select deptno, ename from emp where deptno = 10
+intersect
+select deptno, ename from emp where deptno = 20;
++--------+-------+
+| DEPTNO | ENAME |
++--------+-------+
++--------+-------+
+(0 rows)
+
+!ok
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0, 1}])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[semi])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "INTERSECT_TO_SEMI_JOIN"
+
+# testMergeSetOpMixed ----------------------------------------------------------
+# UNION_MERGE and INTERSECT_MERGE do nothing if inputs have different set operators.
+
+select * from emp where deptno = 10
+union
+select * from emp where deptno = 20
+intersect
+select * from emp where deptno = 30;
++-------+--------+-----------+------+------------+---------+------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+--------+-----------+------+------------+---------+------+--------+
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |      |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |      |     10 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |      |     10 |
++-------+--------+-----------+------+------------+---------+------+--------+
+(3 rows)
+
+!ok
+LogicalUnion(all=[false])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 30)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalUnion(all=[false])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalIntersect(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+      LogicalFilter(condition=[=($7, 30)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "UNION_MERGE, INTERSECT_MERGE"
+
+# testMinusMergeRule -----------------------------------------------------------
+# MINUS_MERGE collapses a 3-level EXCEPT ALL tree into a single EXCEPT ALL.
+
+select * from (
+  select * from (
+    select dname, deptno from (
+      select dname, deptno, count(1) from dept group by dname, deptno
+      except all
+      select dname, deptno, 1 from dept) subq
+    except all
+    select dname, deptno from (
+      select dname, deptno, 1 from dept
+      except all
+      select dname, deptno, count(1) from dept group by dname, deptno) subq2
+  ) a
+  except all
+  select dname, deptno from dept) aa;
++-------+--------+
+| DNAME | DEPTNO |
++-------+--------+
++-------+--------+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$0], DEPTNO=[$1])
+  LogicalMinus(all=[true])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalMinus(all=[true])
+        LogicalProject(DNAME=[$0], DEPTNO=[$1])
+          LogicalMinus(all=[true])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DNAME=[$0], DEPTNO=[$1])
+          LogicalMinus(all=[true])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalMinus(all=[true])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalMinus(all=[true])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, MINUS_MERGE"
+
+# testMinusToAntiJoinRule ------------------------------------------------------
+# MINUS_TO_ANTI_JOIN rewrites 2-way EXCEPT DISTINCT to anti-join + aggregate.
+# [CALCITE-6948]
+
+select ename from emp where deptno = 10
+except
+select ename from emp where deptno = 20;
++--------+
+| ENAME  |
++--------+
+| CLARK  |
+| KING   |
+| MILLER |
++--------+
+(3 rows)
+
+!ok
+LogicalMinus(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[=($0, $1)], joinType=[anti])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MINUS_TO_ANTI_JOIN"
+
+# testMinusToAntiJoinRuleMultiInputs -------------------------------------------
+# MINUS_TO_ANTI_JOIN rewrites n-way EXCEPT to chained anti-joins (after MINUS_MERGE).
+
+select ename from emp where deptno = 10
+except
+select deptno from emp where ename in ('a', 'b')
+except
+select ename from empnullables;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+    LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "MINUS_MERGE"
+LogicalProject(ENAME=[CAST($0):VARCHAR])
+  LogicalAggregate(group=[{0}])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[anti])
+      LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[anti])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+!sub-plan "MINUS_MERGE, MINUS_TO_ANTI_JOIN"
+
+# testMinusToDistinct ----------------------------------------------------------
+# MINUS_TO_DISTINCT rewrites a 3-way EXCEPT DISTINCT into aggregation.
+
+select EMPNO, ENAME, JOB from emp where deptno = 10
+except
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except
+select EMPNO, ENAME, JOB from emp where deptno = 30;
++-------+--------+-----------+
+| EMPNO | ENAME  | JOB       |
++-------+--------+-----------+
+|  7782 | CLARK  | MANAGER   |
+|  7839 | KING   | PRESIDENT |
+|  7934 | MILLER | CLERK     |
++-------+--------+-----------+
+(3 rows)
+
+!ok
+LogicalMinus(all=[false])
+  LogicalMinus(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalFilter(condition=[AND(>($3, 0), =($4, 0), =($5, 0))])
+    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4], agg#2=[COUNT() FILTER $5])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)], $f5=[=($3, 2)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+            LogicalFilter(condition=[=($7, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+            LogicalFilter(condition=[=($7, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[2])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
+
+# testMinusToDistinctAll -------------------------------------------------------
+# MINUS_TO_DISTINCT ignores the EXCEPT ALL branch: only rewrites DISTINCT parts.
+
+select EMPNO, ENAME, JOB from emp where deptno = 10
+except
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except all
+select EMPNO, ENAME, JOB from emp where deptno = 30;
++-------+--------+-----------+
+| EMPNO | ENAME  | JOB       |
++-------+--------+-----------+
+|  7782 | CLARK  | MANAGER   |
+|  7839 | KING   | PRESIDENT |
+|  7934 | MILLER | CLERK     |
++-------+--------+-----------+
+(3 rows)
+
+!ok
+LogicalMinus(all=[true])
+  LogicalMinus(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalMinus(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
+      LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)])
+          LogicalUnion(all=[true])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
+
+# testMinusToDistinctAllAndDistinct --------------------------------------------
+# MINUS_TO_DISTINCT rewrites the outer EXCEPT DISTINCT but not the inner EXCEPT ALL.
+
+select EMPNO, ENAME, JOB from emp where deptno = 10
+except all
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except
+select EMPNO, ENAME, JOB from emp where deptno = 30;
++-------+--------+-----------+
+| EMPNO | ENAME  | JOB       |
++-------+--------+-----------+
+|  7782 | CLARK  | MANAGER   |
+|  7839 | KING   | PRESIDENT |
+|  7934 | MILLER | CLERK     |
++-------+--------+-----------+
+(3 rows)
+
+!ok
+LogicalMinus(all=[false])
+  LogicalMinus(all=[true])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
+    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+            LogicalMinus(all=[true])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+                LogicalFilter(condition=[=($7, 10)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+                LogicalFilter(condition=[=($7, 20)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MINUS_TO_DISTINCT, PROJECT_MERGE"
+
+# testMinusToFilterNWayWithSubquery --------------------------------------------
+# MINUS_FILTER_TO_FILTER merges same-source inputs in n-way EXCEPT containing a correlated subquery.
+# [CALCITE-7002]
+# Not using !ok: throws "Unable to implement EnumerableMinus(all=[false])";
+# bug [CALCITE-7429] logged.
+SELECT deptno FROM emp WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 5
+EXCEPT
+SELECT deptno FROM emp e1 WHERE EXISTS (
+    SELECT 1 FROM emp e2
+    WHERE e2.comm = e1.comm)
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 10
+EXCEPT
+SELECT deptno FROM emp WHERE deptno > 20;
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[>($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($6, $cor0.COMM)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 20)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(12..20]])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($6, $cor0.COMM)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleFourWayWithForSources -----------------------------------
+# MINUS_FILTER_TO_FILTER is unchanged when all four EXCEPT sources are different tables.
+# [CALCITE-7002]
+
+SELECT deptno FROM emp WHERE deptno = 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 5
+EXCEPT
+SELECT deptno FROM empnullables WHERE deptno = 6
+EXCEPT
+SELECT deptno FROM deptnullables WHERE deptno = 10;
+# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleNWayWithMultiSources ------------------------------------
+# MINUS_FILTER_TO_FILTER merges n-way EXCEPT from multiple sources into combined filters.
+# [CALCITE-6973]
+
+SELECT deptno FROM emp WHERE deptno > 6
+EXCEPT
+SELECT deptno FROM dept WHERE deptno > 8
+EXCEPT
+SELECT deptno FROM emp WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno > 10;
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[>($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 8)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(6..12]])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 8)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleWithOneFilter -------------------------------------------
+# MINUS_FILTER_TO_FILTER rewrites EXCEPT into a negated filter when one input has no filter.
+# [CALCITE-6973]
+
+SELECT mgr, comm FROM emp
+EXCEPT
+SELECT mgr, comm FROM emp WHERE comm = 5;
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7566 |         |
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
+| 7782 |         |
+| 7788 |         |
+| 7839 |         |
+| 7902 |         |
+|      |         |
++------+---------+
+(11 rows)
+
+!ok
+LogicalMinus(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[<>($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testMinusToFilterRuleWithTwoFilters ------------------------------------------
+# MINUS_FILTER_TO_FILTER rewrites EXCEPT into AND of one filter and NOT of the other.
+# [CALCITE-6973]
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+EXCEPT
+SELECT mgr, comm FROM emp WHERE comm = 5;
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[AND(=($0, 12), <>($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+
+# testPushJoinThroughUnionOnLeft -----------------------------------------------
+# JOIN_LEFT_UNION_TRANSPOSE distributes a join over a UNION ALL on the left input.
+
+select r1.sal
+from (select * from emp e1 union all select * from emp e2) r1,
+  emp r2;
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(392 rows)
+
+!ok
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(SAL=[$5])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "JOIN_LEFT_UNION_TRANSPOSE"
+
+# testPushJoinThroughUnionOnRight ----------------------------------------------
+# JOIN_RIGHT_UNION_TRANSPOSE distributes a join over a UNION ALL on the right input.
+
+select r1.sal
+from emp r1,
+  (select * from emp e1 union all select * from emp e2) r2;
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(392 rows)
+
+!ok
++---------+
+| SAL     |
++---------+
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1100.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1250.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1300.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1500.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 1600.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 2975.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 3000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  800.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
+|  950.00 |
++---------+
+(392 rows)
+
+!ok
+LogicalProject(SAL=[$5])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalUnion(all=[true])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(SAL=[$5])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "JOIN_RIGHT_UNION_TRANSPOSE"
+
+# testSortUnionTranspose -------------------------------------------------------
+# SORT_UNION_TRANSPOSE pushes a Sort with fetch past a Union.
+# [CALCITE-889]
+
+select a.dname from dept a
+union all
+select b.dname from dept b
+order by dname limit 10;
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| ACCOUNTING |
+| OPERATIONS |
+| OPERATIONS |
+| RESEARCH   |
+| RESEARCH   |
+| SALES      |
+| SALES      |
++------------+
+(8 rows)
+
+!ok
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalProject(DNAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE"
+
+# testSortUnionTranspose2 ------------------------------------------------------
+# SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH pushes a Sort without fetch past a Union.
+# [CALCITE-889]
+
+select a.dname from dept a
+union all
+select b.dname from dept b
+order by dname;
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| ACCOUNTING |
+| OPERATIONS |
+| OPERATIONS |
+| RESEARCH   |
+| RESEARCH   |
+| SALES      |
+| SALES      |
++------------+
+(8 rows)
+
+!ok
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(DNAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
+
+# testSortUnionTranspose3 ------------------------------------------------------
+# SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH does not loop when fetch is zero.
+# [CALCITE-987] Push limit 0 will result in an infinite loop
+
+select a.dname from dept a
+union all
+select b.dname from dept b
+order by dname limit 0;
++-------+
+| DNAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+  LogicalProject(DNAME=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+  LogicalUnion(all=[true])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
+
+# testUnionMergeRule -----------------------------------------------------------
+# UNION_MERGE collapses a 3-level UNION ALL tree into a single UNION ALL.
+
+select *
+from (
+  select * from (
+    select dname, deptno from dept
+    union all
+    select dname, deptno
+    from (
+      select dname, deptno, count(1) from dept group by dname, deptno
+      union all
+      select dname, deptno, count(1) from dept group by dname, deptno
+    ) subq
+  ) a
+  union all
+  select dname, deptno from dept
+) aa;
++------------+--------+
+| DNAME      | DEPTNO |
++------------+--------+
+| ACCOUNTING |     10 |
+| ACCOUNTING |     10 |
+| ACCOUNTING |     10 |
+| ACCOUNTING |     10 |
+| OPERATIONS |     40 |
+| OPERATIONS |     40 |
+| OPERATIONS |     40 |
+| OPERATIONS |     40 |
+| RESEARCH   |     20 |
+| RESEARCH   |     20 |
+| RESEARCH   |     20 |
+| RESEARCH   |     20 |
+| SALES      |     30 |
+| SALES      |     30 |
+| SALES      |     30 |
+| SALES      |     30 |
++------------+--------+
+(16 rows)
+
+!ok
+LogicalProject(DNAME=[$0], DEPTNO=[$1])
+  LogicalUnion(all=[true])
+    LogicalProject(DNAME=[$0], DEPTNO=[$1])
+      LogicalUnion(all=[true])
+        LogicalProject(DNAME=[$1], DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DNAME=[$0], DEPTNO=[$1])
+          LogicalUnion(all=[true])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+              LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalUnion(all=[true])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$0], DEPTNO=[$1])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DNAME=[$1], DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, UNION_MERGE"
+
+# testUnionToFilterRuleNWayWithMultiSources ------------------------------------
+# UNION_FILTER_TO_FILTER merges n-way UNION from multiple sources into combined filters.
+# [CALCITE-7002]
+
+SELECT deptno FROM emp WHERE deptno = 12
+UNION
+SELECT deptno FROM dept WHERE deptno = 5
+UNION
+SELECT deptno FROM emp WHERE deptno = 6
+UNION
+SELECT deptno FROM dept WHERE deptno = 10;
++--------+
+| DEPTNO |
++--------+
+|     10 |
++--------+
+(1 row)
+
+!ok
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "UNION_MERGE, PROJECT_FILTER_TRANSPOSE"
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[6, 12])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "UNION_MERGE, PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+
+# testUnionToFilterRuleWithOneFilter -------------------------------------------
+# UNION_FILTER_TO_FILTER rewrites UNION into a single scan when one input has no filter.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp
+UNION
+SELECT mgr, comm FROM emp WHERE comm = 5;
++------+---------+
+| MGR  | COMM    |
++------+---------+
+| 7566 |         |
+| 7698 |    0.00 |
+| 7698 | 1400.00 |
+| 7698 |  300.00 |
+| 7698 |  500.00 |
+| 7698 |         |
+| 7782 |         |
+| 7788 |         |
+| 7839 |         |
+| 7902 |         |
+|      |         |
++------+---------+
+(11 rows)
+
+!ok
+LogicalUnion(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+
+# testUnionToFilterRuleWithTwoFilters ------------------------------------------
+# UNION_FILTER_TO_FILTER rewrites UNION into OR of two filters.
+# [CALCITE-7002]
+
+SELECT mgr, comm FROM emp WHERE mgr = 12
+UNION
+SELECT mgr, comm FROM emp WHERE comm = 5;
++-----+------+
+| MGR | COMM |
++-----+------+
++-----+------+
+(0 rows)
+
+!ok
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE"
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[OR(=($0, 12), =($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+
+# End set-op.iq

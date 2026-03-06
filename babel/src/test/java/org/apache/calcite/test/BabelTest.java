@@ -242,7 +242,7 @@ class BabelTest {
             + " from emp e join dept d on e.deptno = d.deptno")
         .fails("SELECT \\* EXCLUDE/EXCEPT list contains unknown column\\(s\\): D.DEPTNO");
 
-    fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr), d.* exclude(d.name)"
+    fixture.withSql("select e.* exclude(e.empno, e.ename, e.job, e.mgr), d.* exclude(d.dname)"
             + " from emp e join dept d on e.deptno = d.deptno")
         .type(type -> {
           final List<String> names = type.getFieldList().stream()
@@ -267,11 +267,11 @@ class BabelTest {
           final List<String> names = type.getFieldList().stream()
               .map(RelDataTypeField::getName)
               .collect(Collectors.toList());
-          assertThat(names, is(ImmutableList.of("NAME")));
+          assertThat(names, is(ImmutableList.of("DNAME")));
         });
 
     // To verify that the exclude list contains all columns in the table
-    fixture.withSql("select ^*^ exclude(deptno, name) from dept")
+    fixture.withSql("select ^*^ exclude(deptno, dname) from dept")
         .fails("SELECT \\* EXCLUDE/EXCEPT list cannot exclude all columns");
   }
 
@@ -364,7 +364,7 @@ class BabelTest {
         .withConformance(SqlConformanceEnum.BABEL);
 
     v.withSql("SELECT * FROM dept LEFT SEMI JOIN emp ON emp.deptno = dept.deptno")
-        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL DNAME) NOT NULL");
 
     v.withSql("SELECT deptno FROM dept LEFT SEMI JOIN emp ON emp.deptno = dept.deptno")
         .type("RecordType(INTEGER NOT NULL DEPTNO) NOT NULL");
@@ -379,10 +379,10 @@ class BabelTest {
         .withConformance(SqlConformanceEnum.BABEL);
 
     v.withSql("SELECT * FROM dept LEFT ANTI JOIN emp ON emp.deptno = dept.deptno")
-        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL DNAME) NOT NULL");
 
-    v.withSql("SELECT name FROM dept LEFT ANTI JOIN emp ON emp.deptno = dept.deptno")
-        .type("RecordType(VARCHAR(10) NOT NULL NAME) NOT NULL");
+    v.withSql("SELECT dname FROM dept LEFT ANTI JOIN emp ON emp.deptno = dept.deptno")
+        .type("RecordType(VARCHAR(10) NOT NULL DNAME) NOT NULL");
   }
 
   /** Test case for
@@ -402,8 +402,8 @@ class BabelTest {
     // Test BY clause with multiple columns
     v.withSql("select ename, empno by deptno, job from emp").ok();
     // Test complex BY clause example from the feature proposal
-    v.withSql("select e.ename, e.empno by d.name as dept DESC, e.job as title "
-        + "from emp as e join dept as d on e.deptno = d.deptno where d.name = 'SALES'")
+    v.withSql("select e.ename, e.empno by d.dname as dept DESC, e.job as title "
+        + "from emp as e join dept as d on e.deptno = d.deptno where d.dname = 'SALES'")
         .ok();
 
     // Test SELECT BY cannot be used with GROUP BY

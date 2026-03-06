@@ -1,0 +1,239 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to Filter.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testFilterProjectTransposeRule2 ----------------------------------------------
+# FILTER_PROJECT_TRANSPOSE should not push the Filter past the Project
+# when the Filter contains a Subquery with correlation.
+# [CALCITE-6873]
+
+select *
+from (select deptno from emp) as d
+where NOT EXISTS (
+  select count(*)
+  from emp e
+  where e.deptno = d.deptno);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[NOT(EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[NOT(EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], variablesSet=[[$cor0]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_PROJECT_TRANSPOSE"
+
+# testFilterProjectTransposeRule3 ----------------------------------------------
+# FILTER_PROJECT_TRANSPOSE should push the Filter past the Project
+# when the Filter does not contain a correlated Subquery.
+
+select *
+from (select deptno from emp) as d
+where NOT EXISTS (
+  select count(*) from emp e);
++--------+
+| DEPTNO |
++--------+
++--------+
+(0 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[NOT(EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[NOT(EXISTS({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_PROJECT_TRANSPOSE"
+
+# testMergeJoinFilter ----------------------------------------------------------
+# FILTER_MERGE merges identical filters arising from a JOIN ON clause and a
+# WHERE clause.
+
+select *
+from (
+  select d.deptno, e.ename
+  from emp as e
+  join dept as d
+  on e.deptno = d.deptno
+  and d.deptno = 10)
+where deptno = 10;
++--------+--------+
+| DEPTNO | ENAME  |
++--------+--------+
+|     10 | CLARK  |
+|     10 | KING   |
+|     10 | MILLER |
++--------+--------+
+(3 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$9], ENAME=[$1])
+      LogicalJoin(condition=[AND(=($7, $9), =($9, 10))], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], ENAME=[$1])
+  LogicalProject(DEPTNO=[$9], ENAME=[$1])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[=($0, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_MERGE, FILTER_INTO_JOIN"
+
+# testPushFilterPastAggWithGroupingSets1 ---------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE does not push a filter past an aggregate with
+# ROLLUP grouping sets (checkUnchanged).
+
+select ddeptno, dname, c
+from (
+  select deptno ddeptno, dname, count(*) as c
+  from dept
+  group by rollup(deptno,dname)) t
+where dname = 'Charlie';
++---------+-------+---+
+| DDEPTNO | DNAME | C |
++---------+-------+---+
++---------+-------+---+
+(0 rows)
+
+!ok
+LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+  LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+    LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+  LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
+    LogicalFilter(condition=[=($1, 'Charlie')])
+      LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testPushFilterPastAggWithGroupingSets2 ---------------------------------------
+# FILTER_AGGREGATE_TRANSPOSE pushes a filter past an aggregate with non-ROLLUP
+# grouping sets.
+
+select dname, ddeptno, c
+from (
+  select dname dname, deptno ddeptno, count(*) as c
+  from dept
+  group by grouping sets ((dname,deptno),(dname))) t
+where dname = 'Charlie';
++-------+---------+---+
+| DNAME | DDEPTNO | C |
++-------+---------+---+
++-------+---------+---+
+(0 rows)
+
+!ok
+LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
+  LogicalFilter(condition=[=($0, 'Charlie')])
+    LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
+      LogicalProject(DNAME=[$1], DDEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
+    LogicalFilter(condition=[=($0, 'Charlie')])
+      LogicalProject(DNAME=[$1], DDEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+
+# testReduceValuesUnderFilter --------------------------------------------------
+# FILTER_VALUES_MERGE merges a filter with an underlying VALUES node.
+
+select a, b
+from (values (10, 'x'), (20, 'y')) as t(a, b)
+where a < 15;
++----+---+
+| A  | B |
++----+---+
+| 10 | x |
++----+---+
+(1 row)
+
+!ok
+LogicalProject(A=[$0], B=[$1])
+  LogicalFilter(condition=[<($0, 15)])
+    LogicalValues(tuples=[[{ 10, 'x' }, { 20, 'y' }]])
+!sub-plan ""
+LogicalProject(A=[$0], B=[$1])
+  LogicalValues(tuples=[[{ 10, 'x' }]])
+!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_VALUES_MERGE"
+
+# testReduceValuesUnderProjectFilter -------------------------------------------
+# PROJECT_FILTER_VALUES_MERGE merges a project+filter with an underlying VALUES.
+
+select a + b as x, b, a
+from (values (10, 1), (30, 7), (20, 3)) as t(a, b)
+where a - b < 21;
++----+---+----+
+| X  | B | A  |
++----+---+----+
+| 11 | 1 | 10 |
+| 23 | 3 | 20 |
++----+---+----+
+(2 rows)
+
+!ok
+LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
+  LogicalFilter(condition=[<(-($0, $1), 21)])
+    LogicalValues(tuples=[[{ 10, 1 }, { 30, 7 }, { 20, 3 }]])
+!sub-plan ""
+LogicalValues(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
+!sub-plan "FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE"
+
+# End filter.iq

@@ -179,7 +179,7 @@ class SqlHintsConverterTest {
   @Test void testThreeLevelNestedQueryHint() {
     final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
         + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n"
-        + "join emp e2 on d1.name = e2.job";
+        + "join emp e2 on d1.dname = e2.job";
     sql(sql).ok();
   }
 
@@ -221,7 +221,7 @@ class SqlHintsConverterTest {
     final String sql = "select /*+ breakable */ deptno from\n"
             + "(select ename, deptno from emp\n"
             + "union all\n"
-            + "select name, deptno from dept)";
+            + "select dname, deptno from dept)";
     sql(sql).ok();
   }
 
@@ -229,7 +229,7 @@ class SqlHintsConverterTest {
     final String sql = "select /*+ breakable */ deptno from\n"
         + "(select ename, deptno from emp\n"
         + "except all\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).ok();
   }
 
@@ -237,7 +237,7 @@ class SqlHintsConverterTest {
     final String sql = "select /*+ breakable */ deptno from\n"
         + "(select ename, deptno from emp\n"
         + "intersect all\n"
-        + "select name, deptno from dept)";
+        + "select dname, deptno from dept)";
     sql(sql).ok();
   }
 
@@ -364,7 +364,7 @@ class SqlHintsConverterTest {
 
   @Test void testTableHintsInJoin() {
     final String sql = "select\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp /*+ index(idx1, idx2) */\n"
         + "join dept /*+ properties(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
@@ -378,7 +378,7 @@ class SqlHintsConverterTest {
 
   @Test void testSameHintsWithDifferentInheritPath() {
     final String sql = "select /*+ properties(k1='v1', k2='v2') */\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp /*+ index(idx1, idx2) */\n"
         + "join dept /*+ properties(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
@@ -386,8 +386,8 @@ class SqlHintsConverterTest {
   }
 
   @Test void testTableHintsInInsert() throws Exception {
-    final String sql = HintTools.withHint("insert into dept /*+ %s */ (deptno, name) "
-        + "select deptno, name from dept");
+    final String sql = HintTools.withHint("insert into dept /*+ %s */ (deptno, dname) "
+        + "select deptno, dname from dept");
     final SqlInsert insert = (SqlInsert) sql(sql).parseQuery();
     assert insert.getTargetTable() instanceof SqlTableRef;
     final SqlTableRef tableRef = (SqlTableRef) insert.getTargetTable();
@@ -436,7 +436,7 @@ class SqlHintsConverterTest {
         + "on e.empno = t.empno\n"
         + "when matched then update\n"
         + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
-        + "when not matched then insert (name, dept, salary)\n"
+        + "when not matched then insert (dname, dept, salary)\n"
         + "values(t.name, 10, t.salary * .15)";
     final String sql1 = HintTools.withHint(sql);
 
@@ -454,14 +454,14 @@ class SqlHintsConverterTest {
 
   @Test void testInvalidTableHints() {
     final String sql = "select\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp /*+ weird_hint(idx1, idx2) */\n"
         + "join dept /*+ properties(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
     sql(sql).warns("Hint: WEIRD_HINT should be registered in the HintStrategyTable");
 
     final String sql1 = "select\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp /*+ index(idx1, idx2) */\n"
         + "join dept /*+ weird_kv_hint(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
@@ -470,7 +470,7 @@ class SqlHintsConverterTest {
 
   @Test void testJoinHintRequiresSpecificInputs() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp join dept on emp.deptno = dept.deptno";
     // Hint use_hash_join(r, s) expect to be ignored by the join node.
     sql(sql).ok();
@@ -494,7 +494,7 @@ class SqlHintsConverterTest {
 
   @Test void testHintsPropagationInHepPlannerRules() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp join dept on emp.deptno = dept.deptno";
     final RelNode rel = sql(sql).toRel();
     final RelHint hint = RelHint.builder("USE_HASH_JOIN")
@@ -514,7 +514,7 @@ class SqlHintsConverterTest {
 
   @Test void testHintsPropagationInVolcanoPlannerRules() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp join dept on emp.deptno = dept.deptno";
     final RelHint hint = RelHint.builder("USE_HASH_JOIN")
         .inheritPath(0)
@@ -607,7 +607,7 @@ class SqlHintsConverterTest {
 
   @Test void testUseMergeJoin() {
     final String sql = "select /*+ use_merge_join(emp, dept) */\n"
-        + "ename, job, sal, dept.name\n"
+        + "ename, job, sal, dept.dname\n"
         + "from emp join dept on emp.deptno = dept.deptno";
     RuleSet ruleSet =
         RuleSets.ofList(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,

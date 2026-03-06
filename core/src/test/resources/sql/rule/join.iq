@@ -1,0 +1,145 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to Join.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testAddRedundantSemiJoinRule -------------------------------------------------
+# JOIN_ADD_REDUNDANT_SEMI_JOIN adds a SemiJoin as a pre-filter to improve
+# performance.
+
+select 1 as uno
+from emp
+inner join dept on emp.deptno = dept.deptno;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(14 rows)
+
+!ok
+LogicalProject(UNO=[1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(UNO=[1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "JOIN_ADD_REDUNDANT_SEMI_JOIN"
+
+# testExtractJoinFilterRule ----------------------------------------------------
+# JOIN_EXTRACT_FILTER moves a join condition into a Filter above a cross join.
+
+select 1 as uno
+from emp
+inner join dept on emp.deptno=dept.deptno;
++-----+
+| UNO |
++-----+
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
+|   1 |
++-----+
+(14 rows)
+
+!ok
+LogicalProject(UNO=[1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(UNO=[1])
+  LogicalFilter(condition=[=($7, $9)])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "JOIN_EXTRACT_FILTER"
+
+# testSwapRightToLeftOnly ------------------------------------------------------
+# [CALCITE-7089] JOIN_COMMUTE_RIGHT_TO_LEFT converts RIGHT OUTER JOIN to LEFT
+# OUTER JOIN (unlike JOIN_COMMUTE, does not swap INNER joins).
+
+select 1
+from dept d right outer join emp e
+on d.deptno = e.deptno;
++--------+
+| EXPR$0 |
++--------+
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
+|      1 |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[=($0, $9)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "NONE"
+LogicalProject(EXPR$0=[1])
+  LogicalProject(DEPTNO=[$9], DNAME=[$10], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO0=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($9, $7)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "JOIN_COMMUTE_RIGHT_TO_LEFT"
+
+# End join.iq

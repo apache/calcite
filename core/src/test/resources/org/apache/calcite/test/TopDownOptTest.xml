@@ -86,7 +86,7 @@ order by e.ename]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$1], dir0=[ASC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -106,12 +106,12 @@ EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}]
     <Resource name="sql">
       <![CDATA[select * from emp e
 join dept d on e.deptno=d.deptno
-order by e.ename, d.name]]>
+order by e.ename, d.dname]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -136,7 +136,7 @@ order by e.ename]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$1], dir0=[ASC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -156,12 +156,12 @@ EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
     <Resource name="sql">
       <![CDATA[select * from emp e
 left join dept d on e.deptno=d.deptno
-order by e.ename, d.name]]>
+order by e.ename, d.dname]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -181,13 +181,13 @@ EnumerableSort(sort0=[$1], sort1=[$10], dir0=[ASC], dir1=[ASC])
     <Resource name="sql">
       <![CDATA[select * from dept d
 where exists (select 1 from emp e where e.deptno=d.deptno)
-order by d.name]]>
+order by d.dname]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalSort(sort0=[$1], dir0=[ASC])
-  LogicalProject(DEPTNO=[$0], NAME=[$1])
-    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
       LogicalJoin(condition=[=($0, $2)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalAggregate(group=[{0}], agg#0=[MIN($1)])

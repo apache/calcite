@@ -25,9 +25,9 @@ select * from dept]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalUnion(all=[false])
-  LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-  LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -35,9 +35,9 @@ LogicalUnion(all=[false])
       <![CDATA[
 LogicalAggregate(group=[{0, 1}])
   LogicalUnion(all=[true])
-    LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DEPTNO=[$0], NAME=[$1])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>

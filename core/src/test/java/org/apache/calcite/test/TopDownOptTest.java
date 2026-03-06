@@ -227,7 +227,7 @@ class TopDownOptTest {
   @Test void testCorrelateInnerJoinNoDerive() {
     final String sql = "select * from emp e\n"
         + "join dept d on e.deptno=d.deptno\n"
-        + "order by e.ename, d.name";
+        + "order by e.ename, d.dname";
     sql(sql, p -> {
       initPlanner(p);
       p.addRule(CoreRules.JOIN_TO_CORRELATE);
@@ -255,7 +255,7 @@ class TopDownOptTest {
   @Test void testCorrelateLeftJoinNoDerive() {
     final String sql = "select * from emp e\n"
         + "left join dept d on e.deptno=d.deptno\n"
-        + "order by e.ename, d.name";
+        + "order by e.ename, d.dname";
     sql(sql, p -> {
       initPlanner(p);
       p.addRule(CoreRules.JOIN_TO_CORRELATE);
@@ -269,7 +269,7 @@ class TopDownOptTest {
   @Test void testCorrelateSemiJoinDeriveLeft() {
     final String sql = "select * from dept d\n"
         + "where exists (select 1 from emp e where e.deptno=d.deptno)\n"
-        + "order by d.name";
+        + "order by d.dname";
     sql(sql, p -> {
       initPlanner(p);
       p.addRule(CoreRules.JOIN_TO_CORRELATE);

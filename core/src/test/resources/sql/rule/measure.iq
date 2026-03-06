@@ -1,0 +1,101 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests for MeasureRules.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testMeasureAggregate ---------------------------------------------------------
+# MeasureRules.AGGREGATE pushes an aggregate through a measure expression.
+# Not using !ok: uses mock catalog only.
+
+select deptno, c1
+from (select deptno, job, count(*) + 1 as measure c1
+  from emp)
+group by deptno;
+LogicalProject(DEPTNO=[$0], C1=[$1])
+  LogicalAggregate(group=[{0}], agg#0=[AGG_M2V($1)])
+    LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], C1=[$1])
+  LogicalProject(DEPTNO=[$0], $f1=[+($1, 1)])
+    LogicalAggregate(group=[{0}], agg#0=[COUNT()])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MeasureRules.AGGREGATE, PROJECT_MERGE, MeasureRules.PROJECT"
+
+# testMeasureSort --------------------------------------------------------------
+# MeasureRules.PROJECT_SORT pushes a sort through a measure expression.
+# Not using !ok: uses mock catalog only.
+
+select deptno, c1
+from (select deptno, job, count(*) + 1 as measure c1
+  from emp)
+order by deptno;
+LogicalProject(DEPTNO=[$0], C1=[M2V($1)])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], C1=[$2])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(DEPTNO=[$0], C1=[$1], $f2=[M2V($1)])
+      LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MeasureRules.PROJECT_SORT"
+
+# testMeasureWithoutGroupBy ----------------------------------------------------
+# MeasureRules with a non-aggregate query (already done by SQL-to-rel).
+# Not using !ok: uses mock catalog only.
+
+with empm as
+  (select *, avg(sal) as measure avgSal from emp)
+select deptno, avgSal
+from empm;
+LogicalProject(DEPTNO=[$7], AVGSAL=[CAST(/(SUM($5) OVER (ROWS CURRENT ROW), COUNT($5) OVER (ROWS CURRENT ROW))):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$7], AVGSAL=[CAST(/(SUM($5) OVER (ROWS CURRENT ROW), COUNT($5) OVER (ROWS CURRENT ROW))):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MeasureRules.AGGREGATE2, PROJECT_MERGE, MeasureRules.PROJECT"
+
+# testMeasureWithoutGroupByWithOrderBy -----------------------------------------
+# MeasureRules with a non-aggregate query ordered by a measure.
+# Not using !ok: uses mock catalog only.
+
+with empm as
+  (select *, avg(sal) as measure avgSal from emp)
+select deptno, avgSal
+from empm
+order by 2 desc limit 3;
+LogicalProject(DEPTNO=[$0], AVGSAL=[$1])
+  LogicalProject(DEPTNO=[$0], AVGSAL=[M2V($1)], EXPR$2=[$2])
+    LogicalSort(sort0=[$2], dir0=[DESC], fetch=[3])
+      LogicalProject(DEPTNO=[$7], AVGSAL=[V2M(CAST(/(SUM($5), COUNT($5))):INTEGER NOT NULL)], EXPR$2=[CAST(/(SUM($5) OVER (ROWS CURRENT ROW), COUNT($5) OVER (ROWS CURRENT ROW))):INTEGER NOT NULL])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(DEPTNO=[$0], AVGSAL=[$3])
+  LogicalSort(sort0=[$2], dir0=[ASC], fetch=[3])
+    LogicalProject(DEPTNO=[$7], AVGSAL=[V2M(CAST(/(SUM($5), COUNT($5))):INTEGER NOT NULL)], EXPR$2=[CAST(/(SUM($5) OVER (ROWS CURRENT ROW), COUNT($5) OVER (ROWS CURRENT ROW))):INTEGER NOT NULL], $f3=[CAST(/(SUM($5) OVER (ROWS CURRENT ROW), COUNT($5) OVER (ROWS CURRENT ROW))):INTEGER NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "MeasureRules.PROJECT_SORT, PROJECT_MERGE, MeasureRules.PROJECT"
+
+# End measure.iq

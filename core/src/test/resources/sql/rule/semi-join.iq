@@ -1,0 +1,906 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Tests planner rules related to semi-join optimizations.
+#
+# Ensure that tests occur in alphabetical order:
+# // lint: sort where '^[#] test'
+#
+
+!use scott
+!set outputformat mysql
+
+# testIncorrectInType ----------------------------------------------------------
+# PROJECT_TO_SEMI_JOIN should not match an IN with a literal right side.
+
+select ename
+from emp
+where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(ENAME=[$0])
+  LogicalFilter(condition=[AND(=($0, 'Sebastian'), <($1, 100))])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "trim=true"
+
+# testPushAggregateThroughSemiJoin ---------------------------------------------
+# PROJECT_TO_SEMI_JOIN, AGGREGATE_JOIN_TRANSPOSE_EXTENDED push an aggregate
+# through a semi-join.
+# [CALCITE-6600]
+
+select distinct sal
+from (select *
+  from emp e
+  where e.job in (select d.dname from dept d));
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DNAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "lateDecorrelate=true, trim=true, subQueryRules, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+
+# testPushFilterThroughSemiJoin ------------------------------------------------
+# FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH push filters
+# through a semi-join.
+# [CALCITE-438]
+
+select *
+from (
+  select *
+  from dept
+  where dept.deptno in (
+    select emp.deptno from emp))R
+where R.deptno <=10;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
++--------+------------+----------+
+(1 row)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalFilter(condition=[<=($0, 10)])
+    LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, PROJECT_TO_SEMI_JOIN"
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+    LogicalFilter(condition=[<=($0, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, PROJECT_TO_SEMI_JOIN, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
+
+# testPushSemiJoinPastFilter ---------------------------------------------------
+# SEMI_JOIN_FILTER_TRANSPOSE pushes a semi-join past a filter.
+
+select e.ename
+from emp e, dept d
+where e.deptno = d.deptno and e.ename = 'foo';
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[AND(=($7, $9), =($1, 'foo'))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalFilter(condition=[=($1, 'foo')])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_FILTER_TRANSPOSE"
+
+# testPushSemiJoinPastJoinRuleLeft ---------------------------------------------
+# SEMI_JOIN_JOIN_TRANSPOSE pushes a semi-join to the left input of a join.
+
+select e1.ename
+from emp e1, dept d, emp e2
+where e1.deptno = d.deptno and e1.empno = e2.empno;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[AND(=($7, $9), =($0, $11))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($0, $11)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+        LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE"
+
+# testPushSemiJoinPastJoinRuleNotHappensJoinKeysDifferentOrigin ----------------
+# SEMI_JOIN_JOIN_TRANSPOSE cannot push a semi-join whose keys come from both
+# inputs of the bottom join, but JOIN_ADD_REDUNDANT_SEMI_JOIN still fires.
+
+select e.ename
+from emp e, dept d, bonus b
+where e.deptno = d.deptno and e.ename = b.ename and d.dname = b.job;
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[AND(=($7, $9), =($1, $11), =($10, $12))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan ""
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[AND(=($1, $11), =($10, $12))], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[AND(=($1, $11), =($10, $12))], joinType=[semi])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+        LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE"
+
+# testPushSemiJoinPastJoinRuleRight --------------------------------------------
+# SEMI_JOIN_JOIN_TRANSPOSE pushes a semi-join to the right input of a join.
+
+select e1.ename
+from emp e1, dept d, emp e2
+where e1.deptno = d.deptno and d.deptno = e2.deptno;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| CLARK  |
+| CLARK  |
+| CLARK  |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| KING   |
+| KING   |
+| KING   |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MILLER |
+| MILLER |
+| MILLER |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
++--------+
+(70 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[AND(=($7, $9), =($9, $18))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan ""
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE"
+
+# testPushSemiJoinPastProject --------------------------------------------------
+# SEMI_JOIN_PROJECT_TRANSPOSE pushes a semi-join past a project.
+
+select e.*
+from (select ename, trim(job) as j, sal * 2 as s2, deptno
+    from emp) e,
+  dept d
+where e.deptno = d.deptno;
++--------+-----------+----------+--------+
+| ENAME  | J         | S2       | DEPTNO |
++--------+-----------+----------+--------+
+| ADAMS  | CLERK     |  2200.00 |     20 |
+| ALLEN  | SALESMAN  |  3200.00 |     30 |
+| BLAKE  | MANAGER   |  5700.00 |     30 |
+| CLARK  | MANAGER   |  4900.00 |     10 |
+| FORD   | ANALYST   |  6000.00 |     20 |
+| JAMES  | CLERK     |  1900.00 |     30 |
+| JONES  | MANAGER   |  5950.00 |     20 |
+| KING   | PRESIDENT | 10000.00 |     10 |
+| MARTIN | SALESMAN  |  2500.00 |     30 |
+| MILLER | CLERK     |  2600.00 |     10 |
+| SCOTT  | ANALYST   |  6000.00 |     20 |
+| SMITH  | CLERK     |  1600.00 |     20 |
+| TURNER | SALESMAN  |  3000.00 |     30 |
+| WARD   | SALESMAN  |  2500.00 |     30 |
++--------+-----------+----------+--------+
+(14 rows)
+
+!ok
+LogicalProject(ENAME=[$0], J=[$1], S2=[$2], DEPTNO=[$3])
+  LogicalFilter(condition=[=($3, $4)])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalProject(ENAME=[$1], J=[TRIM(FLAG(BOTH), ' ', $2)], S2=[*($5, 2)], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan ""
+LogicalProject(ENAME=[$0], J=[$1], S2=[$2], DEPTNO=[$3])
+  LogicalJoin(condition=[=($3, $4)], joinType=[inner], semiJoinDone=[true])
+    LogicalProject(ENAME=[$1], J=[TRIM(FLAG(BOTH), ' ', $2)], S2=[*($5, 2)], DEPTNO=[$7])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_PROJECT_TRANSPOSE"
+
+# testRemoveSemiJoin -----------------------------------------------------------
+# SEMI_JOIN_REMOVE removes a redundant semi-join when the join is already
+# enforced by an inner join.
+
+select e.ename
+from emp e, dept d
+where e.deptno = d.deptno;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ALLEN  |
+| BLAKE  |
+| CLARK  |
+| FORD   |
+| JAMES  |
+| JONES  |
+| KING   |
+| MARTIN |
+| MILLER |
+| SCOTT  |
+| SMITH  |
+| TURNER |
+| WARD   |
++--------+
+(14 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN"
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_REMOVE"
+
+# testRemoveSemiJoinRight ------------------------------------------------------
+# SEMI_JOIN_REMOVE removes a redundant semi-join on the right side of a join
+# when the join is already enforced by a transitive inner join.
+
+select e1.ename
+from emp e1, dept d, emp e2
+where e1.deptno = d.deptno and d.deptno = e2.deptno;
++--------+
+| ENAME  |
++--------+
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ADAMS  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| ALLEN  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| BLAKE  |
+| CLARK  |
+| CLARK  |
+| CLARK  |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| FORD   |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JAMES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| JONES  |
+| KING   |
+| KING   |
+| KING   |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MARTIN |
+| MILLER |
+| MILLER |
+| MILLER |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SCOTT  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| SMITH  |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| TURNER |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
+| WARD   |
++--------+
+(70 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE"
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE, SEMI_JOIN_REMOVE"
+
+# testRemoveSemiJoinRightWithFilter --------------------------------------------
+# SEMI_JOIN_REMOVE removes a redundant semi-join on the right side of a join
+# when the join is already enforced by a transitive inner join, with a filter.
+
+select e1.ename
+from emp e1, dept d, emp e2
+where e1.deptno = d.deptno and d.deptno = e2.deptno
+and d.dname = 'foo';
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalFilter(condition=[=($1, 'foo')])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[=($1, 'foo')])
+        LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE, SEMI_JOIN_FILTER_TRANSPOSE"
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalFilter(condition=[=($1, 'foo')])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_JOIN_TRANSPOSE, SEMI_JOIN_FILTER_TRANSPOSE, SEMI_JOIN_REMOVE"
+
+# testRemoveSemiJoinWithFilter -------------------------------------------------
+# SEMI_JOIN_REMOVE removes a redundant semi-join when the join is already
+# enforced by an inner join, with a filter on the left side.
+
+select e.ename
+from emp e, dept d
+where e.deptno = d.deptno and e.ename = 'foo';
++-------+
+| ENAME |
++-------+
++-------+
+(0 rows)
+
+!ok
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalFilter(condition=[=($1, 'foo')])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_FILTER_TRANSPOSE"
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalFilter(condition=[=($1, 'foo')])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "FILTER_INTO_JOIN, JOIN_ADD_REDUNDANT_SEMI_JOIN, SEMI_JOIN_FILTER_TRANSPOSE, SEMI_JOIN_REMOVE"
+
+# testSemiJoinReduceConstants --------------------------------------------------
+# JOIN_REDUCE_EXPRESSIONS reduces a constant in a semi-join condition.
+# [CALCITE-571]
+
+select e1.sal
+from (select * from emp where deptno = 200) as e1
+where e1.deptno in (
+  select e2.deptno from emp e2 where e2.sal = 100);
++-----+
+| SAL |
++-----+
++-----+
+(0 rows)
+
+!ok
+LogicalProject(SAL=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[semi])
+    LogicalFilter(condition=[=($1, 200)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$1])
+      LogicalFilter(condition=[=($0, 100)])
+        LogicalProject(SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, trim=true, PROJECT_TO_SEMI_JOIN"
+LogicalProject(SAL=[$0])
+  LogicalJoin(condition=[=(200, $2)], joinType=[semi])
+    LogicalFilter(condition=[=($1, 200)])
+      LogicalProject(SAL=[$5], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$1])
+      LogicalFilter(condition=[=($0, 100)])
+        LogicalProject(SAL=[$5], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, trim=true, PROJECT_TO_SEMI_JOIN, JOIN_REDUCE_EXPRESSIONS"
+
+# testSemiJoinRule -------------------------------------------------------------
+# PROJECT_TO_SEMI_JOIN converts a join on DISTINCT to a semi-join.
+
+select dept.deptno, dept.dname
+from dept join (
+  select distinct deptno from emp
+  where sal > 100) using (deptno);
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     30 | SALES      |
++--------+------------+
+(3 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+
+# testSemiJoinRuleDoNotMatchAggregate ------------------------------------------
+# JOIN_ON_UNIQUE_TO_SEMI_JOIN should not match a join with non-trivial Aggregate.
+
+select *
+from emp
+where exists(select * from dept where emp.deptno = dept.deptno);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+      LogicalProject(DEPTNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, decorrelate=true, PROJECT_MERGE"
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+      LogicalProject(DEPTNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, decorrelate=true, PROJECT_MERGE, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
+
+# testSemiJoinRuleExists -------------------------------------------------------
+# PROJECT_TO_SEMI_JOIN converts a join from EXISTS to a semi-join.
+
+select *
+from dept
+where exists (
+  select *
+  from emp
+  where emp.deptno = dept.deptno
+  and emp.sal > 100);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
++--------+------------+----------+
+(3 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "expand=true, decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+
+# testSemiJoinRuleFull ---------------------------------------------------------
+# PROJECT_TO_SEMI_JOIN does not apply to FULL joins.
+
+select dept.deptno, dept.dname
+from dept
+full join (
+  select distinct deptno
+  from emp
+  where sal > 100) using (deptno);
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     30 | SALES      |
+|     40 | OPERATIONS |
++--------+------------+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[full])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+
+# testSemiJoinRuleLeft ---------------------------------------------------------
+# PROJECT_TO_SEMI_JOIN simplifies LEFT join to a plain scan when the result
+# only uses the left side.
+
+select dname
+from dept
+left join (
+  select distinct deptno
+  from emp
+  where sal > 100) using (deptno);
++------------+
+| DNAME      |
++------------+
+| ACCOUNTING |
+| OPERATIONS |
+| RESEARCH   |
+| SALES      |
++------------+
+(4 rows)
+
+!ok
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+LogicalProject(DNAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+
+# testSemiJoinRuleRight --------------------------------------------------------
+# PROJECT_TO_SEMI_JOIN does not apply to RIGHT joins.
+# [CALCITE-1495]
+
+select dept.deptno, dept.dname
+from dept
+right join (
+  select distinct deptno
+  from emp
+  where sal > 100) using (deptno);
++--------+------------+
+| DEPTNO | DNAME      |
++--------+------------+
+|     10 | ACCOUNTING |
+|     20 | RESEARCH   |
+|     30 | SALES      |
++--------+------------+
+(3 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+LogicalProject(DEPTNO=[$0], DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!sub-plan "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+
+# testSemiJoinRuleWithJoinOnUniqueInput ----------------------------------------
+# JOIN_ON_UNIQUE_TO_SEMI_JOIN converts a join on a unique key to a semi-join.
+
+select *
+from emp
+where exists(select * from dept where emp.deptno = dept.deptno);
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, decorrelate=true, trim=true"
+LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, decorrelate=true, trim=true, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
+
+# testSemiJoinRuleWithJoinOnUniqueInputWithAlias -------------------------------
+# JOIN_ON_UNIQUE_TO_SEMI_JOIN preserves column aliases.
+# [CALCITE-5391]
+
+select emp.deptno as department_id, emp.sal as salary
+from emp
+where exists(select * from dept where emp.deptno = dept.deptno);
++---------------+---------+
+| DEPARTMENT_ID | SALARY  |
++---------------+---------+
+|            10 | 1300.00 |
+|            10 | 2450.00 |
+|            10 | 5000.00 |
+|            20 | 1100.00 |
+|            20 | 2975.00 |
+|            20 | 3000.00 |
+|            20 | 3000.00 |
+|            20 |  800.00 |
+|            30 | 1250.00 |
+|            30 | 1250.00 |
+|            30 | 1500.00 |
+|            30 | 1600.00 |
+|            30 | 2850.00 |
+|            30 |  950.00 |
++---------------+---------+
+(14 rows)
+
+!ok
+LogicalProject(DEPARTMENT_ID=[$1], SALARY=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, decorrelate=true, trim=true"
+LogicalProject(DEPARTMENT_ID=[$1], SALARY=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[semi])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!sub-plan "expand=true, decorrelate=true, trim=true, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
+
+# End semi-join.iq

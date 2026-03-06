@@ -74,15 +74,15 @@ public class MustFilterMockCatalogReader extends MockCatalogReader {
     empTable.addColumn("SLACKER", booleanType);
     registerTable(empTable);
 
-    // Register "DEPT" table. "NAME" is a must-filter field.
+    // Register "DEPT" table. "DNAME" is a must-filter field.
     // Bypass field of column (0): DEPTNO.
     MustFilterMockTable deptTable =
         MustFilterMockTable.create(this, salesSchema, "DEPT",
             false, 14, null, NullInitializerExpressionFactory.INSTANCE,
-            false, ImmutableMap.of("NAME", "ACCOUNTING_DEPT"),
+            false, ImmutableMap.of("DNAME", "ACCOUNTING_DEPT"),
             ImmutableList.of(0));
     deptTable.addColumn("DEPTNO", integerType, true);
-    deptTable.addColumn("NAME", varcharType);
+    deptTable.addColumn("DNAME", varcharType);
     registerTable(deptTable);
     return this;
   }
