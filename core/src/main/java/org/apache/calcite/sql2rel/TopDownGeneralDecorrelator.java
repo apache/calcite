@@ -18,6 +18,7 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCostImpl;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -35,6 +36,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -196,10 +198,26 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
    * @return  Equivalent node without correlation
    */
   public static RelNode decorrelateQuery(RelNode rel, RelBuilder builder) {
+    // Use a custom FILTER_PROJECT_TRANSPOSE that does not push filters through
+    // projects containing V2M (measure) expressions. Pushing a filter past a
+    // V2M-carrying project changes the scope of the measure computation and
+    // produces incorrect aggregate results.
+    RelOptRule filterProjectTransposeNoV2m =
+        CoreRules.FILTER_PROJECT_TRANSPOSE.config
+            .as(FilterProjectTransposeRule.Config.class)
+            .withOperandSupplier(b0 ->
+                b0.operand(Filter.class)
+                    .predicate(f -> !RexUtil.containsCorrelation(f.getCondition()))
+                    .oneInput(b1 ->
+                        b1.operand(Project.class)
+                            .predicate(p -> !RexUtil.find(SqlKind.V2M).inProject(p))
+                            .anyInputs()))
+            .as(FilterProjectTransposeRule.Config.class)
+            .toRule();
     HepProgram preProgram = HepProgram.builder()
         .addRuleCollection(
             ImmutableList.of(
-                CoreRules.FILTER_PROJECT_TRANSPOSE,
+                filterProjectTransposeNoV2m,
                 CoreRules.FILTER_INTO_JOIN,
                 CoreRules.FILTER_CORRELATE))
         .build();
@@ -226,7 +244,7 @@ public class TopDownGeneralDecorrelator implements ReflectiveVisitor {
     HepProgram postProgram = HepProgram.builder()
         .addRuleCollection(
             ImmutableList.of(
-                CoreRules.FILTER_PROJECT_TRANSPOSE,
+                filterProjectTransposeNoV2m,
                 CoreRules.FILTER_INTO_JOIN,
                 CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
                 CoreRules.PROJECT_MERGE,
