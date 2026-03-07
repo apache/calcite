@@ -459,4 +459,16 @@ order by e1.empno;
 
 !ok
 
+# [CALCITE-7392] Unable to implement EnumerableCollect for SQL queries containing UNNEST
+SELECT ARRAY(SELECT y + 1 FROM UNNEST(s.x) y)
+FROM (SELECT ARRAY[1,2,3] as x) s;
++-----------+
+| EXPR$0    |
++-----------+
+| [2, 3, 4] |
++-----------+
+(1 row)
+
+!ok
+
 # End new-decorr.iq
