@@ -1357,7 +1357,10 @@ public enum SqlKind {
    * commands for them. Use OTHER_DDL in the short term, but we are happy to add
    * new enum values for your object types. Just ask!
    */
-  OTHER_DDL;
+  OTHER_DDL,
+
+  /** The {@code REGEXP} function. */
+  REGEXP;
 
   //~ Static fields/initializers ---------------------------------------------
 

@@ -705,11 +705,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_SUBSTR = REGEXP_EXTRACT.withName("REGEXP_SUBSTR");
 
   /** The "REGEXP(value, regexp)" function, equivalent to {@link #RLIKE}. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction REGEXP =
-      SqlBasicFunction.create("REGEXP", ReturnTypes.BOOLEAN_NULLABLE,
-          OperandTypes.STRING_STRING,
-          SqlFunctionCategory.STRING);
+      SqlBasicFunction.create(SqlKind.REGEXP, ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_STRING);
 
   /** The "REGEXP_LIKE(value, regexp)" function, equivalent to {@link #RLIKE}. */
   @LibraryOperator(libraries = {SPARK, MYSQL, POSTGRESQL, ORACLE})
