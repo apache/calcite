@@ -2948,6 +2948,147 @@ public class SqlFunctions {
         : ULong.valueOf(UnsignedType.toBigInteger(b0).divide(UnsignedType.toBigInteger(b1)));
   }
 
+  // nullable divide
+
+  public static @Nullable Integer divide0Null(int b0, BigDecimal b1) {
+    if (b1.equals(BigDecimal.ZERO)) {
+      return null;
+    }
+    return BigDecimal.valueOf(b0)
+        .divide(b1, RoundingMode.HALF_DOWN).intValue();
+  }
+
+  public static @Nullable Long divide0Null(long b0, BigDecimal b1) {
+    if (b1.equals(BigDecimal.ZERO)) {
+      return null;
+    }
+    return BigDecimal.valueOf(b0)
+        .divide(b1, RoundingMode.HALF_DOWN).longValue();
+  }
+
+  public static @Nullable UByte divide0Null(@PolyNull UByte b0,
+      @PolyNull UByte b1) {
+    if (b0 == null || b1 == null) {
+      return castNonNull(null);
+    } else if (b1.intValue() == 0) {
+      return null;
+    } else {
+      return UByte.valueOf(b0.intValue() / b1.intValue());
+    }
+  }
+
+  public static @Nullable UShort divide0Null(@PolyNull UShort b0,
+      @PolyNull UShort b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1.intValue() == 0) {
+      return null;
+    } else {
+      return  UShort.valueOf(b0.intValue() / b1.intValue());
+    }
+  }
+
+  public static @Nullable UInteger divide0Null(@PolyNull UInteger b0,
+      @PolyNull UInteger b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1.longValue() == 0L) {
+      return null;
+    } else {
+      return UInteger.valueOf(b0.longValue() / b1.longValue());
+    }
+  }
+
+  public static @Nullable ULong divide0Null(@PolyNull ULong b0,
+      @PolyNull ULong b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1.equals(ULong.valueOf(0))) {
+      return null;
+    } else {
+      return ULong.valueOf(UnsignedType.toBigInteger(b0).divide(UnsignedType.toBigInteger(b1)));
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to int values. */
+  public static @Nullable Integer divide0Null(int b0, int b1) {
+    if (b1 == 0) {
+      return null;
+    } else {
+      return b0 / b1;
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to int values; left side may be
+   * null. */
+  public static @Nullable Integer divide0Null(@PolyNull Integer b0, int b1) {
+    if (b0 == null) {
+      return null;
+    } else if (b1 == 0) {
+      return null;
+    } else {
+      return b0 / b1;
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to int values; right side may be
+   * null. */
+  public static @Nullable Integer divide0Null(int b0, @PolyNull Integer b1) {
+    if (b1 == null) {
+      return null;
+    } else if (b1 == 0) {
+      return null;
+    } else {
+      return b0 / b1;
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to nullable int values. */
+  public static @Nullable Integer divide0Null(@PolyNull Integer b0,
+      @PolyNull Integer b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1 == 0) {
+      return null;
+    } else {
+      return b0 / b1;
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to nullable long and int values. */
+  public static @Nullable Long divide0Null(Long b0, @PolyNull Integer b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1 == 0) {
+      return null;
+    } else {
+      return b0.longValue() / b1.longValue();
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to nullable int and long values. */
+  public static @Nullable Long divide0Null(@PolyNull Integer b0, @PolyNull Long b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1 == 0) {
+      return null;
+    } else {
+      return b0.longValue() / b1.longValue();
+    }
+  }
+
+  /** SQL <code>/</code> operator applied to BigDecimal values. */
+  public static @Nullable BigDecimal divide0Null(@PolyNull BigDecimal b0,
+      @PolyNull BigDecimal b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    } else if (b1.equals(BigDecimal.ZERO)) {
+      return null;
+    } else {
+      return b0.divide(b1, MathContext.DECIMAL64);
+    }
+  }
+
   public static byte checkedDivide(byte b0, byte b1) {
     return intToByte(b0 / b1);
   }
@@ -4027,6 +4168,54 @@ public class SqlFunctions {
   }
 
   public static BigDecimal mod(BigDecimal b0, BigDecimal b1) {
+    final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
+    return bigDecimals[1];
+  }
+
+  /** SQL nullable <code>MOD</code> operator applied to byte values. */
+  public static @Nullable Byte mod0Null(byte b0, byte b1) {
+    if (b1 == 0) {
+      return null;
+    }
+    return (byte) (b0 % b1);
+  }
+
+  /** SQL nullable <code>MOD</code> operator applied to short values. */
+  public static @Nullable Short mod0Null(short b0, short b1) {
+    if (b1 == 0) {
+      return null;
+    }
+    return (short) (b0 % b1);
+  }
+
+  /** SQL nullable <code>MOD</code> operator applied to int values. */
+  public static @Nullable Integer mod0Null(int b0, int b1) {
+    if (b1 == 0) {
+      return null;
+    }
+    return b0 % b1;
+  }
+
+  /** SQL nullable <code>MOD</code> operator applied to long values. */
+  public static @Nullable Long mod0Null(long b0, long b1) {
+    if (b1 == 0L) {
+      return null;
+    }
+    return b0 % b1;
+  }
+
+  public static @Nullable BigDecimal mod0Null(BigDecimal b0, int b1) {
+    return mod0Null(b0, BigDecimal.valueOf(b1));
+  }
+
+  public static @Nullable BigDecimal mod0Null(int b0, BigDecimal b1) {
+    return mod(BigDecimal.valueOf(b0), b1);
+  }
+
+  public static @Nullable BigDecimal mod0Null(BigDecimal b0, BigDecimal b1) {
+    if (b1.equals(BigDecimal.ZERO)) {
+      return null;
+    }
     final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
     return bigDecimals[1];
   }
