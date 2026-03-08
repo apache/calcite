@@ -1410,6 +1410,86 @@ public class SqlParserTest {
         .ok("VALUES (ROW((`A` BETWEEN ASYMMETRIC ((`B` OR (`C` AND `D`)) OR `E`) AND `F`)))");
   }
 
+  /**
+   * Test case for [CALCITE-4471](https://issues.apache.org/jira/browse/CALCITE-4471) that
+   * Spark SQL's BETWEEN operator does not support the ASYMMETRIC/SYMMETRIC keywords.
+   */
+  @Test void testBetweenForSparkSqlDialect() {
+    SqlParserFixture f = fixture().withDialect(SparkSqlDialect.DEFAULT);
+
+    f.sql("select * from t where price between 1 and 2")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN 1 AND 2)");
+
+    f.sql("select * from t where price not between 1 and 2")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` NOT BETWEEN 1 AND 2)");
+
+    f.sql("select * from t where price between 1 and 2+2*2")
+        .ok("SELECT *\n"
+            + "FROM `T`\n"
+            + "WHERE (`PRICE` BETWEEN 1 AND (2 + (2 * 2)))");
+
+    final String sql0 = "select * from t\n"
+        + " where price > 5\n"
+        + " and price not between 1 + 2 and 3 * 4 AnD price is null";
+    final String expected0 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (((`PRICE` > 5) "
+        + "AND (`PRICE` NOT BETWEEN (1 + 2) AND (3 * 4))) "
+        + "AND (`PRICE` IS NULL))";
+    f.sql(sql0).ok(expected0);
+
+    final String sql1 = "select * from t\n"
+        + "where price > 5\n"
+        + "and price between 1 + 2 and 3 * 4 + price is null";
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE ((`PRICE` > 5) "
+        + "AND ((`PRICE` BETWEEN (1 + 2) AND ((3 * 4) + `PRICE`)) "
+        + "IS NULL))";
+    f.sql(sql1).ok(expected1);
+
+    final String sql2 = "select * from t\n"
+        + "where price > 5\n"
+        + "and price between 1 + 2 and 3 * 4 or price is null";
+    final String expected2 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (((`PRICE` > 5) "
+        + "AND (`PRICE` BETWEEN (1 + 2) AND (3 * 4))) "
+        + "OR (`PRICE` IS NULL))";
+    f.sql(sql2).ok(expected2);
+
+    final String sql3 = "values a between c and d and e and f between g and h";
+    final String expected3 = "VALUES ("
+        + "(((`A` BETWEEN `C` AND `D`) AND `E`)"
+        + " AND (`F` BETWEEN `G` AND `H`)))";
+    f.sql(sql3).ok(expected3);
+
+    f.sql("values a between b or c^")
+        .fails(".*BETWEEN operator has no terminating AND");
+
+    f.sql("values a ^between^")
+        .fails("(?s).*Encountered \"between <EOF>\" at line 1, column 10.*");
+
+    f.sql("values a between 1^")
+        .fails(".*BETWEEN operator has no terminating AND");
+
+    // precedence of BETWEEN is higher than AND and OR, but lower than '+'
+    f.sql("values a between b and c + 2 or d and e")
+        .ok("VALUES (((`A` BETWEEN `B` AND (`C` + 2)) OR (`D` AND `E`)))");
+
+    // '=' has slightly lower precedence than BETWEEN; both are left-assoc
+    f.sql("values x = a between b and c = d = e")
+        .ok("VALUES ((((`X` = (`A` BETWEEN `B` AND `C`)) = `D`) = `E`))");
+
+    // AND doesn't match BETWEEN if it's between parentheses!
+    f.sql("values a between b or (c and d) or e and f")
+        .ok("VALUES ((`A` BETWEEN ((`B` OR (`C` AND `D`)) OR `E`) AND `F`))");
+  }
+
   @Test void testOperateOnColumn() {
     sql("select c1*1,c2  + 2,c3/3,c4-4,c5*c4  from t")
         .ok("SELECT (`C1` * 1), (`C2` + 2), (`C3` / 3), (`C4` - 4), (`C5` * `C4`)\n"
