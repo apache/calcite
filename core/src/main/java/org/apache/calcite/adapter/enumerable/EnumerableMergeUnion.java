@@ -22,10 +22,8 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -49,13 +47,17 @@ public class EnumerableMergeUnion extends EnumerableUnion {
       throw new IllegalArgumentException("EnumerableMergeUnion with no collation");
     }
     for (RelNode input : inputs) {
-      final RelTrait inputCollationTrait =
-          input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+      // Use getCollations() rather than getTrait() so that we handle the case
+      // where the input's collation slot holds a RelCompositeTrait (multiple
+      // collations).  For each required collation, at least one of the input's
+      // collations must satisfy it.
+      final List<RelCollation> inputCollations = input.getTraitSet().getCollations();
       for (RelCollation collation : collations) {
-        if (inputCollationTrait == null || !inputCollationTrait.satisfies(collation)) {
+        boolean satisfied = inputCollations.stream().anyMatch(ic -> ic.satisfies(collation));
+        if (!satisfied) {
           throw new IllegalArgumentException("EnumerableMergeUnion input does "
               + "not satisfy collation. EnumerableMergeUnion collation: "
-              + collation + ". Input collation: " + inputCollationTrait + ". Input: "
+              + collation + ". Input collations: " + inputCollations + ". Input: "
               + input);
         }
       }

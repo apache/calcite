@@ -117,20 +117,34 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * Returns whether a given kind of trait is enabled.
    */
   public <T extends RelTrait> boolean isEnabled(RelTraitDef<T> traitDef) {
-    return getTrait(traitDef) != null;
+    return findIndex(traitDef) >= 0;
   }
 
   /**
    * Retrieves a RelTrait of the given type from the set.
    *
+   * <p>If this trait def supports multiple values (i.e. its trait implements
+   * {@link RelMultipleTrait}), the underlying slot may contain a
+   * {@link RelCompositeTrait} when more than one value is present. In that
+   * case this method throws {@link IllegalStateException}; use
+   * {@link #getTraits(RelTraitDef)} instead.
+   *
    * @param traitDef the type of RelTrait to retrieve
    * @return the RelTrait, or null if not found
+   * @throws IllegalStateException if the slot holds a composite (multiple)
+   *   trait; use {@link #getTraits(RelTraitDef)} in that case
    */
   public <T extends RelTrait> @Nullable T getTrait(RelTraitDef<T> traitDef) {
     int index = findIndex(traitDef);
     if (index >= 0) {
+      final RelTrait trait = getTrait(index);
+      if (trait instanceof RelCompositeTrait) {
+        throw new IllegalStateException("TraitDef " + traitDef
+            + " has multiple values in this trait set; "
+            + "use getTraits(RelTraitDef) instead of getTrait(RelTraitDef)");
+      }
       //noinspection unchecked
-      return (T) getTrait(index);
+      return (T) trait;
     }
 
     return null;
@@ -375,10 +389,23 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * {@link RelDistributionTraitDef#INSTANCE}, or null if the
    * {@link RelDistributionTraitDef#INSTANCE} is not registered
    * in this traitSet.
+   *
+   * <p>If multiple distribution values are present (a composite trait), the
+   * first one is returned. Use {@link #getTraits(RelTraitDef)} with
+   * {@link RelDistributionTraitDef#INSTANCE} to retrieve all values.
    */
   @SuppressWarnings("unchecked")
   public <T extends RelDistribution> @Nullable T getDistribution() {
-    return (@Nullable T) getTrait(RelDistributionTraitDef.INSTANCE);
+    int index = findIndex(RelDistributionTraitDef.INSTANCE);
+    if (index < 0) {
+      return null;
+    }
+    final RelTrait trait = getTrait(index);
+    if (trait instanceof RelCompositeTrait) {
+      // Return the first distribution; caller can use getTraits() for all.
+      return (T) ((RelCompositeTrait<RelDistribution>) trait).trait(0);
+    }
+    return (T) trait;
   }
 
   /**
@@ -386,26 +413,43 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * {@link RelCollationTraitDef#INSTANCE}, or null if the
    * {@link RelCollationTraitDef#INSTANCE} is not registered
    * in this traitSet.
+   *
+   * <p>If this trait set contains multiple collations (a composite trait),
+   * this method throws {@link IllegalStateException}. Use
+   * {@link #getCollations()} to handle both the single and multi-collation
+   * cases uniformly.
    */
   @SuppressWarnings("unchecked")
   public <T extends RelCollation> @Nullable T getCollation() {
-    return (@Nullable T) getTrait(RelCollationTraitDef.INSTANCE);
+    int index = findIndex(RelCollationTraitDef.INSTANCE);
+    if (index < 0) {
+      return null;
+    }
+    final RelTrait trait = getTrait(index);
+    if (trait instanceof RelCompositeTrait) {
+      throw new IllegalStateException(
+          "This trait set contains multiple collations; "
+          + "use getCollations() instead of getCollation()");
+    }
+    return (T) trait;
   }
 
   /**
    * Returns {@link RelCollation} traits defined by
    * {@link RelCollationTraitDef#INSTANCE}.
+   *
+   * <p>Returns an empty list when the trait def is not registered, a
+   * singleton list for the common single-collation case, and a list with
+   * more than one element when a {@link RelCompositeTrait} is present.
    */
   @SuppressWarnings("unchecked")
   public List<RelCollation> getCollations() {
-    RelCollation trait = getTrait(RelCollationTraitDef.INSTANCE);
-    if (trait == null) {
+    int index = findIndex(RelCollationTraitDef.INSTANCE);
+    if (index < 0) {
       return ImmutableList.of();
     }
-    if (trait instanceof RelCompositeTrait) {
-      return ((RelCompositeTrait<RelCollation>) trait).traitList();
-    }
-    return ImmutableList.of(trait);
+    // getTraits(int) already unwraps RelCompositeTrait transparently.
+    return (List<RelCollation>) (List<?>) getTraits(index);
   }
 
   /**
@@ -577,8 +621,22 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   public boolean containsIfApplicable(RelTrait trait) {
     // Note that '==' is sufficient, because trait should be canonized.
-    final RelTrait trait1 = getTrait(trait.getTraitDef());
-    return trait1 == null || trait1 == trait;
+    int index = findIndex(trait.getTraitDef());
+    if (index < 0) {
+      // TraitDef not registered in this set → treat as "not applicable" → true
+      return true;
+    }
+    final RelTrait stored = getTrait(index);
+    if (stored instanceof RelCompositeTrait) {
+      // Any member of the composite matching the sought trait counts.
+      for (Object t : ((RelCompositeTrait<?>) stored).traitList()) {
+        if (t == trait) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return stored == trait;
   }
 
   /**
