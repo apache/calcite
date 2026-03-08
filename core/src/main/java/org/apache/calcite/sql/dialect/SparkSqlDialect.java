@@ -169,6 +169,9 @@ public class SparkSqlDialect extends SqlDialect {
     case ARRAY:
       return RelToSqlConverterUtil.getCastSpecAngleBracketArrayType(this, type,
           SqlParserPos.ZERO);
+    case MAP:
+      return RelToSqlConverterUtil.getCastSpecSparkSqlMapType(this, type,
+          SqlParserPos.ZERO);
     case MULTISET:
       throw new UnsupportedOperationException("Spark dialect does not support cast to "
           + type.getSqlTypeName());
