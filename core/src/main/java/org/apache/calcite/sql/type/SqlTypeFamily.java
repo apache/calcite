@@ -160,6 +160,10 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     switch (this) {
     case NUMERIC:
       return ImmutableList.of(NUMERIC);
+    case INTERVAL_DAY_TIME:
+      return ImmutableList.of(INTERVAL_DAY_TIME);
+    case INTERVAL_YEAR_MONTH:
+      return ImmutableList.of(INTERVAL_YEAR_MONTH);
     case DATE:
     case TIME:
     case TIMESTAMP:
