@@ -390,9 +390,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * {@link RelDistributionTraitDef#INSTANCE} is not registered
    * in this traitSet.
    *
-   * <p>If multiple distribution values are present (a composite trait), the
-   * first one is returned. Use {@link #getTraits(RelTraitDef)} with
-   * {@link RelDistributionTraitDef#INSTANCE} to retrieve all values.
+   * <p>If this trait set contains multiple distributions (a composite trait),
+   * this method throws {@link IllegalStateException}. Use
+   * {@link #getDistributions()} to handle both the single and multi-distribution
+   * cases uniformly.
    */
   @SuppressWarnings("unchecked")
   public <T extends RelDistribution> @Nullable T getDistribution() {
@@ -402,10 +403,28 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     }
     final RelTrait trait = getTrait(index);
     if (trait instanceof RelCompositeTrait) {
-      // Return the first distribution; caller can use getTraits() for all.
-      return (T) ((RelCompositeTrait<RelDistribution>) trait).trait(0);
+      throw new IllegalStateException(
+          "This trait set contains multiple distributions; "
+          + "use getDistributions() instead of getDistribution()");
     }
     return (T) trait;
+  }
+
+  /**
+   * Returns {@link RelDistribution} traits defined by
+   * {@link RelDistributionTraitDef#INSTANCE}.
+   *
+   * <p>Returns an empty list when the trait def is not registered, a
+   * singleton list for the common single-distribution case, and a list with
+   * more than one element when a {@link RelCompositeTrait} is present.
+   */
+  @SuppressWarnings("unchecked")
+  public List<RelDistribution> getDistributions() {
+    int index = findIndex(RelDistributionTraitDef.INSTANCE);
+    if (index < 0) {
+      return ImmutableList.of();
+    }
+    return (List<RelDistribution>) (List<?>) getTraits(index);
   }
 
   /**
