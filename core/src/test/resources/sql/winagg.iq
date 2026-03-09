@@ -18,6 +18,30 @@
 !use post
 !set outputformat mysql
 
+# Test case for [CALCITE-7435] WINDOW functions should allow ORDER BY fields of type INTERVAL
+# This result has been validated on Postgres by slightly changing the query (subtraction is different in Postgres)
+WITH
+T(ts, l) AS (VALUES(TIMESTAMP '2020-01-01 10:00:00', 10),
+                   (TIMESTAMP '2020-02-01 10:00:00', 10),
+                   (TIMESTAMP '2019-12-30 20:00:00', 10)),
+IT AS (SELECT(ts - TIMESTAMP '2020-01-01 00:00:00') HOURS AS t, l FROM T)
+SELECT *,
+   COUNT(*) OVER (
+      PARTITION BY l
+      ORDER BY t
+      RANGE BETWEEN INTERVAL 2 DAYS PRECEDING AND INTERVAL 1 DAYS PRECEDING) AS c
+FROM It;
++------+----+---+
+| T    | L  | C |
++------+----+---+
+| +10  | 10 | 1 |
+| -28  | 10 | 0 |
+| +754 | 10 | 0 |
++------+----+---+
+(3 rows)
+
+!ok
+
 # Multiple window functions sharing a single window
 select count(*) over(partition by gender order by ename) as count1,
   count(*) over(partition by deptno order by ename) as count2,
