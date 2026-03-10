@@ -858,12 +858,21 @@ public class RelToSqlConverter extends SqlImplementor
         + aggregate.getGroupSet() + ", just possibly a different order";
 
     final List<SqlNode> groupKeys = new ArrayList<>();
+    final Join aggregateJoinInput =
+        aggregate.getInput() instanceof Join ? (Join) aggregate.getInput() : null;
+    final SqlJoin fromJoin =
+        builder.select.getFrom() instanceof SqlJoin ? (SqlJoin) builder.select.getFrom() : null;
+    final int leftFieldCount = aggregateJoinInput == null
+        ? -1
+        : aggregateJoinInput.getLeft().getRowType().getFieldCount();
     for (int key : groupList) {
-      final SqlNode field = builder.context.field(key);
+      SqlNode field = builder.context.field(key);
+      field = maybeQualifyJoinKey(field, key, fromJoin, leftFieldCount);
       groupKeys.add(field);
     }
     for (int key : sortedGroupList) {
-      final SqlNode field = builder.context.field(key);
+      SqlNode field =
+          maybeQualifyJoinKey(builder.context.field(key), key, fromJoin, leftFieldCount);
       addSelect(selectList, field, aggregate.getRowType());
     }
     switch (aggregate.getGroupType()) {
@@ -880,7 +889,8 @@ public class RelToSqlConverter extends SqlImplementor
       final List<Integer> rollupBits = Aggregate.Group.getRollup(aggregate.groupSets);
       final List<SqlNode> rollupKeys = rollupBits
           .stream()
-          .map(bit -> builder.context.field(bit))
+          .map(bit ->
+              maybeQualifyJoinKey(builder.context.field(bit), bit, fromJoin, leftFieldCount))
           .collect(Collectors.toList());
       return ImmutableList.of(
           SqlStdOperatorTable.ROLLUP.createCall(SqlParserPos.ZERO, rollupKeys));
@@ -903,6 +913,63 @@ public class RelToSqlConverter extends SqlImplementor
                       groupItem(groupKeys, groupSet, aggregate.getGroupSet()))
                   .collect(Collectors.toList())));
     }
+  }
+
+  private SqlNode maybeQualifyJoinKey(SqlNode field, int key,
+      @Nullable SqlJoin fromJoin, int leftFieldCount) {
+    if (!isSimpleIdentifier(field) || fromJoin == null) {
+      return field;
+    }
+
+    final String fieldName = ((SqlIdentifier) field).getSimple();
+    if (leftFieldCount >= 0) {
+      final SqlNode side = key < leftFieldCount ? fromJoin.getLeft() : fromJoin.getRight();
+      return qualifyJoinField(SqlValidatorUtil.alias(side), fieldName, field);
+    }
+    return maybeQualifyJoinKeyWithoutInputJoin(field, key, fromJoin, fieldName);
+  }
+
+  private static boolean isSimpleIdentifier(SqlNode node) {
+    return node instanceof SqlIdentifier
+        && ((SqlIdentifier) node).names.size() == 1;
+  }
+
+  private SqlNode maybeQualifyJoinKeyWithoutInputJoin(SqlNode field, int key,
+      SqlJoin fromJoin, String fieldName) {
+    if (key != 0) {
+      return field;
+    }
+    final String leftAlias = SqlValidatorUtil.alias(fromJoin.getLeft());
+    final String rightAlias = SqlValidatorUtil.alias(fromJoin.getRight());
+    switch (fromJoin.getJoinType()) {
+    case RIGHT:
+      return qualifyJoinField(rightAlias, fieldName, field);
+    case FULL:
+      if (leftAlias != null && rightAlias != null) {
+        return SqlStdOperatorTable.COALESCE.createCall(POS,
+            new SqlIdentifier(ImmutableList.of(leftAlias, fieldName), POS),
+            new SqlIdentifier(ImmutableList.of(rightAlias, fieldName), POS));
+      }
+      return qualifyJoinField(leftAlias != null ? leftAlias : rightAlias, fieldName, field);
+    case LEFT:
+    case LEFT_SEMI_JOIN:
+    case LEFT_ANTI_JOIN:
+    case INNER:
+    case CROSS:
+    case COMMA:
+    case ASOF:
+    case LEFT_ASOF:
+    default:
+      return qualifyJoinField(leftAlias, fieldName, field);
+    }
+  }
+
+  private static SqlNode qualifyJoinField(@Nullable String alias,
+      String fieldName, SqlNode fallback) {
+    if (alias == null) {
+      return fallback;
+    }
+    return new SqlIdentifier(ImmutableList.of(alias, fieldName), POS);
   }
 
   private static SqlNode groupItem(List<SqlNode> groupKeys,

@@ -125,9 +125,12 @@ import java.util.stream.IntStream;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11885,6 +11888,139 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"EMP\" AS \"EMP\"";
 
     sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7439">[CALCITE-7439]
+   * RelToSqlConverter emits ambiguous GROUP BY after LEFT JOIN USING with
+   * semi-join rewrite.</a>. */
+  @Test void testPostgresqlRoundTripDistinctLeftJoinInSubqueryWithSemiJoinRules() {
+    final String query = "WITH product_keys AS (\n"
+        + "  SELECT p.\"product_id\",\n"
+        + "         (SELECT MAX(p3.\"product_id\")\n"
+        + "          FROM \"foodmart\".\"product\" p3\n"
+        + "          WHERE p3.\"product_id\" = p.\"product_id\") AS \"mx\"\n"
+        + "  FROM \"foodmart\".\"product\" p\n"
+        + ")\n"
+        + "SELECT DISTINCT pk.\"product_id\"\n"
+        + "FROM product_keys pk\n"
+        + "LEFT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "WHERE pk.\"product_id\" IN (\n"
+        + "  SELECT p4.\"product_id\"\n"
+        + "  FROM \"foodmart\".\"product\" p4\n"
+        + ")";
+
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+            CoreRules.PROJECT_TO_SEMI_JOIN);
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    assertThat(generated, containsString("GROUP BY \"t2\".\"product_id\""));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7439">[CALCITE-7439]
+   * RelToSqlConverter should not emit ambiguous GROUP BY after RIGHT JOIN USING
+   * with semi-join rewrite.</a>. */
+  @Test void testPostgresqlRoundTripDistinctRightJoinInSubqueryWithSemiJoinRules() {
+    final String query = "WITH product_keys AS (\n"
+        + "  SELECT p.\"product_id\",\n"
+        + "         (SELECT MAX(p3.\"product_id\")\n"
+        + "          FROM \"foodmart\".\"product\" p3\n"
+        + "          WHERE p3.\"product_id\" = p.\"product_id\") AS \"mx\"\n"
+        + "  FROM \"foodmart\".\"product\" p\n"
+        + ")\n"
+        + "SELECT DISTINCT pk.\"product_id\"\n"
+        + "FROM product_keys pk\n"
+        + "RIGHT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "WHERE pk.\"product_id\" IN (\n"
+        + "  SELECT p4.\"product_id\"\n"
+        + "  FROM \"foodmart\".\"product\" p4\n"
+        + ")";
+
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+            CoreRules.PROJECT_TO_SEMI_JOIN);
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    assertThat(generated, containsString("GROUP BY "));
+    assertThat(generated, containsString(".\"product_id\""));
+    assertThat(generated,
+        matchesPattern("(?s).*GROUP BY\\s+\"[^\"]+\"\\.\"product_id\".*"));
+    assertThat(generated, not(containsString("GROUP BY \"product_id\"")));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7439">[CALCITE-7439]
+   * RelToSqlConverter should not emit ambiguous GROUP BY after FULL JOIN USING
+   * with semi-join rewrite.</a>. */
+  @Test void testPostgresqlRoundTripDistinctFullJoinInSubqueryWithSemiJoinRules() {
+    final String query = "WITH product_keys AS (\n"
+        + "  SELECT p.\"product_id\",\n"
+        + "         (SELECT MAX(p3.\"product_id\")\n"
+        + "          FROM \"foodmart\".\"product\" p3\n"
+        + "          WHERE p3.\"product_id\" = p.\"product_id\") AS \"mx\"\n"
+        + "  FROM \"foodmart\".\"product\" p\n"
+        + ")\n"
+        + "SELECT DISTINCT pk.\"product_id\"\n"
+        + "FROM product_keys pk\n"
+        + "FULL JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "WHERE pk.\"product_id\" IN (\n"
+        + "  SELECT p4.\"product_id\"\n"
+        + "  FROM \"foodmart\".\"product\" p4\n"
+        + ")";
+
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+            CoreRules.PROJECT_TO_SEMI_JOIN);
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    assertThat(generated, containsString("GROUP BY "));
+    assertThat(generated, containsString("GROUP BY COALESCE("));
+    assertThat(generated,
+        matchesPattern("(?s).*GROUP BY\\s+COALESCE\\(\"[^\"]+\"\\.\"product_id\",\\s*"
+            + "\"[^\"]+\"\\.\"product_id\"\\).*"));
+    assertThat(generated, not(containsString("GROUP BY \"product_id\"")));
+  }
+
+  @Test void testPostgresqlRoundTripRollupJoinUsingQualifiesGroupKey() {
+    final String query = "SELECT \"product_id\", COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\" p1\n"
+        + "LEFT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "GROUP BY ROLLUP(\"product_id\")";
+
+    final String generated = sql(query).withPostgresql().exec();
+    assertThat(generated,
+        matchesPattern("(?s).*GROUP BY\\s+ROLLUP\\(\"[^\"]+\"\\.\"product_id\"\\).*"));
+    assertThat(generated, not(containsString("GROUP BY ROLLUP(\"product_id\")")));
+  }
+
+  @Test void testPostgresqlRoundTripSingletonCubeJoinUsingQualifiesGroupKey() {
+    final String query = "SELECT \"product_id\", COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\" p1\n"
+        + "LEFT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "GROUP BY CUBE(\"product_id\")";
+
+    final String generated = sql(query).withPostgresql().exec();
+    assertThat(generated,
+        matchesPattern("(?s).*GROUP BY\\s+(?:CUBE|ROLLUP)\\(\"[^\"]+\"\\.\"product_id\"\\).*"));
+    assertThat(generated, not(containsString("GROUP BY CUBE(\"product_id\")")));
+    assertThat(generated, not(containsString("GROUP BY ROLLUP(\"product_id\")")));
   }
 
   @Test void testNotBetween() {
