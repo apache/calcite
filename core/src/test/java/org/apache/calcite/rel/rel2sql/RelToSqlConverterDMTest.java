@@ -5321,6 +5321,29 @@ class RelToSqlConverterDMTest {
         .ok(expectedSqlBQ);
   }
 
+  @Test public void testNEWIDFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.NEWID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT NEWID() AS [$f0]\nFROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testNEWSEQUENTIALIDFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.NEWSEQUENTIALID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT NEWSEQUENTIALID() AS [$f0]\nFROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedBqQuery));
+  }
+
+
   @Test public void testCurrentUserWithAlias() {
     String query = "select CURRENT_USER myuser from \"product\" where \"product_id\" = 1";
     final String expectedSql = "SELECT CURRENT_USER() MYUSER\n"

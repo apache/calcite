@@ -4013,6 +4013,24 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction NEWID =
+      new SqlFunction("NEWID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.UUID,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction NEWSEQUENTIALID =
+      new SqlFunction("NEWSEQUENTIALID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.UUID,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction UID =
       new SqlFunction("UID",
