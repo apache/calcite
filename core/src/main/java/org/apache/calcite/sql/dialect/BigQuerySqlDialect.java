@@ -2053,7 +2053,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           sqlFunction.createCall(SqlParserPos.ZERO, new SqlNode[] { call.operand(0) });
       sqlFunction.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
     } else {
-      castAsDatetime(writer, call, leftPrec, rightPrec, sqlFunction);
+      sqlFunction.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 

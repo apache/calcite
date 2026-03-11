@@ -5321,6 +5321,29 @@ class RelToSqlConverterDMTest {
         .ok(expectedSqlBQ);
   }
 
+  @Test public void testNEWIDFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.NEWID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT NEWID() AS [$f0]\nFROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testNEWSEQUENTIALIDFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.NEWSEQUENTIALID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT NEWSEQUENTIALID() AS [$f0]\nFROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedBqQuery));
+  }
+
+
   @Test public void testCurrentUserWithAlias() {
     String query = "select CURRENT_USER myuser from \"product\" where \"product_id\" = 1";
     final String expectedSql = "SELECT CURRENT_USER() MYUSER\n"
@@ -6987,10 +7010,8 @@ class RelToSqlConverterDMTest {
             builder.alias(unixMicrosRexNode, "TM"),
             builder.alias(unixMillisRexNode, "TMI"))
         .build();
-    final String expectedBiqQuery = "SELECT CAST(TIMESTAMP_SECONDS(HIREDATE) AS DATETIME) AS TS, "
-        + "CAST(TIMESTAMP_MICROS(HIREDATE) AS DATETIME) AS TM, CAST(TIMESTAMP_MILLIS(HIREDATE) AS "
-        + "DATETIME) AS TMI\n"
-        + "FROM scott.EMP";
+    final String expectedBiqQuery = "SELECT TIMESTAMP_SECONDS(HIREDATE) AS TS, TIMESTAMP_MICROS"
+        + "(HIREDATE) AS TM, TIMESTAMP_MILLIS(HIREDATE) AS TMI\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 

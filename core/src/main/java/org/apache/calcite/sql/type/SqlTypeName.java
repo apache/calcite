@@ -144,7 +144,10 @@ public enum SqlTypeName {
   TEXT(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
       SqlTypeFamily.CHARACTER),
   SERIAL(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
-  DOUBLE_PRECISION(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC);
+  DOUBLE_PRECISION(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
+  HIERARCHYID(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.HIERARCHYID),
+  UUID(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.UUID),
+  XML(PrecScale.NO_NO, false, ExtraSqlTypes.SQLXML,  null);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
