@@ -61,6 +61,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
@@ -194,7 +195,7 @@ public class ReflectiveSchema
   /** Returns a table based on a particular field of this schema. If the
    * field is not of the right type to be a relation, returns null. */
   private <T> @Nullable Table fieldRelation(final Field field) {
-    final Type elementType = getElementType(field.getType());
+    final Type elementType = getElementType(field);
     if (elementType == null) {
       return null;
     }
@@ -217,12 +218,17 @@ public class ReflectiveSchema
 
   /** Deduces a collection's element type;
    * same logic as {@link #toEnumerable}. */
-  private static @Nullable Type getElementType(Class<?> clazz) {
+  private static @Nullable Type getElementType(Field field) {
+    final Class<?> clazz = field.getType();
     if (clazz.isArray()) {
       return clazz.getComponentType();
     }
     if (Iterable.class.isAssignableFrom(clazz)) {
-      return Object.class;
+      try {
+        return ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+      } catch (Exception ignored) {
+        return Object.class;
+      }
     }
     return null; // not a collection/array/iterable
   }
@@ -298,7 +304,7 @@ public class ReflectiveSchema
    *
    * <p>The following example instantiates a {@code FoodMart} object as a schema
    * that contains tables called {@code EMPS} and {@code DEPTS} based on the
-   * object's fields.
+   * object's fields as arrays and {@code DISCOUNTS} with {@code OFFERS} as collections.
    *
    * <blockquote><pre>
    * schemas: [
@@ -320,6 +326,8 @@ public class ReflectiveSchema
    * &nbsp;
    *   Employee[] EMPS;
    *   Department[] DEPTS;
+   *   List&lt;Discount&gt; DISCOUNTS;
+   *   Set&lt;Offer&gt; OFFERS;
    * }</pre></blockquote>
    */
   public static class Factory implements SchemaFactory {
