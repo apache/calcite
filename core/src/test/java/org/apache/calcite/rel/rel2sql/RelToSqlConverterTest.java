@@ -11767,9 +11767,9 @@ class RelToSqlConverterTest {
   @Test void testRegexpWithHive() {
     final String query = "select \"brand_name\"\n"
         + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') ";
-    final String expectedSpark = "SELECT `brand_name`\nFROM "
+    final String expectedHive = "SELECT `brand_name`\nFROM "
         + "`foodmart`.`product`\nWHERE (`brand_name` REGEXP '[a-zA-Z]')";
-    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedSpark);
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
   }
 
   /** Test case for
@@ -11778,9 +11778,9 @@ class RelToSqlConverterTest {
   @Test void testRegexpWithHiveIsNotNull() {
     final String query = "select \"brand_name\"\n"
         + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') is not null ";
-    final String expectedSpark = "SELECT `brand_name`\nFROM "
+    final String expectedHive = "SELECT `brand_name`\nFROM "
         + "`foodmart`.`product`\nWHERE (`brand_name` REGEXP '[a-zA-Z]') IS NOT NULL";
-    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedSpark);
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
   }
 
   /** Test case for
@@ -11789,8 +11789,8 @@ class RelToSqlConverterTest {
   @Test void testSelectRegexpWithHiveIsNotNull() {
     final String query = "select REGEXP(\"brand_name\",'[a-zA-Z]') is not null \n"
         + "from \"product\"";
-    final String expectedSpark = "SELECT (`brand_name` REGEXP '[a-zA-Z]') IS NOT NULL\n"
+    final String expectedHive = "SELECT (`brand_name` REGEXP '[a-zA-Z]') IS NOT NULL\n"
         + "FROM `foodmart`.`product`";
-    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedSpark);
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
   }
 }
