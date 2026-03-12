@@ -19,8 +19,6 @@ package org.apache.calcite.adapter.innodb;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Sources;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.alibaba.innodb.java.reader.util.Utils;
 import com.google.common.collect.ImmutableMap;
 
@@ -119,18 +117,18 @@ public class InnodbAdapterDataTypesTest {
                 + "f_decimal4=123.100; "
                 + "f_decimal5=12346; "
                 + "f_decimal6=12345.1234567890123456789012345; "
-                + "f_varchar=c" + StringUtils.repeat('x', 31) + "; "
-                + "f_varchar_overflow=c" + StringUtils.repeat("データ", 300) + "; "
+                + "f_varchar=c" + repeat('x', 31) + "; "
+                + "f_varchar_overflow=c" + repeat("データ", 300) + "; "
                 + "f_varchar_null=null; "
-                + "f_char_32=c" + StringUtils.repeat("данные", 2) + "; "
-                + "f_char_255=c" + StringUtils.repeat("数据", 100) + "; "
+                + "f_char_32=c" + repeat("данные", 2) + "; "
+                + "f_char_255=c" + repeat("数据", 100) + "; "
                 + "f_char_null=null; "
                 + "f_boolean=false; "
                 + "f_bool=true; "
-                + "f_tinytext=c" + StringUtils.repeat("Data", 50) + "; "
-                + "f_text=c" + StringUtils.repeat("Daten", 200) + "; "
-                + "f_mediumtext=c" + StringUtils.repeat("Datos", 200) + "; "
-                + "f_longtext=c" + StringUtils.repeat("Les données", 800) + "; "
+                + "f_tinytext=c" + repeat("Data", 50) + "; "
+                + "f_text=c" + repeat("Daten", 200) + "; "
+                + "f_mediumtext=c" + repeat("Datos", 200) + "; "
+                + "f_longtext=c" + repeat("Les données", 800) + "; "
                 + "f_tinyblob="
                 + genByteArrayString("63", (byte) 0x0a, 100) + "; "
                 + "f_blob="
@@ -164,18 +162,18 @@ public class InnodbAdapterDataTypesTest {
                 + "f_decimal4=456.000; "
                 + "f_decimal5=0; "
                 + "f_decimal6=-0.0123456789012345678912345; "
-                + "f_varchar=d" + StringUtils.repeat('y', 31) + "; "
-                + "f_varchar_overflow=d" + StringUtils.repeat("データ", 300) + "; "
+                + "f_varchar=d" + repeat('y', 31) + "; "
+                + "f_varchar_overflow=d" + repeat("データ", 300) + "; "
                 + "f_varchar_null=null; "
-                + "f_char_32=d" + StringUtils.repeat("данные", 2) + "; "
-                + "f_char_255=d" + StringUtils.repeat("数据", 100) + "; "
+                + "f_char_32=d" + repeat("данные", 2) + "; "
+                + "f_char_255=d" + repeat("数据", 100) + "; "
                 + "f_char_null=null; "
                 + "f_boolean=false; "
                 + "f_bool=true; "
-                + "f_tinytext=d" + StringUtils.repeat("Data", 50) + "; "
-                + "f_text=d" + StringUtils.repeat("Daten", 200) + "; "
-                + "f_mediumtext=d" + StringUtils.repeat("Datos", 200) + "; "
-                + "f_longtext=d" + StringUtils.repeat("Les données", 800) + "; "
+                + "f_tinytext=d" + repeat("Data", 50) + "; "
+                + "f_text=d" + repeat("Daten", 200) + "; "
+                + "f_mediumtext=d" + repeat("Datos", 200) + "; "
+                + "f_longtext=d" + repeat("Les données", 800) + "; "
                 + "f_tinyblob="
                 + genByteArrayString("64", (byte) 0x0a, 100) + "; "
                 + "f_blob="
@@ -190,6 +188,26 @@ public class InnodbAdapterDataTypesTest {
                 + genByteArrayString("64", (byte) 0xff, 100) + "; "
                 + "f_enum=Hello; "
                 + "f_set=a,e,i,o,u");
+  }
+
+  private static String repeat(String s, int n) {
+    if (n <= 0) {
+      return "";
+    }
+    StringBuilder b = new StringBuilder(s.length() * n);
+    for (int i = 0; i < n; i++) {
+      b.append(s);
+    }
+    return b.toString();
+  }
+
+  private static String repeat(char c, int n) {
+    if (n <= 0) {
+      return "";
+    }
+    char[] a = new char[n];
+    java.util.Arrays.fill(a, c);
+    return String.valueOf(a);
   }
 
   private String genByteArrayString(String prefix, byte b, int repeat) {

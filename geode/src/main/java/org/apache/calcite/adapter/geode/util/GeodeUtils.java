@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Util;
 
-import org.apache.commons.lang3.Strings;
 import org.apache.geode.cache.CacheClosedException;
 import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
@@ -84,7 +83,7 @@ public class GeodeUtils {
       int locatorPort, String autoSerializerPackagePath,
       boolean readSerialized) {
     if (locatorPort != currentLocatorPort
-        || !Strings.CI.equals(currentLocatorHost, locatorHost)) {
+        || !equalsIgnoreCase(currentLocatorHost, locatorHost)) {
       LOGGER.info("Close existing ClientCache ["
           + currentLocatorHost + ":" + currentLocatorPort + "] for new Locator connection at: ["
           + locatorHost + ":" + locatorPort + "]");
@@ -115,6 +114,10 @@ public class GeodeUtils {
       // Do nothing if there is no existing instance
     }
     REGION_MAP.clear();
+  }
+
+  private static boolean equalsIgnoreCase(@Nullable String a, @Nullable String b) {
+    return a == null ? b == null : b != null && a.equalsIgnoreCase(b);
   }
 
   /**

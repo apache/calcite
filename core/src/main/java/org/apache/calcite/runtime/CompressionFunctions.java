@@ -18,8 +18,6 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.avatica.util.ByteString;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
@@ -47,7 +45,7 @@ public class CompressionFunctions {
       if (data == null) {
         return null;
       }
-      if (StringUtils.isEmpty(data)) {
+      if (data.isEmpty()) {
         return new ByteString(new byte[0]);
       }
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

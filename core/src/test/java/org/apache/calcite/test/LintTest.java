@@ -49,6 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -63,6 +64,10 @@ class LintTest {
   private static final Pattern CALCITE_PATTERN =
       compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
   private static final Pattern PATTERN = compile("^ *(// )?");
+
+  private static final Pattern COMMONS_LANG3_IMPORT_PATTERN =
+      compile("^\\s*import\\s+(static\\s+)?"
+          + "org\\.apache\\.commons\\.lang3\\..*;\\s*$");
 
   private static final String TERMINOLOGY_ERROR_MSG =
       "Message contains '%s' word; use one of the following instead: %s";
@@ -93,6 +98,13 @@ class LintTest {
                 && !line.filename().endsWith(".txt")
                 && !skipping(line),
             line -> line.state().message("Tab", line))
+
+        // Forbid importing commons-lang3 (Calcite should not use it).
+        .add(line -> isJava(line.filename())
+                && line.matches(COMMONS_LANG3_IMPORT_PATTERN.pattern()),
+            line -> line.state().message(
+                "Forbidden import from 'org.apache.commons.lang3' (commons-lang3 is not allowed)",
+                line))
 
         // Comment without space
         .add(line -> line.matches(".* //[^ ].*")
@@ -234,6 +246,21 @@ class LintTest {
             })
 
         .build();
+  }
+
+  @Test void testNoCommonsLang3Import() {
+    final Puffin.Program<GlobalState> program = makeProgram();
+    final String code = "import org.apache.commons.lang3.StringUtils;\n"
+        + "class X {}\n";
+    final StringWriter sw = new StringWriter();
+    final GlobalState g;
+    try (PrintWriter pw = new PrintWriter(sw)) {
+      g = program.execute(Stream.of(Sources.of(code)), pw);
+    }
+    final String expected = "[GuavaCharSource{memory}:1:"
+        + "Forbidden import from 'org.apache.commons.lang3' "
+        + "(commons-lang3 is not allowed)]";
+    assertThat(g.messages, hasToString(expected));
   }
 
   /** Strips the last character from a string. */

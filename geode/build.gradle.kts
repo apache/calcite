@@ -30,7 +30,6 @@ dependencies {
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.apache.commons:commons-lang3")
 
     testImplementation(project(":testkit"))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")

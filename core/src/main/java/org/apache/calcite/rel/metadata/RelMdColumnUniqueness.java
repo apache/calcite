@@ -55,8 +55,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import org.apache.commons.lang3.mutable.MutableBoolean;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -571,17 +569,17 @@ public class RelMdColumnUniqueness
    */
   private static boolean isConstantScalarQuery(RexNode rexNode) {
     if (rexNode.getKind() == SqlKind.SCALAR_QUERY) {
-      MutableBoolean hasCorrelatingVars = new MutableBoolean(false);
+      final boolean[] hasCorrelatingVars = {false};
       ((RexSubQuery) rexNode).rel.accept(new RelShuttleImpl() {
         @Override public RelNode visit(final LogicalFilter filter) {
           if (RexUtil.containsCorrelation(filter.getCondition())) {
-            hasCorrelatingVars.setTrue();
+            hasCorrelatingVars[0] = true;
             return filter;
           }
           return super.visit(filter);
         }
       });
-      return hasCorrelatingVars.isFalse();
+      return !hasCorrelatingVars[0];
     }
     return false;
   }

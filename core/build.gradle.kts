@@ -69,7 +69,6 @@ dependencies {
     implementation("commons-codec:commons-codec")
     implementation("net.hydromatic:aggdesigner-algorithm")
     implementation("org.apache.commons:commons-dbcp2")
-    implementation("org.apache.commons:commons-lang3")
     implementation("org.apache.commons:commons-math3")
     implementation("org.apache.commons:commons-text")
     implementation("org.jooq:joou-java-6")

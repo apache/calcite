@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.redis;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.util.Util;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -71,7 +72,7 @@ public abstract class RedisCaseBase {
   @BeforeEach
   public void createRedisServer() throws IOException {
     if (!REDIS_CONTAINER.isRunning()) {
-      if (isWindows()) {
+      if (Util.isWindows()) {
         redisServer = RedisServer.builder().port(PORT).setting(MAX_HEAP).build();
       } else {
         redisServer = new RedisServer(PORT);
@@ -79,10 +80,6 @@ public abstract class RedisCaseBase {
       Logger.getAnonymousLogger().info("Not using Docker, starting RedisMiniServer");
       redisServer.start();
     }
-  }
-
-  private static boolean isWindows() {
-    return System.getProperty("os.name").startsWith("Windows");
   }
 
   @AfterEach

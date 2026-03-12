@@ -19,12 +19,12 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Util;
 
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
-import org.apache.commons.lang3.SystemUtils;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.ImmutableMap;
@@ -134,7 +134,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
     boolean compatibleGuava = TestUtil.getGuavaMajorVersion() >= 23;
     // remove JVM check once Cassandra supports Eclipse OpenJ9 JVM
     boolean compatibleJVM = !"Eclipse OpenJ9".equals(TestUtil.getJavaVirtualMachineVendor());
-    boolean compatibleOS = !SystemUtils.IS_OS_WINDOWS;
+    boolean compatibleOS = !Util.isWindows();
     if (enabled && compatibleJdk && compatibleGuava && compatibleJVM && compatibleOS) {
       return ConditionEvaluationResult.enabled("Cassandra tests enabled");
     }

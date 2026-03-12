@@ -137,8 +137,6 @@ import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
 
-import static org.apache.commons.lang3.StringUtils.countMatches;
-
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -498,6 +496,19 @@ public class CalciteAssert {
         throw TestUtil.rethrow(e);
       }
     };
+  }
+
+  private static int countMatches(@Nullable String str, @Nullable String sub) {
+    if (str == null || sub == null || sub.isEmpty()) {
+      return 0;
+    }
+    int count = 0;
+    int idx = 0;
+    while ((idx = str.indexOf(sub, idx)) >= 0) {
+      count++;
+      idx += sub.length();
+    }
+    return count;
   }
 
   public static Consumer<ResultSet> checkMaskedResultContains(

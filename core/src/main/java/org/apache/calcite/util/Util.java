@@ -31,6 +31,7 @@ import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -640,6 +641,106 @@ public class Util {
       }
     }
     return sb.toString();
+  }
+
+  /** Right-pads a string with {@code padChar} until it reaches {@code size}.
+   *
+   * <p>Equivalent to {@code org.apache.commons.lang3.StringUtils#rightPad(String, int, char)}
+   * for non-null inputs.
+   */
+  public static String rightPad(String s, int size, char padChar) {
+    return Strings.padEnd(s, size, padChar);
+  }
+
+  /** Joins {@code parts} using {@code sep}.
+   *
+   * <p>Null elements are treated as empty strings.
+   */
+  public static String joinNullable(Iterable<? extends @Nullable Object> parts, String sep) {
+    final List<String> strings = new ArrayList<>();
+    for (Object o : parts) {
+      strings.add(o == null ? "" : o.toString());
+    }
+    return String.join(sep, strings);
+  }
+
+  /** Returns whether the current runtime is Windows.
+   *
+   * <p>Derived from system property {@code os.name}, using case-insensitive
+   * prefix match against {@code "Windows"}.
+   *
+   * <p>This method is intended to replace commons-lang3's
+   * {@code SystemUtils#IS_OS_WINDOWS}.
+   */
+  public static boolean isWindows() {
+    final String osName = System.getProperty("os.name");
+    return osName != null
+        && osName.regionMatches(true, 0, "Windows", 0, "Windows".length());
+  }
+
+  /** Replaces characters in {@code s} according to {@code search}/{@code replacement} mapping.
+   *
+   * <p>Semantics are aligned with {@code org.apache.commons.lang3.StringUtils#replaceChars}:
+   * characters found in {@code search} are replaced by the character in the same position in
+   * {@code replacement}; if {@code replacement} is shorter, remaining matches are removed.
+   */
+  public static @PolyNull String replaceChars(@PolyNull String s, @Nullable String search,
+      @Nullable String replacement) {
+    if (s == null || s.isEmpty() || search == null || search.isEmpty()) {
+      return s;
+    }
+    final String repl = replacement == null ? "" : replacement;
+    boolean modified = false;
+    final StringBuilder b = new StringBuilder(s.length());
+    for (int i = 0; i < s.length(); i++) {
+      final char ch = s.charAt(i);
+      final int j = search.indexOf(ch);
+      if (j >= 0) {
+        modified = true;
+        if (j < repl.length()) {
+          b.append(repl.charAt(j));
+        }
+        // else: delete character
+      } else {
+        b.append(ch);
+      }
+    }
+    return modified ? b.toString() : s;
+  }
+
+  /** Case-insensitive replace of all occurrences of {@code search} in {@code s}.
+   *
+   * <p>Equivalent to commons-lang's {@code StringUtils.replaceIgnoreCase}, but only supports
+   * non-null inputs.
+   */
+  public static String replaceIgnoreCase(String s, String search, String replacement) {
+    if (search.isEmpty()) {
+      return s;
+    }
+    final int replLength = search.length();
+    int start = 0;
+    int end = indexOfIgnoreCase(s, search, start);
+    if (end < 0) {
+      return s;
+    }
+    final StringBuilder out = new StringBuilder(s.length());
+    while (end >= 0) {
+      out.append(s, start, end).append(replacement);
+      start = end + replLength;
+      end = indexOfIgnoreCase(s, search, start);
+    }
+    out.append(s, start, s.length());
+    return out.toString();
+  }
+
+  private static int indexOfIgnoreCase(String str, String search, int fromIndex) {
+    final int max = str.length() - search.length();
+    for (int i = Math.max(0, fromIndex); i <= max; i++) {
+      if (str.regionMatches(true, i, search, 0, search.length())) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**

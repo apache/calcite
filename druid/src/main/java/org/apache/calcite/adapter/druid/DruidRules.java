@@ -54,9 +54,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.apache.commons.lang3.tuple.ImmutableTriple;
-import org.apache.commons.lang3.tuple.Triple;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -220,15 +217,15 @@ public class DruidRules {
           query.getRowType().getFieldNames()
               .indexOf(query.druidTable.timestampFieldName);
       RelNode newDruidQuery = query;
-      final Triple<List<RexNode>, List<RexNode>, List<RexNode>> triple =
+      final SplitFiltersResult split =
           splitFilters(validPreds, nonValidPreds, timestampFieldIdx);
-      if (triple.getLeft().isEmpty() && triple.getMiddle().isEmpty()) {
+      if (split.timeRangeNodes.isEmpty() && split.pushableNodes.isEmpty()) {
         // it sucks, nothing to push
         return;
       }
-      final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
+      final List<RexNode> residualPreds = new ArrayList<>(split.nonPushableNodes);
       List<Interval> intervals = null;
-      if (!triple.getLeft().isEmpty()) {
+      if (!split.timeRangeNodes.isEmpty()) {
         final CalciteConnectionConfig connectionConfig =
             requireNonNull(
                 cluster.getPlanner().getContext()
@@ -236,17 +233,17 @@ public class DruidRules {
         requireNonNull(connectionConfig.timeZone());
         intervals =
             DruidDateTimeUtils.createInterval(
-                RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
+                RexUtil.composeConjunction(rexBuilder, split.timeRangeNodes));
         if (intervals == null || intervals.isEmpty()) {
           // Case we have a filter with extract that can not be written as interval push down
-          triple.getMiddle().addAll(triple.getLeft());
+          split.pushableNodes.addAll(split.timeRangeNodes);
         }
       }
 
-      if (!triple.getMiddle().isEmpty()) {
+      if (!split.pushableNodes.isEmpty()) {
         final RelNode newFilter =
             filter.copy(filter.getTraitSet(), Util.last(query.rels),
-                RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
+                RexUtil.composeConjunction(rexBuilder, split.pushableNodes));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
       if (intervals != null && !intervals.isEmpty()) {
@@ -269,7 +266,20 @@ public class DruidRules {
      * 2-m) condition filters that can be pushed to Druid,
      * 3-r) condition filters that cannot be pushed to Druid.
      */
-    private static Triple<List<RexNode>, List<RexNode>, List<RexNode>> splitFilters(
+    private static final class SplitFiltersResult {
+      final List<RexNode> timeRangeNodes;
+      final List<RexNode> pushableNodes;
+      final List<RexNode> nonPushableNodes;
+
+      private SplitFiltersResult(List<RexNode> timeRangeNodes, List<RexNode> pushableNodes,
+          List<RexNode> nonPushableNodes) {
+        this.timeRangeNodes = timeRangeNodes;
+        this.pushableNodes = pushableNodes;
+        this.nonPushableNodes = nonPushableNodes;
+      }
+    }
+
+    private static SplitFiltersResult splitFilters(
         final List<RexNode> validPreds,
         final List<RexNode> nonValidPreds, final int timestampFieldIdx) {
       final List<RexNode> timeRangeNodes = new ArrayList<>();
@@ -286,7 +296,7 @@ public class DruidRules {
           pushableNodes.add(conj);
         }
       }
-      return ImmutableTriple.of(timeRangeNodes, pushableNodes, nonPushableNodes);
+      return new SplitFiltersResult(timeRangeNodes, pushableNodes, nonPushableNodes);
     }
 
     /** Rule configuration. */

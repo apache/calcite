@@ -18,8 +18,7 @@ package org.apache.calcite.util.format;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.util.TryThreadLocal;
-
-import org.apache.commons.lang3.StringUtils;
+import org.apache.calcite.util.Util;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -147,7 +146,7 @@ public enum FormatElementEnum implements FormatElement {
       // Padding zeroes to right as SimpleDateFormat supports precision only up to 3 places.
       // Refer to <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6269">
       // [CALCITE-6269] Fix missing/broken BigQuery date-time format elements</a>.
-      sb.append(StringUtils.rightPad(work.sssFormat.format(date), 4, "0"));
+      sb.append(Util.rightPad(work.sssFormat.format(date), 4, '0'));
     }
   },
   FF5("S", "Fractional seconds to 5 digits") {
@@ -156,7 +155,7 @@ public enum FormatElementEnum implements FormatElement {
       // Padding zeroes to right as SimpleDateFormat supports precision only up to 3 places.
       // Refer to <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6269">
       // [CALCITE-6269] Fix missing/broken BigQuery date-time format elements</a>.
-      sb.append(StringUtils.rightPad(work.sssFormat.format(date), 5, "0"));
+      sb.append(Util.rightPad(work.sssFormat.format(date), 5, '0'));
     }
   },
   FF6("S", "Fractional seconds to 6 digits") {
@@ -165,7 +164,7 @@ public enum FormatElementEnum implements FormatElement {
       // Padding zeroes to right as SimpleDateFormat supports precision only up to 3 places.
       // Refer to <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6269">
       // [CALCITE-6269] Fix missing/broken BigQuery date-time format elements</a>.
-      sb.append(StringUtils.rightPad(work.sssFormat.format(date), 6, "0"));
+      sb.append(Util.rightPad(work.sssFormat.format(date), 6, '0'));
     }
   },
   FF7("S", "Fractional seconds to 6 digits") {
@@ -174,7 +173,7 @@ public enum FormatElementEnum implements FormatElement {
       // Padding zeroes to right as SimpleDateFormat supports precision only up to 3 places.
       // Refer to <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6269">
       // [CALCITE-6269] Fix missing/broken BigQuery date-time format elements</a>.
-      sb.append(StringUtils.rightPad(work.sssFormat.format(date), 7, "0"));
+      sb.append(Util.rightPad(work.sssFormat.format(date), 7, '0'));
     }
   },
   FF8("S", "Fractional seconds to 6 digits") {
@@ -183,7 +182,7 @@ public enum FormatElementEnum implements FormatElement {
       // Padding zeroes to right as SimpleDateFormat supports precision only up to 3 places.
       // Refer to <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6269">
       // [CALCITE-6269] Fix missing/broken BigQuery date-time format elements</a>.
-      sb.append(StringUtils.rightPad(work.sssFormat.format(date), 8, "0"));
+      sb.append(Util.rightPad(work.sssFormat.format(date), 8, '0'));
     }
   },
   FF9("S", "Fractional seconds to 6 digits") {
@@ -192,7 +191,7 @@ public enum FormatElementEnum implements FormatElement {
       // Padding zeroes to right as SimpleDateFormat supports precision only up to 3 places.
       // Refer to <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6269">
       // [CALCITE-6269] Fix missing/broken BigQuery date-time format elements</a>.
-      sb.append(StringUtils.rightPad(work.sssFormat.format(date), 9, "0"));
+      sb.append(Util.rightPad(work.sssFormat.format(date), 9, '0'));
     }
   },
   HH12("h", "The hour (12-hour clock) as a decimal number (01-12)") {
