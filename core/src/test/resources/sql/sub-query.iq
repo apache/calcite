@@ -9152,4 +9152,19 @@ from (values (1), (2), (3)) as t(v);
 !set insubquerythreshold 20
 !}
 
+# Test case for [CALCITE-3366] RelDecorrelator supports Union
+SELECT deptno FROM dept where exists
+(SELECT 1 FROM emp where sal < 100 and emp.deptno=dept.deptno
+union all
+SELECT 1 FROM emp where sal > 200 and emp.deptno=dept.deptno);
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
++--------+
+(3 rows)
+
+!ok
 # End sub-query.iq
