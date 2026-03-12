@@ -707,7 +707,7 @@ public abstract class SqlLibraryOperators {
   /** The "REGEXP(value, regexp)" function, equivalent to {@link #RLIKE}. */
   @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction REGEXP =
-      SqlBasicFunction.create(SqlKind.REGEXP, ReturnTypes.BOOLEAN_NULLABLE,
+      SqlBasicFunction.create("REGEXP", SqlKind.RLIKE, ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_STRING);
 
   /** The "REGEXP_LIKE(value, regexp)" function, equivalent to {@link #RLIKE}. */

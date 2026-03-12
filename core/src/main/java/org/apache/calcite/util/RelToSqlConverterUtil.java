@@ -454,12 +454,13 @@ public abstract class RelToSqlConverterUtil {
     if (call.operandCount() != 2) {
       throw new IllegalArgumentException("REGEXP operator requires exactly 2 operands");
     }
-
-    final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep("REGEXP", true);
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.endList(frame);
+    if ("REGEXP".equals(call.getOperator().getName())) {
+      final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep("REGEXP", true);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endList(frame);
+    }
   }
 
 }

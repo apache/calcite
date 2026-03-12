@@ -129,7 +129,7 @@ public class HiveSqlDialect extends SqlDialect {
     case TRIM:
       RelToSqlConverterUtil.unparseHiveTrim(writer, call, leftPrec, rightPrec);
       break;
-    case REGEXP:
+    case RLIKE:
       RelToSqlConverterUtil.unparseRegexp(writer, call, leftPrec, rightPrec);
       break;
     default:
