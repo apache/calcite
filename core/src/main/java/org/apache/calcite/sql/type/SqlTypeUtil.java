@@ -1382,8 +1382,8 @@ public abstract class SqlTypeUtil {
       List<SqlIdentifier> fieldNames = fields.stream()
           .map(f -> new SqlIdentifier(f.getName(), SqlParserPos.ZERO))
           .collect(Collectors.toList());
-      List<SqlDataTypeSpec> fieldTypes = fields.stream()
-          .map(f -> convertTypeToSpec(f.getType()))
+      List<SqlTypeNameSpec> fieldTypes = fields.stream()
+          .map(f -> convertTypeToSpec(f.getType()).getTypeNameSpec())
           .collect(Collectors.toList());
       typeNameSpec = new SqlRowTypeNameSpec(SqlParserPos.ZERO, fieldNames, fieldTypes);
     } else if (isMap(type)) {
