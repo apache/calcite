@@ -71,12 +71,6 @@ import static java.util.Objects.requireNonNull;
  * </ul>
  */
 class OsAdapterTest {
-  private static final String OS_NAME = System.getProperty("os.name");
-
-  private static boolean isWindows() {
-    return OS_NAME.startsWith("Windows");
-  }
-
   /** Returns whether there is a ".git" directory in this directory or in a
    * directory between this directory and root. */
   private static boolean hasGit() {
@@ -114,7 +108,7 @@ class OsAdapterTest {
   }
 
   @Test void testDu() {
-    assumeFalse(isWindows(), "Skip: the 'du' table does not work on Windows");
+    assumeFalse(Util.isWindows(), "Skip: the 'du' table does not work on Windows");
     assumeToolExists("du");
     sql("select * from du")
         .returns(r -> {
@@ -130,7 +124,7 @@ class OsAdapterTest {
   }
 
   @Test void testDuFilterSortLimit() {
-    assumeFalse(isWindows(), "Skip: the 'du' table does not work on Windows");
+    assumeFalse(Util.isWindows(), "Skip: the 'du' table does not work on Windows");
     assumeToolExists("du");
     sql("select * from du where path like '%/src/test/java/%'\n"
         + "order by 1 limit 2")
@@ -149,14 +143,14 @@ class OsAdapterTest {
   }
 
   @Test void testFiles() {
-    assumeFalse(isWindows(), "Skip: the 'files' table does not work on Windows");
+    assumeFalse(Util.isWindows(), "Skip: the 'files' table does not work on Windows");
     sql("select distinct type from files")
         .returnsUnordered("type=d",
             "type=f");
   }
 
   @Test void testPs() {
-    assumeFalse(isWindows(), "Skip: the 'ps' table does not work on Windows");
+    assumeFalse(Util.isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
     sql("select * from ps")
         .returns(r -> {
@@ -176,7 +170,7 @@ class OsAdapterTest {
   }
 
   @Test void testPsDistinct() {
-    assumeFalse(isWindows(), "Skip: the 'ps' table does not work on Windows");
+    assumeFalse(Util.isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
     sql("select distinct `user` from ps")
         .returns(r -> {
@@ -229,7 +223,7 @@ class OsAdapterTest {
   }
 
   @Test void testVmstat() {
-    assumeFalse(isWindows(), "Skip: the 'files' table does not work on Windows");
+    assumeFalse(Util.isWindows(), "Skip: the 'files' table does not work on Windows");
     assumeToolExists("vmstat");
     sql("select * from vmstat")
         .returns(r -> {

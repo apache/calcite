@@ -18,8 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.util.SimpleNamespaceContext;
 import org.apache.calcite.util.TryThreadLocal;
-
-import org.apache.commons.lang3.StringUtils;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.w3c.dom.Node;
@@ -133,7 +132,7 @@ public class XmlFunctions {
                   () -> "firstChild of node " + item);
           result.add(firstChild.getTextContent());
         }
-        return StringUtils.join(result, " ");
+        return Util.joinNullable(result, " ");
       } catch (XPathExpressionException e) {
         return xpathExpression.evaluate(documentNode);
       }
@@ -189,7 +188,7 @@ public class XmlFunctions {
         for (int i = 0; i < nodes.getLength(); i++) {
           result.add(convertNodeToString(castNonNull(nodes.item(i))));
         }
-        return StringUtils.join(result, "");
+        return Util.joinNullable(result, "");
       } catch (XPathExpressionException e) {
         Node node = (Node) xpathExpression
             .evaluate(documentNode, XPathConstants.NODE);

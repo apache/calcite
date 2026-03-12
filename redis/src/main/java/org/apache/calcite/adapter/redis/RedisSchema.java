@@ -20,19 +20,20 @@ import org.apache.calcite.model.JsonCustomTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -92,7 +93,7 @@ class RedisSchema extends AbstractSchema {
       if (jsonCustomTable.name.equals(tableName)) {
         Map<String, Object> map =
             requireNonNull(jsonCustomTable.operand, OPERAND);
-        if (ObjectUtils.isEmpty(map.get(DATA_FORMAT))) {
+        if (isEmptyObject(map.get(DATA_FORMAT))) {
           throw new RuntimeException("dataFormat is invalid, it must be raw, csv or json");
         }
         RedisDataFormat dataFormatEnum =
@@ -100,7 +101,7 @@ class RedisSchema extends AbstractSchema {
         if (dataFormatEnum == null) {
           throw new RuntimeException("dataFormat is invalid, it must be raw, csv or json");
         }
-        if (ObjectUtils.isEmpty(map.get(FIELDS))) {
+        if (isEmptyObject(map.get(FIELDS))) {
           throw new RuntimeException("fields is null");
         }
         dataFormat = map.get(DATA_FORMAT).toString();
@@ -114,9 +115,45 @@ class RedisSchema extends AbstractSchema {
     tableFieldInfo.setTableName(tableName);
     tableFieldInfo.setDataFormat(dataFormat);
     tableFieldInfo.setFields(fields);
-    if (StringUtils.isNotEmpty(keyDelimiter)) {
+    if (!keyDelimiter.isEmpty()) {
       tableFieldInfo.setKeyDelimiter(keyDelimiter);
     }
     return tableFieldInfo;
   }
+
+  /** Returns whether an object should be considered "empty" for configuration/validation.
+   *
+   * <p>Semantics are aligned with
+   * {@code org.apache.commons.lang3.ObjectUtils#isEmptyObject(Object)}.
+   * <ul>
+   *   <li>{@code null} is empty
+   *   <li>{@link CharSequence}: {@code length()==0} is empty
+   *   <li>{@link Collection}/{@link Map}: {@code isEmpty()} is empty
+   *   <li>{@link Optional}: {@code !isPresent()} is empty
+   *   <li>Arrays: {@code length==0} is empty
+   * </ul>
+   */
+  public static boolean isEmptyObject(@Nullable Object o) {
+    if (o == null) {
+      return true;
+    }
+    if (o instanceof CharSequence) {
+      return ((CharSequence) o).length() == 0;
+    }
+    if (o instanceof Collection<?>) {
+      return ((Collection<?>) o).isEmpty();
+    }
+    if (o instanceof Map) {
+      return ((Map<?, ?>) o).isEmpty();
+    }
+    if (o instanceof Optional) {
+      return !((Optional<?>) o).isPresent();
+    }
+    final Class<?> c = o.getClass();
+    if (c.isArray()) {
+      return java.lang.reflect.Array.getLength(o) == 0;
+    }
+    return false;
+  }
+
 }

@@ -29,7 +29,6 @@ dependencies {
 
     testImplementation("org.apache.arrow:arrow-jdbc")
     testImplementation("net.hydromatic:scott-data-hsqldb")
-    testImplementation("org.apache.commons:commons-lang3")
     testImplementation(project(":core"))
     testImplementation(project(":testkit"))
 }

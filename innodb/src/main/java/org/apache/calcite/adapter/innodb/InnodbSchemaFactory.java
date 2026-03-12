@@ -20,8 +20,6 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +35,7 @@ public class InnodbSchemaFactory implements SchemaFactory {
     final List<String> sqlFilePathList = (List<String>) operand.get("sqlFilePath");
     final String ibdDataFileBasePath = (String) operand.get("ibdDataFileBasePath");
     final String timeZone = (String) operand.get("timeZone");
-    if (StringUtils.isNotEmpty(timeZone)) {
+    if (timeZone != null && !timeZone.isEmpty()) {
       System.setProperty("innodb.java.reader.server.timezone", timeZone);
     }
 
