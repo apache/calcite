@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -34,6 +35,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.List;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Converts a relational expression to any given output convention.
@@ -64,7 +68,9 @@ public class AbstractConverter extends ConverterImpl {
   //~ Methods ----------------------------------------------------------------
 
 
-  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs,
+      Set<CorrelationId> variableSet) {
+    checkArgument(variableSet.isEmpty());
     return new AbstractConverter(
         getCluster(),
         (RelSubset) sole(inputs),
