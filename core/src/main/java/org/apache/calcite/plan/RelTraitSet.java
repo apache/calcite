@@ -397,17 +397,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelDistribution> @Nullable T getDistribution() {
-    int index = findIndex(RelDistributionTraitDef.INSTANCE);
-    if (index < 0) {
-      return null;
-    }
-    final RelTrait trait = getTrait(index);
-    if (trait instanceof RelCompositeTrait) {
-      throw new IllegalStateException(
-          "This trait set contains multiple distributions; "
-          + "use getDistributions() instead of getDistribution()");
-    }
-    return (T) trait;
+    return (T) getTrait(RelDistributionTraitDef.INSTANCE);
   }
 
   /**
@@ -440,17 +430,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelCollation> @Nullable T getCollation() {
-    int index = findIndex(RelCollationTraitDef.INSTANCE);
-    if (index < 0) {
-      return null;
-    }
-    final RelTrait trait = getTrait(index);
-    if (trait instanceof RelCompositeTrait) {
-      throw new IllegalStateException(
-          "This trait set contains multiple collations; "
-          + "use getCollations() instead of getCollation()");
-    }
-    return (T) trait;
+    return (T) getTrait(RelCollationTraitDef.INSTANCE);
   }
 
   /**
