@@ -58,6 +58,12 @@ class AggregateFilterToFilteredAggregateRuleTest {
         .withRule(AGGREGATE_FILTER_TO_FILTERED_AGGREGATE).check();
   }
 
+  @Test void testSingleColumnAggregateWithFilterOnNullableColumn() {
+    String sql = "select sum(sal) from emp where mgr = 10";
+    sql(sql).withPreRule(AGGREGATE_PROJECT_MERGE)
+        .withRule(AGGREGATE_FILTER_TO_FILTERED_AGGREGATE).check();
+  }
+
   @Test void testSingleStarAggregate() {
     String sql = "select count(*) from emp where deptno = 10";
     sql(sql).withPreRule(AGGREGATE_PROJECT_MERGE)
