@@ -11763,7 +11763,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
-   * Add regexp function (enabled in Hive library)</a>. */
+   * Support regexp function change regexp operator for Hive library</a>. */
   @Test void testRegexpWithHive() {
     final String query = "select \"brand_name\"\n"
         + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') ";
@@ -11774,7 +11774,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
-   * Add regexp function (enabled in Hive library)</a>. */
+   * Support regexp function change regexp operator for Hive library</a>. */
   @Test void testRegexpWithHiveIsNotNull() {
     final String query = "select \"brand_name\"\n"
         + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') is not null ";
@@ -11785,7 +11785,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
-   * Add regexp function (enabled in Hive library)</a>. */
+   * Support regexp function change regexp operator for Hive library</a>. */
   @Test void testSelectRegexpWithHiveIsNotNull() {
     final String query = "select REGEXP(\"brand_name\",'[a-zA-Z]') is not null \n"
         + "from \"product\"";
