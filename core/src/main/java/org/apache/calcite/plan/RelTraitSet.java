@@ -397,7 +397,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelDistribution> @Nullable T getDistribution() {
-    return (T) getTrait(RelDistributionTraitDef.INSTANCE);
+    return (@Nullable T) getTrait(RelDistributionTraitDef.INSTANCE);
   }
 
   /**
@@ -430,7 +430,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   @SuppressWarnings("unchecked")
   public <T extends RelCollation> @Nullable T getCollation() {
-    return (T) getTrait(RelCollationTraitDef.INSTANCE);
+    return (@Nullable T) getTrait(RelCollationTraitDef.INSTANCE);
   }
 
   /**
