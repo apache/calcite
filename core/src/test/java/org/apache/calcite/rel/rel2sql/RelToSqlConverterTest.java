@@ -11891,8 +11891,42 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7440">[CALCITE-7440]
    * RelToSqlConverter throws NPE when correlation scope is missing after
    * semi-join rewrites.</a>. */
+  @Test void testPostgresqlRoundTripCorrelatedProject() {
+    final String query = correlatedProjectQuery7440();
+    final RuleSet rules = RuleSets.ofList();
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    try {
+      sql(generated).withPostgresql().exec();
+    } catch (Exception e) {
+      throw new AssertionError(
+          "Generated SQL failed PostgreSQL round-trip validation:\n"
+              + generated,
+          e);
+    }
+  }
+
   @Test void testPostgresqlRoundTripCorrelatedProjectWithSemiJoinRules() {
-    final String query = "WITH product_keys AS (\n"
+    final String query = correlatedProjectQuery7440();
+
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+        CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+        CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+        CoreRules.SEMI_JOIN_JOIN_TRANSPOSE);
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    try {
+      sql(generated).withPostgresql().exec();
+    } catch (Exception e) {
+      throw new AssertionError(
+          "Generated SQL failed PostgreSQL round-trip validation:\n"
+              + generated,
+          e);
+    }
+  }
+
+  private static String correlatedProjectQuery7440() {
+    return "WITH product_keys AS (\n"
         + "  SELECT p.\"product_id\",\n"
         + "         (SELECT MAX(p3.\"product_id\")\n"
         + "          FROM \"foodmart\".\"product\" p3\n"
@@ -11906,18 +11940,6 @@ class RelToSqlConverterTest {
         + "  SELECT p4.\"product_id\"\n"
         + "  FROM \"foodmart\".\"product\" p4\n"
         + ")";
-
-    final RuleSet rules = RuleSets.ofList();
-
-    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
-    try {
-      sql(generated).withPostgresql().exec();
-    } catch (Exception e) {
-      throw new AssertionError(
-          "Generated SQL failed PostgreSQL round-trip validation:\n"
-              + generated,
-          e);
-    }
   }
 
   @Test void testNotBetween() {
