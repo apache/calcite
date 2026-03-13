@@ -104,6 +104,25 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSingleColumnAggregateWithFilterOnNullableColumn">
+    <Resource name="sql">
+      <![CDATA[select sum(sal) from emp where mgr = 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+  LogicalFilter(condition=[=($3, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])
+  LogicalProject(SAL=[$5], $f9=[IS TRUE(=($3, 10))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSingleColumnAggregateWithGroupBy">
     <Resource name="sql">
       <![CDATA[select sum(sal) from emp where deptno = 10 group by job]]>

@@ -22,6 +22,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
@@ -76,6 +77,9 @@ import java.util.List;
         return;
       }
       RexNode condition = filter.getCondition();
+      if (condition.getType().isNullable()) {
+        condition = builder.call(SqlStdOperatorTable.IS_TRUE, condition);
+      }
       // If the aggregate call has its own filter, combine it with the filter condition.
       if (aggCall.hasFilter()) {
         condition = builder.and(condition, builder.field(aggCall.filterArg));
