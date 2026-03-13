@@ -49,7 +49,10 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDescribeCatalog;
+import org.apache.calcite.sql.SqlDescribeDatabase;
 import org.apache.calcite.sql.SqlDescribeSchema;
+import org.apache.calcite.sql.SqlDescribeStatement;
 import org.apache.calcite.sql.SqlDescribeTable;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
@@ -1551,11 +1554,18 @@ SqlNode SqlDescribe() :
 {
     <DESCRIBE> { s = span(); }
     (
-        LOOKAHEAD(2) (<DATABASE> | <CATALOG> | <SCHEMA>)
+        <DATABASE>
         id = CompoundIdentifier() {
-            // DESCRIBE DATABASE and DESCRIBE CATALOG currently do the same as
-            // DESCRIBE SCHEMA but should be different. See
-            //   [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
+            return new SqlDescribeDatabase(s.end(id), id);
+        }
+    |
+        <CATALOG>
+        id = CompoundIdentifier() {
+            return new SqlDescribeCatalog(s.end(id), id);
+        }
+    |
+        <SCHEMA>
+        id = CompoundIdentifier() {
             return new SqlDescribeSchema(s.end(id), id);
         }
     |
@@ -1578,17 +1588,7 @@ SqlNode SqlDescribe() :
     |
         (LOOKAHEAD(1) <STATEMENT>)?
         stmt = SqlQueryOrDml() {
-            // DESCRIBE STATEMENT currently does the same as EXPLAIN. See
-            //   [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
-            final SqlExplainLevel detailLevel = SqlExplainLevel.EXPPLAN_ATTRIBUTES;
-            final SqlExplain.Depth depth = SqlExplain.Depth.PHYSICAL;
-            final SqlExplainFormat format = SqlExplainFormat.TEXT;
-            return new SqlExplain(s.end(stmt),
-                stmt,
-                detailLevel.symbol(SqlParserPos.ZERO),
-                depth.symbol(SqlParserPos.ZERO),
-                format.symbol(SqlParserPos.ZERO),
-                nDynamicParams);
+            return new SqlDescribeStatement(s.end(stmt), stmt);
         }
     )
 }
