@@ -87,7 +87,13 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    *                                        {@link #size()} or less than 0.
    */
   public RelTrait getTrait(int index) {
-    return traits[index];
+    final RelTrait trait = traits[index];
+    if (trait instanceof RelCompositeTrait) {
+      throw new IllegalStateException("Trait index " + index
+          + " has multiple values in this trait set; "
+          + "use getTraits(RelTraitDef) instead of getTrait(RelTraitDef)");
+    }
+    return trait;
   }
 
   /**
@@ -137,14 +143,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   public <T extends RelTrait> @Nullable T getTrait(RelTraitDef<T> traitDef) {
     int index = findIndex(traitDef);
     if (index >= 0) {
-      final RelTrait trait = getTrait(index);
-      if (trait instanceof RelCompositeTrait) {
-        throw new IllegalStateException("TraitDef " + traitDef
-            + " has multiple values in this trait set; "
-            + "use getTraits(RelTraitDef) instead of getTrait(RelTraitDef)");
-      }
       //noinspection unchecked
-      return (T) trait;
+      return (T) getTrait(index);
     }
 
     return null;
