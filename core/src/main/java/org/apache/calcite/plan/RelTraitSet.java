@@ -116,7 +116,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   }
 
   @Override public RelTrait get(int index) {
-    return getTrait(index);
+    return traits[index];
   }
 
   /**
