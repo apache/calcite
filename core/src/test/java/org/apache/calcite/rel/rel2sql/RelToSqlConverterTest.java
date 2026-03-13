@@ -11887,6 +11887,39 @@ class RelToSqlConverterTest {
     sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7440">[CALCITE-7440]
+   * RelToSqlConverter throws NPE when correlation scope is missing after
+   * semi-join rewrites.</a>. */
+  @Test void testPostgresqlRoundTripCorrelatedProjectWithSemiJoinRules() {
+    final String query = "WITH product_keys AS (\n"
+        + "  SELECT p.\"product_id\",\n"
+        + "         (SELECT MAX(p3.\"product_id\")\n"
+        + "          FROM \"foodmart\".\"product\" p3\n"
+        + "          WHERE p3.\"product_id\" = p.\"product_id\") AS \"mx\"\n"
+        + "  FROM \"foodmart\".\"product\" p\n"
+        + ")\n"
+        + "SELECT DISTINCT pk.\"product_id\"\n"
+        + "FROM product_keys pk\n"
+        + "LEFT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\")\n"
+        + "WHERE pk.\"product_id\" IN (\n"
+        + "  SELECT p4.\"product_id\"\n"
+        + "  FROM \"foodmart\".\"product\" p4\n"
+        + ")";
+
+    final RuleSet rules = RuleSets.ofList();
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    try {
+      sql(generated).withPostgresql().exec();
+    } catch (Exception e) {
+      throw new AssertionError(
+          "Generated SQL failed PostgreSQL round-trip validation:\n"
+              + generated,
+          e);
+    }
+  }
+
   @Test void testNotBetween() {
     Sql f = fixture().withConvertletTable(new SqlRexConvertletTable() {
       @Override public @Nullable SqlRexConvertlet get(SqlCall call) {

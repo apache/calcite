@@ -1587,9 +1587,17 @@ public abstract class SqlImplementor {
   }
 
   protected Context getAliasContext(RexCorrelVariable variable) {
-    return requireNonNull(
-        correlTableMap.get(variable.id),
-        () -> "variable " + variable.id + " is not found");
+    Context context = correlTableMap.get(variable.id);
+    if (context == null) {
+      if (correlTableMap.isEmpty()) {
+        context =
+            aliasContext(ImmutableMap.of(variable.id.getName(), variable.getType()), true);
+      }
+      if (context != null) {
+        correlTableMap.put(variable.id, context);
+      }
+    }
+    return requireNonNull(context, () -> "variable " + variable.id + " is not found");
   }
 
   /** Simple implementation of {@link Context} that cannot handle sub-queries
