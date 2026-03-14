@@ -66,8 +66,10 @@ import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -1536,8 +1538,16 @@ public abstract class SqlImplementor {
     case NUMERIC:
     case EXACT_NUMERIC: {
       if (SqlTypeName.APPROX_TYPES.contains(typeName)) {
-        return SqlLiteral.createApproxNumeric(
-            castNonNull(literal.getValueAs(Double.class)).toString(), POS);
+        final Double d = castNonNull(literal.getValueAs(Double.class));
+        // BigDecimal cannot represent IEEE 754 special values (NaN, ±Infinity).
+        if (!Double.isFinite(d)) {
+          final SqlNode strLiteral =
+              SqlLiteral.createCharString(d.toString(), POS);
+          final SqlDataTypeSpec typeSpec =
+              new SqlDataTypeSpec(new SqlBasicTypeNameSpec(typeName, POS), POS);
+          return SqlStdOperatorTable.CAST.createCall(POS, strLiteral, typeSpec);
+        }
+        return SqlLiteral.createApproxNumeric(d.toString(), POS);
       } else {
         return SqlLiteral.createExactNumeric(
             castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);

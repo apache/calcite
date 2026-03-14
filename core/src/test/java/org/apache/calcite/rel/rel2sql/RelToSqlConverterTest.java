@@ -11913,5 +11913,39 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected2);
   }
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7432">[CALCITE-7432]
+   * NumberFormatException when convert `NaN` literal to sql</a>.
+   *
+   * <p>Tests support for all IEEE 754 floating-point special values:
+   * NaN, positive/negative infinity, signed zero, and subnormal values.
+   */
+  @Test void testCastFloatingPointSpecialValuesToDouble() {
+    // Test NaN
+    sql("select cast('NaN' as DOUBLE)")
+        .ok("SELECT *\n"
+            + "FROM (VALUES (CAST('NaN' AS DOUBLE))) AS \"t\" (\"EXPR$0\")");
+
+    // Test Positive Infinity
+    sql("select cast('Infinity' as DOUBLE)")
+        .ok("SELECT *\n"
+            + "FROM (VALUES (CAST('Infinity' AS DOUBLE))) AS \"t\" (\"EXPR$0\")");
+
+    // Test Negative Infinity
+    sql("select cast('-Infinity' as DOUBLE)")
+        .ok("SELECT *\n"
+            + "FROM (VALUES (CAST('-Infinity' AS DOUBLE))) AS \"t\" (\"EXPR$0\")");
+
+    // Test Negative Zero
+    sql("select cast('-0.0' as DOUBLE)")
+        .ok("SELECT *\n"
+            + "FROM (VALUES (0E0)) AS \"t\" (\"EXPR$0\")");
+
+    // Test Subnormal values
+    sql("select cast('1e-310' as DOUBLE)")
+        .ok("SELECT *\n"
+            + "FROM (VALUES (1.0E-310)) AS \"t\" (\"EXPR$0\")");
+  }
 
 }
