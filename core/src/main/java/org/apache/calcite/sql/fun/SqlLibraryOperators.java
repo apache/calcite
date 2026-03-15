@@ -2801,8 +2801,4 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.TIMESTAMP),
               OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)),
           SqlFunctionCategory.TIMEDATE);
-
-//  @LibraryOperator(libraries = {POSTGRESQL, REDSHIFT})
-//  public static final SqlBasicFunction NULLIF = SqlStdOperatorTable.NULLIF
-//      .withOperandTypeChecker(OperandTypes.ANY_ANY);
 }
