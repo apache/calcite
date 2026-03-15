@@ -11010,10 +11010,8 @@ public class SqlOperatorTest {
     f.checkNull("nullif(cast(null as varchar(1)),'a')");
     f.checkNull("nullif(cast(null as numeric(4,3)), 4.3)");
 
-    // Error message reflects the fact that Nullif is expanded before it is
-    // validated (like a C macro). Not perfect, but good enough.
     f.checkFails("1 + ^nullif(1, date '2005-8-4')^ + 2",
-        "(?s)Cannot apply '=' to arguments of type '<INTEGER> = <DATE>'\\..*",
+        "(?s)Cannot apply 'NULLIF' to arguments of type 'NULLIF\\(<INTEGER>, <DATE>\\)'\\..*",
         false);
 
     f.checkFails("1 + ^nullif(1, 2, 3)^ + 2",

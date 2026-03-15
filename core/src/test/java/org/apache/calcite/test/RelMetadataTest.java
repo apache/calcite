@@ -3770,7 +3770,7 @@ public class RelMetadataTest {
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     // Uses "IS NOT DISTINCT FROM" rather than "=" because cannot guarantee not null.
     assertThat(list.pulledUpPredicates,
-        sortsAs("[IS NULL($0)]"));
+        sortsAs("[IS NOT DISTINCT FROM($0, NULLIF(1, 1))]"));
   }
 
   @Test void testPullUpPredicatesFromUnion0() {

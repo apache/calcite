@@ -2052,7 +2052,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NILADIC)
           .withFunctionType(SqlFunctionCategory.MATCH_RECOGNIZE);
 
-  public static final SqlFunction NULLIF = new SqlNullifFunction();
+  public static final SqlBasicFunction NULLIF =
+       SqlBasicFunction.create("NULLIF", SqlKind.NULLIF,
+      ReturnTypes.ARG0_FORCE_NULLABLE,
+      OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
   /**
    * The COALESCE builtin function.
