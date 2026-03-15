@@ -11916,22 +11916,22 @@ class RelToSqlConverterTest {
 
   @Test void testNullIfAgg() {
     final String query = "select NULLIF(count(\"brand_name\"),1) from \"product\"";
-    final String expectedHive = "SELECT NULLIF(COUNT(\"brand_name\"), 1)\n"
+    final String expected = "SELECT NULLIF(COUNT(\"brand_name\"), 1)\n"
         + "FROM \"foodmart\".\"product\"";
-    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expectedHive);
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expected);
   }
 
   @Test void testNullIfFAggAdd() {
     final String query = "select NULLIF(count(\"brand_name\") + 1,1) from \"product\"";
-    final String expectedHive = "SELECT NULLIF(COUNT(\"brand_name\") + 1, 1)\n"
+    final String expected = "SELECT NULLIF(COUNT(\"brand_name\") + 1, 1)\n"
         + "FROM \"foodmart\".\"product\"";
-    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expectedHive);
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expected);
   }
 
   @Test void testNullIfAddition() {
     final String query = "select NULLIF(\"cases_per_pallet\" + 1,1) from \"product\"";
-    final String expectedHive = "SELECT NULLIF(\"cases_per_pallet\" + 1, 1)\n"
+    final String expected = "SELECT NULLIF(\"cases_per_pallet\" + 1, 1)\n"
         + "FROM \"foodmart\".\"product\"";
-    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expectedHive);
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expected);
   }
 }
