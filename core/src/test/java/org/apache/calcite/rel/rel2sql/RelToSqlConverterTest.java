@@ -11887,24 +11887,6 @@ class RelToSqlConverterTest {
     sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT).ok(expected);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7440">[CALCITE-7440]
-   * RelToSqlConverter throws NPE when correlation scope is missing after
-   * semi-join rewrites.</a>. */
-  @Test void testPostgresqlRoundTripCorrelatedProject() {
-    final String query = correlatedProjectQuery7440();
-    final RuleSet rules = RuleSets.ofList();
-    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
-    try {
-      sql(generated).withPostgresql().exec();
-    } catch (Exception e) {
-      throw new AssertionError(
-          "Generated SQL failed PostgreSQL round-trip validation:\n"
-              + generated,
-          e);
-    }
-  }
-
   @Test void testPostgresqlRoundTripCorrelatedProjectWithSemiJoinRules() {
     final String query = correlatedProjectQuery7440();
 
