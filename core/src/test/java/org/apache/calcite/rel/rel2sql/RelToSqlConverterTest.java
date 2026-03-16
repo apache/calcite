@@ -150,6 +150,26 @@ class RelToSqlConverterTest {
     return fixture().withSql(sql);
   }
 
+  private void assertPostgresqlSqlValid(String sql) {
+    try {
+      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+      final SchemaPlus defaultSchema =
+          CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.JDBC_FOODMART);
+      final Planner planner =
+          getPlanner(null,
+              PostgresqlSqlDialect.DEFAULT.configureParser(SqlParser.config()),
+              defaultSchema,
+              SqlToRelConverter.config().withTrimUnusedFields(false),
+              ImmutableSet.of(),
+              DatabaseProduct.POSTGRESQL.getDialect().getTypeSystem(),
+              StandardConvertletTable.INSTANCE);
+      final SqlNode parsed = planner.parse(sql);
+      planner.validate(parsed);
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
   /** Initiates a test case with a given {@link RelNode} supplier. */
   private Sql relFn(Function<RelBuilder, RelNode> relFn) {
     return fixture()
@@ -11920,7 +11940,45 @@ class RelToSqlConverterTest {
             CoreRules.PROJECT_TO_SEMI_JOIN);
 
     final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
-    assertThat(generated, containsString("GROUP BY \"t2\".\"product_id\""));
+    assertThat(generated,
+        matchesPattern("(?s).*GROUP BY\\s+\"[^\"]+\"\\.\"product_id\".*"));
+    assertThat(generated, not(containsString("GROUP BY \"product_id\"")));
+    assertPostgresqlSqlValid(generated);
+  }
+
+  @Test void testPostgresqlRoundTripDistinctLeftJoinUsingTwoKeysWithSemiJoinRules() {
+    final String query = "WITH product_keys AS (\n"
+        + "  SELECT p.\"product_id\",\n"
+        + "         p.\"net_weight\",\n"
+        + "         (SELECT MAX(p3.\"product_id\")\n"
+        + "          FROM \"foodmart\".\"product\" p3\n"
+        + "          WHERE p3.\"product_id\" = p.\"product_id\") AS \"mx\"\n"
+        + "  FROM \"foodmart\".\"product\" p\n"
+        + ")\n"
+        + "SELECT DISTINCT pk.\"product_id\", pk.\"net_weight\"\n"
+        + "FROM product_keys pk\n"
+        + "LEFT JOIN \"foodmart\".\"product\" p2 USING (\"product_id\", \"net_weight\")\n"
+        + "WHERE pk.\"product_id\" IN (\n"
+        + "  SELECT p4.\"product_id\"\n"
+        + "  FROM \"foodmart\".\"product\" p4\n"
+        + ")";
+
+    final RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
+            CoreRules.MARK_TO_SEMI_OR_ANTI_JOIN_RULE,
+            CoreRules.PROJECT_TO_SEMI_JOIN);
+
+    final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
+    assertThat(generated,
+        matchesPattern("(?s).*GROUP BY\\s+\"[^\"]+\"\\.\"product_id\",\\s*"
+            + "\"[^\"]+\"\\.\"net_weight\".*"));
+    assertThat(generated,
+        not(containsString("GROUP BY \"product_id\", \"net_weight\"")));
+    assertPostgresqlSqlValid(generated);
   }
 
   /** Test case for
@@ -11953,11 +12011,10 @@ class RelToSqlConverterTest {
             CoreRules.PROJECT_TO_SEMI_JOIN);
 
     final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
-    assertThat(generated, containsString("GROUP BY "));
-    assertThat(generated, containsString(".\"product_id\""));
     assertThat(generated,
         matchesPattern("(?s).*GROUP BY\\s+\"[^\"]+\"\\.\"product_id\".*"));
     assertThat(generated, not(containsString("GROUP BY \"product_id\"")));
+    assertPostgresqlSqlValid(generated);
   }
 
   /** Test case for
@@ -11990,12 +12047,12 @@ class RelToSqlConverterTest {
             CoreRules.PROJECT_TO_SEMI_JOIN);
 
     final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
-    assertThat(generated, containsString("GROUP BY "));
     assertThat(generated, containsString("GROUP BY COALESCE("));
     assertThat(generated,
         matchesPattern("(?s).*GROUP BY\\s+COALESCE\\(\"[^\"]+\"\\.\"product_id\",\\s*"
             + "\"[^\"]+\"\\.\"product_id\"\\).*"));
     assertThat(generated, not(containsString("GROUP BY \"product_id\"")));
+    assertPostgresqlSqlValid(generated);
   }
 
   @Test void testPostgresqlRoundTripRollupJoinUsingQualifiesGroupKey() {
@@ -12008,6 +12065,7 @@ class RelToSqlConverterTest {
     assertThat(generated,
         matchesPattern("(?s).*GROUP BY\\s+ROLLUP\\(\"[^\"]+\"\\.\"product_id\"\\).*"));
     assertThat(generated, not(containsString("GROUP BY ROLLUP(\"product_id\")")));
+    assertPostgresqlSqlValid(generated);
   }
 
   @Test void testPostgresqlRoundTripSingletonCubeJoinUsingQualifiesGroupKey() {
@@ -12021,6 +12079,7 @@ class RelToSqlConverterTest {
         matchesPattern("(?s).*GROUP BY\\s+(?:CUBE|ROLLUP)\\(\"[^\"]+\"\\.\"product_id\"\\).*"));
     assertThat(generated, not(containsString("GROUP BY CUBE(\"product_id\")")));
     assertThat(generated, not(containsString("GROUP BY ROLLUP(\"product_id\")")));
+    assertPostgresqlSqlValid(generated);
   }
 
   @Test void testNotBetween() {
