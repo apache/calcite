@@ -1045,6 +1045,7 @@ public class RexImpTable {
       define(IS_NOT_FALSE, new IsNotFalseImplementor());
       define(IS_NOT_DISTINCT_FROM, new IsNotDistinctFromImplementor());
       define(IS_DISTINCT_FROM, new IsDistinctFromImplementor());
+      define(NULLIF, new NullifImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
       defineReflective(LIKE, BuiltInMethod.LIKE.method,
