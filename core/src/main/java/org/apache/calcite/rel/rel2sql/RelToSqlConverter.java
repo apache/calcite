@@ -926,7 +926,7 @@ public class RelToSqlConverter extends SqlImplementor
       final SqlNode side = key < leftFieldCount ? fromJoin.getLeft() : fromJoin.getRight();
       return qualifyJoinField(SqlValidatorUtil.alias(side), fieldName, field);
     }
-    return maybeQualifyJoinKeyWithoutInputJoin(field, key, fromJoin, fieldName);
+    return maybeQualifyJoinKeyWithoutInputJoin(field, fromJoin, fieldName);
   }
 
   private static boolean isSimpleIdentifier(SqlNode node) {
@@ -934,13 +934,13 @@ public class RelToSqlConverter extends SqlImplementor
         && ((SqlIdentifier) node).names.size() == 1;
   }
 
-  private SqlNode maybeQualifyJoinKeyWithoutInputJoin(SqlNode field, int key,
+  private SqlNode maybeQualifyJoinKeyWithoutInputJoin(SqlNode field,
       SqlJoin fromJoin, String fieldName) {
-    if (key != 0) {
-      return field;
-    }
     final String leftAlias = SqlValidatorUtil.alias(fromJoin.getLeft());
     final String rightAlias = SqlValidatorUtil.alias(fromJoin.getRight());
+    if (!isMergedJoinKey(fromJoin, leftAlias, rightAlias, fieldName)) {
+      return field;
+    }
     switch (fromJoin.getJoinType()) {
     case RIGHT:
       return qualifyJoinField(rightAlias, fieldName, field);
@@ -962,6 +962,58 @@ public class RelToSqlConverter extends SqlImplementor
     default:
       return qualifyJoinField(leftAlias, fieldName, field);
     }
+  }
+
+  private static boolean isMergedJoinKey(SqlJoin fromJoin,
+      @Nullable String leftAlias, @Nullable String rightAlias, String fieldName) {
+    final @Nullable SqlNode condition = fromJoin.getCondition();
+    if (fromJoin.getConditionType() == JoinConditionType.USING) {
+      if (!(condition instanceof SqlNodeList)) {
+        return false;
+      }
+      for (SqlNode node : ((SqlNodeList) condition).getList()) {
+        if (node != null
+            && isSimpleIdentifier(node)
+            && fieldName.equals(((SqlIdentifier) node).getSimple())) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return isMergedJoinKeyCondition(condition, leftAlias, rightAlias, fieldName);
+  }
+
+  private static boolean isMergedJoinKeyCondition(@Nullable SqlNode condition,
+      @Nullable String leftAlias, @Nullable String rightAlias, String fieldName) {
+    if (!(condition instanceof SqlCall)) {
+      return false;
+    }
+    final SqlCall call = (SqlCall) condition;
+    switch (call.getKind()) {
+    case AND:
+      return call.getOperandList().stream()
+          .filter(node -> node != null)
+          .anyMatch(node ->
+              isMergedJoinKeyCondition(node, leftAlias, rightAlias, fieldName));
+    case EQUALS:
+      return isQualifiedJoinField(call.operand(0), leftAlias, fieldName)
+          && isQualifiedJoinField(call.operand(1), rightAlias, fieldName)
+          || isQualifiedJoinField(call.operand(0), rightAlias, fieldName)
+          && isQualifiedJoinField(call.operand(1), leftAlias, fieldName);
+    default:
+      return false;
+    }
+  }
+
+  private static boolean isQualifiedJoinField(@Nullable SqlNode node,
+      @Nullable String alias, String fieldName) {
+    if (!(node instanceof SqlIdentifier) || alias == null) {
+      return false;
+    }
+    final SqlIdentifier id = (SqlIdentifier) node;
+    return id.names.size() == 2
+        && alias.equals(id.names.get(0))
+        && fieldName.equals(id.names.get(1));
   }
 
   private static SqlNode qualifyJoinField(@Nullable String alias,
