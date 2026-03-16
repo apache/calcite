@@ -115,6 +115,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -992,7 +993,7 @@ public class RelToSqlConverter extends SqlImplementor
     switch (call.getKind()) {
     case AND:
       return call.getOperandList().stream()
-          .filter(node -> node != null)
+          .filter(Objects::nonNull)
           .anyMatch(node ->
               isMergedJoinKeyCondition(node, leftAlias, rightAlias, fieldName));
     case EQUALS:
