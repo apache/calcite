@@ -5421,7 +5421,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testEmptyTableTransformsComplexQueryToSingleTableScan() {
     final String sql = "select products.PRODUCTID, products.NAME from products left join\n"
-        + "(select * from products as e\n"
+        + "(select e.* from products as e\n"
         + " inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID\n"
         + " where e.SUPPLIERID > 10) dt\n"
         + " on products.PRODUCTID = dt.PRODUCTID";
@@ -7500,7 +7500,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testProjectPredicatePull() {
     final String sql = "select e.ename, d.dname\n"
         + "from (select ename, deptno from emp where deptno = 10) e\n"
-        + "join (select name dname, deptno, * from dept) d\n"
+        + "join (select name dname, * from dept) d\n"
         + "on e.deptno = d.deptno";
     final HepProgram program = new HepProgramBuilder()
         .addRuleCollection(

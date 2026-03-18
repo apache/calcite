@@ -4259,7 +4259,7 @@ LogicalValues(tuples=[[]])
   <TestCase name="testEmptyTableTransformsComplexQueryToSingleTableScan">
     <Resource name="sql">
       <![CDATA[select products.PRODUCTID, products.NAME from products left join
-(select * from products as e
+(select e.* from products as e
  inner join EMPTY_PRODUCTS as d on e.PRODUCTID = d.PRODUCTID
  where e.SUPPLIERID > 10) dt
  on products.PRODUCTID = dt.PRODUCTID]]>
@@ -4269,7 +4269,7 @@ LogicalValues(tuples=[[]])
 LogicalProject(PRODUCTID=[$0], NAME=[$1])
   LogicalJoin(condition=[=($0, $3)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
-    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], PRODUCTID0=[$3], NAME0=[$4], SUPPLIERID0=[$5])
+    LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2])
       LogicalFilter(condition=[>($2, 10)])
         LogicalJoin(condition=[=($0, $3)], joinType=[inner])
           LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
@@ -11932,7 +11932,7 @@ LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
     <Resource name="sql">
       <![CDATA[select e.ename, d.dname
 from (select ename, deptno from emp where deptno = 10) e
-join (select name dname, deptno, * from dept) d
+join (select name dname, * from dept) d
 on e.deptno = d.deptno]]>
     </Resource>
     <Resource name="planBefore">
@@ -11942,7 +11942,7 @@ LogicalProject(ENAME=[$0], DNAME=[$2])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DNAME=[$1], DEPTNO=[$0], DEPTNO0=[$0], NAME=[$1])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], NAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -11953,7 +11953,7 @@ LogicalProject(ENAME=[$0], DNAME=[$2])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DNAME=[$1], DEPTNO=[$0], DEPTNO0=[$0], NAME=[$1])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], NAME=[$1])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>

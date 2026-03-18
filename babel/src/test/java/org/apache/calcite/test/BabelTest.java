@@ -250,7 +250,7 @@ class BabelTest {
               .collect(Collectors.toList());
           assertThat(
               names, is(
-                  ImmutableList.of("HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER", "DEPTNO0")));
+                  ImmutableList.of("HIREDATE", "SAL", "COMM", "DEPTNO", "SLACKER", "DEPTNO")));
         });
   }
 

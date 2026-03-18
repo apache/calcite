@@ -2563,9 +2563,9 @@ public class JdbcTest {
         .query("select * from \"hr\".\"emps\",\n"
             + " LATERAL (select * from \"hr\".\"depts\" where \"emps\".\"deptno\" = \"depts\".\"deptno\")")
         .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
-            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno0=10; name0=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}",
+            "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
 
   /** Test case for
@@ -2604,9 +2604,9 @@ public class JdbcTest {
             + "from \"hr\".\"depts\" as d,\n"
             + " UNNEST(d.\"employees\") as e")
         .returnsUnordered(
-            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500",
-            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000",
-            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null");
+            "name=HR; empid=200; deptno=20; name=Eric; salary=8000.0; commission=500",
+            "name=Sales; empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000",
+            "name=Sales; empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null");
   }
 
   @Test void testUnnestArrayScalarArray() {
@@ -2615,12 +2615,12 @@ public class JdbcTest {
             + "from \"hr\".\"depts\" as d,\n"
             + " UNNEST(d.\"employees\", array[1, 2]) as e")
         .returnsUnordered(
-            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR$1=1",
-            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR$1=2",
-            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR$1=1",
-            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR$1=2",
-            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR$1=1",
-            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR$1=2");
+            "name=HR; empid=200; deptno=20; name=Eric; salary=8000.0; commission=500; EXPR$1=1",
+            "name=HR; empid=200; deptno=20; name=Eric; salary=8000.0; commission=500; EXPR$1=2",
+            "name=Sales; empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; EXPR$1=1",
+            "name=Sales; empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; EXPR$1=2",
+            "name=Sales; empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; EXPR$1=1",
+            "name=Sales; empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null; EXPR$1=2");
   }
 
   @Test void testUnnestArrayScalarArrayAliased() {
@@ -3194,6 +3194,15 @@ public class JdbcTest {
             "Q=2; Q=abc");
   }
 
+  @Test void testSelectStarOverDuplicateColumnsRuntime() {
+    CalciteAssert.hr()
+        .query("select * from (\n"
+            + "select \"name\" as num, \"deptno\" as num\n"
+            + "from \"hr\".\"emps\"\n"
+            + "where \"empid\" = 100)")
+        .returns("NUM=Bill; NUM=10\n");
+  }
+
   /**
    * Tests that even though trivial "rename columns" projection is removed,
    * the query still returns proper column names.
@@ -3328,10 +3337,10 @@ public class JdbcTest {
         .query(
             "select * from \"hr\".\"emps\", \"hr\".\"depts\" where \"emps\".\"empid\" < 140 and \"depts\".\"deptno\" > 20")
         .returnsUnordered(
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=30; name0=Marketing; employees=[]; location={0, 52}",
-            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno0=40; name0=HR; employees=[{200, 20, Eric, 8000.0, 500}]; location=null",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=30; name0=Marketing; employees=[]; location={0, 52}",
-            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno0=40; name0=HR; employees=[{200, 20, Eric, 8000.0, 500}]; location=null");
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno=30; name=Marketing; employees=[]; location={0, 52}",
+            "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000; deptno=40; name=HR; employees=[{200, 20, Eric, 8000.0, 500}]; location=null",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno=30; name=Marketing; employees=[]; location={0, 52}",
+            "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250; deptno=40; name=HR; employees=[{200, 20, Eric, 8000.0, 500}]; location=null");
   }
 
   @Test void testDistinctCountSimple() {
@@ -5768,11 +5777,11 @@ public class JdbcTest {
     final String sql =
         "select * from emp join dept on emp.deptno = dept.deptno";
     withEmpDept(sql).returnsUnordered(
-        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering",
-        "ENAME=Bob  ; DEPTNO=10; GENDER=M; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Eric ; DEPTNO=20; GENDER=M; DEPTNO0=20; DNAME=Marketing  ",
-        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO0=10; DNAME=Sales      ",
-        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO0=30; DNAME=Engineering");
+        "ENAME=Alice; DEPTNO=30; GENDER=F; DEPTNO=30; DNAME=Engineering",
+        "ENAME=Bob  ; DEPTNO=10; GENDER=M; DEPTNO=10; DNAME=Sales      ",
+        "ENAME=Eric ; DEPTNO=20; GENDER=M; DEPTNO=20; DNAME=Marketing  ",
+        "ENAME=Jane ; DEPTNO=10; GENDER=F; DEPTNO=10; DNAME=Sales      ",
+        "ENAME=Susan; DEPTNO=30; GENDER=F; DEPTNO=30; DNAME=Engineering");
   }
 
   private CalciteAssert.AssertQuery withEmpDept(String sql) {

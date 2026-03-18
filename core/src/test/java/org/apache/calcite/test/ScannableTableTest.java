@@ -349,10 +349,10 @@ public class ScannableTableTest {
         .query("select \"k\", \"i\", \"k\", \"i\"+\"i\" \"ii\", 3 from \"s\".\"beatles\"")
         .explainContains(explain)
         .returnsUnordered(
-            "k=1940; i=4; k=1940; ii=8; EXPR$3=3",
-            "k=1940; i=5; k=1940; ii=10; EXPR$3=3",
-            "k=1942; i=4; k=1942; ii=8; EXPR$3=3",
-            "k=1943; i=6; k=1943; ii=12; EXPR$3=3");
+            "k=1940; i=4; k=1940; ii=8; EXPR$4=3",
+            "k=1940; i=5; k=1940; ii=10; EXPR$4=3",
+            "k=1942; i=4; k=1942; ii=8; EXPR$4=3",
+            "k=1943; i=6; k=1943; ii=12; EXPR$4=3");
     assertThat(buf, hasToString("returnCount=4, projects=[2, 0]"));
   }
 

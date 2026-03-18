@@ -257,6 +257,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       return SqlQualified.create(this, 1, null, identifier);
     }
 
+    final SqlValidatorImpl.StarExpansionReference starExpansionReference =
+        validator.getStarExpansionReference(identifier);
+    if (starExpansionReference != null) {
+      // Duplicate names produced by star expansion need exact qualification
+      // rather than a fresh name-based lookup.
+      return SqlQualified.create(this, starExpansionReference.prefixLength,
+          starExpansionReference.namespace, starExpansionReference.qualifiedIdentifier);
+    }
+
     final SqlIdentifier previous = identifier;
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     String columnName;

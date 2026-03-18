@@ -308,14 +308,14 @@ order by deptno limit all;
 # [CALCITE-603] WITH ... ORDER BY cannot find table
 with e as (select "empid" as empid from "hr"."emps" where "empid" < 120)
 select * from e as e1, e as e2 order by e1.empid + e2.empid, e1.empid;
-+-------+--------+
-| EMPID | EMPID0 |
-+-------+--------+
-|   100 |    100 |
-|   100 |    110 |
-|   110 |    100 |
-|   110 |    110 |
-+-------+--------+
++-------+-------+
+| EMPID | EMPID |
++-------+-------+
+|   100 |   100 |
+|   100 |   110 |
+|   110 |   100 |
+|   110 |   110 |
++-------+-------+
 (4 rows)
 
 !ok

@@ -36,210 +36,210 @@ select * from emp;
 
 !ok
 select * from emp join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Bob   |     10 | M      |      10 | Sales       |
-| Eric  |     20 | M      |      20 | Marketing   |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Bob   |     10 | M      |     10 | Sales       |
+| Eric  |     20 | M      |     20 | Marketing   |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
++-------+--------+--------+--------+-------------+
 (5 rows)
 
 !ok
 
 select * from emp join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Alice |     30 | F      |      30 | Engineering |
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
++-------+--------+--------+--------+-------------+
 (3 rows)
 
 !ok
 
 select * from emp join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
++-------+--------+--------+--------+-------------+
 (3 rows)
 
 !ok
 
 select * from (select * from emp where gender ='F') as emp join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
++-------+--------+--------+--------+-------------+
 (3 rows)
 
 !ok
 
 select * from emp left join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Adam  |     50 | M      |         |             |
-| Alice |     30 | F      |      30 | Engineering |
-| Bob   |     10 | M      |         |             |
-| Eric  |     20 | M      |         |             |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Adam  |     50 | M      |        |             |
+| Alice |     30 | F      |     30 | Engineering |
+| Bob   |     10 | M      |        |             |
+| Eric  |     20 | M      |        |             |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
++-------+--------+--------+--------+-------------+
 (9 rows)
 
 !ok
 
 select * from emp left join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
++-------+--------+--------+--------+-------------+
 (6 rows)
 
 !ok
 
 select * from (select * from emp where gender ='F') as emp left join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
++-------+--------+--------+--------+-------------+
 (6 rows)
 
 !ok
 
 select * from emp right join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Alice |     30 | F      |      30 | Engineering |
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+|       |        |        |     20 | Marketing   |
+|       |        |        |     40 | Empty       |
++-------+--------+--------+--------+-------------+
 (5 rows)
 
 !ok
 
 select * from emp right join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
++-------+--------+--------+--------+-------------+
 (3 rows)
 
 !ok
 
 select * from (select * from emp where gender ='F') as emp right join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+|       |        |        |     20 | Marketing   |
+|       |        |        |     40 | Empty       |
++-------+--------+--------+--------+-------------+
 (5 rows)
 
 !ok
 
 select * from emp full join dept on emp.deptno = dept.deptno and emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Adam  |     50 | M      |         |             |
-| Alice |     30 | F      |      30 | Engineering |
-| Bob   |     10 | M      |         |             |
-| Eric  |     20 | M      |         |             |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Wilma |        | F      |         |             |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Adam  |     50 | M      |        |             |
+| Alice |     30 | F      |     30 | Engineering |
+| Bob   |     10 | M      |        |             |
+| Eric  |     20 | M      |        |             |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
+|       |        |        |     20 | Marketing   |
+|       |        |        |     40 | Empty       |
++-------+--------+--------+--------+-------------+
 (11 rows)
 
 !ok
 
 
 select * from emp full join dept on emp.deptno = dept.deptno where emp.gender = 'F';
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
++-------+--------+--------+--------+-------------+
 (6 rows)
 
 !ok
 
 select * from (select * from emp where gender ='F') as emp full join dept on emp.deptno = dept.deptno;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
+|       |        |        |     20 | Marketing   |
+|       |        |        |     40 | Empty       |
++-------+--------+--------+--------+-------------+
 (8 rows)
 
 !ok
 
 # same as above, but expressed as a nestedLoop-join
 select * from (select * from emp where gender ='F') as emp full join dept on emp.deptno - dept.deptno = 0;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Alice |     30 | F      |      30 | Engineering |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Wilma |        | F      |         |             |
-|       |        |        |      20 | Marketing   |
-|       |        |        |      40 | Empty       |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
+|       |        |        |     20 | Marketing   |
+|       |        |        |     40 | Empty       |
++-------+--------+--------+--------+-------------+
 (8 rows)
 
 !ok
@@ -299,13 +299,13 @@ select t1.x, t2.x from t1 left join t2 on t1.x = t2.x;
 with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30)) as t),
   t2(x, y) as (select * from (values (1, 100), (cast(null as integer), 200)) as t)
 select * from t1 left join t2 on t1.x = t2.x;
-+---+----+----+-----+
-| X | Y  | X0 | Y0  |
-+---+----+----+-----+
-| 1 | 10 |  1 | 100 |
-| 2 | 20 |    |     |
-|   | 30 |    |     |
-+---+----+----+-----+
++---+----+---+-----+
+| X | Y  | X | Y   |
++---+----+---+-----+
+| 1 | 10 | 1 | 100 |
+| 2 | 20 |   |     |
+|   | 30 |   |     |
++---+----+---+-----+
 (3 rows)
 
 !ok
@@ -314,14 +314,14 @@ select * from t1 left join t2 on t1.x = t2.x;
 with t1(x, y) as (select * from (values (1, 10), (2, 20), (cast(null as integer), 30)) as t),
   t2(x, y) as (select * from (values (1,100), (cast(null as integer), 200)) as t)
 select * from t1 full join t2 on t1.x = t2.x;
-+---+----+----+-----+
-| X | Y  | X0 | Y0  |
-+---+----+----+-----+
-| 1 | 10 |  1 | 100 |
-| 2 | 20 |    |     |
-|   | 30 |    |     |
-|   |    |    | 200 |
-+---+----+----+-----+
++---+----+---+-----+
+| X | Y  | X | Y   |
++---+----+---+-----+
+| 1 | 10 | 1 | 100 |
+| 2 | 20 |   |     |
+|   | 30 |   |     |
+|   |    |   | 200 |
++---+----+---+-----+
 (4 rows)
 
 !ok
@@ -330,14 +330,14 @@ select * from t1 full join t2 on t1.x = t2.x;
 # effectively pushed down. Checked on Oracle.
 !use scott
 select * from "scott".emp right join "scott".dept on sal < 100;
-+-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
-| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO0 | DNAME      | LOC      |
-+-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
-|       |       |     |     |          |     |      |        |      10 | ACCOUNTING | NEW YORK |
-|       |       |     |     |          |     |      |        |      20 | RESEARCH   | DALLAS   |
-|       |       |     |     |          |     |      |        |      30 | SALES      | CHICAGO  |
-|       |       |     |     |          |     |      |        |      40 | OPERATIONS | BOSTON   |
-+-------+-------+-----+-----+----------+-----+------+--------+---------+------------+----------+
++-------+-------+-----+-----+----------+-----+------+--------+--------+------------+----------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO | DEPTNO | DNAME      | LOC      |
++-------+-------+-----+-----+----------+-----+------+--------+--------+------------+----------+
+|       |       |     |     |          |     |      |        |     10 | ACCOUNTING | NEW YORK |
+|       |       |     |     |          |     |      |        |     20 | RESEARCH   | DALLAS   |
+|       |       |     |     |          |     |      |        |     30 | SALES      | CHICAGO  |
+|       |       |     |     |          |     |      |        |     40 | OPERATIONS | BOSTON   |
++-------+-------+-----+-----+----------+-----+------+--------+--------+------------+----------+
 (4 rows)
 
 !ok

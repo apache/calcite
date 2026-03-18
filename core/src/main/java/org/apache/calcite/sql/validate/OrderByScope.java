@@ -27,6 +27,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
  *
@@ -83,6 +85,10 @@ public class OrderByScope extends DelegatingScope {
     final SqlValidatorNamespace selectNs = validator.getNamespaceOrThrow(select);
     final RelDataType rowType = selectNs.getRowType();
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+    if (nameMatcher.frequency(rowType.getFieldNames(), name) > 1) {
+      throw validator.newValidationError(ctx,
+          RESOURCE.columnAmbiguous(name));
+    }
     final RelDataTypeField field = nameMatcher.field(rowType, name);
     if (field != null) {
       return field.getType();

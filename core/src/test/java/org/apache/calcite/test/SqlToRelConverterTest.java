@@ -1029,6 +1029,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testSelectStarOverDuplicateColumns() {
+    final String sql =
+        "select * from (select ename as num, deptno as num from emp)";
+    sql(sql).ok();
+  }
+
   @Test void testOrder() {
     final String sql = "select empno from emp order by empno";
     sql(sql).ok();

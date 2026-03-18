@@ -4734,19 +4734,29 @@ public class SqlToRelConverter {
       bb = ((MeasureBlackboard) bb).parentBlackboard;
     }
 
+    final @Nullable Integer starExpansionFieldIndex =
+        validator() instanceof SqlValidatorImpl
+            ? ((SqlValidatorImpl) validator()).getStarExpansionFieldIndex(identifier)
+            : null;
     final SqlQualified qualified = bb.scope.fullyQualify(identifier);
     final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
         bb.lookupExp(qualified);
     RexNode e = e0.left;
-    for (String name : qualified.suffix()) {
-      if (e == e0.left && e0.right != null) {
-        e = e0.right.apply(e, name);
-      } else {
-        final boolean caseSensitive = true; // name already fully-qualified
-        if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
-          e = rexBuilder.makeFieldAccess(e, 0);
+    if (starExpansionFieldIndex != null && qualified.suffix().size() == 1) {
+      // Duplicate star-expanded fields need positional access; name-based
+      // access would bind to the first matching field.
+      e = rexBuilder.makeFieldAccess(e, starExpansionFieldIndex);
+    } else {
+      for (String name : qualified.suffix()) {
+        if (e == e0.left && e0.right != null) {
+          e = e0.right.apply(e, name);
         } else {
-          e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+          final boolean caseSensitive = true; // name already fully-qualified
+          if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
+            e = rexBuilder.makeFieldAccess(e, 0);
+          } else {
+            e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+          }
         }
       }
     }

@@ -26,14 +26,14 @@ from t as t1
  t as t3
    cross join t as t4
 where t1.i + t2.i + t3.i + t4.i = 1;
-+---+----+----+----+
-| I | I0 | I1 | I2 |
-+---+----+----+----+
-| 0 |  0 |  0 |  1 |
-| 0 |  0 |  1 |  0 |
-| 0 |  1 |  0 |  0 |
-| 1 |  0 |  0 |  0 |
-+---+----+----+----+
++---+---+---+---+
+| I | I | I | I |
++---+---+---+---+
+| 0 | 0 | 0 | 1 |
+| 0 | 0 | 1 | 0 |
+| 0 | 1 | 0 | 0 |
+| 1 | 0 | 0 | 0 |
++---+---+---+---+
 (4 rows)
 
 !ok
@@ -44,13 +44,13 @@ from t as t1
    cross join t as t2,
  t as t3
 where t1.i + t2.i + t3.i = 1;
-+---+----+----+
-| I | I0 | I1 |
-+---+----+----+
-| 0 |  0 |  1 |
-| 0 |  1 |  0 |
-| 1 |  0 |  0 |
-+---+----+----+
++---+---+---+
+| I | I | I |
++---+---+---+
+| 0 | 0 | 1 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
++---+---+---+
 (3 rows)
 
 !ok
@@ -61,13 +61,13 @@ from t as t1,
  t as t2
    cross join t as t3
 where t1.i + t2.i + t3.i = 1;
-+---+----+----+
-| I | I0 | I1 |
-+---+----+----+
-| 0 |  0 |  1 |
-| 0 |  1 |  0 |
-| 1 |  0 |  0 |
-+---+----+----+
++---+---+---+
+| I | I | I |
++---+---+---+
+| 0 | 0 | 1 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
++---+---+---+
 (3 rows)
 
 !ok
@@ -79,14 +79,14 @@ from t as t1
  cross join t as t3
  cross join t as t4
 where t1.i + t2.i + t3.i + t4.i = 1;
-+---+----+----+----+
-| I | I0 | I1 | I2 |
-+---+----+----+----+
-| 0 |  0 |  0 |  1 |
-| 0 |  0 |  1 |  0 |
-| 0 |  1 |  0 |  0 |
-| 1 |  0 |  0 |  0 |
-+---+----+----+----+
++---+---+---+---+
+| I | I | I | I |
++---+---+---+---+
+| 0 | 0 | 0 | 1 |
+| 0 | 0 | 1 | 0 |
+| 0 | 1 | 0 | 0 |
+| 1 | 0 | 0 | 0 |
++---+---+---+---+
 (4 rows)
 
 !ok
@@ -96,15 +96,15 @@ select *
 from emp
 join dept
 on emp.deptno = dept.deptno or emp.ename = dept.dname;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Alice |     30 | F      |      30 | Engineering |
-| Bob   |     10 | M      |      10 | Sales       |
-| Eric  |     20 | M      |      20 | Marketing   |
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Alice |     30 | F      |     30 | Engineering |
+| Bob   |     10 | M      |     10 | Sales       |
+| Eric  |     20 | M      |     20 | Marketing   |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
++-------+--------+--------+--------+-------------+
 (5 rows)
 
 !ok
@@ -119,19 +119,19 @@ select *
 from emp
 left join dept
 on emp.deptno = dept.deptno or emp.ename = dept.dname;
-+-------+--------+--------+---------+-------------+
-| ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
-+-------+--------+--------+---------+-------------+
-| Adam  |     50 | M      |         |             |
-| Alice |     30 | F      |      30 | Engineering |
-| Bob   |     10 | M      |      10 | Sales       |
-| Eric  |     20 | M      |      20 | Marketing   |
-| Eve   |     50 | F      |         |             |
-| Grace |     60 | F      |         |             |
-| Jane  |     10 | F      |      10 | Sales       |
-| Susan |     30 | F      |      30 | Engineering |
-| Wilma |        | F      |         |             |
-+-------+--------+--------+---------+-------------+
++-------+--------+--------+--------+-------------+
+| ENAME | DEPTNO | GENDER | DEPTNO | DNAME       |
++-------+--------+--------+--------+-------------+
+| Adam  |     50 | M      |        |             |
+| Alice |     30 | F      |     30 | Engineering |
+| Bob   |     10 | M      |     10 | Sales       |
+| Eric  |     20 | M      |     20 | Marketing   |
+| Eve   |     50 | F      |        |             |
+| Grace |     60 | F      |        |             |
+| Jane  |     10 | F      |     10 | Sales       |
+| Susan |     30 | F      |     30 | Engineering |
+| Wilma |        | F      |        |             |
++-------+--------+--------+--------+-------------+
 (9 rows)
 
 !ok
@@ -527,7 +527,7 @@ join (values (1, 'LeaderShip'),
              (3, 'Development')) as d(deptno, name)
 using (deptno);
 +--------+-------+-----------+-------------+
-| DEPTNO | EMPID | NAME      | NAME0       |
+| DEPTNO | EMPID | NAME      | NAME        |
 +--------+-------+-----------+-------------+
 |      1 |   100 | Bill      | LeaderShip  |
 |      1 |   200 | Eric      | LeaderShip  |
@@ -1037,11 +1037,11 @@ left join (select 2 id) t2
 on not exists(select *
                from (select 3 id) p
                where p.id = t2.id);
-+----+-----+
-| ID | ID0 |
-+----+-----+
-|  1 |   2 |
-+----+-----+
++----+----+
+| ID | ID |
++----+----+
+|  1 |  2 |
++----+----+
 (1 row)
 
 !ok
@@ -1052,12 +1052,12 @@ left join (select 2 id) t2
 on t1.id = t2.id and not exists(select *
                                 from (select 3 id) p
                                 where p.id = t1.id);
-+----+-----+
-| ID | ID0 |
-+----+-----+
-|  1 |     |
-|  2 |   2 |
-+----+-----+
++----+----+
+| ID | ID |
++----+----+
+|  1 |    |
+|  2 |  2 |
++----+----+
 (2 rows)
 
 !ok
@@ -1068,11 +1068,11 @@ left join (select 2 id) t2
 on t1.id = t2.id or exists(select *
                            from (select 3 id) p
                            where p.id = t2.id);
-+----+-----+
-| ID | ID0 |
-+----+-----+
-|  1 |     |
-+----+-----+
++----+----+
+| ID | ID |
++----+----+
+|  1 |    |
++----+----+
 (1 row)
 
 !ok
@@ -1083,11 +1083,11 @@ left join (select 2 id) t2
 on t1.id = t2.id or not exists(select *
                                from (select 3 id) p
                                where p.id = t2.id);
-+----+-----+
-| ID | ID0 |
-+----+-----+
-|  1 |   2 |
-+----+-----+
++----+----+
+| ID | ID |
++----+----+
+|  1 |  2 |
++----+----+
 (1 row)
 
 !ok
@@ -1115,11 +1115,11 @@ WHERE "t"."EMPNO" = "t2"."EMPNO" AND "t"."EMPNO" > "t2"."EMPNO");
 
 # [CALCITE-3128] Joining two tables producing only NULLs will return 0 rows
 SELECT * FROM (SELECT NULLIF(5, 5)) a , (SELECT NULLIF(5, 5)) b;
-+--------+---------+
-| EXPR$0 | EXPR$00 |
-+--------+---------+
-|        |         |
-+--------+---------+
++--------+--------+
+| EXPR$0 | EXPR$0 |
++--------+--------+
+|        |        |
++--------+--------+
 (1 row)
 
 !ok

@@ -44,8 +44,16 @@ FROM   (SELECT deptno, job, sal
 PIVOT  (SUM(sal) AS sum_sal, COUNT(*) AS sal
         FOR (job) IN ('CL' || 'ERK', 'MANAGER' mgr, 'ANALYST' AS "MGR_SUM",null))
 ORDER BY deptno;
-At line 1, column 8: Column 'MGR_SUM_SAL' is ambiguous
-!error
++--------+-----------------------+-------------------+-------------+---------+-----------------+-------------+--------------+----------+
+| DEPTNO | 'CL' || 'ERK'_SUM_SAL | 'CL' || 'ERK'_SAL | MGR_SUM_SAL | MGR_SAL | MGR_SUM_SUM_SAL | MGR_SUM_SAL | NULL_SUM_SAL | NULL_SAL |
++--------+-----------------------+-------------------+-------------+---------+-----------------+-------------+--------------+----------+
+|     10 |               1300.00 |                 1 |     2450.00 |       1 |                 |           0 |              |        0 |
+|     20 |               1900.00 |                 2 |     2975.00 |       1 |         6000.00 |           2 |              |        0 |
+|     30 |                950.00 |                 1 |     2850.00 |       1 |                 |           0 |              |        0 |
++--------+-----------------------+-------------------+-------------+---------+-----------------+-------------+--------------+----------+
+(3 rows)
+
+!ok
 
 !if (false) {
 # Invalid column. (Because deptno is used in FOR, it is not available in ORDER BY.)
@@ -267,8 +275,14 @@ PIVOT (SUM(sal) FOR (deptno) IN (10, 10 as ten, 20));
 SELECT *
 FROM (SELECT sal, deptno FROM emp)
 PIVOT (SUM(sal) AS b_c, COUNT(*) AS c FOR deptno IN (10 as a, 20 as a_b));
-At line 1, column 8: Column 'A_B_C' is ambiguous
-!error
++---------+-----+----------+-------+
+| A_B_C   | A_C | A_B_B_C  | A_B_C |
++---------+-----+----------+-------+
+| 8750.00 |   3 | 10875.00 |     5 |
++---------+-----+----------+-------+
+(1 row)
+
+!ok
 
 # As previous, but choosing the unambiguous columns
 SELECT a_c, a_b_b_c
@@ -299,14 +313,20 @@ PIVOT (SUM(sal), SUM(empno) AS sum_empno FOR deptno IN (10, 20));
 
 # Multiple pivot expressions, one with alias, two without alias
 SELECT *
-FROM (SELECT sal, empno, deptno FROM emp)
+FROM (SELECT sal, CAST(empno AS integer) AS empno, deptno FROM emp)
 PIVOT (SUM(sal), COUNT(*), SUM(empno) AS sum_empno FOR deptno IN (10, 20));
-At line 1, column 8: Column '10' is ambiguous
-!error
++---------+----+--------------+----------+----+--------------+
+| 10      | 10 | 10_SUM_EMPNO | 20       | 20 | 20_SUM_EMPNO |
++---------+----+--------------+----------+----+--------------+
+| 8750.00 |  3 |        23555 | 10875.00 |  5 |        38501 |
++---------+----+--------------+----------+----+--------------+
+(1 row)
+
+!ok
 
 # As above, choosing the unambiguous columns
 SELECT "10_SUM_EMPNO"
-FROM (SELECT sal, empno, deptno FROM emp)
+FROM (SELECT sal, CAST(empno AS integer) AS empno, deptno FROM emp)
 PIVOT (SUM(sal), COUNT(*), SUM(empno) AS sum_empno FOR deptno IN (10, 20));
 +--------------+
 | 10_SUM_EMPNO |
