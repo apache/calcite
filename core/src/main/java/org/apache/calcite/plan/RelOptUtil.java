@@ -2957,7 +2957,8 @@ public abstract class RelOptUtil {
                   joinFields,
                   nTotalFields,
                   leftFields,
-                  filter);
+                  filter,
+                  joinRel.getInput(0));
 
           leftFilters.add(shiftedFilter);
         }
@@ -2975,7 +2976,8 @@ public abstract class RelOptUtil {
                   joinFields,
                   nTotalFields,
                   rightFields,
-                  filter);
+                  filter,
+                  joinRel.getInput(1));
           rightFilters.add(shiftedFilter);
         }
         filtersToRemove.add(filter);
@@ -3079,7 +3081,8 @@ public abstract class RelOptUtil {
                   joinFields,
                   nTotalFields,
                   leftFields,
-                  filter);
+                  filter,
+                  joinRel.getInput(0));
 
           leftFilters.add(shiftedFilter);
         }
@@ -3105,7 +3108,8 @@ public abstract class RelOptUtil {
                   joinFields,
                   nTotalFields,
                   rightFields,
-                  filter);
+                  filter,
+                  joinRel.getInput(1));
           rightFilters.add(shiftedFilter);
         }
         filtersToRemove.add(filter);
@@ -3140,7 +3144,8 @@ public abstract class RelOptUtil {
       List<RelDataTypeField> joinFields,
       int nTotalFields,
       List<RelDataTypeField> rightFields,
-      RexNode filter) {
+      RexNode filter,
+      RelNode child) {
     int[] adjustments = new int[nTotalFields];
     for (int i = start; i < end; i++) {
       adjustments[i] = offset;
@@ -3150,7 +3155,9 @@ public abstract class RelOptUtil {
             rexBuilder,
             joinFields,
             rightFields,
-            adjustments));
+            adjustments,
+            offset,
+            child));
   }
 
   /**
@@ -4766,6 +4773,8 @@ public abstract class RelOptUtil {
     private final @Nullable List<RelDataTypeField> rightDestFields;
     private final int nLeftDestFields;
     private final int[] adjustments;
+    private final int offset;
+    private final @Nullable RelNode correlateVariableChild;
 
     /**
      * Creates a RexInputConverter.
@@ -4784,6 +4793,13 @@ public abstract class RelOptUtil {
      * @param rightDestFields in the case where the destination is a join,
      *                        these are the fields from the right join input
      * @param adjustments     the amount to adjust each field by
+     * @param offset          the amount to shift field accesses by when
+     *                        rewriting correlated subqueries
+     * @param correlateVariableChild the child relation providing the
+     *                        correlated variable; if non-null, subqueries
+     *                        referencing a correlation variable will have
+     *                        their field accesses shifted by {@code offset}
+     *                        relative to this child
      */
     private RexInputConverter(
         RexBuilder rexBuilder,
@@ -4791,7 +4807,9 @@ public abstract class RelOptUtil {
         @Nullable List<RelDataTypeField> destFields,
         @Nullable List<RelDataTypeField> leftDestFields,
         @Nullable List<RelDataTypeField> rightDestFields,
-        int[] adjustments) {
+        int[] adjustments,
+        int offset,
+        @Nullable RelNode correlateVariableChild) {
       this.rexBuilder = rexBuilder;
       this.srcFields = srcFields;
       this.destFields = destFields;
@@ -4804,6 +4822,8 @@ public abstract class RelOptUtil {
         assert destFields == null;
         nLeftDestFields = leftDestFields.size();
       }
+      this.offset = offset;
+      this.correlateVariableChild = correlateVariableChild;
     }
 
     public RexInputConverter(
@@ -4818,7 +4838,9 @@ public abstract class RelOptUtil {
           null,
           leftDestFields,
           rightDestFields,
-          adjustments);
+          adjustments,
+          0,
+          null);
     }
 
     public RexInputConverter(
@@ -4826,14 +4848,45 @@ public abstract class RelOptUtil {
         @Nullable List<RelDataTypeField> srcFields,
         @Nullable List<RelDataTypeField> destFields,
         int[] adjustments) {
-      this(rexBuilder, srcFields, destFields, null, null, adjustments);
+      this(rexBuilder, srcFields, destFields, null, null, adjustments, 0, null);
     }
 
     public RexInputConverter(
         RexBuilder rexBuilder,
         @Nullable List<RelDataTypeField> srcFields,
         int[] adjustments) {
-      this(rexBuilder, srcFields, null, null, null, adjustments);
+      this(rexBuilder, srcFields, null, null, null, adjustments,  0, null);
+    }
+
+    public RexInputConverter(
+        RexBuilder rexBuilder,
+        @Nullable List<RelDataTypeField> srcFields,
+        @Nullable List<RelDataTypeField> destFields,
+        int[] adjustments,
+        int offset,
+        RelNode child) {
+      this(rexBuilder, srcFields, destFields, null, null, adjustments, offset, child);
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      boolean[] update = {false};
+      List<RexNode> clonedOperands = visitList(subQuery.operands, update);
+      if (update[0]) {
+        subQuery = subQuery.clone(subQuery.getType(), clonedOperands);
+        final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(subQuery.rel);
+        if (!variablesSet.isEmpty() && correlateVariableChild != null) {
+          CorrelationId id = Iterables.getOnlyElement(variablesSet);
+          RelNode newSubQueryRel = subQuery.rel.accept(new RelHomogeneousShuttle() {
+            @Override public RelNode visit(RelNode other) {
+              RelNode node =
+                  RexUtil.shiftFieldAccess(rexBuilder, other, id, correlateVariableChild, offset);
+              return super.visit(node);
+            }
+          });
+          subQuery = subQuery.clone(newSubQueryRel);
+        }
+      }
+      return subQuery;
     }
 
     @Override public RexNode visitInputRef(RexInputRef var) {
