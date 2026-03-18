@@ -1830,4 +1830,160 @@ public class RelDecorrelatorTest {
         + "                LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7442">[CALCITE-7442]
+  * Getting Wrong index of Correlated variable inside Subquery after FilterJoinRule</a>. */
+  @Test void testCorrelatedVariableIndexForInClause() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "select e.empno, d.dname, b.ename\n"
+        + "from emp e\n"
+        + "inner join dept d\n"
+        + "  on d.deptno = e.deptno\n"
+        + "inner join bonus b\n"
+        + "  on e.ename = b.ename\n"
+        + "  and b.job in (\n"
+        + "    select b2.job\n"
+        + "    from bonus b2\n"
+        + "    where b2.ename = b.ename)\n"
+        + "where e.sal > 1000 and d.dname = 'SALES'";
+
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_INTO_JOIN,
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+
+    final String planBefore = "LogicalProject(EMPNO=[$0], DNAME=[$9], ENAME=[$11])\n"
+        + "  LogicalJoin(condition=[=($1, $11)], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[=($8, $7)], joinType=[inner])\n"
+        + "      LogicalFilter(condition=[>(CAST($5):DECIMAL(12, 2), 1000.00)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalFilter(condition=[=($1, 'SALES')])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])\n"
+        + "      LogicalFilter(condition=[=($1, $4)])\n"
+        + "        LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+        + "          LogicalTableScan(table=[[scott, BONUS]])\n"
+        + "          LogicalProject(JOB=[$1])\n"
+        + "            LogicalFilter(condition=[=($0, $cor0.ENAME)])\n"
+        + "              LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = "LogicalProject(EMPNO=[$0], DNAME=[$9], ENAME=[$11])\n"
+        + "  LogicalJoin(condition=[=($1, $11)], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[=($8, $7)], joinType=[inner])\n"
+        + "      LogicalFilter(condition=[>(CAST($5):DECIMAL(12, 2), 1000.00)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalFilter(condition=[=($1, 'SALES')])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])\n"
+        + "      LogicalJoin(condition=[AND(=($0, $5), =($1, $4))], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n"
+        + "        LogicalProject(JOB=[$1], ENAME=[$0])\n"
+        + "          LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "            LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7442">[CALCITE-7442]
+  * Getting Wrong index of Correlated variable inside Subquery after FilterJoinRule</a>.
+  * Same as {@link #testCorrelatedVariableIndexForInClause()} but uses EXISTS
+  * instead of IN. */
+  @Test void testCorrelatedVariableIndexForExistsClause() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "select e.empno, d.dname, b.ename\n"
+        + "from emp e\n"
+        + "inner join dept d\n"
+        + "  on d.deptno = e.deptno\n"
+        + "inner join bonus b\n"
+        + "  on e.ename = b.ename\n"
+        + "  and exists (\n"
+        + "    select b2.job\n"
+        + "    from bonus b2\n"
+        + "    where b2.ename = b.ename\n"
+        + "    and b2.job = b.job)\n"
+        + "where e.sal > 1000 and d.dname = 'SALES'";
+
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                CoreRules.FILTER_INTO_JOIN,
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+
+    final String planBefore = "LogicalProject(EMPNO=[$0], DNAME=[$9], ENAME=[$11])\n"
+        + "  LogicalJoin(condition=[=($1, $11)], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[=($8, $7)], joinType=[inner])\n"
+        + "      LogicalFilter(condition=[>(CAST($5):DECIMAL(12, 2), 1000.00)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalFilter(condition=[=($1, 'SALES')])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n"
+        + "        LogicalAggregate(group=[{0}])\n"
+        + "          LogicalProject(i=[true])\n"
+        + "            LogicalFilter(condition=[AND(=($0, $cor0.ENAME), =($1, $cor0.JOB))])\n"
+        + "              LogicalTableScan(table=[[scott, BONUS]])\n";
+
+    assertThat(before, hasTree(planBefore));
+
+    final RelNode after =
+        RelDecorrelator.decorrelateQuery(before, builder, RuleSets.ofList(Collections.emptyList()),
+            RuleSets.ofList(Collections.emptyList()));
+    final String planAfter = "LogicalProject(EMPNO=[$0], DNAME=[$9], ENAME=[$11])\n"
+        + "  LogicalJoin(condition=[=($1, $11)], joinType=[inner])\n"
+        + "    LogicalJoin(condition=[=($8, $7)], joinType=[inner])\n"
+        + "      LogicalFilter(condition=[>(CAST($5):DECIMAL(12, 2), 1000.00)])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalFilter(condition=[=($1, 'SALES')])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])\n"
+        + "      LogicalJoin(condition=[AND(=($0, $4), =($1, $5))], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, BONUS]])\n"
+        + "        LogicalProject(ENAME=[$0], JOB=[$1], $f2=[true])\n"
+        + "          LogicalFilter(condition=[AND(IS NOT NULL($0), IS NOT NULL($1))])\n"
+        + "            LogicalTableScan(table=[[scott, BONUS]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
 }

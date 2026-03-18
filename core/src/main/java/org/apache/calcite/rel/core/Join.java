@@ -356,6 +356,30 @@ public abstract class Join extends BiRel implements Hintable {
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone);
 
   /**
+   * Creates a copy of this join, overriding condition, system fields and
+   * inputs.
+   *
+   * <p>General contract as {@link RelNode#copy}.
+   *
+   * @param traitSet      Traits
+   * @param conditionExpr Condition
+   * @param left          Left input
+   * @param right         Right input
+   * @param joinType      Join type
+   * @param semiJoinDone  Whether this join has been translated to a
+   *                      semi-join
+   * @param variablesSet  Set of variables that are set by the
+   *                      LHS and used by the RHS and are not available to
+   *                      nodes above this LogicalJoin in the tree
+   * @return Copy of this join
+   */
+  public Join copy(RelTraitSet traitSet, RexNode conditionExpr,
+      RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone,
+      Set<CorrelationId> variablesSet) {
+    return copy(traitSet, conditionExpr, left, right, joinType, semiJoinDone);
+  }
+
+  /**
    * Analyzes the join condition.
    *
    * @return Analyzed join condition

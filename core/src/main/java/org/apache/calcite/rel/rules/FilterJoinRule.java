@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -29,7 +30,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
@@ -198,14 +201,43 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       return;
     }
 
+    Set<CorrelationId> leftVariablesSet =  new LinkedHashSet<>();
+    Set<CorrelationId> rightVariablesSet = new LinkedHashSet<>();
+
+    for (RexNode condition : leftFilters) {
+      condition.accept(new RexVisitorImpl<Void>(true) {
+        @Override public Void visitSubQuery(RexSubQuery subQuery) {
+          leftVariablesSet.addAll(RelOptUtil.getVariablesUsed(subQuery.rel));
+          return super.visitSubQuery(subQuery);
+        }
+      });
+    }
+
+    for (RexNode condition : rightFilters) {
+      condition.accept(new RexVisitorImpl<Void>(true) {
+        @Override public Void visitSubQuery(RexSubQuery subQuery) {
+          rightVariablesSet.addAll(RelOptUtil.getVariablesUsed(subQuery.rel));
+          return super.visitSubQuery(subQuery);
+        }
+      });
+    }
+
+    ImmutableSet.Builder<CorrelationId> newJoinCorrelationIds = ImmutableSet.builder();
+    for (CorrelationId correlationId : join.getVariablesSet()) {
+      if (!leftVariablesSet.contains(correlationId)
+          && !rightVariablesSet.contains(correlationId)) {
+        newJoinCorrelationIds.add(correlationId);
+      }
+    }
+
     // create Filters on top of the children if any filters were
     // pushed to them
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
     final RelNode leftRel =
-        relBuilder.push(join.getLeft()).filter(leftFilters).build();
+        relBuilder.push(join.getLeft()).filter(leftVariablesSet, leftFilters).build();
     final RelNode rightRel =
-        relBuilder.push(join.getRight()).filter(rightFilters).build();
+        relBuilder.push(join.getRight()).filter(rightVariablesSet, rightFilters).build();
 
     // create the new join node referencing the new children and
     // containing its new join filters (if there are any)
@@ -233,7 +265,8 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
             leftRel,
             rightRel,
             joinType,
-            join.isSemiJoinDone());
+            join.isSemiJoinDone(),
+            newJoinCorrelationIds.build());
     call.getPlanner().onCopy(join, newJoinRel);
     if (!leftFilters.isEmpty() && filter != null) {
       call.getPlanner().onCopy(filter, leftRel);
