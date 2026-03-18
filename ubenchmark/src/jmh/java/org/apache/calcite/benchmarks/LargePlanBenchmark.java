@@ -221,14 +221,14 @@ public class LargePlanBenchmark {
       if (collectStats) {
         stats.put("FILTER", new HashMap<>(planner.getRuleAttemptsInfo()));
       }
-      planner.clear();
+      planner.clearRules();
 
       // Phase 2: Execute PROJECT_REDUCE_EXPRESSIONS
       planner.executeProgram(projectReduce);
       if (collectStats) {
         stats.put("PROJECT", new HashMap<>(planner.getRuleAttemptsInfo()));
       }
-      planner.clear();
+      planner.clearRules();
 
       root = planner.buildFinalPlan();
     }

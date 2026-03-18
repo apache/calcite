@@ -143,6 +143,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private boolean enableFiredRulesCache = false;
 
+  /** Enables optimizations for large plans.
+   * This optimization improves performance for plans of any scale.
+   * To be removed in the future; the optimization will become the default behavior.
+   */
   private boolean largePlanMode = false;
 
 
@@ -207,10 +211,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
    *   planner.setRoot(initPlanRoot);
    *   planner.executeProgram(phase1Program);
    *   planner.dumpRuleAttemptsInfo(); // optional
-   *   planner.clear(); // clear the rules and rule match caches, the graph is reused
+   *   planner.clearRules(); // clear the rules and rule match caches, the graph is preserved
    *   // other logic ...
    *   planner.executeProgram(phase2Program);
-   *   planner.clear();
+   *   planner.clearRules();
    *   ...
    *   RelNode optimized = planner.buildFinalPlan();
    * }</pre>
@@ -218,7 +222,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @see #setRoot(RelNode)
    * @see #executeProgram(HepProgram)
    * @see #dumpRuleAttemptsInfo()
-   * @see #clear()
+   * @see #clearRules()
    * @see #buildFinalPlan()
    */
   public HepPlanner() {
@@ -243,10 +247,18 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   @Override public void clear() {
     super.clear();
+    this.materializations.clear();
+    clearRules();
+  }
+
+  /** Clears the rules and rule match caches while preserving the internal graph
+   * structure. This is useful for multiphase optimization where the graph should
+   * be reused across successive {@link HepProgram} executions.
+   */
+  public void clearRules() {
     for (RelOptRule rule : getRules()) {
       removeRule(rule);
     }
-    this.materializations.clear();
     this.firedRulesCache.clear();
     this.firedRulesCacheIndex.clear();
   }
@@ -269,11 +281,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public RelNode findBestExp() {
-    if (isLargePlanMode()) {
-      throw new UnsupportedOperationException("findBestExp is not supported in large plan mode"
-          + ", please use buildFinalPlan() to get the final plan.");
-    }
-
     requireNonNull(root, "'root' must not be null");
 
     executeProgram(mainProgram);
@@ -578,7 +585,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     case BOTTOM_UP:
       assert start == root;
       if (!isLargePlanMode()) {
-        // NOTE: Planner already runs GC for every subtree removed by transformation
+        // NOTE: We do not need to run garbage collection for the whole graph here.
+        // tryCleanVertices already cleans up potentially removed vertices.
         collectGarbage();
       }
       return TopologicalOrderIterator.of(graph, programState.matchOrder).iterator();
@@ -634,6 +642,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return null;
     }
 
+    // Cache the fired rule before constructing a HepRuleCall.
     ImmutableIntList relIds = null;
     if (enableFiredRulesCache) {
       int[] ids = new int[bindings.size()];
@@ -1237,7 +1246,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       if (graph.getOutwardEdges(vertex).size()
           != Sets.newHashSet(requireNonNull(vertex, "vertex").getCurrentRel().getInputs()).size()) {
         throw new AssertionError("HepPlanner:outward edge num is different "
-            + "with input node num, " + vertex);
+            + "from input node num, " + vertex);
       }
       for (DefaultEdge edge : graph.getInwardEdges(vertex)) {
         if (!((HepRelVertex) edge.source).getCurrentRel().getInputs().contains(vertex)) {
@@ -1262,7 +1271,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (liveNum == validSet.size()) {
       return;
     }
-    throw new AssertionError("HepPlanner:Query graph live node num is different with root"
+    throw new AssertionError("HepPlanner:Query graph live node num is different from root"
         + " input valid node num, liveNodeNum: " + liveNum + ", validNodeNum: " + validSet.size());
   }
 
