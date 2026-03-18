@@ -2934,15 +2934,39 @@ public abstract class RelOptUtil {
     ImmutableBitSet rightBitmap =
         ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
 
+    // Correlation variables introduced by this join itself: i.e. ids whose
+    // binding is established by *this* join. A predicate that references any
+    // of these cannot be pushed to either input -- the binder lives on the
+    // join, so pushing the reference below it would strand the variable.
+    // Such predicates must stay on the join itself.
+    final Set<CorrelationId> joinCorrelationIds = joinRel instanceof Join
+        ? joinRel.getVariablesSet()
+        : ImmutableSet.of();
+
     final List<RexNode> filtersToRemove = new ArrayList<>();
     for (RexNode filter : filters) {
-      final InputFinder inputFinder = InputFinder.analyze(filter);
+
+      // Only consider correlation ids bound by *this* join when computing
+      // the input bitmap of a sub-query inside the predicate. Foreign
+      // correlation ids are bound by an outer scope and their
+      // correlationColumns indices would otherwise alias onto unrelated
+      // columns of this join's row type, mis-classifying the predicate.
+      final InputFinder inputFinder = InputFinder.analyze(filter, joinCorrelationIds);
       final ImmutableBitSet inputBits = inputFinder.build();
+
+      // Block pushing to either input for filters that reference a
+      // CorrelationId bound by this join; they must remain on the join.
+      // pushing down correlated subqueries carries risks and involves extremely complex logic,
+      // and therefore pushing down is prohibited.
+      final boolean blockPush =
+          RexUtil.containsCorrelation(filter, joinCorrelationIds);
+      final boolean effectivePushLeft = pushLeft && !blockPush && leftBitmap.contains(inputBits);
+      final boolean effectivePushRight = pushRight && !blockPush && rightBitmap.contains(inputBits);
 
       // REVIEW - are there any expressions that need special handling
       // and therefore cannot be pushed?
 
-      if (pushLeft && leftBitmap.contains(inputBits)) {
+      if (effectivePushLeft) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
@@ -2962,7 +2986,7 @@ public abstract class RelOptUtil {
           leftFilters.add(shiftedFilter);
         }
         filtersToRemove.add(filter);
-      } else if (pushRight && rightBitmap.contains(inputBits)) {
+      } else if (effectivePushRight) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
           // that fields in the right now shift over to the left
@@ -4678,12 +4702,29 @@ public abstract class RelOptUtil {
   public static class InputFinder extends RexVisitorImpl<Void> {
     private final ImmutableBitSet.Builder bitBuilder;
     private final @Nullable Set<RelDataTypeField> extraFields;
+    /** Correlation ids whose binder is the current scope. When non-null,
+     * {@link #visitSubQuery} projects bits for each id in this set by looking
+     * up its {@code correlationColumns} against the sub-query's inner plan
+     * and adding those column indices to the bitmap. Correlation ids bound
+     * by an outer scope are skipped, since their column indices are relative
+     * to a foreign row type and would otherwise alias onto unrelated columns
+     * of the current scope. When null, {@link #visitSubQuery} contributes no
+     * correlation-related bits and simply descends into the sub-query's
+     * operands (legacy behaviour). */
+    private final @Nullable Set<CorrelationId> localCorrelationIds;
 
     private InputFinder(@Nullable Set<RelDataTypeField> extraFields,
-        ImmutableBitSet.Builder bitBuilder) {
+        ImmutableBitSet.Builder bitBuilder,
+        @Nullable Set<CorrelationId> localCorrelationIds) {
       super(true);
       this.bitBuilder = bitBuilder;
       this.extraFields = extraFields;
+      this.localCorrelationIds = localCorrelationIds;
+    }
+
+    private InputFinder(@Nullable Set<RelDataTypeField> extraFields,
+        ImmutableBitSet.Builder bitBuilder) {
+      this(extraFields, bitBuilder, null);
     }
 
     public InputFinder() {
@@ -4702,6 +4743,22 @@ public abstract class RelOptUtil {
     /** Returns an input finder that has analyzed a given expression. */
     public static InputFinder analyze(RexNode node) {
       final InputFinder inputFinder = new InputFinder();
+      node.accept(inputFinder);
+      return inputFinder;
+    }
+
+    /** Returns an input finder that has analyzed a given expression,
+     * treating {@code localCorrelationIds} as the set of correlation ids
+     * bound by the current scope. For each nested {@link RexSubQuery},
+     * any correlation id used inside it that belongs to this set
+     * contributes its {@code correlationColumns} indices to the bitmap;
+     * correlation ids bound by an outer scope are ignored, because their
+     * indices are relative to a foreign row type and would otherwise
+     * alias onto unrelated columns of the current scope. */
+    public static InputFinder analyze(RexNode node,
+        Set<CorrelationId> localCorrelationIds) {
+      final InputFinder inputFinder =
+          new InputFinder(null, ImmutableBitSet.builder(), localCorrelationIds);
       node.accept(inputFinder);
       return inputFinder;
     }
@@ -4751,6 +4808,28 @@ public abstract class RelOptUtil {
         }
       }
       return super.visitCall(call);
+    }
+
+    @Override public Void visitSubQuery(RexSubQuery subQuery) {
+      if (localCorrelationIds == null) {
+        return super.visitSubQuery(subQuery);
+      }
+
+      final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(subQuery.rel);
+      for (CorrelationId id : variablesSet) {
+        // Skip correlation ids that are not bound by the *current* scope.
+        // Their requiredColumns indices are relative to whichever outer
+        // RelNode produces them and would otherwise alias onto unrelated
+        // columns of the current row type.
+        if (!localCorrelationIds.contains(id)) {
+          continue;
+        }
+        ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, subQuery.rel);
+        for (int index : requiredColumns) {
+          bitBuilder.set(index);
+        }
+      }
+      return super.visitSubQuery(subQuery);
     }
   }
 
