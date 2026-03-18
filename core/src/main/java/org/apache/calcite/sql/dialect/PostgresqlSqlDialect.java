@@ -241,7 +241,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
   }
 
   @Override public boolean requiresAliasForFromItems() {
-    return true;
+    return false;
   }
 
   @Override public boolean supportsNestedAggregations() {

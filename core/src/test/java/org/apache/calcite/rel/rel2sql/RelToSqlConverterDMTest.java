@@ -3221,7 +3221,7 @@ class RelToSqlConverterDMTest {
     final String expectedPostgresql = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\n"
-        + "SELECT 2 AS \"a\", 'yy' AS \"b\") AS \"t\"";
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
