@@ -388,7 +388,7 @@ LogicalProject(DEPTNO=[$0])
 }))], variablesSet=[[$cor0]])
     LogicalProject(EMPNO=[$0], ENAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true)"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1])
     LogicalFilter(condition=[OR(CASE(=($2, false), null:BOOLEAN, IS NOT NULL($2), true, false), CASE(=($3, false), null:BOOLEAN, IS NOT NULL($3), true, false))])
@@ -410,7 +410,7 @@ LogicalProject(EMPNO=[$0])
                 LogicalProject(DEPTNO=[$0])
                   LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
                     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true), subQueryRules"
 
 # testExpandFilterConstantInWithTwoSubQueries ----------------------------------
 # [CALCITE-5680] Wrong field reference lookup due to same intermediate table
@@ -435,7 +435,7 @@ LogicalProject(DEPTNO=[$0])
 }))])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true)"
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[OR(CASE(IS NULL($2), false, =($1, false), null:BOOLEAN, IS NOT NULL($1), true, false), CASE(IS NULL($4), false, =($3, false), null:BOOLEAN, IS NOT NULL($3), true, false))])
     LogicalJoin(condition=[true], joinType=[left])
@@ -456,7 +456,7 @@ LogicalProject(EMPNO=[$0])
               LogicalProject(DEPTNO=[$0])
                 LogicalFilter(condition=[=($1, 'dept2')])
                   LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true), subQueryRules"
 
 # testExpandFilterExists -------------------------------------------------------
 # An EXISTS filter that can be converted into true/false.
@@ -614,7 +614,7 @@ LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), false), 20, 30))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[<($0, CASE(=(CASE(=($9, 0), false, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), true), 10, =(CASE(=($9, 0), false, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), false), 20, 30))])
@@ -629,7 +629,7 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(EXPR$0=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
             LogicalFilter(condition=[<($0, 20)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false, subQueryRules"
+!transform "RelBuilder(simplify=false), subQueryRules"
 
 # testExpandFilterInComposite --------------------------------------------------
 
@@ -686,7 +686,7 @@ LogicalProject(DEPTNO=[$0])
 }))], variablesSet=[[$cor0]])
     LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true)"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
     LogicalFilter(condition=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
@@ -712,7 +712,7 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(DEPTNO=[$0], i=[true])
             LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
               LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true), subQueryRules"
 
 # testExpandFilterInWithTwoSubQueries ------------------------------------------
 # [CALCITE-5655] Wrong field reference lookup due to same intermediate table
@@ -737,7 +737,7 @@ LogicalProject(DEPTNO=[$0])
 }))])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true)"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], DEPTNO=[$1])
     LogicalFilter(condition=[OR(CASE(=($2, 0), false, IS NULL($1), null:BOOLEAN, IS NOT NULL($5), true, <($3, $2), null:BOOLEAN, false), CASE(=($6, 0), false, IS NULL($1), null:BOOLEAN, IS NOT NULL($9), true, <($7, $6), null:BOOLEAN, false))])
@@ -761,7 +761,7 @@ LogicalProject(EMPNO=[$0])
         LogicalProject(DEPTNO=[$0], i=[true])
           LogicalFilter(condition=[=($1, 'dept2')])
             LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!transform "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "RelBuilder(simplify=false), Sql2Rel(trim=true), subQueryRules"
 
 # testExpandFilterScalar -------------------------------------------------------
 

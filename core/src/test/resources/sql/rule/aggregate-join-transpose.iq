@@ -273,21 +273,21 @@ LogicalAggregate(group=[{0, 1}])
         LogicalFilter(condition=[=($0, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "aggregateUnique=true"
+!transform "RelBuilder(aggregateUnique=true)"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "aggregateUnique=true, AGGREGATE_PROJECT_MERGE"
+!transform "RelBuilder(aggregateUnique=true), AGGREGATE_PROJECT_MERGE"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "aggregateUnique=true, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+!transform "RelBuilder(aggregateUnique=true), AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushAggregateThroughJoin4 ------------------------------------------------
 # [CALCITE-1544] AggregateJoinTransposeRule fails to preserve row type.
@@ -632,21 +632,21 @@ LogicalAggregate(group=[{0, 1}])
         LogicalFilter(condition=[=($0, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "aggregateUnique=true"
+!transform "RelBuilder(aggregateUnique=true)"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "aggregateUnique=true, AGGREGATE_PROJECT_MERGE"
+!transform "RelBuilder(aggregateUnique=true), AGGREGATE_PROJECT_MERGE"
 LogicalAggregate(group=[{0, 9}])
   LogicalJoin(condition=[<($0, $9)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "aggregateUnique=true, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+!transform "RelBuilder(aggregateUnique=true), AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushAggregateThroughOuterJoin12 ------------------------------------------
 # Right outer join; group by on key same as join key, on null generating side.

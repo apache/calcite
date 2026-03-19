@@ -57,71 +57,77 @@ import static java.util.Objects.requireNonNull;
 /** Command ({@code !transform}) that prints a plan for a SQL statement,
  * optionally after applying rules.
  *
- * <p>The {@code args} string is a comma-separated list of config tokens and
- * rule names. {@code NONE} is a placeholder meaning "no rule at this position".
- * Config tokens (lowercase-starting) configure the SQL-to-RelNode conversion
- * and {@link org.apache.calcite.tools.RelBuilder RelBuilder} behavior.
- * All uppercase tokens are {@link org.apache.calcite.rel.rules.CoreRules}
- * field names collected into a single {@link HepPlanner} and applied to the
- * initial plan.
+ * <p>The {@code args} string is a comma-separated list of config groups,
+ * config tokens, and rule names. {@code NONE} is a placeholder meaning
+ * "no rule at this position".
  *
- * <p>Supported config tokens:
+ * <p>Config groups (uppercase class name with parenthesised params) configure
+ * related sets of options:
  * <ul>
- *   <li>{@code aggregateUnique=true} &mdash; GROUP BY without aggregate
- *       functions creates a {@code LogicalAggregate} (not simplified to a
- *       Project); equivalent to
- *       {@code .withRelBuilderConfig(b -> b.withAggregateUnique(true))}
- *   <li>{@code bloat=N} &mdash; allows merging expressions up to N nodes
- *       larger; equivalent to
- *       {@code .withRelBuilderConfig(b -> b.withBloat(N))}
- *   <li>{@code decorrelate=true} &mdash; decorrelates after SQL-to-RelNode
- *       conversion by calling {@link SqlToRelConverter#decorrelate};
- *       equivalent to {@code .withDecorrelate(true)}
- *   <li>{@code expand=true} &mdash; expands sub-queries during
- *       SQL-to-RelNode conversion; equivalent to {@code .withExpand(true)}
- *   <li>{@code inSubQueryThreshold=N} &mdash; sets how many items an IN-list
- *       may have before it is converted to a join/sub-query; equivalent to
- *       {@code .withInSubQueryThreshold(N)}
- *   <li>{@code relBuilderSimplify=false} &mdash; disables
+ *   <li>{@code RelBuilder(simplify=false)} &mdash; disables
  *       {@link org.apache.calcite.rex.RexSimplify} during RelNode
- *       construction, so CASE/CAST expressions appear unsimplified;
- *       equivalent to {@code .withRelBuilderSimplify(false)}
- *   <li>{@code simplifyValues=false} &mdash; prevents Values rows from
- *       being simplified; equivalent to
+ *       construction; equivalent to {@code .withRelBuilderSimplify(false)}
+ *   <li>{@code RelBuilder(simplifyValues=false)} &mdash; prevents Values rows
+ *       from being simplified; equivalent to
  *       {@code .withRelBuilderConfig(b -> b.withSimplifyValues(false))}
- *   <li>{@code lateDecorrelate=true} &mdash; applies
- *       {@link RelDecorrelator#decorrelateQuery} after the main rules;
- *       equivalent to {@code .withLateDecorrelate(true)}
- *   <li>{@code topDownGeneralDecorrelate=true} &mdash; when used with
- *       {@code lateDecorrelate=true}, applies
- *       {@link TopDownGeneralDecorrelator#decorrelateQuery} instead of
- *       {@link RelDecorrelator#decorrelateQuery};
- *       equivalent to {@code .withTopDownGeneralDecorrelate(true)}
- *   <li>{@code operatorTable=BIG_QUERY} &mdash; uses BigQuery operator
- *       table; equivalent to
- *       {@code .withFactory(t -> t.withOperatorTable(o ->
- *       getOperatorTable(SqlLibrary.BIG_QUERY)))}
- *   <li>{@code AggregateExtractProjectRule.SCAN} &mdash; uses the
- *       {@link org.apache.calcite.rel.rules.AggregateExtractProjectRule#SCAN}
- *       rule instance
- *   <li>{@code DateRangeRules.FILTER_INSTANCE} &mdash; uses the
- *       {@link org.apache.calcite.rel.rules.DateRangeRules#FILTER_INSTANCE}
- *       rule instance
- *   <li>{@code MeasureRules.AGGREGATE} and other MeasureRules fields
- *   <li>{@code SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE}
- *       and other SingleValuesOptimizationRules fields
- *   <li>{@code subQueryRules} &mdash; applies
- *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules before the
- *       main rules; equivalent to {@code .withSubQueryRules()}
- *   <li>{@code trim=true} &mdash; trims unused fields from projections;
- *       equivalent to {@code .withTrim(true)}
+ *   <li>{@code RelBuilder(aggregateUnique=true)} &mdash; GROUP BY without
+ *       aggregate functions creates a {@code LogicalAggregate}; equivalent to
+ *       {@code .withRelBuilderConfig(b -> b.withAggregateUnique(true))}
+ *   <li>{@code RelBuilder(bloat=N)} &mdash; allows merging expressions up to
+ *       N nodes larger; equivalent to
+ *       {@code .withRelBuilderConfig(b -> b.withBloat(N))}
+ *   <li>{@code Sql2Rel(expand=true)} &mdash; expands sub-queries during
+ *       SQL-to-RelNode conversion; equivalent to {@code .withExpand(true)}
+ *   <li>{@code Sql2Rel(decorrelate=true)} &mdash; decorrelates after
+ *       SQL-to-RelNode conversion by calling
+ *       {@link SqlToRelConverter#decorrelate}; equivalent to
+ *       {@code .withDecorrelate(true)}
+ *   <li>{@code Sql2Rel(trim=true)} &mdash; trims unused fields from
+ *       projections; equivalent to {@code .withTrim(true)}
+ *   <li>{@code Sql2Rel(inSubQueryThreshold=N)} &mdash; sets how many items
+ *       an IN-list may have before it is converted to a join/sub-query;
+ *       equivalent to {@code .withInSubQueryThreshold(N)}
  * </ul>
  *
- * <p>Examples: {@code !transform "NONE"} (initial plan, no rules),
+ * <p>Multiple params may be combined in one group:
+ * {@code Sql2Rel(expand=true, decorrelate=true, trim=true)}.
+ *
+ * <p>Remaining config tokens (lowercase, no parentheses):
+ * <ul>
+ *   <li>{@code connectionConfig=true} &mdash; creates the HepPlanner with
+ *       {@link CalciteConnectionConfig#DEFAULT} as context (needed for
+ *       DateRangeRules)
+ *   <li>{@code lateDecorrelate=true} &mdash; applies
+ *       {@link RelDecorrelator#decorrelateQuery} after the main rules
+ *   <li>{@code topDownGeneralDecorrelate=true} &mdash; when used with
+ *       {@code lateDecorrelate=true}, applies
+ *       {@link TopDownGeneralDecorrelator#decorrelateQuery} instead
+ *   <li>{@code operatorTable=BIG_QUERY} &mdash; uses BigQuery operator table
+ *   <li>{@code subQueryRules} &mdash; applies
+ *       PROJECT/FILTER/JOIN_SUB_QUERY_TO_CORRELATE as pre-rules
+ *   <li>{@code bottomUp=true} &mdash; uses {@link HepMatchOrder#BOTTOM_UP}
+ * </ul>
+ *
+ * <p>Parameterised rule tokens (uppercase class name with parenthesised
+ * params) build a specific rule instance:
+ * <ul>
+ *   <li>{@code AggregateReduceFunctionsRule(functions=AVG|SUM)} &mdash;
+ *       reduces only the named functions ({@code NONE} for none)
+ *   <li>{@code AggregateReduceFunctionsRule(withinDistinctOnly=true)} &mdash;
+ *       fires only on aggregate calls with {@code WITHIN DISTINCT} keys
+ *   <li>{@code AGGREGATE_EXPAND_WITHIN_DISTINCT(throwIfNotUnique=false)}
+ * </ul>
+ *
+ * <p>All remaining uppercase tokens without parentheses are
+ * {@link CoreRules} field names (or {@code ClassName.FIELD} for other rule
+ * classes).
+ *
+ * <p>Examples:
+ * {@code !transform "NONE"} (initial plan, no rules),
  * {@code !transform "AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
- * {@code !transform "aggregateUnique=true, NONE"} (initial plan with aggregateUnique),
- * {@code !transform "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
- * (plan after rule, with expressions not pre-simplified by RelBuilder). */
+ * {@code !transform "RelBuilder(aggregateUnique=true), NONE"},
+ * {@code !transform "RelBuilder(simplify=false), PROJECT_REDUCE_EXPRESSIONS"},
+ * {@code !transform "Sql2Rel(expand=true, decorrelate=true, trim=true), FILTER_INTO_JOIN"}. */
 public class TransformCommand extends AbstractCommand {
   private static final Pattern STRIP_QUOTES = Pattern.compile("^\"|\"$");
 
@@ -144,8 +150,8 @@ public class TransformCommand extends AbstractCommand {
                    Hook.propertyJ(config.relBuilderSimplify))) {
         RelNode relNode = buildRelNode(config, sqlCommand);
         relNode = applyRules(config, relNode);
-        final String s = RelOptUtil.toString(relNode);
-        x.echo(ImmutableList.copyOf(s.split(System.lineSeparator())));
+        x.echo(ImmutableList.copyOf(
+            RelOptUtil.toString(relNode).split(System.lineSeparator())));
       }
     } else {
       x.echo(content);
@@ -155,76 +161,153 @@ public class TransformCommand extends AbstractCommand {
 
   /** Parses the args string into a {@link Config}. */
   private static Config parseArgs(String args) {
-    boolean aggregateUnique = false;
-    boolean connectionConfig = false;
-    boolean decorrelate = false;
-    boolean relBuilderSimplify = true;
-    boolean expand = false;
-    boolean lateDecorrelate = false;
-    boolean topDownGeneralDecorrelate = false;
-    boolean operatorTableBigQuery = false;
-    boolean trim = false;
-    boolean simplifyValues = true;
-    boolean subQueryRules = false;
-    int bloat = -1; // -1 means "use default"
-    int inSubQueryThreshold = -1; // -1 means "use default"
-    boolean bottomUp = false;
-    final List<RelOptRule> rules = new ArrayList<>();
-
+    final ConfigBuilder b = new ConfigBuilder();
     for (String name : splitTokens(args)) {
       if (name.isEmpty() || name.equals("NONE")) {
         // skip placeholder
+      } else if (name.contains("(")) {
+        // parameterised token: config group or rule with params
+        applyParamToken(name, b);
       } else if (Character.isLowerCase(name.charAt(0))) {
-        // config token
-        if (name.equals("aggregateUnique=true")) {
-          aggregateUnique = true;
-        } else if (name.equals("connectionConfig=true")) {
-          connectionConfig = true;
-        } else if (name.startsWith("bloat=")) {
-          bloat = parseInt(name.substring("bloat=".length()));
-        } else if (name.startsWith("inSubQueryThreshold=")) {
-          inSubQueryThreshold =
-              parseInt(name.substring("inSubQueryThreshold=".length()));
-        } else if (name.equals("decorrelate=true")) {
-          decorrelate = true;
-        } else if (name.equals("decorrelate=false")) {
-          decorrelate = false; // same as default, used for documentation
-        } else if (name.equals("expand=true")) {
-          expand = true;
-        } else if (name.equals("expand=false")) {
-          expand = false; // same as default, used for documentation
-        } else if (name.equals("lateDecorrelate=true")) {
-          lateDecorrelate = true;
-        } else if (name.equals("topDownGeneralDecorrelate=true")) {
-          topDownGeneralDecorrelate = true;
-        } else if (name.equals("operatorTable=BIG_QUERY")) {
-          operatorTableBigQuery = true;
-        } else if (name.equals("relBuilderSimplify=false")) {
-          relBuilderSimplify = false;
-        } else if (name.equals("simplifyValues=false")) {
-          simplifyValues = false;
-        } else if (name.equals("subQueryRules")) {
-          subQueryRules = true;
-        } else if (name.equals("trim=true")) {
-          trim = true;
-        } else if (name.equals("bottomUp=true")) {
-          bottomUp = true;
-        } else {
-          throw new IllegalArgumentException("Unknown config token: " + name);
-        }
+        // simple config token
+        applyConfigToken(name, b);
       } else {
-        if (name.contains("(")) {
-          parseRuleToken(name, rules);
-        } else {
-          rules.add(QuidemTest.getCoreRule(name));
+        // plain rule name
+        b.rules.add(QuidemTest.getCoreRule(name));
+      }
+    }
+    return b.build();
+  }
+
+  /** Applies a simple lowercase config token to {@code b}. */
+  private static void applyConfigToken(String name, ConfigBuilder b) {
+    if (name.equals("connectionConfig=true")) {
+      b.connectionConfig = true;
+    } else if (name.equals("lateDecorrelate=true")) {
+      b.lateDecorrelate = true;
+    } else if (name.equals("topDownGeneralDecorrelate=true")) {
+      b.topDownGeneralDecorrelate = true;
+    } else if (name.equals("operatorTable=BIG_QUERY")) {
+      b.operatorTableBigQuery = true;
+    } else if (name.equals("subQueryRules")) {
+      b.subQueryRules = true;
+    } else if (name.equals("bottomUp=true")) {
+      b.bottomUp = true;
+    } else {
+      throw new IllegalArgumentException("Unknown config token: " + name);
+    }
+  }
+
+  /** Applies a parameterised token of the form {@code Name(key=value,...)}
+   * to {@code b}.
+   *
+   * <p>Handles config groups ({@code RelBuilder}, {@code Sql2Rel}) and
+   * parameterised rule tokens ({@code AggregateReduceFunctionsRule},
+   * {@code AGGREGATE_EXPAND_WITHIN_DISTINCT}). */
+  private static void applyParamToken(String token, ConfigBuilder b) {
+    final int open = token.indexOf('(');
+    final int close = token.lastIndexOf(')');
+    if (close < 0 || close < open) {
+      throw new IllegalArgumentException("Malformed token: " + token);
+    }
+    final String name = token.substring(0, open).trim();
+    final String paramsStr = token.substring(open + 1, close).trim();
+    final Map<String, String> params = parseParams(paramsStr);
+    switch (name) {
+    case "RelBuilder":
+      for (Map.Entry<String, String> e : params.entrySet()) {
+        switch (e.getKey()) {
+        case "simplify":
+          b.relBuilderSimplify = Boolean.parseBoolean(e.getValue());
+          break;
+        case "simplifyValues":
+          b.simplifyValues = Boolean.parseBoolean(e.getValue());
+          break;
+        case "aggregateUnique":
+          b.aggregateUnique = Boolean.parseBoolean(e.getValue());
+          break;
+        case "bloat":
+          b.bloat = parseInt(e.getValue());
+          break;
+        default:
+          throw new IllegalArgumentException(
+              "Unknown RelBuilder param: " + e.getKey());
+        }
+      }
+      break;
+    case "Sql2Rel":
+      for (Map.Entry<String, String> e : params.entrySet()) {
+        switch (e.getKey()) {
+        case "expand":
+          b.expand = Boolean.parseBoolean(e.getValue());
+          break;
+        case "decorrelate":
+          b.decorrelate = Boolean.parseBoolean(e.getValue());
+          break;
+        case "trim":
+          b.trim = Boolean.parseBoolean(e.getValue());
+          break;
+        case "inSubQueryThreshold":
+          b.inSubQueryThreshold = parseInt(e.getValue());
+          break;
+        default:
+          throw new IllegalArgumentException(
+              "Unknown Sql2Rel param: " + e.getKey());
+        }
+      }
+      break;
+    case "AggregateReduceFunctionsRule":
+      if (params.containsKey("functions")) {
+        final String functionsStr = params.get("functions");
+        final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
+        if (!functionsStr.equals("NONE")) {
+          for (String fn : functionsStr.split("\\|")) {
+            functions.add(SqlKind.valueOf(fn.trim()));
+          }
+        }
+        b.rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+            .withOperandFor(LogicalAggregate.class)
+            .withFunctionsToReduce(functions)
+            .toRule());
+      } else if ("true".equals(params.get("withinDistinctOnly"))) {
+        b.rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+            .withExtraCondition(call -> call.distinctKeys != null)
+            .toRule());
+      } else {
+        throw new IllegalArgumentException(
+            "Unknown params for AggregateReduceFunctionsRule: " + paramsStr);
+      }
+      break;
+    case "AGGREGATE_EXPAND_WITHIN_DISTINCT":
+      if ("false".equals(params.get("throwIfNotUnique"))) {
+        b.rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
+            .withThrowIfNotUnique(false).toRule());
+      } else {
+        throw new IllegalArgumentException(
+            "Unknown params for AGGREGATE_EXPAND_WITHIN_DISTINCT: " + paramsStr);
+      }
+      break;
+    default:
+      throw new IllegalArgumentException(
+          "Unknown parameterised token: " + name);
+    }
+  }
+
+  /** Parses a {@code key=value,...} string into a map. */
+  private static Map<String, String> parseParams(String paramsStr) {
+    final Map<String, String> params = new LinkedHashMap<>();
+    if (!paramsStr.isEmpty()) {
+      for (String pair : paramsStr.split(",")) {
+        final String p = pair.trim();
+        final int eq = p.indexOf('=');
+        if (eq >= 0) {
+          params.put(p.substring(0, eq).trim(), p.substring(eq + 1).trim());
+        } else if (!p.isEmpty()) {
+          params.put(p, "true");
         }
       }
     }
-
-    return new Config(aggregateUnique, connectionConfig, decorrelate,
-        relBuilderSimplify, expand, lateDecorrelate, topDownGeneralDecorrelate,
-        operatorTableBigQuery, trim, simplifyValues, subQueryRules, bloat,
-        inSubQueryThreshold, bottomUp, ImmutableList.copyOf(rules));
+    return params;
   }
 
   /** Splits {@code args} on commas, but not commas inside parentheses.
@@ -250,77 +333,6 @@ public class TransformCommand extends AbstractCommand {
       tokens.add(last);
     }
     return tokens;
-  }
-
-  /** Parses a parameterised rule token of the form {@code RuleName(key=value,...)}
-   * and adds the resulting rule to {@code rules}.
-   *
-   * <p>Supported forms:
-   * <ul>
-   *   <li>{@code AggregateReduceFunctionsRule(functions=AVG|SUM)} &mdash;
-   *       builds an {@link AggregateReduceFunctionsRule} that reduces only the
-   *       named functions (use {@code NONE} for none)
-   *   <li>{@code AggregateReduceFunctionsRule(withinDistinctOnly=true)} &mdash;
-   *       builds an {@link AggregateReduceFunctionsRule} that fires only on
-   *       aggregate calls that have {@code WITHIN DISTINCT} keys
-   *   <li>{@code AGGREGATE_EXPAND_WITHIN_DISTINCT(throwIfNotUnique=false)} &mdash;
-   *       uses {@link CoreRules#AGGREGATE_EXPAND_WITHIN_DISTINCT} configured
-   *       with {@code throwIfNotUnique=false}
-   * </ul>
-   */
-  private static void parseRuleToken(String token, List<RelOptRule> rules) {
-    final int open = token.indexOf('(');
-    final int close = token.lastIndexOf(')');
-    if (close < 0 || close < open) {
-      throw new IllegalArgumentException("Malformed rule token: " + token);
-    }
-    final String ruleName = token.substring(0, open).trim();
-    final String paramsStr = token.substring(open + 1, close).trim();
-    final Map<String, String> params = new LinkedHashMap<>();
-    for (String pair : paramsStr.split(",")) {
-      final String p = pair.trim();
-      final int eq = p.indexOf('=');
-      if (eq >= 0) {
-        params.put(p.substring(0, eq).trim(), p.substring(eq + 1).trim());
-      } else if (!p.isEmpty()) {
-        params.put(p, "true");
-      }
-    }
-    switch (ruleName) {
-    case "AggregateReduceFunctionsRule":
-      if (params.containsKey("functions")) {
-        final String functionsStr = params.get("functions");
-        final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
-        if (!functionsStr.equals("NONE")) {
-          for (String fn : functionsStr.split("\\|")) {
-            functions.add(SqlKind.valueOf(fn.trim()));
-          }
-        }
-        rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
-            .withOperandFor(LogicalAggregate.class)
-            .withFunctionsToReduce(functions)
-            .toRule());
-      } else if ("true".equals(params.get("withinDistinctOnly"))) {
-        rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
-            .withExtraCondition(call -> call.distinctKeys != null)
-            .toRule());
-      } else {
-        throw new IllegalArgumentException(
-            "Unknown params for AggregateReduceFunctionsRule: " + paramsStr);
-      }
-      break;
-    case "AGGREGATE_EXPAND_WITHIN_DISTINCT":
-      if ("false".equals(params.get("throwIfNotUnique"))) {
-        rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
-            .withThrowIfNotUnique(false).toRule());
-      } else {
-        throw new IllegalArgumentException(
-            "Unknown params for AGGREGATE_EXPAND_WITHIN_DISTINCT: " + paramsStr);
-      }
-      break;
-    default:
-      throw new IllegalArgumentException("Unknown parameterised rule: " + ruleName);
-    }
   }
 
   /** Converts a SQL statement to a {@link RelNode} according to {@code config}. */
@@ -371,8 +383,7 @@ public class TransformCommand extends AbstractCommand {
         requireNonNull(converter.validator).validate(sqlQuery);
     RelNode relNode =
         converter.convertQuery(validatedQuery, false, true).project();
-    // decorrelate=true / trim=true: matching
-    // AbstractSqlTester.convertSqlToRel2 behavior
+    // decorrelate / trim: matching AbstractSqlTester.convertSqlToRel2 behavior
     if (config.decorrelate || config.trim) {
       relNode = converter.flattenTypes(relNode, true);
     }
@@ -426,6 +437,33 @@ public class TransformCommand extends AbstractCommand {
     }
 
     return relNode;
+  }
+
+  /** Mutable state accumulated while parsing a {@code !transform} args string.
+   * Converted to an immutable {@link Config} at the end of {@link #parseArgs}. */
+  private static class ConfigBuilder {
+    boolean aggregateUnique = false;
+    boolean connectionConfig = false;
+    boolean decorrelate = false;
+    boolean relBuilderSimplify = true;
+    boolean expand = false;
+    boolean lateDecorrelate = false;
+    boolean topDownGeneralDecorrelate = false;
+    boolean operatorTableBigQuery = false;
+    boolean trim = false;
+    boolean simplifyValues = true;
+    boolean subQueryRules = false;
+    int bloat = -1; // -1 means "use default"
+    int inSubQueryThreshold = -1; // -1 means "use default"
+    boolean bottomUp = false;
+    final List<RelOptRule> rules = new ArrayList<>();
+
+    Config build() {
+      return new Config(aggregateUnique, connectionConfig, decorrelate,
+          relBuilderSimplify, expand, lateDecorrelate, topDownGeneralDecorrelate,
+          operatorTableBigQuery, trim, simplifyValues, subQueryRules, bloat,
+          inSubQueryThreshold, bottomUp, ImmutableList.copyOf(rules));
+    }
   }
 
   /** Parsed configuration for a {@code !transform} command. */

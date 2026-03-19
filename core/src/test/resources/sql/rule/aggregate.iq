@@ -565,10 +565,10 @@ select distinct empno, deptno from emp;
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(EMPNO=[$0], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "aggregateUnique=true"
+!transform "RelBuilder(aggregateUnique=true)"
 LogicalProject(EMPNO=[$0], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "aggregateUnique=true, AGGREGATE_REMOVE, PROJECT_MERGE"
+!transform "RelBuilder(aggregateUnique=true), AGGREGATE_REMOVE, PROJECT_MERGE"
 
 # testAggregateRemove3 ---------------------------------------------------------
 # AggregateRemoveRule removes a GROUP BY where the grouping keys include a

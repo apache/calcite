@@ -37,9 +37,9 @@ where exists (select 1 from dept where empno=null);
 !ok
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalValues(tuples=[[]])
-!transform "expand=false, subQueryRules"
+!transform "Sql2Rel(expand=false), subQueryRules"
 LogicalValues(tuples=[[]])
-!transform "expand=false, subQueryRules, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE, PruneEmptyRules.CORRELATE_RIGHT_INSTANCE"
+!transform "Sql2Rel(expand=false), subQueryRules, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE, PruneEmptyRules.CORRELATE_RIGHT_INSTANCE"
 
 # testMergeIntersect -----------------------------------------------------------
 # INTERSECT_MERGE should merge nested INTERSECT into a single n-way INTERSECT.
@@ -408,14 +408,14 @@ LogicalUnion(all=[true])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(EXPR$0=[2], DNAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "trim=true"
+!transform "Sql2Rel(trim=true)"
 LogicalProject(C2=[2], DNAME=[$0])
   LogicalUnion(all=[true])
     LogicalProject(DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "Sql2Rel(trim=true), UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughUnion2 ------------------------------------------------
 # Negative test: UNION_PULL_UP_CONSTANTS does not fire when constants differ
@@ -479,14 +479,14 @@ LogicalUnion(all=[true])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(EXPR$0=[2], EXPR$1=[3])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "trim=true"
+!transform "Sql2Rel(trim=true)"
 LogicalProject(C2=[2], C3=[3])
   LogicalUnion(all=[true])
     LogicalProject(C2=[2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(C2=[2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "Sql2Rel(trim=true), UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughUnionSameTypeNullableField ----------------------------
 # UNION_PULL_UP_CONSTANTS + PROJECT_MERGE pull constant deptno (= 1) from both
@@ -505,7 +505,7 @@ LogicalUnion(all=[true])
     LogicalFilter(condition=[=($1, 1)])
       LogicalProject(ENAME=[$1], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "trim=true"
+!transform "Sql2Rel(trim=true)"
 LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
   LogicalUnion(all=[true])
     LogicalProject(ENAME=[$0])
@@ -516,7 +516,7 @@ LogicalProject(DEPTNO=[CAST(1):INTEGER], ENAME=[$0])
       LogicalFilter(condition=[=($1, 1)])
         LogicalProject(ENAME=[$1], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "trim=true, UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "Sql2Rel(trim=true), UNION_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testUnionToDistinctRule ------------------------------------------------------
 # UNION_TO_DISTINCT converts a UNION (distinct) to UNION ALL + Aggregate.

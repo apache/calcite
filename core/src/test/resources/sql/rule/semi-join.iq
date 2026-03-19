@@ -39,7 +39,7 @@ LogicalProject(ENAME=[$0])
   LogicalFilter(condition=[AND(=($0, 'Sebastian'), <($1, 100))])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "trim=true"
+!transform "Sql2Rel(trim=true)"
 
 # testPushAggregateThroughSemiJoin ---------------------------------------------
 # PROJECT_TO_SEMI_JOIN, AGGREGATE_JOIN_TRANSPOSE_EXTENDED push an aggregate
@@ -65,7 +65,7 @@ LogicalAggregate(group=[{1}])
     LogicalAggregate(group=[{0}])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "lateDecorrelate=true, trim=true, subQueryRules, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
+!transform "Sql2Rel(trim=true), lateDecorrelate=true, subQueryRules, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushFilterThroughSemiJoin ------------------------------------------------
 # FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH push filters
@@ -93,14 +93,14 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, decorrelate=true, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true, decorrelate=true), PROJECT_TO_SEMI_JOIN"
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[semi])
     LogicalFilter(condition=[<=($0, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, decorrelate=true, PROJECT_TO_SEMI_JOIN, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
+!transform "Sql2Rel(expand=true, decorrelate=true), PROJECT_TO_SEMI_JOIN, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH"
 
 # testPushSemiJoinPastFilter ---------------------------------------------------
 # SEMI_JOIN_FILTER_TRANSPOSE pushes a semi-join past a filter.
@@ -593,7 +593,7 @@ LogicalProject(SAL=[$0])
       LogicalFilter(condition=[=($0, 100)])
         LogicalProject(SAL=[$5], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, trim=true, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true, trim=true), PROJECT_TO_SEMI_JOIN"
 LogicalProject(SAL=[$0])
   LogicalJoin(condition=[=(200, $2)], joinType=[semi])
     LogicalFilter(condition=[=($1, 200)])
@@ -603,7 +603,7 @@ LogicalProject(SAL=[$0])
       LogicalFilter(condition=[=($0, 100)])
         LogicalProject(SAL=[$5], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, trim=true, PROJECT_TO_SEMI_JOIN, JOIN_REDUCE_EXPRESSIONS"
+!transform "Sql2Rel(expand=true, trim=true), PROJECT_TO_SEMI_JOIN, JOIN_REDUCE_EXPRESSIONS"
 
 # testSemiJoinRule -------------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN converts a join on DISTINCT to a semi-join.
@@ -629,13 +629,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
 LogicalJoin(condition=[=($0, $2)], joinType=[semi])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DEPTNO=[$7])
     LogicalFilter(condition=[>($5, 100)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
 
 # testSemiJoinRuleDoNotMatchAggregate ------------------------------------------
 # JOIN_ON_UNIQUE_TO_SEMI_JOIN should not match a join with non-trivial Aggregate.
@@ -670,14 +670,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
       LogicalProject(DEPTNO=[$0], $f0=[true])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, decorrelate=true, PROJECT_MERGE"
+!transform "Sql2Rel(expand=true, decorrelate=true), PROJECT_MERGE"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
       LogicalProject(DEPTNO=[$0], $f0=[true])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, decorrelate=true, PROJECT_MERGE, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true, decorrelate=true), PROJECT_MERGE, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
 
 # testSemiJoinRuleExists -------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN converts a join from EXISTS to a semi-join.
@@ -706,13 +706,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
 LogicalJoin(condition=[=($0, $2)], joinType=[semi])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DEPTNO=[$7])
     LogicalFilter(condition=[>($5, 100)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
 
 # testSemiJoinRuleFull ---------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN does not apply to FULL joins.
@@ -741,7 +741,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -749,7 +749,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
 
 # testSemiJoinRuleLeft ---------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN simplifies LEFT join to a plain scan when the result
@@ -779,10 +779,10 @@ LogicalProject(DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
 LogicalProject(DNAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
 
 # testSemiJoinRuleRight --------------------------------------------------------
 # PROJECT_TO_SEMI_JOIN does not apply to RIGHT joins.
@@ -811,7 +811,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE"
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -819,7 +819,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "decorrelate=true, trim=true, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(decorrelate=true, trim=true), FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN"
 
 # testSemiJoinRuleWithJoinOnUniqueInput ----------------------------------------
 # JOIN_ON_UNIQUE_TO_SEMI_JOIN converts a join on a unique key to a semi-join.
@@ -853,12 +853,12 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, decorrelate=true, trim=true"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true)"
 LogicalJoin(condition=[=($7, $9)], joinType=[semi])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, decorrelate=true, trim=true, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true), JOIN_ON_UNIQUE_TO_SEMI_JOIN"
 
 # testSemiJoinRuleWithJoinOnUniqueInputWithAlias -------------------------------
 # JOIN_ON_UNIQUE_TO_SEMI_JOIN preserves column aliases.
@@ -894,13 +894,13 @@ LogicalProject(DEPARTMENT_ID=[$1], SALARY=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, decorrelate=true, trim=true"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true)"
 LogicalProject(DEPARTMENT_ID=[$1], SALARY=[$0])
   LogicalJoin(condition=[=($1, $2)], joinType=[semi])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, decorrelate=true, trim=true, JOIN_ON_UNIQUE_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true), JOIN_ON_UNIQUE_TO_SEMI_JOIN"
 
 # End semi-join.iq

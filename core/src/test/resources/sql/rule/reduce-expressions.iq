@@ -147,7 +147,7 @@ LogicalProject(EMPNO=[$0])
     LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
       LogicalProject(EMPNO=[$0], SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, decorrelate=true, trim=true"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true)"
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(=($0, $4), >($1, $5))], joinType=[inner])
     LogicalJoin(condition=[=($2, $3)], joinType=[inner])
@@ -160,7 +160,7 @@ LogicalProject(EMPNO=[$0])
     LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])
       LogicalProject(EMPNO=[$0], SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, decorrelate=true, trim=true, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+!transform "Sql2Rel(expand=true, decorrelate=true, trim=true), PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testDoubleReduction ----------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a POWER expression to a floating-point
@@ -745,10 +745,10 @@ from emp;
 !ok
 LogicalProject(NEWCOL=[CASE(false, CAST(2.1:DECIMAL(2, 1)):FLOAT NOT NULL, CAST(1):FLOAT NOT NULL)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(NEWCOL=[1.0E0:FLOAT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(simplify=false), PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceCaseNullabilityChange ----------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a CASE expression that has a constant
@@ -782,10 +782,10 @@ from emp;
 
 LogicalProject(QX=[CASE(=($0, 1), 1, IS NOT NULL(1), 2, null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(simplify=false), FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceCastAndConsts ------------------------------------------------------
 # Tests that constant expressions inside a cast can be reduced.
@@ -833,7 +833,7 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($7):INTEGER NOT NULL])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
   LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
@@ -842,7 +842,7 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(simplify=false), PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testReduceCastTimeUnchanged --------------------------------------------------
 # Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
@@ -901,7 +901,7 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($7, +(40, 60)))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "aggregateUnique=true"
+!transform "RelBuilder(aggregateUnique=true)"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[OR(IN($0, $7, {
 LogicalProject(EMPNO=[$0], DEPTNO=[$1])
@@ -910,7 +910,7 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }), <($7, 100))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "aggregateUnique=true, FILTER_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(aggregateUnique=true), FILTER_REDUCE_EXPRESSIONS"
 
 # testReduceConstants ----------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, and
@@ -937,10 +937,10 @@ LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, -(5, 5))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(EXPR$0=[3], EXPR$1=[22], EXPR$2=[26], EXPR$3=[null:INTEGER], EXPR$4=[CAST(2):INTEGER], EXPR$5=[ROW(15)])
   LogicalValues(tuples=[[]])
-!transform "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(simplify=false), PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testReduceConstants2 ---------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, and
@@ -959,10 +959,10 @@ from (values (2, cast(null as integer))) as t(p0, p1);
 !ok
 LogicalProject(EXPR$0=[false])
   LogicalValues(tuples=[[{ 0 }]])
-!transform "simplifyValues=false"
+!transform "RelBuilder(simplifyValues=false)"
 LogicalProject(EXPR$0=[false])
   LogicalValues(tuples=[[{ 0 }]])
-!transform "simplifyValues=false, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(simplifyValues=false), PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testReduceConstants3 ---------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
@@ -1739,7 +1739,7 @@ LogicalProject(X=[CAST(2):INTEGER])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalValues(tuples=[[{ 1 }]])
     LogicalValues(tuples=[[{ 1 }]])
-!transform "expand=true, PROJECT_REDUCE_EXPRESSIONS"
+!transform "Sql2Rel(expand=true), PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceNullableCase2 ------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS does not simplify CASE WHEN 1=2 when already
@@ -1774,7 +1774,7 @@ GROUP BY deptno, ename,
 LogicalAggregate(group=[{0, 1, 2}])
   LogicalProject(DEPTNO=[$7], ENAME=[$1], X=[null:VARCHAR(20)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_REDUCE_EXPRESSIONS"
+!transform "Sql2Rel(expand=true), PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceNullableToNotNull --------------------------------------------------
 # [CALCITE-902] PROJECT_REDUCE_EXPRESSIONS reduces a nullable CASE expression
@@ -1805,10 +1805,10 @@ from emp;
 !ok
 LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(NEWCOL=[+($0, 1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false, PROJECT_REDUCE_EXPRESSIONS"
+!transform "RelBuilder(simplify=false), PROJECT_REDUCE_EXPRESSIONS"
 
 # testReduceOrCaseWhen ---------------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS should reduce OR(IS NULL(CASE...), IS NULL(CASE...))

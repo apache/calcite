@@ -758,7 +758,7 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "trim=true, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!transform "Sql2Rel(trim=true), PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[CAST($2):VARCHAR(20)], SAL=[CAST($3):INTEGER], DEPTNO0=[CAST($4):INTEGER])
     LogicalJoin(condition=[=($0, $4)], joinType=[inner])
@@ -766,6 +766,6 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], ENAME=[$2])
       LogicalFilter(condition=[>($1, 100)])
         LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "trim=true, PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN"
+!transform "Sql2Rel(trim=true), PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_INTO_JOIN"
 
 # End filter-into-join.iq

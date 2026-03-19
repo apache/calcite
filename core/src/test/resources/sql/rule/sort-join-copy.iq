@@ -42,14 +42,14 @@ LogicalSort(sort0=[$0], dir0=[ASC])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true), PROJECT_TO_SEMI_JOIN"
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalJoin(condition=[=($0, $2)], joinType=[semi])
     LogicalSort(sort0=[$0], dir0=[ASC])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_TO_SEMI_JOIN, SORT_JOIN_COPY"
+!transform "Sql2Rel(expand=true), PROJECT_TO_SEMI_JOIN, SORT_JOIN_COPY"
 
 # testSortJoinCopySemiJoinOrderByLimitOffset -----------------------------------
 # SortJoinCopyRule does not copy the LIMIT or OFFSET into SemiJoin inputs.
@@ -69,14 +69,14 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[10])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true), PROJECT_TO_SEMI_JOIN"
 LogicalSort(sort0=[$0], dir0=[ASC], offset=[2], fetch=[10])
   LogicalJoin(condition=[=($0, $2)], joinType=[semi])
     LogicalSort(sort0=[$0], dir0=[ASC])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_TO_SEMI_JOIN, SORT_JOIN_COPY"
+!transform "Sql2Rel(expand=true), PROJECT_TO_SEMI_JOIN, SORT_JOIN_COPY"
 
 # testSortJoinCopySemiJoinOrderByOffset ----------------------------------------
 # SortJoinCopyRule does not copy the OFFSET into SemiJoin inputs.
@@ -96,13 +96,13 @@ LogicalSort(sort0=[$0], dir0=[ASC], offset=[2])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_TO_SEMI_JOIN"
+!transform "Sql2Rel(expand=true), PROJECT_TO_SEMI_JOIN"
 LogicalSort(sort0=[$0], dir0=[ASC], offset=[2])
   LogicalJoin(condition=[=($0, $2)], joinType=[semi])
     LogicalSort(sort0=[$0], dir0=[ASC])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, PROJECT_TO_SEMI_JOIN, SORT_JOIN_COPY"
+!transform "Sql2Rel(expand=true), PROJECT_TO_SEMI_JOIN, SORT_JOIN_COPY"
 
 # End sort-join-copy.iq

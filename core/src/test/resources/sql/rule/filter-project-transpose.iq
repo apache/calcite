@@ -73,7 +73,7 @@ LogicalProject(EMPNO=[$0])
           LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
             LogicalProject(TWICEDEPTNO=[*($0, 2)])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, FILTER_PROJECT_TRANSPOSE"
+!transform "Sql2Rel(expand=true), FILTER_PROJECT_TRANSPOSE"
 
 # testFilterTableFunctionScanTranspose -----------------------------------------
 # FILTER_TABLE_FUNCTION_TRANSPOSE pushes a Filter past a TableFunctionScan.
@@ -221,7 +221,7 @@ LogicalProject(EMPNO=[$0])
         LogicalProject($f0=[true])
           LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true"
+!transform "Sql2Rel(expand=true)"
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[IS NOT NULL($1)])
     LogicalProject(EMPNO=[$0], $f0=[$2])
@@ -234,7 +234,7 @@ LogicalProject(EMPNO=[$0])
               LogicalFilter(condition=[=($cor2.DEPTNO, $0)])
                 LogicalProject(DEPTNO=[$0])
                   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "expand=true, FILTER_PROJECT_TRANSPOSE, PROJECT_FILTER_TRANSPOSE, PROJECT_CORRELATE_TRANSPOSE"
+!transform "Sql2Rel(expand=true), FILTER_PROJECT_TRANSPOSE, PROJECT_FILTER_TRANSPOSE, PROJECT_CORRELATE_TRANSPOSE"
 
 # testProjectCorrelateTransposeWithOver ----------------------------------------
 # PROJECT_CORRELATE_TRANSPOSE should not push a Project with windowed aggregates

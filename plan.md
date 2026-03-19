@@ -127,5 +127,10 @@ All three ideas are complementary. Suggested order:
 2. **Top-level class** ✅
 3. **Structural split** of `execute()` into helpers ✅
 4. **Rule-parameterised syntax** ✅
+5. **RelBuilder(...) and Sql2Rel(...) config groups** ✅
 
-The rule-parameterised syntax is the highest-value change. The syntax `RULE_CLASS(param=val)` is self-documenting in a way the current global flags are not, and it parallels how the Java API is written (`Rule.Config.DEFAULT.withParam(val).toRule()`).
+Config tokens that belong to the same Java class are now grouped:
+- `relBuilderSimplify=false, aggregateUnique=true` → `RelBuilder(simplify=false, aggregateUnique=true)`
+- `expand=true, decorrelate=true, trim=true` → `Sql2Rel(expand=true, decorrelate=true, trim=true)`
+
+13 .iq files updated by `migrate_transform_groups.py`. Old flat token forms removed from parser.

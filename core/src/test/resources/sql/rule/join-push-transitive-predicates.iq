@@ -113,14 +113,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[AND(=($16, $7), NOT(OR(=($7, 4), =($7, 6))))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false"
+!transform "RelBuilder(simplify=false)"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[=($16, $7)], joinType=[inner])
     LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "relBuilderSimplify=false, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!transform "RelBuilder(simplify=false), FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testInfiniteLoopWithBetweenAnd -----------------------------------------------
 # Tests that JOIN_PUSH_TRANSITIVE_PREDICATES does not cause an infinite loop
@@ -234,7 +234,7 @@ LogicalProject(DEPTNO=[$7])
         LogicalProject(DEPTNO=[$7])
           LogicalFilter(condition=[OR(=($7, $cor0.DEPTNO), =($7, 4))])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!transform "Sql2Rel(expand=true), FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
 LogicalProject(DEPTNO=[$7])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -243,7 +243,7 @@ LogicalProject(DEPTNO=[$7])
         LogicalProject(DEPTNO=[$7])
           LogicalFilter(condition=[OR(=($7, $cor0.DEPTNO), =($7, 4))])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "expand=true, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!transform "Sql2Rel(expand=true), FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testJoinPushTransitivePredicatesRule2 ----------------------------------------
 # [CALCITE-2205] One more infinite loop for JoinPushTransitivePredicatesRule.
@@ -272,7 +272,7 @@ LogicalProject(SAL=[$5])
               LogicalProject(SAL=[$5], $f9=[=($5, 4)])
                 LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
                   LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "decorrelate=true, expand=true, NONE"
+!transform "Sql2Rel(decorrelate=true, expand=true), NONE"
 LogicalProject(SAL=[$5])
   LogicalJoin(condition=[AND(=($5, $11), IS NOT DISTINCT FROM($9, $12))], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], SAL0=[$5], $f9=[=($5, 4)])
@@ -289,7 +289,7 @@ LogicalProject(SAL=[$5])
               LogicalProject(SAL=[$5], $f9=[=($5, 4)])
                 LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
                   LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!transform "decorrelate=true, expand=true, FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
+!transform "Sql2Rel(decorrelate=true, expand=true), FILTER_INTO_JOIN, JOIN_CONDITION_PUSH, JOIN_PUSH_TRANSITIVE_PREDICATES"
 
 # testProjectPredicatePull -----------------------------------------------------
 # [CALCITE-6432] Infinite loop for JoinPushTransitivePredicatesRule.
