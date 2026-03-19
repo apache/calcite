@@ -8739,6 +8739,21 @@ LogicalProject(DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+    LogicalFilter(condition=[OR(AND(IS TRUE(>=(+($7, $9), $11)), <>($12, 0)), AND(>($12, $13), null, <>($12, 0), IS NOT TRUE(>=(+($7, $9), $11))), AND(>=(+($7, $9), $11), <>($12, 0), IS NOT TRUE(>=(+($7, $9), $11)), <=($12, $13)))])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(m=[$0], c=[$1], d=[$1])
+          LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
   </TestCase>
   <TestCase name="testJoinToMultiJoinDoesNotMatchAntiJoin">
     <Resource name="sql">
