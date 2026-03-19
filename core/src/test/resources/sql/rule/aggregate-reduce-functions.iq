@@ -47,7 +47,7 @@ LogicalAggregate(group=[{0}], X=[MAX($0)], V=[AVG($1)], N=[MIN($0)])
 LogicalAggregate(group=[{0}], X=[MAX($0)], V=[AVG($1)], N=[MIN($0)])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=NONE"
+!transform "AggregateReduceFunctionsRule(functions=NONE)"
 
 # testNoReduceSum --------------------------------------------------------------
 # Tests that AggregateReduceFunctionsRule with no functions to reduce
@@ -74,7 +74,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
 LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=NONE"
+!transform "AggregateReduceFunctionsRule(functions=NONE)"
 
 # testReduceAllAggregateFunctions ----------------------------------------------
 # Tests that AggregateReduceFunctionsRule reduces all configured functions.
@@ -105,7 +105,7 @@ LogicalProject(DNAME=[$0], SP=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:DE
     LogicalProject(DNAME=[$0], DEPTNO=[$1], $f2=[*($1, $1)])
       LogicalProject(DNAME=[$1], DEPTNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=AVG|SUM|STDDEV_POP|STDDEV_SAMP|VAR_POP|VAR_SAMP"
+!transform "AggregateReduceFunctionsRule(functions=AVG|SUM|STDDEV_POP|STDDEV_SAMP|VAR_POP|VAR_SAMP)"
 
 # testReduceAverageAndSumWithNoReduceStddevAndVar ------------------------------
 # Tests that AggregateReduceFunctionsRule reduces only AVG and SUM.
@@ -134,7 +134,7 @@ LogicalProject(DNAME=[$0], SP=[$1], V=[CAST(/($2, $3)):INTEGER NOT NULL], VP=[$4
   LogicalAggregate(group=[{0}], SP=[STDDEV_POP($1)], agg#1=[$SUM0($1)], agg#2=[COUNT()], VP=[VAR_POP($1)])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=AVG|SUM"
+!transform "AggregateReduceFunctionsRule(functions=AVG|SUM)"
 
 # testReduceAverageAndVarWithNoReduceStddev ------------------------------------
 # Tests that AggregateReduceFunctionsRule reduces only AVG and VAR_POP.
@@ -164,7 +164,7 @@ LogicalProject(DNAME=[$0], SP=[$1], V=[CAST(/($2, $3)):INTEGER NOT NULL], VP=[CA
     LogicalProject(DNAME=[$0], DEPTNO=[$1], $f2=[*($1, $1)])
       LogicalProject(DNAME=[$1], DEPTNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=AVG|VAR_POP"
+!transform "AggregateReduceFunctionsRule(functions=AVG|VAR_POP)"
 
 # testReduceAverageWithNoReduceSum ---------------------------------------------
 # Tests that AggregateReduceFunctionsRule reduces only AVG, not SUM.
@@ -191,7 +191,7 @@ LogicalProject(DNAME=[$0], X=[$0], V=[CAST(/($1, $2)):INTEGER NOT NULL], N=[$0])
   LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[COUNT()])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=AVG"
+!transform "AggregateReduceFunctionsRule(functions=AVG)"
 
 # testReduceWithNonTypePredicate -----------------------------------------------
 # Tests that AggregateReduceFunctionsRule with extra condition reduces only
@@ -210,7 +210,7 @@ LogicalProject(V=[$0], VD=[CAST(/($1, $2)):INTEGER])
     LogicalAggregate(group=[{}], V=[AVG($0)], agg#1=[$SUM0($0) WITHIN DISTINCT ($1)], agg#2=[COUNT() WITHIN DISTINCT ($1)])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!transform "withinDistinctOnly=true"
+!transform "AggregateReduceFunctionsRule(withinDistinctOnly=true)"
 
 # testVarianceStddevWithFilter -------------------------------------------------
 # Test case for [CALCITE-7192] AggregateReduceFunctionsRule lost FILTER
@@ -246,6 +246,6 @@ LogicalProject(DNAME=[$0], SP=[CAST(POWER(/(-($1, /(*($2, $2), $3)), $3), 0.5:DE
     LogicalProject(DNAME=[$0], DEPTNO=[$1], $f2=[$2], $f3=[$3], $f4=[$4], $f5=[$5], $f6=[$6], $f7=[*($1, $1)])
       LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[>($0, 10)], $f3=[>($0, 20)], $f4=[>($0, 30)], $f5=[>($0, 40)], $f6=[>($0, 50)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!transform "functionsToReduce=STDDEV_POP|STDDEV_SAMP|VAR_POP|VAR_SAMP|AVG"
+!transform "AggregateReduceFunctionsRule(functions=STDDEV_POP|STDDEV_SAMP|VAR_POP|VAR_SAMP|AVG)"
 
 # End aggregate-reduce-functions.iq

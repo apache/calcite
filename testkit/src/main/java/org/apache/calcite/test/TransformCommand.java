@@ -44,11 +44,11 @@ import com.google.common.collect.ImmutableList;
 import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.Quidem;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.parseInt;
@@ -163,19 +163,15 @@ public class TransformCommand extends AbstractCommand {
     boolean lateDecorrelate = false;
     boolean topDownGeneralDecorrelate = false;
     boolean operatorTableBigQuery = false;
-    boolean throwIfNotUnique = true;
     boolean trim = false;
     boolean simplifyValues = true;
     boolean subQueryRules = false;
     int bloat = -1; // -1 means "use default"
     int inSubQueryThreshold = -1; // -1 means "use default"
     boolean bottomUp = false;
-    @Nullable String functionsToReduceStr = null;
-    boolean withinDistinctOnly = false;
     final List<RelOptRule> rules = new ArrayList<>();
 
-    for (String token : STRIP_QUOTES.matcher(args).replaceAll("").split(",")) {
-      final String name = token.trim();
+    for (String name : splitTokens(args)) {
       if (name.isEmpty() || name.equals("NONE")) {
         // skip placeholder
       } else if (Character.isLowerCase(name.charAt(0))) {
@@ -209,53 +205,122 @@ public class TransformCommand extends AbstractCommand {
           simplifyValues = false;
         } else if (name.equals("subQueryRules")) {
           subQueryRules = true;
-        } else if (name.equals("throwIfNotUnique=false")) {
-          throwIfNotUnique = false;
         } else if (name.equals("trim=true")) {
           trim = true;
         } else if (name.equals("bottomUp=true")) {
           bottomUp = true;
-        } else if (name.startsWith("functionsToReduce=")) {
-          functionsToReduceStr = name.substring("functionsToReduce=".length());
-        } else if (name.equals("withinDistinctOnly=true")) {
-          withinDistinctOnly = true;
         } else {
           throw new IllegalArgumentException("Unknown config token: " + name);
         }
       } else {
-        if (!throwIfNotUnique
-            && name.equals("AGGREGATE_EXPAND_WITHIN_DISTINCT")) {
-          rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
-              .withThrowIfNotUnique(false).toRule());
+        if (name.contains("(")) {
+          parseRuleToken(name, rules);
         } else {
           rules.add(QuidemTest.getCoreRule(name));
         }
       }
     }
 
-    // Add custom AggregateReduceFunctionsRule variants if requested
-    if (functionsToReduceStr != null) {
-      final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
-      if (!functionsToReduceStr.equals("NONE")) {
-        for (String fn : functionsToReduceStr.split("\\|")) {
-          functions.add(SqlKind.valueOf(fn.trim()));
-        }
-      }
-      rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
-          .withOperandFor(LogicalAggregate.class)
-          .withFunctionsToReduce(functions)
-          .toRule());
-    }
-    if (withinDistinctOnly) {
-      rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
-          .withExtraCondition(call -> call.distinctKeys != null)
-          .toRule());
-    }
-
     return new Config(aggregateUnique, connectionConfig, decorrelate,
         relBuilderSimplify, expand, lateDecorrelate, topDownGeneralDecorrelate,
         operatorTableBigQuery, trim, simplifyValues, subQueryRules, bloat,
         inSubQueryThreshold, bottomUp, ImmutableList.copyOf(rules));
+  }
+
+  /** Splits {@code args} on commas, but not commas inside parentheses.
+   * Also strips leading/trailing double-quotes and whitespace from each token. */
+  private static List<String> splitTokens(String args) {
+    final List<String> tokens = new ArrayList<>();
+    final String stripped = STRIP_QUOTES.matcher(args).replaceAll("");
+    int depth = 0;
+    int start = 0;
+    for (int i = 0; i < stripped.length(); i++) {
+      final char c = stripped.charAt(i);
+      if (c == '(') {
+        depth++;
+      } else if (c == ')') {
+        depth--;
+      } else if (c == ',' && depth == 0) {
+        tokens.add(stripped.substring(start, i).trim());
+        start = i + 1;
+      }
+    }
+    final String last = stripped.substring(start).trim();
+    if (!last.isEmpty()) {
+      tokens.add(last);
+    }
+    return tokens;
+  }
+
+  /** Parses a parameterised rule token of the form {@code RuleName(key=value,...)}
+   * and adds the resulting rule to {@code rules}.
+   *
+   * <p>Supported forms:
+   * <ul>
+   *   <li>{@code AggregateReduceFunctionsRule(functions=AVG|SUM)} &mdash;
+   *       builds an {@link AggregateReduceFunctionsRule} that reduces only the
+   *       named functions (use {@code NONE} for none)
+   *   <li>{@code AggregateReduceFunctionsRule(withinDistinctOnly=true)} &mdash;
+   *       builds an {@link AggregateReduceFunctionsRule} that fires only on
+   *       aggregate calls that have {@code WITHIN DISTINCT} keys
+   *   <li>{@code AGGREGATE_EXPAND_WITHIN_DISTINCT(throwIfNotUnique=false)} &mdash;
+   *       uses {@link CoreRules#AGGREGATE_EXPAND_WITHIN_DISTINCT} configured
+   *       with {@code throwIfNotUnique=false}
+   * </ul>
+   */
+  private static void parseRuleToken(String token, List<RelOptRule> rules) {
+    final int open = token.indexOf('(');
+    final int close = token.lastIndexOf(')');
+    if (close < 0 || close < open) {
+      throw new IllegalArgumentException("Malformed rule token: " + token);
+    }
+    final String ruleName = token.substring(0, open).trim();
+    final String paramsStr = token.substring(open + 1, close).trim();
+    final Map<String, String> params = new LinkedHashMap<>();
+    for (String pair : paramsStr.split(",")) {
+      final String p = pair.trim();
+      final int eq = p.indexOf('=');
+      if (eq >= 0) {
+        params.put(p.substring(0, eq).trim(), p.substring(eq + 1).trim());
+      } else if (!p.isEmpty()) {
+        params.put(p, "true");
+      }
+    }
+    switch (ruleName) {
+    case "AggregateReduceFunctionsRule":
+      if (params.containsKey("functions")) {
+        final String functionsStr = params.get("functions");
+        final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
+        if (!functionsStr.equals("NONE")) {
+          for (String fn : functionsStr.split("\\|")) {
+            functions.add(SqlKind.valueOf(fn.trim()));
+          }
+        }
+        rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+            .withOperandFor(LogicalAggregate.class)
+            .withFunctionsToReduce(functions)
+            .toRule());
+      } else if ("true".equals(params.get("withinDistinctOnly"))) {
+        rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+            .withExtraCondition(call -> call.distinctKeys != null)
+            .toRule());
+      } else {
+        throw new IllegalArgumentException(
+            "Unknown params for AggregateReduceFunctionsRule: " + paramsStr);
+      }
+      break;
+    case "AGGREGATE_EXPAND_WITHIN_DISTINCT":
+      if ("false".equals(params.get("throwIfNotUnique"))) {
+        rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
+            .withThrowIfNotUnique(false).toRule());
+      } else {
+        throw new IllegalArgumentException(
+            "Unknown params for AGGREGATE_EXPAND_WITHIN_DISTINCT: " + paramsStr);
+      }
+      break;
+    default:
+      throw new IllegalArgumentException("Unknown parameterised rule: " + ruleName);
+    }
   }
 
   /** Converts a SQL statement to a {@link RelNode} according to {@code config}. */

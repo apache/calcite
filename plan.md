@@ -126,6 +126,6 @@ All three ideas are complementary. Suggested order:
 1. **Rename `!sub-plan` → `!transform`** ✅
 2. **Top-level class** ✅
 3. **Structural split** of `execute()` into helpers ✅
-4. **Rule-parameterised syntax** — next
+4. **Rule-parameterised syntax** ✅
 
 The rule-parameterised syntax is the highest-value change. The syntax `RULE_CLASS(param=val)` is self-documenting in a way the current global flags are not, and it parallels how the Java API is written (`Rule.Config.DEFAULT.withParam(val).toRule()`).
