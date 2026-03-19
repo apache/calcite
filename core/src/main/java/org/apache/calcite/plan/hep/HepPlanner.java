@@ -553,6 +553,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
             } else {
               // Continue from newVertex and keep previous iterator status.
               // It prevents revisiting the large plan's stable subgraph from root.
+              // A stable subgraph is a part of the DAG to which no rules will be applied.
+              // For a plan like this, every node replacement in subgraph2 may reset the iterator
+              // to the root, so subgraph1, although stable, will be visited repeatedly.
+              // root
+              //   <- subgraph1_root (stable)
+              //     <- ... other nodes in subgraph1 (stable)
+              //   <- subgraph2_root
+              //     <- ... other nodes in subgraph2 (with many node replacements)
               iter = ((HepVertexIterator<HepRelVertex>) iter).continueFrom(newVertex);
             }
             if (programState.matchOrder == HepMatchOrder.DEPTH_FIRST) {
@@ -872,6 +880,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
 
     HepRelVertex newVertex = addRelToGraph(bestRel, null);
+    // LinkedHashSet preserves insertion order during iteration. it is debugging-friendly.
     Set<HepRelVertex> garbageVertexSet = new LinkedHashSet<>();
 
     // There's a chance that newVertex is the same as one
