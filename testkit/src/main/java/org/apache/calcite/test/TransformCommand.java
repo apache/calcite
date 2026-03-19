@@ -44,6 +44,8 @@ import com.google.common.collect.ImmutableList;
 import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.Quidem;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -59,8 +61,9 @@ import static java.util.Objects.requireNonNull;
  * rule names. {@code NONE} is a placeholder meaning "no rule at this position".
  * Config tokens (lowercase-starting) configure the SQL-to-RelNode conversion
  * and {@link org.apache.calcite.tools.RelBuilder RelBuilder} behavior.
- * All uppercase tokens are {@link CoreRules} field names collected into a single
- * {@link HepPlanner} and applied to the initial plan.
+ * All uppercase tokens are {@link org.apache.calcite.rel.rules.CoreRules}
+ * field names collected into a single {@link HepPlanner} and applied to the
+ * initial plan.
  *
  * <p>Supported config tokens:
  * <ul>
@@ -120,7 +123,7 @@ import static java.util.Objects.requireNonNull;
  * {@code !transform "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
  * (plan after rule, with expressions not pre-simplified by RelBuilder). */
 public class TransformCommand extends AbstractCommand {
-  private static final Pattern PATTERN = Pattern.compile("^\"|\"$");
+  private static final Pattern STRIP_QUOTES = Pattern.compile("^\"|\"$");
 
   private final ImmutableList<String> lines;
   private final ImmutableList<String> content;
@@ -134,214 +137,13 @@ public class TransformCommand extends AbstractCommand {
 
   @Override public void execute(Context x, boolean execute) throws Exception {
     if (execute) {
-      // Parse config tokens (lowercase-starting) and rule names (UPPERCASE)
-      boolean aggregateUnique = false;
-      boolean connectionConfig = false;
-      boolean decorrelate = false;
-      boolean relBuilderSimplify = true;
-      boolean expand = false;
-      boolean lateDecorrelate = false;
-      boolean topDownGeneralDecorrelate = false;
-      boolean operatorTableBigQuery = false;
-      boolean throwIfNotUnique = true;
-      boolean trim = false;
-      boolean simplifyValues = true;
-      boolean subQueryRules = false;
-      int bloat = -1; // -1 means "use default"
-      int inSubQueryThreshold = -1; // -1 means "use default"
-      boolean bottomUp = false;
-      String functionsToReduceStr = null;
-      boolean withinDistinctOnly = false;
-      final List<RelOptRule> rules = new ArrayList<>();
-      for (String token : PATTERN.matcher(args).replaceAll("").split(",")) {
-        final String name = token.trim();
-        if (name.isEmpty() || name.equals("NONE")) {
-          // skip placeholder
-        } else if (Character.isLowerCase(name.charAt(0))) {
-          // config token
-          if (name.equals("aggregateUnique=true")) {
-            aggregateUnique = true;
-          } else if (name.equals("connectionConfig=true")) {
-            connectionConfig = true;
-          } else if (name.startsWith("bloat=")) {
-            bloat = parseInt(name.substring("bloat=".length()));
-          } else if (name.startsWith("inSubQueryThreshold=")) {
-            inSubQueryThreshold =
-                parseInt(name.substring("inSubQueryThreshold=".length()));
-          } else if (name.equals("decorrelate=true")) {
-            decorrelate = true;
-          } else if (name.equals("decorrelate=false")) {
-            decorrelate = false; // same as default, used for documentation
-          } else if (name.equals("expand=true")) {
-            expand = true;
-          } else if (name.equals("expand=false")) {
-            expand = false; // same as default, used for documentation
-          } else if (name.equals("lateDecorrelate=true")) {
-            lateDecorrelate = true;
-          } else if (name.equals("topDownGeneralDecorrelate=true")) {
-            topDownGeneralDecorrelate = true;
-          } else if (name.equals("operatorTable=BIG_QUERY")) {
-            operatorTableBigQuery = true;
-          } else if (name.equals("relBuilderSimplify=false")) {
-            relBuilderSimplify = false;
-          } else if (name.equals("simplifyValues=false")) {
-            simplifyValues = false;
-          } else if (name.equals("subQueryRules")) {
-            subQueryRules = true;
-          } else if (name.equals("throwIfNotUnique=false")) {
-            throwIfNotUnique = false;
-          } else if (name.equals("trim=true")) {
-            trim = true;
-          } else if (name.equals("bottomUp=true")) {
-            bottomUp = true;
-          } else if (name.startsWith("functionsToReduce=")) {
-            functionsToReduceStr = name.substring("functionsToReduce=".length());
-          } else if (name.equals("withinDistinctOnly=true")) {
-            withinDistinctOnly = true;
-          } else {
-            throw new IllegalArgumentException("Unknown config token: " + name);
-          }
-        } else {
-          if (!throwIfNotUnique
-              && name.equals("AGGREGATE_EXPAND_WITHIN_DISTINCT")) {
-            rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
-                .withThrowIfNotUnique(false).toRule());
-          } else {
-            rules.add(QuidemTest.getCoreRule(name));
-          }
-        }
-      }
-
-      // Build factory from config tokens; use final copies for lambdas
-      final boolean expand0 = expand;
-      final boolean simplifyValues0 = simplifyValues;
-      final int bloat0 = bloat;
-      final int inSubQueryThreshold0 = inSubQueryThreshold;
-      SqlTestFactory testFactory = SqlTestFactory.INSTANCE
-          .withValidatorConfig(c -> c.withIdentifierExpansion(true))
-          .withSqlToRelConfig(c -> c.withExpand(expand0))
-          .withSqlToRelConfig(c ->
-              c.addRelBuilderConfigTransform(
-                  b -> b.withPruneInputOfAggregate(false)));
-      if (aggregateUnique) {
-        testFactory = testFactory.withSqlToRelConfig(c ->
-            c.addRelBuilderConfigTransform(b -> b.withAggregateUnique(true)));
-      }
-      if (!simplifyValues0) {
-        testFactory = testFactory.withSqlToRelConfig(c ->
-            c.addRelBuilderConfigTransform(b -> b.withSimplifyValues(false)));
-      }
-      if (trim) {
-        testFactory = testFactory.withSqlToRelConfig(c ->
-            c.withTrimUnusedFields(true));
-      }
-      if (bloat0 >= 0) {
-        testFactory = testFactory.withSqlToRelConfig(c ->
-            c.addRelBuilderConfigTransform(b -> b.withBloat(bloat0)));
-      }
-      if (inSubQueryThreshold0 >= 0) {
-        testFactory = testFactory.withSqlToRelConfig(c ->
-            c.withInSubQueryThreshold(inSubQueryThreshold0));
-      }
-      if (operatorTableBigQuery) {
-        testFactory = testFactory.withOperatorTable(opTab ->
-            SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                SqlLibrary.BIG_QUERY));
-      }
-      if (connectionConfig) {
-        testFactory = testFactory.withPlannerContext(c ->
-            Contexts.of(CalciteConnectionConfig.DEFAULT, c));
-      }
-      final boolean connectionConfig0 = connectionConfig;
-      final boolean decorrelate0 = decorrelate;
-      final boolean lateDecorrelate0 = lateDecorrelate;
-      final boolean topDownGeneralDecorrelate0 = topDownGeneralDecorrelate;
-      final boolean trim0 = trim;
-      final SqlTestFactory factory0 = testFactory;
-
-      // Parse, validate, and convert SQL to RelNode.
-      // relBuilderSimplify=false wraps conversion in a thread hook.
+      final Config config = parseArgs(args);
       final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
       try (AutoCloseable ignored =
                Hook.REL_BUILDER_SIMPLIFY.addThread(
-                   Hook.propertyJ(relBuilderSimplify))) {
-        final SqlToRelConverter converter = factory0.createSqlToRelConverter();
-        final SqlNode sqlQuery =
-            factory0.createParser(sqlCommand.sql).parseQuery();
-        final SqlNode validatedQuery =
-            requireNonNull(converter.validator).validate(sqlQuery);
-        RelNode relNode =
-            converter.convertQuery(validatedQuery, false, true).project();
-        // decorrelate=true / trim=true: matching
-        // AbstractSqlTester.convertSqlToRel2 behavior
-        if (decorrelate0 || trim0) {
-          relNode = converter.flattenTypes(relNode, true);
-        }
-        if (decorrelate0) {
-          relNode = converter.decorrelate(sqlQuery, relNode);
-        }
-        if (trim0) {
-          relNode = converter.trimUnusedFields(true, relNode);
-        }
-
-        // Apply subQueryRules as pre-rules before the main rules
-        if (subQueryRules) {
-          final HepProgramBuilder preBuilder = new HepProgramBuilder();
-          preBuilder.addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
-          preBuilder.addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
-          preBuilder.addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE);
-          final HepPlanner prePlanner = new HepPlanner(preBuilder.build());
-          prePlanner.setRoot(relNode);
-          relNode = prePlanner.findBestExp();
-        }
-
-        // Create custom AggregateReduceFunctionsRule if requested
-        if (functionsToReduceStr != null) {
-          final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
-          if (!functionsToReduceStr.equals("NONE")) {
-            for (String fn : functionsToReduceStr.split("\\|")) {
-              functions.add(SqlKind.valueOf(fn.trim()));
-            }
-          }
-          rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
-              .withOperandFor(LogicalAggregate.class)
-              .withFunctionsToReduce(functions)
-              .toRule());
-        }
-        if (withinDistinctOnly) {
-          rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
-              .withExtraCondition(call -> call.distinctKeys != null)
-              .toRule());
-        }
-
-        // Apply main rules using a single HepPlanner
-        if (!rules.isEmpty()) {
-          final HepProgramBuilder builder = new HepProgramBuilder();
-          if (bottomUp) {
-            builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
-          }
-          for (RelOptRule rule : rules) {
-            builder.addRuleInstance(rule);
-          }
-          final org.apache.calcite.plan.Context context0 =
-              connectionConfig0
-                  ? Contexts.of(CalciteConnectionConfig.DEFAULT)
-                  : Contexts.empty();
-          final HepPlanner hepPlanner =
-              new HepPlanner(builder.build(), context0);
-          hepPlanner.setRoot(relNode);
-          relNode = hepPlanner.findBestExp();
-        }
-
-        // Apply late decorrelation if requested
-        if (lateDecorrelate0) {
-          final RelBuilder relBuilder =
-              RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), null);
-          relNode = topDownGeneralDecorrelate0
-              ? TopDownGeneralDecorrelator.decorrelateQuery(relNode, relBuilder)
-              : RelDecorrelator.decorrelateQuery(relNode, relBuilder);
-        }
-
+                   Hook.propertyJ(config.relBuilderSimplify))) {
+        RelNode relNode = buildRelNode(config, sqlCommand);
+        relNode = applyRules(config, relNode);
         final String s = RelOptUtil.toString(relNode);
         x.echo(ImmutableList.copyOf(s.split(System.lineSeparator())));
       }
@@ -349,5 +151,257 @@ public class TransformCommand extends AbstractCommand {
       x.echo(content);
     }
     x.echo(lines);
+  }
+
+  /** Parses the args string into a {@link Config}. */
+  private static Config parseArgs(String args) {
+    boolean aggregateUnique = false;
+    boolean connectionConfig = false;
+    boolean decorrelate = false;
+    boolean relBuilderSimplify = true;
+    boolean expand = false;
+    boolean lateDecorrelate = false;
+    boolean topDownGeneralDecorrelate = false;
+    boolean operatorTableBigQuery = false;
+    boolean throwIfNotUnique = true;
+    boolean trim = false;
+    boolean simplifyValues = true;
+    boolean subQueryRules = false;
+    int bloat = -1; // -1 means "use default"
+    int inSubQueryThreshold = -1; // -1 means "use default"
+    boolean bottomUp = false;
+    @Nullable String functionsToReduceStr = null;
+    boolean withinDistinctOnly = false;
+    final List<RelOptRule> rules = new ArrayList<>();
+
+    for (String token : STRIP_QUOTES.matcher(args).replaceAll("").split(",")) {
+      final String name = token.trim();
+      if (name.isEmpty() || name.equals("NONE")) {
+        // skip placeholder
+      } else if (Character.isLowerCase(name.charAt(0))) {
+        // config token
+        if (name.equals("aggregateUnique=true")) {
+          aggregateUnique = true;
+        } else if (name.equals("connectionConfig=true")) {
+          connectionConfig = true;
+        } else if (name.startsWith("bloat=")) {
+          bloat = parseInt(name.substring("bloat=".length()));
+        } else if (name.startsWith("inSubQueryThreshold=")) {
+          inSubQueryThreshold =
+              parseInt(name.substring("inSubQueryThreshold=".length()));
+        } else if (name.equals("decorrelate=true")) {
+          decorrelate = true;
+        } else if (name.equals("decorrelate=false")) {
+          decorrelate = false; // same as default, used for documentation
+        } else if (name.equals("expand=true")) {
+          expand = true;
+        } else if (name.equals("expand=false")) {
+          expand = false; // same as default, used for documentation
+        } else if (name.equals("lateDecorrelate=true")) {
+          lateDecorrelate = true;
+        } else if (name.equals("topDownGeneralDecorrelate=true")) {
+          topDownGeneralDecorrelate = true;
+        } else if (name.equals("operatorTable=BIG_QUERY")) {
+          operatorTableBigQuery = true;
+        } else if (name.equals("relBuilderSimplify=false")) {
+          relBuilderSimplify = false;
+        } else if (name.equals("simplifyValues=false")) {
+          simplifyValues = false;
+        } else if (name.equals("subQueryRules")) {
+          subQueryRules = true;
+        } else if (name.equals("throwIfNotUnique=false")) {
+          throwIfNotUnique = false;
+        } else if (name.equals("trim=true")) {
+          trim = true;
+        } else if (name.equals("bottomUp=true")) {
+          bottomUp = true;
+        } else if (name.startsWith("functionsToReduce=")) {
+          functionsToReduceStr = name.substring("functionsToReduce=".length());
+        } else if (name.equals("withinDistinctOnly=true")) {
+          withinDistinctOnly = true;
+        } else {
+          throw new IllegalArgumentException("Unknown config token: " + name);
+        }
+      } else {
+        if (!throwIfNotUnique
+            && name.equals("AGGREGATE_EXPAND_WITHIN_DISTINCT")) {
+          rules.add(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT.config
+              .withThrowIfNotUnique(false).toRule());
+        } else {
+          rules.add(QuidemTest.getCoreRule(name));
+        }
+      }
+    }
+
+    // Add custom AggregateReduceFunctionsRule variants if requested
+    if (functionsToReduceStr != null) {
+      final EnumSet<SqlKind> functions = EnumSet.noneOf(SqlKind.class);
+      if (!functionsToReduceStr.equals("NONE")) {
+        for (String fn : functionsToReduceStr.split("\\|")) {
+          functions.add(SqlKind.valueOf(fn.trim()));
+        }
+      }
+      rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+          .withOperandFor(LogicalAggregate.class)
+          .withFunctionsToReduce(functions)
+          .toRule());
+    }
+    if (withinDistinctOnly) {
+      rules.add(AggregateReduceFunctionsRule.Config.DEFAULT
+          .withExtraCondition(call -> call.distinctKeys != null)
+          .toRule());
+    }
+
+    return new Config(aggregateUnique, connectionConfig, decorrelate,
+        relBuilderSimplify, expand, lateDecorrelate, topDownGeneralDecorrelate,
+        operatorTableBigQuery, trim, simplifyValues, subQueryRules, bloat,
+        inSubQueryThreshold, bottomUp, ImmutableList.copyOf(rules));
+  }
+
+  /** Converts a SQL statement to a {@link RelNode} according to {@code config}. */
+  private static RelNode buildRelNode(Config config,
+      Quidem.SqlCommand sqlCommand) throws Exception {
+    SqlTestFactory testFactory = SqlTestFactory.INSTANCE
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .withSqlToRelConfig(c -> c.withExpand(config.expand))
+        .withSqlToRelConfig(c ->
+            c.addRelBuilderConfigTransform(
+                b -> b.withPruneInputOfAggregate(false)));
+    if (config.aggregateUnique) {
+      testFactory = testFactory.withSqlToRelConfig(c ->
+          c.addRelBuilderConfigTransform(b -> b.withAggregateUnique(true)));
+    }
+    if (!config.simplifyValues) {
+      testFactory = testFactory.withSqlToRelConfig(c ->
+          c.addRelBuilderConfigTransform(b -> b.withSimplifyValues(false)));
+    }
+    if (config.trim) {
+      testFactory = testFactory.withSqlToRelConfig(c ->
+          c.withTrimUnusedFields(true));
+    }
+    if (config.bloat >= 0) {
+      final int bloat = config.bloat;
+      testFactory = testFactory.withSqlToRelConfig(c ->
+          c.addRelBuilderConfigTransform(b -> b.withBloat(bloat)));
+    }
+    if (config.inSubQueryThreshold >= 0) {
+      final int threshold = config.inSubQueryThreshold;
+      testFactory = testFactory.withSqlToRelConfig(c ->
+          c.withInSubQueryThreshold(threshold));
+    }
+    if (config.operatorTableBigQuery) {
+      testFactory = testFactory.withOperatorTable(opTab ->
+          SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+              SqlLibrary.BIG_QUERY));
+    }
+    if (config.connectionConfig) {
+      testFactory = testFactory.withPlannerContext(c ->
+          Contexts.of(CalciteConnectionConfig.DEFAULT, c));
+    }
+
+    final SqlToRelConverter converter = testFactory.createSqlToRelConverter();
+    final SqlNode sqlQuery =
+        testFactory.createParser(sqlCommand.sql).parseQuery();
+    final SqlNode validatedQuery =
+        requireNonNull(converter.validator).validate(sqlQuery);
+    RelNode relNode =
+        converter.convertQuery(validatedQuery, false, true).project();
+    // decorrelate=true / trim=true: matching
+    // AbstractSqlTester.convertSqlToRel2 behavior
+    if (config.decorrelate || config.trim) {
+      relNode = converter.flattenTypes(relNode, true);
+    }
+    if (config.decorrelate) {
+      relNode = converter.decorrelate(sqlQuery, relNode);
+    }
+    if (config.trim) {
+      relNode = converter.trimUnusedFields(true, relNode);
+    }
+
+    // Apply subQueryRules as a pre-pass before the main rules
+    if (config.subQueryRules) {
+      final HepProgramBuilder preBuilder = new HepProgramBuilder();
+      preBuilder.addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+      preBuilder.addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+      preBuilder.addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE);
+      final HepPlanner prePlanner = new HepPlanner(preBuilder.build());
+      prePlanner.setRoot(relNode);
+      relNode = prePlanner.findBestExp();
+    }
+
+    return relNode;
+  }
+
+  /** Applies the rules in {@code config} to {@code relNode} and returns the
+   * result. */
+  private static RelNode applyRules(Config config, RelNode relNode) {
+    if (!config.rules.isEmpty()) {
+      final HepProgramBuilder builder = new HepProgramBuilder();
+      if (config.bottomUp) {
+        builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
+      }
+      for (RelOptRule rule : config.rules) {
+        builder.addRuleInstance(rule);
+      }
+      final org.apache.calcite.plan.Context context =
+          config.connectionConfig
+              ? Contexts.of(CalciteConnectionConfig.DEFAULT)
+              : Contexts.empty();
+      final HepPlanner hepPlanner = new HepPlanner(builder.build(), context);
+      hepPlanner.setRoot(relNode);
+      relNode = hepPlanner.findBestExp();
+    }
+
+    if (config.lateDecorrelate) {
+      final RelBuilder relBuilder =
+          RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), null);
+      relNode = config.topDownGeneralDecorrelate
+          ? TopDownGeneralDecorrelator.decorrelateQuery(relNode, relBuilder)
+          : RelDecorrelator.decorrelateQuery(relNode, relBuilder);
+    }
+
+    return relNode;
+  }
+
+  /** Parsed configuration for a {@code !transform} command. */
+  private static class Config {
+    final boolean aggregateUnique;
+    final boolean connectionConfig;
+    final boolean decorrelate;
+    final boolean relBuilderSimplify;
+    final boolean expand;
+    final boolean lateDecorrelate;
+    final boolean topDownGeneralDecorrelate;
+    final boolean operatorTableBigQuery;
+    final boolean trim;
+    final boolean simplifyValues;
+    final boolean subQueryRules;
+    final int bloat;
+    final int inSubQueryThreshold;
+    final boolean bottomUp;
+    final ImmutableList<RelOptRule> rules;
+
+    Config(boolean aggregateUnique, boolean connectionConfig,
+        boolean decorrelate, boolean relBuilderSimplify, boolean expand,
+        boolean lateDecorrelate, boolean topDownGeneralDecorrelate,
+        boolean operatorTableBigQuery, boolean trim, boolean simplifyValues,
+        boolean subQueryRules, int bloat, int inSubQueryThreshold,
+        boolean bottomUp, ImmutableList<RelOptRule> rules) {
+      this.aggregateUnique = aggregateUnique;
+      this.connectionConfig = connectionConfig;
+      this.decorrelate = decorrelate;
+      this.relBuilderSimplify = relBuilderSimplify;
+      this.expand = expand;
+      this.lateDecorrelate = lateDecorrelate;
+      this.topDownGeneralDecorrelate = topDownGeneralDecorrelate;
+      this.operatorTableBigQuery = operatorTableBigQuery;
+      this.trim = trim;
+      this.simplifyValues = simplifyValues;
+      this.subQueryRules = subQueryRules;
+      this.bloat = bloat;
+      this.inSubQueryThreshold = inSubQueryThreshold;
+      this.bottomUp = bottomUp;
+      this.rules = rules;
+    }
   }
 }
