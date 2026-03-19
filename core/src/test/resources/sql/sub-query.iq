@@ -9070,6 +9070,23 @@ where exists (
 
 !ok
 
+# [CALCITE-7318] Execution fails when the JOIN ON condition contains references to columns from both the left and right sides
+!use scott
+select Header.Name from ( VALUES (1, 'A'), (2, 'B')) as Header(Id, Name)
+join (values (11, 1), (12, 1), (21, 2)) as Version(Id, Parent)
+on not exists (select 1 from (values (11, 1), (12, 1), (21, 2)) as Version2(Id, Parent)
+where Version2.Parent = Header.Id and Version2.Id > Version.Id);
++------+
+| NAME |
++------+
+| A    |
+| A    |
+| B    |
++------+
+(3 rows)
+
+!ok
+
 # [CALCITE-5132] Scalar IN subquery returns UNKNOWN instead of FALSE when key is partially NULL.
 # Case 1: Default insubquerythreshold=20
 !if (use_old_decorr) {

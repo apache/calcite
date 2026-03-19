@@ -1050,10 +1050,58 @@ public class SubQueryRemoveRule
     boolean inputIntersectsRightSide =
         inputSet.intersects(ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
     if (inputIntersectsLeftSide && inputIntersectsRightSide) {
-      // The current existential rewrite needs to make join with one side of the origin join and
-      // generate a new condition to replace the on clause. But for RexNode whose operands are
-      // on either side of the join, we can't push them into join. So this rewriting is not
-      // supported.
+      if (join.getJoinType() != JoinRelType.INNER) {
+        // Rewriting requires flattening the join into a cross-product first (see below).
+        // That transformation is only valid for INNER JOIN (A JOIN B ON c ≡ (A × B) WHERE c).
+        // For OUTER JOINs the semantics differ (NULL-padding), so we bail out.
+        return;
+      }
+
+      // The sub-query operands span both sides of the join, e.g.:
+      //   SELECT empno FROM emp JOIN dept
+      //   ON emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept)
+      //
+      // Because the sub-query references fields from both the left (emp) and right (dept)
+      // inputs, we cannot attach the sub-query rewrite to either side alone.
+      // The logic is to exploit the INNER JOIN equivalence:
+      //   L INNER JOIN R ON cond  ≡  (L CROSS JOIN R) WHERE cond
+
+      // Step 1 – flatten to a cross-product so every field is visible in one relation:
+      //
+      //   Before:                        After (builder stack):
+      //   LogicalJoin(INNER, cond)   →   LogicalJoin(INNER, true)   ← cross-product
+      //     LogicalTableScan(EMP)          LogicalTableScan(EMP)
+      //     LogicalTableScan(DEPT)         LogicalTableScan(DEPT)
+      builder.push(join.getLeft());
+      builder.push(join.getRight());
+      builder.join(JoinRelType.INNER, builder.literal(true));
+
+      // Step 2 – expand the sub-query against the flattened relation (rule.apply).
+      //   The sub-query rewrite pushes an auxiliary relation onto the stack, e.g. for SOME:
+      //
+      //   LogicalJoin(INNER, true)                ← sub-query auxiliary join
+      //     LogicalJoin(INNER, true)              ← cross-product from step 1
+      //       LogicalTableScan(EMP)
+      //       LogicalTableScan(DEPT)
+      //     LogicalAggregate(m, c, d)             ← aggregate over sub-query
+      //       LogicalTableScan(DEPT)
+      final int count = builder.peek().getRowType().getFieldCount();
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(join.getCondition()), e);
+      final RexNode target =
+          rule.apply(e, variablesSet, logic, builder, 1, count, 0);
+
+      // Step 3 – replace the sub-query in the ON condition with the expression (target)
+      //   produced by rule.apply (e.g. a CASE expression for SOME, IS NOT NULL for EXISTS),
+      //   then materialize it as a Filter (valid because the cross-product is already in place).
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+      final RexNode newCond = shuttle.apply(join.getCondition());
+      builder.filter(newCond);
+
+      // Step 4 – project away the auxiliary columns introduced by the sub-query rewrite,
+      //   restoring the original output schema (fields 0 .. count-1).
+      builder.project(fields(builder, count));
+      call.transformTo(builder.build());
       return;
     }
 
