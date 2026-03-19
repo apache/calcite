@@ -208,7 +208,7 @@ public class CoreQuidemTest extends QuidemTest {
   }
 
   /** Command handler that adds "!explain-validated-on dialect..." and
-   * "!transform" commands (see {@link SubPlanCommand}). */
+   * "!transform" commands (see {@link TransformCommand}). */
   private static class ExtendedCommandHandler implements CommandHandler {
     @Override public @Nullable Command parseCommand(List<String> lines,
         List<String> content, String line) {
@@ -228,7 +228,7 @@ public class CoreQuidemTest extends QuidemTest {
       }
       if (line.startsWith("transform ")) {
         String args = line.substring("transform ".length());
-        return new QuidemTest.SubPlanCommand(lines, content, args);
+        return new TransformCommand(lines, content, args);
       }
       return null;
     }
