@@ -171,7 +171,8 @@ public abstract class QuidemTest {
     }
   }
 
-  /** Command that prints a plan for a SQL statement, optionally after applying rules.
+  /** Command ({@code !transform}) that prints a plan for a SQL statement,
+   * optionally after applying rules.
    *
    * <p>The {@code args} string is a comma-separated list of config tokens and
    * rule names. {@code NONE} is a placeholder meaning "no rule at this position".
@@ -230,10 +231,10 @@ public abstract class QuidemTest {
    *       equivalent to {@code .withTrim(true)}
    * </ul>
    *
-   * <p>Examples: {@code "NONE"} (initial plan, no rules),
-   * {@code "AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
-   * {@code "aggregateUnique=true, NONE"} (initial plan with aggregateUnique),
-   * {@code "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
+   * <p>Examples: {@code !transform "NONE"} (initial plan, no rules),
+   * {@code !transform "AGGREGATE_UNION_AGGREGATE"} (plan after one rule),
+   * {@code !transform "aggregateUnique=true, NONE"} (initial plan with aggregateUnique),
+   * {@code !transform "relBuilderSimplify=false, NONE, PROJECT_REDUCE_EXPRESSIONS"}
    * (plan after rule, with expressions not pre-simplified by RelBuilder). */
   public static class SubPlanCommand extends AbstractCommand {
     private static final Pattern PATTERN = Pattern.compile("^\"|\"$");

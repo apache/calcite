@@ -53,12 +53,12 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(fetch=[10000])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$7])
   LogicalSort(fetch=[10])
     LogicalFilter(condition=[>($5, 100)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_REMOVE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_REMOVE"
 
 # testLimitMerge1 --------------------------------------------------------------
 # LIMIT_MERGE should merge two nested LIMIT operators, keeping the smaller
@@ -71,19 +71,19 @@ from (
   where sal > 100
   order by sal desc limit 10000)
 limit 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalSort(fetch=[10])
       LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$7])
   LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
     LogicalFilter(condition=[>($5, 100)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
 
 # testLimitMerge2 --------------------------------------------------------------
 # LIMIT_MERGE should merge two nested LIMIT operators, keeping the smaller
@@ -119,12 +119,12 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$7])
   LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
     LogicalFilter(condition=[>($5, 100)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
 
 # testLimitMerge3 --------------------------------------------------------------
 # LIMIT_MERGE should not merge when the outer has ORDER BY (different semantics);
@@ -164,13 +164,13 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(fetch=[100])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$7])
   LogicalSort(sort0=[$7], dir0=[DESC])
     LogicalSort(fetch=[100])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_REMOVE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_REMOVE"
 
 # testLimitMerge4 --------------------------------------------------------------
 # LIMIT_MERGE should not merge when the inner and outer have different ORDER BY
@@ -205,13 +205,13 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$7])
   LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
     LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
 
 # testLimitMerge5 --------------------------------------------------------------
 # LIMIT_MERGE should merge when the inner fetch (10000) is greater than the
@@ -246,13 +246,13 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$7])
   LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
     LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
 
 # testLimitMergeBigint ---------------------------------------------------------
 # LIMIT_MERGE should handle BIGINT fetch values (> Integer.MAX_VALUE).
@@ -267,12 +267,12 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(fetch=[3100000000:BIGINT])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[3000000000:BIGINT])
       LogicalFilter(condition=[>($5, 100)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE, PROJECT_MERGE"
 
 # End limit-merge.iq

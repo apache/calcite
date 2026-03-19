@@ -81,14 +81,14 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[inner])
     LogicalFilter(condition=[IS NOT NULL($3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[IS NOT NULL($3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule10 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
@@ -152,12 +152,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $12)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $12)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule11 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
@@ -172,12 +172,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule12 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter for one
@@ -193,14 +193,14 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), IS NOT DISTINCT FROM($3, $12))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), IS NOT DISTINCT FROM($3, $12))], joinType=[inner])
     LogicalFilter(condition=[IS NOT NULL($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalFilter(condition=[IS NOT NULL($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule13 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter if join
@@ -215,12 +215,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=(CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, $10), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=(CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, $10), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule15 ------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter only for
@@ -235,13 +235,13 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
     LogicalFilter(condition=[IS NOT NULL($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule2 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filter for the
@@ -306,7 +306,7 @@ LogicalProject(DEPTNO=[$7])
       LogicalFilter(condition=[IS NOT NULL($3)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -314,7 +314,7 @@ LogicalProject(DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[IS NOT NULL($3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule3 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filters for both
@@ -398,14 +398,14 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[>($3, $12)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[>($3, $12)], joinType=[inner])
     LogicalFilter(condition=[IS NOT NULL($3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[IS NOT NULL($3)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule4 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should create IS NOT NULL filter for both
@@ -420,14 +420,14 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), >($3, $12))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[AND(=($1, $10), >($3, $12))], joinType=[inner])
     LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($3))])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($3))])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule5 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should add IS NOT NULL filter for the
@@ -447,7 +447,7 @@ LogicalProject(DEPTNO=[$1])
       LogicalFilter(condition=[IS NOT NULL($1)])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$1])
   LogicalJoin(condition=[=($0, $3)], joinType=[inner])
     LogicalProject(ENAME=[$1], DEPTNO=[+($7, 1)])
@@ -455,7 +455,7 @@ LogicalProject(DEPTNO=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalFilter(condition=[IS NOT NULL($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule6 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
@@ -516,12 +516,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule7 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
@@ -581,12 +581,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule8 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
@@ -646,12 +646,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # testJoinDeriveIsNotNullFilterRule9 -------------------------------------------
 # JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE should not add IS NOT NULL filter since
@@ -718,7 +718,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[IS NOT NULL($3)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($3, $12)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -727,6 +727,6 @@ LogicalProject(DEPTNO=[$7])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[IS NOT NULL($3)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
+!transform "JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE"
 
 # End join-derive.iq

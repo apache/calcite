@@ -49,7 +49,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(DEPTNO=[$7], T=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0, 1}])
@@ -58,7 +58,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(DEPTNO=[$7], T=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_UNION_TRANSPOSE"
+!transform "AGGREGATE_UNION_TRANSPOSE"
 
 # testAggregateUnionTransposeWithOneInputNonNullable ---------------------------
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input has a non-nullable column.
@@ -86,7 +86,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0}], S=[SUM($1)])
@@ -95,7 +95,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
     LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_UNION_TRANSPOSE"
+!transform "AGGREGATE_UNION_TRANSPOSE"
 
 # testAggregateUnionTransposeWithOneInputUnique --------------------------------
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when one input is unique.
@@ -124,7 +124,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(DEPTNO=[$7], T=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{0}], S=[SUM($1)])
@@ -134,7 +134,7 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalAggregate(group=[{0, 1}])
         LogicalProject(DEPTNO=[$7], T=[2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_UNION_TRANSPOSE"
+!transform "AGGREGATE_UNION_TRANSPOSE"
 
 # testAggregateUnionTransposeWithTopLevelGroupSetRemapping ---------------------
 # AGGREGATE_UNION_TRANSPOSE pushes aggregate below UNION when top-level group set is remapped.
@@ -161,7 +161,7 @@ LogicalProject(C=[$1], T2=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_PROJECT_MERGE"
+!transform "AGGREGATE_PROJECT_MERGE"
 LogicalProject(C=[$1], T2=[$0])
   LogicalAggregate(group=[{0}], C=[$SUM0($1)])
     LogicalUnion(all=[true])
@@ -171,7 +171,7 @@ LogicalProject(C=[$1], T2=[$0])
       LogicalAggregate(group=[{1}], C=[COUNT($0)])
         LogicalProject(T1=[CASE(=($7, 0), 1, null:INTEGER)], T2=[2])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
 
 # testEmptyFilterProjectUnion --------------------------------------------------
 # Filters, projects, and empty sets work together correctly via rule chaining.
@@ -198,10 +198,10 @@ LogicalProject(X=[$0], Y=[$1])
         LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
       LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
         LogicalValues(tuples=[[{ 20, 2 }]])
-!sub-plan ""
+!transform ""
 LogicalProject(X=[$0], Y=[$1])
   LogicalValues(tuples=[[{ 30, 3 }]])
-!sub-plan "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
+!transform "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
 
 # testEmptyFilterProjectUnion2 -------------------------------------------------
 # UNION DISTINCT with a filter reduces correctly when one branch becomes empty.
@@ -228,11 +228,11 @@ LogicalProject(X=[$0], Y=[$1])
         LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }, { 30, 3 }]])
       LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
         LogicalValues(tuples=[[{ 20, 2 }]])
-!sub-plan ""
+!transform ""
 LogicalProject(X=[$0], Y=[$1])
   LogicalAggregate(group=[{0, 1}])
     LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
-!sub-plan "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
+!transform "FILTER_SET_OP_TRANSPOSE, FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.UNION_INSTANCE"
 
 # testIntersectToDistinct ------------------------------------------------------
 # INTERSECT_TO_DISTINCT rewrites a 3-way INTERSECT DISTINCT into aggregation.
@@ -260,7 +260,7 @@ LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($9, 3)])
     LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], agg#0=[COUNT()])
@@ -277,7 +277,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
             LogicalFilter(condition=[=($7, 30)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
+!transform "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
 
 # testIntersectToDistinctAll ---------------------------------------------------
 # INTERSECT_TO_DISTINCT ignores the INTERSECT ALL branch: only rewrites DISTINCT
@@ -306,7 +306,7 @@ LogicalIntersect(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalIntersect(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($9, 2)])
@@ -323,7 +323,7 @@ LogicalIntersect(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
+!transform "INTERSECT_MERGE, INTERSECT_TO_DISTINCT"
 
 # testIntersectToDistinctAllNoAggregatePushdown --------------------------------
 # INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN ignores INTERSECT ALL branch.
@@ -351,7 +351,7 @@ LogicalIntersect(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalIntersect(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[AND(>($9, 0), >($10, 0))])
@@ -369,7 +369,7 @@ LogicalIntersect(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+!transform "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
 
 # testIntersectToDistinctNoAggregatePushdown -----------------------------------
 # INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN rewrites a 3-way INTERSECT DISTINCT
@@ -398,7 +398,7 @@ LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[AND(>($9, 0), >($10, 0), >($11, 0))])
     LogicalAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}], count_i0=[COUNT() FILTER $9], count_i1=[COUNT() FILTER $10], count_i2=[COUNT() FILTER $11])
@@ -416,7 +416,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
               LogicalFilter(condition=[=($7, 30)])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+!transform "INTERSECT_MERGE, INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
 
 # testIntersectToExistsRuleMultiFields -----------------------------------------
 # INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with multiple fields.
@@ -451,7 +451,7 @@ LogicalIntersect(all=[false])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(ENAME=[$1], JOB=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[AND(=($cor0.ENAME, $0), =($cor0.JOB, $1))])
@@ -460,7 +460,7 @@ LogicalFilter(condition=[AND(=($cor0.ENAME, $0), =($cor0.JOB, $1))])
 })], variablesSet=[[$cor0]])
     LogicalProject(ENAME=[$1], JOB=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_EXISTS"
+!transform "INTERSECT_TO_EXISTS"
 
 # testIntersectToExistsRuleMultiIntersect --------------------------------------
 # INTERSECT_TO_EXISTS rewrites nested INTERSECT to correlated EXISTS subqueries.
@@ -486,7 +486,7 @@ LogicalIntersect(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[=($cor0.ENAME, $0)])
   LogicalProject(ENAME=[$1])
@@ -500,7 +500,7 @@ LogicalFilter(condition=[=($cor1.ENAME, $0)])
 })], variablesSet=[[$cor1]])
       LogicalProject(ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_EXISTS"
+!transform "INTERSECT_TO_EXISTS"
 
 # testIntersectToExistsRuleOneField --------------------------------------------
 # INTERSECT_TO_EXISTS rewrites INTERSECT to a correlated EXISTS with one field.
@@ -521,7 +521,7 @@ LogicalIntersect(all=[false])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}])
   LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[=($cor0.ENAME, $0)])
@@ -530,7 +530,7 @@ LogicalFilter(condition=[=($cor0.ENAME, $0)])
 })], variablesSet=[[$cor0]])
     LogicalProject(ENAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_EXISTS"
+!transform "INTERSECT_TO_EXISTS"
 
 # testIntersectToExistsRulePrimaryKey ------------------------------------------
 # INTERSECT_TO_EXISTS on a primary-key column skips the outer Aggregate.
@@ -565,7 +565,7 @@ LogicalIntersect(all=[false])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[=($cor0.EMPNO, $0)])
   LogicalProject(EMPNO=[$0])
@@ -573,7 +573,7 @@ LogicalFilter(condition=[=($cor0.EMPNO, $0)])
 })], variablesSet=[[$cor0]])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_EXISTS"
+!transform "INTERSECT_TO_EXISTS"
 
 # testIntersectToExistsRuleWithAll ---------------------------------------------
 # INTERSECT_TO_EXISTS does not rewrite INTERSECT ALL (only INTERSECT DISTINCT).
@@ -594,13 +594,13 @@ LogicalIntersect(all=[true])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalIntersect(all=[true])
   LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(DNAME=[CAST($1):VARCHAR(20) NOT NULL])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "INTERSECT_TO_EXISTS"
+!transform "INTERSECT_TO_EXISTS"
 
 # testIntersectToFilterRuleNWayWithMultiSources --------------------------------
 # INTERSECT_FILTER_TO_FILTER merges n-way INTERSECT from multiple sources into combined filters.
@@ -633,7 +633,7 @@ LogicalIntersect(all=[false])
   LogicalFilter(condition=[<($0, 10)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE"
+!transform "INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE"
 LogicalIntersect(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[(6..12)])])
     LogicalProject(DEPTNO=[$7])
@@ -641,7 +641,7 @@ LogicalIntersect(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[(5..10)])])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+!transform "INTERSECT_MERGE, PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
 
 # testIntersectToFilterRuleWithOneFilter ---------------------------------------
 # INTERSECT_FILTER_TO_FILTER rewrites INTERSECT into a single filter when one input has no filter.
@@ -663,12 +663,12 @@ LogicalIntersect(all=[false])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE"
+!transform "PROJECT_FILTER_TRANSPOSE"
 LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+!transform "PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
 
 # testIntersectToFilterRuleWithTwoFilters --------------------------------------
 # INTERSECT_FILTER_TO_FILTER rewrites INTERSECT into AND of two filters.
@@ -691,12 +691,12 @@ LogicalIntersect(all=[false])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE"
+!transform "PROJECT_FILTER_TRANSPOSE"
 LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[AND(=($0, 12), =($1, 5))])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
+!transform "PROJECT_FILTER_TRANSPOSE, INTERSECT_FILTER_TO_FILTER"
 
 # testIntersectToSemiJoin ------------------------------------------------------
 # INTERSECT_TO_SEMI_JOIN rewrites 2-way INTERSECT DISTINCT to semi-join + aggregate.
@@ -719,7 +719,7 @@ LogicalIntersect(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 20)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
     LogicalProject(ENAME=[$1])
@@ -728,7 +728,7 @@ LogicalAggregate(group=[{0}])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_SEMI_JOIN"
+!transform "INTERSECT_TO_SEMI_JOIN"
 
 # testIntersectToSemiJoin2 -----------------------------------------------------
 # INTERSECT_TO_SEMI_JOIN rewrites n-way INTERSECT to chained semi-joins (after INTERSECT_MERGE).
@@ -749,7 +749,7 @@ LogicalIntersect(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "INTERSECT_MERGE"
+!transform "INTERSECT_MERGE"
 LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
     LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
@@ -764,7 +764,7 @@ LogicalAggregate(group=[{0}])
     LogicalProject(ENAME=[CAST($0):VARCHAR])
       LogicalProject(ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "INTERSECT_MERGE, INTERSECT_TO_SEMI_JOIN"
+!transform "INTERSECT_MERGE, INTERSECT_TO_SEMI_JOIN"
 
 # testIntersectToSemiJoinAll ---------------------------------------------------
 # INTERSECT_TO_SEMI_JOIN applies only to INTERSECT DISTINCT; INTERSECT ALL is left unchanged.
@@ -793,7 +793,7 @@ LogicalIntersect(all=[true])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalIntersect(all=[true])
   LogicalAggregate(group=[{0}])
     LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
@@ -806,7 +806,7 @@ LogicalIntersect(all=[true])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_SEMI_JOIN"
+!transform "INTERSECT_TO_SEMI_JOIN"
 
 # testIntersectToSemiJoinCoercion ----------------------------------------------
 # INTERSECT_TO_SEMI_JOIN handles column type coercion between INTERSECT inputs.
@@ -829,7 +829,7 @@ LogicalIntersect(all=[false])
   LogicalProject(JOB=[CAST($2):VARCHAR(20) NOT NULL])
     LogicalFilter(condition=[=($7, 20)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
     LogicalProject(ENAME=[$1])
@@ -838,7 +838,7 @@ LogicalAggregate(group=[{0}])
     LogicalProject(JOB=[CAST($2):VARCHAR(20) NOT NULL])
       LogicalFilter(condition=[=($7, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_SEMI_JOIN"
+!transform "INTERSECT_TO_SEMI_JOIN"
 
 # testIntersectToSemiJoinMultiCol ----------------------------------------------
 # INTERSECT_TO_SEMI_JOIN rewrites INTERSECT with multiple columns to a multi-condition semi-join.
@@ -861,7 +861,7 @@ LogicalIntersect(all=[false])
   LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalFilter(condition=[=($7, 20)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0, 1}])
   LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[semi])
     LogicalProject(DEPTNO=[$7], ENAME=[$1])
@@ -870,7 +870,7 @@ LogicalAggregate(group=[{0, 1}])
     LogicalProject(DEPTNO=[$7], ENAME=[$1])
       LogicalFilter(condition=[=($7, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "INTERSECT_TO_SEMI_JOIN"
+!transform "INTERSECT_TO_SEMI_JOIN"
 
 # testMergeSetOpMixed ----------------------------------------------------------
 # UNION_MERGE and INTERSECT_MERGE do nothing if inputs have different set operators.
@@ -901,7 +901,7 @@ LogicalUnion(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($7, 30)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalUnion(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[=($7, 10)])
@@ -913,7 +913,7 @@ LogicalUnion(all=[false])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($7, 30)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "UNION_MERGE, INTERSECT_MERGE"
+!transform "UNION_MERGE, INTERSECT_MERGE"
 
 # testMinusMergeRule -----------------------------------------------------------
 # MINUS_MERGE collapses a 3-level EXCEPT ALL tree into a single EXCEPT ALL.
@@ -959,7 +959,7 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalMinus(all=[true])
   LogicalProject(DNAME=[$0], DEPTNO=[$1])
     LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
@@ -978,7 +978,7 @@ LogicalMinus(all=[true])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, MINUS_MERGE"
+!transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, MINUS_MERGE"
 
 # testMinusToAntiJoinRule ------------------------------------------------------
 # MINUS_TO_ANTI_JOIN rewrites 2-way EXCEPT DISTINCT to anti-join + aggregate.
@@ -1004,7 +1004,7 @@ LogicalMinus(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 20)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[=($0, $1)], joinType=[anti])
     LogicalProject(ENAME=[$1])
@@ -1013,7 +1013,7 @@ LogicalAggregate(group=[{0}])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "MINUS_TO_ANTI_JOIN"
+!transform "MINUS_TO_ANTI_JOIN"
 
 # testMinusToAntiJoinRuleMultiInputs -------------------------------------------
 # MINUS_TO_ANTI_JOIN rewrites n-way EXCEPT to chained anti-joins (after MINUS_MERGE).
@@ -1023,7 +1023,7 @@ except
 select deptno from emp where ename in ('a', 'b')
 except
 select ename from empnullables;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalMinus(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 10)])
@@ -1033,7 +1033,7 @@ LogicalMinus(all=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "MINUS_MERGE"
+!transform "MINUS_MERGE"
 LogicalProject(ENAME=[CAST($0):VARCHAR])
   LogicalAggregate(group=[{0}])
     LogicalJoin(condition=[IS NOT DISTINCT FROM(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[anti])
@@ -1046,7 +1046,7 @@ LogicalProject(ENAME=[CAST($0):VARCHAR])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "MINUS_MERGE, MINUS_TO_ANTI_JOIN"
+!transform "MINUS_MERGE, MINUS_TO_ANTI_JOIN"
 
 # testMinusToDistinct ----------------------------------------------------------
 # MINUS_TO_DISTINCT rewrites a 3-way EXCEPT DISTINCT into aggregation.
@@ -1077,7 +1077,7 @@ LogicalMinus(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
   LogicalFilter(condition=[AND(>($3, 0), =($4, 0), =($5, 0))])
     LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4], agg#2=[COUNT() FILTER $5])
@@ -1092,7 +1092,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[2])
             LogicalFilter(condition=[=($7, 30)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
+!transform "MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
 
 # testMinusToDistinctAll -------------------------------------------------------
 # MINUS_TO_DISTINCT ignores the EXCEPT ALL branch: only rewrites DISTINCT parts.
@@ -1123,7 +1123,7 @@ LogicalMinus(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalMinus(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
     LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
@@ -1139,7 +1139,7 @@ LogicalMinus(all=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
+!transform "MINUS_MERGE, MINUS_TO_DISTINCT, PROJECT_MERGE"
 
 # testMinusToDistinctAllAndDistinct --------------------------------------------
 # MINUS_TO_DISTINCT rewrites the outer EXCEPT DISTINCT but not the inner EXCEPT ALL.
@@ -1170,7 +1170,7 @@ LogicalMinus(all=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
     LogicalFilter(condition=[=($7, 30)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
   LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
     LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
@@ -1187,7 +1187,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
             LogicalFilter(condition=[=($7, 30)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "MINUS_TO_DISTINCT, PROJECT_MERGE"
+!transform "MINUS_TO_DISTINCT, PROJECT_MERGE"
 
 # testMinusToFilterNWayWithSubquery --------------------------------------------
 # MINUS_FILTER_TO_FILTER merges same-source inputs in n-way EXCEPT containing a correlated subquery.
@@ -1224,7 +1224,7 @@ LogicalFilter(condition=[=($6, $cor0.COMM)])
   LogicalFilter(condition=[>($0, 20)])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+!transform "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
 LogicalMinus(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[(12..20]])])
     LogicalProject(DEPTNO=[$7])
@@ -1238,7 +1238,7 @@ LogicalFilter(condition=[=($6, $cor0.COMM)])
 })])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+!transform "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
 
 # testMinusToFilterRuleFourWayWithForSources -----------------------------------
 # MINUS_FILTER_TO_FILTER is unchanged when all four EXCEPT sources are different tables.
@@ -1251,7 +1251,7 @@ EXCEPT
 SELECT deptno FROM empnullables WHERE deptno = 6
 EXCEPT
 SELECT deptno FROM deptnullables WHERE deptno = 10;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(DEPTNO=[$7])
@@ -1265,7 +1265,7 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 10)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+!transform "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
 LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(DEPTNO=[$7])
@@ -1279,7 +1279,7 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 10)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+!transform "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
 
 # testMinusToFilterRuleNWayWithMultiSources ------------------------------------
 # MINUS_FILTER_TO_FILTER merges n-way EXCEPT from multiple sources into combined filters.
@@ -1312,7 +1312,7 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[>($0, 10)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
+!transform "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE"
 LogicalMinus(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[(6..12]])])
     LogicalProject(DEPTNO=[$7])
@@ -1320,7 +1320,7 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[>($0, 8)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+!transform "MINUS_MERGE, PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
 
 # testMinusToFilterRuleWithOneFilter -------------------------------------------
 # MINUS_FILTER_TO_FILTER rewrites EXCEPT into a negated filter when one input has no filter.
@@ -1353,12 +1353,12 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE"
+!transform "PROJECT_FILTER_TRANSPOSE"
 LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[<>($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+!transform "PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
 
 # testMinusToFilterRuleWithTwoFilters ------------------------------------------
 # MINUS_FILTER_TO_FILTER rewrites EXCEPT into AND of one filter and NOT of the other.
@@ -1381,12 +1381,12 @@ LogicalMinus(all=[false])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE"
+!transform "PROJECT_FILTER_TRANSPOSE"
 LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[AND(=($0, 12), <>($1, 5))])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
+!transform "PROJECT_FILTER_TRANSPOSE, MINUS_FILTER_TO_FILTER"
 
 # testPushJoinThroughUnionOnLeft -----------------------------------------------
 # JOIN_LEFT_UNION_TRANSPOSE distributes a join over a UNION ALL on the left input.
@@ -1801,7 +1801,7 @@ LogicalProject(SAL=[$5])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(SAL=[$5])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -1812,7 +1812,7 @@ LogicalProject(SAL=[$5])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_LEFT_UNION_TRANSPOSE"
+!transform "JOIN_LEFT_UNION_TRANSPOSE"
 
 # testPushJoinThroughUnionOnRight ----------------------------------------------
 # JOIN_RIGHT_UNION_TRANSPOSE distributes a join over a UNION ALL on the right input.
@@ -2626,7 +2626,7 @@ LogicalProject(SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(SAL=[$5])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -2637,7 +2637,7 @@ LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_RIGHT_UNION_TRANSPOSE"
+!transform "JOIN_RIGHT_UNION_TRANSPOSE"
 
 # testSortUnionTranspose -------------------------------------------------------
 # SORT_UNION_TRANSPOSE pushes a Sort with fetch past a Union.
@@ -2669,7 +2669,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
   LogicalUnion(all=[true])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
@@ -2678,7 +2678,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE"
+!transform "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE"
 
 # testSortUnionTranspose2 ------------------------------------------------------
 # SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH pushes a Sort without fetch past a Union.
@@ -2710,7 +2710,7 @@ LogicalSort(sort0=[$0], dir0=[ASC])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalUnion(all=[true])
     LogicalSort(sort0=[$0], dir0=[ASC])
@@ -2719,7 +2719,7 @@ LogicalSort(sort0=[$0], dir0=[ASC])
     LogicalSort(sort0=[$0], dir0=[ASC])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
+!transform "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
 
 # testSortUnionTranspose3 ------------------------------------------------------
 # SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH does not loop when fetch is zero.
@@ -2743,7 +2743,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
   LogicalUnion(all=[true])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
@@ -2752,7 +2752,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
     LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
       LogicalProject(DNAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
+!transform "PROJECT_SET_OP_TRANSPOSE, SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH"
 
 # testUnionMergeRule -----------------------------------------------------------
 # UNION_MERGE collapses a 3-level UNION ALL tree into a single UNION ALL.
@@ -2811,7 +2811,7 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalUnion(all=[true])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -2825,7 +2825,7 @@ LogicalUnion(all=[true])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, UNION_MERGE"
+!transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_REMOVE, UNION_MERGE"
 
 # testUnionToFilterRuleNWayWithMultiSources ------------------------------------
 # UNION_FILTER_TO_FILTER merges n-way UNION from multiple sources into combined filters.
@@ -2859,7 +2859,7 @@ LogicalUnion(all=[false])
   LogicalFilter(condition=[=($0, 10)])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "UNION_MERGE, PROJECT_FILTER_TRANSPOSE"
+!transform "UNION_MERGE, PROJECT_FILTER_TRANSPOSE"
 LogicalUnion(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[6, 12])])
     LogicalProject(DEPTNO=[$7])
@@ -2867,7 +2867,7 @@ LogicalUnion(all=[false])
   LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "UNION_MERGE, PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+!transform "UNION_MERGE, PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
 
 # testUnionToFilterRuleWithOneFilter -------------------------------------------
 # UNION_FILTER_TO_FILTER rewrites UNION into a single scan when one input has no filter.
@@ -2900,11 +2900,11 @@ LogicalUnion(all=[false])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE"
+!transform "PROJECT_FILTER_TRANSPOSE"
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(MGR=[$3], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+!transform "PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
 
 # testUnionToFilterRuleWithTwoFilters ------------------------------------------
 # UNION_FILTER_TO_FILTER rewrites UNION into OR of two filters.
@@ -2927,11 +2927,11 @@ LogicalUnion(all=[false])
   LogicalFilter(condition=[=($1, 5)])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE"
+!transform "PROJECT_FILTER_TRANSPOSE"
 LogicalAggregate(group=[{0, 1}])
   LogicalFilter(condition=[OR(=($0, 12), =($1, 5))])
     LogicalProject(MGR=[$3], COMM=[$6])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
+!transform "PROJECT_FILTER_TRANSPOSE, UNION_FILTER_TO_FILTER"
 
 # End set-op.iq

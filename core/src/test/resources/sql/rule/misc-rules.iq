@@ -54,12 +54,12 @@ LogicalProject(ENAME=[$1])
   MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($1, $10)]], projFields=[[ALL, ALL]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_TO_MULTI_JOIN"
+!transform "JOIN_TO_MULTI_JOIN"
 LogicalProject(ENAME=[$1])
   MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($1, $10)]], projFields=[[ALL, ALL]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_TO_MULTI_JOIN, MULTI_JOIN_OPTIMIZE_BUSHY"
+!transform "JOIN_TO_MULTI_JOIN, MULTI_JOIN_OPTIMIZE_BUSHY"
 
 # testExpandFilterDisjunctionForJoinInput --------------------------------------
 # EXPAND_FILTER_DISJUNCTION_LOCAL expands a disjunctive filter over a join,
@@ -79,7 +79,7 @@ LogicalProject(EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-!sub-plan "EXPAND_FILTER_DISJUNCTION_LOCAL"
+!transform "EXPAND_FILTER_DISJUNCTION_LOCAL"
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))))], joinType=[inner])
     LogicalJoin(condition=[AND(=($0, $9), OR(>($3, 100), <($15, 50)))], joinType=[inner])
@@ -87,7 +87,7 @@ LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalFilter(condition=[OR(<($5, 200), >($7, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-!sub-plan "EXPAND_FILTER_DISJUNCTION_LOCAL, JOIN_CONDITION_PUSH, FILTER_INTO_JOIN"
+!transform "EXPAND_FILTER_DISJUNCTION_LOCAL, JOIN_CONDITION_PUSH, FILTER_INTO_JOIN"
 
 # testExpandJoinDisjunctionForTable --------------------------------------------
 # JOIN_CONDITION_PUSH pushes parts of a disjunctive join condition to filter
@@ -103,14 +103,14 @@ LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(=($0, $9), OR(AND(>($3, 100), <($14, 200)), AND(<($6, 50), >($16, 10))), OR(<($14, 200), >($16, 10)), OR(>($3, 100), <($6, 50)))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "EXPAND_JOIN_DISJUNCTION_GLOBAL"
+!transform "EXPAND_JOIN_DISJUNCTION_GLOBAL"
 LogicalProject(EMPNO=[$0])
   LogicalJoin(condition=[AND(=($0, $9), OR(AND(>($3, 100), <($14, 200)), AND(<($6, 50), >($16, 10))))], joinType=[inner])
     LogicalFilter(condition=[OR(>($3, 100), <($6, 50))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[OR(<($5, 200), >($7, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "EXPAND_JOIN_DISJUNCTION_GLOBAL, JOIN_CONDITION_PUSH"
+!transform "EXPAND_JOIN_DISJUNCTION_GLOBAL, JOIN_CONDITION_PUSH"
 
 # testFilterCalcMergeRule ------------------------------------------------------
 # FILTER_CALC_MERGE cannot merge a Filter into a Calc when the Filter contains
@@ -132,14 +132,14 @@ LogicalFilter(condition=[<($0, 20)])
 })])
   LogicalCalc(expr#0..8=[{inputs}], DEPTNO=[$t7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, PROJECT_TO_CALC"
+!transform "PROJECT_FILTER_TRANSPOSE, PROJECT_TO_CALC"
 LogicalFilter(condition=[EXISTS({
 LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalCalc(expr#0..8=[{inputs}], DEPTNO=[$t7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, PROJECT_TO_CALC, FILTER_CALC_MERGE"
+!transform "PROJECT_FILTER_TRANSPOSE, PROJECT_TO_CALC, FILTER_CALC_MERGE"
 
 # testFilterToCalc -------------------------------------------------------------
 # FILTER_TO_CALC does not convert a Filter containing a subquery to a Calc
@@ -161,14 +161,14 @@ LogicalProject(COMM=[$6])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[NOT(<= SOME($5, {
 LogicalProject(COMM=[$6])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FILTER_TO_CALC"
+!transform "FILTER_TO_CALC"
 
 # testLimitMerge6 --------------------------------------------------------------
 # LIMIT_MERGE cannot merge LIMIT 10 into OFFSET 100 when there is no inner
@@ -190,14 +190,14 @@ LogicalProject(DEPTNO=[$0])
       LogicalSort(offset=[100])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE"
+!transform "SORT_PROJECT_TRANSPOSE"
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalSort(fetch=[10])
       LogicalSort(offset=[100])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE"
+!transform "SORT_PROJECT_TRANSPOSE, LIMIT_MERGE"
 
 # testLoptOptimizeJoinRulePrioritizeSelfJoin -----------------------------------
 # MULTI_JOIN_OPTIMIZE prioritizes joining emp with itself (self-join) before
@@ -234,7 +234,7 @@ LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_TO_MULTI_JOIN"
+!transform "JOIN_TO_MULTI_JOIN"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$9], ENAME=[$10], JOB=[$11], MGR=[$12], HIREDATE=[$13], SAL=[$14], COMM=[$15], DEPTNO=[$16], SLACKER=[$17], DEPTNO0=[$18], DNAME=[$19], EMPNO0=[$0], ENAME0=[$1], JOB0=[$2], MGR0=[$3], HIREDATE0=[$4], SAL0=[$5], COMM0=[$6], DEPTNO1=[$7], SLACKER0=[$8])
     LogicalJoin(condition=[=($9, $0)], joinType=[inner])
@@ -242,7 +242,7 @@ LogicalProject(EMPNO=[$0])
       LogicalJoin(condition=[=($9, $7)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_TO_MULTI_JOIN, MULTI_JOIN_OPTIMIZE"
+!transform "JOIN_TO_MULTI_JOIN, MULTI_JOIN_OPTIMIZE"
 
 # testManyFiltersOnTopOfMultiJoinShouldCollapse --------------------------------
 # FILTER_MULTI_JOIN_MERGE and PROJECT_MULTI_JOIN_MERGE collapse multiple filters
@@ -271,13 +271,13 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
           LogicalProject(DEPTNO=[$0], DNAME=[$1])
             LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_TO_MULTI_JOIN"
+!transform "JOIN_TO_MULTI_JOIN"
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($7, $9)]], projFields=[[{0, 1, 2, 3, 4, 5, 6, 7, 8}, {0, 1}]], postJoinFilter=[AND(LIKE($1, 'bar'), >($9, 3))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_TO_MULTI_JOIN, FILTER_MULTI_JOIN_MERGE, PROJECT_MULTI_JOIN_MERGE, FILTER_MULTI_JOIN_MERGE"
+!transform "JOIN_TO_MULTI_JOIN, FILTER_MULTI_JOIN_MERGE, PROJECT_MULTI_JOIN_MERGE, FILTER_MULTI_JOIN_MERGE"
 
 # testMergeFilterWithJoinCondition ---------------------------------------------
 # JOIN_EXTRACT_FILTER, FILTER_TO_CALC, PROJECT_TO_CALC and CALC_MERGE together
@@ -298,12 +298,12 @@ LogicalProject(DNAME=[$10], ENAME=[$1])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalCalc(expr#0..10=[{inputs}], expr#11=[=($t7, $t9)], expr#12=['Propane':VARCHAR(10)], expr#13=[=($t10, $t12)], expr#14=[AND($t11, $t13)], DNAME=[$t10], ENAME=[$t1], $condition=[$t14])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_EXTRACT_FILTER, FILTER_TO_CALC, PROJECT_TO_CALC, CALC_MERGE"
+!transform "JOIN_EXTRACT_FILTER, FILTER_TO_CALC, PROJECT_TO_CALC, CALC_MERGE"
 
 # testProjectCalcMergeRule -----------------------------------------------------
 # PROJECT_CALC_MERGE cannot merge a Project into a Calc when the Project
@@ -324,14 +324,14 @@ LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalCalc(expr#0=[{inputs}], expr#1=[20], expr#2=[<($t0, $t1)], EMPNO=[$t0], $condition=[$t2])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, FILTER_TO_CALC"
+!transform "PROJECT_FILTER_TRANSPOSE, FILTER_TO_CALC"
 LogicalProject(EXPR$0=[EXISTS({
 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalCalc(expr#0=[{inputs}], expr#1=[20], expr#2=[<($t0, $t1)], EMPNO=[$t0], $condition=[$t2])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE, FILTER_TO_CALC, PROJECT_CALC_MERGE"
+!transform "PROJECT_FILTER_TRANSPOSE, FILTER_TO_CALC, PROJECT_CALC_MERGE"
 
 # testProjectToCalc ------------------------------------------------------------
 # PROJECT_TO_CALC does not convert a Project containing a subquery to a Calc
@@ -365,13 +365,13 @@ LogicalProject(COMM=[$6])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[NOT(<= SOME($5, {
 LogicalProject(COMM=[$6])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_TO_CALC"
+!transform "PROJECT_TO_CALC"
 
 # testPullConstantIntoFilter ---------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS simplifies a filter condition using a constant
@@ -386,13 +386,13 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[>(15, $0)])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS"
+!transform "JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS"
 
 # testPushProjectWithIsNotDistinctFromPastJoin ---------------------------------
 # PROJECT_JOIN_TRANSPOSE pushes a project past a join with IS NOT DISTINCT FROM
@@ -416,7 +416,7 @@ LogicalProject(EXPR$0=[+($5, $13)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], $f4=[||($0, $1)])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[+($0, $3)])
   LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $4), $2)], joinType=[inner])
     LogicalProject(SAL=[$5], $f9=[$9], EXPR$0=[=($7, 10)])
@@ -425,7 +425,7 @@ LogicalProject(EXPR$0=[+($0, $3)])
     LogicalProject(COMM=[$3], $f4=[$4])
       LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], $f4=[||($0, $1)])
         LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "PROJECT_JOIN_TRANSPOSE"
+!transform "PROJECT_JOIN_TRANSPOSE"
 
 # testReduceValuesNull ---------------------------------------------------------
 # PROJECT_VALUES_MERGE merges a Project containing NULL literals into a Values
@@ -436,10 +436,10 @@ insert into EMPNULLABLES(EMPNO, ENAME, JOB) (select 0, 'null', NULL);
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 0, 'null', null }]])
-!sub-plan ""
+!transform ""
 LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[false])
   LogicalValues(tuples=[[{ 0, 'null', null, null, null, null, null, null, null }]])
-!sub-plan "PROJECT_VALUES_MERGE"
+!transform "PROJECT_VALUES_MERGE"
 
 # testSimplifyFilter -----------------------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS removes a redundant predicate in an outer filter
@@ -454,12 +454,12 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[>($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[>($0, 3)])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[>($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS"
+!transform "JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS"
 
 # End misc-rules.iq

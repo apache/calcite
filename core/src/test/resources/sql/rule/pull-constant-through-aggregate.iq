@@ -33,12 +33,12 @@ select 4, 2+3, max(five) from (
 LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
   LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], FIVE=[5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
   LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
     LogicalProject(EXPR$0=[4], FIVE=[5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughAggregateAllLiterals ----------------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes multiple GROUP BY keys that are
@@ -51,12 +51,12 @@ select 4, 2+3, max(5) from (
 LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
   LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], $f2=[5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
   LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
     LogicalProject(EXPR$0=[4], $f2=[5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughAggregateConstGroupBy ---------------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes GROUP BY keys that are constant.
@@ -68,12 +68,12 @@ select 4, 2+3, max(mgr) from (
 LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
   LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
   LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
     LogicalProject(EXPR$0=[4], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughAggregatePermuted -------------------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes constant keys from a GROUP BY
@@ -87,12 +87,12 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
   LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$1=[MAX($4)])
     LogicalProject(DEPTNO=[$7], FOUR=[4], TWO_PLUS_THREE=[+(2, 3)], DEPTNO42=[+($7, 42)], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
     LogicalProject(DEPTNO=[$7], DEPTNO42=[+($7, 42)], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughAggregatePermutedConstFirst ---------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a constant key from GROUP BY when
@@ -106,11 +106,11 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
     LogicalProject(FOUR=[4], DEPTNO=[$7], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
   LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughAggregatePermutedConstGroupBy -------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a constant expression (42+24)
@@ -124,11 +124,11 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
     LogicalProject($f0=[+(42, 24)], DEPTNO=[$7], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
   LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughAggregateSimpleNonNullable ----------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a non-nullable constant key from
@@ -142,11 +142,11 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
     LogicalProject(DEPTNO=[$7], FOUR=[4], ENAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
   LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # testPullConstantThroughConstLast ---------------------------------------------
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes a constant key from GROUP BY when
@@ -160,10 +160,10 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
   LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
     LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
   LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
+!transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
 # End pull-constant-through-aggregate.iq

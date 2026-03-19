@@ -44,10 +44,10 @@ LogicalAggregate(group=[{0}])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7}])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove10 ----------------------------------------------------
 # Similar to testAggregateJoinRemove1; should not remove the bottom join since
@@ -58,7 +58,7 @@ FROM emp e
 LEFT JOIN dept d1 ON e.deptno = d1.deptno
 LEFT JOIN dept d2 ON e.deptno = d2.deptno
 GROUP BY e.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1, $2)])
   LogicalProject(DEPTNO=[$7], DNAME=[$10], DNAME0=[$12])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])
@@ -66,14 +66,14 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1, $2)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $10, $12)])
   LogicalJoin(condition=[=($7, $11)], joinType=[left])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
 # testAggregateJoinRemove11 ----------------------------------------------------
 # Similar to testAggregateJoinRemove3 but with agg call referencing the last
@@ -100,11 +100,11 @@ LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
       LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7], SLACKER=[<>($2, 'MANAGER')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{2}], C=[COUNT(DISTINCT $3)])
   LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7], SLACKER=[<>($2, 'MANAGER')])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove2 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1 but has aggregate call with distinct.
@@ -113,16 +113,16 @@ select e.deptno, count(distinct e.job)
 from emp e
 left outer join dept d on e.deptno = d.deptno
 group by e.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], JOB=[$2])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $2)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove3 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1 but should not remove the left join
@@ -147,12 +147,12 @@ LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7}], C=[COUNT(DISTINCT $10)])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove4 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1 but right join.
@@ -160,16 +160,16 @@ LogicalAggregate(group=[{7}], C=[COUNT(DISTINCT $10)])
 select distinct d.deptno
 from emp e
 right outer join dept d on e.deptno = d.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalAggregate(group=[{0}])
   LogicalProject(DEPTNO=[$9])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove5 -----------------------------------------------------
 # Similar to testAggregateJoinRemove2 but right join.
@@ -194,10 +194,10 @@ LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove6 -----------------------------------------------------
 # Similar to testAggregateJoinRemove3 but right join.
@@ -206,18 +206,18 @@ select d.deptno, count(distinct e.job)
 from emp e
 right outer join dept d on e.deptno = d.deptno
 group by d.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$9], JOB=[$2])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{9}], EXPR$1=[COUNT(DISTINCT $2)])
   LogicalJoin(condition=[=($7, $9)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_REMOVE"
 
 # testAggregateJoinRemove7 -----------------------------------------------------
 # Similar to testAggregateJoinRemove1; should remove the bottom join since
@@ -244,12 +244,12 @@ LogicalAggregate(group=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7}])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
 # testAggregateJoinRemove8 -----------------------------------------------------
 # Similar to testAggregateJoinRemove7 but has aggregate call.
@@ -259,7 +259,7 @@ FROM emp e
 LEFT JOIN dept d1 ON e.deptno = d1.deptno
 LEFT JOIN dept d2 ON e.deptno = d2.deptno
 GROUP BY e.deptno;
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], DNAME0=[$12])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])
@@ -267,12 +267,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $10)])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
 # testAggregateJoinRemove9 -----------------------------------------------------
 # Similar to testAggregateJoinRemove7 but uses columns in the right input
@@ -299,11 +299,11 @@ LogicalAggregate(group=[{0, 1}])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{7, 10}])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
+!transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_JOIN_REMOVE"
 
 # End aggregate-join-remove.iq

@@ -37,7 +37,7 @@ LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -45,7 +45,7 @@ LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
       LogicalProject(i=[true])
         LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-!sub-plan "subQueryRules"
+!transform "subQueryRules"
 LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -53,7 +53,7 @@ LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
       LogicalAggregate(group=[{0}])
         LogicalProject(DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-!sub-plan "subQueryRules, lateDecorrelate=true"
+!transform "subQueryRules, lateDecorrelate=true"
 
 # testExpandProjectExists ------------------------------------------------------
 # Tests that an EXISTS sub-query in a project is expanded to a left join.
@@ -87,7 +87,7 @@ LogicalFilter(condition=[<($0, 20)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false"
+!transform "relBuilderSimplify=false"
 LogicalProject(EMPNO=[$0], D=[IS NOT NULL($9)])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -95,7 +95,7 @@ LogicalProject(EMPNO=[$0], D=[IS NOT NULL($9)])
       LogicalProject(i=[true])
         LogicalFilter(condition=[<($0, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false, subQueryRules"
+!transform "relBuilderSimplify=false, subQueryRules"
 
 # testExpandProjectIn ----------------------------------------------------------
 # Tests that an IN sub-query in a project is expanded to a left join.
@@ -130,7 +130,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false"
+!transform "relBuilderSimplify=false"
 LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($10), true, false)])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -138,7 +138,7 @@ LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($10), true, false)])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[<($0, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false, subQueryRules"
+!transform "relBuilderSimplify=false, subQueryRules"
 
 # testExpandProjectInComposite -------------------------------------------------
 # Tests that a composite IN sub-query (tuple IN) in a project is expanded.
@@ -173,14 +173,14 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false"
+!transform "relBuilderSimplify=false"
 LogicalProject(EMPNO=[$0], D=[CASE(IS NOT NULL($11), true, false)])
   LogicalJoin(condition=[AND(=($0, $9), =($7, $10))], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7], i=[true])
       LogicalFilter(condition=[<($0, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false, subQueryRules"
+!transform "relBuilderSimplify=false, subQueryRules"
 
 # testExpandProjectInNullable --------------------------------------------------
 # Tests that an IN sub-query where the left-hand side is nullable is expanded
@@ -220,7 +220,7 @@ LogicalProject(DEPTNO=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false"
+!transform "relBuilderSimplify=false"
 LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false)])
   LogicalJoin(condition=[=(CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER), $11)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -235,7 +235,7 @@ LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST(
         LogicalFilter(condition=[<($0, 20)])
           LogicalProject(EMPNO=[$0], DEPTNO=[CASE(>($7, 0), CAST($7):INTEGER, null:INTEGER)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "relBuilderSimplify=false, subQueryRules"
+!transform "relBuilderSimplify=false, subQueryRules"
 
 # testExpandProjectInWithTwoCorrelatedSubQueries -------------------------------
 # Tests that two correlated IN sub-queries in a project are both expanded,
@@ -258,7 +258,7 @@ LogicalProject(DEPTNO=[$0])
 }))])
   LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true"
+!transform "relBuilderSimplify=false, trim=true"
 LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
     LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
@@ -282,7 +282,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($3, 0), false, IS NULL($2), null:BO
       LogicalProject(DEPTNO=[$0], i=[true])
         LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
           LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "relBuilderSimplify=false, trim=true, subQueryRules"
 
 # testExpandProjectInWithTwoSubQueries -----------------------------------------
 # Tests that two uncorrelated IN sub-queries in a project are both expanded
@@ -304,7 +304,7 @@ LogicalProject(DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true"
+!transform "relBuilderSimplify=false, trim=true"
 LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($9, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), CASE(=($13, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($16), true, <($14, $13), null:BOOLEAN, false))])
   LogicalJoin(condition=[=($7, $15)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
@@ -325,7 +325,7 @@ LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($9, 0), false, IS NULL($7), null:BO
     LogicalProject(DEPTNO=[$0], i=[true])
       LogicalFilter(condition=[=($1, 'dept2')])
         LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "relBuilderSimplify=false, trim=true, subQueryRules"
 
 # testExpandProjectScalar ------------------------------------------------------
 # Tests expanding an uncorrelated scalar sub-query in a project (SELECT clause).
@@ -360,7 +360,7 @@ LogicalProject(DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], D=[$9])
   LogicalJoin(condition=[true], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -368,7 +368,7 @@ LogicalProject(EMPNO=[$0], D=[$9])
       LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[<($0, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "subQueryRules"
+!transform "subQueryRules"
 
 # testSomeWithTwoCorrelatedSubQueries ------------------------------------------
 # Tests that two correlated SOME sub-queries in a filter are both expanded,
@@ -393,7 +393,7 @@ LogicalProject(DEPTNO=[$0])
 }))], variablesSet=[[$cor0]])
     LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true"
+!transform "relBuilderSimplify=false, trim=true"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
     LogicalFilter(condition=[OR(CASE(IS NULL($6), false, =($4, 0), false, IS TRUE(>($2, $3)), true, >($4, $5), null:BOOLEAN, >($2, $3)), CASE(IS NULL($10), false, =($8, 0), false, IS TRUE(<($2, $7)), true, >($8, $9), null:BOOLEAN, <($2, $7)))])
@@ -409,7 +409,7 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(DEPTNO=[$0])
             LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
               LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "relBuilderSimplify=false, trim=true, subQueryRules"
 
 # testSomeWithTwoSubQueries ----------------------------------------------------
 # Tests that two uncorrelated SOME sub-queries in a filter are both expanded
@@ -434,7 +434,7 @@ LogicalProject(DEPTNO=[$0])
 }))])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true"
+!transform "relBuilderSimplify=false, trim=true"
 LogicalProject(EMPNO=[$0])
   LogicalProject(EMPNO=[$0], DEPTNO=[$1])
     LogicalFilter(condition=[OR(CASE(=($3, 0), false, IS TRUE(>($1, $2)), true, >($3, $4), null:BOOLEAN, >($1, $2)), CASE(=($6, 0), false, IS TRUE(<($1, $5)), true, >($6, $7), null:BOOLEAN, <($1, $5)))])
@@ -450,6 +450,6 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(DEPTNO=[$0])
             LogicalFilter(condition=[=($1, 'dept2')])
               LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-!sub-plan "relBuilderSimplify=false, trim=true, subQueryRules"
+!transform "relBuilderSimplify=false, trim=true, subQueryRules"
 
 # End project-sub-query-to-correlate.iq

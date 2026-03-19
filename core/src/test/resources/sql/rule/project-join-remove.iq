@@ -58,12 +58,12 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$11])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_JOIN_JOIN_REMOVE"
+!transform "PROJECT_JOIN_JOIN_REMOVE"
 
 # testProjectJoinRemove10 ------------------------------------------------------
 # PROJECT_JOIN_REMOVE should remove the left join when all projected columns
@@ -97,10 +97,10 @@ LogicalProject(DEPTNO=[$7], ENAME=[$1])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7], ENAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # testProjectJoinRemove2 -------------------------------------------------------
 # PROJECT_JOIN_JOIN_REMOVE should not remove d2 when the project references d1.
@@ -136,14 +136,14 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
   LogicalJoin(condition=[=($7, $11)], joinType=[left])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_JOIN_JOIN_REMOVE"
+!transform "PROJECT_JOIN_JOIN_REMOVE"
 
 # testProjectJoinRemove3 -------------------------------------------------------
 # PROJECT_JOIN_JOIN_REMOVE should not remove a join when the tables differ.
@@ -235,14 +235,14 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$18])
   LogicalJoin(condition=[=($7, $18)], joinType=[left])
     LogicalJoin(condition=[=($7, $16)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_JOIN_JOIN_REMOVE"
+!transform "PROJECT_JOIN_JOIN_REMOVE"
 
 # testProjectJoinRemove4 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should remove the left join when the project only uses
@@ -276,10 +276,10 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # testProjectJoinRemove5 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove the join when EMP.DEPTNO is not a
@@ -369,12 +369,12 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($7, $16)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[=($7, $16)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # testProjectJoinRemove6 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove the join when the project uses
@@ -408,12 +408,12 @@ LogicalProject(DEPTNO=[$7], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7], DNAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # testProjectJoinRemove7 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should remove a right join when the project only uses
@@ -447,10 +447,10 @@ LogicalProject(DEPTNO=[$9])
   LogicalJoin(condition=[=($9, $0)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # testProjectJoinRemove8 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove a right join when EMP.DEPTNO is not a
@@ -540,12 +540,12 @@ LogicalProject(DEPTNO=[$16])
   LogicalJoin(condition=[=($7, $16)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$16])
   LogicalJoin(condition=[=($7, $16)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # testProjectJoinRemove9 -------------------------------------------------------
 # PROJECT_JOIN_REMOVE should not remove a right join when the project uses
@@ -579,11 +579,11 @@ LogicalProject(DEPTNO=[$9], DNAME=[$1])
   LogicalJoin(condition=[=($9, $0)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$9], DNAME=[$1])
   LogicalJoin(condition=[=($9, $0)], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_JOIN_REMOVE"
+!transform "PROJECT_JOIN_REMOVE"
 
 # End project-join-remove.iq

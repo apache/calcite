@@ -50,11 +50,11 @@ LogicalProject(ID=[$1])
       Uncollect
         LogicalProject(ARR=[$cor0.ARR])
           LogicalValues(tuples=[[{ 0 }]])
-!sub-plan ""
+!transform ""
 Uncollect
   LogicalProject(ARR=[ARRAY(1, 2, 3)])
     LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "UNNEST_PROJECT_DECORRELATE"
+!transform "UNNEST_PROJECT_DECORRELATE"
 
 # testUnnestDecorrelate2 -------------------------------------------------------
 # UNNEST_PROJECT_DECORRELATE converts a Correlate + Unnest with ordinality
@@ -83,11 +83,11 @@ LogicalProject(ID=[$1], ORD=[$2])
       Uncollect(withOrdinality=[true])
         LogicalProject(ARR=[$cor0.ARR])
           LogicalValues(tuples=[[{ 0 }]])
-!sub-plan ""
+!transform ""
 Uncollect(withOrdinality=[true])
   LogicalProject(ARR=[ARRAY(1, 2, 3)])
     LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "UNNEST_PROJECT_DECORRELATE"
+!transform "UNNEST_PROJECT_DECORRELATE"
 
 # testUnnestDecorrelate3 -------------------------------------------------------
 # UNNEST_DECORRELATE converts a Correlate + Unnest (after PROJECT_REMOVE has
@@ -116,18 +116,18 @@ LogicalProject(ID=[$1])
       Uncollect
         LogicalProject(ARR=[$cor0.ARR])
           LogicalValues(tuples=[[{ 0 }]])
-!sub-plan ""
+!transform ""
 Uncollect
   LogicalProject(ARR=[ARRAY(1, 2, 3)])
     LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "PROJECT_REMOVE, UNNEST_DECORRELATE"
+!transform "PROJECT_REMOVE, UNNEST_DECORRELATE"
 
 # testUnnestDecorrelate4 -------------------------------------------------------
 # UNNEST_DECORRELATE converts a Correlate + Unnest over a table column
 # (after PROJECT_REMOVE) into a plain Unnest over the table.
 # [CALCITE-7196]
 
-# Not using !ok: this test focuses on plan transformation (see !sub-plan).
+# Not using !ok: this test focuses on plan transformation (see !transform).
 
 select t2.ename
 from DEPT_NESTED as t1,
@@ -138,12 +138,12 @@ LogicalProject(ENAME=[$5])
     Uncollect
       LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
-!sub-plan ""
+!transform ""
 LogicalProject(ENAME=[$1])
   Uncollect
     LogicalProject(EMPLOYEES=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-!sub-plan "PROJECT_REMOVE, UNNEST_DECORRELATE"
+!transform "PROJECT_REMOVE, UNNEST_DECORRELATE"
 
 # testUnnestDecorrelate5 -------------------------------------------------------
 # UNNEST_DECORRELATE converts a Correlate + Unnest where the unnested value
@@ -172,10 +172,10 @@ LogicalProject(ID=[$1])
       Uncollect
         LogicalProject(EXPR$0=[$cor0.STRUCT_WITH_ARRAY_FIELD.EXPR$0])
           LogicalValues(tuples=[[{ 0 }]])
-!sub-plan ""
+!transform ""
 Uncollect
   LogicalProject($f0=[ROW(ARRAY(1, 2, 3)).EXPR$0])
     LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "PROJECT_REMOVE, UNNEST_DECORRELATE"
+!transform "PROJECT_REMOVE, UNNEST_DECORRELATE"
 
 # End unnest.iq

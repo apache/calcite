@@ -49,7 +49,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 }))], variablesSet=[[$cor0]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[NOT(EXISTS({
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
@@ -59,7 +59,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 }))], variablesSet=[[$cor0]])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FILTER_PROJECT_TRANSPOSE"
+!transform "FILTER_PROJECT_TRANSPOSE"
 
 # testFilterProjectTransposeRule3 ----------------------------------------------
 # FILTER_PROJECT_TRANSPOSE should push the Filter past the Project
@@ -84,7 +84,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 }))])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0])
   LogicalProject(DEPTNO=[$7])
     LogicalFilter(condition=[NOT(EXISTS({
@@ -93,7 +93,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FILTER_PROJECT_TRANSPOSE"
+!transform "FILTER_PROJECT_TRANSPOSE"
 
 # testMergeJoinFilter ----------------------------------------------------------
 # FILTER_MERGE merges identical filters arising from a JOIN ON clause and a
@@ -123,14 +123,14 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
       LogicalJoin(condition=[AND(=($7, $9), =($9, 10))], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], ENAME=[$1])
   LogicalProject(DEPTNO=[$9], ENAME=[$1])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_MERGE, FILTER_INTO_JOIN"
+!transform "FILTER_PROJECT_TRANSPOSE, FILTER_MERGE, FILTER_INTO_JOIN"
 
 # testPushFilterPastAggWithGroupingSets1 ---------------------------------------
 # FILTER_AGGREGATE_TRANSPOSE does not push a filter past an aggregate with
@@ -154,13 +154,13 @@ LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
     LogicalFilter(condition=[=($1, 'Charlie')])
       LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!transform "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
   LogicalProject(DDEPTNO=[$0], DNAME=[$1], C=[$2])
     LogicalFilter(condition=[=($1, 'Charlie')])
       LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+!transform "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
 
 # testPushFilterPastAggWithGroupingSets2 ---------------------------------------
 # FILTER_AGGREGATE_TRANSPOSE pushes a filter past an aggregate with non-ROLLUP
@@ -184,13 +184,13 @@ LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
     LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
       LogicalProject(DNAME=[$1], DDEPTNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
+!transform "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE"
 LogicalProject(DNAME=[$0], DDEPTNO=[$1], C=[$2])
   LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], C=[COUNT()])
     LogicalFilter(condition=[=($0, 'Charlie')])
       LogicalProject(DNAME=[$1], DDEPTNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
+!transform "PROJECT_MERGE, FILTER_PROJECT_TRANSPOSE, FILTER_AGGREGATE_TRANSPOSE"
 
 # testReduceValuesUnderFilter --------------------------------------------------
 # FILTER_VALUES_MERGE merges a filter with an underlying VALUES node.
@@ -209,10 +209,10 @@ where a < 15;
 LogicalProject(A=[$0], B=[$1])
   LogicalFilter(condition=[<($0, 15)])
     LogicalValues(tuples=[[{ 10, 'x' }, { 20, 'y' }]])
-!sub-plan ""
+!transform ""
 LogicalProject(A=[$0], B=[$1])
   LogicalValues(tuples=[[{ 10, 'x' }]])
-!sub-plan "FILTER_PROJECT_TRANSPOSE, FILTER_VALUES_MERGE"
+!transform "FILTER_PROJECT_TRANSPOSE, FILTER_VALUES_MERGE"
 
 # testReduceValuesUnderProjectFilter -------------------------------------------
 # PROJECT_FILTER_VALUES_MERGE merges a project+filter with an underlying VALUES.
@@ -232,8 +232,8 @@ where a - b < 21;
 LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
   LogicalFilter(condition=[<(-($0, $1), 21)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 7 }, { 20, 3 }]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
-!sub-plan "FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE"
+!transform "FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE"
 
 # End filter.iq

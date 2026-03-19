@@ -36,12 +36,12 @@ and upper(ename) = 'FOO';
 LogicalProject(X=[+($0, $7)], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(X=[$8], ENAME=[$0], JOB=[$1], MGR=[$2], HIREDATE=[$3], SAL=[$4], COMM=[$5], SLACKER=[$6])
   LogicalFilter(condition=[$7])
     LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], $f7=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))], $f8=[+($0, $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS"
+!transform "PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS"
 
 # testPushProjectPastFilter3c --------------------------------------------------
 # PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS pushes a Project past a
@@ -56,11 +56,11 @@ and upper(ename) = 'FOO';
 LogicalProject(X=[+($0, $7)], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
   LogicalFilter(condition=[AND(=($5, *(10, $6)), =(UPPER($1), 'FOO'))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(X=[$7], ENAME=[$0], JOB=[$1], MGR=[$2], HIREDATE=[$3], SAL=[$4], COMM=[$5], SLACKER=[$6])
   LogicalFilter(condition=[AND(=($4, *(10, $5)), =(UPPER($0), 'FOO'))])
     LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], $f7=[+($0, $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS"
+!transform "PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS"
 
 # End project-filter-transpose.iq

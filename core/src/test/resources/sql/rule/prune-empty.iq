@@ -39,13 +39,13 @@ LogicalProject(EXPR$0=[$1])
     LogicalProject(DEPTNO=[$7], EMPNO=[$0])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[$1])
   LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
     LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
 LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE"
 
 # testEmptyAggregateEmptyKey ---------------------------------------------------
 # AGGREGATE_INSTANCE does not remove an Aggregate with no GROUP BY (empty key),
@@ -64,13 +64,13 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalProject(EMPNO=[$0])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE"
 
 # testEmptyIntersect -----------------------------------------------------------
 # INTERSECT_INSTANCE removes an INTERSECT when any input is empty.
@@ -96,9 +96,9 @@ LogicalIntersect(all=[false])
         LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     LogicalValues(tuples=[[{ 30, 3 }]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[]])
-!sub-plan "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.INTERSECT_INSTANCE"
+!transform "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.INTERSECT_INSTANCE"
 
 # testEmptyMinus ---------------------------------------------------------------
 # MINUS_INSTANCE removes a MINUS when the first input is empty.
@@ -125,9 +125,9 @@ LogicalMinus(all=[false])
       LogicalValues(tuples=[[{ 20, 2 }]])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     LogicalValues(tuples=[[{ 40, 4 }]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[]])
-!sub-plan "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
+!transform "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
 
 # testEmptyMinus2 --------------------------------------------------------------
 # MINUS_INSTANCE removes empty non-first inputs from a MINUS (EXCEPT).
@@ -160,13 +160,13 @@ LogicalMinus(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalFilter(condition=[>($0, 50)])
       LogicalValues(tuples=[[{ 50, 5 }]])
-!sub-plan ""
+!transform ""
 LogicalMinus(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 30, 3 }]])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     LogicalValues(tuples=[[{ 40, 4 }]])
-!sub-plan "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
+!transform "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
 
 # testEmptyMinus3 --------------------------------------------------------------
 # [CALCITE-6955] PruneEmptyRules does not handle the all attribute of SetOp
@@ -189,11 +189,11 @@ LogicalMinus(all=[false])
   LogicalProject(X=[$0], Y=[$1])
     LogicalFilter(condition=[>($0, 30)])
       LogicalValues(tuples=[[{ 20, 2 }]])
-!sub-plan ""
+!transform ""
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(X=[$0], Y=[$1])
     LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
-!sub-plan "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
+!transform "PROJECT_FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.MINUS_INSTANCE"
 
 # testEmptyProject -------------------------------------------------------------
 # [CALCITE-1488] ValuesReduceRule should ignore empty Values.
@@ -214,9 +214,9 @@ select z + x from (
 LogicalProject(EXPR$0=[+(+($0, $1), $0)])
   LogicalFilter(condition=[>(+($0, $1), 50)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[]])
-!sub-plan "PROJECT_FILTER_VALUES_MERGE, FILTER_VALUES_MERGE, PROJECT_VALUES_MERGE"
+!transform "PROJECT_FILTER_VALUES_MERGE, FILTER_VALUES_MERGE, PROJECT_VALUES_MERGE"
 
 # testEmptyProject2 ------------------------------------------------------------
 # Same query as testEmptyProject; PruneEmptyRules can achieve the same result.
@@ -235,9 +235,9 @@ select z + x from (
 LogicalProject(EXPR$0=[+(+($0, $1), $0)])
   LogicalFilter(condition=[>(+($0, $1), 50)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[]])
-!sub-plan "FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE"
+!transform "FILTER_VALUES_MERGE, PruneEmptyRules.PROJECT_INSTANCE"
 
 # testEmptySort ----------------------------------------------------------------
 # SORT_INSTANCE removes a Sort over an empty input.
@@ -254,9 +254,9 @@ LogicalSort(sort0=[$7], dir0=[ASC])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.SORT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.SORT_INSTANCE"
 
 # testEmptySortLimitZero -------------------------------------------------------
 # SORT_FETCH_ZERO_INSTANCE removes a Sort with LIMIT 0.
@@ -272,9 +272,9 @@ select * from emp order by deptno limit 0;
 LogicalSort(sort0=[$7], dir0=[ASC], fetch=[0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalValues(tuples=[[]])
-!sub-plan "PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE"
+!transform "PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE"
 
 # testEmptyTable ---------------------------------------------------------------
 # PruneEmptyRules.EMPTY_TABLE_INSTANCE converts a zero-row table to an empty
@@ -285,10 +285,10 @@ select *
 from bonus;
 LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])
   LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan ""
+!transform ""
 LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])
   LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
-!sub-plan "PruneEmptyRules.EMPTY_TABLE_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE"
+!transform "PruneEmptyRules.EMPTY_TABLE_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE"
 
 # testEmptyTableTransformsComplexQueryToSingleTableScan ------------------------
 # A complex join tree including EMPTY_PRODUCTS is simplified to a single scan.
@@ -307,12 +307,12 @@ LogicalProject(PRODUCTID=[$0], NAME=[$1])
         LogicalJoin(condition=[=($0, $3)], joinType=[inner])
           LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
           LogicalTableScan(table=[[CATALOG, SALES, EMPTY_PRODUCTS]])
-!sub-plan ""
+!transform ""
 LogicalProject(PRODUCTID=[$0], NAME=[$1])
   LogicalJoin(condition=[=($0, $3)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS]])
     LogicalValues(tuples=[[]])
-!sub-plan "PruneEmptyRules.EMPTY_TABLE_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE, PruneEmptyRules.FILTER_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE, PROJECT_MERGE"
+!transform "PruneEmptyRules.EMPTY_TABLE_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE, PruneEmptyRules.FILTER_INSTANCE, PruneEmptyRules.PROJECT_INSTANCE, PROJECT_MERGE"
 
 # testLeftEmptyFullJoin --------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, FULL join → right side is padded
@@ -339,11 +339,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[null:INTEGER], ENAME=[null:VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN], DEPTNO0=[CAST($0):INTEGER], DNAME=[CAST($1):VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testLeftEmptyInnerJoin -------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, INNER join → result is empty.
@@ -364,10 +364,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testLeftEmptyLeftJoin --------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, LEFT join → result is empty.
@@ -388,10 +388,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testLeftEmptyRightJoin -------------------------------------------------------
 # JOIN_LEFT_INSTANCE: left input is empty, RIGHT join → right side is padded
@@ -417,11 +417,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[null:INTEGER], ENAME=[null:VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN], DEPTNO0=[$0], DNAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testLeftJoinRemoveConditionIsAlwaysFalse -------------------------------------
 # [CALCITE-7071] LEFT JOIN where condition is always false: right input becomes
@@ -455,11 +455,11 @@ LogicalProject(DEPTNO=[$7])
   LogicalJoin(condition=[false], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "NONE"
+!transform "NONE"
 LogicalProject(DEPTNO=[$7])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[null:INTEGER], DNAME=[null:VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_CONDITION_PUSH, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "JOIN_CONDITION_PUSH, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testPruneEmptyRuleForLeftMarkJoin --------------------------------------------
 # [CALCITE-7396] PruneEmptyRules does not support LEFT_MARK JOIN.
@@ -486,13 +486,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalJoin(condition=[=($0, $2)], joinType=[left_mark])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalValues(tuples=[[]])
-!sub-plan "FILTER_SUB_QUERY_TO_MARK_CORRELATE, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
+!transform "FILTER_SUB_QUERY_TO_MARK_CORRELATE, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
 LogicalProject(DEPTNO=[$0], DNAME=[$1])
   LogicalProject(DEPTNO=[$0], DNAME=[$1])
     LogicalFilter(condition=[NOT($2)])
       LogicalProject(DEPTNO=[$0], DNAME=[$1], markCol=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "FILTER_SUB_QUERY_TO_MARK_CORRELATE, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_SUB_QUERY_TO_MARK_CORRELATE, FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testRightEmptyFullJoin -------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, FULL join → left side is padded
@@ -529,11 +529,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[CAST($0):INTEGER], ENAME=[CAST($1):VARCHAR(20)], JOB=[CAST($2):VARCHAR(10)], MGR=[$3], HIREDATE=[CAST($4):TIMESTAMP(0)], SAL=[CAST($5):INTEGER], COMM=[CAST($6):INTEGER], DEPTNO=[CAST($7):INTEGER], SLACKER=[CAST($8):BOOLEAN], DEPTNO0=[null:INTEGER], DNAME=[null:VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testRightEmptyInnerJoin ------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, INNER join → result is empty.
@@ -554,10 +554,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testRightEmptyLeftJoin -------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, LEFT join → left side is padded
@@ -594,11 +594,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[null:INTEGER], DNAME=[null:VARCHAR(10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testRightEmptyRightJoin ------------------------------------------------------
 # JOIN_RIGHT_INSTANCE: right input is empty, RIGHT join → result is empty.
@@ -620,10 +620,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalProject(DEPTNO=[$0], DNAME=[$1])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalValues(tuples=[[]])
-!sub-plan "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
+!transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.JOIN_LEFT_INSTANCE, PruneEmptyRules.JOIN_RIGHT_INSTANCE"
 
 # testRightJoinRemoveConditionIsAlwaysFalse ------------------------------------
 # [CALCITE-7071] RIGHT JOIN where condition is always false: left input becomes
@@ -657,10 +657,10 @@ LogicalProject(DEPTNO=[$9])
   LogicalJoin(condition=[false], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "NONE"
+!transform "NONE"
 LogicalProject(DEPTNO=[$9])
   LogicalProject(DEPTNO=[null:INTEGER], DNAME=[null:VARCHAR(10)], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO0=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_CONDITION_PUSH, PruneEmptyRules.JOIN_LEFT_INSTANCE"
+!transform "JOIN_CONDITION_PUSH, PruneEmptyRules.JOIN_LEFT_INSTANCE"
 
 # End prune-empty.iq

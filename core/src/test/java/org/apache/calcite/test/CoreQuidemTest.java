@@ -207,8 +207,8 @@ public class CoreQuidemTest extends QuidemTest {
     return new ExtendedCommandHandler();
   }
 
-  /** Command handler that adds a "!explain-validated-on dialect..." command
-   * (see {@link SubPlanCommand}). */
+  /** Command handler that adds "!explain-validated-on dialect..." and
+   * "!transform" commands (see {@link SubPlanCommand}). */
   private static class ExtendedCommandHandler implements CommandHandler {
     @Override public @Nullable Command parseCommand(List<String> lines,
         List<String> content, String line) {
@@ -226,8 +226,8 @@ public class CoreQuidemTest extends QuidemTest {
               SqlParserImpl.FACTORY, lines, content, set.build());
         }
       }
-      if (line.startsWith("sub-plan ")) {
-        String args = line.substring("sub-plan ".length());
+      if (line.startsWith("transform ")) {
+        String args = line.substring("transform ".length());
         return new QuidemTest.SubPlanCommand(lines, content, args);
       }
       return null;

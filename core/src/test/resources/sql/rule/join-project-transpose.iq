@@ -48,7 +48,7 @@ LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
           LogicalValues(tuples=[[{ 0 }]])
     LogicalProject(K=[2], T=[ROW(0, 3)])
       LogicalValues(tuples=[[{ 0 }]])
-!sub-plan ""
+!transform ""
 LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
   LogicalAsofJoin(condition=[=($0, $2)], joinType=[asof], matchCondition=[<($3, $1)])
     LogicalProject(K=[$0], T=[$1])
@@ -59,7 +59,7 @@ LogicalProject(K=[$0], T=[$1], K0=[$2], T0=[$3])
           LogicalValues(tuples=[[{ 0 }]])
     LogicalProject(K=[2], T=[ROW(0, 3)])
       LogicalValues(tuples=[[{ 0 }]])
-!sub-plan "JOIN_REDUCE_EXPRESSIONS"
+!transform "JOIN_REDUCE_EXPRESSIONS"
 
 # testFullJoinToLeftAndRightJoin -----------------------------------------------
 # FULL_TO_LEFT_AND_RIGHT_JOIN rewrites a full join as left join union right join.
@@ -106,7 +106,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[AND(=($5, $14), IS NULL($3))], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[AND(=($5, $14), IS NULL($3))], joinType=[left])
@@ -116,7 +116,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalJoin(condition=[AND(=($5, $14), IS NULL($3))], joinType=[right])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FULL_TO_LEFT_AND_RIGHT_JOIN"
+!transform "FULL_TO_LEFT_AND_RIGHT_JOIN"
 
 # testFullJoinToLeftAndRightJoinNonDeterministic -------------------------------
 # FULL_TO_LEFT_AND_RIGHT_JOIN should not fire when the condition is
@@ -147,12 +147,12 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[>(RAND(), 0.5E0)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[>(RAND(), 0.5E0)], joinType=[full])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "FULL_TO_LEFT_AND_RIGHT_JOIN"
+!transform "FULL_TO_LEFT_AND_RIGHT_JOIN"
 
 # testJoinConditinExpandIsNotDistinctFromRule ----------------------------------
 # JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM rewrites IS NOT DISTINCT FROM
@@ -168,12 +168,12 @@ LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $10)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(ENAME=[$1])
   LogicalJoin(condition=[AND(=(COALESCE($1, ''), COALESCE($10, '')), =(IS NULL($1), IS NULL($10)))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
+!transform "JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
 
 # testJoinConditinExpandIsNotDistinctFromRuleArray -----------------------------
 # JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM rewrites IS NOT DISTINCT FROM
@@ -189,12 +189,12 @@ LogicalProject(ADMINS=[$3])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $8)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-!sub-plan ""
+!transform ""
 LogicalProject(ADMINS=[$3])
   LogicalJoin(condition=[AND(=(COALESCE($3, CAST(ARRAY()):VARCHAR(5) NOT NULL ARRAY NOT NULL), COALESCE($8, CAST(ARRAY()):VARCHAR(5) NOT NULL ARRAY NOT NULL)), =(IS NULL($3), IS NULL($8)))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
-!sub-plan "JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
+!transform "JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM"
 
 # testJoinConditionOrExpansionRule ---------------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a join with an OR condition
@@ -256,7 +256,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[OR(=($0, $9), =($3, $12))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
@@ -265,7 +265,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalJoin(condition=[AND(=($3, $12), <>($0, $9))], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
+!transform "JOIN_EXPAND_OR_TO_UNION_RULE"
 
 # testJoinConditionOrExpansionRule2 --------------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a complex OR join condition
@@ -295,7 +295,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[OR(AND(=($0, $9), =($2, 'Job1'), SEARCH($1, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($5, Sarg[(120..3000)]), =($3, $6)), AND(=($7, $16), =($11, 'Job2'), SEARCH($10, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($14, Sarg[(110..3000)]), <(CAST(+($3, 10)):DOUBLE, LN(15))), AND(=($1, 'Jensen'), >($15, 10)), SEARCH(CAST($3):DECIMAL(11, 1), Sarg[[10.0:DECIMAL(11, 1)..20.0:DECIMAL(11, 1)]]:DECIMAL(11, 1)))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[AND(=($0, $9), =($2, 'Job1'), SEARCH($1, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($5, Sarg[(120..3000)]), =($3, $6))], joinType=[inner])
@@ -307,7 +307,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalJoin(condition=[AND(OR(AND(=($1, 'Jensen'), >($15, 10)), SEARCH(CAST($3):DECIMAL(11, 1), Sarg[[10.0:DECIMAL(11, 1)..20.0:DECIMAL(11, 1)]]:DECIMAL(11, 1))), OR(<>($0, $9), <>($2, 'Job1'), SEARCH($1, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($5, Sarg[(-∞..120], [3000..+∞)]), <>($3, $6)), OR(<>($7, $16), <>($11, 'Job2'), SEARCH($10, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($14, Sarg[(-∞..110], [3000..+∞)]), >=(CAST(+($3, 10)):DOUBLE, LN(15))))], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-!sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
+!transform "JOIN_EXPAND_OR_TO_UNION_RULE"
 
 # testJoinConditionOrExpansionRuleLeft -----------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a left join with an OR condition.
@@ -345,7 +345,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[OR(=($0, $9), =($5, $14))], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
@@ -360,7 +360,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
+!transform "JOIN_EXPAND_OR_TO_UNION_RULE"
 
 # testJoinConditionOrExpansionRuleMultiOr --------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a join with more than two OR
@@ -578,7 +578,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[OR(<($3, $12), =($0, $9), <($5, 0), <(LN($5), 10.0E0))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[<($3, $12)], joinType=[inner])
@@ -590,7 +590,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalJoin(condition=[AND(OR(<($5, 0), <(LN($5), 10.0E0)), >=($3, $12), <>($0, $9))], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
+!transform "JOIN_EXPAND_OR_TO_UNION_RULE"
 
 # testJoinConditionOrExpansionRuleRight ----------------------------------------
 # JOIN_EXPAND_OR_TO_UNION_RULE rewrites a right join with an OR condition.
@@ -641,7 +641,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
   LogicalJoin(condition=[OR(=($0, $9), <($1, CAST($10):VARCHAR(20) NOT NULL))], joinType=[right])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
   LogicalUnion(all=[true])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
@@ -656,7 +656,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-!sub-plan "JOIN_EXPAND_OR_TO_UNION_RULE"
+!transform "JOIN_EXPAND_OR_TO_UNION_RULE"
 
 # testJoinProjectTranspose1 ----------------------------------------------------
 # Tests JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER and RIGHT variant.
@@ -730,14 +730,14 @@ LogicalProject(DNAME=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_JOIN_TRANSPOSE, PROJECT_MERGE"
+!transform "PROJECT_JOIN_TRANSPOSE, PROJECT_MERGE"
 LogicalProject(DNAME=[$1])
   LogicalJoin(condition=[>($2, 10)], joinType=[right])
     LogicalJoin(condition=[>($2, 10)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "PROJECT_JOIN_TRANSPOSE, PROJECT_MERGE, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER, PROJECT_MERGE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER, PROJECT_MERGE"
+!transform "PROJECT_JOIN_TRANSPOSE, PROJECT_MERGE, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER, PROJECT_MERGE, JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER, JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER, PROJECT_MERGE"
 
 # testJoinProjectTranspose2 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
@@ -764,13 +764,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTranspose3 ----------------------------------------------------
 # JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER should not pull a literal
@@ -797,13 +797,13 @@ LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
   LogicalJoin(condition=[=($0, $3)], joinType=[right])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTranspose4 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
@@ -834,14 +834,14 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], EXPR$1=[IS NOT NULL($1)])
       LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
   LogicalJoin(condition=[=($2, $3)], joinType=[left])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[CAST($1):VARCHAR(20) NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], EXPR$1=[IS NOT NULL($1)])
       LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
-!sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTranspose5 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
@@ -868,13 +868,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[+(1, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[+(1, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTranspose6 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should not transpose when
@@ -902,14 +902,14 @@ LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
   LogicalJoin(condition=[=($0, $2)], joinType=[full])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTranspose7 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should transpose when all
@@ -936,13 +936,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3])
     LogicalJoin(condition=[=($1, $3)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTranspose8 ----------------------------------------------------
 # JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER should transpose when all
@@ -972,13 +972,13 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], EXPR$1=[AND(>($0, 10), null)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[AND(>($2, 10), null)])
     LogicalJoin(condition=[=($1, $3)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
+!transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
 # testJoinProjectTransposeWindow -----------------------------------------------
 # JOIN_PROJECT_BOTH_TRANSPOSE should transpose a join with a project
@@ -1003,14 +1003,14 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(R=[RANK() OVER (ORDER BY $1)], EXPR$1=[+(1, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):BIGINT NOT NULL], R=[$2], EXPR$1=[$3])
     LogicalJoin(condition=[=(CAST($0):BIGINT NOT NULL, $2)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalProject(R=[RANK() OVER (ORDER BY $1)], EXPR$1=[+(1, 1)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PROJECT_BOTH_TRANSPOSE"
+!transform "JOIN_PROJECT_BOTH_TRANSPOSE"
 
 # testNotPushExpression --------------------------------------------------------
 # JOIN_PUSH_EXPRESSIONS should not push an expression that is not
@@ -1045,11 +1045,11 @@ LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan ""
+!transform ""
 LogicalProject(EXPR$0=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-!sub-plan "JOIN_PUSH_EXPRESSIONS"
+!transform "JOIN_PUSH_EXPRESSIONS"
 
 # End join-project-transpose.iq
