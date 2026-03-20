@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
@@ -29,6 +31,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.List;
@@ -118,5 +122,51 @@ public class RelRootTest {
     // regular project() and force project() are the same
     final RelNode forceProject = root.project(true);
     assertThat(forceProject, equalTo(project));
+  }
+
+  static SqlKind[] ddlSqlKinds() {
+    return SqlKind.DDL.toArray(new SqlKind[0]);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7447">[CALCITE-7447]
+   * RelRoot.project() adds Project for DDL nodes</a>. */
+  @ParameterizedTest
+  @MethodSource("ddlSqlKinds")
+  void testRelRootProjectDdl(SqlKind ddlKind) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final SchemaPlus defaultSchema =
+        CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR);
+    final FrameworkConfig frameworkConfig = RelBuilderTest.config()
+        .defaultSchema(defaultSchema)
+        .build();
+    final RelBuilder relBuilder = RelBuilder.create(frameworkConfig);
+    final RelNode scanRel = relBuilder.scan("emps")
+        .project(relBuilder.fields(Collections.singletonList("empid"))).build();
+
+    final RelNode inputRel = new DummyDdlRelNode(relBuilder.getCluster(), scanRel);
+
+    final RelRoot root = RelRoot.of(inputRel, ddlKind);
+
+    final RelNode project = root.project();
+    assertThat(project, equalTo(inputRel));
+    assertThat(project, instanceOf(DummyDdlRelNode.class));
+
+    // regular project() and force project() are the same
+    final RelNode forceProject = root.project(true);
+    assertThat(forceProject, equalTo(project));
+  }
+
+  /**
+   * Dummy DDL RelNode for testing.
+   */
+  static class DummyDdlRelNode extends SingleRel {
+    protected DummyDdlRelNode(RelOptCluster cluster, RelNode input) {
+      this(cluster, cluster.traitSet(), input);
+    }
+
+    protected DummyDdlRelNode(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+      super(cluster, traits, input);
+    }
   }
 }
