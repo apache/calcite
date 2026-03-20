@@ -3542,6 +3542,24 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6447">[CALCITE-6447]
+   * extract common expressions for disjunctions in Join</a>.
+   */
+  @Test void testJoinConditionPushdown7() {
+    final String sql = "select *\n"
+        + "from emp e join dept d\n"
+        + "on e.deptno = d.deptno where\n"
+        + "(e.empno > 10 and d.name = 'dept1') or (e.SAL > 100 and d.name = 'dept1')";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .check();
+  }
+
   /** Tests that filters are combined if they are identical. */
   @Test void testMergeFilter() {
     final String sql = "select name from (\n"
