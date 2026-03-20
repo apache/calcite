@@ -574,6 +574,55 @@ LogicalProject(DNAME=[$1], SAL=[$4])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "lateDecorrelate=true, PROJECT_SUB_QUERY_TO_CORRELATE"
 
+# testDecorrelateTwoScalar -----------------------------------------------------
+# RelDecorrelator handles two correlated scalar subqueries.
+
+select deptno,
+  (select min(1) from emp where empno > d.deptno) as i0,
+  (select min(0) from emp
+    where deptno = d.deptno and ename = 'SMITH') as i1
+from dept as d;
++--------+----+----+
+| DEPTNO | I0 | I1 |
++--------+----+----+
+|     10 |  1 |    |
+|     20 |  1 |  0 |
+|     30 |  1 |    |
+|     40 |  1 |    |
++--------+----+----+
+(4 rows)
+
+!ok
+LogicalProject(DEPTNO=[$0], I0=[$2], I1=[$3])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+        LogicalProject($f0=[1])
+          LogicalFilter(condition=[>($0, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
+      LogicalProject($f0=[0])
+        LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "subQueryRules"
+LogicalProject(DEPTNO=[$0], I0=[$2], I1=[$4])
+  LogicalJoin(condition=[=($0, $3)], joinType=[left])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1], EXPR$0=[$3])
+      LogicalJoin(condition=[=($0, $2)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
+          LogicalProject(DEPTNO0=[$9], $f0=[1])
+            LogicalJoin(condition=[>($0, $9)], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalProject(DEPTNO=[$0])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)])
+      LogicalProject(DEPTNO=[$7], $f0=[0])
+        LogicalFilter(condition=[=($1, 'SMITH')])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "lateDecorrelate=true, subQueryRules"
+
 # testDecorrelationWithSort ----------------------------------------------------
 # Decorrelator produces the same result as the original after sorting.
 # Not using !ok: fails with "Correlation variable $cor0 should be defined"

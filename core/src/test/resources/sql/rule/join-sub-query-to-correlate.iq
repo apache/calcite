@@ -71,6 +71,108 @@ LogicalProject(EMPNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "subQueryRules"
 
+# testExpandJoinIn -------------------------------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites IN sub-query in a LEFT JOIN ON clause.
+
+select empno
+from emp left join dept
+on emp.deptno in (select deptno from emp where empno < 20);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IN($7, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!transform ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$11], DNAME=[$12])
+    LogicalJoin(condition=[IS NOT NULL($10)], joinType=[left])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          LogicalProject(DEPTNO=[$7])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!transform "subQueryRules"
+
+# testExpandJoinInComposite ----------------------------------------------------
+# JOIN_SUB_QUERY_TO_CORRELATE rewrites composite IN sub-query in a LEFT JOIN ON
+# clause.
+# Disabled: [CALCITE-1045] composite IN in join ON cannot be executed or
+# rewritten by subQueryRules.
+
+!if (false) {
+select empno
+from emp left join dept
+on (emp.empno, dept.deptno) in (
+  select empno, deptno from emp where empno < 20);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[IN($0, $9, {
+LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+  LogicalFilter(condition=[<($0, 20)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!transform ""
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], DNAME=[$10])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[AND(=($0, $11), =($9, $12))], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0, 1}])
+          LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+            LogicalFilter(condition=[<($0, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "subQueryRules"
+!}
+
 # testExpandJoinScalar ---------------------------------------------------------
 # JOIN_SUB_QUERY_TO_CORRELATE rewrites scalar sub-queries in a LEFT JOIN ON
 # clause.

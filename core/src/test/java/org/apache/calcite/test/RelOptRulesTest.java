@@ -2505,36 +2505,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.PROJECT_FILTER_TRANSPOSE).check();
   }
 
-  @Disabled("[CALCITE-1045]")
-  @Test void testExpandJoinIn() {
-    final String sql = "select empno\n"
-        + "from sales.emp left join sales.dept\n"
-        + "on emp.deptno in (select deptno from sales.emp where empno < 20)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  @Disabled("[CALCITE-1045]")
-  @Test void testExpandJoinInComposite() {
-    final String sql = "select empno\n"
-        + "from sales.emp left join sales.dept\n"
-        + "on (emp.empno, dept.deptno) in (\n"
-        + "  select empno, deptno from sales.emp where empno < 20)";
-    sql(sql).withSubQueryRules().check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1045">[CALCITE-1045]
-   * Decorrelate sub-queries in Project and Join</a>, with the added
-   * complication that there are two sub-queries. */
-  @Disabled("[CALCITE-1045]")
-  @Test void testDecorrelateTwoScalar() {
-    final String sql = "select deptno,\n"
-        + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
-        + "  (select min(0) from emp\n"
-        + "    where deptno = d.deptno and ename = 'SMITH') as i1\n"
-        + "from dept as d";
-    sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
-  }
 
   @Test void testCorrelatedFilterWithVariable() {
     // select *
