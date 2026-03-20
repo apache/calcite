@@ -11948,4 +11948,36 @@ class RelToSqlConverterTest {
             + "FROM (VALUES (1.0E-310)) AS \"t\" (\"EXPR$0\")");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
+   * Support regexp function change regexp operator for Hive library</a>. */
+  @Test void testRegexpWithHive() {
+    final String query = "select \"brand_name\"\n"
+        + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') ";
+    final String expectedHive = "SELECT `brand_name`\nFROM "
+        + "`foodmart`.`product`\nWHERE (`brand_name` REGEXP '[a-zA-Z]')";
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
+   * Support regexp function change regexp operator for Hive library</a>. */
+  @Test void testRegexpWithHiveIsNotNull() {
+    final String query = "select \"brand_name\"\n"
+        + "from \"product\" where REGEXP(\"brand_name\",'[a-zA-Z]') is not null ";
+    final String expectedHive = "SELECT `brand_name`\nFROM "
+        + "`foodmart`.`product`\nWHERE (`brand_name` REGEXP '[a-zA-Z]') IS NOT NULL";
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7428">[CALCITE-7428]
+   * Support regexp function change regexp operator for Hive library</a>. */
+  @Test void testSelectRegexpWithHiveIsNotNull() {
+    final String query = "select REGEXP(\"brand_name\",'[a-zA-Z]') is not null \n"
+        + "from \"product\"";
+    final String expectedHive = "SELECT (`brand_name` REGEXP '[a-zA-Z]') IS NOT NULL\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
+  }
 }
