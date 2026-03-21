@@ -104,12 +104,12 @@ val hepLargePlanModeTestIncludes = mapOf(
         "**/org/apache/calcite/test/RuleMatchVisualizerTest.class",
         "**/org/apache/calcite/test/enumerable/EnumerableJoinTest.class",
         "**/org/apache/calcite/test/enumerable/EnumerableHashJoinTest.class",
-        "**/org/apache/calcite/test/enumerable/EnumerableCorrelateTest.class",
+        "**/org/apache/calcite/test/enumerable/EnumerableCorrelateTest.class"
     ),
     ":plus" to listOf(
         "**/org/apache/calcite/adapter/tpch/TpchTest.class",
-        "**/org/apache/calcite/sql2rel/TpcdsSqlToRelTest.class",
-    ),
+        "**/org/apache/calcite/sql2rel/TpcdsSqlToRelTest.class"
+    )
 )
 
 // Java versions prior to 1.8.0u202 have known issues that cause invalid bytecode in certain patterns

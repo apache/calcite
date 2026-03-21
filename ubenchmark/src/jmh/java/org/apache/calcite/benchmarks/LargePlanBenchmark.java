@@ -311,8 +311,8 @@ public class LargePlanBenchmark {
           allStats.get(order);
 
       for (int size : VALIDATION_SIZES) {
-        boolean sizePassed = validateSizeStats(order, size,
-            baselineStats.get(size), orderStats.get(size));
+        boolean sizePassed =
+            validateSizeStats(order, size, baselineStats.get(size), orderStats.get(size));
         if (!sizePassed) {
           allPassed = false;
         }
