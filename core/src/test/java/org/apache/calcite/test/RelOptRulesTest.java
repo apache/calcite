@@ -1379,75 +1379,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testReduceConstantsCalc() {
-    // This reduction does not work using
-    // ReduceExpressionsRule.PROJECT_INSTANCE or FILTER_INSTANCE,
-    // only CALC_INSTANCE, because we need to pull the project expression
-    //    upper('table')
-    // into the condition
-    //    upper('table') = 'TABLE'
-    // and reduce it to TRUE. Only in the Calc are projects and conditions
-    // combined.
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
-        .addRuleInstance(CoreRules.FILTER_SET_OP_TRANSPOSE)
-        .addRuleInstance(CoreRules.FILTER_TO_CALC)
-        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
-        .addRuleInstance(CoreRules.CALC_MERGE)
-        .addRuleInstance(CoreRules.CALC_REDUCE_EXPRESSIONS)
-
-            // the hard part is done... a few more rule calls to clean up
-        .addRuleInstance(PruneEmptyRules.UNION_INSTANCE)
-        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
-        .addRuleInstance(CoreRules.CALC_MERGE)
-        .addRuleInstance(CoreRules.CALC_REDUCE_EXPRESSIONS)
-        .build();
-
-    // Result should be same as typing
-    //  SELECT * FROM (VALUES ('TABLE        ', 'T')) AS T(U, S)
-    final String sql = "select * from (\n"
-        + "  select upper(substring(x FROM 1 FOR 2) || substring(x FROM 3)) as u,\n"
-        + "      substring(x FROM 1 FOR 1) as s\n"
-        + "  from (\n"
-        + "    select 'table' as x from (values (true))\n"
-        + "    union\n"
-        + "    select 'view' from (values (true))\n"
-        + "    union\n"
-        + "    select 'foreign table' from (values (true))\n"
-        + "  )\n"
-        + ") where u = 'TABLE'";
-    sql(sql)
-        .withRelBuilderConfig(c -> c.withSimplifyValues(false))
-        .withProgram(program).check();
-  }
-
-  @Test void testReducingConstantsInferredFromCorrelate() {
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
-        .build();
-
-    final String sql = "SELECT ename,\n"
-        + "  empno,\n"
-        + "  T.empno_r,\n"
-        + "  CASE\n"
-        + "    WHEN __source__type__ = 'bounded'\n"
-        + "      THEN 1\n"
-        + "    ELSE 2\n"
-        + "    END AS type\n"
-        + "FROM (\n"
-        + "  SELECT ename,\n"
-        + "    empno,\n"
-        + "    'bounded' AS __source__type__\n"
-        + "  FROM emp\n"
-        + "  ) a,\n"
-        + "  lateral TABLE (ramp(empno)) AS T(empno_r)";
-    sql(sql)
-        .withRelBuilderConfig(c -> c.withSimplifyValues(false))
-        .withProgram(program).check();
-  }
-
-
-
 
 
   /** Creates an environment for testing multi-join queries. */
@@ -2157,41 +2088,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
 
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-841">[CALCITE-841]
-   * Redundant windows when window function arguments are expressions</a>. */
-  @Test void testExpressionInWindowFunction() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ProjectToWindowRule.class);
-
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
-
-    final String sql = "select\n"
-        + " sum(deptno) over(partition by deptno order by sal) as sum1,\n"
-        + "sum(deptno + sal) over(partition by deptno order by sal) as sum2\n"
-        + "from emp";
-    sql(sql)
-        .withPlanner(hepPlanner)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-888">[CALCITE-888]
-   * Overlay window loses PARTITION BY list</a>. */
-  @Test void testWindowInParenthesis() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ProjectToWindowRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
-
-    final String sql = "select count(*) over (w), count(*) over w\n"
-        + "from emp\n"
-        + "window w as (partition by empno order by empno)";
-    sql(sql)
-        .withPlanner(hepPlanner)
-        .check();
-  }
 
   /**
    * Test case for

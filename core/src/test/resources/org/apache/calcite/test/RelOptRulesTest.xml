@@ -767,28 +767,6 @@ LogicalSortExchange(distribution=[hash[1]], collation=[[1]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testExpressionInWindowFunction">
-    <Resource name="sql">
-      <![CDATA[select
- sum(deptno) over(partition by deptno order by sal) as sum1,
-sum(deptno + sal) over(partition by deptno order by sal) as sum2
-from emp]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(SUM1=[$3], SUM2=[$4])
-  LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($1), SUM($2)])])
-    LogicalProject(SAL=[$5], DEPTNO=[$7], $2=[+($7, $5)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)], SUM2=[SUM(+($7, $5)) OVER (PARTITION BY $7 ORDER BY $5)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testFilterAndProjectWithMultiJoin">
     <Resource name="sql">
       <![CDATA[select * from emp e1 left outer join dept d on e1.deptno = d.deptno where d.deptno > 3]]>
@@ -2445,42 +2423,6 @@ LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReduceConstantsCalc">
-    <Resource name="sql">
-      <![CDATA[select * from (
-  select upper(substring(x FROM 1 FOR 2) || substring(x FROM 3)) as u,
-      substring(x FROM 1 FOR 1) as s
-  from (
-    select 'table' as x from (values (true))
-    union
-    select 'view' from (values (true))
-    union
-    select 'foreign table' from (values (true))
-  )
-) where u = 'TABLE']]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(U=[$0], S=[$1])
-  LogicalFilter(condition=[=($0, 'TABLE')])
-    LogicalProject(U=[UPPER(||(SUBSTRING($0, 1, 2), SUBSTRING($0, 3)))], S=[SUBSTRING($0, 1, 1)])
-      LogicalUnion(all=[false])
-        LogicalUnion(all=[false])
-          LogicalProject(X=['table        '])
-            LogicalValues(tuples=[[{ true }]])
-          LogicalProject(EXPR$0=['view         '])
-            LogicalValues(tuples=[[{ true }]])
-        LogicalProject(EXPR$0=['foreign table'])
-          LogicalValues(tuples=[[{ true }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[SUBSTRING($t0, $t1, $t2)], expr#4=[3], expr#5=[SUBSTRING($t0, $t4)], expr#6=[||($t3, $t5)], expr#7=[UPPER($t6)], expr#8=[SUBSTRING($t0, $t1, $t1)], U=[$t7], S=[$t8])
-  LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testReduceConstantsNonDeterministicFunction">
     <Resource name="sql">
       <![CDATA[select sal, r
@@ -2557,43 +2499,6 @@ LogicalProject(NEWCOL=[+($0, CASE(=('a', 'a'), 1, null:INTEGER))])
       <![CDATA[
 LogicalProject(NEWCOL=[+($0, 1)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testReducingConstantsInferredFromCorrelate">
-    <Resource name="sql">
-      <![CDATA[SELECT ename,
-  empno,
-  T.empno_r,
-  CASE
-    WHEN __source__type__ = 'bounded'
-      THEN 1
-    ELSE 2
-    END AS type
-FROM (
-  SELECT ename,
-    empno,
-    'bounded' AS __source__type__
-  FROM emp
-  ) a,
-  lateral TABLE (ramp(empno)) AS T(empno_r)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[CASE(=($2, 'bounded'), 1, 2)])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
-    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
-    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
 ]]>
     </Resource>
   </TestCase>
@@ -3348,26 +3253,6 @@ LogicalUnion(all=[true])
     <Resource name="planAfter">
       <![CDATA[
 LogicalTableScan(table=[[scott, DEPT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testWindowInParenthesis">
-    <Resource name="sql">
-      <![CDATA[select count(*) over (w), count(*) over w
-from emp
-window w as (partition by empno order by empno)]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=[$9], EXPR$1=[$9])
-  LogicalWindow(window#0=[window(partition {0} order by [0] aggs [COUNT()])])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)], EXPR$1=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

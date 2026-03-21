@@ -138,6 +138,24 @@ LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !transform "EXPAND_JOIN_DISJUNCTION_GLOBAL, JOIN_CONDITION_PUSH"
 
+# testExpressionInWindowFunction -----------------------------------------------
+# PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW converts inline window functions in
+# a LogicalProject to a LogicalWindow node.
+
+# Not using !ok: would produce 14 rows of window data.
+select
+ sum(deptno) over(partition by deptno order by sal) as sum1,
+sum(deptno + sal) over(partition by deptno order by sal) as sum2
+from emp;
+LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)], SUM2=[SUM(+($7, $5)) OVER (PARTITION BY $7 ORDER BY $5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform ""
+LogicalProject(SUM1=[$3], SUM2=[$4])
+  LogicalWindow(window#0=[window(partition {1} order by [0] aggs [SUM($1), SUM($2)])])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $2=[+($7, $5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+
 # testFilterCalcMergeRule ------------------------------------------------------
 # FILTER_CALC_MERGE cannot merge a Filter into a Calc when the Filter contains
 # a subquery (result should be unchanged).
@@ -487,5 +505,21 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       LogicalFilter(condition=[>($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS"
+
+# testWindowInParenthesis ------------------------------------------------------
+# [CALCITE-888] Overlay window loses PARTITION BY list.
+# Both uses of window 'w' should produce the same window function.
+
+# Not using !ok: would produce 14 rows of window data.
+select count(*) over (w), count(*) over w
+from emp
+window w as (partition by empno order by empno);
+LogicalProject(EXPR$0=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)], EXPR$1=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform ""
+LogicalProject(EXPR$0=[$9], EXPR$1=[$9])
+  LogicalWindow(window#0=[window(partition {0} order by [0] aggs [COUNT()])])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
 
 # End misc-rules.iq

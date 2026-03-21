@@ -1044,6 +1044,42 @@ LogicalProject(EXPR$0=[IS NULL($12)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
+# testReduceConstantsCalc ------------------------------------------------------
+# Uses CALC rules to reduce string constants involving a UNION.
+# Specifically: filter is pushed into each UNION branch, constant reduction
+# evaluates each branch as false (due to padded VARCHAR comparison), and all
+# branches are pruned to empty.
+
+# Not using !ok: actual query returns 1 row ('TABLE', 't'), but the plan with
+# simplifyValues=false has padded literals (e.g. 'table        ') so the
+# constant-folded plan is empty - the plan and execution results differ.
+select * from (
+  select upper(substring(x FROM 1 FOR 2) || substring(x FROM 3)) as u,
+      substring(x FROM 1 FOR 1) as s
+  from (
+    select 'table' as x from (values (true))
+    union
+    select 'view' from (values (true))
+    union
+    select 'foreign table' from (values (true))
+  )
+) where u = 'TABLE';
+LogicalProject(U=[$0], S=[$1])
+  LogicalFilter(condition=[=($0, 'TABLE')])
+    LogicalProject(U=[UPPER(||(SUBSTRING($0, 1, 2), SUBSTRING($0, 3)))], S=[SUBSTRING($0, 1, 1)])
+      LogicalUnion(all=[false])
+        LogicalUnion(all=[false])
+          LogicalProject(X=['table        '])
+            LogicalValues(tuples=[[{ true }]])
+          LogicalProject(EXPR$0=['view         '])
+            LogicalValues(tuples=[[{ true }]])
+        LogicalProject(EXPR$0=['foreign table'])
+          LogicalValues(tuples=[[{ true }]])
+!transform "RelBuilder(simplifyValues=false)"
+LogicalCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[SUBSTRING($t0, $t1, $t2)], expr#4=[3], expr#5=[SUBSTRING($t0, $t4)], expr#6=[||($t3, $t5)], expr#7=[UPPER($t6)], expr#8=[SUBSTRING($t0, $t1, $t1)], U=[$t7], S=[$t8])
+  LogicalValues(tuples=[[]])
+!transform "RelBuilder(simplifyValues=false), FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, FILTER_TO_CALC, PROJECT_TO_CALC, CALC_MERGE, CALC_REDUCE_EXPRESSIONS, PruneEmptyRules.UNION_INSTANCE"
+
 # testReduceConstantsCaseEquals ------------------------------------------------
 # [HIVE-9644] Reduces a CASE expression to a simpler condition.
 # Equivalent to 'deptno = 10'.
@@ -1907,6 +1943,39 @@ LogicalProject(X=[+($0, $1)], B=[$1], A=[$0])
 !transform ""
 LogicalValues(tuples=[[]])
 !transform "FILTER_PROJECT_TRANSPOSE, PROJECT_MERGE, PROJECT_FILTER_VALUES_MERGE"
+
+# testReducingConstantsInferredFromCorrelate -----------------------------------
+# [CALCITE-3111] PROJECT_REDUCE_EXPRESSIONS reduces CASE to a constant when
+# the correlate's inner query always has __source__type__ = 'bounded'.
+
+# Not using !ok: ramp() is a mock table function, not in the scott database.
+SELECT ename,
+  empno,
+  T.empno_r,
+  CASE
+    WHEN __source__type__ = 'bounded'
+      THEN 1
+    ELSE 2
+    END AS type
+FROM (
+  SELECT ename,
+    empno,
+    'bounded' AS __source__type__
+  FROM emp
+  ) a,
+  lateral TABLE (ramp(empno)) AS T(empno_r);
+LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[CASE(=($2, 'bounded'), 1, 2)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
+!transform "RelBuilder(simplifyValues=false)"
+LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
+!transform "RelBuilder(simplifyValues=false), PROJECT_REDUCE_EXPRESSIONS"
 
 # testSkipReduceConstantsCaseEquals --------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS should not reduce CASE from COALESCE when it
