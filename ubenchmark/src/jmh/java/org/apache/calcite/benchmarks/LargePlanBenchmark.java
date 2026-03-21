@@ -84,8 +84,7 @@ public class LargePlanBenchmark {
   @Param({"ARBITRARY"})
   String matchOrder;
 
-  // Enable validation mode to verify rule application counts across different orders
-  // When enabled, all orders are tested and rule attempts are validated
+  // Enable validation mode to verify rule application counts across different orders.
   boolean enableValidation = false;
 
   boolean isLargePlanMode = true; // false is very slow in 10000 unions
@@ -180,7 +179,6 @@ public class LargePlanBenchmark {
       int unionNum, String matchOrder, boolean collectStats) {
 
     RelNode root = makeUnionTree(unionNum);
-
     HepMatchOrder hepMatchOrder = HepMatchOrder.valueOf(matchOrder);
 
     HepProgram filterReduce = HepProgram.builder()
@@ -198,15 +196,27 @@ public class LargePlanBenchmark {
     if (!isLargePlanMode) {
       // Phase 1
       HepPlanner planner = new HepPlanner(filterReduce);
+      if (collectStats) {
+        planner.enableRuleAttemptsTracking();
+      }
       planner.setRoot(root);
       planner.setEnableFiredRulesCache(isEnableFiredRulesCache);
       root = planner.findBestExp();
+      if (collectStats) {
+        stats.put("FILTER", snapshotRuleAttempts(planner));
+      }
 
       // Phase 2
       planner = new HepPlanner(projectReduce);
+      if (collectStats) {
+        planner.enableRuleAttemptsTracking();
+      }
       planner.setEnableFiredRulesCache(isEnableFiredRulesCache);
       planner.setRoot(root);
       root = planner.findBestExp();
+      if (collectStats) {
+        stats.put("PROJECT", snapshotRuleAttempts(planner));
+      }
     } else {
       HepPlanner planner = new HepPlanner();
       planner.setEnableFiredRulesCache(isEnableFiredRulesCache);
@@ -217,16 +227,22 @@ public class LargePlanBenchmark {
       planner.setRoot(root);
 
       // Phase 1: Execute FILTER_REDUCE_EXPRESSIONS
+      Map<String, Pair<Long, Long>> beforeFilter =
+          collectStats ? snapshotRuleAttempts(planner) : null;
       planner.executeProgram(filterReduce);
       if (collectStats) {
-        stats.put("FILTER", new HashMap<>(planner.getRuleAttemptsInfo()));
+        stats.put("FILTER",
+            subtractRuleAttempts(snapshotRuleAttempts(planner), beforeFilter));
       }
       planner.clearRules();
 
       // Phase 2: Execute PROJECT_REDUCE_EXPRESSIONS
+      Map<String, Pair<Long, Long>> beforeProject =
+          collectStats ? snapshotRuleAttempts(planner) : null;
       planner.executeProgram(projectReduce);
       if (collectStats) {
-        stats.put("PROJECT", new HashMap<>(planner.getRuleAttemptsInfo()));
+        stats.put("PROJECT",
+            subtractRuleAttempts(snapshotRuleAttempts(planner), beforeProject));
       }
       planner.clearRules();
 
@@ -250,9 +266,6 @@ public class LargePlanBenchmark {
   /**
    * Runs validation mode to verify that different match orders produce
    * the same rule application counts.
-   *
-   * <p>This ensures that the match order does not affect optimization correctness,
-   * only performance.
    */
   public void runValidation() {
     this.enableValidation = true;
@@ -261,7 +274,6 @@ public class LargePlanBenchmark {
     System.out.println("VALIDATION MODE: Verifying rule application counts across match orders");
     System.out.println(repeat("=", 80) + "\n");
 
-    // Collect stats for all orders and sizes
     Map<String, Map<Integer, Map<String, Map<String, Pair<Long, Long>>>>> allStats =
         new HashMap<>();
 
@@ -280,7 +292,6 @@ public class LargePlanBenchmark {
       System.out.println();
     }
 
-    // Validate: compare all orders against ARBITRARY (as baseline)
     System.out.println("\n"
         + repeat("-", 80));
     System.out.println("VALIDATION RESULTS");
@@ -300,10 +311,8 @@ public class LargePlanBenchmark {
           allStats.get(order);
 
       for (int size : VALIDATION_SIZES) {
-        Map<String, Map<String, Pair<Long, Long>>> baselineSizeStats = baselineStats.get(size);
-        Map<String, Map<String, Pair<Long, Long>>> orderSizeStats = orderStats.get(size);
-
-        boolean sizePassed = validateSizeStats(order, size, baselineSizeStats, orderSizeStats);
+        boolean sizePassed = validateSizeStats(order, size,
+            baselineStats.get(size), orderStats.get(size));
         if (!sizePassed) {
           allPassed = false;
         }
@@ -335,22 +344,17 @@ public class LargePlanBenchmark {
     StringBuilder sb = new StringBuilder();
     sb.append(String.format(Locale.ROOT, "  Size %4d: ", size));
 
-    // Validate FILTER phase
     Map<String, Pair<Long, Long>> baselineFilter = baseline.get("FILTER");
     Map<String, Pair<Long, Long>> testFilter = test.get("FILTER");
-
     if (!comparePhaseStats("FILTER", baselineFilter, testFilter, sb)) {
       passed = false;
     }
 
-    // Validate PROJECT phase
     Map<String, Pair<Long, Long>> baselineProject = baseline.get("PROJECT");
     Map<String, Pair<Long, Long>> testProject = test.get("PROJECT");
-
     if (!comparePhaseStats("PROJECT", baselineProject, testProject, sb)) {
       passed = false;
     }
-
     if (passed) {
       sb.append("PASSED");
     } else {
@@ -361,9 +365,6 @@ public class LargePlanBenchmark {
     return passed;
   }
 
-  /**
-   * Compares phase statistics between baseline and test.
-   */
   private boolean comparePhaseStats(String phase,
       Map<String, Pair<Long, Long>> baseline,
       Map<String, Pair<Long, Long>> test,
@@ -399,6 +400,27 @@ public class LargePlanBenchmark {
     return passed;
   }
 
+  private static Map<String, Pair<Long, Long>> snapshotRuleAttempts(HepPlanner planner) {
+    return new HashMap<>(planner.getRuleAttemptsInfo());
+  }
+
+  private static Map<String, Pair<Long, Long>> subtractRuleAttempts(
+      Map<String, Pair<Long, Long>> current,
+      Map<String, Pair<Long, Long>> previous) {
+    Map<String, Pair<Long, Long>> delta = new HashMap<>();
+    for (Map.Entry<String, Pair<Long, Long>> entry : current.entrySet()) {
+      Pair<Long, Long> oldValue = previous.get(entry.getKey());
+      long oldAttempts = oldValue == null ? 0L : oldValue.left;
+      long oldTime = oldValue == null ? 0L : oldValue.right;
+      long deltaAttempts = entry.getValue().left - oldAttempts;
+      long deltaTime = entry.getValue().right - oldTime;
+      if (deltaAttempts != 0L || deltaTime != 0L) {
+        delta.put(entry.getKey(), Pair.of(deltaAttempts, deltaTime));
+      }
+    }
+    return delta;
+  }
+
   /**
    * Runs benchmark mode for performance testing.
    * Tests different union sizes based on the match order's scalability.
@@ -423,7 +445,7 @@ public class LargePlanBenchmark {
     results.add(
         String.format(Locale.ROOT,
             "%-15s %-10s %-15s %-15s %-15s",
-            "Match Order", "Union Num", "Node Count", "Rule Transforms", "Time (ms)"));
+            "Match Order", "Union Num", "Node Count", "Rule Attempts", "Time (ms)"));
     results.add(repeat("-", 85));
 
     for (String order : ALL_MATCH_ORDERS) {
@@ -431,9 +453,7 @@ public class LargePlanBenchmark {
       int[] sizes = orderSizes.get(order);
 
       for (int size : sizes) {
-        // Estimate node count: each branch has 3 nodes (Scan, Filter, Project)
-        // Plus approximately 'size' Union nodes
-        int nodeCount = size * 4;
+        int nodeCount = 4 * size + 3;
 
         // Warmup
         testLargeUnionPlan(size, order, false);
@@ -446,20 +466,19 @@ public class LargePlanBenchmark {
           long endTime = System.currentTimeMillis();
           long elapsed = endTime - startTime;
 
-          // Calculate total rule transformations
-          long totalRuleTransforms = 0;
+          long totalRuleAttempts = 0;
           for (Map<String, Pair<Long, Long>> phaseStats : stats.values()) {
             for (Pair<Long, Long> ruleStat : phaseStats.values()) {
-              totalRuleTransforms += ruleStat.left;
+              totalRuleAttempts += ruleStat.left;
             }
           }
 
           results.add(
               String.format(Locale.ROOT,
                   "%-15s %-10d %-15d %-15d %-15d",
-                  order, size, nodeCount, totalRuleTransforms, elapsed));
+                  order, size, nodeCount, totalRuleAttempts, elapsed));
           System.out.println("  Size " + size + ": " + elapsed + " ms, "
-              + "nodes=" + nodeCount + ", ruleTransforms=" + totalRuleTransforms);
+              + "nodes=" + nodeCount + ", ruleAttempts=" + totalRuleAttempts);
         } catch (Exception e) {
           results.add(
               String.format(Locale.ROOT,

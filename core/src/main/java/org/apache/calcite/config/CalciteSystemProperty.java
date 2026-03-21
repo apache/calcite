@@ -138,6 +138,14 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
       booleanProperty("calcite.planner.topdown.opt", false);
 
+  /** Whether {@link org.apache.calcite.plan.hep.HepPlanner} should enable
+   * large-plan mode by default.
+   *
+   * <p>This property only affects planners that do not call
+   * {@code setLargePlanMode} explicitly. */
+  public static final CalciteSystemProperty<Boolean> HEP_PLANNER_LARGE_PLAN_MODE =
+      booleanProperty("calcite.hep.large.plan.mode", false);
+
 
   /** Whether to disable generate rel data type digest string.
    *

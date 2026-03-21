@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.hep;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
@@ -190,6 +191,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     this.mainProgram = requireNonNull(program, "program");
     this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
     this.noDag = noDag;
+    this.largePlanMode = CalciteSystemProperty.HEP_PLANNER_LARGE_PLAN_MODE.value();
   }
 
   /**
