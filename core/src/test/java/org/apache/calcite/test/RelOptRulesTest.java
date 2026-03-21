@@ -247,23 +247,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
-   * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
-   * and XML_EXTRACT is incorrect</a>. */
-  @Test void testReplace() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-
-    final String sql = "select REPLACE('abc', 'c', 'cd')";
-    fixture()
-        .sql(sql)
-        .withPlanner(hepPlanner)
-        .check();
-  }
 
   /**
    * Test case for
@@ -1748,46 +1731,6 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(PruneEmptyRules.SORT_INSTANCE).check();
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4848">[CALCITE-4848]
-   * Adding a HAVING condition to a query with a dynamic parameter makes the result always empty
-   </a>. */
-  @Test void testAggregateWithDynamicParam() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(ReduceExpressionsRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-    final String sql = "SELECT sal, COUNT(1) AS count_val\n"
-        + "FROM emp t WHERE sal = ?\n"
-        + "GROUP BY sal HAVING sal < 1000";
-    sql(sql).withPlanner(hepPlanner)
-        .checkUnchanged();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6647">[CALCITE-6647]
-   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
-   </a>. */
-  @Test void testSortWithDynamicParam() {
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleClass(SortProjectTransposeRule.class);
-    builder.addRuleClass(SortUnionTransposeRule.class);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-    hepPlanner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
-    hepPlanner.addRule(CoreRules.SORT_UNION_TRANSPOSE);
-    final String sql = "SELECT x.sal\n"
-        + "FROM (SELECT emp1.sal\n"
-        + "      FROM (SELECT sal\n"
-        + "            from emp\n"
-        + "            LIMIT ?) AS emp1\n"
-        + "      UNION ALL\n"
-        + "      SELECT emp2.sal\n"
-        + "      FROM (SELECT sal\n"
-        + "            from emp\n"
-        + "            LIMIT ?) AS emp2) AS x\n"
-        + "LIMIT ?";
-    sql(sql).withPlanner(hepPlanner).check();
-  }
 
   @Test void testReduceCastsNullable() {
     HepProgram program = new HepProgramBuilder()

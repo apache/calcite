@@ -23,6 +23,28 @@
 !use scott
 !set outputformat mysql
 
+# testAggregateWithDynamicParam ------------------------------------------------
+# [CALCITE-4848] Adding a HAVING condition to a query with a dynamic parameter
+# makes the result always empty.
+# FILTER_REDUCE_EXPRESSIONS should NOT reduce sal < 1000 when sal = ? is present.
+
+# Not using !ok: the query has a parameter.
+SELECT sal, COUNT(1) AS count_val
+FROM emp t WHERE sal = ?
+GROUP BY sal HAVING sal < 1000;
+LogicalFilter(condition=[<($0, 1000)])
+  LogicalAggregate(group=[{0}], COUNT_VAL=[COUNT()])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalFilter(condition=[=($5, ?0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform ""
+LogicalFilter(condition=[<($0, 1000)])
+  LogicalAggregate(group=[{0}], COUNT_VAL=[COUNT()])
+    LogicalProject(SAL=[$5], $f1=[1])
+      LogicalFilter(condition=[=($5, ?0)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "FILTER_REDUCE_EXPRESSIONS"
+
 # testAlreadyFalseEliminatesFilter ---------------------------------------------
 # Tests that a filter with a false condition is eliminated.
 
@@ -1976,6 +1998,25 @@ LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
 !transform "RelBuilder(simplifyValues=false), PROJECT_REDUCE_EXPRESSIONS"
+
+# testReplace ------------------------------------------------------------------
+# PROJECT_REDUCE_EXPRESSIONS reduces a REPLACE function call with constant args.
+
+select REPLACE('abc', 'c', 'cd');
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+LogicalProject(EXPR$0=[REPLACE('abc', 'c', 'cd')])
+  LogicalValues(tuples=[[{ 0 }]])
+!transform ""
+LogicalProject(EXPR$0=['abcd':VARCHAR])
+  LogicalValues(tuples=[[{ 0 }]])
+!transform "PROJECT_REDUCE_EXPRESSIONS"
 
 # testSkipReduceConstantsCaseEquals --------------------------------------------
 # FILTER_REDUCE_EXPRESSIONS should not reduce CASE from COALESCE when it

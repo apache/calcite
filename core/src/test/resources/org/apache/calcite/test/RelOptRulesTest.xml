@@ -69,22 +69,6 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0) FILTER $1])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testAggregateWithDynamicParam">
-    <Resource name="sql">
-      <![CDATA[SELECT sal, COUNT(1) AS count_val
-FROM emp t WHERE sal = ?
-GROUP BY sal HAVING sal < 1000]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalFilter(condition=[<($0, 1000)])
-  LogicalAggregate(group=[{0}], COUNT_VAL=[COUNT()])
-    LogicalProject(SAL=[$5], $f1=[1])
-      LogicalFilter(condition=[=($5, ?0)])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testAntiCorrelateWithLeftEmpty">
     <Resource name="planBefore">
       <![CDATA[
@@ -2533,23 +2517,6 @@ LogicalProject(EXPR$0=['abcabc':VARCHAR])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReplace">
-    <Resource name="sql">
-      <![CDATA[select REPLACE('abc', 'c', 'cd')]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EXPR$0=[REPLACE('abc', 'c', 'cd')])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EXPR$0=['abcd':VARCHAR])
-  LogicalValues(tuples=[[{ 0 }]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testRightEmptyAntiJoin">
     <Resource name="planBefore">
       <![CDATA[
@@ -2859,51 +2826,6 @@ LogicalProject(ENAME=[$0])
   LogicalSort(sort0=[$1], dir0=[ASC])
     LogicalProject(ENAME=[$1], EXPR$1=[RANDOM()])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSortWithDynamicParam">
-    <Resource name="sql">
-      <![CDATA[SELECT x.sal
-FROM (SELECT emp1.sal
-      FROM (SELECT sal
-            from emp
-            LIMIT ?) AS emp1
-      UNION ALL
-      SELECT emp2.sal
-      FROM (SELECT sal
-            from emp
-            LIMIT ?) AS emp2) AS x
-LIMIT ?]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalSort(fetch=[?2])
-  LogicalProject(SAL=[$0])
-    LogicalUnion(all=[true])
-      LogicalProject(SAL=[$0])
-        LogicalSort(fetch=[?0])
-          LogicalProject(SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(SAL=[$0])
-        LogicalSort(fetch=[?1])
-          LogicalProject(SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(SAL=[$0])
-  LogicalSort(fetch=[?2])
-    LogicalUnion(all=[true])
-      LogicalProject(SAL=[$0])
-        LogicalProject(SAL=[$5])
-          LogicalSort(fetch=[?0])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(SAL=[$0])
-        LogicalProject(SAL=[$5])
-          LogicalSort(fetch=[?1])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

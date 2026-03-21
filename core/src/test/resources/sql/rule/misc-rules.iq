@@ -506,6 +506,47 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "JOIN_PUSH_TRANSITIVE_PREDICATES, FILTER_REDUCE_EXPRESSIONS"
 
+# testSortWithDynamicParam -----------------------------------------------------
+# [CALCITE-6647] SortUnionTransposeRule should not push SORT past a UNION when
+# SORT's fetch is DynamicParam.
+
+# Not using !ok: the query has parameters.
+SELECT x.sal
+FROM (SELECT emp1.sal
+      FROM (SELECT sal
+            from emp
+            LIMIT ?) AS emp1
+      UNION ALL
+      SELECT emp2.sal
+      FROM (SELECT sal
+            from emp
+            LIMIT ?) AS emp2) AS x
+LIMIT ?;
+LogicalSort(fetch=[?2])
+  LogicalProject(SAL=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(SAL=[$0])
+        LogicalSort(fetch=[?0])
+          LogicalProject(SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(SAL=[$0])
+        LogicalSort(fetch=[?1])
+          LogicalProject(SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform ""
+LogicalProject(SAL=[$0])
+  LogicalSort(fetch=[?2])
+    LogicalUnion(all=[true])
+      LogicalProject(SAL=[$0])
+        LogicalProject(SAL=[$5])
+          LogicalSort(fetch=[?0])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(SAL=[$0])
+        LogicalProject(SAL=[$5])
+          LogicalSort(fetch=[?1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "SORT_PROJECT_TRANSPOSE, SORT_UNION_TRANSPOSE"
+
 # testWindowInParenthesis ------------------------------------------------------
 # [CALCITE-888] Overlay window loses PARTITION BY list.
 # Both uses of window 'w' should produce the same window function.
