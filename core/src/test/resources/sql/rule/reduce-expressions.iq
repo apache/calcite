@@ -2002,19 +2002,19 @@ LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
 # testReplace ------------------------------------------------------------------
 # PROJECT_REDUCE_EXPRESSIONS reduces a REPLACE function call with constant args.
 
-select REPLACE('abc', 'c', 'cd');
-+--------+
-| EXPR$0 |
-+--------+
-| abcd   |
-+--------+
+select REPLACE('abc', 'c', 'cd') as s;
++------+
+| S    |
++------+
+| abcd |
++------+
 (1 row)
 
 !ok
-LogicalProject(EXPR$0=[REPLACE('abc', 'c', 'cd')])
+LogicalProject(S=[REPLACE('abc', 'c', 'cd')])
   LogicalValues(tuples=[[{ 0 }]])
 !transform ""
-LogicalProject(EXPR$0=['abcd':VARCHAR])
+LogicalProject(S=['abcd':VARCHAR])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "PROJECT_REDUCE_EXPRESSIONS"
 
