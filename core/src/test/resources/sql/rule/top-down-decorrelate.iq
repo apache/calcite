@@ -641,4 +641,29 @@ LogicalProject(DEPTNO=[$7])
                 LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
 
+# testUnnestInternalMissingParameter -------------------------------------------
+# [CALCITE-4294] RelDecorrelator should handle SOME/ALL operators
+
+# Not using !ok: EMP_B is not in the scott database.
+SELECT empno FROM emp e
+WHERE sal > some(SELECT avg(sal) over (partition by deptno) from emp_b b
+  where b.deptno = e.deptno);
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[> SOME($5, {
+LogicalProject(EXPR$0=[CAST(/(SUM($5) OVER (PARTITION BY $7), COUNT($5) OVER (PARTITION BY $7))):INTEGER NOT NULL])
+  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[$9])
+    LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{7}], condition=[>($5, $9)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[CAST(/($10, $11)):INTEGER NOT NULL])
+        LogicalWindow(window#0=[window(partition {7} aggs [SUM($5), COUNT($5)])])
+          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, FILTER_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+
 # End top-down-decorrelate.iq

@@ -767,60 +767,6 @@ LogicalSortExchange(distribution=[hash[1]], collation=[[1]])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testExistsDecorrelationProducesSingleValues">
-    <Resource name="sql">
-      <![CDATA[select empno, deptno in (select 10) from emp]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[$9])
-  LogicalJoin(condition=[=($7, $9)], joinType=[left_mark])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalValues(tuples=[[{ 10 }]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[$9])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[=($7, 10)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testExpandJoinDisjunctionForJoinInput">
-    <Resource name="sql">
-      <![CDATA[select e.empno from emp as e inner join empnullables as en
- on e.empno = en.empno
- inner join emp_b as eb
- on e.empno = eb.empno and
-(
-  (e.mgr > 100 and eb.sal < 200)
-  or
-  (en.comm < 50 and eb.deptno > 10)
-)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))), OR(>($3, 100), <($15, 50)), OR(<($23, 200), >($25, 10)))], joinType=[inner])
-    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))))], joinType=[inner])
-    LogicalJoin(condition=[AND(=($0, $9), OR(>($3, 100), <($15, 50)))], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-    LogicalFilter(condition=[OR(<($5, 200), >($7, 10))])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testExpressionInWindowFunction">
     <Resource name="sql">
       <![CDATA[select
@@ -1188,53 +1134,6 @@ EnumerableIntersect(all=[false])
   EnumerableProject(DEPTNO=[$7])
     EnumerableFilter(condition=[>($7, 5)])
       EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testIsNullPushDown">
-    <Resource name="sql">
-      <![CDATA[select empno, deptno, w_count from (
-  select empno, deptno, count(empno) over (w) w_count
-  from emp
-  window w as (partition by deptno order by empno)
-) sub_query where w_count is null]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
-  LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
-  LogicalFilter(condition=[IS NULL($2)])
-    LogicalProject(EMPNO=[$0], DEPTNO=[$7], W_COUNT=[$9])
-      LogicalWindow(window#0=[window(partition {7} order by [0] aggs [COUNT($0)])])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testIsNullPushDown2">
-    <Resource name="sql">
-      <![CDATA[select empno, deptno, w_count from (
-  select empno, deptno, count(empno) over (ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) w_count
-  from emp
-) sub_query where w_count is null]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
-  LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
-  LogicalFilter(condition=[IS NULL($2)])
-    LogicalWindow(window#0=[window(rows between $2 PRECEDING and $3 PRECEDING aggs [COUNT($0)])], constants=[[10, 1]])
-      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -3449,47 +3348,6 @@ LogicalUnion(all=[true])
     <Resource name="planAfter">
       <![CDATA[
 LogicalTableScan(table=[[scott, DEPT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testUnnestInternalMissingParameter">
-    <Resource name="sql">
-      <![CDATA[SELECT empno FROM emp e WHERE sal > some(SELECT avg(sal) over (partition by deptno) from emp_b b where b.deptno = e.deptno)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[> SOME($5, {
-LogicalProject(EXPR$0=[CAST(/(SUM($5) OVER (PARTITION BY $7), COUNT($5) OVER (PARTITION BY $7))):INTEGER NOT NULL])
-  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-})], variablesSet=[[$cor0]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planMid">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalFilter(condition=[$9])
-      LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{7}], condition=[>($5, $9)])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalProject(EXPR$0=[CAST(/($10, $11)):INTEGER NOT NULL])
-          LogicalWindow(window#0=[window(partition {7} aggs [SUM($5), COUNT($5)])])
-            LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-              LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[$9])
-    LogicalConditionalCorrelate(correlation=[$cor0], joinType=[left_mark], requiredColumns=[{7}], condition=[>($5, $9)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalProject(EXPR$0=[CAST(/($10, $11)):INTEGER NOT NULL])
-        LogicalWindow(window#0=[window(partition {7} aggs [SUM($5), COUNT($5)])])
-          LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
     </Resource>
   </TestCase>

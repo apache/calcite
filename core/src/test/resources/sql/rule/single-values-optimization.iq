@@ -52,6 +52,25 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], CURRENT_TIMESTAMP=[$10])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE"
 
+# testExistsDecorrelationProducesSingleValues ----------------------------------
+# [CALCITE-7389] PruneJoinSingleValue rule should handle subquery IN
+
+select empno, deptno in (select 10) from emp;
+LogicalProject(EMPNO=[$0], EXPR$1=[IN($7, {
+LogicalValues(tuples=[[{ 10 }]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform ""
+LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left_mark])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 10 }]])
+!transform "PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
+LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[=($7, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE, SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE"
+
 # testInnerJoinWithConstantRowOnLeft -------------------------------------------
 
 select e.empno, e.ename, c.*

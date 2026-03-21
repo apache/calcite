@@ -335,6 +335,59 @@ LogicalProject(EXPR$0=[54])
   LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS"
 
+# testIsNullPushDown -----------------------------------------------------------
+# [CALCITE-5861] ReduceExpressionsRule rules should constant-fold expressions
+# in window bounds. COUNT over window is never null, so IS NULL is always false.
+
+select empno, deptno, w_count
+from (
+  select empno, deptno, count(empno) over (w) w_count
+  from emp
+  window w as (partition by deptno order by empno)
+) sub_query where w_count is null;
++-------+--------+---------+
+| EMPNO | DEPTNO | W_COUNT |
++-------+--------+---------+
++-------+--------+---------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalFilter(condition=[IS NULL($2)])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], W_COUNT=[$9])
+      LogicalWindow(window#0=[window(partition {7} order by [0] aggs [COUNT($0)])])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalValues(tuples=[[]])
+!transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS"
+
+# testIsNullPushDown2 ----------------------------------------------------------
+# As testIsNullPushDown but with ROWS window frame.
+
+select empno, deptno, w_count
+from (
+  select empno, deptno,
+    count(empno) over (ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) w_count
+  from emp
+) sub_query where w_count is null;
++-------+--------+---------+
+| EMPNO | DEPTNO | W_COUNT |
++-------+--------+---------+
++-------+--------+---------+
+(0 rows)
+
+!ok
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalFilter(condition=[IS NULL($2)])
+    LogicalWindow(window#0=[window(rows between $2 PRECEDING and $3 PRECEDING aggs [COUNT($0)])], constants=[[10, 1]])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
+  LogicalValues(tuples=[[]])
+!transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW, PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS"
+
 # testNoOversimplificationBelowIsNull ------------------------------------------
 # [CALCITE-2726] FILTER_REDUCE_EXPRESSIONS should not oversimplify conditions
 # below IS NULL.

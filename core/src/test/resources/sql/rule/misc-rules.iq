@@ -89,6 +89,32 @@ LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 !transform "EXPAND_FILTER_DISJUNCTION_LOCAL, JOIN_CONDITION_PUSH, FILTER_INTO_JOIN"
 
+# testExpandJoinDisjunctionForJoinInput ----------------------------------------
+# EXPAND_JOIN_DISJUNCTION_LOCAL expands a disjunctive JOIN ON condition, then
+# JOIN_CONDITION_PUSH and FILTER_INTO_JOIN push parts down to the join inputs.
+
+# Not using !ok: query uses EMPNULLABLES and EMP_B, not in the scott database.
+select e.empno
+from emp as e inner join empnullables as en on e.empno = en.empno
+inner join emp_b as eb
+  on e.empno = eb.empno
+  and ((e.mgr > 100 and eb.sal < 200) or (en.comm < 50 and eb.deptno > 10));
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))), OR(>($3, 100), <($15, 50)), OR(<($23, 200), >($25, 10)))], joinType=[inner])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!transform "EXPAND_JOIN_DISJUNCTION_LOCAL"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))))], joinType=[inner])
+    LogicalJoin(condition=[AND(=($0, $9), OR(>($3, 100), <($15, 50)))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[OR(<($5, 200), >($7, 10))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!transform "EXPAND_JOIN_DISJUNCTION_LOCAL, JOIN_CONDITION_PUSH, FILTER_INTO_JOIN"
+
 # testExpandJoinDisjunctionForTable --------------------------------------------
 # JOIN_CONDITION_PUSH pushes parts of a disjunctive join condition to filter
 # inputs after EXPAND_JOIN_DISJUNCTION_GLOBAL has expanded the condition.

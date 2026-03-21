@@ -1617,21 +1617,6 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7389">[CALCITE-7389]
    * PruneJoinSingleValue rule causes type mismatch in EXISTS</a>. */
-  @Test void testExistsDecorrelationProducesSingleValues() {
-    final String sql = "select empno, deptno in (select 10) from emp";
-    sql(sql)
-        .withPreRule(
-            CoreRules.PROJECT_SUB_QUERY_TO_MARK_CORRELATE,
-            CoreRules.PROJECT_MERGE,
-            CoreRules.PROJECT_REMOVE)
-        .withTopDownGeneralDecorrelate(true)
-        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
-        .check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7389">[CALCITE-7389]
-   * PruneJoinSingleValue rule causes type mismatch in EXISTS</a>. */
   @Test void testLeftMarkJoinWithSingleValues() {
     relFn(builder -> builder
         .scan("EMP")
@@ -2204,48 +2189,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from emp\n"
         + "window w as (partition by empno order by empno)";
     sql(sql)
-        .withPlanner(hepPlanner)
-        .check();
-  }
-
-  /** Test case for DX-11490:
-   * Make sure the planner doesn't fail over wrong push down
-   * of is null. */
-  @Test void testIsNullPushDown() {
-    HepProgramBuilder preBuilder = new HepProgramBuilder();
-    preBuilder.addRuleInstance(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
-
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-    builder.addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-
-    final String sql = "select empno, deptno, w_count from (\n"
-        + "  select empno, deptno, count(empno) over (w) w_count\n"
-        + "  from emp\n"
-        + "  window w as (partition by deptno order by empno)\n"
-        + ") sub_query where w_count is null";
-    sql(sql)
-        .withPre(preBuilder.build())
-        .withPlanner(hepPlanner)
-        .check();
-  }
-
-  @Test void testIsNullPushDown2() {
-    HepProgramBuilder preBuilder = new HepProgramBuilder();
-    preBuilder.addRuleInstance(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
-
-    HepProgramBuilder builder = new HepProgramBuilder();
-    builder.addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
-    builder.addRuleInstance(CoreRules.FILTER_REDUCE_EXPRESSIONS);
-    HepPlanner hepPlanner = new HepPlanner(builder.build());
-
-    final String sql = "select empno, deptno, w_count from (\n"
-        + "  select empno, deptno, count(empno) over (ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) w_count\n"
-        + "  from emp\n"
-        + ") sub_query where w_count is null";
-    sql(sql)
-        .withPre(preBuilder.build())
         .withPlanner(hepPlanner)
         .check();
   }
@@ -2953,24 +2896,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * Subquery in join conditions rewrite fails if referencing a column
    * from the right-hand side table</a>. */
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-7350">[CALCITE-7350]
-   * Missing allowEmptyOutputFromRewrite parameter
-   * in TopDownGeneralDecorrelator.unnestInternal</a>. */
-  @Test void testUnnestInternalMissingParameter() {
-    final String sql = "SELECT empno FROM emp e"
-        + " WHERE sal > some(SELECT avg(sal) over (partition by deptno) from emp_b b"
-        + " where b.deptno = e.deptno)";
-
-    sql(sql)
-        .withRule(
-            CoreRules.FILTER_SUB_QUERY_TO_MARK_CORRELATE,
-            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
-        .withLateDecorrelate(true)
-        .withTopDownGeneralDecorrelate(true)
-        .check();
-  }
-
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
@@ -3550,25 +3475,6 @@ class RelOptRulesTest extends RelOptTestBase {
 
 
 
-
-  @Test void testExpandJoinDisjunctionForJoinInput() {
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXPAND_JOIN_DISJUNCTION_LOCAL)
-        .build();
-
-    sql("select e.empno from emp as e inner join empnullables as en\n"
-        + " on e.empno = en.empno\n"
-        + " inner join emp_b as eb\n"
-        + " on e.empno = eb.empno and\n"
-        + "(\n"
-        + "  (e.mgr > 100 and eb.sal < 200)\n"
-        + "  or\n"
-        + "  (en.comm < 50 and eb.deptno > 10)\n"
-        + ")")
-        .withPre(program)
-        .withRule(CoreRules.JOIN_CONDITION_PUSH, CoreRules.FILTER_INTO_JOIN)
-        .check();
-  }
 
 
   @Test void testOuterJoinForDphyp() {
