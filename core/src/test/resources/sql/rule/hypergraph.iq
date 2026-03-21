@@ -22,6 +22,130 @@
 !use scott
 !set outputformat mysql
 
+# testCartesianProductForDphyp -------------------------------------------------
+# Not using !ok: EMP_ADDRESS and EMP_B tables do not exist in Scott.
+
+select emp.empno from emp_address, emp, emp_b, dept
+where emp_address.empno = emp.empno
+and dept.deptno = emp.deptno;
+LogicalProject(EMPNO=[$3])
+  HyperGraph(edges=[{1}——[INNER, =(node(3)_field(0), node(1)_field(7))]——{3},{0, 1}——[INNER, true]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$12])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalJoin(condition=[=($11, $2)], joinType=[inner])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testChainJoinDphypJoinReorder ------------------------------------------------
+# Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp, emp_address, dept, dept_nested
+where emp.deptno + emp_address.empno = dept.deptno + dept_nested.deptno
+and emp.empno = emp_address.empno
+and dept.deptno = dept_nested.deptno;
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0, 1, 2}——[INNER, =(+(node(0)_field(7), node(1)_field(0)), +(node(2)_field(0), node(3)_field(0)))]——{3},{2}——[INNER, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[INNER, true]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$9])
+  LogicalJoin(condition=[=(+($16, $6), +($4, $0))], joinType=[inner])
+    LogicalJoin(condition=[=($4, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[=($3, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testComplexPredicateForDphyp -------------------------------------------------
+# Not using !ok: EMP_B and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp, emp_b, dept, dept_nested
+where emp.deptno + emp_b.empno = dept.deptno + dept_nested.deptno
+and (emp.empno = emp_b.empno or emp.ename = emp_b.ename)
+and sqrt(dept.deptno + dept_nested.deptno) > 2;
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0, 1, 2}——[INNER, =(+(node(0)_field(7), node(1)_field(0)), +(node(2)_field(0), node(3)_field(0)))]——{3},{2}——[INNER, >(POWER(+(node(2)_field(0), node(3)_field(0)), 0.5:DECIMAL(2, 1)), CAST(2):DOUBLE NOT NULL)]——{3},{0, 1}——[INNER, true]——{2},{0}——[INNER, OR(=(node(0)_field(0), node(1)_field(0)), =(node(0)_field(1), node(1)_field(1)))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$16])
+  LogicalJoin(condition=[=(+($23, $6), +($4, $0))], joinType=[inner])
+    LogicalJoin(condition=[>(POWER(+($4, $0), 0.5:DECIMAL(2, 1)), 2.0E0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[OR(=($10, $0), =($11, $1))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testCycleJoinDphypJoinReorder ------------------------------------------------
+# Not using !ok: EMP_B and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp, emp_b, dept, dept_nested
+where emp.empno = emp_b.empno
+and emp_b.deptno = dept.deptno
+and dept.dname = dept_nested.dname
+and dept_nested.deptno = emp.deptno
+and emp.sal + emp_b.sal = dept.deptno + dept_nested.deptno;
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{2}——[INNER, =(node(2)_field(1), node(3)_field(1))]——{3},{0}——[INNER, =(node(3)_field(0), node(0)_field(7))]——{3},{0, 1, 2}——[INNER, =(+(node(0)_field(5), node(1)_field(5)), +(node(2)_field(0), node(3)_field(0)))]——{3},{1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$16])
+  LogicalJoin(condition=[AND(=($10, $23), =(+($21, $5), +($14, $10)), =($16, $0))], joinType=[inner])
+    LogicalJoin(condition=[=($7, $14)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+      LogicalJoin(condition=[=($5, $1)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testFullLeftSemiJoinTypeForDphyp ---------------------------------------------
+# Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp_address full join emp on emp_address.empno = emp.empno
+left join dept on emp.deptno = dept.deptno
+where exists(select * from dept_nested where dept.deptno = dept_nested.deptno);
+LogicalProject(EMPNO=[$9])
+  HyperGraph(edges=[{0, 1, 2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[FULL, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($18, $20)], joinType=[semi])
+    LogicalJoin(condition=[=($7, $18)], joinType=[left])
+      LogicalJoin(condition=[=($9, $0)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
 # testHypergraph0 --------------------------------------------------------------
 # Test case for [CALCITE-7191] Hypergraph creation with incorrect hyperedges.
 # Not using !ok: BONUS table is empty in Scott, results are not useful.
@@ -122,5 +246,139 @@ LogicalProject(ENAME=[$26], DNAME=[$16])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
             LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 !transform "bottomUp=true, JOIN_PROJECT_RIGHT_TRANSPOSE, JOIN_PROJECT_LEFT_TRANSPOSE, PROJECT_MERGE, PROJECT_REMOVE, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_MERGE"
+
+# testInnerLeftSemiJoinTypeForDphyp --------------------------------------------
+# Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno
+left join dept on emp.deptno = dept.deptno
+where exists(select * from dept_nested where dept.deptno = dept_nested.deptno);
+LogicalProject(EMPNO=[$9])
+  HyperGraph(edges=[{1, 2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($11, $0)], joinType=[inner])
+    LogicalJoin(condition=[=($9, $11)], joinType=[semi])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DEPTNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testLeftInnerSemiJoinTypeForDphyp --------------------------------------------
+# Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp_address left join emp on emp_address.empno = emp.empno
+inner join dept on emp.deptno = dept.deptno
+where exists(select * from dept_nested where dept.deptno = dept_nested.deptno);
+LogicalProject(EMPNO=[$9])
+  HyperGraph(edges=[{2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[LEFT, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$11])
+  LogicalJoin(condition=[=($18, $0)], joinType=[inner])
+    LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DEPTNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testOuterJoinForDphyp --------------------------------------------------------
+# Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno
+left join dept on emp.deptno = dept.deptno
+inner join dept_nested on dept.deptno = dept_nested.deptno;
+LogicalProject(EMPNO=[$3])
+  HyperGraph(edges=[{1, 2}——[INNER, =(node(2)_field(0), node(3)_field(0))]——{3},{1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "bottomUp=true, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$4])
+  LogicalJoin(condition=[=($15, $4)], joinType=[inner])
+    LogicalJoin(condition=[=($13, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+!transform "bottomUp=true, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testSemiJoinForDphyp ---------------------------------------------------------
+# Not using !ok: EMP_ADDRESS and EMP_B tables do not exist in Scott.
+
+select emp.empno from emp, emp_address, salgrade
+where emp_address.empno = emp.empno
+and emp.sal = salgrade.hisal
+and exists(select * from emp_b where emp_address.empno = emp_b.empno);
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{1}——[SEMI, =(node(1)_field(0), node(3)_field(0))]——{3},{0}——[INNER, =(node(0)_field(5), node(2)_field(2))]——{2},{0}——[INNER, =(node(1)_field(0), node(0)_field(0))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+    LogicalProject(EMPNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$12])
+  LogicalJoin(condition=[=($0, $12)], joinType=[inner])
+    LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+      LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalProject(EMPNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalJoin(condition=[=($8, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+!transform "Sql2Rel(expand=true, decorrelate=true), bottomUp=true, PROJECT_MERGE, PROJECT_TO_SEMI_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
+
+# testStarJoinDphypJoinReorder -------------------------------------------------
+# Not using !ok: EMP_B, EMP_ADDRESS, and DEPT_NESTED tables do not exist in Scott.
+
+select emp.empno from emp, emp_b, emp_address, dept, dept_nested
+where emp.empno = emp_b.empno
+and emp.empno = emp_address.empno
+and emp.deptno = dept.deptno
+and emp.deptno = dept_nested.deptno
+and emp_b.sal + emp_address.empno = dept.deptno + dept_nested.deptno;
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0}——[INNER, =(node(0)_field(7), node(4)_field(0))]——{4},{1, 2, 3}——[INNER, =(+(node(1)_field(5), node(2)_field(0)), +(node(3)_field(0), node(4)_field(0)))]——{4},{0}——[INNER, =(node(0)_field(7), node(3)_field(0))]——{3},{0}——[INNER, =(node(0)_field(0), node(2)_field(0))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH"
+LogicalProject(EMPNO=[$16])
+  LogicalJoin(condition=[AND(=(+($5, $25), +($14, $10)), =($16, $25))], joinType=[inner])
+    LogicalJoin(condition=[=($16, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+      LogicalJoin(condition=[=($13, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+        LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+!transform "bottomUp=true, FILTER_INTO_JOIN, JOIN_TO_HYPER_GRAPH, HYPER_GRAPH_OPTIMIZE, PROJECT_REMOVE, PROJECT_MERGE"
 
 # End hypergraph.iq
