@@ -11897,14 +11897,7 @@ class RelToSqlConverterTest {
         CoreRules.SEMI_JOIN_JOIN_TRANSPOSE);
 
     final String generated = sql(query).withPostgresql().optimize(rules, null).exec();
-    try {
-      sql(generated).withPostgresql().exec();
-    } catch (Exception e) {
-      throw new AssertionError(
-          "Generated SQL failed PostgreSQL round-trip validation:\n"
-              + generated,
-          e);
-    }
+    sql(generated).withPostgresql().exec();
   }
 
   private static String correlatedProjectQuery7440() {
