@@ -1191,7 +1191,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7], T=[1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+    LogicalProject(DEPTNO=[$7], T=[NULLIF($5, 0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1203,7 +1203,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalProject(DEPTNO=[$7], T=[1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
-      LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+      LogicalProject(DEPTNO=[$7], T=[NULLIF($5, 0)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -8071,7 +8071,7 @@ empnullables t2 on nullif(t1.ename, t2.ename) = 'abc']]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(DEPTNO=[$7])
-  LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
+  LogicalJoin(condition=[=(NULLIF($1, $10), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
@@ -8079,7 +8079,7 @@ LogicalProject(DEPTNO=[$7])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(DEPTNO=[$7])
-  LogicalJoin(condition=[=(CASE(=($1, $10), null:VARCHAR(20), $1), 'abc')], joinType=[inner])
+  LogicalJoin(condition=[=(NULLIF($1, $10), 'abc')], joinType=[inner])
     LogicalFilter(condition=[IS NOT NULL($1)])
       LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])

@@ -496,6 +496,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NULLIF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
@@ -1033,6 +1034,8 @@ public class RexImpTable {
 
       defineMethod(AGE, BuiltInMethod.AGE.method, NullPolicy.STRICT);
 
+      define(NULLIF, new NullifImplementor());
+
       // Boolean operators
       define(IS_NULL, new IsNullImplementor());
       define(IS_NOT_NULL, new IsNotNullImplementor());
@@ -1042,6 +1045,7 @@ public class RexImpTable {
       define(IS_NOT_FALSE, new IsNotFalseImplementor());
       define(IS_NOT_DISTINCT_FROM, new IsNotDistinctFromImplementor());
       define(IS_DISTINCT_FROM, new IsDistinctFromImplementor());
+      define(NULLIF, new NullifImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
       defineReflective(LIKE, BuiltInMethod.LIKE.method,
@@ -3704,6 +3708,34 @@ public class RexImpTable {
         }
       }
       return typeFactory.createTypeWithNullability(type, nullable);
+    }
+  }
+
+  /** Implementor for the SQL {@code NULLIF} operator. */
+  private static class NullifImplementor extends AbstractRexCallImplementor {
+    NullifImplementor() {
+      super("nullif", NullPolicy.ARG0, false);
+    }
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      final Expression arg0 = argValueList.get(0);
+      final Expression arg1 = argValueList.get(1);
+      final Expression isEqual;
+      if (Primitive.is(arg0.getType()) && Primitive.is(arg1.getType())) {
+        isEqual = Expressions.equal(arg0, arg1);
+      } else {
+        final Expression boxedArg0 = Primitive.is(arg0.getType())
+            ? Expressions.box(arg0) : arg0;
+        final Expression boxedArg1 = Primitive.is(arg1.getType())
+            ? Expressions.box(arg1) : arg1;
+        isEqual =
+            Expressions.call(SqlFunctions.class, "eqAny", boxedArg0, boxedArg1);
+      }
+      // Box arg0 if it's a primitive type, so that the ternary expression
+      // can return null (Object) or the boxed value consistently
+      final Expression resultArg0 = Primitive.is(arg0.getType())
+          ? Expressions.box(arg0) : arg0;
+      return Expressions.condition(isEqual, NULL_EXPR, resultArg0);
     }
   }
 

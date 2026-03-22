@@ -33,6 +33,7 @@ import java.util.List;
 /**
  * The <code>NULLIF</code> function.
  */
+@Deprecated
 public class SqlNullifFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 

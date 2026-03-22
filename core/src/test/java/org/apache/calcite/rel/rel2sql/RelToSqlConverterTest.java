@@ -11948,4 +11948,27 @@ class RelToSqlConverterTest {
             + "FROM (VALUES (1.0E-310)) AS \"t\" (\"EXPR$0\")");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7438">[CALCITE-7438]
+   Do not rewrite NULLIF to a CASE expression </a>. */
+  @Test void testNullIfAgg() {
+    final String query = "select NULLIF(count(\"brand_name\"),1), "
+        + "NULLIF(count(\"brand_name\") + 1,1) "
+        + "from \"product\"";
+    final String expected = "SELECT NULLIF(COUNT(\"brand_name\"), 1), "
+        + "NULLIF(COUNT(\"brand_name\") + 1, 1)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expected);
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7438">[CALCITE-7438]
+   Do not rewrite NULLIF to a CASE expression </a>. */
+  @Test void testNullIfAddition() {
+    final String query = "select NULLIF(\"cases_per_pallet\" + 1,1) from \"product\"";
+    final String expected = "SELECT NULLIF(\"cases_per_pallet\" + 1, 1)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.POSTGRESQL).withPostgresql().ok(expected);
+  }
 }
