@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -30,6 +32,7 @@ import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -366,8 +369,11 @@ class HepPlannerTest {
   }
 
   @Test void testRuleApplyCount() {
+    final boolean largePlanMode =
+        CalciteSystemProperty.HEP_PLANNER_LARGE_PLAN_MODE.value();
+
     long applyTimes = checkRuleApplyCount(HepMatchOrder.ARBITRARY, false);
-    assertThat(applyTimes, is(316L));
+    assertThat(applyTimes, is(largePlanMode ? 87L : 316L));
 
     applyTimes = checkRuleApplyCount(HepMatchOrder.DEPTH_FIRST, false);
     assertThat(applyTimes, is(87L));
@@ -389,6 +395,22 @@ class HepPlannerTest {
 
     applyTimes = checkRuleApplyCount(HepMatchOrder.BOTTOM_UP, true);
     assertThat(applyTimes, is(65L));
+  }
+
+  @Test void testOrderSensitivePrograms() {
+    diffRepos = DiffRepository.lookup(HepPlannerTest.class);
+
+    final String topDownPlan =
+        runUnion(HepMatchOrder.TOP_DOWN, 1, false);
+    final String bottomUpPlan =
+        runUnion(HepMatchOrder.BOTTOM_UP, 1, false);
+
+    assertThat(topDownPlan.equals(bottomUpPlan), is(false));
+
+    final String legacyPlan = runToCalc(false);
+    final String largePlanModePlan = runToCalc(true);
+
+    assertThat(largePlanModePlan.equals(legacyPlan), is(false));
   }
 
   @Test void testMaterialization() {
@@ -418,6 +440,78 @@ class HepPlannerTest {
     planner.setEnableFiredRulesCache(enableFiredRulesCache);
     planner.findBestExp();
     return listener.getApplyTimes();
+  }
+
+  private String runUnion(HepMatchOrder matchOrder, int matchLimit,
+      boolean largePlanMode) {
+    HepProgram program = HepProgram.builder()
+        .addMatchOrder(matchOrder)
+        .addMatchLimit(matchLimit)
+        .addRuleInstance(CoreRules.UNION_TO_DISTINCT)
+        .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setLargePlanMode(largePlanMode);
+    planner.setRoot(unionPlan());
+    return RelOptUtil.toString(planner.findBestExp());
+  }
+
+  private String runToCalc(boolean largePlanMode) {
+    HepProgram program = HepProgram.builder()
+        .addMatchLimit(1)
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setLargePlanMode(largePlanMode);
+    planner.setRoot(toCalcPlan());
+    return RelOptUtil.toString(planner.findBestExp());
+  }
+
+  private RelNode unionPlan() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    final RelNode dept =
+        builder.scan("DEPT")
+            .project(builder.field("DNAME"))
+            .build();
+    final RelNode emp =
+        builder.scan("EMP")
+            .project(builder.field("ENAME"))
+            .build();
+    final RelNode bonus =
+        builder.scan("BONUS")
+            .project(builder.field("ENAME"))
+            .build();
+    final RelNode left =
+        builder.push(dept)
+            .push(emp)
+            .union(false)
+            .build();
+    return builder.push(left)
+        .push(bonus)
+        .union(false)
+        .build();
+  }
+
+  private RelNode toCalcPlan() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    final RelNode scan = builder.scan("EMP").build();
+    final RelNode upper =
+        builder.push(scan)
+            .project(
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.UPPER, builder.field("ENAME")),
+                    "EXPR$0"))
+            .build();
+    final RelNode lower =
+        builder.push(scan)
+            .project(
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.LOWER, builder.field("ENAME")),
+                    "EXPR$0"))
+            .build();
+    return builder.push(upper)
+        .push(lower)
+        .union(true)
+        .build();
   }
 
   /** Listener for HepPlannerTest; counts how many times rules fire. */

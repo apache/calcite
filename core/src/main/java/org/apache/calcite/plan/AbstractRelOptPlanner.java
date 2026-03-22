@@ -28,6 +28,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -117,6 +118,17 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       addListener(this.ruleAttemptsListener);
     }
     addListener(new RuleEventLogger());
+  }
+
+  /**
+   * Explicitly enables rule attempts tracking regardless of log level.
+   * This is useful for benchmarks and testing.
+   */
+  public void enableRuleAttemptsTracking() {
+    if (this.ruleAttemptsListener == null) {
+      this.ruleAttemptsListener = new RuleAttemptsListener();
+      addListener(this.ruleAttemptsListener);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -308,11 +320,29 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // do nothing
   }
 
-  protected void dumpRuleAttemptsInfo() {
+  public void dumpRuleAttemptsInfo() {
     if (this.ruleAttemptsListener != null) {
       RULE_ATTEMPTS_LOGGER.debug("Rule Attempts Info for " + this.getClass().getSimpleName());
       RULE_ATTEMPTS_LOGGER.debug(this.ruleAttemptsListener.dump());
     }
+  }
+
+  /**
+   * Returns the rule attempts information as a map.
+   * The map key is the rule string representation,
+   * and the value is a Pair of (attemptCount, totalTimeMicros).
+   *
+   * <p>This is useful for programmatic access to rule execution statistics,
+   * e.g., in benchmarks to verify that rules have been applied.
+   *
+   * @return Map of rule to the Pair of (attempt count, total time in microseconds),
+   *         or empty map if rule attempts tracking is not enabled
+   */
+  public Map<String, Pair<Long, Long>> getRuleAttemptsInfo() {
+    if (this.ruleAttemptsListener == null) {
+      return ImmutableMap.of();
+    }
+    return this.ruleAttemptsListener.getRuleAttempts();
   }
 
   /**
@@ -486,6 +516,15 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
 
     @Override public void relChosen(RelChosenEvent event) {
+    }
+
+    /**
+     * Returns a copy of the rule attempts map.
+     * The map key is the rule string representation,
+     * and the value is a Pair of (attemptCount, totalTimeMicros).
+     */
+    public Map<String, Pair<Long, Long>> getRuleAttempts() {
+      return ImmutableMap.copyOf(this.ruleAttempts);
     }
 
     public String dump() {
