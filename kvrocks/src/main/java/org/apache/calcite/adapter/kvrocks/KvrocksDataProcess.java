@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.StreamEntry;
@@ -141,7 +142,7 @@ public class KvrocksDataProcess {
   }
 
   private Object[] parseCsv(String value) {
-    String[] parts = value.split(keyDelimiter);
+    String[] parts = value.split(Pattern.quote(keyDelimiter));
     Object[] row = new Object[fields.size()];
     for (int i = 0; i < row.length; i++) {
       row[i] = i < parts.length ? parts[i] : "";

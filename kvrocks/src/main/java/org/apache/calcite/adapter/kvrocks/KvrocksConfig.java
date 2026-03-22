@@ -22,23 +22,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Connection configuration for the Kvrocks adapter.
  *
  * <p>Holds all parameters needed to establish a connection to a Kvrocks
- * instance: host, port, database index, optional password, and optional
- * namespace (Kvrocks-specific multi-tenancy feature).
+ * instance: host, port, database index, and optional password.
  */
 public class KvrocksConfig {
   private final String host;
   private final int port;
   private final int database;
   private final @Nullable String password;
-  private final @Nullable String namespace;
 
   KvrocksConfig(String host, int port, int database,
-      @Nullable String password, @Nullable String namespace) {
+      @Nullable String password) {
     this.host = host;
     this.port = port;
     this.database = database;
     this.password = password;
-    this.namespace = namespace;
   }
 
   public String getHost() {
@@ -55,9 +52,5 @@ public class KvrocksConfig {
 
   public @Nullable String getPassword() {
     return password;
-  }
-
-  public @Nullable String getNamespace() {
-    return namespace;
   }
 }

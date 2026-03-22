@@ -42,7 +42,8 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>Each entry in the {@code tables} list of the model JSON becomes a
  * {@link KvrocksTable}. The schema holds connection parameters shared by
- * all tables.
+ * all tables and owns a single {@link KvrocksJedisManager} that is reused
+ * across all scans.
  */
 class KvrocksSchema extends AbstractSchema {
   private static final String DATA_FORMAT = "dataFormat";
@@ -54,18 +55,24 @@ class KvrocksSchema extends AbstractSchema {
   final int port;
   final int database;
   final @Nullable String password;
-  final @Nullable String namespace;
   final List<Map<String, Object>> tables;
+  private final KvrocksJedisManager manager;
 
   KvrocksSchema(String host, int port, int database,
-      @Nullable String password, @Nullable String namespace,
+      @Nullable String password,
       List<Map<String, Object>> tables) {
     this.host = host;
     this.port = port;
     this.database = database;
     this.password = password;
-    this.namespace = namespace;
     this.tables = tables;
+    this.manager =
+        new KvrocksJedisManager(host, port, database, password);
+  }
+
+  /** Returns the shared connection manager for this schema. */
+  KvrocksJedisManager getManager() {
+    return manager;
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -80,14 +87,16 @@ class KvrocksSchema extends AbstractSchema {
 
   private Table table(String tableName) {
     KvrocksConfig config =
-        new KvrocksConfig(host, port, database, password, namespace);
-    return KvrocksTable.create(KvrocksSchema.this, tableName, config, null);
+        new KvrocksConfig(host, port, database, password);
+    return KvrocksTable.create(KvrocksSchema.this, tableName,
+        config, null);
   }
 
   /**
    * Extracts field metadata for the named table from the model definition.
    *
-   * @throws RuntimeException if dataFormat is missing/invalid or fields are empty
+   * @throws RuntimeException if dataFormat is missing/invalid or fields
+   *         are empty
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
   KvrocksTableFieldInfo getTableFieldInfo(String tableName) {
@@ -96,7 +105,8 @@ class KvrocksSchema extends AbstractSchema {
     String dataFormat = "";
     String keyDelimiter = "";
 
-    List<JsonCustomTable> jsonTables = (List<JsonCustomTable>) (List) this.tables;
+    List<JsonCustomTable> jsonTables =
+        (List<JsonCustomTable>) (List) this.tables;
     for (JsonCustomTable jsonTable : jsonTables) {
       if (jsonTable.name.equals(tableName)) {
         Map<String, Object> operand =
@@ -121,7 +131,8 @@ class KvrocksSchema extends AbstractSchema {
         }
 
         dataFormat = operand.get(DATA_FORMAT).toString();
-        fields = (List<LinkedHashMap<String, Object>>) operand.get(FIELDS);
+        fields =
+            (List<LinkedHashMap<String, Object>>) operand.get(FIELDS);
         if (operand.get(KEY_DELIMITER) != null) {
           keyDelimiter = operand.get(KEY_DELIMITER).toString();
         }
