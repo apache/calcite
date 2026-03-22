@@ -75,6 +75,7 @@ include(
     "geode",
     "innodb",
     "kafka",
+    "kvrocks",
     "linq4j",
     "mongodb",
     "pig",
