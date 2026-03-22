@@ -10185,6 +10185,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "* left\n"
         + "* left\n" // checked
         + "/ left\n" // checked
+        + "/ left\n" // nullable
+        + "/ left\n" // nullable and checked
         + "/ left\n"
         + "/INT left\n"
         + "/INT left\n" // checked
