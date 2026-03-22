@@ -33,7 +33,7 @@ import static java.lang.Integer.parseInt;
  * <p>Reads connection parameters and table definitions from the model JSON.
  *
  * <p>Required operand keys: {@code host}, {@code port}, {@code database},
- * {@code tables}. Optional: {@code password}, {@code namespace}.
+ * {@code tables}. Optional: {@code password}.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class KvrocksSchemaFactory implements SchemaFactory {
@@ -45,8 +45,10 @@ public class KvrocksSchemaFactory implements SchemaFactory {
       Map<String, Object> operand) {
     checkArgument(operand.get("host") != null, "host must be specified");
     checkArgument(operand.get("port") != null, "port must be specified");
-    checkArgument(operand.get("database") != null, "database must be specified");
-    checkArgument(operand.get("tables") != null, "tables must be specified");
+    checkArgument(operand.get("database") != null,
+        "database must be specified");
+    checkArgument(operand.get("tables") != null,
+        "tables must be specified");
 
     String host = operand.get("host").toString();
     int port = (int) operand.get("port");
@@ -54,12 +56,10 @@ public class KvrocksSchemaFactory implements SchemaFactory {
 
     String password = operand.get("password") == null
         ? null : operand.get("password").toString();
-    String namespace = operand.get("namespace") == null
-        ? null : operand.get("namespace").toString();
 
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> tables = (List) operand.get("tables");
 
-    return new KvrocksSchema(host, port, database, password, namespace, tables);
+    return new KvrocksSchema(host, port, database, password, tables);
   }
 }

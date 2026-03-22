@@ -30,26 +30,27 @@ import static java.util.Objects.requireNonNull;
 /**
  * Enumerator that reads rows from a single Kvrocks key.
  *
- * <p>On construction it eagerly fetches all data from Kvrocks via
- * {@link KvrocksDataProcess}, then delegates iteration to a Linq4j
- * enumerator over the materialised list.
+ * <p>On construction it borrows a {@link Jedis} connection from the
+ * schema-level {@link KvrocksJedisManager}, eagerly fetches all data
+ * via {@link KvrocksDataProcess}, then returns the connection to the
+ * pool. Iteration is over the materialised list.
  */
 class KvrocksEnumerator implements Enumerator<Object[]> {
   private final Enumerator<Object[]> enumerator;
 
   KvrocksEnumerator(KvrocksConfig config, KvrocksSchema schema,
       String tableName) {
-    KvrocksTableFieldInfo fieldInfo = schema.getTableFieldInfo(tableName);
-
-    KvrocksJedisManager manager =
-        new KvrocksJedisManager(config.getHost(), config.getPort(),
-            config.getDatabase(), config.getPassword());
+    KvrocksTableFieldInfo fieldInfo =
+        schema.getTableFieldInfo(tableName);
+    KvrocksJedisManager manager = schema.getManager();
 
     try (Jedis jedis = manager.getResource()) {
-      if (config.getPassword() != null && !config.getPassword().isEmpty()) {
+      if (config.getPassword() != null
+          && !config.getPassword().isEmpty()) {
         jedis.auth(config.getPassword());
       }
-      KvrocksDataProcess process = new KvrocksDataProcess(jedis, fieldInfo);
+      KvrocksDataProcess process =
+          new KvrocksDataProcess(jedis, fieldInfo);
       List<Object[]> rows = process.read();
       enumerator = Linq4j.enumerator(rows);
     }
@@ -61,7 +62,8 @@ class KvrocksEnumerator implements Enumerator<Object[]> {
    * <p>For {@link KvrocksDataFormat#RAW} a single {@code "key"} column is
    * produced; for CSV and JSON the configured field list is used.
    */
-  static Map<String, Object> deduceRowType(KvrocksTableFieldInfo fieldInfo) {
+  static Map<String, Object> deduceRowType(
+      KvrocksTableFieldInfo fieldInfo) {
     final Map<String, Object> columns = new LinkedHashMap<>();
     KvrocksDataFormat format =
         requireNonNull(KvrocksDataFormat.fromTypeName(fieldInfo.getDataFormat()));
