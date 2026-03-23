@@ -3802,6 +3802,37 @@ void AddExpression2b(List<Object> list, ExprContext exprContext) :
     )*
 }
 
+void AddBracketPostfix(List<Object> list) :
+{
+    SqlNode e;
+    SqlOperator itemOp;
+    SqlIdentifier p;
+}
+{
+    <LBRACKET>
+    ( <OFFSET> { itemOp = SqlLibraryOperators.OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <ORDINAL> { itemOp = SqlLibraryOperators.ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <SAFE_OFFSET> { itemOp = SqlLibraryOperators.SAFE_OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | <SAFE_ORDINAL> { itemOp = SqlLibraryOperators.SAFE_ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
+    | { itemOp = SqlStdOperatorTable.ITEM; } e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    )
+    <RBRACKET> {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(
+                itemOp, getPos()));
+        list.add(e);
+    }
+    (
+        LOOKAHEAD(2) <DOT>
+        p = SimpleIdentifier() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(p);
+        }
+    )*
+}
+
 /**
  * Parses a binary row expression, or a parenthesized expression of any
  * kind.
@@ -3823,9 +3854,7 @@ List<Object> Expression2(ExprContext exprContext) :
     final List<Object> list3 = new ArrayList();
     SqlNodeList nodeList;
     SqlNode e;
-    SqlOperator itemOp;
     SqlOperator op;
-    SqlIdentifier p;
     final Span s = span();
 }
 {
@@ -3963,28 +3992,7 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
                 AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
             |
-                <LBRACKET>
-                ( <OFFSET> { itemOp = SqlLibraryOperators.OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <ORDINAL> { itemOp = SqlLibraryOperators.ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <SAFE_OFFSET> { itemOp = SqlLibraryOperators.SAFE_OFFSET; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | <SAFE_ORDINAL> { itemOp = SqlLibraryOperators.SAFE_ORDINAL; } <LPAREN> { e = Expression(ExprContext.ACCEPT_SUB_QUERY); } <RPAREN>
-                | { itemOp = SqlStdOperatorTable.ITEM; } e = Expression(ExprContext.ACCEPT_SUB_QUERY)
-                )
-                <RBRACKET> {
-                    list.add(
-                        new SqlParserUtil.ToTreeListItem(
-                            itemOp, getPos()));
-                    list.add(e);
-                }
-                (
-                    LOOKAHEAD(2) <DOT>
-                    p = SimpleIdentifier() {
-                        list.add(
-                            new SqlParserUtil.ToTreeListItem(
-                                SqlStdOperatorTable.DOT, getPos()));
-                        list.add(p);
-                    }
-                )*
+                AddBracketPostfix(list)
             |
                 {
                     checkNonQueryExpression(exprContext);
