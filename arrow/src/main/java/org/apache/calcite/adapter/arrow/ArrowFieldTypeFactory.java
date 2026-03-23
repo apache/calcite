@@ -82,6 +82,27 @@ public class ArrowFieldTypeFactory {
           ((ArrowType.Decimal) arrowType).getScale());
     case Time:
       return typeFactory.createSqlType(SqlTypeName.TIME);
+    case Timestamp:
+      ArrowType.Timestamp timestampType = (ArrowType.Timestamp) arrowType;
+      int timestampPrecision;
+      switch (timestampType.getUnit()) {
+      case SECOND:
+        timestampPrecision = 0;
+        break;
+      case MILLISECOND:
+        timestampPrecision = 3;
+        break;
+      case MICROSECOND:
+        timestampPrecision = 6;
+        break;
+      case NANOSECOND:
+        timestampPrecision = 9;
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported Timestamp unit: "
+            + timestampType.getUnit());
+      }
+      return typeFactory.createSqlType(SqlTypeName.TIMESTAMP, timestampPrecision);
     default:
       throw new IllegalArgumentException("Unsupported type: " + arrowType);
     }

@@ -20,11 +20,14 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import org.apache.arrow.vector.TimeStampVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
+import org.apache.arrow.vector.types.TimeUnit;
+import org.apache.arrow.vector.types.pojo.ArrowType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -66,14 +69,52 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
 
   @Override public Object current() {
     if (fields.size() == 1) {
-      return this.valueVectors.get(0).getObject(currRowIndex);
+      return getValue(this.valueVectors.get(0), currRowIndex);
     }
     Object[] current = new Object[valueVectors.size()];
     for (int i = 0; i < valueVectors.size(); i++) {
       ValueVector vector = this.valueVectors.get(i);
-      current[i] = vector.getObject(currRowIndex);
+      current[i] = getValue(vector, currRowIndex);
     }
     return current;
+  }
+
+  /** Extracts a value from a vector at the given index.
+   *
+   * <p>For {@link TimeStampVector}, converts the raw value to
+   * milliseconds since epoch, which is the representation used by
+   * Calcite's Enumerable runtime for TIMESTAMP types. */
+  private static Object getValue(ValueVector vector, int index) {
+    if (vector instanceof TimeStampVector) {
+      if (vector.isNull(index)) {
+        return null;
+      }
+      final TimeStampVector tsVector = (TimeStampVector) vector;
+      final long rawValue = tsVector.get(index);
+      final ArrowType.Timestamp tsType =
+          (ArrowType.Timestamp) vector.getField().getType();
+      return toMillis(rawValue, tsType.getUnit());
+    }
+    return vector.getObject(index);
+  }
+
+  /** Converts a raw timestamp value to milliseconds since epoch.
+   *
+   * <p>Note: for {@link TimeUnit#MICROSECOND} and {@link TimeUnit#NANOSECOND},
+   * this conversion is lossy because sub-millisecond precision is truncated. */
+  private static long toMillis(long rawValue, TimeUnit unit) {
+    switch (unit) {
+    case SECOND:
+      return rawValue * 1000L;
+    case MILLISECOND:
+      return rawValue;
+    case MICROSECOND:
+      return rawValue / 1000L;
+    case NANOSECOND:
+      return rawValue / 1_000_000L;
+    default:
+      throw new IllegalArgumentException("Unsupported TimeUnit: " + unit);
+    }
   }
 
   @Override public void reset() {

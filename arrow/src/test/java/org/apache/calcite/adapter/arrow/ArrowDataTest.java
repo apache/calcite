@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.arrow;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
 import org.apache.arrow.adapter.jdbc.ArrowVectorIterator;
 import org.apache.arrow.adapter.jdbc.JdbcToArrow;
 import org.apache.arrow.adapter.jdbc.JdbcToArrowConfig;
@@ -32,6 +34,10 @@ import org.apache.arrow.vector.FloatingPointVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.SmallIntVector;
 import org.apache.arrow.vector.TimeSecVector;
+import org.apache.arrow.vector.TimeStampMicroVector;
+import org.apache.arrow.vector.TimeStampMilliVector;
+import org.apache.arrow.vector.TimeStampNanoVector;
+import org.apache.arrow.vector.TimeStampSecVector;
 import org.apache.arrow.vector.TinyIntVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -66,6 +72,10 @@ import java.util.List;
  * Class that can be used to generate Arrow sample data into a data directory.
  */
 public class ArrowDataTest {
+
+  /** 2024-01-01 00:00:00 UTC, in epoch milliseconds. */
+  private static final long BASE_EPOCH_MILLIS =
+      DateTimeUtils.unixTimestamp(2024, 1, 1, 0, 0, 0);
 
   private final int batchSize;
   private final int entries;
@@ -111,6 +121,14 @@ public class ArrowDataTest {
     FieldType decimalType2 = FieldType.nullable(new ArrowType.Decimal(12, 3, 128));
     FieldType dateType = FieldType.nullable(new ArrowType.Date(DateUnit.DAY));
     FieldType timeType = FieldType.nullable(new ArrowType.Time(TimeUnit.SECOND, 32));
+    FieldType timestampSecType =
+        FieldType.nullable(new ArrowType.Timestamp(TimeUnit.SECOND, null));
+    FieldType timestampMilliType =
+        FieldType.nullable(new ArrowType.Timestamp(TimeUnit.MILLISECOND, null));
+    FieldType timestampMicroType =
+        FieldType.nullable(new ArrowType.Timestamp(TimeUnit.MICROSECOND, null));
+    FieldType timestampNanoType =
+        FieldType.nullable(new ArrowType.Timestamp(TimeUnit.NANOSECOND, null));
 
     childrenBuilder.add(new Field("tinyIntField", tinyIntType, null));
     childrenBuilder.add(new Field("smallIntField", smallIntType, null));
@@ -124,6 +142,10 @@ public class ArrowDataTest {
     childrenBuilder.add(new Field("dateField", dateType, null));
     childrenBuilder.add(new Field("decimalField2", decimalType2, null));
     childrenBuilder.add(new Field("timeField", timeType, null));
+    childrenBuilder.add(new Field("timestampSecField", timestampSecType, null));
+    childrenBuilder.add(new Field("timestampMilliField", timestampMilliType, null));
+    childrenBuilder.add(new Field("timestampMicroField", timestampMicroType, null));
+    childrenBuilder.add(new Field("timestampNanoField", timestampNanoType, null));
 
     return new Schema(childrenBuilder.build(), null);
   }
@@ -282,6 +304,18 @@ public class ArrowDataTest {
         case "timeField":
           timeField(vector, numRows);
           break;
+        case "timestampSecField":
+          timestampSecField(vector, numRows);
+          break;
+        case "timestampMilliField":
+          timestampMilliField(vector, numRows);
+          break;
+        case "timestampMicroField":
+          timestampMicroField(vector, numRows);
+          break;
+        case "timestampNanoField":
+          timestampNanoField(vector, numRows);
+          break;
         default:
           throw new IllegalStateException("Not supported type yet: " + vector.getMinorType());
         }
@@ -427,6 +461,54 @@ public class ArrowDataTest {
     timeVector.allocateNew();
     for (int i = 0; i < rowCount; i++) {
       timeVector.set(i, i * 1000);
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void timestampSecField(FieldVector fieldVector, int rowCount) {
+    TimeStampSecVector tsVector = (TimeStampSecVector) fieldVector;
+    tsVector.setInitialCapacity(rowCount);
+    tsVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      tsVector.set(i,
+          BASE_EPOCH_MILLIS / DateTimeUtils.MILLIS_PER_SECOND
+              + i * DateTimeUtils.SECONDS_PER_DAY);
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void timestampMilliField(FieldVector fieldVector, int rowCount) {
+    TimeStampMilliVector tsVector = (TimeStampMilliVector) fieldVector;
+    tsVector.setInitialCapacity(rowCount);
+    tsVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      tsVector.set(i, BASE_EPOCH_MILLIS + i * DateTimeUtils.MILLIS_PER_DAY);
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void timestampMicroField(FieldVector fieldVector, int rowCount) {
+    // Sub-millisecond part (.000456) will be truncated by the adapter.
+    TimeStampMicroVector tsVector = (TimeStampMicroVector) fieldVector;
+    tsVector.setInitialCapacity(rowCount);
+    tsVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      tsVector.set(i,
+          BASE_EPOCH_MILLIS * 1000L + 123456L
+              + i * DateTimeUtils.MILLIS_PER_DAY * 1000L);
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void timestampNanoField(FieldVector fieldVector, int rowCount) {
+    // Sub-millisecond part (.000456789) will be truncated by the adapter.
+    TimeStampNanoVector tsVector = (TimeStampNanoVector) fieldVector;
+    tsVector.setInitialCapacity(rowCount);
+    tsVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      tsVector.set(i,
+          BASE_EPOCH_MILLIS * DateTimeUtils.NANOS_PER_MILLI + 123456789L
+              + i * DateTimeUtils.MILLIS_PER_DAY * DateTimeUtils.NANOS_PER_MILLI);
     }
     fieldVector.setValueCount(rowCount);
   }
