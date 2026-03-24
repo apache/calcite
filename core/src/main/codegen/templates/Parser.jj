@@ -3774,6 +3774,24 @@ SqlNode Expression(ExprContext exprContext) :
     list = Expression2(exprContext) { return SqlParserUtil.toTree(list); }
 }
 
+void AddRegularPostfixes(List<Object> list) :
+{
+    SqlNode ext;
+}
+{
+    (
+        LOOKAHEAD(2) <DOT>
+        ext = RowExpressionExtension() {
+            list.add(
+                new SqlParserUtil.ToTreeListItem(
+                    SqlStdOperatorTable.DOT, getPos()));
+            list.add(ext);
+        }
+    |
+        AddBracketPostfix(list)
+    )*
+}
+
 void AddExpression2b(List<Object> list, ExprContext exprContext) :
 {
     SqlNode e;
@@ -3791,22 +3809,31 @@ void AddExpression2b(List<Object> list, ExprContext exprContext) :
     e = Expression3(exprContext) {
         list.add(e);
     }
-    (
-        LOOKAHEAD(2) <DOT>
-        ext = RowExpressionExtension() {
+    AddRegularPostfixes(list)
+    [
+        LOOKAHEAD(2, <COLON> SimpleIdentifier(),
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON>
+        ext = SimpleIdentifier() {
             list.add(
                 new SqlParserUtil.ToTreeListItem(
                     SqlStdOperatorTable.DOT, getPos()));
             list.add(ext);
         }
-    )*
+        AddRegularPostfixes(list)
+    |
+        LOOKAHEAD(2, <COLON> <LBRACKET>,
+            { this.conformance.isColonFieldAccessAllowed() })
+        <COLON>
+        AddBracketAccess(list)
+        AddRegularPostfixes(list)
+    ]
 }
 
-void AddBracketPostfix(List<Object> list) :
+void AddBracketAccess(List<Object> list) :
 {
     SqlNode e;
     SqlOperator itemOp;
-    SqlIdentifier p;
 }
 {
     <LBRACKET>
@@ -3822,6 +3849,14 @@ void AddBracketPostfix(List<Object> list) :
                 itemOp, getPos()));
         list.add(e);
     }
+}
+
+void AddBracketPostfix(List<Object> list) :
+{
+    SqlIdentifier p;
+}
+{
+    AddBracketAccess(list)
     (
         LOOKAHEAD(2) <DOT>
         p = SimpleIdentifier() {
@@ -3992,6 +4027,9 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
                 AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
             |
+                // Keep bracket access here so late-added operators such as
+                // Babel's "::" cast can continue into the same item-access
+                // forms that baseline accepted.
                 AddBracketPostfix(list)
             |
                 {

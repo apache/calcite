@@ -646,6 +646,26 @@ public class SqlParserTest {
     return sql(sql).expression(true);
   }
 
+  protected SqlConformance colonFieldConformance() {
+    return new SqlAbstractConformance() {
+      @Override public boolean isColonFieldAccessAllowed() {
+        return true;
+      }
+    };
+  }
+
+  protected SqlParserFixture colonFieldFixture() {
+    return fixture().withConformance(colonFieldConformance());
+  }
+
+  protected SqlParserFixture colonFieldSql(String sql) {
+    return colonFieldFixture().sql(sql);
+  }
+
+  protected SqlParserFixture colonFieldExpr(String sql) {
+    return colonFieldSql(sql).expression(true);
+  }
+
   /** Converts a string to linux format (LF line endings rather than CR-LF),
    * except if disabled in {@link SqlParserFixture#convertToLinux}. */
   static UnaryOperator<String> linux(boolean convertToLinux) {
@@ -2308,6 +2328,69 @@ public class SqlParserTest {
   @Test void testFunctionCallWithDot() {
     expr("foo(a,b).c")
         .ok("(`FOO`(`A`, `B`).`C`)");
+  }
+
+  @Test void testColonFieldAccessMode() {
+    expr("v^:^field")
+        .fails("(?s).*Encountered \":.*\".*");
+    colonFieldExpr("v:field")
+        .ok("(`V`.`FIELD`)");
+    colonFieldExpr("v:field.nested")
+        .ok("((`V`.`FIELD`).`NESTED`)");
+    colonFieldExpr("v:['field name']")
+        .ok("`V`['field name']");
+    colonFieldExpr("arr[1]:field")
+        .ok("(`ARR`[1].`FIELD`)");
+    colonFieldExpr("obj['x']:nested")
+        .ok("(`OBJ`['x'].`NESTED`)");
+    colonFieldSql(
+        "select v:field, v:['field name'], arr[1]:field, obj['x']:nested from t")
+        .ok("SELECT (`V`.`FIELD`), `V`['field name'], (`ARR`[1].`FIELD`), "
+            + "(`OBJ`['x'].`NESTED`)\n"
+            + "FROM `T`");
+    colonFieldExpr("v^:^:field")
+        .fails("(?s).*Encountered \":.*\".*");
+  }
+
+  @Test void testColonFieldAccessEdgeCases() {
+    colonFieldExpr("v:field['leaf']")
+        .ok("(`V`.`FIELD`)['leaf']");
+    colonFieldExpr("v:['field name'].leaf")
+        .ok("(`V`['field name'].`LEAF`)");
+    colonFieldExpr("v:[OFFSET(1)]")
+        .ok("`V`[OFFSET(1)]");
+    colonFieldExpr("v:[ORDINAL(1)]")
+        .ok("`V`[ORDINAL(1)]");
+    colonFieldExpr("v:[SAFE_OFFSET(1)]")
+        .ok("`V`[SAFE_OFFSET(1)]");
+    colonFieldExpr("v:[SAFE_ORDINAL(1)]")
+        .ok("`V`[SAFE_ORDINAL(1)]");
+    colonFieldExpr("v:[i + 1]")
+        .ok("`V`[(`I` + 1)]");
+    colonFieldExpr("v:[OFFSET(1)].field")
+        .ok("(`V`[OFFSET(1)].`FIELD`)");
+    colonFieldExpr("v:[OFFSET(1)][SAFE_ORDINAL(2)]")
+        .ok("`V`[OFFSET(1)][SAFE_ORDINAL(2)]");
+    colonFieldExpr("v:field[OFFSET(1)]")
+        .ok("(`V`.`FIELD`)[OFFSET(1)]");
+    colonFieldExpr("arr[1]:field[2]")
+        .ok("(`ARR`[1].`FIELD`)[2]");
+    colonFieldExpr("obj['x']:nested['y']")
+        .ok("(`OBJ`['x'].`NESTED`)['y']");
+    colonFieldExpr("a + b:field")
+        .ok("(`A` + (`B`.`FIELD`))");
+    colonFieldExpr("a * arr[1]:field")
+        .ok("(`A` * (`ARR`[1].`FIELD`))");
+    colonFieldExpr("foo(v:field, arr[1]:field, obj['x']:nested['y'])")
+        .ok("`FOO`((`V`.`FIELD`), (`ARR`[1].`FIELD`), (`OBJ`['x'].`NESTED`)['y'])");
+    colonFieldExpr("v:field^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    colonFieldExpr("v:['field name']^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    colonFieldExpr("v:[i + 1]^:^leaf")
+        .fails("(?s).*Encountered \":.*\".*");
+    colonFieldExpr("v^:^:(field)")
+        .fails("(?s).*Encountered \":.*\".*");
   }
 
   @Test void testFunctionInFunction() {
@@ -6688,7 +6771,9 @@ public class SqlParserTest {
             + "Was expecting one of:\n"
             + "    <EOF> \n"
             + "    \"\\(\" \\.\\.\\.\n"
-            + "    \"\\.\" \\.\\.\\..*");
+            + "    \"\\[\" \\.\\.\\.\n"
+            + "    \"\\.\" \\.\\.\\.\n"
+            + ".*");
     expr("interval '1-2' year ^to^ day")
         .fails(ANY);
     expr("interval '1-2' year ^to^ hour")

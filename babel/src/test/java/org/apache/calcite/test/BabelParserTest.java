@@ -301,6 +301,31 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testParseInfixCastWithBracketAccess() {
+    sql("select v::variant[1], (v::variant)[1], "
+            + "v::integer array[1], (v::integer array)[1] from t")
+        .ok("SELECT `V` :: VARIANT[1], `V` :: VARIANT[1], "
+            + "`V` :: INTEGER ARRAY[1], `V` :: INTEGER ARRAY[1]\n"
+            + "FROM `T`");
+  }
+
+  @Test void testColonFieldAccessWithInfixCast() {
+    final SqlParserFixture f =
+        fixture().withConformance(new SqlAbstractConformance() {
+          @Override public boolean isColonFieldAccessAllowed() {
+            return true;
+          }
+        });
+    f.sql("select v:field::integer, arr[1]:field::varchar, "
+            + "v:field.field2::integer, v:field[2]::integer from t")
+        .ok("SELECT (`V`.`FIELD`) :: INTEGER, "
+            + "(`ARR`[1].`FIELD`) :: VARCHAR, "
+            + "((`V`.`FIELD`).`FIELD2`) :: INTEGER, "
+            + "(`V`.`FIELD`)[2] :: INTEGER\n"
+            + "FROM `T`");
+    f.sql("select v::variant^:^field from t")
+        .fails("(?s).*Encountered \":.*\".*");
+  }
   /** Tests parsing MySQL-style "<=>" equal operator. */
   @Test void testParseNullSafeEqual()  {
     // x <=> y
