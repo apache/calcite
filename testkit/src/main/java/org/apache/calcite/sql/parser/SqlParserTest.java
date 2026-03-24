@@ -9223,6 +9223,21 @@ public class SqlParserTest {
         .ok("JSON_OBJECT(KEY `KEY` VALUE `VALUE` NULL ON NULL)");
   }
 
+  @Test void testJsonObjectInColonFieldAccessMode() {
+    colonFieldExpr("json_object(key v:field value arr[1]:field)")
+        .ok("JSON_OBJECT(KEY (`V`.`FIELD`) VALUE (`ARR`[1].`FIELD`) NULL ON NULL)");
+    colonFieldExpr("json_object(key v:field.field value col)")
+        .ok("JSON_OBJECT(KEY ((`V`.`FIELD`).`FIELD`) VALUE `COL` NULL ON NULL)");
+    colonFieldExpr("json_object(v:field value 1)")
+        .ok("JSON_OBJECT(KEY (`V`.`FIELD`) VALUE 1 NULL ON NULL)");
+    colonFieldExpr("json_object(v:field^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    colonFieldExpr("json_object('foo': col^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    colonFieldExpr("json_object('foo'^,^ 'bar')")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+  }
+
   @Test void testJsonType() {
     expr("json_type('11.56')")
         .ok("JSON_TYPE('11.56')");
@@ -9291,6 +9306,22 @@ public class SqlParserTest {
         .ok("JSON_OBJECTAGG(KEY `K_COLUMN` VALUE "
             + "JSON_OBJECT(KEY `K_COLUMN` VALUE `V_COLUMN` NULL ON NULL) "
             + "FORMAT JSON NULL ON NULL)");
+  }
+
+  @Test void testJsonObjectAggInColonFieldAccessMode() {
+    colonFieldExpr("json_objectagg(key v:[SAFE_OFFSET(1)] value obj['x']:nested['y'])")
+        .ok("JSON_OBJECTAGG(KEY `V`[SAFE_OFFSET(1)] VALUE "
+            + "(`OBJ`['x'].`NESTED`)['y'] NULL ON NULL)");
+    colonFieldExpr("json_objectagg(v:field value col)")
+        .ok("JSON_OBJECTAGG(KEY (`V`.`FIELD`) VALUE `COL` NULL ON NULL)");
+    colonFieldExpr("json_objectagg(key v:field.field value col)")
+        .ok("JSON_OBJECTAGG(KEY ((`V`.`FIELD`).`FIELD`) VALUE `COL` NULL ON NULL)");
+    colonFieldExpr("json_objectagg(v:field^,^ col)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    colonFieldExpr("json_objectagg('k': [1]^,^ v)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
+    colonFieldExpr("json_objectagg('k'^,^ 1)")
+        .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
   }
 
   /** Test case for

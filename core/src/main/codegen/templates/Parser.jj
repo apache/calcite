@@ -7058,13 +7058,15 @@ List<SqlNode> JsonNameAndValue() :
         <VALUE>
     |
         <COMMA> {
-            if (kvMode) {
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalComma());
             }
         }
     |
         <COLON> {
-            if (kvMode) {
+            // If ':' is used for field access, JSON constructors must use
+            // VALUE syntax instead of ':'.
+            if (kvMode || this.conformance.isColonFieldAccessAllowed()) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalColon());
             }
         }
