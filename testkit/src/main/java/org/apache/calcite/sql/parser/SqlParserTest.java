@@ -43,6 +43,7 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.test.IntervalTest;
 import org.apache.calcite.tools.Hoist;
 import org.apache.calcite.util.Bug;
@@ -630,6 +631,12 @@ public class SqlParserTest {
       SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
   private static final SqlDialect REDSHIFT =
       SqlDialect.DatabaseProduct.REDSHIFT.getDialect();
+  private static final SqlConformance COLON_FIELD =
+      new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+        @Override public boolean isColonFieldAccessAllowed() {
+          return true;
+        }
+      };
 
   /** Creates the test fixture that determines the behavior of tests.
    * Sub-classes that, say, test different parser implementations should
@@ -646,24 +653,8 @@ public class SqlParserTest {
     return sql(sql).expression(true);
   }
 
-  protected SqlConformance colonFieldConformance() {
-    return new SqlAbstractConformance() {
-      @Override public boolean isColonFieldAccessAllowed() {
-        return true;
-      }
-    };
-  }
-
-  protected SqlParserFixture colonFieldFixture() {
-    return fixture().withConformance(colonFieldConformance());
-  }
-
-  protected SqlParserFixture colonFieldSql(String sql) {
-    return colonFieldFixture().sql(sql);
-  }
-
-  protected SqlParserFixture colonFieldExpr(String sql) {
-    return colonFieldSql(sql).expression(true);
+  protected boolean allowsDoubleColonInColonFieldAccessMode() {
+    return false;
   }
 
   /** Converts a string to linux format (LF line endings rather than CR-LF),
@@ -2331,66 +2322,79 @@ public class SqlParserTest {
   }
 
   @Test void testColonFieldAccessMode() {
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    final SqlParserFixture sql = fixture().withConformance(COLON_FIELD);
     expr("v^:^field")
         .fails("(?s).*Encountered \":.*\".*");
-    colonFieldExpr("v:field")
+    expr.sql("v:field")
         .ok("(`V`.`FIELD`)");
-    colonFieldExpr("v:field.nested")
+    expr.sql("v:field.nested")
         .ok("((`V`.`FIELD`).`NESTED`)");
-    colonFieldExpr("v:['field name']")
+    expr.sql("v:['field name']")
         .ok("`V`['field name']");
-    colonFieldExpr("arr[1]:field")
+    expr.sql("arr[1]:field")
         .ok("(`ARR`[1].`FIELD`)");
-    colonFieldExpr("obj['x']:nested")
+    expr.sql("obj['x']:nested")
         .ok("(`OBJ`['x'].`NESTED`)");
-    colonFieldSql(
+    sql.sql(
         "select v:field, v:['field name'], arr[1]:field, obj['x']:nested from t")
         .ok("SELECT (`V`.`FIELD`), `V`['field name'], (`ARR`[1].`FIELD`), "
             + "(`OBJ`['x'].`NESTED`)\n"
             + "FROM `T`");
-    colonFieldExpr("v^:^:field")
-        .fails("(?s).*Encountered \":.*\".*");
+    if (!allowsDoubleColonInColonFieldAccessMode()) {
+      expr.sql("v^:^:field")
+          .fails("(?s).*Encountered \":.*\".*");
+    }
   }
 
   @Test void testColonFieldAccessEdgeCases() {
-    colonFieldExpr("v:field['leaf']")
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("v:field['leaf']")
         .ok("(`V`.`FIELD`)['leaf']");
-    colonFieldExpr("v:['field name'].leaf")
+    expr.sql("v:['field name'].leaf")
         .ok("(`V`['field name'].`LEAF`)");
-    colonFieldExpr("v:[OFFSET(1)]")
+    expr.sql("v:[OFFSET(1)]")
         .ok("`V`[OFFSET(1)]");
-    colonFieldExpr("v:[ORDINAL(1)]")
+    expr.sql("v:[ORDINAL(1)]")
         .ok("`V`[ORDINAL(1)]");
-    colonFieldExpr("v:[SAFE_OFFSET(1)]")
+    expr.sql("v:[SAFE_OFFSET(1)]")
         .ok("`V`[SAFE_OFFSET(1)]");
-    colonFieldExpr("v:[SAFE_ORDINAL(1)]")
+    expr.sql("v:[SAFE_ORDINAL(1)]")
         .ok("`V`[SAFE_ORDINAL(1)]");
-    colonFieldExpr("v:[i + 1]")
+    expr.sql("v:[i + 1]")
         .ok("`V`[(`I` + 1)]");
-    colonFieldExpr("v:[OFFSET(1)].field")
+    expr.sql("v:[OFFSET(1)].field")
         .ok("(`V`[OFFSET(1)].`FIELD`)");
-    colonFieldExpr("v:[OFFSET(1)][SAFE_ORDINAL(2)]")
+    expr.sql("v:[OFFSET(1)][SAFE_ORDINAL(2)]")
         .ok("`V`[OFFSET(1)][SAFE_ORDINAL(2)]");
-    colonFieldExpr("v:field[OFFSET(1)]")
+    expr.sql("v:field[OFFSET(1)]")
         .ok("(`V`.`FIELD`)[OFFSET(1)]");
-    colonFieldExpr("arr[1]:field[2]")
+    expr.sql("arr[1]:field[2]")
         .ok("(`ARR`[1].`FIELD`)[2]");
-    colonFieldExpr("obj['x']:nested['y']")
+    expr.sql("v.field:nested")
+        .ok("(`V`.`FIELD`.`NESTED`)");
+    expr.sql("obj['x']:nested['y']")
         .ok("(`OBJ`['x'].`NESTED`)['y']");
-    colonFieldExpr("a + b:field")
+    expr.sql("a = b:field")
+        .ok("(`A` = (`B`.`FIELD`))");
+    expr.sql("a + b:field")
         .ok("(`A` + (`B`.`FIELD`))");
-    colonFieldExpr("a * arr[1]:field")
+    expr.sql("a * arr[1]:field")
         .ok("(`A` * (`ARR`[1].`FIELD`))");
-    colonFieldExpr("foo(v:field, arr[1]:field, obj['x']:nested['y'])")
+    expr.sql("foo(v:field, arr[1]:field, obj['x']:nested['y'])")
         .ok("`FOO`((`V`.`FIELD`), (`ARR`[1].`FIELD`), (`OBJ`['x'].`NESTED`)['y'])");
-    colonFieldExpr("v:field^:^leaf")
+    expr.sql("v:field^:^leaf")
         .fails("(?s).*Encountered \":.*\".*");
-    colonFieldExpr("v:['field name']^:^leaf")
+    expr.sql("v:['field name']^:^leaf")
         .fails("(?s).*Encountered \":.*\".*");
-    colonFieldExpr("v:[i + 1]^:^leaf")
+    expr.sql("v:[i + 1]^:^leaf")
         .fails("(?s).*Encountered \":.*\".*");
-    colonFieldExpr("v^:^:(field)")
-        .fails("(?s).*Encountered \":.*\".*");
+    if (!allowsDoubleColonInColonFieldAccessMode()) {
+      expr.sql("v^:^:(field)")
+          .fails("(?s).*Encountered \":.*\".*");
+    }
   }
 
   @Test void testFunctionInFunction() {
@@ -9224,17 +9228,19 @@ public class SqlParserTest {
   }
 
   @Test void testJsonObjectInColonFieldAccessMode() {
-    colonFieldExpr("json_object(key v:field value arr[1]:field)")
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("json_object(key v:field value arr[1]:field)")
         .ok("JSON_OBJECT(KEY (`V`.`FIELD`) VALUE (`ARR`[1].`FIELD`) NULL ON NULL)");
-    colonFieldExpr("json_object(key v:field.field value col)")
+    expr.sql("json_object(key v:field.field value col)")
         .ok("JSON_OBJECT(KEY ((`V`.`FIELD`).`FIELD`) VALUE `COL` NULL ON NULL)");
-    colonFieldExpr("json_object(v:field value 1)")
+    expr.sql("json_object(v:field value 1)")
         .ok("JSON_OBJECT(KEY (`V`.`FIELD`) VALUE 1 NULL ON NULL)");
-    colonFieldExpr("json_object(v:field^,^ 1)")
+    expr.sql("json_object(v:field^,^ 1)")
         .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
-    colonFieldExpr("json_object('foo': col^,^ 1)")
+    expr.sql("json_object('foo': col^,^ 1)")
         .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
-    colonFieldExpr("json_object('foo'^,^ 'bar')")
+    expr.sql("json_object('foo'^,^ 'bar')")
         .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
   }
 
@@ -9309,18 +9315,20 @@ public class SqlParserTest {
   }
 
   @Test void testJsonObjectAggInColonFieldAccessMode() {
-    colonFieldExpr("json_objectagg(key v:[SAFE_OFFSET(1)] value obj['x']:nested['y'])")
+    assumeFalse(fixture().tester.isUnparserTest());
+    final SqlParserFixture expr = fixture().withConformance(COLON_FIELD).expression();
+    expr.sql("json_objectagg(key v:[SAFE_OFFSET(1)] value obj['x']:nested['y'])")
         .ok("JSON_OBJECTAGG(KEY `V`[SAFE_OFFSET(1)] VALUE "
             + "(`OBJ`['x'].`NESTED`)['y'] NULL ON NULL)");
-    colonFieldExpr("json_objectagg(v:field value col)")
-        .ok("JSON_OBJECTAGG(KEY (`V`.`FIELD`) VALUE `COL` NULL ON NULL)");
-    colonFieldExpr("json_objectagg(key v:field.field value col)")
+    expr.sql("json_objectagg(key v:field.field value col)")
         .ok("JSON_OBJECTAGG(KEY ((`V`.`FIELD`).`FIELD`) VALUE `COL` NULL ON NULL)");
-    colonFieldExpr("json_objectagg(v:field^,^ col)")
+    expr.sql("json_objectagg(v:field value col)")
+        .ok("JSON_OBJECTAGG(KEY (`V`.`FIELD`) VALUE `COL` NULL ON NULL)");
+    expr.sql("json_objectagg(v:field^,^ col)")
         .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
-    colonFieldExpr("json_objectagg('k': [1]^,^ v)")
+    expr.sql("json_objectagg('k': [1]^,^ v)")
         .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
-    colonFieldExpr("json_objectagg('k'^,^ 1)")
+    expr.sql("json_objectagg('k'^,^ 1)")
         .fails("(?s).*Unexpected symbol ','. Was expecting 'VALUE'.*");
   }
 

@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
@@ -25,6 +28,7 @@ import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
@@ -51,6 +55,10 @@ class BabelParserTest extends SqlParserTest {
     return super.fixture()
         .withTester(new BabelTesterImpl())
         .withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY));
+  }
+
+  @Override protected boolean allowsDoubleColonInColonFieldAccessMode() {
+    return true;
   }
 
   /** Tests that the Babel parser correctly parses a CAST to INTERVAL type
@@ -301,14 +309,24 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testParseInfixCastWithBracketAccess() {
-    sql("select v::variant[1], (v::variant)[1], "
-            + "v::integer array[1], (v::integer array)[1] from t")
-        .ok("SELECT `V` :: VARIANT[1], `V` :: VARIANT[1], "
-            + "`V` :: INTEGER ARRAY[1], `V` :: INTEGER ARRAY[1]\n"
+  @Test void testParseParenthesizedInfixCastWithBracketAccess() {
+    sql("select (v::variant)[1], (v::integer array)[1] from t")
+        .ok("SELECT `V` :: VARIANT[1], `V` :: INTEGER ARRAY[1]\n"
             + "FROM `T`");
   }
 
+  @Test void testInfixCastBracketAccessNeedsParentheses() {
+    sql("select v::variant^[^1] from t")
+        .fails("(?s).*Encountered \"\\[\".*");
+    sql("select (v::variant)[1] from t")
+        .node(
+            customMatches("select list", node -> {
+              final SqlSelect select = (SqlSelect) node;
+              assertThat(select.getSelectList().get(0).getKind(), is(SqlKind.ITEM));
+              assertThat(((SqlCall) select.getSelectList().get(0)).operand(0).getKind(),
+                  is(SqlKind.CAST));
+            }));
+  }
   @Test void testColonFieldAccessWithInfixCast() {
     final SqlParserFixture f =
         fixture().withConformance(new SqlAbstractConformance() {
