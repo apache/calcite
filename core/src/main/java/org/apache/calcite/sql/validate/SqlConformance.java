@@ -261,6 +261,18 @@ public interface SqlConformance {
   boolean allowHyphenInUnquotedTableName();
 
   /**
+   * Whether {@code :} is allowed as a field/item access operator.
+   *
+   * <p>If true, expressions such as {@code v:field}, {@code v:['x']} and
+   * {@code arr[1]:field} are valid.
+   *
+   * <p>Among the built-in conformance levels, false for all.
+   */
+  default boolean isColonFieldAccessAllowed() {
+    return false;
+  }
+
+  /**
    * Whether the bang-equal token != is allowed as an alternative to &lt;&gt; in
    * the parser.
    *

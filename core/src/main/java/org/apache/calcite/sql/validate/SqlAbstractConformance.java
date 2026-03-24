@@ -81,6 +81,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowHyphenInUnquotedTableName();
   }
 
+  @Override public boolean isColonFieldAccessAllowed() {
+    return SqlConformanceEnum.DEFAULT.isColonFieldAccessAllowed();
+  }
+
   @Override public boolean isBangEqualAllowed() {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }
