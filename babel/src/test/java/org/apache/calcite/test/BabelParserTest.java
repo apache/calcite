@@ -309,21 +309,18 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testParseParenthesizedInfixCastWithBracketAccess() {
-    sql("select (v::variant)[1], (v::integer array)[1] from t")
-        .ok("SELECT `V` :: VARIANT[1], `V` :: INTEGER ARRAY[1]\n"
-            + "FROM `T`");
-  }
-
   @Test void testInfixCastBracketAccessNeedsParentheses() {
     sql("select v::variant^[^1] from t")
         .fails("(?s).*Encountered \"\\[\".*");
-    sql("select (v::variant)[1] from t")
+    sql("select (v::variant)[1], (v::integer array)[1] from t")
         .node(
             customMatches("select list", node -> {
               final SqlSelect select = (SqlSelect) node;
               assertThat(select.getSelectList().get(0).getKind(), is(SqlKind.ITEM));
               assertThat(((SqlCall) select.getSelectList().get(0)).operand(0).getKind(),
+                  is(SqlKind.CAST));
+              assertThat(select.getSelectList().get(1).getKind(), is(SqlKind.ITEM));
+              assertThat(((SqlCall) select.getSelectList().get(1)).operand(0).getKind(),
                   is(SqlKind.CAST));
             }));
   }
