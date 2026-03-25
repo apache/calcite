@@ -337,6 +337,24 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction LEN =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LEN");
 
+  /**
+   * The "BYTE_LENGTH(string)" function.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction BYTE_LENGTH =
+      SqlBasicFunction.create("BYTE_LENGTH",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.BINARY),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction DATALENGTH =
+      SqlBasicFunction.create("DATALENGTH",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.INTEGER, OperandTypes.NUMERIC,
+              OperandTypes.BINARY, OperandTypes.DATE, OperandTypes.TIMESTAMP, OperandTypes.TIME),
+          SqlFunctionCategory.NUMERIC);
+
   /** The "LENGTH(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, SPARK})
   public static final SqlFunction LENGTH =
