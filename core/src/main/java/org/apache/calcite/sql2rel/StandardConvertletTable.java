@@ -552,7 +552,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlLiteral.createInterval(1, "1", intervalQualifier,
             call.getParserPosition());
     final SqlCall multiply =
-        SqlStdOperatorTable.MULTIPLY.createCall(call.getParserPosition(), n,
+        SqlStdOperatorTable.CHECKED_MULTIPLY.createCall(call.getParserPosition(), n,
             literal);
     return cx.convertExpression(multiply);
   }
