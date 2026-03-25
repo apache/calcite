@@ -355,6 +355,15 @@ public abstract class SqlLibraryOperators {
               OperandTypes.BINARY, OperandTypes.DATE, OperandTypes.TIMESTAMP, OperandTypes.TIME),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction FOR_XML =
+      new SqlFunction("FOR_XML",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.STRING);
+
   /** The "LENGTH(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, SPARK})
   public static final SqlFunction LENGTH =
