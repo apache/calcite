@@ -186,9 +186,17 @@ public class ValuesReduceRule
         final RexNode reducedValue =
             reducibleExps.get((row * fieldsPerRow) + i);
         ++i;
-        if (!reducedValue.isAlwaysTrue()) {
-          ++changeCount;
-          continue;
+        // Condition reduced to a literal (or CAST(NULL AS type));
+        // evaluate it to decide whether to keep or drop the tuple.
+        if (reducedValue instanceof RexLiteral
+            || RexUtil.isNullLiteral(reducedValue, true)) {
+          if (!reducedValue.isAlwaysTrue()) {
+            ++changeCount;
+            continue;
+          }
+        } else {
+          // Condition could not be reduced to a literal
+          return;
         }
       }
 
