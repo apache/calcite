@@ -293,37 +293,39 @@ LogicalProject(EMPNO=[$0])
 # [CALCITE-7411] Correlated SCALAR_QUERY in PROJECT with GROUP BY
 
 select job,
-  (select
-      cast(sum(i.sal) - sum(coalesce(i.comm, 0)) as decimal(10, 2)) / sum(i.sal)
-    from emp as i
-    where i.job = e.job) as profitmargin,
+  round(
+    (select
+        cast(sum(i.sal) - sum(coalesce(i.comm, 0)) as decimal(10, 2)) / sum(i.sal)
+      from emp as i
+      where i.job = e.job),
+    3) as profitmargin,
   count(*) as "count"
 from emp as e
 group by job;
 +-----------+--------------+-------+
 | JOB       | PROFITMARGIN | count |
 +-----------+--------------+-------+
-| ANALYST   |     1.000000 |     2 |
-| CLERK     |     1.000000 |     4 |
-| MANAGER   |     1.000000 |     3 |
-| PRESIDENT |     1.000000 |     1 |
-| SALESMAN  |     0.607142 |     4 |
+| ANALYST   |        1.000 |     2 |
+| CLERK     |        1.000 |     4 |
+| MANAGER   |        1.000 |     3 |
+| PRESIDENT |        1.000 |     1 |
+| SALESMAN  |        0.607 |     4 |
 +-----------+--------------+-------+
 (5 rows)
 
 !ok
-LogicalProject(variablesSet=[[$cor0]], JOB=[$0], PROFITMARGIN=[$SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], JOB=[$0], PROFITMARGIN=[ROUND($SCALAR_QUERY({
 LogicalProject(EXPR$0=[/(CAST(-($0, $1)):DECIMAL(10, 2), $0)])
   LogicalAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[SUM($1)])
     LogicalProject(SAL=[$5], $f1=[$6])
       LogicalFilter(condition=[=($2, $cor0.JOB)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})], count=[$1])
+}), 3)], count=[$1])
   LogicalAggregate(group=[{0}], count=[COUNT()])
     LogicalProject(JOB=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
-LogicalProject(JOB=[$0], PROFITMARGIN=[$2], count=[$1])
+LogicalProject(JOB=[$0], PROFITMARGIN=[ROUND($2, 3)], count=[$1])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $3)], joinType=[left])
     LogicalAggregate(group=[{0}], count=[COUNT()])
       LogicalProject(JOB=[$2])
