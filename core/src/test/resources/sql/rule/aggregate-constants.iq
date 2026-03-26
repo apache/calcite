@@ -251,25 +251,25 @@ LogicalProject(DEPTNO=[$7], SAL=[$5])
 # converts 'WHERE false' to empty Values, but AGGREGATE_VALUES cannot fire
 # because a Project remains above the Values.
 
-select count(*), sum(empno) from emp where false;
-+--------+--------+
-| EXPR$0 | EXPR$1 |
-+--------+--------+
-|      0 |        |
-+--------+--------+
+select count(*) as c, sum(empno) as s from emp where false;
++---+---+
+| C | S |
++---+---+
+| 0 |   |
++---+---+
 (1 row)
 
 !ok
-LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+LogicalAggregate(group=[{}], C=[COUNT()], S=[SUM($0)])
   LogicalProject(EMPNO=[$0])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+LogicalAggregate(group=[{}], C=[COUNT()], S=[SUM($0)])
   LogicalProject(EMPNO=[$0])
     LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS"
-LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+LogicalAggregate(group=[{}], C=[COUNT()], S=[SUM($0)])
   LogicalProject(EMPNO=[$0])
     LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS, AGGREGATE_VALUES"

@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
@@ -150,7 +151,8 @@ public class TransformCommand extends AbstractCommand {
                    Hook.propertyJ(config.relBuilderSimplify))) {
         RelNode relNode = buildRelNode(config, sqlCommand);
         relNode = applyRules(config, relNode);
-        x.echo(ImmutableList.copyOf(
+        x.echo(
+            ImmutableList.copyOf(
             RelOptUtil.toString(relNode).split(System.lineSeparator())));
       }
     } else {
@@ -218,13 +220,13 @@ public class TransformCommand extends AbstractCommand {
       for (Map.Entry<String, String> e : params.entrySet()) {
         switch (e.getKey()) {
         case "simplify":
-          b.relBuilderSimplify = Boolean.parseBoolean(e.getValue());
+          b.relBuilderSimplify = parseBoolean(e.getValue());
           break;
         case "simplifyValues":
-          b.simplifyValues = Boolean.parseBoolean(e.getValue());
+          b.simplifyValues = parseBoolean(e.getValue());
           break;
         case "aggregateUnique":
-          b.aggregateUnique = Boolean.parseBoolean(e.getValue());
+          b.aggregateUnique = parseBoolean(e.getValue());
           break;
         case "bloat":
           b.bloat = parseInt(e.getValue());
@@ -239,13 +241,13 @@ public class TransformCommand extends AbstractCommand {
       for (Map.Entry<String, String> e : params.entrySet()) {
         switch (e.getKey()) {
         case "expand":
-          b.expand = Boolean.parseBoolean(e.getValue());
+          b.expand = parseBoolean(e.getValue());
           break;
         case "decorrelate":
-          b.decorrelate = Boolean.parseBoolean(e.getValue());
+          b.decorrelate = parseBoolean(e.getValue());
           break;
         case "trim":
-          b.trim = Boolean.parseBoolean(e.getValue());
+          b.trim = parseBoolean(e.getValue());
           break;
         case "inSubQueryThreshold":
           b.inSubQueryThreshold = parseInt(e.getValue());

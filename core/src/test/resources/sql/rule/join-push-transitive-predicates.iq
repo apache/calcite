@@ -370,26 +370,26 @@ LogicalProject(UNO=[1])
 # Tests that only the simple component of a complex predicate is inferred and
 # pushed; non-transferable sub-expressions are not propagated.
 
-select 1
+select 1 as x
 from emp d
 inner join emp e on d.deptno = e.deptno
 where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno
 and d.comm + d.deptno > d.comm/2;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[=($5, $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[AND(>($7, 7), =($6, $7), >(+($6, $7), /($6, 2)))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -402,85 +402,85 @@ LogicalProject(EXPR$0=[1])
 # Tests that a conjunct with multiple IN/OR conditions is correctly inferred
 # and pushed to the other side of the join.
 
-select 1
+select 1 as x
 from emp d
 inner join emp e on d.deptno = e.deptno
 where d.deptno in (7, 9) or d.deptno > 10;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (61 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[SEARCH($7, Sarg[7, 9, (10..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[SEARCH($7, Sarg[7, 9, (10..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -492,92 +492,92 @@ LogicalProject(EXPR$0=[1])
 # Tests that a constant equi-predicate (1 = 1) does not trigger transitive
 # inference (plan is unchanged).
 
-select 1
+select 1 as x
 from emp d
 inner join emp e on d.deptno = e.deptno where 1 = 1;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -587,94 +587,94 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates are NOT pushed through a full outer join
 # (plan is unchanged).
 
-select 1
+select 1 as x
 from emp d
 full outer join emp e
   on d.deptno = e.deptno where d.deptno > 7 and e.deptno > 9;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[AND(>($7, 7), >($16, 9))])
     LogicalJoin(condition=[=($7, $16)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[AND(>($7, 7), >($16, 9))])
     LogicalJoin(condition=[=($7, $16)], joinType=[full])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -685,93 +685,93 @@ LogicalProject(EXPR$0=[1])
 # Tests that a filter predicate on one side of a join is inferred and pushed to
 # the other side.
 
-select 1
+select 1 as x
 from emp d
 inner join emp e on d.deptno = e.deptno where e.deptno > 7;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[>($7, 7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1034,105 +1034,105 @@ LogicalProject(UNO=[1])
 # Tests that transitive predicates from an Aggregate are inferred and pushed
 # across a three-way join.
 
-select 1
+select 1 as x
 from (
-  select deptno, count(*)
+  select deptno, count(*) as c
   from emp
   where deptno > 7
   group by deptno) d
 inner join emp e on d.deptno = e.deptno
 inner join emp f on e.deptno = f.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($9, $18)], joinType=[inner])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-      LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+      LogicalAggregate(group=[{0}], C=[COUNT()])
         LogicalProject(DEPTNO=[$7])
           LogicalFilter(condition=[>($7, 7)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($9, $18)], joinType=[inner])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
-      LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+      LogicalAggregate(group=[{0}], C=[COUNT()])
         LogicalProject(DEPTNO=[$7])
           LogicalFilter(condition=[>($7, 7)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1177,95 +1177,95 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # Tests that transitive predicates from the left side of a left outer join are
 # inferred and pushed to the right side.
 
-select 1
+select 1 as x
 from emp d
 left outer join emp e on d.deptno = e.deptno
 where d.deptno > 7 and e.deptno > 9;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[>($16, 9)])
     LogicalJoin(condition=[=($7, $16)], joinType=[left])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[>($16, 9)])
     LogicalJoin(condition=[=($7, $16)], joinType=[left])
       LogicalFilter(condition=[>($7, 7)])
@@ -1278,42 +1278,42 @@ LogicalProject(EXPR$0=[1])
 # Tests that no predicate is inferred when the filter condition mixes columns
 # (making pull-up impossible).
 
-select 1
+select 1 as x
 from emp d
 inner join emp e on d.deptno = e.deptno
 where d.deptno in (7, 9) or d.comm > 10;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (18 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), >($6, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalFilter(condition=[OR(SEARCH($7, Sarg[7, 9]), >($6, 10))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1324,24 +1324,24 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive inference is prevented when the Project renames a column
 # (comm -> deptno), making it impossible to pull up the predicate.
 
-select 1
+select 1 as x
 from (select comm as deptno from emp where deptno > 7) d
 inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalProject(DEPTNO=[$6])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalProject(DEPTNO=[$6])
       LogicalFilter(condition=[>($7, 7)])
@@ -1353,94 +1353,94 @@ LogicalProject(EXPR$0=[1])
 # Tests that a filter predicate below a Project is inferred and pushed to the
 # other side of the join.
 
-select 1
+select 1 as x
 from (select * from emp where deptno > 7) d
 inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[>($7, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $16)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[>($7, 7)])
@@ -1453,24 +1453,24 @@ LogicalProject(EXPR$0=[1])
 # Tests that a predicate on an aliased column (comm aliased as deptno) is
 # correctly pulled up and inferred on the other side of the join.
 
-select 1
+select 1 as x
 from (select comm as deptno from emp where comm > 7) d
 inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalProject(DEPTNO=[$6])
       LogicalFilter(condition=[>($6, 7)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalProject(DEPTNO=[$6])
       LogicalFilter(condition=[>($6, 7)])
@@ -1483,95 +1483,95 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates from the right side of a right outer join
 # are inferred and pushed to the left side.
 
-select 1
+select 1 as x
 from emp d
 right outer join emp e on d.deptno = e.deptno
 where d.deptno > 7 and e.deptno > 9;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (70 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[>($7, 7)])
     LogicalJoin(condition=[=($7, $16)], joinType=[right])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalFilter(condition=[>($7, 9)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[>($7, 7)])
     LogicalJoin(condition=[=($7, $16)], joinType=[right])
       LogicalFilter(condition=[>($7, 9)])
@@ -1584,151 +1584,151 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates are inferred from a union subquery and pushed
 # to the other side of the join.
 
-select 1
+select 1 as x
 from (
   select deptno from emp where deptno > 7
   union all
   select deptno from emp where deptno > 10) d
 inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (131 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalUnion(all=[true])
       LogicalProject(DEPTNO=[$7])
@@ -1739,7 +1739,7 @@ LogicalProject(EXPR$0=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalUnion(all=[true])
       LogicalProject(DEPTNO=[$7])
@@ -1756,7 +1756,7 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive predicates are inferred from a three-way union subquery
 # and pushed to the other side of the join (using the weakest predicate).
 
-select 1
+select 1 as x
 from (
   select deptno from emp where deptno > 7
   union all
@@ -1764,215 +1764,215 @@ from (
   union all
   select deptno from emp where deptno > 1) d
 inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (201 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalUnion(all=[true])
       LogicalUnion(all=[true])
@@ -1987,7 +1987,7 @@ LogicalProject(EXPR$0=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($0, $8)], joinType=[inner])
     LogicalUnion(all=[true])
       LogicalUnion(all=[true])
@@ -2008,7 +2008,7 @@ LogicalProject(EXPR$0=[1])
 # Tests that transitive inference is not applied when the union subquery
 # contains OR conditions with non-uniform predicates (plan is unchanged).
 
-select 1
+select 1 as x
 from (
   select empno, deptno from emp where deptno > 7 or empno < 10
   union all
@@ -2016,215 +2016,215 @@ from (
   union all
   select empno, deptno from emp where deptno > 1) d
 inner join emp e on d.deptno = e.deptno;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (201 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($1, $9)], joinType=[inner])
     LogicalUnion(all=[true])
       LogicalUnion(all=[true])
@@ -2239,7 +2239,7 @@ LogicalProject(EXPR$0=[1])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($1, $9)], joinType=[inner])
     LogicalUnion(all=[true])
       LogicalUnion(all=[true])

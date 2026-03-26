@@ -25,14 +25,14 @@
 # testCrossJoinWithTimeStampSingleRowOnLeft ------------------------------------
 
 select e.empno, e.ename, c.*
- from (select 5, current_timestamp) c cross join emp e;
-LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], CURRENT_TIMESTAMP=[$1])
+ from (select 5 as nm, current_timestamp) c cross join emp e;
+LogicalProject(EMPNO=[$2], ENAME=[$3], NM=[$0], CURRENT_TIMESTAMP=[$1])
   LogicalJoin(condition=[true], joinType=[inner])
-    LogicalProject(EXPR$0=[5], CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
+    LogicalProject(NM=[5], CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
       LogicalValues(tuples=[[{ 0 }]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], CURRENT_TIMESTAMP=[$1])
+LogicalProject(EMPNO=[$2], ENAME=[$3], NM=[$0], CURRENT_TIMESTAMP=[$1])
   LogicalProject($f0=[5], $f1=[CURRENT_TIMESTAMP], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE"
@@ -40,14 +40,14 @@ LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], CURRENT_TIMESTAMP=[$1])
 # testCrossJoinWithTimeStampSingleRowOnRight -----------------------------------
 
 select e.empno, e.ename, c.*
- from emp e cross join (select 5, current_timestamp) c;
-LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], CURRENT_TIMESTAMP=[$10])
+ from emp e cross join (select 5 as nm, current_timestamp) c;
+LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9], CURRENT_TIMESTAMP=[$10])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[5], CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
+    LogicalProject(NM=[5], CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
       LogicalValues(tuples=[[{ 0 }]])
 !transform ""
-LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], CURRENT_TIMESTAMP=[$10])
+LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9], CURRENT_TIMESTAMP=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[5], $f10=[CURRENT_TIMESTAMP])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE"
@@ -55,18 +55,18 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], CURRENT_TIMESTAMP=[$10])
 # testExistsDecorrelationProducesSingleValues ----------------------------------
 # [CALCITE-7389] PruneJoinSingleValue rule should handle subquery IN
 
-select empno, deptno in (select 10) from emp;
-LogicalProject(EMPNO=[$0], EXPR$1=[IN($7, {
+select empno, deptno in (select 10) as b from emp;
+LogicalProject(EMPNO=[$0], B=[IN($7, {
 LogicalValues(tuples=[[{ 10 }]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+LogicalProject(EMPNO=[$0], B=[$9])
   LogicalJoin(condition=[=($7, $9)], joinType=[left_mark])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalValues(tuples=[[{ 10 }]])
 !transform "PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE"
-LogicalProject(EMPNO=[$0], EXPR$1=[$9])
+LogicalProject(EMPNO=[$0], B=[$9])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[=($7, 10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SUB_QUERY_TO_MARK_CORRELATE, PROJECT_MERGE, PROJECT_REMOVE, SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE"
@@ -136,13 +136,13 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
 # testJoinWithConstantRowOnLeft ------------------------------------------------
 
 select e.empno, e.ename, c.*
- from (select 5, 5) c cross join emp e;
-LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], EXPR$1=[$1])
+ from (select 5 as x, 5 as y) c cross join emp e;
+LogicalProject(EMPNO=[$2], ENAME=[$3], X=[$0], Y=[$1])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalValues(tuples=[[{ 5, 5 }]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], EXPR$1=[$1])
+LogicalProject(EMPNO=[$2], ENAME=[$3], X=[$0], Y=[$1])
   LogicalProject($f0=[5], $f1=[5], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE"
@@ -150,13 +150,13 @@ LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], EXPR$1=[$1])
 # testJoinWithConstantRowOnRight -----------------------------------------------
 
 select e.empno, e.ename, c.*
- from emp e cross join (select 5, 5) c;
-LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], EXPR$1=[$10])
+ from emp e cross join (select 5 as x, 5 as y) c;
+LogicalProject(EMPNO=[$0], ENAME=[$1], X=[$9], Y=[$10])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalValues(tuples=[[{ 5, 5 }]])
 !transform ""
-LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], EXPR$1=[$10])
+LogicalProject(EMPNO=[$0], ENAME=[$1], X=[$9], Y=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[5], $f10=[5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE"

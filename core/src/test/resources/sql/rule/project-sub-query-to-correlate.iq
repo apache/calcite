@@ -30,15 +30,15 @@
 # Not using !ok: emp_b is not in scott database.
 
 select sal,
-exists (select * from emp_b where emp.deptno = emp_b.deptno)
+exists (select * from emp_b where emp.deptno = emp_b.deptno) as b
 from sales.emp;
-LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
+LogicalProject(variablesSet=[[$cor0]], SAL=[$5], B=[EXISTS({
 LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
+LogicalProject(SAL=[$5], B=[IS NOT NULL($9)])
   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
@@ -46,7 +46,7 @@ LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
         LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 !transform "subQueryRules"
-LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
+LogicalProject(SAL=[$5], B=[IS NOT NULL($10)])
   LogicalJoin(condition=[=($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], $f1=[true])
@@ -241,13 +241,13 @@ LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST(
 # Tests that two correlated IN sub-queries in a project are both expanded,
 # preserving correct field references (CALCITE-5655).
 
-select empno, deptno in (
+select empno, (deptno in (
   select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
 or deptno in (
-  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)
+  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)) as b
 from sales.empnullables as e;
 # Not using !ok: query uses the sales schema, which is not in the scott database.
-LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[OR(IN($2, {
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], B=[OR(IN($2, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
@@ -259,7 +259,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !transform "RelBuilder(simplify=false), Sql2Rel(trim=true)"
-LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
+LogicalProject(EMPNO=[$0], B=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
     LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
       LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
@@ -288,13 +288,13 @@ LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($3, 0), false, IS NULL($2), null:BO
 # Tests that two uncorrelated IN sub-queries in a project are both expanded
 # (CALCITE-5655).
 
-select empno, deptno in (
+select empno, (deptno in (
   select deptno from sales.deptnullables where dname = 'dept1')
 or deptno in (
-  select deptno from sales.deptnullables where dname = 'dept2')
+  select deptno from sales.deptnullables where dname = 'dept2')) as b
 from sales.empnullables;
 # Not using !ok: query uses EMPNULLABLES, which is not in the scott database.
-LogicalProject(EMPNO=[$0], EXPR$1=[OR(IN($7, {
+LogicalProject(EMPNO=[$0], B=[OR(IN($7, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[=($1, 'dept1')])
     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
@@ -305,7 +305,7 @@ LogicalProject(DEPTNO=[$0])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 !transform "RelBuilder(simplify=false), Sql2Rel(trim=true)"
-LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($9, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), CASE(=($13, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($16), true, <($14, $13), null:BOOLEAN, false))])
+LogicalProject(EMPNO=[$0], B=[OR(CASE(=($9, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), CASE(=($13, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($16), true, <($14, $13), null:BOOLEAN, false))])
   LogicalJoin(condition=[=($7, $15)], joinType=[left])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalJoin(condition=[=($7, $11)], joinType=[left])

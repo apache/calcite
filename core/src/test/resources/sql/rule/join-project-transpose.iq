@@ -746,29 +746,29 @@ LogicalProject(DNAME=[$1])
 
 select *
 from dept a
-left join (select dname, 1 from dept) as b
+left join (select dname, 1 as x from dept) as b
 on a.dname = b.dname;
-+--------+------------+----------+------------+--------+
-| DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
-+--------+------------+----------+------------+--------+
-|     10 | ACCOUNTING | NEW YORK | ACCOUNTING |      1 |
-|     20 | RESEARCH   | DALLAS   | RESEARCH   |      1 |
-|     30 | SALES      | CHICAGO  | SALES      |      1 |
-|     40 | OPERATIONS | BOSTON   | OPERATIONS |      1 |
-+--------+------------+----------+------------+--------+
++--------+------------+----------+------------+---+
+| DEPTNO | DNAME      | LOC      | DNAME0     | X |
++--------+------------+----------+------------+---+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING | 1 |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   | 1 |
+|     30 | SALES      | CHICAGO  | SALES      | 1 |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS | 1 |
++--------+------------+----------+------------+---+
 (4 rows)
 
 !ok
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], X=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], X=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
@@ -778,29 +778,29 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
 # [CALCITE-1338]
 
 select *
-from (select dname, 1 from dept) as a
+from (select dname, 1 as x from dept) as a
 right join dept b
 on a.dname = b.dname;
-+------------+--------+--------+------------+----------+
-| DNAME      | EXPR$1 | DEPTNO | DNAME0     | LOC      |
-+------------+--------+--------+------------+----------+
-| ACCOUNTING |      1 |     10 | ACCOUNTING | NEW YORK |
-| OPERATIONS |      1 |     40 | OPERATIONS | BOSTON   |
-| RESEARCH   |      1 |     20 | RESEARCH   | DALLAS   |
-| SALES      |      1 |     30 | SALES      | CHICAGO  |
-+------------+--------+--------+------------+----------+
++------------+---+--------+------------+----------+
+| DNAME      | X | DEPTNO | DNAME0     | LOC      |
++------------+---+--------+------------+----------+
+| ACCOUNTING | 1 |     10 | ACCOUNTING | NEW YORK |
+| OPERATIONS | 1 |     40 | OPERATIONS | BOSTON   |
+| RESEARCH   | 1 |     20 | RESEARCH   | DALLAS   |
+| SALES      | 1 |     30 | SALES      | CHICAGO  |
++------------+---+--------+------------+----------+
 (4 rows)
 
 !ok
-LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
+LogicalProject(DNAME=[$0], X=[$1], DEPTNO=[$2], DNAME0=[$3])
   LogicalJoin(condition=[=($0, $3)], joinType=[right])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
+LogicalProject(DNAME=[$0], X=[$1], DEPTNO=[$2], DNAME0=[$3])
   LogicalJoin(condition=[=($0, $3)], joinType=[right])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "JOIN_PROJECT_LEFT_TRANSPOSE_INCLUDE_OUTER"
@@ -814,32 +814,32 @@ LogicalProject(DNAME=[$0], EXPR$1=[$1], DEPTNO=[$2], DNAME0=[$3])
 select *
 from dept a
 left join (
-  select cast(x as varchar(20)) as dname, y is not null
+  select cast(x as varchar(20)) as dname, y is not null as b
   from (values (2, cast(null as integer)), (2, 1)) as t(x, y)) b
 on a.dname = b.dname;
-+--------+------------+----------+--------+--------+
-| DEPTNO | DNAME      | LOC      | DNAME0 | EXPR$1 |
-+--------+------------+----------+--------+--------+
-|     10 | ACCOUNTING | NEW YORK |        |        |
-|     20 | RESEARCH   | DALLAS   |        |        |
-|     30 | SALES      | CHICAGO  |        |        |
-|     40 | OPERATIONS | BOSTON   |        |        |
-+--------+------------+----------+--------+--------+
++--------+------------+----------+--------+---+
+| DEPTNO | DNAME      | LOC      | DNAME0 | B |
++--------+------------+----------+--------+---+
+|     10 | ACCOUNTING | NEW YORK |        |   |
+|     20 | RESEARCH   | DALLAS   |        |   |
+|     30 | SALES      | CHICAGO  |        |   |
+|     40 | OPERATIONS | BOSTON   |        |   |
++--------+------------+----------+--------+---+
 (4 rows)
 
 !ok
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], B=[$4])
   LogicalJoin(condition=[=($2, $3)], joinType=[left])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[CAST($1):VARCHAR(20) NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], EXPR$1=[IS NOT NULL($1)])
+    LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], B=[IS NOT NULL($1)])
       LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
 !transform ""
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], B=[$4])
   LogicalJoin(condition=[=($2, $3)], joinType=[left])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[CAST($1):VARCHAR(20) NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], EXPR$1=[IS NOT NULL($1)])
+    LogicalProject(DNAME=[CAST($0):VARCHAR(20) NOT NULL], B=[IS NOT NULL($1)])
       LogicalValues(tuples=[[{ 2, null }, { 2, 1 }]])
 !transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
@@ -850,29 +850,29 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[$4])
 
 select *
 from dept a
-left join (select dname, 1 + 1 from dept) as b
+left join (select dname, 1 + 1 as x from dept) as b
   on a.dname = b.dname;
-+--------+------------+----------+------------+--------+
-| DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
-+--------+------------+----------+------------+--------+
-|     10 | ACCOUNTING | NEW YORK | ACCOUNTING |      2 |
-|     20 | RESEARCH   | DALLAS   | RESEARCH   |      2 |
-|     30 | SALES      | CHICAGO  | SALES      |      2 |
-|     40 | OPERATIONS | BOSTON   | OPERATIONS |      2 |
-+--------+------------+----------+------------+--------+
++--------+------------+----------+------------+---+
+| DEPTNO | DNAME      | LOC      | DNAME0     | X |
++--------+------------+----------+------------+---+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING | 2 |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   | 2 |
+|     30 | SALES      | CHICAGO  | SALES      | 2 |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS | 2 |
++--------+------------+----------+------------+---+
 (4 rows)
 
 !ok
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], X=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[+(1, 1)])
+    LogicalProject(DNAME=[$1], X=[+(1, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], X=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[+(1, 1)])
+    LogicalProject(DNAME=[$1], X=[+(1, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
@@ -882,32 +882,32 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
 # [CALCITE-1338]
 
 select *
-from (select dname, 1 from dept) a
-full join (select dname, 1 from dept) as b
+from (select dname, 1 as x from dept) a
+full join (select dname, 1 as x from dept) as b
   on a.dname = b.dname;
-+------------+--------+------------+---------+
-| DNAME      | EXPR$1 | DNAME0     | EXPR$10 |
-+------------+--------+------------+---------+
-| ACCOUNTING |      1 | ACCOUNTING |       1 |
-| OPERATIONS |      1 | OPERATIONS |       1 |
-| RESEARCH   |      1 | RESEARCH   |       1 |
-| SALES      |      1 | SALES      |       1 |
-+------------+--------+------------+---------+
++------------+---+------------+----+
+| DNAME      | X | DNAME0     | X0 |
++------------+---+------------+----+
+| ACCOUNTING | 1 | ACCOUNTING |  1 |
+| OPERATIONS | 1 | OPERATIONS |  1 |
+| RESEARCH   | 1 | RESEARCH   |  1 |
+| SALES      | 1 | SALES      |  1 |
++------------+---+------------+----+
 (4 rows)
 
 !ok
-LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
+LogicalProject(DNAME=[$0], X=[$1], DNAME0=[$2], X0=[$3])
   LogicalJoin(condition=[=($0, $2)], joinType=[full])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DNAME=[$0], EXPR$1=[$1], DNAME0=[$2], EXPR$10=[$3])
+LogicalProject(DNAME=[$0], X=[$1], DNAME0=[$2], X0=[$3])
   LogicalJoin(condition=[=($0, $2)], joinType=[full])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[1])
+    LogicalProject(DNAME=[$1], X=[1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "JOIN_PROJECT_RIGHT_TRANSPOSE_INCLUDE_OUTER"
 
@@ -953,28 +953,28 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2])
 select *
 from dept a
 left join (
-  select dname, deptno > 10 and cast(null as boolean)
+  select dname, deptno > 10 and cast(null as boolean) as b
   from dept) as b
 on a.dname = b.dname;
-+--------+------------+----------+------------+--------+
-| DEPTNO | DNAME      | LOC      | DNAME0     | EXPR$1 |
-+--------+------------+----------+------------+--------+
-|     10 | ACCOUNTING | NEW YORK | ACCOUNTING | false  |
-|     20 | RESEARCH   | DALLAS   | RESEARCH   |        |
-|     30 | SALES      | CHICAGO  | SALES      |        |
-|     40 | OPERATIONS | BOSTON   | OPERATIONS |        |
-+--------+------------+----------+------------+--------+
++--------+------------+----------+------------+-------+
+| DEPTNO | DNAME      | LOC      | DNAME0     | B     |
++--------+------------+----------+------------+-------+
+|     10 | ACCOUNTING | NEW YORK | ACCOUNTING | false |
+|     20 | RESEARCH   | DALLAS   | RESEARCH   |       |
+|     30 | SALES      | CHICAGO  | SALES      |       |
+|     40 | OPERATIONS | BOSTON   | OPERATIONS |       |
++--------+------------+----------+------------+-------+
 (4 rows)
 
 !ok
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], B=[$3])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DNAME=[$1], EXPR$1=[AND(>($0, 10), null)])
+    LogicalProject(DNAME=[$1], B=[AND(>($0, 10), null)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
-  LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], EXPR$1=[AND(>($2, 10), null)])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], B=[$3])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$3], B=[AND(>($2, 10), null)])
     LogicalJoin(condition=[=($1, $3)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -987,28 +987,28 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], DNAME0=[$2], EXPR$1=[$3])
 select *
 from dept a
 join (
-  select rank() over (order by dname) as r, 1 + 1
+  select rank() over (order by dname) as r, 1 + 1 as x
   from dept) as b
 on a.deptno = b.r;
-+--------+-------+-----+---+--------+
-| DEPTNO | DNAME | LOC | R | EXPR$1 |
-+--------+-------+-----+---+--------+
-+--------+-------+-----+---+--------+
++--------+-------+-----+---+---+
+| DEPTNO | DNAME | LOC | R | X |
++--------+-------+-----+---+---+
++--------+-------+-----+---+---+
 (0 rows)
 
 !ok
-LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], X=[$4])
   LogicalJoin(condition=[=($2, $3)], joinType=[inner])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(R=[RANK() OVER (ORDER BY $1)], EXPR$1=[+(1, 1)])
+    LogicalProject(R=[RANK() OVER (ORDER BY $1)], X=[+(1, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
-  LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):BIGINT NOT NULL], R=[$2], EXPR$1=[$3])
+LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], X=[$4])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], DEPTNO0=[CAST($0):BIGINT NOT NULL], R=[$2], X=[$3])
     LogicalJoin(condition=[=(CAST($0):BIGINT NOT NULL, $2)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalProject(R=[RANK() OVER (ORDER BY $1)], EXPR$1=[+(1, 1)])
+      LogicalProject(R=[RANK() OVER (ORDER BY $1)], X=[+(1, 1)])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "JOIN_PROJECT_BOTH_TRANSPOSE"
 
@@ -1016,37 +1016,37 @@ LogicalProject(DEPTNO=[$0], DNAME=[$1], R=[$3], EXPR$1=[$4])
 # JOIN_PUSH_EXPRESSIONS should not push an expression that is not
 # a pure join condition (e.g. IS NOT NULL on a non-join column).
 
-select 1
+select 1 as x
 from emp
 inner join dept
   on emp.deptno=dept.deptno and emp.ename is not null;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])

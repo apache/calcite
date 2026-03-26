@@ -26,22 +26,22 @@
 # testEmptyAggregate -----------------------------------------------------------
 # AGGREGATE_INSTANCE removes an Aggregate over an empty input.
 
-select sum(empno) from emp where false group by deptno;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
+select sum(empno) as s from emp where false group by deptno;
++---+
+| S |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[$1])
-  LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
+LogicalProject(S=[$1])
+  LogicalAggregate(group=[{0}], S=[SUM($1)])
     LogicalProject(DEPTNO=[$7], EMPNO=[$0])
       LogicalFilter(condition=[false])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$1])
-  LogicalAggregate(group=[{0}], EXPR$0=[SUM($1)])
+LogicalProject(S=[$1])
+  LogicalAggregate(group=[{0}], S=[SUM($1)])
     LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
 LogicalValues(tuples=[[]])
@@ -51,24 +51,24 @@ LogicalValues(tuples=[[]])
 # AGGREGATE_INSTANCE does not remove an Aggregate with no GROUP BY (empty key),
 # even when the input is empty.
 
-select sum(empno) from emp where false;
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+select sum(empno) as s from emp where false;
++---+
+| S |
++---+
+|   |
++---+
 (1 row)
 
 !ok
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalProject(EMPNO=[$0])
     LogicalFilter(condition=[false])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE"
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS, PruneEmptyRules.PROJECT_INSTANCE, PruneEmptyRules.AGGREGATE_INSTANCE"
 
@@ -200,18 +200,18 @@ LogicalAggregate(group=[{0, 1}])
 # PROJECT_FILTER_VALUES_MERGE and FILTER_VALUES_MERGE work together; then
 # PROJECT_VALUES_MERGE simplifies the outer project.
 
-select z + x from (
+select z + x as x from (
   select x + y as z, x from (
     select * from (values (10, 1), (30, 3)) as t (x, y)
     where x + y > 50));
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[+(+($0, $1), $0)])
+LogicalProject(X=[+(+($0, $1), $0)])
   LogicalFilter(condition=[>(+($0, $1), 50)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
 !transform ""
@@ -221,18 +221,18 @@ LogicalValues(tuples=[[]])
 # testEmptyProject2 ------------------------------------------------------------
 # Same query as testEmptyProject; PruneEmptyRules can achieve the same result.
 
-select z + x from (
+select z + x as x from (
   select x + y as z, x from (
     select * from (values (10, 1), (30, 3)) as t (x, y)
     where x + y > 50));
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[+(+($0, $1), $0)])
+LogicalProject(X=[+(+($0, $1), $0)])
   LogicalFilter(condition=[>(+($0, $1), 50)])
     LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }]])
 !transform ""

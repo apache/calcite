@@ -921,14 +921,14 @@ LogicalUnion(all=[false])
 select * from (
   select * from (
     select dname, deptno from (
-      select dname, deptno, count(1) from dept group by dname, deptno
+      select dname, deptno, count(1) as c from dept group by dname, deptno
       except all
-      select dname, deptno, 1 from dept) subq
+      select dname, deptno, 1 as x from dept) subq
     except all
     select dname, deptno from (
-      select dname, deptno, 1 from dept
+      select dname, deptno, 1 as x from dept
       except all
-      select dname, deptno, count(1) from dept group by dname, deptno) subq2
+      select dname, deptno, count(1) as c from dept group by dname, deptno) subq2
   ) a
   except all
   select dname, deptno from dept) aa;
@@ -945,16 +945,16 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1])
       LogicalMinus(all=[true])
         LogicalProject(DNAME=[$0], DEPTNO=[$1])
           LogicalMinus(all=[true])
-            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+            LogicalAggregate(group=[{0, 1}], C=[COUNT()])
               LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-            LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0], X=[1:BIGINT])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalProject(DNAME=[$0], DEPTNO=[$1])
           LogicalMinus(all=[true])
-            LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+            LogicalProject(DNAME=[$1], DEPTNO=[$0], X=[1:BIGINT])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+            LogicalAggregate(group=[{0, 1}], C=[COUNT()])
               LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
@@ -962,18 +962,18 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1])
 !transform ""
 LogicalMinus(all=[true])
   LogicalProject(DNAME=[$0], DEPTNO=[$1])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
       LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$0], DEPTNO=[$1])
-    LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], X=[1:BIGINT])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalMinus(all=[true])
     LogicalProject(DNAME=[$0], DEPTNO=[$1])
-      LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[1:BIGINT])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], X=[1:BIGINT])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$0], DEPTNO=[$1])
-      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalAggregate(group=[{0, 1}], C=[COUNT()])
         LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
@@ -2764,9 +2764,9 @@ from (
     union all
     select dname, deptno
     from (
-      select dname, deptno, count(1) from dept group by dname, deptno
+      select dname, deptno, count(1) as c from dept group by dname, deptno
       union all
-      select dname, deptno, count(1) from dept group by dname, deptno
+      select dname, deptno, count(1) as c from dept group by dname, deptno
     ) subq
   ) a
   union all
@@ -2803,10 +2803,10 @@ LogicalProject(DNAME=[$0], DEPTNO=[$1])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         LogicalProject(DNAME=[$0], DEPTNO=[$1])
           LogicalUnion(all=[true])
-            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+            LogicalAggregate(group=[{0, 1}], C=[COUNT()])
               LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-            LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+            LogicalAggregate(group=[{0, 1}], C=[COUNT()])
               LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DNAME=[$1], DEPTNO=[$0])
@@ -2816,11 +2816,11 @@ LogicalUnion(all=[true])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$0], DEPTNO=[$1])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
       LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$0], DEPTNO=[$1])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
       LogicalProject(DNAME=[$1], DEPTNO=[$0], $f2=[1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
   LogicalProject(DNAME=[$1], DEPTNO=[$0])

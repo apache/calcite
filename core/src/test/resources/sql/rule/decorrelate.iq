@@ -70,11 +70,11 @@ SELECT d1.dname,
             FROM emp e2
             WHERE e1.sal = e2.sal and
               e1.deptno = e2.deptno and
-              d1.deptno < e2.deptno))
+              d1.deptno < e2.deptno)) as x
 FROM dept d1;
 SINGLE_VALUE
 !error
-LogicalProject(DNAME=[$1], EXPR$1=[+($0, $2)])
+LogicalProject(DNAME=[$1], X=[+($0, $2)])
   LogicalCorrelate(correlation=[$cor2], joinType=[left], requiredColumns=[{0}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
@@ -88,7 +88,7 @@ LogicalProject(DNAME=[$1], EXPR$1=[+($0, $2)])
                   LogicalFilter(condition=[AND(=($cor0.SAL, $5), =($cor0.DEPTNO, $7), <($cor2.DEPTNO, $7))])
                     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "Sql2Rel(trim=true), subQueryRules"
-LogicalProject(DNAME=[$1], EXPR$1=[+($0, $3)])
+LogicalProject(DNAME=[$1], X=[+($0, $3)])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])

@@ -91,21 +91,21 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 # testSortNotRemoveWhenLimitFetchIsZeroWithoutOrder ----------------------------
 # SORT_REMOVE_REDUNDANT should not remove a limit of zero.
 
-SELECT count(*) FROM emp LIMIT 0;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
+SELECT count(*) as c FROM emp LIMIT 0;
++---+
+| C |
++---+
++---+
 (0 rows)
 
 !ok
 LogicalSort(fetch=[0])
-  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
 LogicalSort(fetch=[0])
-  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SORT_REMOVE_REDUNDANT"
@@ -521,21 +521,21 @@ LogicalProject(T1=[$0])
 # has at most one row.
 # [CALCITE-6038]
 
-SELECT count(*) FROM emp ORDER BY 1 LIMIT 10;
-+--------+
-| EXPR$0 |
-+--------+
-|     14 |
-+--------+
+SELECT count(*) as c FROM emp ORDER BY 1 LIMIT 10;
++----+
+| C  |
++----+
+| 14 |
++----+
 (1 row)
 
 !ok
 LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
-  LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalAggregate(group=[{}], C=[COUNT()])
     LogicalProject($f0=[0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+LogicalAggregate(group=[{}], C=[COUNT()])
   LogicalProject($f0=[0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "SORT_REMOVE_REDUNDANT"

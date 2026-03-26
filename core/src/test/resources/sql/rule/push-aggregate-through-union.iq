@@ -26,11 +26,11 @@
 # AGGREGATE_UNION_TRANSPOSE pushes AVG aggregate through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, avg(empno) from
+select deptno, job, avg(empno) as a from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[AVG($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], A=[AVG($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -38,7 +38,7 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[AVG($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[AVG($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], A=[AVG($2)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -50,11 +50,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[AVG($2)])
 # AGGREGATE_UNION_TRANSPOSE pushes AVG aggregate through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, avg(empno) from
+select ename, avg(empno) as a from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[AVG($1)])
+LogicalAggregate(group=[{0}], A=[AVG($1)])
   LogicalProject(ENAME=[$1], EMPNO=[$0])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -62,7 +62,7 @@ LogicalAggregate(group=[{0}], EXPR$1=[AVG($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[AVG($1)])
+LogicalAggregate(group=[{0}], A=[AVG($1)])
   LogicalUnion(all=[true])
     LogicalProject(ENAME=[$1], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -74,13 +74,13 @@ LogicalAggregate(group=[{0}], EXPR$1=[AVG($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes a filtered COUNT(*) through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, count(*) filter (where job = 'CLERK')
+select deptno, count(*) filter (where job = 'CLERK') as c
 from (
   select * from emp where deptno = 10
   union all
   select * from emp where deptno > 20)
 group by deptno;
-LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
+LogicalAggregate(group=[{0}], C=[COUNT() FILTER $1])
   LogicalProject(DEPTNO=[$7], $f1=[=($2, 'CLERK')])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -90,13 +90,13 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
         LogicalFilter(condition=[>($7, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
+LogicalAggregate(group=[{0}], C=[$SUM0($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
+    LogicalAggregate(group=[{0}], C=[COUNT() FILTER $1])
       LogicalProject(DEPTNO=[$7], $f1=[=($2, 'CLERK')])
         LogicalFilter(condition=[=($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT() FILTER $1])
+    LogicalAggregate(group=[{0}], C=[COUNT() FILTER $1])
       LogicalProject(DEPTNO=[$7], $f1=[=($2, 'CLERK')])
         LogicalFilter(condition=[>($7, 20)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -106,11 +106,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes COUNT(nullable) through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, count(mgr) from
+select deptno, job, count(mgr) as c from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[COUNT($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -118,12 +118,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[COUNT($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[$SUM0($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[$SUM0($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT($2)])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT($2)])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -132,11 +132,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[$SUM0($2)])
 # AGGREGATE_UNION_TRANSPOSE pushes COUNT(nullable) through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, count(mgr) from
+select ename, count(mgr) as c from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[COUNT($1)])
+LogicalAggregate(group=[{0}], C=[COUNT($1)])
   LogicalProject(ENAME=[$1], MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -144,12 +144,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
+LogicalAggregate(group=[{0}], C=[$SUM0($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT($1)])
+    LogicalAggregate(group=[{0}], C=[COUNT($1)])
       LogicalProject(ENAME=[$1], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT($1)])
+    LogicalAggregate(group=[{0}], C=[COUNT($1)])
       LogicalProject(ENAME=[$1], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -158,11 +158,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes COUNT(*) through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, count(*) from
+select deptno, job, count(*) as c from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[COUNT()])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[COUNT()])
   LogicalProject(DEPTNO=[$7], JOB=[$2])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -170,12 +170,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[COUNT()])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[$SUM0($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], C=[$SUM0($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
       LogicalProject(DEPTNO=[$7], JOB=[$2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
       LogicalProject(DEPTNO=[$7], JOB=[$2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -184,11 +184,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[$SUM0($2)])
 # AGGREGATE_UNION_TRANSPOSE pushes COUNT(*) through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, count(*) from
+select ename, count(*) as c from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+LogicalAggregate(group=[{0}], C=[COUNT()])
   LogicalProject(ENAME=[$1])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -196,12 +196,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
+LogicalAggregate(group=[{0}], C=[$SUM0($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
       LogicalProject(ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
       LogicalProject(ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -210,11 +210,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[$SUM0($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes MAX(nullable) through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, max(mgr) from
+select deptno, job, max(mgr) as m from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MAX($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], M=[MAX($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -222,12 +222,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MAX($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MAX($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], M=[MAX($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+    LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
+    LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -236,11 +236,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MAX($2)])
 # AGGREGATE_UNION_TRANSPOSE pushes MAX(nullable) through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, max(mgr) from
+select ename, max(mgr) as m from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+LogicalAggregate(group=[{0}], M=[MAX($1)])
   LogicalProject(ENAME=[$1], MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -248,12 +248,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+LogicalAggregate(group=[{0}], M=[MAX($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+    LogicalAggregate(group=[{0}], M=[MAX($1)])
       LogicalProject(ENAME=[$1], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+    LogicalAggregate(group=[{0}], M=[MAX($1)])
       LogicalProject(ENAME=[$1], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -262,11 +262,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes MIN through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, min(empno) from
+select deptno, job, min(empno) as n from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MIN($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], N=[MIN($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -274,12 +274,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MIN($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MIN($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], N=[MIN($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[MIN($2)])
+    LogicalAggregate(group=[{0, 1}], N=[MIN($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[MIN($2)])
+    LogicalAggregate(group=[{0, 1}], N=[MIN($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -288,11 +288,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[MIN($2)])
 # AGGREGATE_UNION_TRANSPOSE pushes MIN through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, min(empno) from
+select ename, min(empno) as n from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
+LogicalAggregate(group=[{0}], N=[MIN($1)])
   LogicalProject(ENAME=[$1], EMPNO=[$0])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -300,12 +300,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
+LogicalAggregate(group=[{0}], N=[MIN($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
+    LogicalAggregate(group=[{0}], N=[MIN($1)])
       LogicalProject(ENAME=[$1], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
+    LogicalAggregate(group=[{0}], N=[MIN($1)])
       LogicalProject(ENAME=[$1], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -314,11 +314,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[MIN($1)])
 # AGGREGATE_UNION_TRANSPOSE pushes SUM(constant) through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, sum(u) from
+select deptno, job, sum(u) as s from
 (select *, 2 u from emp as e1 union all
  select *, 3 u from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], U=[$9])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[2])
@@ -326,12 +326,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], U=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], U=[3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -341,11 +341,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
 # two branches have different constants.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, sum(u) from
+select ename, sum(u) as s from
 (select *, 2 u from emp as e1 union all
  select *, 3 u from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalProject(ENAME=[$1], U=[$9])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[2])
@@ -353,12 +353,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(ENAME=[$1], U=[2])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(ENAME=[$1], U=[3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -368,11 +368,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, sum(empno), count(*), min(deptno), max(empno) from
+select deptno, job, sum(empno) as s, count(*) as c, min(deptno) as n, max(empno) as m from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)], C=[COUNT()], N=[MIN($0)], M=[MAX($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -380,12 +380,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)], E
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)], EXPR$3=[$SUM0($3)], EXPR$4=[MIN($4)], EXPR$5=[MAX($5)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)], C=[$SUM0($3)], N=[MIN($4)], M=[MAX($5)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)], C=[COUNT()], N=[MIN($0)], M=[MAX($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)], EXPR$3=[COUNT()], EXPR$4=[MIN($0)], EXPR$5=[MAX($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)], C=[COUNT()], N=[MIN($0)], M=[MAX($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -394,11 +394,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)], E
 # AGGREGATE_UNION_TRANSPOSE pushes multiple aggregates through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, sum(empno), count(*), min(deptno), max(empno) from
+select ename, sum(empno) as s, count(*) as c, min(deptno) as n, max(empno) as m from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()], EXPR$3=[MIN($2)], EXPR$4=[MAX($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)], C=[COUNT()], N=[MIN($2)], M=[MAX($1)])
   LogicalProject(ENAME=[$1], EMPNO=[$0], DEPTNO=[$7])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -406,12 +406,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()], EXPR$3=[MIN($2
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[$SUM0($2)], EXPR$3=[MIN($3)], EXPR$4=[MAX($4)])
+LogicalAggregate(group=[{0}], S=[SUM($1)], C=[$SUM0($2)], N=[MIN($3)], M=[MAX($4)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()], EXPR$3=[MIN($2)], EXPR$4=[MAX($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)], C=[COUNT()], N=[MIN($2)], M=[MAX($1)])
       LogicalProject(ENAME=[$1], EMPNO=[$0], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT()], EXPR$3=[MIN($2)], EXPR$4=[MAX($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)], C=[COUNT()], N=[MIN($2)], M=[MAX($1)])
       LogicalProject(ENAME=[$1], EMPNO=[$0], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -420,11 +420,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[$SUM0($2)], EXPR$3=[MIN(
 # AGGREGATE_UNION_TRANSPOSE pushes SUM(nullable) through ROLLUP grouping sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, sum(mgr) from
+select deptno, job, sum(mgr) as s from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -432,12 +432,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -448,10 +448,10 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
 # Not using !ok: result is a single row aggregate (non-deterministic ordering
 # with other queries).
 
-select sum(mgr) from
+select sum(mgr) as s from
 (select * from emp as e1 union all
  select * from emp as e2);
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalProject(MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -459,12 +459,12 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    LogicalAggregate(group=[{}], S=[SUM($0)])
       LogicalProject(MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    LogicalAggregate(group=[{}], S=[SUM($0)])
       LogicalProject(MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -473,11 +473,11 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 # AGGREGATE_UNION_TRANSPOSE pushes SUM(nullable) through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, sum(mgr) from
+select ename, sum(mgr) as s from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalProject(ENAME=[$1], MGR=[$3])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -485,12 +485,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(ENAME=[$1], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(ENAME=[$1], MGR=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -500,11 +500,11 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 # sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, sum(u) from
+select deptno, job, sum(u) as s from
 (select *, cast(null as integer) u from emp as e1 union all
  select *, cast(null as integer) u from emp as e2)
 group by rollup(deptno, job);
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)])
   LogicalProject(DEPTNO=[$7], JOB=[$2], U=[$9])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[null:INTEGER])
@@ -512,12 +512,12 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[null:INTEGER])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
+LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], U=[null:INTEGER])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}], EXPR$2=[SUM($2)])
+    LogicalAggregate(group=[{0, 1}], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], JOB=[$2], U=[null:INTEGER])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"
@@ -526,11 +526,11 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], EXPR$2=[SUM($2)])
 # AGGREGATE_UNION_TRANSPOSE pushes SUM(null constant) through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, sum(u) from
+select ename, sum(u) as s from
 (select *, cast(null as integer) u from emp as e1 union all
  select *, cast(null as integer) u from emp as e2)
 group by ename;
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalProject(ENAME=[$1], U=[$9])
     LogicalUnion(all=[true])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[null:INTEGER])
@@ -538,12 +538,12 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], U=[null:INTEGER])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+LogicalAggregate(group=[{0}], S=[SUM($1)])
   LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(ENAME=[$1], U=[null:INTEGER])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+    LogicalAggregate(group=[{0}], S=[SUM($1)])
       LogicalProject(ENAME=[$1], U=[null:INTEGER])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_SET_OP_TRANSPOSE, PROJECT_MERGE, AGGREGATE_UNION_TRANSPOSE"

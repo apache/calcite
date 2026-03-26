@@ -134,3 +134,44 @@ Config tokens that belong to the same Java class are now grouped:
 - `expand=true, decorrelate=true, trim=true` → `Sql2Rel(expand=true, decorrelate=true, trim=true)`
 
 13 .iq files updated by `migrate_transform_groups.py`. Old flat token forms removed from parser.
+
+---
+
+## Finalization tasks (do before merging)
+
+### Clean up EXPR$N column names in .iq files
+
+Go through every `.iq` file in `core/src/test/resources/sql/rule/`. For any SQL query whose SELECT list contains an unaliased expression that produces an auto-generated column name (`EXPR$0`, `EXPR$1`, etc.), add a concise `AS` alias. Update the corresponding plan output lines and `!ok` result-table column headers to match.
+
+Suggested aliases:
+- `count(*)` / `count(x)` → `as c` (or `as c1`, `as c2` when multiple counts)
+- `sum(x)` → `as s`
+- `max(x)` → `as m`
+- `min(x)` → `as n`
+- `avg(x)` → `as a`
+- `any_value(x)` → `as av`
+- `stddev_pop(x)` → `as sp`, `stddev_samp(x)` → `as ss`
+- `var_pop(x)` → `as vp`, `var_samp(x)` → `as vs`
+- arithmetic / CASE expression → `as x`
+- boolean expression → `as b`
+- window function → same rule as the underlying aggregate (`count(*) over (...)` → `as c`)
+
+Skip cases where `EXPR$N` originates from a `VALUES` clause or appears only inside an inner subquery plan node that the outer SQL cannot easily alias.
+
+### Format SQL in .iq files
+
+Go through every `.iq` file in `core/src/test/resources/sql/rule/`. Check that SQL formatting is not outrageous:
+
+- If a subquery has multiple clauses (SELECT, FROM, WHERE, GROUP BY, etc.) and the whole thing exceeds ~55 characters, break it onto multiple lines, indenting each clause by 4 spaces relative to the enclosing query.
+- If any line of a query exceeds 80 characters, break it.
+
+No need to reformat already-reasonable single-line queries.
+
+### Review 'Not using !ok' comments
+
+Search for `# Not using !ok` comments in every `.iq` file in `core/src/test/resources/sql/rule/`. For each occurrence, evaluate whether the justification is convincing:
+
+- **Convincing**: table doesn't exist in Scott (e.g. `EMP_ADDRESS`, `EMP_B`, `DEPT_NESTED`), result is empty/uninteresting (e.g. `BONUS` table is empty), result is non-deterministic, or query uses unsupported Scott dialect.
+- **Not convincing**: vague or missing justification (e.g. "this test focuses on plan transformation", "would produce 14 rows of window data"), or the table clearly exists in Scott (`EMP`, `DEPT`, `SALGRADE`, `BONUS` for non-empty queries).
+
+For cases where the justification is weak or absent, discuss with the user whether `!ok` can be enabled (adding the expected result table).

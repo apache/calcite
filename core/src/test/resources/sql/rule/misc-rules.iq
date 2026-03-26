@@ -575,13 +575,13 @@ LogicalProject(SAL=[$0])
 # Both uses of window 'w' should produce the same window function.
 
 # Not using !ok: would produce 14 rows of window data.
-select count(*) over (w), count(*) over w
+select count(*) over (w) as c1, count(*) over w as c2
 from emp
 window w as (partition by empno order by empno);
-LogicalProject(EXPR$0=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)], EXPR$1=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)])
+LogicalProject(C1=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)], C2=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$9], EXPR$1=[$9])
+LogicalProject(C1=[$9], C2=[$9])
   LogicalWindow(window#0=[window(partition {0} order by [0] aggs [COUNT()])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"

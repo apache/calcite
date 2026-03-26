@@ -31,21 +31,21 @@ with empsalary(dept, empno, salary, enroll_date) as
   (VALUES ('x', 10, 5200, DATE '2007-08-01'), (NULL, NULL, NULL, NULL))
 select sum(salary) OVER (order by enroll_date
                          range between INTERVAL 365 DAYS preceding
-                            and INTERVAL 365 DAYS following),
+                            and INTERVAL 365 DAYS following) as s,
     salary, enroll_date
 FROM empsalary;
 # Not using !ok: execution gives
 #  Cannot invoke "java.lang.Integer.intValue()" because "<local21>" is null
-EXPR$0 INTEGER(10)
+S INTEGER(10)
 SALARY INTEGER(10)
 ENROLL_DATE DATE
 !type
-LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
+LogicalProject(S=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
   LogicalWindow(window#0=[window(order by [1] range between $2 PRECEDING and $2 FOLLOWING aggs [COUNT($0), SUM($0)])])
     LogicalProject(EXPR$2=[$2], EXPR$3=[$3], $2=[*(365, 86400000:INTERVAL DAY)])
       LogicalValues(tuples=[[{ 'x', 10, 5200, 2007-08-01 }, { null, null, null, null }]])
 !transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"
-LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
+LogicalProject(S=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
   LogicalWindow(window#0=[window(order by [1] range between $2 PRECEDING and $2 FOLLOWING aggs [COUNT($0), SUM($0)])])
     LogicalProject(EXPR$2=[$2], EXPR$3=[$3], $2=[*(365, 86400000:INTERVAL DAY)])
       LogicalValues(tuples=[[{ 'x', 10, 5200, 2007-08-01 }, { null, null, null, null }]])
@@ -103,17 +103,17 @@ LogicalProject(DNAME=[$0])
 
 SELECT
   avg(sum(sal) + 2 * min(empno) + 3 * avg(empno))
-  over (partition by deptno)
+  over (partition by deptno) as a
 from emp
 group by deptno;
 java.lang.AssertionError: type mismatch:
 !error
-LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0))):INTEGER NOT NULL])
+LogicalProject(A=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0))):INTEGER NOT NULL])
   LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
     LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
+LogicalProject(A=[CAST(/($2, $3)):INTEGER NOT NULL])
   LogicalWindow(window#0=[window(partition {0} aggs [SUM($1), COUNT($1)])])
     LogicalProject(DEPTNO=[$0], $1=[+(+($1, *(2, $2)), *(3, $3))])
       LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
@@ -181,22 +181,22 @@ LogicalProject(DEPTNO=[$1], F1=[$2], F2=[$3])
 # [CALCITE-6011]
 
 select *
-from (select DNAME, DEPTNO, count(*) over (partition by DNAME)
+from (select DNAME, DEPTNO, count(*) over (partition by DNAME) as c
     from dept) t
 where DEPTNO = 0;
-+-------+--------+--------+
-| DNAME | DEPTNO | EXPR$2 |
-+-------+--------+--------+
-+-------+--------+--------+
++-------+--------+---+
+| DNAME | DEPTNO | C |
++-------+--------+---+
++-------+--------+---+
 (0 rows)
 
 !ok
-LogicalProject(DNAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
+LogicalProject(DNAME=[$0], DEPTNO=[$1], C=[$2])
   LogicalFilter(condition=[=($1, 0)])
-    LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[COUNT() OVER (PARTITION BY $1)])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[COUNT() OVER (PARTITION BY $1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
   LogicalFilter(condition=[=($0, 0)])
     LogicalWindow(window#0=[window(partition {1} aggs [COUNT()])])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -241,18 +241,18 @@ LogicalProject(EMPNO=[$0])
 # over a Correlate, but can push into the Correlate's inputs.
 # Not using !ok: this test focuses on plan transformation (see !transform).
 
-select sum(t1.deptno + 1) over (partition by t1.dname),
-count(t2.empno) over ()
+select sum(t1.deptno + 1) over (partition by t1.dname) as ws,
+count(t2.empno) over () as c
 from DEPT_NESTED as t1,
 unnest(t1.employees) as t2;
-LogicalProject(EXPR$0=[SUM(+($0, 1)) OVER (PARTITION BY $1)], EXPR$1=[COUNT($4) OVER ()])
+LogicalProject(WS=[SUM(+($0, 1)) OVER (PARTITION BY $1)], C=[COUNT($4) OVER ()])
   LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{3}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
     Uncollect
       LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 !transform ""
-LogicalProject(EXPR$0=[SUM($2) OVER (PARTITION BY $0)], EXPR$1=[COUNT($3) OVER ()])
+LogicalProject(WS=[SUM($2) OVER (PARTITION BY $0)], C=[COUNT($3) OVER ()])
   LogicalCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{1}])
     LogicalProject(DNAME=[$1], EMPLOYEES=[$3], EXPR$0=[+($0, 1)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
@@ -358,32 +358,32 @@ LogicalProject(DEPTNO=[$7], F1=[$9], F2=[$10])
 # testProjectWindowTransposeRule -----------------------------------------------
 # PROJECT_WINDOW_TRANSPOSE pushes a Project through a Window.
 
-select count(empno) over(), deptno from emp;
-+--------+--------+
-| EXPR$0 | DEPTNO |
-+--------+--------+
-|     14 |     10 |
-|     14 |     10 |
-|     14 |     10 |
-|     14 |     20 |
-|     14 |     20 |
-|     14 |     20 |
-|     14 |     20 |
-|     14 |     20 |
-|     14 |     30 |
-|     14 |     30 |
-|     14 |     30 |
-|     14 |     30 |
-|     14 |     30 |
-|     14 |     30 |
-+--------+--------+
+select count(empno) over() as c, deptno from emp;
++----+--------+
+| C  | DEPTNO |
++----+--------+
+| 14 |     10 |
+| 14 |     10 |
+| 14 |     10 |
+| 14 |     20 |
+| 14 |     20 |
+| 14 |     20 |
+| 14 |     20 |
+| 14 |     20 |
+| 14 |     30 |
+| 14 |     30 |
+| 14 |     30 |
+| 14 |     30 |
+| 14 |     30 |
+| 14 |     30 |
++----+--------+
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[COUNT($0) OVER ()], DEPTNO=[$7])
+LogicalProject(C=[COUNT($0) OVER ()], DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$2], DEPTNO=[$1])
+LogicalProject(C=[$2], DEPTNO=[$1])
   LogicalWindow(window#0=[window(aggs [COUNT($0)])])
     LogicalProject(EMPNO=[$0], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -496,25 +496,25 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
 # [CALCITE-6011]
 
 select *
-from (select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) from dept)
+from (select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) as c from dept)
 where DEPTNO > 0;
-+------------+--------+--------+
-| DNAME      | DEPTNO | EXPR$2 |
-+------------+--------+--------+
-| ACCOUNTING |     10 |      1 |
-| OPERATIONS |     40 |      1 |
-| RESEARCH   |     20 |      1 |
-| SALES      |     30 |      1 |
-+------------+--------+--------+
++------------+--------+---+
+| DNAME      | DEPTNO | C |
++------------+--------+---+
+| ACCOUNTING |     10 | 1 |
+| OPERATIONS |     40 | 1 |
+| RESEARCH   |     20 | 1 |
+| SALES      |     30 | 1 |
++------------+--------+---+
 (4 rows)
 
 !ok
-LogicalProject(DNAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
+LogicalProject(DNAME=[$0], DEPTNO=[$1], C=[$2])
   LogicalFilter(condition=[>($1, 0)])
-    LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[COUNT() OVER (PARTITION BY $1, $0)])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[COUNT() OVER (PARTITION BY $1, $0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalProject(DNAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
   LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])])
     LogicalFilter(condition=[>($0, 0)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -584,30 +584,30 @@ LogicalProject(ENAME=[$0], R=[$1])
 # [CALCITE-2078]
 
 SELECT
-  min(empno),
-  sum(sal),
+  min(empno) as n,
+  sum(sal) as s,
   sum(sum(sal))
-    over (partition by min(empno) order by sum(sal))
+    over (partition by min(empno) order by sum(sal)) as ws
 from emp
 group by deptno;
-+--------+----------+----------+
-| EXPR$0 | EXPR$1   | EXPR$2   |
-+--------+----------+----------+
-|   7369 | 10875.00 | 10875.00 |
-|   7499 |  9400.00 |  9400.00 |
-|   7782 |  8750.00 |  8750.00 |
-+--------+----------+----------+
++------+----------+----------+
+| N    | S        | WS       |
++------+----------+----------+
+| 7369 | 10875.00 | 10875.00 |
+| 7499 |  9400.00 |  9400.00 |
+| 7782 |  8750.00 |  8750.00 |
++------+----------+----------+
 (3 rows)
 
 !ok
-LogicalProject(EXPR$0=[$1], EXPR$1=[$2], EXPR$2=[SUM($2) OVER (PARTITION BY $1 ORDER BY $2)])
-  LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)], EXPR$1=[SUM($2)])
+LogicalProject(N=[$1], S=[$2], WS=[SUM($2) OVER (PARTITION BY $1 ORDER BY $2)])
+  LogicalAggregate(group=[{0}], N=[MIN($1)], S=[SUM($2)])
     LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$1], EXPR$1=[$2], EXPR$2=[$3])
+LogicalProject(N=[$1], S=[$2], WS=[$3])
   LogicalWindow(window#0=[window(partition {1} order by [2] aggs [SUM($2)])])
-    LogicalAggregate(group=[{0}], EXPR$0=[MIN($1)], EXPR$1=[SUM($2)])
+    LogicalAggregate(group=[{0}], N=[MIN($1)], S=[SUM($2)])
       LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW"

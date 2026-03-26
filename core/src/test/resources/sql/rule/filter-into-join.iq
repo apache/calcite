@@ -473,38 +473,38 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # FILTER_INTO_JOIN converts a left outer join to inner when the WHERE clause
 # has a null-rejecting predicate on the right side.
 
-select 1
+select 1 as x
 from dept d
 left outer join emp e on d.deptno = e.deptno
 where e.sal > 100;
-+--------+
-| EXPR$0 |
-+--------+
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-|      1 |
-+--------+
++---+
+| X |
++---+
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
+| 1 |
++---+
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalFilter(condition=[>($7, 100)])
     LogicalJoin(condition=[=($0, $9)], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[1])
+LogicalProject(X=[1])
   LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[CAST($2):INTEGER], ENAME=[CAST($3):VARCHAR(20)], JOB=[CAST($4):VARCHAR(10)], MGR=[$5], HIREDATE=[CAST($6):TIMESTAMP(0)], SAL=[CAST($7):INTEGER], COMM=[CAST($8):INTEGER], DEPTNO0=[CAST($9):INTEGER], SLACKER=[CAST($10):BOOLEAN])
     LogicalJoin(condition=[=($0, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])

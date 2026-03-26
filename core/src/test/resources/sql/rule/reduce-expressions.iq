@@ -213,12 +213,12 @@ LogicalProject(P=[1008618.4899999999E0:DOUBLE])
 # [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
 # including NaN, Infinity
 
-SELECT 1.0 / 0.0e0;
+SELECT 1.0 / 0.0e0 as x;
 # Not using !ok: this test focuses on plan transformation (see !transform).
-LogicalProject(EXPR$0=[/(1.0:DECIMAL(2, 1), 0.0E0:DOUBLE)])
+LogicalProject(X=[/(1.0:DECIMAL(2, 1), 0.0E0:DOUBLE)])
   LogicalValues(tuples=[[{ 0 }]])
 !transform ""
-LogicalProject(EXPR$0=[Infinity:DOUBLE])
+LogicalProject(X=[Infinity:DOUBLE])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "PROJECT_REDUCE_EXPRESSIONS"
 
@@ -339,21 +339,21 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # testFilterReduceCrash --------------------------------------------------------
 # [CALCITE-7070] FILTER_REDUCE_EXPRESSIONS crashes on expression BETWEEN ( NULL) AND X.
 
-SELECT + 54
+SELECT + 54 as x
 FROM emp
 WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) NOT BETWEEN ( NULL ) AND 89;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| X |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[54])
+LogicalProject(X=[54])
   LogicalFilter(condition=[NOT(NOT(AND(>=(CAST(CAST($0):DOUBLE NOT NULL):INTEGER NOT NULL, null), <=(CAST(CAST($0):DOUBLE NOT NULL):INTEGER NOT NULL, 89))))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[54])
+LogicalProject(X=[54])
   LogicalValues(tuples=[[]])
 !transform "FILTER_REDUCE_EXPRESSIONS"
 
@@ -537,10 +537,10 @@ LogicalProject(DEPTNO=[$1], SAL=[$0])
 # PROJECT_OVER_SUM_TO_SUM0_RULE and WINDOW_REDUCE_EXPRESSIONS convert
 # avg(sal) over window to sum0(sal)/count(sal).
 
-select avg(sal) over (order by empno rows 3 preceding)
+select avg(sal) over (order by empno rows 3 preceding) as a
 from emp;
 +---------+
-| EXPR$0  |
+| A       |
 +---------+
 | 1200.00 |
 | 1216.66 |
@@ -560,10 +560,10 @@ from emp;
 (14 rows)
 
 !ok
-LogicalProject(EXPR$0=[CAST(/(CASE(>(COUNT($5) OVER (ORDER BY $0 ROWS 3 PRECEDING), 0), SUM($5) OVER (ORDER BY $0 ROWS 3 PRECEDING), null:INTEGER), COUNT($5) OVER (ORDER BY $0 ROWS 3 PRECEDING))):INTEGER])
+LogicalProject(A=[CAST(/(CASE(>(COUNT($5) OVER (ORDER BY $0 ROWS 3 PRECEDING), 0), SUM($5) OVER (ORDER BY $0 ROWS 3 PRECEDING), null:INTEGER), COUNT($5) OVER (ORDER BY $0 ROWS 3 PRECEDING))):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
+LogicalProject(A=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
   LogicalWindow(window#0=[window(order by [0] rows between $2 PRECEDING and CURRENT ROW aggs [COUNT($1), $SUM0($1)])], constants=[[3]])
     LogicalProject(EMPNO=[$0], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -604,14 +604,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # deptno = 10 into a project, replacing references with the literal 10.
 # Not using !ok: uses schema-qualified table name.
 
-select deptno, deptno + 1, empno + deptno
+select deptno, deptno + 1 as x0, empno + deptno as x1
 from emp
 where deptno = 10;
-LogicalProject(DEPTNO=[$7], EXPR$1=[+($7, 1)], EXPR$2=[+($0, $7)])
+LogicalProject(DEPTNO=[$7], X0=[+($7, 1)], X1=[+($0, $7)])
   LogicalFilter(condition=[=($7, 10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
+LogicalProject(DEPTNO=[10], X0=[11], X1=[+($0, 10)])
   LogicalFilter(condition=[=($7, 10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, JOIN_PUSH_TRANSITIVE_PREDICATES, PROJECT_REDUCE_EXPRESSIONS"
@@ -694,21 +694,21 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
 # PROJECT_REDUCE_EXPRESSIONS reduces expressions in a project using constants
 # inferred from the filter (comm <> 2 becomes false, comm = 2 becomes true).
 
-select comm <> 2, comm = 2
+select comm <> 2 as b0, comm = 2 as b1
 from emp
 where comm = 2;
-+--------+--------+
-| EXPR$0 | EXPR$1 |
-+--------+--------+
-+--------+--------+
++----+----+
+| B0 | B1 |
++----+----+
++----+----+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[<>($6, 2)], EXPR$1=[=($6, 2)])
+LogicalProject(B0=[<>($6, 2)], B1=[=($6, 2)])
   LogicalFilter(condition=[=($6, 2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[false], EXPR$1=[true])
+LogicalProject(B0=[false], B1=[true])
   LogicalFilter(condition=[=($6, 2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, PROJECT_REDUCE_EXPRESSIONS"
@@ -717,21 +717,21 @@ LogicalProject(EXPR$0=[false], EXPR$1=[true])
 # FILTER_REDUCE_EXPRESSIONS + PROJECT_REDUCE_EXPRESSIONS reduce expressions
 # (comm = 2 becomes true, empno <> 1 becomes false).
 
-select comm = 2, empno <> 1
+select comm = 2 as b0, empno <> 1 as b1
 from emp
 where comm = 2 and empno = 1;
-+--------+--------+
-| EXPR$0 | EXPR$1 |
-+--------+--------+
-+--------+--------+
++----+----+
+| B0 | B1 |
++----+----+
++----+----+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[=($6, 2)], EXPR$1=[<>($0, 1)])
+LogicalProject(B0=[=($6, 2)], B1=[<>($0, 1)])
   LogicalFilter(condition=[AND(=($6, 2), =($0, 1))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
-LogicalProject(EXPR$0=[true], EXPR$1=[false])
+LogicalProject(B0=[true], B1=[false])
   LogicalFilter(condition=[AND(=($6, 2), =($0, 1))])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
@@ -740,29 +740,29 @@ LogicalProject(EXPR$0=[true], EXPR$1=[false])
 # FILTER_REDUCE_EXPRESSIONS + PROJECT_REDUCE_EXPRESSIONS reduce constants
 # pulled from a filter into a union.
 
-select empno = null from emp where comm = 2
+select empno = null as b from emp where comm = 2
 union all
-select comm = 2 from emp where comm = 2;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
+select comm = 2 as b from emp where comm = 2;
++---+
+| B |
++---+
++---+
 (0 rows)
 
 !ok
 LogicalUnion(all=[true])
-  LogicalProject(EXPR$0=[null:BOOLEAN])
+  LogicalProject(B=[null:BOOLEAN])
     LogicalFilter(condition=[=($6, 2)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject(EXPR$0=[=($6, 2)])
+  LogicalProject(B=[=($6, 2)])
     LogicalFilter(condition=[=($6, 2)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE"
 LogicalUnion(all=[true])
-  LogicalProject(EXPR$0=[null:BOOLEAN])
+  LogicalProject(B=[null:BOOLEAN])
     LogicalFilter(condition=[=($6, 2)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-  LogicalProject(EXPR$0=[true])
+  LogicalProject(B=[true])
     LogicalFilter(condition=[=($6, 2)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "FILTER_INTO_JOIN_DUMB, JOIN_CONDITION_PUSH, FILTER_PROJECT_TRANSPOSE, FILTER_SET_OP_TRANSPOSE, FILTER_REDUCE_EXPRESSIONS, PROJECT_REDUCE_EXPRESSIONS"
@@ -888,19 +888,19 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # PROJECT_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS, and FILTER_REDUCE_EXPRESSIONS
 # remove redundant casts (e.g., CAST(integer AS integer) becomes the column itself).
 
-select cast(d.dname as varchar(128)), cast(e.empno as integer)
+select cast(d.dname as varchar(128)) as x0, cast(e.empno as integer) as x1
 from dept as d inner join emp as e
 on cast(d.deptno as integer) = cast(e.deptno as integer)
 where cast(e.job as varchar(1)) = 'Manager';
-+--------+--------+
-| EXPR$0 | EXPR$1 |
-+--------+--------+
-+--------+--------+
++----+----+
+| X0 | X1 |
++----+----+
++----+----+
 (0 rows)
 
 !ok
 
-LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER NOT NULL])
+LogicalProject(X0=[CAST($1):VARCHAR(128) NOT NULL], X1=[CAST($2):INTEGER NOT NULL])
   LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
       LogicalJoin(condition=[=($2, $12)], joinType=[inner])
@@ -909,7 +909,7 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($7):INTEGER NOT NULL])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "RelBuilder(simplify=false)"
-LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
+LogicalProject(X0=[CAST($1):VARCHAR(128) NOT NULL], X1=[$2])
   LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
       LogicalJoin(condition=[=($2, $12)], joinType=[inner])
@@ -923,14 +923,14 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
 # Tests that a cast from a TIME to a TIMESTAMP is not reduced (depends on current date).
 # Not using !ok: execution results depend on the current date.
 
-select cast(time '12:34:56' as timestamp)
+select cast(time '12:34:56' as timestamp) as x
 from emp as e;
-EXPR$0 TIMESTAMP NOT NULL
+X TIMESTAMP NOT NULL
 !type
-LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
+LogicalProject(X=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
+LogicalProject(X=[CAST(12:34:56):TIMESTAMP(0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
@@ -993,19 +993,19 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1])
 # join. With relBuilderSimplify=false, CASE from COALESCE is not pre-simplified.
 # [CALCITE-566]
 
-select 1+2, d.deptno+(3+4), (5+6)+d.deptno, cast(null as integer),
-coalesce(2,null), row(7+8)
+select 1+2 as x0, d.deptno+(3+4) as x1, (5+6)+d.deptno as x2,
+cast(null as integer) as x3, coalesce(2,null) as x4, row(7+8) as x5
 from dept d inner join emp e
 on d.deptno = e.deptno + (5-5)
 where d.deptno=(7+8) and d.deptno=(8+7) and d.deptno=coalesce(2,null);
-+--------+--------+--------+--------+--------+--------+
-| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 |
-+--------+--------+--------+--------+--------+--------+
-+--------+--------+--------+--------+--------+--------+
++----+----+----+----+----+----+
+| X0 | X1 | X2 | X3 | X4 | X5 |
++----+----+----+----+----+----+
++----+----+----+----+----+----+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)], EXPR$3=[null:INTEGER], EXPR$4=[CASE(IS NOT NULL(2), 2, null:INTEGER)], EXPR$5=[ROW(+(7, 8))])
+LogicalProject(X0=[+(1, 2)], X1=[+($0, +(3, 4))], X2=[+(+(5, 6), $0)], X3=[null:INTEGER], X4=[CASE(IS NOT NULL(2), 2, null:INTEGER)], X5=[ROW(+(7, 8))])
   LogicalFilter(condition=[AND(=($0, +(7, 8)), =($0, CASE(IS NOT NULL(2), 2, null:INTEGER)))])
     LogicalProject(DEPTNO=[$0], DNAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
       LogicalJoin(condition=[=($0, $11)], joinType=[inner])
@@ -1013,7 +1013,7 @@ LogicalProject(EXPR$0=[+(1, 2)], EXPR$1=[+($0, +(3, 4))], EXPR$2=[+(+(5, 6), $0)
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, -(5, 5))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "RelBuilder(simplify=false)"
-LogicalProject(EXPR$0=[3], EXPR$1=[22], EXPR$2=[26], EXPR$3=[null:INTEGER], EXPR$4=[CAST(2):INTEGER], EXPR$5=[ROW(15)])
+LogicalProject(X0=[3], X1=[22], X2=[26], X3=[null:INTEGER], X4=[CAST(2):INTEGER], X5=[ROW(15)])
   LogicalValues(tuples=[[]])
 !transform "RelBuilder(simplify=false), PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
@@ -1022,44 +1022,44 @@ LogicalProject(EXPR$0=[3], EXPR$1=[22], EXPR$2=[26], EXPR$3=[null:INTEGER], EXPR
 # JOIN_REDUCE_EXPRESSIONS do not change the plan when simplifyValues is false
 # (checkUnchanged).
 
-select p1 is not distinct from p0
+select p1 is not distinct from p0 as b
 from (values (2, cast(null as integer))) as t(p0, p1);
-+--------+
-| EXPR$0 |
-+--------+
-| false  |
-+--------+
++-------+
+| B     |
++-------+
+| false |
++-------+
 (1 row)
 
 !ok
-LogicalProject(EXPR$0=[false])
+LogicalProject(B=[false])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "RelBuilder(simplifyValues=false)"
-LogicalProject(EXPR$0=[false])
+LogicalProject(B=[false])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "RelBuilder(simplifyValues=false), PROJECT_REDUCE_EXPRESSIONS, FILTER_REDUCE_EXPRESSIONS, JOIN_REDUCE_EXPRESSIONS"
 
 # testReduceConstants3 ---------------------------------------------------------
 # Tests reduction of IS NOT DISTINCT FROM when mgr is known null.
 
-select e.mgr is not distinct from f.mgr
+select e.mgr is not distinct from f.mgr as b
 from emp e
 join emp f on (e.mgr=f.mgr)
 where e.mgr is null;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| B |
++---+
++---+
 (0 rows)
 
 !ok
-LogicalProject(EXPR$0=[OR(AND(IS NULL($3), IS NULL($12)), IS TRUE(=($3, $12)))])
+LogicalProject(B=[OR(AND(IS NULL($3), IS NULL($12)), IS TRUE(=($3, $12)))])
   LogicalFilter(condition=[IS NULL($3)])
     LogicalJoin(condition=[=($3, $12)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[IS NULL($12)])
+LogicalProject(B=[IS NULL($12)])
   LogicalFilter(condition=[IS NULL($3)])
     LogicalJoin(condition=[=($3, $12)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1695,29 +1695,30 @@ LogicalProject(COL1=[$3], COL2=[$4])
 # testReduceConstantsWithRow ---------------------------------------------------
 # [CALCITE-7140] Improve constant reduction of expressions containing SqlRowOperator.
 
-SELECT 1+1, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['a'||'b', 6+6],
-ROW(1+2, ARRAY[1+2, 2+3], ROW('a', 3+4), MAP['ab'||'cd', 6+7]),
-ARRAY[2*3, 2, 1],
-ARRAY[ROW(4*2, 'a'), ROW(4+4, 'b')],
-ARRAY[MAP['abc'||'def', 8+8], MAP['ghi'||'jkl', 9+9]],
-ARRAY[ROW(1+2, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['x'||'y', 8+8])],
-CARDINALITY(ARRAY[2*3, 2*2, 1*4]),
-CARDINALITY(ARRAY[ROW(4*3, 'm'), ROW(4+6, 'b')]),
-CARDINALITY(ARRAY[MAP['ac'||'bd', 1+8], MAP['gi'||'jl', 1+9]]),
+SELECT 1+1 as x0, ARRAY[1+1, 2+2] as x1, ROW('a', 3+3) as x2,
+MAP['a'||'b', 6+6] as x3,
+ROW(1+2, ARRAY[1+2, 2+3], ROW('a', 3+4), MAP['ab'||'cd', 6+7]) as x4,
+ARRAY[2*3, 2, 1] as x5,
+ARRAY[ROW(4*2, 'a'), ROW(4+4, 'b')] as x6,
+ARRAY[MAP['abc'||'def', 8+8], MAP['ghi'||'jkl', 9+9]] as x7,
+ARRAY[ROW(1+2, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['x'||'y', 8+8])] as x8,
+CARDINALITY(ARRAY[2*3, 2*2, 1*4]) as x9,
+CARDINALITY(ARRAY[ROW(4*3, 'm'), ROW(4+6, 'b')]) as x10,
+CARDINALITY(ARRAY[MAP['ac'||'bd', 1+8], MAP['gi'||'jl', 1+9]]) as x11,
 CARDINALITY(ARRAY[ROW(1+7, ARRAY[1+4, 4+2],
-    ROW('t', 5+5), MAP['y'||'z', 9+9])]);
-+--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
-| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  | EXPR$4                         | EXPR$5    | EXPR$6           | EXPR$7                     | EXPR$8                         | EXPR$9 | EXPR$10 | EXPR$11 | EXPR$12 |
-+--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
-|      2 | [2, 4] | {a, 6} | {ab=12} | {3, [3, 5], {a, 7}, {abcd=13}} | [6, 2, 1] | [{8, a}, {8, b}] | [{abcdef=16}, {ghijkl=18}] | [{3, [2, 4], {a, 6}, {xy=16}}] |      3 |       2 |       2 |       1 |
-+--------+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+--------+---------+---------+---------+
+    ROW('t', 5+5), MAP['y'||'z', 9+9])]) as x12;
++----+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+----+-----+-----+-----+
+| X0 | X1     | X2     | X3      | X4                             | X5        | X6               | X7                         | X8                             | X9 | X10 | X11 | X12 |
++----+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+----+-----+-----+-----+
+|  2 | [2, 4] | {a, 6} | {ab=12} | {3, [3, 5], {a, 7}, {abcd=13}} | [6, 2, 1] | [{8, a}, {8, b}] | [{abcdef=16}, {ghijkl=18}] | [{3, [2, 4], {a, 6}, {xy=16}}] |  3 |   2 |   2 |   1 |
++----+--------+--------+---------+--------------------------------+-----------+------------------+----------------------------+--------------------------------+----+-----+-----+-----+
 (1 row)
 
 !ok
-LogicalProject(EXPR$0=[+(1, 1)], EXPR$1=[ARRAY(+(1, 1), +(2, 2))], EXPR$2=[ROW('a', +(3, 3))], EXPR$3=[MAP(||('a', 'b'), +(6, 6))], EXPR$4=[ROW(+(1, 2), ARRAY(+(1, 2), +(2, 3)), ROW('a', +(3, 4)), MAP(||('ab', 'cd'), +(6, 7)))], EXPR$5=[ARRAY(*(2, 3), 2, 1)], EXPR$6=[ARRAY(ROW(*(4, 2), 'a'), ROW(+(4, 4), 'b'))], EXPR$7=[ARRAY(MAP(||('abc', 'def'), +(8, 8)), MAP(||('ghi', 'jkl'), +(9, 9)))], EXPR$8=[ARRAY(ROW(+(1, 2), ARRAY(+(1, 1), +(2, 2)), ROW('a', +(3, 3)), MAP(||('x', 'y'), +(8, 8))))], EXPR$9=[CARDINALITY(ARRAY(*(2, 3), *(2, 2), 4))], EXPR$10=[CARDINALITY(ARRAY(ROW(*(4, 3), 'm'), ROW(+(4, 6), 'b')))], EXPR$11=[CARDINALITY(ARRAY(MAP(||('ac', 'bd'), +(1, 8)), MAP(||('gi', 'jl'), +(1, 9))))], EXPR$12=[CARDINALITY(ARRAY(ROW(+(1, 7), ARRAY(+(1, 4), +(4, 2)), ROW('t', +(5, 5)), MAP(||('y', 'z'), +(9, 9)))))])
+LogicalProject(X0=[+(1, 1)], X1=[ARRAY(+(1, 1), +(2, 2))], X2=[ROW('a', +(3, 3))], X3=[MAP(||('a', 'b'), +(6, 6))], X4=[ROW(+(1, 2), ARRAY(+(1, 2), +(2, 3)), ROW('a', +(3, 4)), MAP(||('ab', 'cd'), +(6, 7)))], X5=[ARRAY(*(2, 3), 2, 1)], X6=[ARRAY(ROW(*(4, 2), 'a'), ROW(+(4, 4), 'b'))], X7=[ARRAY(MAP(||('abc', 'def'), +(8, 8)), MAP(||('ghi', 'jkl'), +(9, 9)))], X8=[ARRAY(ROW(+(1, 2), ARRAY(+(1, 1), +(2, 2)), ROW('a', +(3, 3)), MAP(||('x', 'y'), +(8, 8))))], X9=[CARDINALITY(ARRAY(*(2, 3), *(2, 2), 4))], X10=[CARDINALITY(ARRAY(ROW(*(4, 3), 'm'), ROW(+(4, 6), 'b')))], X11=[CARDINALITY(ARRAY(MAP(||('ac', 'bd'), +(1, 8)), MAP(||('gi', 'jl'), +(1, 9))))], X12=[CARDINALITY(ARRAY(ROW(+(1, 7), ARRAY(+(1, 4), +(4, 2)), ROW('t', +(5, 5)), MAP(||('y', 'z'), +(9, 9)))))])
   LogicalValues(tuples=[[{ 0 }]])
 !transform ""
-LogicalProject(EXPR$0=[2], EXPR$1=[ARRAY(2, 4)], EXPR$2=[ROW('a', 6)], EXPR$3=[MAP('ab', 12)], EXPR$4=[ROW(3, ARRAY(3, 5), ROW('a', 7), MAP('abcd', 13))], EXPR$5=[ARRAY(6, 2, 1)], EXPR$6=[ARRAY(ROW(8, 'a'), ROW(8, 'b'))], EXPR$7=[ARRAY(MAP('abcdef', 16), MAP('ghijkl', 18))], EXPR$8=[ARRAY(ROW(3, ARRAY(2, 4), ROW('a', 6), MAP('xy', 16)))], EXPR$9=[3], EXPR$10=[2], EXPR$11=[2], EXPR$12=[1])
+LogicalProject(X0=[2], X1=[ARRAY(2, 4)], X2=[ROW('a', 6)], X3=[MAP('ab', 12)], X4=[ROW(3, ARRAY(3, 5), ROW('a', 7), MAP('abcd', 13))], X5=[ARRAY(6, 2, 1)], X6=[ARRAY(ROW(8, 'a'), ROW(8, 'b'))], X7=[ARRAY(MAP('abcdef', 16), MAP('ghijkl', 18))], X8=[ARRAY(ROW(3, ARRAY(2, 4), ROW('a', 6), MAP('xy', 16)))], X9=[3], X10=[2], X11=[2], X12=[1])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "PROJECT_REDUCE_EXPRESSIONS"
 
@@ -2092,11 +2093,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 # result
 # Not using !ok: the 'split' function resides in the BigQuery operator table
 
-select split('1|2|3', '|');
-LogicalProject(EXPR$0=[SPLIT('1|2|3', '|')])
+select split('1|2|3', '|') as x;
+LogicalProject(X=[SPLIT('1|2|3', '|')])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "operatorTable=BIG_QUERY"
-LogicalProject(EXPR$0=[ARRAY('1':VARCHAR, '2':VARCHAR, '3':VARCHAR)])
+LogicalProject(X=[ARRAY('1':VARCHAR, '2':VARCHAR, '3':VARCHAR)])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "PROJECT_REDUCE_EXPRESSIONS, operatorTable=BIG_QUERY"
 
@@ -2120,11 +2121,11 @@ LogicalProject(X=[null:VARCHAR NOT NULL ARRAY])
 # that returns NULL
 # Not using !ok: the 'split' function resides in the BigQuery operator table
 
-select split(NULL, '|');
-LogicalProject(EXPR$0=[SPLIT(null:NULL, '|')])
+select split(NULL, '|') as x;
+LogicalProject(X=[SPLIT(null:NULL, '|')])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "operatorTable=BIG_QUERY"
-LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
+LogicalProject(X=[null:VARCHAR NOT NULL ARRAY])
   LogicalValues(tuples=[[{ 0 }]])
 !transform "PROJECT_REDUCE_EXPRESSIONS, operatorTable=BIG_QUERY"
 

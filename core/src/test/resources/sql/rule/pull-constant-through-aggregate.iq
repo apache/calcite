@@ -27,16 +27,16 @@
 # constant expression.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select 4, 2+3, max(five) from (
+select 4 as x, 2+3 as y, max(five) as m from (
   select *, 4 as four, 2+3 as two_plus_three, 5 as five, deptno+42 as deptno42 from emp
 ) group by 4, 2+3;
-LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
-  LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], FIVE=[5])
+LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
+  LogicalProject(X=[4], Y=[+(2, 3)], FIVE=[5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
-  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
-    LogicalProject(EXPR$0=[4], FIVE=[5])
+LogicalProject(X=[$0], Y=[+(2, 3)], M=[$1])
+  LogicalAggregate(group=[{0}], M=[MAX($1)])
+    LogicalProject(X=[4], FIVE=[5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
@@ -45,16 +45,16 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
 # all literal.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select 4, 2+3, max(5) from (
+select 4 as x, 2+3 as y, max(5) as m from (
   select *, 4 as four, 2+3 as two_plus_three, 5 as five, deptno+42 as deptno42 from emp
 ) group by 4, 2+3;
-LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
-  LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], $f2=[5])
+LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
+  LogicalProject(X=[4], Y=[+(2, 3)], $f2=[5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
-  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
-    LogicalProject(EXPR$0=[4], $f2=[5])
+LogicalProject(X=[$0], Y=[+(2, 3)], M=[$1])
+  LogicalAggregate(group=[{0}], M=[MAX($1)])
+    LogicalProject(X=[4], $f2=[5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
@@ -62,16 +62,16 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
 # AGGREGATE_PROJECT_PULL_UP_CONSTANTS removes GROUP BY keys that are constant.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select 4, 2+3, max(mgr) from (
+select 4 as x, 2+3 as y, max(mgr) as m from (
   select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
 ) group by 4, 2+3;
-LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
-  LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], MGR=[$3])
+LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
+  LogicalProject(X=[4], Y=[+(2, 3)], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
-  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
-    LogicalProject(EXPR$0=[4], MGR=[$3])
+LogicalProject(X=[$0], Y=[+(2, 3)], M=[$1])
+  LogicalAggregate(group=[{0}], M=[MAX($1)])
+    LogicalProject(X=[4], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
 
@@ -80,16 +80,16 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
 # with multiple keys in non-trivial order.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, max(mgr) from (
+select deptno, max(mgr) as m from (
   select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
 ) group by deptno, four, two_plus_three, deptno42;
-LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
-  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$1=[MAX($4)])
+LogicalProject(DEPTNO=[$0], M=[$4])
+  LogicalAggregate(group=[{0, 1, 2, 3}], M=[MAX($4)])
     LogicalProject(DEPTNO=[$7], FOUR=[4], TWO_PLUS_THREE=[+(2, 3)], DEPTNO42=[+($7, 42)], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+LogicalProject(DEPTNO=[$0], M=[$2])
+  LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
     LogicalProject(DEPTNO=[$7], DEPTNO42=[+($7, 42)], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
@@ -99,15 +99,15 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
 # it appears first.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, max(mgr) from (
+select deptno, max(mgr) as m from (
   select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
 ) group by four, deptno;
-LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+LogicalProject(DEPTNO=[$1], M=[$2])
+  LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
     LogicalProject(FOUR=[4], DEPTNO=[$7], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+LogicalAggregate(group=[{0}], M=[MAX($1)])
   LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
@@ -117,15 +117,15 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 # from GROUP BY.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, max(mgr) from (
+select deptno, max(mgr) as m from (
   select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
 ) group by 42+24, deptno;
-LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+LogicalProject(DEPTNO=[$1], M=[$2])
+  LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
     LogicalProject($f0=[+(42, 24)], DEPTNO=[$7], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+LogicalAggregate(group=[{0}], M=[MAX($1)])
   LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
@@ -135,15 +135,15 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 # GROUP BY.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, max(ename) from (
+select deptno, max(ename) as m from (
   select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
 ) group by deptno, four;
-LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+LogicalProject(DEPTNO=[$0], M=[$2])
+  LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
     LogicalProject(DEPTNO=[$7], FOUR=[4], ENAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+LogicalAggregate(group=[{0}], M=[MAX($1)])
   LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"
@@ -153,15 +153,15 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 # it appears last.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, max(mgr) from (
+select deptno, max(mgr) as m from (
   select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
 ) group by deptno, four;
-LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
-  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+LogicalProject(DEPTNO=[$0], M=[$2])
+  LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
     LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+LogicalAggregate(group=[{0}], M=[MAX($1)])
   LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "PROJECT_MERGE, AGGREGATE_PROJECT_PULL_UP_CONSTANTS, PROJECT_MERGE"

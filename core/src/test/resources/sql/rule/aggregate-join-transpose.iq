@@ -60,58 +60,58 @@ LogicalProject(JOB=[$0], MIN_SAL=[$2], MIN_DEPTNO=[$3], SUM_SAL_PLUS=[+($4, 1)],
 # testPushAggregateSumNoGroup --------------------------------------------------
 # Pushes COUNT(*) through a join with no GROUP BY.
 
-select count(*)
+select count(*) as c
 from emp
 join dept on job = dname;
-+--------+
-| EXPR$0 |
-+--------+
-|      0 |
-+--------+
++---+
+| C |
++---+
+| 0 |
++---+
 (1 row)
 
 !ok
-LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+LogicalAggregate(group=[{}], C=[COUNT()])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)])
+LogicalAggregate(group=[{}], C=[$SUM0($0)])
   LogicalProject($f4=[*($1, $3)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
-      LogicalAggregate(group=[{2}], EXPR$0=[COUNT()])
+      LogicalAggregate(group=[{2}], C=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalAggregate(group=[{1}], EXPR$0=[COUNT()])
+      LogicalAggregate(group=[{1}], C=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "AGGREGATE_PROJECT_MERGE, AGGREGATE_JOIN_TRANSPOSE_EXTENDED"
 
 # testPushAggregateSumThroughJoin ----------------------------------------------
 # SUM is the easiest aggregate function to split; pushes it through an inner join.
 
-select e.job,sum(sal)
+select e.job, sum(sal) as s
 from (select * from emp where ename = 'A') as e
 join dept as d on e.job = d.dname
 group by e.job,d.dname;
-+-----+--------+
-| JOB | EXPR$1 |
-+-----+--------+
-+-----+--------+
++-----+---+
+| JOB | S |
++-----+---+
++-----+---+
 (0 rows)
 
 !ok
 
-LogicalProject(JOB=[$0], EXPR$1=[$2])
-  LogicalAggregate(group=[{2, 10}], EXPR$1=[SUM($5)])
+LogicalProject(JOB=[$0], S=[$2])
+  LogicalAggregate(group=[{2, 10}], S=[SUM($5)])
     LogicalJoin(condition=[=($2, $10)], joinType=[inner])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalProject(JOB=[$0], EXPR$1=[$2])
+LogicalProject(JOB=[$0], S=[$2])
   LogicalProject(JOB=[$0], DNAME=[$2], $f4=[CAST(*($1, $3)):INTEGER NOT NULL])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
-      LogicalAggregate(group=[{2}], EXPR$1=[SUM($5)])
+      LogicalAggregate(group=[{2}], S=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
           LogicalFilter(condition=[=($1, 'A')])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -122,29 +122,29 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
 # testPushAggregateSumThroughJoinAfterAggregateReduce --------------------------
 # Like testPushAggregateSumThroughJoin but also uses AggregateReduceFunctionsRule.
 
-select sum(sal)
+select sum(sal) as s
 from (select * from emp where ename = 'A') as e
 join dept as d on e.job = d.dname;
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
++---+
+| S |
++---+
+|   |
++---+
 (1 row)
 
 !ok
-LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+LogicalAggregate(group=[{}], S=[SUM($5)])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
-  LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)], agg#1=[$SUM0($1)])
+LogicalProject(S=[CASE(=($1, 0), null:INTEGER, $0)])
+  LogicalAggregate(group=[{}], S=[$SUM0($0)], agg#1=[$SUM0($1)])
     LogicalProject($f5=[CAST(*($1, $4)):INTEGER NOT NULL], $f6=[*($2, $4)])
       LogicalJoin(condition=[=($0, $3)], joinType=[inner])
-        LogicalAggregate(group=[{2}], EXPR$0=[$SUM0($5)], agg#1=[COUNT()])
+        LogicalAggregate(group=[{2}], S=[$SUM0($5)], agg#1=[COUNT()])
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
             LogicalFilter(condition=[=($1, 'A')])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -155,28 +155,28 @@ LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
 # testPushAggregateSumWithoutGroupKeyThroughJoin -------------------------------
 # Pushes SUM through a join that has no GROUP BY keys.
 
-select sum(sal)
+select sum(sal) as s
 from (select * from emp where ename = 'A') as e
 join dept as d on e.job = d.dname;
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
++---+
+| S |
++---+
+|   |
++---+
 (1 row)
 
 !ok
-LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
+LogicalAggregate(group=[{}], S=[SUM($5)])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
       LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalProject($f4=[CAST(*($1, $3)):INTEGER])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
-      LogicalAggregate(group=[{2}], EXPR$0=[SUM($5)])
+      LogicalAggregate(group=[{2}], S=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
           LogicalFilter(condition=[=($1, 'A')])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -353,12 +353,12 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
 # testPushAggregateThroughJoin6 ------------------------------------------------
 # [CALCITE-2195] AggregateJoinTransposeRule fails to aggregate over unique column.
 
-select sum(B.sal)
+select sum(B.sal) as s
 from emp as A
 join (select distinct sal from emp) as B
 on A.sal=B.sal;
 +----------+
-| EXPR$0   |
+| S        |
 +----------+
 | 29025.00 |
 +----------+
@@ -366,13 +366,13 @@ on A.sal=B.sal;
 
 !ok
 
-LogicalAggregate(group=[{}], EXPR$0=[SUM($9)])
+LogicalAggregate(group=[{}], S=[SUM($9)])
   LogicalJoin(condition=[=($5, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{5}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+LogicalAggregate(group=[{}], S=[SUM($0)])
   LogicalProject($f3=[CAST(*($1, $2)):INTEGER])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{5}], agg#0=[COUNT()])
@@ -384,12 +384,12 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 # testPushAggregateThroughJoin7 ------------------------------------------------
 # Pushes ANY_VALUE(DISTINCT ...) through a join over a distinct sub-query.
 
-select any_value(distinct B.sal)
+select any_value(distinct B.sal) as a
 from emp as A
 join (select distinct sal from emp) as B
 on A.sal=B.sal;
 +---------+
-| EXPR$0  |
+| A       |
 +---------+
 | 5000.00 |
 +---------+
@@ -397,13 +397,13 @@ on A.sal=B.sal;
 
 !ok
 
-LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($9)])
+LogicalAggregate(group=[{}], A=[ANY_VALUE($9)])
   LogicalJoin(condition=[=($5, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{5}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
+LogicalAggregate(group=[{}], A=[ANY_VALUE($1)])
   LogicalJoin(condition=[=($0, $1)], joinType=[inner])
     LogicalAggregate(group=[{5}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -414,20 +414,20 @@ LogicalAggregate(group=[{}], EXPR$0=[ANY_VALUE($1)])
 # testPushAggregateThroughJoin8 ------------------------------------------------
 # Pushes SINGLE_VALUE(DISTINCT ...) through a join over a distinct sub-query.
 
-select single_value(distinct B.sal)
+select single_value(distinct B.sal) as sv
 from emp as A
 join (select distinct sal from emp) as B
 on A.sal=B.sal;
 more than one
 !error
 
-LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($9)])
+LogicalAggregate(group=[{}], SV=[SINGLE_VALUE($9)])
   LogicalJoin(condition=[=($5, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{5}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalAggregate(group=[{}], EXPR$0=[SINGLE_VALUE($1)])
+LogicalAggregate(group=[{}], SV=[SINGLE_VALUE($1)])
   LogicalJoin(condition=[=($0, $1)], joinType=[inner])
     LogicalAggregate(group=[{5}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -580,28 +580,28 @@ LogicalAggregate(group=[{0}])
 # testPushAggregateThroughOuterJoin10 ------------------------------------------
 # Outer join with aggregate functions; should not push through (checkUnchanged).
 
-select count(e.ename)
+select count(e.ename) as c
 from (select * from emp where empno = 10) as e
 left outer join emp as d on e.job = d.job
 group by e.ename,d.mgr;
-+--------+
-| EXPR$0 |
-+--------+
-+--------+
++---+
+| C |
++---+
++---+
 (0 rows)
 
 !ok
 
-LogicalProject(EXPR$0=[$2])
-  LogicalAggregate(group=[{1, 12}], EXPR$0=[COUNT()])
+LogicalProject(C=[$2])
+  LogicalAggregate(group=[{1, 12}], C=[COUNT()])
     LogicalJoin(condition=[=($2, $11)], joinType=[left])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($0, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "AGGREGATE_PROJECT_MERGE"
-LogicalProject(EXPR$0=[$2])
-  LogicalAggregate(group=[{1, 12}], EXPR$0=[COUNT()])
+LogicalProject(C=[$2])
+  LogicalAggregate(group=[{1, 12}], C=[COUNT()])
     LogicalJoin(condition=[=($2, $11)], joinType=[left])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
         LogicalFilter(condition=[=($0, 10)])
@@ -1095,24 +1095,24 @@ LogicalAggregate(group=[{0, 2}])
 # testPushDistinctAggregateIntoJoin --------------------------------------------
 # [CALCITE-2249] Should not push a DISTINCT aggregate into a join (checkUnchanged).
 
-select count(distinct sal)
+select count(distinct sal) as c
 from emp
 join dept on job = dname;
-+--------+
-| EXPR$0 |
-+--------+
-|      0 |
-+--------+
++---+
+| C |
++---+
+| 0 |
++---+
 (1 row)
 
 !ok
-LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0)])
+LogicalAggregate(group=[{}], C=[COUNT(DISTINCT $0)])
   LogicalProject(SAL=[$5])
     LogicalJoin(condition=[=($2, $10)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform ""
-LogicalAggregate(group=[{}], EXPR$0=[COUNT(DISTINCT $0)])
+LogicalAggregate(group=[{}], C=[COUNT(DISTINCT $0)])
   LogicalProject(SAL=[$5])
     LogicalJoin(condition=[=($2, $10)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])

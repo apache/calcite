@@ -94,20 +94,20 @@ LogicalProject(EMPNO=[$0])
 # Correlated scalar subquery using COUNT in a project
 
 select deptno,
-  (select count(empno) from emp where dept.deptno = emp.deptno)
+  (select count(empno) from emp where dept.deptno = emp.deptno) as c
 from dept;
-+--------+--------+
-| DEPTNO | EXPR$1 |
-+--------+--------+
-|     10 |      3 |
-|     20 |      5 |
-|     30 |      6 |
-|     40 |      0 |
-+--------+--------+
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 5 |
+|     30 | 6 |
+|     40 | 0 |
++--------+---+
 (4 rows)
 
 !ok
-LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], C=[$SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
   LogicalProject(EMPNO=[$0])
     LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
@@ -115,7 +115,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 !transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
-LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
+LogicalProject(DEPTNO=[$0], C=[$4])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(DEPTNO=[$0], DEPTNO0=[$1], $f2=[CASE(IS NOT NULL($2), $2, 0)])
@@ -356,37 +356,37 @@ LogicalProject(DEPTNO=[$0], HAS_EMPLOYEES=[$2])
 # [CALCITE-7031] IN subquery in SELECT list (project)
 
 select emp.deptno,
-  emp.deptno in (select dept.deptno from dept where dept.deptno < emp.empno)
+  emp.deptno in (select dept.deptno from dept where dept.deptno < emp.empno) as b
 from emp;
-+--------+--------+
-| DEPTNO | EXPR$1 |
-+--------+--------+
-|     10 | true   |
-|     10 | true   |
-|     10 | true   |
-|     20 | true   |
-|     20 | true   |
-|     20 | true   |
-|     20 | true   |
-|     20 | true   |
-|     30 | true   |
-|     30 | true   |
-|     30 | true   |
-|     30 | true   |
-|     30 | true   |
-|     30 | true   |
-+--------+--------+
++--------+------+
+| DEPTNO | B    |
++--------+------+
+|     10 | true |
+|     10 | true |
+|     10 | true |
+|     20 | true |
+|     20 | true |
+|     20 | true |
+|     20 | true |
+|     20 | true |
+|     30 | true |
+|     30 | true |
+|     30 | true |
+|     30 | true |
+|     30 | true |
+|     30 | true |
++--------+------+
 (14 rows)
 
 !ok
-LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$7], EXPR$1=[IN($7, {
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$7], B=[IN($7, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[<($0, $cor0.EMPNO)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
-LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
+LogicalProject(DEPTNO=[$7], B=[$9])
   LogicalJoin(condition=[AND(=($7, $9), IS NOT DISTINCT FROM($0, $10))], joinType=[left_mark])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], EMPNO=[$2])
@@ -401,9 +401,9 @@ LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
 
 # Not using !ok: EMPDEFAULTS is not in the scott database.
 select empno, sal +
-  (select avg(sal) from empdefaults where emp.deptno = empdefaults.deptno)
+  (select avg(sal) from empdefaults where emp.deptno = empdefaults.deptno) as x
 from emp;
-LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[+($5, $SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], X=[+($5, $SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
   LogicalProject(SAL=[$5])
     LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
@@ -411,7 +411,7 @@ LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
-LogicalProject(EMPNO=[$0], EXPR$1=[+($5, $10)])
+LogicalProject(EMPNO=[$0], X=[+($5, $10)])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}], EXPR$0=[AVG($0)])
@@ -484,9 +484,9 @@ LogicalProject(EMPNO=[$0])
 # Not using !ok: EMP_B is not in the scott database.
 select empno, (select sum(deptno) from (
   select deptno from emp_b where emp.empno = emp_b.empno
-  union all select deptno from empnullables where emp.empno = empnullables.empno))
+  union all select deptno from empnullables where emp.empno = empnullables.empno)) as s
 from emp;
-LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], S=[$SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
   LogicalUnion(all=[true])
     LogicalProject(DEPTNO=[$7])
@@ -498,7 +498,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform "lateDecorrelate=true, topDownGeneralDecorrelate=true, NONE"
-LogicalProject(EMPNO=[$0], EXPR$1=[$10])
+LogicalProject(EMPNO=[$0], S=[$10])
   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $9)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}], EXPR$0=[SUM($0)])
