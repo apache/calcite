@@ -368,7 +368,8 @@ LogicalAggregate(group=[{0}], S=[SUM($1)])
 # sets.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select deptno, job, sum(empno) as s, count(*) as c, min(deptno) as n, max(empno) as m from
+select deptno, job, sum(empno) as s, count(*) as c, min(deptno) as n,
+    max(empno) as m from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by rollup(deptno, job);
@@ -394,7 +395,8 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]], S=[SUM($2)], C=[$SU
 # AGGREGATE_UNION_TRANSPOSE pushes multiple aggregates through UNION ALL.
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
-select ename, sum(empno) as s, count(*) as c, min(deptno) as n, max(empno) as m from
+select ename, sum(empno) as s, count(*) as c, min(deptno) as n,
+    max(empno) as m from
 (select * from emp as e1 union all
  select * from emp as e2)
 group by ename;

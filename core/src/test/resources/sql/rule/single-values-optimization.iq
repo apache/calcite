@@ -104,7 +104,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9])
 # testInnerJoinWithTimeStampSingleRowOnLeft ------------------------------------
 
 select e.empno, e.ename, c.t
- from (select 7934 as ono, current_timestamp as t) c inner join emp e on e.empno=c.ono;
+from (select 7934 as ono, current_timestamp as t) c
+inner join emp e on e.empno=c.ono;
 LogicalProject(EMPNO=[$2], ENAME=[$3], T=[$1])
   LogicalJoin(condition=[=($2, $0)], joinType=[inner])
     LogicalProject(ONO=[7934], T=[CURRENT_TIMESTAMP])
@@ -120,7 +121,8 @@ LogicalProject(EMPNO=[$2], ENAME=[$3], T=[$1])
 # testInnerJoinWithTimeStampSingleRowOnRight -----------------------------------
 
 select e.empno, e.ename, c.t
- from emp e inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono;
+from emp e
+inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono;
 LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
   LogicalJoin(condition=[=($0, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])

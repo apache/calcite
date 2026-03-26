@@ -356,7 +356,8 @@ LogicalProject(DEPTNO=[$0], HAS_EMPLOYEES=[$2])
 # [CALCITE-7031] IN subquery in SELECT list (project)
 
 select emp.deptno,
-  emp.deptno in (select dept.deptno from dept where dept.deptno < emp.empno) as b
+  emp.deptno in (
+      select dept.deptno from dept where dept.deptno < emp.empno) as b
 from emp;
 +--------+------+
 | DEPTNO | B    |
@@ -425,7 +426,9 @@ LogicalProject(EMPNO=[$0], X=[+($5, $10)])
 
 # Not using !ok: EMP_B is not in the scott database.
 select empno from emp where
-  sal < some(select avg(sal) from emp_b where emp.job = emp_b.job group by cube(deptno));
+  sal < some(
+      select avg(sal) from emp_b
+      where emp.job = emp_b.job group by cube(deptno));
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[< SOME($5, {
 LogicalProject(EXPR$0=[$1])
@@ -454,8 +457,9 @@ LogicalProject(EMPNO=[$0])
 
 # Not using !ok: EMPNULLABLES is not in the scott database.
 select empno from emp where sal > some(
-  select sal from empnullables, (select empno from emp_b where emp.deptno = emp_b.deptno)
-  b where empnullables.empno = b.empno);
+  select sal from empnullables,
+      (select empno from emp_b where emp.deptno = emp_b.deptno) b
+  where empnullables.empno = b.empno);
 LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[> SOME($5, {
 LogicalProject(SAL=[$5])
@@ -484,7 +488,8 @@ LogicalProject(EMPNO=[$0])
 # Not using !ok: EMP_B is not in the scott database.
 select empno, (select sum(deptno) from (
   select deptno from emp_b where emp.empno = emp_b.empno
-  union all select deptno from empnullables where emp.empno = empnullables.empno)) as s
+  union all select deptno from empnullables
+      where emp.empno = empnullables.empno)) as s
 from emp;
 LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], S=[$SCALAR_QUERY({
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])

@@ -28,7 +28,8 @@
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
 select 4 as x, 2+3 as y, max(five) as m from (
-  select *, 4 as four, 2+3 as two_plus_three, 5 as five, deptno+42 as deptno42 from emp
+  select *, 4 as four, 2+3 as two_plus_three,
+      5 as five, deptno+42 as deptno42 from emp
 ) group by 4, 2+3;
 LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
   LogicalProject(X=[4], Y=[+(2, 3)], FIVE=[5])
@@ -46,7 +47,8 @@ LogicalProject(X=[$0], Y=[+(2, 3)], M=[$1])
 # Not using !ok: GROUP BY results are unordered without ORDER BY.
 
 select 4 as x, 2+3 as y, max(5) as m from (
-  select *, 4 as four, 2+3 as two_plus_three, 5 as five, deptno+42 as deptno42 from emp
+  select *, 4 as four, 2+3 as two_plus_three,
+      5 as five, deptno+42 as deptno42 from emp
 ) group by 4, 2+3;
 LogicalAggregate(group=[{0, 1}], M=[MAX($2)])
   LogicalProject(X=[4], Y=[+(2, 3)], $f2=[5])

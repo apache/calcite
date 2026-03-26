@@ -250,7 +250,9 @@ LogicalProject(ENAME=[$26], DNAME=[$16])
 # testInnerLeftSemiJoinTypeForDphyp --------------------------------------------
 # Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
 
-select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno
+select emp.empno
+from emp_address
+inner join emp on emp_address.empno = emp.empno
 left join dept on emp.deptno = dept.deptno
 where exists(select * from dept_nested where dept.deptno = dept_nested.deptno);
 LogicalProject(EMPNO=[$9])
@@ -304,7 +306,9 @@ LogicalProject(EMPNO=[$11])
 # testOuterJoinForDphyp --------------------------------------------------------
 # Not using !ok: EMP_ADDRESS and DEPT_NESTED tables do not exist in Scott.
 
-select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno
+select emp.empno
+from emp_address
+inner join emp on emp_address.empno = emp.empno
 left join dept on emp.deptno = dept.deptno
 inner join dept_nested on dept.deptno = dept_nested.deptno;
 LogicalProject(EMPNO=[$3])

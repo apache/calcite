@@ -496,7 +496,9 @@ LogicalProject(DNAME=[$1], DEPTNO=[$0], C=[$2])
 # [CALCITE-6011]
 
 select *
-from (select DNAME, DEPTNO, count(*) over (partition by DNAME, DEPTNO) as c from dept)
+from (select DNAME, DEPTNO,
+        count(*) over (partition by DNAME, DEPTNO) as c
+    from dept)
 where DEPTNO > 0;
 +------------+--------+---+
 | DNAME      | DEPTNO | C |

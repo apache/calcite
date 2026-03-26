@@ -928,7 +928,8 @@ select * from (
     select dname, deptno from (
       select dname, deptno, 1 as x from dept
       except all
-      select dname, deptno, count(1) as c from dept group by dname, deptno) subq2
+      select dname, deptno, count(1) as c from dept group by dname, deptno
+    ) subq2
   ) a
   except all
   select dname, deptno from dept) aa;

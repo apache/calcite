@@ -429,7 +429,8 @@ LogicalProject(DNAME=[$1])
 # expression.
 
 SELECT dname,
-  (SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) as sal
+  (SELECT sal FROM emp
+      where dept.deptno = emp.deptno order by sal limit 1) as sal
 FROM dept;
 +------------+---------+
 | DNAME      | SAL     |

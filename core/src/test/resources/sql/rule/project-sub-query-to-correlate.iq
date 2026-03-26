@@ -242,9 +242,11 @@ LogicalProject(EMPNO=[$0], D=[CASE(=($9, 0), false, IS NULL(CASE(>($7, 0), CAST(
 # preserving correct field references (CALCITE-5655).
 
 select empno, (deptno in (
-  select deptno from sales.deptnullables where e.ename = dname and deptno > 10)
+  select deptno from sales.deptnullables
+      where e.ename = dname and deptno > 10)
 or deptno in (
-  select deptno from sales.deptnullables where e.ename = dname and deptno < 20)) as b
+  select deptno from sales.deptnullables
+      where e.ename = dname and deptno < 20)) as b
 from sales.empnullables as e;
 # Not using !ok: query uses the sales schema, which is not in the scott database.
 LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], B=[OR(IN($2, {

@@ -26,7 +26,8 @@
 # Tests that BIT_AND (non-distinct) can share the inner aggregate with
 # DISTINCT agg-calls on the same column.
 
-select sum(distinct deptno) as s, count(distinct deptno) as c, bit_and(deptno) as ba
+select sum(distinct deptno) as s, count(distinct deptno) as c,
+    bit_and(deptno) as ba
 from emp;
 +----+---+----+
 | S  | C | BA |
@@ -50,7 +51,8 @@ LogicalAggregate(group=[{}], S=[SUM($0)], C=[COUNT($0)], BA=[BIT_AND($0)])
 # Tests that BIT_OR (non-distinct) can share the inner aggregate with
 # DISTINCT agg-calls on the same column.
 
-select sum(distinct deptno) as s, count(distinct deptno) as c, bit_or(deptno) as bo
+select sum(distinct deptno) as s, count(distinct deptno) as c,
+    bit_or(deptno) as bo
 from emp;
 +----+---+----+
 | S  | C | BO |
@@ -716,7 +718,9 @@ LogicalProject(C1=[$0], C2=[$1])
 # Tests expansion of COUNT(DISTINCT) with a FILTER clause alongside a
 # non-distinct SUM in a group-by query.
 
-SELECT deptno, SUM(comm) as s, COUNT(DISTINCT sal) FILTER (WHERE sal > 1000) as c
+SELECT deptno,
+    SUM(comm) as s,
+    COUNT(DISTINCT sal) FILTER (WHERE sal > 1000) as c
 FROM emp
 GROUP BY deptno;
 +--------+---------+---+
@@ -860,7 +864,10 @@ LogicalAggregate(group=[{0}], S1=[SUM($3)], N=[MIN($4)], C=[COUNT($2, $1)])
 # Tests expansion of COUNT(DISTINCT) with multiple input columns including
 # the group key.
 
-SELECT deptno, SUM(comm) as s1, MIN(comm) as n, COUNT(DISTINCT sal, deptno, comm) as c
+SELECT deptno,
+    SUM(comm) as s1,
+    MIN(comm) as n,
+    COUNT(DISTINCT sal, deptno, comm) as c
 FROM emp
 GROUP BY deptno;
 +--------+---------+------+---+
