@@ -29,6 +29,8 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -97,9 +99,13 @@ public class ArrowRules {
     RelNode convert(Filter filter) {
       final RelTraitSet traitSet =
           filter.getTraitSet().replace(ArrowRel.CONVENTION);
+      // Expand SEARCH (e.g. IN, BETWEEN) before pushing to Arrow,
+      // since Gandiva does not support SEARCH natively.
+      final RexNode condition =
+          RexUtil.expandSearch(filter.getCluster().getRexBuilder(), null, filter.getCondition());
       return new ArrowFilter(filter.getCluster(), traitSet,
           convert(filter.getInput(), ArrowRel.CONVENTION),
-          filter.getCondition());
+          condition);
     }
 
     /** Rule configuration. */

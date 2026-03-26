@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
  * relational expression in Arrow.
  */
 class ArrowFilter extends Filter implements ArrowRel {
-  private final List<String> match;
+  private final List<List<ConditionToken>> match;
 
   ArrowFilter(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, RexNode condition) {
     super(cluster, traitSet, input, condition);

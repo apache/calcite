@@ -41,15 +41,24 @@ public interface ArrowRel extends RelNode {
    * {@link ArrowRel} nodes into a SQL query. */
   class Implementor {
     @Nullable List<Integer> selectFields;
-    final List<String> whereClause = new ArrayList<>();
+    final List<List<ConditionToken>> whereClause = new ArrayList<>();
     @Nullable RelOptTable table;
     @Nullable ArrowTable arrowTable;
 
     /** Adds new predicates.
      *
-     * @param predicates Predicates
+     * <p>The structure is two levels of nesting:
+     * <ul>
+     *   <li>Outer list: conjunction (AND) of clauses
+     *   <li>Inner list: disjunction (OR) of conditions within a clause
+     * </ul>
+     *
+     * <p>Each {@link ConditionToken} represents a single unary or binary
+     * predicate condition.
+     *
+     * @param predicates Predicates in CNF form
      */
-    void addFilters(List<String> predicates) {
+    void addFilters(List<List<ConditionToken>> predicates) {
       whereClause.addAll(predicates);
     }
 

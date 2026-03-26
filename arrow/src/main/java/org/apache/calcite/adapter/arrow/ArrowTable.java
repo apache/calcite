@@ -97,7 +97,7 @@ public class ArrowTable extends AbstractTable
    * {@link org.apache.calcite.adapter.arrow.ArrowMethod#ARROW_QUERY}. */
   @SuppressWarnings("unused")
   public Enumerable<Object> query(DataContext root, ImmutableIntList fields,
-      List<String> conditions) {
+      List<List<List<String>>> conditions) {
     requireNonNull(fields, "fields");
     final Projector projector;
     final Filter filter;
@@ -119,30 +119,26 @@ public class ArrowTable extends AbstractTable
     } else {
       projector = null;
 
-      final List<TreeNode> conditionNodes = new ArrayList<>(conditions.size());
-      for (String condition : conditions) {
-        String[] data = condition.split(" ");
-        List<TreeNode> treeNodes = new ArrayList<>(2);
-        treeNodes.add(
-            TreeBuilder.makeField(schema.getFields()
-                .get(schema.getFields().indexOf(schema.findField(data[0])))));
-
-        // if the split condition has more than two parts it's a binary operator
-        // with an additional literal node
-        if (data.length > 2) {
-          treeNodes.add(makeLiteralNode(data[2], data[3]));
+      final List<TreeNode> conjuncts = new ArrayList<>(conditions.size());
+      for (List<List<String>> orGroup : conditions) {
+        final List<TreeNode> disjuncts = new ArrayList<>(orGroup.size());
+        for (List<String> conditionParts : orGroup) {
+          disjuncts.add(
+              convertConditionToGandiva(
+                  ConditionToken.fromTokenList(conditionParts)));
         }
-
-        String operator = data[1];
-        conditionNodes.add(
-            TreeBuilder.makeFunction(operator, treeNodes, new ArrowType.Bool()));
+        if (disjuncts.size() == 1) {
+          conjuncts.add(disjuncts.get(0));
+        } else {
+          conjuncts.add(TreeBuilder.makeOr(disjuncts));
+        }
       }
       final Condition filterCondition;
-      if (conditionNodes.size() == 1) {
-        filterCondition = TreeBuilder.makeCondition(conditionNodes.get(0));
+      if (conjuncts.size() == 1) {
+        filterCondition = TreeBuilder.makeCondition(conjuncts.get(0));
       } else {
-        TreeNode treeNode = TreeBuilder.makeAnd(conditionNodes);
-        filterCondition = TreeBuilder.makeCondition(treeNode);
+        filterCondition =
+            TreeBuilder.makeCondition(TreeBuilder.makeAnd(conjuncts));
       }
 
       try {
@@ -182,6 +178,26 @@ public class ArrowTable extends AbstractTable
           ArrowFieldTypeFactory.toType(field.getType(), typeFactory));
     }
     return builder.build();
+  }
+
+  /** Converts a single {@link ConditionToken} into a Gandiva {@link TreeNode}. */
+  private TreeNode convertConditionToGandiva(ConditionToken token) {
+    final List<TreeNode> treeNodes = new ArrayList<>(2);
+    treeNodes.add(
+        TreeBuilder.makeField(schema.getFields()
+            .get(
+                schema.getFields().indexOf(
+                schema.findField(token.fieldName)))));
+
+    if (token.isBinary()) {
+      treeNodes.add(
+          makeLiteralNode(
+              requireNonNull(token.value, "value"),
+              requireNonNull(token.valueType, "valueType")));
+    }
+
+    return TreeBuilder.makeFunction(
+        token.operator, treeNodes, new ArrowType.Bool());
   }
 
   private static TreeNode makeLiteralNode(String literal, String type) {

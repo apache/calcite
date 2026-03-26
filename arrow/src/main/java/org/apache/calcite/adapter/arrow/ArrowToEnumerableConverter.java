@@ -35,6 +35,7 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.primitives.Ints;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -84,6 +85,23 @@ class ArrowToEnumerableConverter
                     : Expressions.call(
                         BuiltInMethod.IMMUTABLE_INT_LIST_IDENTITY.method,
                         Expressions.constant(fieldCount)),
-                Expressions.constant(arrowImplementor.whereClause))));
+                Expressions.constant(
+                    toTokenLists(arrowImplementor.whereClause)))));
+  }
+
+  /** Converts structured {@link ConditionToken} conditions to nested string
+   * lists for serialization through {@link Expressions#constant}. */
+  private static List<List<List<String>>> toTokenLists(
+      List<List<ConditionToken>> conditions) {
+    final List<List<List<String>>> result =
+        new ArrayList<>(conditions.size());
+    for (List<ConditionToken> orGroup : conditions) {
+      final List<List<String>> group = new ArrayList<>(orGroup.size());
+      for (ConditionToken token : orGroup) {
+        group.add(token.toTokenList());
+      }
+      result.add(group);
+    }
+    return result;
   }
 }
