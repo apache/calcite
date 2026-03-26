@@ -181,7 +181,13 @@ SELECT *
 FROM non_null_table
 JOIN null_table
 ON null_table.date_col_null = non_null_table.date_col_non_null;
-# Not using !ok: query uses CTEs with constant date values; plan transformation is the focus.
++-------------------+---------------+
+| DATE_COL_NON_NULL | DATE_COL_NULL |
++-------------------+---------------+
++-------------------+---------------+
+(0 rows)
+
+!ok
 LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
   LogicalJoin(condition=[=($1, $0)], joinType=[inner])
     LogicalProject(DATE_COL_NON_NULL=[2023-08-07])

@@ -142,7 +142,7 @@ LogicalProject(EMPNO=[$0])
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW converts inline window functions in
 # a LogicalProject to a LogicalWindow node.
 
-# Not using !ok: would produce 14 rows of window data.
+# Not using !ok: window sums overflow scott's TINYINT DEPTNO column.
 select
  sum(deptno) over(partition by deptno order by sal) as sum1,
 sum(deptno + sal) over(partition by deptno order by sal) as sum2
@@ -574,10 +574,30 @@ LogicalProject(SAL=[$0])
 # [CALCITE-888] Overlay window loses PARTITION BY list.
 # Both uses of window 'w' should produce the same window function.
 
-# Not using !ok: would produce 14 rows of window data.
 select count(*) over (w) as c1, count(*) over w as c2
 from emp
 window w as (partition by empno order by empno);
++----+----+
+| C1 | C2 |
++----+----+
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
+|  1 |  1 |
++----+----+
+(14 rows)
+
+!ok
 LogicalProject(C1=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)], C2=[COUNT() OVER (PARTITION BY $0 ORDER BY $0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""

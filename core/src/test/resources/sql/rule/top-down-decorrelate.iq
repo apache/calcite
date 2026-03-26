@@ -292,7 +292,6 @@ LogicalProject(EMPNO=[$0])
 # testTopDownGeneralDecorrelateForMeasure --------------------------------------
 # [CALCITE-7411] Correlated SCALAR_QUERY in PROJECT with GROUP BY
 
-# Not using !ok: complex result with decimal arithmetic.
 select job,
   (select
       cast(sum(i.sal) - sum(coalesce(i.comm, 0)) as decimal(10, 2)) / sum(i.sal)
@@ -301,6 +300,18 @@ select job,
   count(*) as "count"
 from emp as e
 group by job;
++-----------+--------------+-------+
+| JOB       | PROFITMARGIN | count |
++-----------+--------------+-------+
+| ANALYST   |     1.000000 |     2 |
+| CLERK     |     1.000000 |     4 |
+| MANAGER   |     1.000000 |     3 |
+| PRESIDENT |     1.000000 |     1 |
+| SALESMAN  |     0.607142 |     4 |
++-----------+--------------+-------+
+(5 rows)
+
+!ok
 LogicalProject(variablesSet=[[$cor0]], JOB=[$0], PROFITMARGIN=[$SCALAR_QUERY({
 LogicalProject(EXPR$0=[/(CAST(-($0, $1)):DECIMAL(10, 2), $0)])
   LogicalAggregate(group=[{}], agg#0=[SUM($0)], agg#1=[SUM($1)])

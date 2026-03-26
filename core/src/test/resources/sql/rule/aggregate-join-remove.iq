@@ -113,7 +113,16 @@ select e.deptno, count(distinct e.job) as c
 from emp e
 left outer join dept d on e.deptno = d.deptno
 group by e.deptno;
-# Not using !ok: this test focuses on plan transformation (see !transform).
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
++--------+---+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], JOB=[$2])
     LogicalJoin(condition=[=($7, $9)], joinType=[left])
@@ -160,7 +169,17 @@ LogicalAggregate(group=[{7}], C=[COUNT(DISTINCT $10)])
 select distinct d.deptno
 from emp e
 right outer join dept d on e.deptno = d.deptno;
-# Not using !ok: this test focuses on plan transformation (see !transform).
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{0}])
   LogicalProject(DEPTNO=[$9])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
@@ -206,7 +225,17 @@ select d.deptno, count(distinct e.job) as c
 from emp e
 right outer join dept d on e.deptno = d.deptno
 group by d.deptno;
-# Not using !ok: this test focuses on plan transformation (see !transform).
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 3 |
+|     20 | 3 |
+|     30 | 3 |
+|     40 | 0 |
++--------+---+
+(4 rows)
+
+!ok
 LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$9], JOB=[$2])
     LogicalJoin(condition=[=($7, $9)], joinType=[right])
@@ -259,7 +288,16 @@ FROM emp e
 LEFT JOIN dept d1 ON e.deptno = d1.deptno
 LEFT JOIN dept d2 ON e.deptno = d2.deptno
 GROUP BY e.deptno;
-# Not using !ok: this test focuses on plan transformation (see !transform).
++--------+---+
+| DEPTNO | C |
++--------+---+
+|     10 | 1 |
+|     20 | 1 |
+|     30 | 1 |
++--------+---+
+(3 rows)
+
+!ok
 LogicalAggregate(group=[{0}], C=[COUNT(DISTINCT $1)])
   LogicalProject(DEPTNO=[$7], DNAME0=[$12])
     LogicalJoin(condition=[=($7, $11)], joinType=[left])

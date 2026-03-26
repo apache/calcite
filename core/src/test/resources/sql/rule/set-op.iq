@@ -1024,7 +1024,7 @@ except
 select deptno from emp where ename in ('a', 'b')
 except
 select ename from empnullables;
-# Not using !ok: this test focuses on plan transformation (see !transform).
+# Not using !ok: EMPNULLABLES is not in the scott database.
 LogicalMinus(all=[false])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($7, 10)])
@@ -1252,7 +1252,7 @@ EXCEPT
 SELECT deptno FROM empnullables WHERE deptno = 6
 EXCEPT
 SELECT deptno FROM deptnullables WHERE deptno = 10;
-# Not using !ok: this test focuses on plan transformation (see !transform).
+# Not using !ok: EMPNULLABLES and DEPTNULLABLES are not in the scott database.
 LogicalMinus(all=[false])
   LogicalFilter(condition=[=($0, 12)])
     LogicalProject(DEPTNO=[$7])

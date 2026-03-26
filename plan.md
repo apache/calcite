@@ -139,7 +139,7 @@ Config tokens that belong to the same Java class are now grouped:
 
 ## Finalization tasks (do before merging)
 
-### Clean up EXPR$N column names in .iq files
+### Clean up EXPR$N column names in .iq files ✅
 
 Go through every `.iq` file in `core/src/test/resources/sql/rule/`. For any SQL query whose SELECT list contains an unaliased expression that produces an auto-generated column name (`EXPR$0`, `EXPR$1`, etc.), add a concise `AS` alias. Update the corresponding plan output lines and `!ok` result-table column headers to match.
 
@@ -158,7 +158,7 @@ Suggested aliases:
 
 Skip cases where `EXPR$N` originates from a `VALUES` clause or appears only inside an inner subquery plan node that the outer SQL cannot easily alias.
 
-### Format SQL in .iq files
+### Format SQL in .iq files ✅
 
 Go through every `.iq` file in `core/src/test/resources/sql/rule/`. Check that SQL formatting is not outrageous:
 
@@ -167,7 +167,7 @@ Go through every `.iq` file in `core/src/test/resources/sql/rule/`. Check that S
 
 No need to reformat already-reasonable single-line queries.
 
-### Review 'Not using !ok' comments
+### Review 'Not using !ok' comments ✅
 
 Search for `# Not using !ok` comments in every `.iq` file in `core/src/test/resources/sql/rule/`. For each occurrence, evaluate whether the justification is convincing:
 

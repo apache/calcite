@@ -301,13 +301,13 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], F1=[$2], F3=[$3], F2=[$4])
 # PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW splits a Project with multiple window
 # functions into separate LogicalWindow nodes.
 
+# Not using !ok: window sums overflow scott's TINYINT DEPTNO column.
 select
  count(*) over(partition by empno order by sal) as count1,
  count(*) over(partition by deptno order by sal) as count2,
  sum(deptno) over(partition by empno order by sal) as sum1,
  sum(deptno) over(partition by deptno order by sal) as sum2
 from emp;
-# Not using !ok: this test focuses on plan transformation (see !transform).
 LogicalProject(COUNT1=[COUNT() OVER (PARTITION BY $0 ORDER BY $5)], COUNT2=[COUNT() OVER (PARTITION BY $7 ORDER BY $5)], SUM1=[SUM($7) OVER (PARTITION BY $0 ORDER BY $5)], SUM2=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 !transform ""
