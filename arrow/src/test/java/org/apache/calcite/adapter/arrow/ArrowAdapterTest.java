@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
@@ -218,7 +217,7 @@ class ArrowAdapterTest {
         + "where \"intField\" > 1 and \"intField\" < 4";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[SEARCH($0, Sarg[(1..4)])])\n"
+        + "    ArrowFilter(condition=[AND(>($0, 1), <($0, 4))])\n"
         + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=2; stringField=2\n"
         + "intField=3; stringField=3\n";
@@ -251,21 +250,81 @@ class ArrowAdapterTest {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\"=12 or \"stringField\"='12'";
-    String plan;
-    if (Bug.CALCITE_6293_FIXED) {
-      plan = "PLAN=ArrowToEnumerableConverter\n"
-          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    } else {
-      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[12], "
-          + "expr#3=[=($t0, $t2)], expr#4=['12':VARCHAR], expr#5=[=($t1, $t4)], "
-          + "expr#6=[OR($t3, $t5)], proj#0..1=[{exprs}], $condition=[$t6])\n"
-          + "  ArrowToEnumerableConverter\n"
-          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    }
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=12; stringField=12\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6636">[CALCITE-6636]
+   * Support CNF condition of Arrow adapter</a>. */
+  @Test void testArrowProjectFieldsWithCnfFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where (\"intField\" > 1 and \"stringField\" = '2') or \"intField\" = 0";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[OR(AND(>($0, 1), =($1, '2')), =($0, 0))])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=0; stringField=0\n"
+        + "intField=2; stringField=2\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6636">[CALCITE-6636]
+   * Support CNF condition of Arrow adapter</a>.
+   *
+   * <p>Tests deeply nested conditions: {@code (A AND B) OR (C AND D)},
+   * which in CNF becomes {@code (A OR C) AND (A OR D) AND (B OR C) AND (B OR D)}. */
+  @Test void testArrowProjectFieldsWithDeepCnfFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where (\"intField\" = 2 and \"stringField\" = '2')"
+        + " or (\"intField\" = 3 and \"stringField\" = '3')";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[OR(AND(=($0, 2), =($1, '2')), AND(=($0, 3), =($1, '3')))])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6636">[CALCITE-6636]
+   * Support CNF condition of Arrow adapter</a>.
+   *
+   * <p>Tests triple OR: {@code A OR B OR C}. */
+  @Test void testArrowProjectFieldsWithTripleOrFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 1 or \"intField\" = 2 or \"intField\" = 3";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[OR(=($0, 1), =($0, 2), =($0, 3))])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n";
 
     CalciteAssert.that()
         .with(arrow)
@@ -278,19 +337,10 @@ class ArrowAdapterTest {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" in (0, 1, 2)";
-    String plan;
-    if (Bug.CALCITE_6294_FIXED) {
-      plan = "PLAN=ArrowToEnumerableConverter\n"
-          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    } else {
-      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[0, 1, 2]], "
-          + "expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-          + "  ArrowToEnumerableConverter\n"
-          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    }
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=0; stringField=0\n"
         + "intField=1; stringField=1\n"
         + "intField=2; stringField=2\n";
@@ -387,7 +437,7 @@ class ArrowAdapterTest {
         + "where \"intField\" between 1 and 3";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[SEARCH($0, Sarg[[1..3]])])\n"
+        + "    ArrowFilter(condition=[AND(>=($0, 1), <=($0, 3))])\n"
         + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=1; stringField=1\n"
         + "intField=2; stringField=2\n"
@@ -530,14 +580,13 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("literal with space is not supported")
   @Test void testLiteralWithSpace() {
     String sql = "select \"intField\", \"stringField\" as \"my Field\"\n"
         + "from arrowdata\n"
         + "where \"stringField\" = 'literal with space'";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], my Field=[$1])\n"
-        + "    ArrowFilter(condition=[=($1, '2')])\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=($1, 'literal with space')])\n"
         + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "";
 
@@ -555,6 +604,23 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$0], stringField=[$1])\n"
         + "    ArrowFilter(condition=[=($1, '''')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testLiteralWithEmptyString() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"stringField\" = ''";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=($1, '')])\n"
         + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "";
 
@@ -960,6 +1026,34 @@ class ArrowAdapterTest {
         .limit(1)
         .returns(result)
         .explainContains(plan);
+  }
+
+  /** When a filter condition exceeds the CNF node limit, the Arrow adapter
+   * falls back to the Enumerable convention (EnumerableCalc) instead of
+   * using ArrowFilter. The query should still return correct results. */
+  @Test void testCnfExceedsLimitFallsBackToEnumerable() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("select \"intField\", \"stringField\" from arrowdata\nwhere ");
+    for (int i = 0; i < 45; i++) {
+      if (i > 0) {
+        sb.append(" or ");
+      }
+      sb.append("(\"intField\" = ").append(i)
+          .append(" and \"stringField\" = '").append(i).append("')");
+    }
+    String sql = sb.toString();
+
+    String planPrefix = "PLAN=EnumerableCalc(";
+    String arrowInputPlan = "ArrowToEnumerableConverter"
+        + "\n    ArrowProject(intField=[$0], stringField=[$1])"
+        + "\n      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(45)
+        .explainContains(planPrefix)
+        .explainContains(arrowInputPlan);
   }
 
   /** Test case for
