@@ -12890,6 +12890,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test void testForModeFunctionWithIfForSafeCastFunctionOperand() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlStdOperatorTable.MODE,
+            builder.cast(
+                builder.call(SqlLibraryOperators.IF_FOR_SAFE_CAST,
+                builder.call(EQUALS, builder.field(1), builder.literal(2)), builder.literal(2),
+                builder.literal(3)), SqlTypeName.DECIMAL));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT IF(APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 1)[OFFSET(0)].value IS NULL, "
+        + "IF(ARRAY_LENGTH(APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 2)) > 1, "
+        + "APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 2)[OFFSET(1)].value, NULL), "
+        + "APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 1)[OFFSET(0)].value) AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
   @Test public void testUserDefinedType() {
     RelBuilder builder = relBuilder();
     RelDataTypeFactory typeFactory = builder.getTypeFactory();
@@ -13469,6 +13489,33 @@ class RelToSqlConverterDMTest {
     RexNode ipFromString = builder.call(SqlLibraryOperators.NET_IP_FROM_STRING, ipLiteral);
     RexNode ipv4ToInt64 = builder.call(SqlLibraryOperators.NET_IPV4_TO_INT64, ipFromString);
     RexNode ifExpr = builder.call(SqlLibraryOperators.IF, regexMatch, ipv4ToInt64, builder.literal(null));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(functionRex)
+        .project(builder.alias(ifExpr, "inet_aton_value"))
+        .build();
+
+    final String expectedSql =
+        "SELECT IF(REGEXP_CONTAINS('209.207.224.40', "
+            + "r'^(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])){3}$'), "
+            + "NET.IPV4_TO_INT64(NET.IP_FROM_STRING('209.207.224.40')), "
+            + "NULL) AS inet_aton_value"
+            + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testInetAtonTranslationToBigQueryWithIfForSoftCast() {
+    final RelBuilder builder = relBuilder();
+    RexNode ipLiteral = builder.literal("209.207.224.40");
+    RexNode functionRex = builder.call(SqlLibraryOperators.INET_ATON, ipLiteral);
+    RexNode regexMatch =
+        builder.call(SqlLibraryOperators.REGEXP_CONTAINS,
+            ipLiteral,
+            builder.literal("^(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])){3}$"));
+    RexNode ipFromString = builder.call(SqlLibraryOperators.NET_IP_FROM_STRING, ipLiteral);
+    RexNode ipv4ToInt64 = builder.call(SqlLibraryOperators.NET_IPV4_TO_INT64, ipFromString);
+    RexNode ifExpr = builder.call(SqlLibraryOperators.IF_FOR_SAFE_CAST, regexMatch, ipv4ToInt64, builder.literal(null));
     final RelNode root = builder
         .scan("EMP")
         .project(functionRex)
