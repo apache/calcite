@@ -4842,4 +4842,17 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction PARSE =
+      SqlBasicFunction.create(SqlKind.OTHER_FUNCTION,
+              ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
+                  SqlCastFunction.returnTypeInference(false)),
+              OperandTypes.repeat(SqlOperandCountRanges.between(1, 2),
+                  OperandTypes.ANY))
+          .withName("PARSE")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN)
+          .withOperandHandler(
+              OperandHandlers.of(SqlLibraryOperators::transformConvert));
 }
