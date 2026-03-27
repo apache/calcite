@@ -73,6 +73,15 @@ class LintTest {
       "Message contains '%s' word; use one of the following instead: %s";
   private static final List<TermRule> TERM_RULES = initTerminologyRules();
 
+  /** System property that, when set to "true", enables strict checks
+   * (e.g. AI co-author trailers) that should only fail on the main branch
+   * or non-draft PRs. CI sets this flag; dev branches leave it unset. */
+  private static final String STRICT_PROPERTY = "calcite.lint.strict";
+
+  private static final Pattern AI_CO_AUTHOR_PATTERN =
+      compile("(?i)^Co-Authored-By:.*noreply@anthropic\\.com",
+          Pattern.MULTILINE);
+
   @SuppressWarnings("Convert2MethodRef") // JDK 8 requires lambdas
   private Puffin.Program<GlobalState> makeProgram() {
     return Puffin.builder(GlobalState::new, global -> new FileState(global))
@@ -440,6 +449,51 @@ class LintTest {
                 + "\n"
                 + "Lint:skip"),
         empty());
+
+    // AI co-author trailer check is only active in strict mode
+    final String claudeBody =
+        "Some description\n"
+            + "\n"
+            + "Co-Authored-By: Claude <noreply@anthropic.com>\n";
+    assertThat(f.apply("[CALCITE-1234] Add feature", claudeBody),
+        empty()); // not strict mode, so no warning
+  }
+
+  @Test void testLogMatcherStrictMode() {
+    System.setProperty(STRICT_PROPERTY, "true");
+    try {
+      final BiFunction<String, String, List<String>> f = (subject, body) -> {
+        final List<String> warnings = new ArrayList<>();
+        checkMessage(subject, body, warnings::add);
+        return warnings;
+      };
+      final String claudeBody =
+          "Some description\n"
+              + "\n"
+              + "Co-Authored-By: Claude <noreply@anthropic.com>\n";
+      assertThat(f.apply("[CALCITE-1234] Add feature", claudeBody),
+          hasItem("contains AI co-author trailer (e.g. 'Co-Authored-By: ... "
+              + "noreply@anthropic.com'); remove before merging to main"));
+
+      // Case-insensitive match
+      final String claudeBodyUpper =
+          "Co-authored-by: Claude Opus 4.6 <noreply@anthropic.com>\n";
+      assertThat(f.apply("[CALCITE-1234] Add feature", claudeBodyUpper),
+          hasItem("contains AI co-author trailer (e.g. 'Co-Authored-By: ... "
+              + "noreply@anthropic.com'); remove before merging to main"));
+
+      // No trailer, no warning
+      assertThat(f.apply("[CALCITE-1234] Add feature", "Just a body\n"),
+          empty());
+
+      // Lint:skip overrides everything
+      assertThat(
+          f.apply("[CALCITE-1234] Add feature",
+              claudeBody + "Lint:skip"),
+          empty());
+    } finally {
+      System.clearProperty(STRICT_PROPERTY);
+    }
   }
 
   private static List<TermRule> initTerminologyRules() {
@@ -528,6 +582,15 @@ class LintTest {
       if (!error.isEmpty()) {
         consumer.accept(error);
       }
+    }
+
+    // Check for AI tool co-author trailers (only in strict mode,
+    // i.e. on main branch or non-draft PRs).
+    if (Boolean.getBoolean(STRICT_PROPERTY)
+        && AI_CO_AUTHOR_PATTERN.matcher(body).find()) {
+      consumer.accept(
+          "contains AI co-author trailer (e.g. 'Co-Authored-By: ... "
+              + "noreply@anthropic.com'); remove before merging to main");
     }
   }
 
