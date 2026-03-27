@@ -9355,6 +9355,20 @@ public class SqlOperatorTest {
     f1.checkScalar("map_keys(map('foo', 1, 'bar', 2))", "[foo, bar]",
         "CHAR(3) NOT NULL ARRAY NOT NULL");
 
+    // [CALCITE-6300] MAP function with mixed key/value types
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, 2, 2))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(2 as double), 2))",
+        "[1.0, 2.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(2 as float), 2))",
+        "[1.0, 2.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f1.checkFails("map_keys(map(cast(1 as tinyint), 1, cast(null as float), 2))",
+        "Illegal arguments for MAP_KEYS function: "
+            + "using a map with a null key is not allowed",
+        true);
+
     f.checkFails("map_keys(map['foo', 1, null, 2])",
         "Illegal arguments for MAP_KEYS function: using a map with a null key is not allowed",
         true);
@@ -9393,6 +9407,21 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as integer)))", "[1, null]",
         "INTEGER ARRAY NOT NULL");
+
+    // [CALCITE-6300] MAP function with mixed key/value types
+    f1.checkScalar("map_values(map('foo', null))", "[null]",
+        "NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(1 as tinyint)))", "[1, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(1 as double)))",
+        "[1.0, 1.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(1 as float)))",
+        "[1.0, 1.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as float)))",
+        "[1.0, null]",
+        "FLOAT ARRAY NOT NULL");
 
     f.checkFails("map_values(map['foo', 1, null, 2])",
         "Illegal arguments for MAP_VALUES function: using a map with a null key is not allowed",
@@ -13879,8 +13908,9 @@ public class SqlOperatorTest {
     f1.checkScalar("map('washington', 1, 'obama', 44)",
         "{washington=1, obama=44}",
         "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    // [CALCITE-6300] values are coerced to DECIMAL(11, 1)
     f1.checkScalar("map('k1', 1, 'k2', 2.0)",
-        "{k1=1, k2=2.0}",
+        "{k1=1.0, k2=2.0}",
         "(CHAR(2) NOT NULL, DECIMAL(11, 1) NOT NULL) MAP NOT NULL");
   }
 
