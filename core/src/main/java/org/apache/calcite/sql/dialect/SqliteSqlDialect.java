@@ -18,12 +18,21 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -32,6 +41,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * A <code>SqliteSqlDialect</code> implementation for the SQLite database.
  */
 public class SqliteSqlDialect extends SqlDialect {
+  // Use plain function nodes here so the SQLite POSITION rewrite does not
+  // re-enter dialect-specific operator handling during unparsing.
+  private static final SqlFunction INSTR =
+      SqlBasicFunction.create("INSTR", ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
+  private static final SqlFunction SUBSTR =
+      SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
 
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.DUCKDB)
@@ -85,16 +105,42 @@ public class SqliteSqlDialect extends SqlDialect {
       RelToSqlConverterUtil.unparseTrimLR(writer, call, leftPrec, rightPrec);
       break;
     case POSITION:
-      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(frame);
+      switch (call.operandCount()) {
+      case 2:
+        INSTR.createCall(call.getParserPosition(), call.operand(1), call.operand(0))
+            .unparse(writer, leftPrec, rightPrec);
+        break;
+      case 3:
+        positionWithFromCall(call).unparse(writer, leftPrec, rightPrec);
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private static SqlNode positionWithFromCall(SqlCall call) {
+    final SqlParserPos pos = call.getParserPosition();
+    final SqlNode source = call.operand(1);
+    final SqlNode search = call.operand(0);
+    final SqlNode start = call.operand(2);
+    final SqlNode relativePosition =
+        INSTR.createCall(pos, SUBSTR.createCall(pos, source, start), search);
+    final SqlNode startAdjustment =
+        SqlStdOperatorTable.MINUS.createCall(pos,
+            SqlNode.clone(start),
+            SqlLiteral.createExactNumeric("1", pos));
+    final SqlNode whenCondition =
+        SqlStdOperatorTable.GREATER_THAN.createCall(pos,
+            SqlNode.clone(relativePosition),
+            SqlLiteral.createExactNumeric("0", pos));
+    final SqlNode thenResult =
+        SqlStdOperatorTable.PLUS.createCall(pos, relativePosition, startAdjustment);
+    return new SqlCase(pos, null, SqlNodeList.of(whenCondition),
+        SqlNodeList.of(thenResult), SqlNode.clone(relativePosition));
   }
 
 }
