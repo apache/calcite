@@ -359,7 +359,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FOR_XML =
       new SqlFunction("FOR_XML",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR,
+          ReturnTypes.VARCHAR_NULLABLE,
           null,
           OperandTypes.VARIADIC,
           SqlFunctionCategory.STRING);
