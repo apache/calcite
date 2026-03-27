@@ -6061,6 +6061,18 @@ LogicalProject(COMM=[$6])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterWithNonDeterministicConditionDoesNotDropTuples">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (VALUES (0, 1, 2), (3, 4, 5)) AS t(a, b, c) WHERE RAND(t.a) > 0.5]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(A=[$0], B=[$1], C=[$2])
+  LogicalFilter(condition=[>(RAND($0), CAST(0.5:DECIMAL(2, 1)):DOUBLE NOT NULL)])
+    LogicalValues(tuples=[[{ 0, 1, 2 }, { 3, 4, 5 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFlattenUncorrelatedCallBelowEquals">
     <Resource name="sql">
       <![CDATA[select * from emp e1 where exists (select * from emp e2 where e1.deptno = (e2.deptno+30))]]>
