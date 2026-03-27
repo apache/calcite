@@ -261,7 +261,7 @@ public abstract class SqlLibraryOperators {
 //        }
       };
 
-  /** The "HIVE_IF(condition, thenValue, elseValue)" function. */
+  /** The "IF_FOR_SAFE_CAST(condition, thenValue, elseValue)" function. */
   @LibraryOperator(libraries = {HIVE, MSSQL})
   public static final SqlFunction IF_FOR_SAFE_CAST =
       new SqlFunction("IF", SqlKind.IF_FOR_SAFE_CAST, SqlLibraryOperators::inferIfReturnType,
