@@ -11310,6 +11310,30 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
   }
 
+  @Test public void testDataLengthFunction() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode lengthNode =
+        relBuilder.call(SqlLibraryOperators.DATALENGTH, relBuilder.literal("abcd"));
+    RelNode root = relBuilder
+        .project(lengthNode)
+        .build();
+    final String expectedSql = "SELECT DATALENGTH('abcd') AS [$f0]\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testByteLengthFunction() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode lengthNode =
+        relBuilder.call(SqlLibraryOperators.BYTE_LENGTH, relBuilder.literal("abcd"));
+    RelNode root = relBuilder
+        .project(lengthNode)
+        .build();
+    final String expectedSql = "SELECT BYTE_LENGTH('abcd') AS `$f0`\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testPostgresCurrentTimestampTZ() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RelDataType relDataType =
