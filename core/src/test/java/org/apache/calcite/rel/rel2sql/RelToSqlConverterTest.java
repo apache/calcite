@@ -3692,10 +3692,46 @@ class RelToSqlConverterTest {
     sql(query1).withClickHouse().ok(expected1);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7316">[CALCITE-7316]
+   * The POSITION function in SQLite is missing the FROM clause</a>. */
   @Test void testPositionFunctionForSqlite() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
     final String expected = "SELECT INSTR('ABC', 'A')\n"
         + "FROM \"foodmart\".\"product\"";
+    sql(query).withSQLite().ok(expected);
+
+    final String query1 = "select position('C' IN 'ABCABC' FROM 4) from \"product\"";
+    final String expected1 =
+        "SELECT CASE WHEN INSTR(SUBSTR('ABCABC', 4), 'C') > 0 THEN "
+            + "INSTR(SUBSTR('ABCABC', 4), 'C') + (4 - 1) "
+            + "ELSE INSTR(SUBSTR('ABCABC', 4), 'C') END\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query1).withSQLite().ok(expected1);
+
+    final String query2 = "select position('A' IN 'ABC' FROM 2) from \"product\"";
+    final String expected2 =
+        "SELECT CASE WHEN INSTR(SUBSTR('ABC', 2), 'A') > 0 THEN "
+            + "INSTR(SUBSTR('ABC', 2), 'A') + (2 - 1) "
+            + "ELSE INSTR(SUBSTR('ABC', 2), 'A') END\n"
+            + "FROM \"foodmart\".\"product\"";
+    sql(query2).withSQLite().ok(expected2);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7316">[CALCITE-7316]
+   * The POSITION function in SQLite is missing the FROM clause</a>. */
+  @Test void testPositionFunctionForSqliteInWhereClause() {
+    final String query = "select * from \"product\"\n"
+        + "where \"product_class_id\" = "
+        + "position(\"product_name\" IN \"brand_name\" FROM 2)";
+    final String expected =
+        "SELECT *\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "WHERE \"product_class_id\" = CASE WHEN INSTR(SUBSTR(\"brand_name\", 2), "
+            + "\"product_name\") > 0 THEN INSTR(SUBSTR(\"brand_name\", 2), "
+            + "\"product_name\") + (2 - 1) ELSE INSTR(SUBSTR(\"brand_name\", 2), "
+            + "\"product_name\") END";
     sql(query).withSQLite().ok(expected);
   }
 
