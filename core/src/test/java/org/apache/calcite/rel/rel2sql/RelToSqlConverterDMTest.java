@@ -12925,11 +12925,12 @@ class RelToSqlConverterDMTest {
     final RelNode rel = builder
         .aggregate(relBuilder().groupKey(), aggCall)
         .build();
-    final String expectedBigQuery = "SELECT IF(APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 1)[OFFSET(0)].value IS NULL, "
-        + "IF(ARRAY_LENGTH(APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 2)) > 1, "
-        + "APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 2)[OFFSET(1)].value, NULL), "
-        + "APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 1)[OFFSET(0)].value) AS `$f0`\n"
-        + "FROM scott.EMP";
+    final String expectedBigQuery =
+            "SELECT IF(APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 1)[OFFSET(0)].value IS NULL, "
+                    + "IF(ARRAY_LENGTH(APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 2)) > 1, "
+                    + "APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 2)[OFFSET(1)].value, NULL), "
+                    + "APPROX_TOP_COUNT(CAST(IF(ENAME = 2, 2, 3) AS NUMERIC), 1)[OFFSET(0)].value) AS `$f0`\n"
+                    + "FROM scott.EMP";
 
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
