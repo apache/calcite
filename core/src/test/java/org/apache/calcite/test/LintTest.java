@@ -30,8 +30,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -72,6 +75,10 @@ class LintTest {
   private static final String TERMINOLOGY_ERROR_MSG =
       "Message contains '%s' word; use one of the following instead: %s";
   private static final List<TermRule> TERM_RULES = initTerminologyRules();
+
+  private static final Pattern AI_CO_AUTHOR_PATTERN =
+      compile("(?i)^Co-Authored-By:.*noreply@anthropic\\.com",
+          Pattern.MULTILINE);
 
   @SuppressWarnings("Convert2MethodRef") // JDK 8 requires lambdas
   private Puffin.Program<GlobalState> makeProgram() {
@@ -371,9 +378,10 @@ class LintTest {
     assumeTrue(TestUnsafe.haveGit(), "Invalid git environment");
 
     int n = 7;
+    final boolean strict = isStrictMode();
     final List<String> warnings = new ArrayList<>();
     TestUnsafe.getCommitMessages(n, (message, rest) ->
-        checkMessage(message, rest, warning ->
+        checkMessage(message, rest, strict, warning ->
             warnings.add("invalid git log message '" + message + "'; "
                 + warning)));
     warnings.forEach(System.out::println);
@@ -440,6 +448,50 @@ class LintTest {
                 + "\n"
                 + "Lint:skip"),
         empty());
+
+    // AI co-author trailer: no warning in non-strict mode (default)
+    final String claudeBody =
+        "Some description\n"
+            + "\n"
+            + "Co-Authored-By: Claude <noreply@anthropic.com>\n";
+    assertThat(f.apply("[CALCITE-1234] Add feature", claudeBody),
+        empty());
+  }
+
+  @Test void testLogMatcherStrict() {
+    final BiFunction<String, String, List<String>> f = (subject, body) -> {
+      final List<String> warnings = new ArrayList<>();
+      checkMessage(subject, body, true, warnings::add);
+      return warnings;
+    };
+    final String claudeBody =
+        "Some description\n"
+            + "\n"
+            + "Co-Authored-By: Claude <noreply@anthropic.com>\n";
+    assertThat(f.apply("[CALCITE-1234] Add feature", claudeBody),
+        hasItem("contains AI co-author trailer (e.g. 'Co-Authored-By: ... "
+            + "noreply@anthropic.com'); remove before merging to main"));
+
+    // Case-insensitive match
+    final String claudeBodyLower =
+        "Co-authored-by: Claude Opus 4.6 <noreply@anthropic.com>\n";
+    assertThat(f.apply("[CALCITE-1234] Add feature", claudeBodyLower),
+        hasItem("contains AI co-author trailer (e.g. 'Co-Authored-By: ... "
+            + "noreply@anthropic.com'); remove before merging to main"));
+
+    // No trailer, no warning even in strict mode
+    assertThat(f.apply("[CALCITE-1234] Add feature", "Just a body\n"),
+        empty());
+
+    // Lint:skip overrides everything including strict checks
+    assertThat(
+        f.apply("[CALCITE-1234] Add feature", claudeBody + "Lint:skip"),
+        empty());
+  }
+
+  @Test void testIsStrictMode() {
+    // Outside GitHub Actions, isStrictMode returns false
+    assertThat(isStrictMode(), is(false));
   }
 
   private static List<TermRule> initTerminologyRules() {
@@ -484,8 +536,42 @@ class LintTest {
     }
   }
 
+  /** Returns whether strict lint checks (e.g. AI co-author trailers) should
+   * be enforced. Strict mode is active when running in GitHub Actions CI on
+   * the main branch (push) or on a non-draft pull request.
+   *
+   * <p>Detection uses environment variables that GitHub Actions sets
+   * automatically ({@code GITHUB_EVENT_NAME}, {@code GITHUB_REF},
+   * {@code GITHUB_EVENT_PATH}), so no workflow file changes are needed. */
+  static boolean isStrictMode() {
+    final String eventName = System.getenv("GITHUB_EVENT_NAME");
+    if (eventName == null) {
+      return false; // not running in GitHub Actions
+    }
+    if ("push".equals(eventName)) {
+      return "refs/heads/main".equals(System.getenv("GITHUB_REF"));
+    }
+    if ("pull_request".equals(eventName)) {
+      final String eventPath = System.getenv("GITHUB_EVENT_PATH");
+      if (eventPath == null) {
+        return false;
+      }
+      try {
+        final String json =
+            new String(Files.readAllBytes(Paths.get(eventPath)));
+        // The event payload contains "draft": true/false in the
+        // pull_request object. A simple search is sufficient here.
+        return !json.contains("\"draft\":true")
+            && !json.contains("\"draft\": true");
+      } catch (IOException e) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   private static void checkMessage(String subject, String body,
-      Consumer<String> consumer) {
+      boolean strict, Consumer<String> consumer) {
     if (body.contains("Lint:skip")) {
       return;
     }
@@ -529,6 +615,19 @@ class LintTest {
         consumer.accept(error);
       }
     }
+
+    // Check for AI tool co-author trailers (only in strict mode,
+    // i.e. on main branch or non-draft PRs in CI).
+    if (strict && AI_CO_AUTHOR_PATTERN.matcher(body).find()) {
+      consumer.accept(
+          "contains AI co-author trailer (e.g. 'Co-Authored-By: ... "
+              + "noreply@anthropic.com'); remove before merging to main");
+    }
+  }
+
+  private static void checkMessage(String subject, String body,
+      Consumer<String> consumer) {
+    checkMessage(subject, body, false, consumer);
   }
 
   @Test void testCheckMessageWithInvalidDBMSTerms() {
