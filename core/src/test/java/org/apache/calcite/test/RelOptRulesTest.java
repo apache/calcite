@@ -12267,4 +12267,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTopDownGeneralDecorrelate(true)
         .check();
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7450">[CALCITE-7450]
+   * ValuesReduceRule incorrectly drops tuples when filter condition is
+   * irreducible</a>.
+   *
+   * <p>{@code RAND()} is non-deterministic and therefore not reduced by
+   * {@code ReduceExpressionsRule}. The rule must leave the plan unchanged. */
+  @Test void testFilterWithNonDeterministicConditionDoesNotDropTuples() {
+    final String sql = "SELECT * FROM (VALUES (0, 1, 2), (3, 4, 5)) "
+        + "AS t(a, b, c) WHERE RAND(t.a) > 0.5";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE)
+        .checkUnchanged();
+  }
 }
