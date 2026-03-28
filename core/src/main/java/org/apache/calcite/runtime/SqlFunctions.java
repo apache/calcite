@@ -6010,6 +6010,22 @@ public class SqlFunctions {
     }
   }
 
+  public static @PolyNull ByteString byteArrayToByteString(byte @PolyNull [] bytes) {
+    if (bytes == null) {
+      return null;
+    } else {
+      return new ByteString(bytes);
+    }
+  }
+
+  public static byte @PolyNull [] byteStringToByteArray(@PolyNull ByteString s) {
+    if (s == null) {
+      return null;
+    } else {
+      return s.getBytes();
+    }
+  }
+
   /** Helper for CAST(... AS VARBINARY(maxLength)). */
   public static @PolyNull ByteString truncate(@PolyNull ByteString s, int maxLength) {
     if (s == null) {

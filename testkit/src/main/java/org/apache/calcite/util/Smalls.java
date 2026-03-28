@@ -69,6 +69,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -1490,6 +1491,23 @@ public class Smalls {
       } catch (Exception e) {
         return null;
       }
+    }
+  }
+
+  /** User-defined function with return type byte[]. */
+  public static class ByteArrayFunction {
+    public static byte[] eval(String s) {
+      if (s == null) {
+        return null;
+      }
+      return s.getBytes(StandardCharsets.UTF_8);
+    }
+  }
+
+  /** User-defined function with parameter type byte[]. */
+  public static class ByteArrayLengthFunction {
+    public static int eval(byte[] bytes) {
+      return bytes.length;
     }
   }
 

@@ -3426,6 +3426,10 @@ can specify the name and optionality of each parameter using the
 [Parameter]({{ site.apiRoot }}/org/apache/calcite/linq4j/function/Parameter.html)
 annotation.
 
+For Java UDFs, `byte[]` and `ByteString` are supported Java representations of
+SQL `VARBINARY` values for parameters and return types. Boxed byte arrays
+(`Byte[]`) are not supported.
+
 ### Calling functions with named and optional parameters
 
 Usually when you call a function, you need to specify all of its parameters,
