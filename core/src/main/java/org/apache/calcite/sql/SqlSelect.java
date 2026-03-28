@@ -160,6 +160,9 @@ public class SqlSelect extends SqlCall {
     case 10:
       fetch = operand;
       break;
+    case 10:
+      hints = (SqlNodeList) operand;
+      break;
     default:
       throw new AssertionError(i);
     }
