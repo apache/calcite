@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -306,6 +307,8 @@ public class EnumUtils {
       } else if (targetType == Long.class) {
         return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, operand);
       }
+    } else if (fromType == byte[].class && targetType == ByteString.class) {
+      return Expressions.call(BuiltInMethod.BYTE_ARRAY_TO_BYTE_STRING.method, operand);
     }
     return operand;
   }
@@ -346,6 +349,8 @@ public class EnumUtils {
       if (isA(fromType, Primitive.LONG)) {
         return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, operand);
       }
+    } else if (targetType == byte[].class && fromType == ByteString.class) {
+      return Expressions.call(BuiltInMethod.BYTE_STRING_TO_BYTE_ARRAY.method, operand);
     }
     if (Primitive.is(operand.type)
         && Primitive.isBox(targetType)) {
@@ -435,6 +440,13 @@ public class EnumUtils {
       Type toType) {
     if (!Types.needTypeCast(fromType, toType)) {
       return operand;
+    }
+
+    if (fromType == byte[].class && toType == ByteString.class) {
+      return Expressions.call(BuiltInMethod.BYTE_ARRAY_TO_BYTE_STRING.method, operand);
+    }
+    if (fromType == ByteString.class && toType == byte[].class) {
+      return Expressions.call(BuiltInMethod.BYTE_STRING_TO_BYTE_ARRAY.method, operand);
     }
 
     // TODO use Expressions#convertChecked to throw exception in case of overflow (CALCITE-6366)

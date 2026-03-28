@@ -190,6 +190,18 @@ class UdfTest {
         + "'\n"
         + "         },\n"
         + "         {\n"
+        + "           name: 'BYTEARRAY',\n"
+        + "           className: '"
+        + Smalls.ByteArrayFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'BYTEARRAY_LENGTH',\n"
+        + "           className: '"
+        + Smalls.ByteArrayLengthFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
         + "           name: 'CHARACTERARRAY',\n"
         + "           className: '"
         + Smalls.CharacterArrayFunction.class.getName()
@@ -1105,6 +1117,29 @@ class UdfTest {
     final String sql2 = "select \"adhoc\".unbase64(cast('" + testBase64
         + "' as varchar)) = x'" + testHex + "' as C\n";
     withUdf().query(sql2).returns("C=true\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7187">[CALCITE-7187]
+   * Java UDF byte arrays cannot be mapped to VARBINARY</a>. */
+  @Test void testByteArrayDirectComparison() {
+    final String testString = "test";
+    final String testHex = "74657374";
+
+    final String sql = "values \"adhoc\".bytearray('" + testString + "')";
+    withUdf().query(sql).typeIs("[EXPR$0 VARBINARY]");
+
+    final String sql2 = "select \"adhoc\".bytearray(cast('" + testString
+        + "' as varchar)) = x'" + testHex + "' as C\n";
+    withUdf().query(sql2).returns("C=true\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7187">[CALCITE-7187]
+   * Java UDF byte arrays cannot be mapped to VARBINARY</a>. */
+  @Test void testByteArrayParameter() {
+    withUdf().query("values \"adhoc\".bytearray_length(x'74657374')")
+        .returns("EXPR$0=4\n");
   }
 
   /**

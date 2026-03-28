@@ -720,6 +720,8 @@ public enum BuiltInMethod {
   STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE(SqlFunctions.class, "toTimestampWithLocalTimeZone",
       String.class),
   STRING_TO_BINARY(SqlFunctions.class, "stringToBinary", String.class, Charset.class),
+  BYTE_ARRAY_TO_BYTE_STRING(SqlFunctions.class, "byteArrayToByteString", byte[].class),
+  BYTE_STRING_TO_BYTE_ARRAY(SqlFunctions.class, "byteStringToByteArray", ByteString.class),
   TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE(SqlFunctions.class,
       "toTimestampWithLocalTimeZone", String.class, TimeZone.class),
   TIME_WITH_LOCAL_TIME_ZONE_TO_TIME(SqlFunctions.class, "timeWithLocalTimeZoneToTime",
