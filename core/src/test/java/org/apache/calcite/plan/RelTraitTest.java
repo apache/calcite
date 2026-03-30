@@ -20,6 +20,10 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,6 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static java.lang.Integer.toHexString;
@@ -97,5 +102,35 @@ class RelTraitTest {
     assertTrue(traits1.equalsSansConvention(traits2));
     RelTraitSet traits3 = traits2.replace(RelCollations.of(1));
     assertFalse(traits3.equalsSansConvention(traits2));
+  }
+
+  /** Test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7431">[CALCITE-7431]
+   * RelTraitSet#getTrait seems to mishandle RelCompositeTrait</a>. */
+  @Test void testRelCompositeTrait() {
+    // Build:  EMP -> Sort(MGR asc) -> Project(MGR, MGR as MGR2)
+    // The project maps both output columns 0 and 1 back to input column 3
+    // (MGR), so the planner derives two collations: [0 ASC] and [1 ASC], which
+    // are stored as a RelCompositeTrait in the output trait set.
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder b = RelBuilder.create(config);
+    final RelNode in = b
+        .scan("EMP")
+        .sort(3)                                          // MGR asc
+        .project(b.field(3), b.alias(b.field(3), "MGR2")) // MGR, MGR as MGR2
+        .build();
+
+    final RelTraitSet traitSet = in.getTraitSet();
+
+    final List<RelCollation> collations = traitSet.getCollations();
+    assertTrue(collations.size() >= 2,
+        "getCollations() should expose all composite collations");
+
+    assertThrows(IllegalStateException.class, traitSet::getCollation,
+        "getCollation() should throw when a RelCompositeTrait is present");
+
+    assertThrows(IllegalStateException.class,
+        () -> traitSet.getTrait(RelCollationTraitDef.INSTANCE),
+        "getTrait() should throw when a RelCompositeTrait is present");
   }
 }
