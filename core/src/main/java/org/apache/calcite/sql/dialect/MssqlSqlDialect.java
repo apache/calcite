@@ -172,6 +172,13 @@ public class MssqlSqlDialect extends SqlDialect {
       final SqlWriter.Frame frame = writer.startFunCall("CEILING");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(frame);
+    } else if (call.getKind() == (SqlKind.SAFE_CAST)) {
+      // TRY_CAST is supported but not SAFE_CAST in MS SQL
+      final SqlWriter.Frame frame = writer.startFunCall("TRY_CAST");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep("as");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
     } else {
       switch (call.getKind()) {
       case FLOOR:

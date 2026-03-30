@@ -12025,4 +12025,16 @@ class RelToSqlConverterTest {
     sql(query).withLibrary(SqlLibrary.HIVE).withHive().ok(expectedHive);
     sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7456">[CALCITE-7456]
+   * Improve the conversion of try_cast function with mssql</a>. */
+  @Test void testTryCastWithMssql() {
+    final String query = "select TRY_CAST(\"gross_weight\" as bigint) as gross_weight_value\n"
+        + "from \"product\"";
+    final String expectedSql = "SELECT TRY_CAST([gross_weight] AS BIGINT) AS [GROSS_WEIGHT_VALUE]"
+        + "\nFROM [foodmart].[product]";
+
+    sql(query).withLibrary(SqlLibrary.MSSQL).withMssql().ok(expectedSql);
+  }
 }
