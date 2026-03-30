@@ -10014,6 +10014,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "did you mean 'DEPTNO', 'deptNo'\\?");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6539">[CALCITE-6539]
+   * Improve did-you-mean suggestions for spelling mistakes</a>. */
+  @Test void testDidYouMeanSpellingSuggestions() {
+    sql("select ^firts_name^ from (values (100, 'Bill')) as tbl(id, first_name)")
+        .fails("Column 'FIRTS_NAME' not found in any table; did you mean 'FIRST_NAME'\\?");
+    sql("select tbl.^firts_name^ from (values (100, 'Bill')) as tbl(id, first_name)")
+        .fails("Column 'FIRTS_NAME' not found in table 'TBL'; did you mean 'FIRST_NAME'\\?");
+    sql("select ^Alais^.\"name\" from sales.emp as \"Alias\"")
+        .fails("Table 'ALAIS' not found; did you mean 'Alias'\\?");
+    sql("select * from ^sales.\"Empp\"^")
+        .fails("Object 'Empp' not found within 'SALES'; did you mean 'EMP'\\?");
+    sql("select * from ^\"salse\".emp^")
+        .fails("Object 'salse' not found; did you mean 'SALES'\\?");
+  }
+
   /** Tests matching of built-in operator names. */
   @Test void testUnquotedBuiltInFunctionNames() {
     final SqlValidatorFixture mysql = fixture()
