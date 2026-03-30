@@ -168,10 +168,19 @@ public class FilterCorrelateRule
 
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
+      if (allConditions.size() <= 1) {
+        left =
+            LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
+                allConditions.get(0), data, rightEntry.getRight());
+        return builder.push(left).build();
+      }
       left =
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
-                  allConditions.get(0), data, rightEntry.getRight());
-      return builder.push(left).build();
+              builder.literal(true), data, rightEntry.getRight());
+      RelNode newLeft = builder.push(left).build();
+      return builder.push(newLeft)
+          .filter(builder.and(allConditions))
+          .build();
     }
     return builder.push(left)
         .filter(builder.and(allConditions))
