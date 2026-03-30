@@ -8288,6 +8288,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7407">[CALCITE-7407]
+   * Illegal use of dynamic parameter with ||</a>. */
+  @Test void testBindConcat() {
+    sql("select * from emp where ename = (? || 'KI')").ok();
+    sql("select * from emp where ename = ('SM' || ?)").ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1310">[CALCITE-1310]
    * Infer type of arguments to BETWEEN operator</a>. */
   @Test void testBindBetween() {
