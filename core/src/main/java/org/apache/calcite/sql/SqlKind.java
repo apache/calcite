@@ -507,6 +507,9 @@ public enum SqlKind {
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
 
+  /** The "IF_FOR_SAFE_CAST" function (Hive). */
+  IF_FOR_SAFE_CAST,
+
   /** {@code LEAST} function (Oracle). */
   LEAST,
 

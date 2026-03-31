@@ -261,6 +261,19 @@ public abstract class SqlLibraryOperators {
 //        }
       };
 
+  /** The "IF_FOR_SAFE_CAST(condition, thenValue, elseValue)" function. */
+  @LibraryOperator(libraries = {HIVE, MSSQL})
+  public static final SqlFunction IF_FOR_SAFE_CAST =
+      new SqlFunction("IF", SqlKind.IF_FOR_SAFE_CAST, SqlLibraryOperators::inferIfReturnType,
+          null,
+          OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
+              SqlTypeFamily.ANY)
+              .and(
+                  // Arguments 1 and 2 must have same type
+                  OperandTypes.same(3, 1, 2)),
+          SqlFunctionCategory.SYSTEM) {
+      };
+
   /** Infers the return type of {@code IF(b, x, y)},
    * namely the least restrictive of the types of x and y.
    * Similar to {@link ReturnTypes#LEAST_RESTRICTIVE}. */

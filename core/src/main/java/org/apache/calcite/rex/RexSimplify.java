@@ -323,6 +323,7 @@ public class RexSimplify {
     case DIVIDE:
       return simplifyArithmetic((RexCall) e);
     case IF:
+    case IF_FOR_SAFE_CAST:
       return simplifyIf((RexCall) e, unknownAs);
     case NVL:
       // We currently do not optimize the IFNULL function at the MIG end,
