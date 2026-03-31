@@ -1322,13 +1322,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("values 1.0 + ^NULL^")
         .withTypeCoercion(false)
         .fails("(?s).*Illegal use of .NULL.*");
+    // SELECT produces DECIMAL(3, 1) because inferUnknownTypes infers
+    // NULL as DECIMAL(2, 1) via FIRST_KNOWN, and DECIMAL(2,1) + DECIMAL(2,1)
+    // = DECIMAL(3, 1)
+    sql("select 1.0 + NULL from (values (0)) as t(x)")
+        .columnType("DECIMAL(3, 1)");
     expr("values 1.0 + NULL")
-        .columnType("DECIMAL(2, 1)");
+        .columnType("DECIMAL(3, 1)");
     expr("1.0 + ^NULL^")
         .withTypeCoercion(false)
         .fails("(?s).*Illegal use of .NULL.*");
+    sql("select 1.0 + NULL from (values (0)) as t(x)")
+        .columnType("DECIMAL(3, 1)");
     expr("1.0 + NULL")
-        .columnType("DECIMAL(2, 1)");
+        .columnType("DECIMAL(3, 1)");
 
     // FIXME: SQL:2003 does not allow raw NULL in IN clause
     expr("1 in (1, null, 2)").ok();
@@ -1581,9 +1588,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("LOCALTIME").ok(); // fix sqlcontext later.
     wholeExpr("LOCALTIME(1+2)")
         .fails("Argument to function 'LOCALTIME' must be a literal");
-    wholeExpr("LOCALTIME(NULL)")
+    // With type coercion disabled, inferUnknownTypes rejects NULL before
+    // LOCALTIME can validate. SELECT produces the same error.
+    sql("select LOCALTIME(^NULL^) from (values (0)) as t(x)")
         .withTypeCoercion(false)
-        .fails("Argument to function 'LOCALTIME' must not be NULL");
+        .fails("(?s).*Illegal use of .NULL.*");
+    expr("LOCALTIME(^NULL^)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
     wholeExpr("LOCALTIME(NULL)")
         .fails("Argument to function 'LOCALTIME' must not be NULL");
     wholeExpr("LOCALTIME(CAST(NULL AS INTEGER))")
@@ -7924,6 +7936,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7457">[CALCITE-7457]
+   * VALUES and SELECT produce different validation results for the same expression</a>.
+   */
+  @Test void testSelectVsValuesValidation() {
+    sql("select 1.0 + NULL from (values (0)) as t(x)")
+        .columnType("DECIMAL(3, 1)");
+    expr("1.0 + NULL")
+        .columnType("DECIMAL(3, 1)");
+
+    sql("select 1 + ? from (values (0)) as t(x)").ok();
+    expr("1 + ?").ok();
+
+    sql("select 1 + ^NULL^ from (values (0)) as t(x)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+    expr("1 + ^NULL^")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+
+    sql("select LOCALTIME(^NULL^) from (values (0)) as t(x)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+    expr("LOCALTIME(^NULL^)")
+        .withTypeCoercion(false)
+        .fails("(?s).*Illegal use of .NULL.*");
+  }
+
   @Test void testPercentileFunctionsBigQuery() {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
     final String sql = "select\n"
@@ -8104,15 +8145,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "   overlaps (date '1-2-3', date '1-2-3')^\n"
         + "or false")
         .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
-    // row with 3 arguments as right argument to overlaps
+    // row with 3 arguments as right argument to overlaps.
+    // validateValues checks ROW structure before OVERLAPS validates,
+    // producing "Unequal number of entries in ROW expressions".
+    // SELECT produces the same error.
+    sql("select true or"
+        + " (date '1-2-3', date '1-2-3')"
+        + " overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^"
+        + " or false from (values (0)) as t(x)")
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
     expr("true\n"
-        + "or ^(date '1-2-3', date '1-2-3')\n"
-        + "  overlaps (date '1-2-3', date '1-2-3', date '1-2-3')^\n"
+        + "or (date '1-2-3', date '1-2-3')\n"
+        + "  overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^\n"
         + "or false")
-        .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
-    expr("^period (date '1-2-3', date '1-2-3')\n"
-        + "   overlaps (date '1-2-3', date '1-2-3', date '1-2-3')^")
-        .fails("(?s).*Cannot apply 'OVERLAPS' to arguments of type .*");
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
+    // SELECT produces the same error for mismatched ROW sizes
+    sql("select period (date '1-2-3', date '1-2-3')"
+        + " overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^"
+        + " from (values (0)) as t(x)")
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
+    expr("period (date '1-2-3', date '1-2-3')\n"
+        + "   overlaps ^(date '1-2-3', date '1-2-3', date '1-2-3')^")
+        .fails("(?s).*Unequal number of entries in ROW expressions.*");
     expr("true\n"
         + "or ^(1, 2) overlaps (2, 3)^\n"
         + "or false")
