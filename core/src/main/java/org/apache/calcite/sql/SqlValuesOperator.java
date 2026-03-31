@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+
 /**
  * The <code>VALUES</code> operator.
  */
@@ -27,6 +30,11 @@ public class SqlValuesOperator extends SqlSpecialOperator {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    validator.validateQuery(call, scope, validator.getUnknownType());
+  }
 
   @Override public void unparse(
       SqlWriter writer,
