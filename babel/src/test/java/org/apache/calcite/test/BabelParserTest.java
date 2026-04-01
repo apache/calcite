@@ -15,10 +15,7 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
@@ -309,21 +306,6 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testInfixCastBracketAccessNeedsParentheses() {
-    sql("select v::variant^[^1] from t")
-        .fails("(?s).*Encountered \"\\[\".*");
-    sql("select (v::variant)[1], (v::integer array)[1] from t")
-        .node(
-            customMatches("select list", node -> {
-              final SqlSelect select = (SqlSelect) node;
-              assertThat(select.getSelectList().get(0).getKind(), is(SqlKind.ITEM));
-              assertThat(((SqlCall) select.getSelectList().get(0)).operand(0).getKind(),
-                  is(SqlKind.CAST));
-              assertThat(select.getSelectList().get(1).getKind(), is(SqlKind.ITEM));
-              assertThat(((SqlCall) select.getSelectList().get(1)).operand(0).getKind(),
-                  is(SqlKind.CAST));
-            }));
-  }
   @Test void testColonFieldAccessWithInfixCast() {
     final SqlParserFixture f =
         fixture().withConformance(new SqlAbstractConformance() {
@@ -331,13 +313,90 @@ class BabelParserTest extends SqlParserTest {
             return true;
           }
         });
-    f.sql("select v:field::integer, arr[1]:field::varchar, "
-            + "v:field.field2::integer, v:field[2]::integer from t")
-        .ok("SELECT (`V`.`FIELD`) :: INTEGER, "
-            + "(`ARR`[1].`FIELD`) :: VARCHAR, "
-            + "((`V`.`FIELD`).`FIELD2`) :: INTEGER, "
-            + "(`V`.`FIELD`)[2] :: INTEGER\n"
+
+    // Bracket after :: binds to the type, not as subscript on the cast result
+    sql("select v::varchar[1] from t")
+        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
+    f.sql("select v::varchar[1] from t")
+        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
+
+    // Explicit parentheses make no difference — bracket still binds to the type
+    sql("select (v::varchar)[1] from t")
+        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
+    f.sql("select (v::varchar)[1] from t")
+        .ok("SELECT `V` :: VARCHAR[1]\nFROM `T`");
+
+    // Array type with bracket
+    sql("select v::integer array[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+    f.sql("select v::integer array[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+
+    // Parenthesized array type with bracket
+    sql("select (v::integer array)[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+    f.sql("select (v::integer array)[1] from t")
+        .ok("SELECT `V` :: INTEGER ARRAY[1]\nFROM `T`");
+
+    // Multiple brackets bind to the type
+    sql("select v::varchar[1][2] from t")
+        .ok("SELECT `V` :: VARCHAR[1][2]\nFROM `T`");
+    f.sql("select v::varchar[1][2] from t")
+        .ok("SELECT `V` :: VARCHAR[1][2]\nFROM `T`");
+
+    // Expression on the LHS of ::
+    sql("select (v + 1)::integer[1] from t")
+        .ok("SELECT (`V` + 1) :: INTEGER[1]\nFROM `T`");
+    f.sql("select (v + 1)::integer[1] from t")
+        .ok("SELECT (`V` + 1) :: INTEGER[1]\nFROM `T`");
+
+    // Plain dot: [n].field correctly means subscript-then-field
+    sql("select v.field[1].field2 from t")
+        .ok("SELECT (`V`.`FIELD`[1].`FIELD2`)\nFROM `T`");
+    f.sql("select v:field[1].field2 from t")
+        .ok("SELECT ((`V`.`FIELD`)[1].`FIELD2`)\nFROM `T`");
+
+    // With ::, [n].field is consumed as part of the type
+    sql("select v::varchar[1].field from t")
+        .ok("SELECT `V` :: (VARCHAR[1].`FIELD`)\nFROM `T`");
+    f.sql("select v:field::varchar[1].field2 from t")
+        .ok("SELECT (`V`.`FIELD`) :: (VARCHAR[1].`FIELD2`)\nFROM `T`");
+
+    // Explicit parentheses around :: let [n].field apply to the cast result
+    sql("select (v::varchar)[1].field from t")
+        .ok("SELECT (`V` :: VARCHAR[1].`FIELD`)\nFROM `T`");
+    f.sql("select (v:field::varchar)[1].field2 from t")
+        .ok("SELECT ((`V`.`FIELD`) :: VARCHAR[1].`FIELD2`)\nFROM `T`");
+
+    // Bracket on the result of :: cast
+    sql("select v::integer[1] from t")
+        .ok("SELECT `V` :: INTEGER[1]\nFROM `T`");
+    f.sql("select v:field::integer[1] from t")
+        .ok("SELECT (`V`.`FIELD`) :: INTEGER[1]\nFROM `T`");
+
+    // Dot/bracket access combined with infix cast
+    sql("select v.field::integer,\n"
+            + "  arr[1].field::varchar,\n"
+            + "  v.field.field2::integer,\n"
+            + "  v.field[2]::integer\n"
+            + "from t")
+        .ok("SELECT `V`.`FIELD` :: INTEGER,"
+            + " (`ARR`[1].`FIELD`) :: VARCHAR,"
+            + " `V`.`FIELD`.`FIELD2` :: INTEGER,"
+            + " `V`.`FIELD`[2] :: INTEGER\n"
             + "FROM `T`");
+    f.sql("select v:field::integer,\n"
+            + "  arr[1]:field::varchar,\n"
+            + "  v:field.field2::integer,\n"
+            + "  v:field[2]::integer\n"
+            + "from t")
+        .ok("SELECT (`V`.`FIELD`) :: INTEGER,"
+            + " (`ARR`[1].`FIELD`) :: VARCHAR,"
+            + " ((`V`.`FIELD`).`FIELD2`) :: INTEGER,"
+            + " (`V`.`FIELD`)[2] :: INTEGER\n"
+            + "FROM `T`");
+
+    // Double-colon followed by colon field access is not allowed
     f.sql("select v::variant^:^field from t")
         .fails("(?s).*Encountered \":.*\".*");
   }
