@@ -892,6 +892,12 @@ public class SqlParserTest {
   }
 
   @Test void testHyphenatedTableName() {
+    final SqlConformance nonBigQueryConformance = new SqlAbstractConformance() {
+      @Override public boolean allowHyphenInUnquotedTableName() {
+        return true;
+      }
+    };
+
     sql("select * from bigquery^-^foo-bar.baz")
         .fails("(?s)Encountered \"-\" at .*")
         .withDialect(BIG_QUERY)
@@ -913,7 +919,12 @@ public class SqlParserTest {
         .ok("SELECT baz.buzz\n"
             + "FROM `foo-bar`.baz")
         .withDialect(MYSQL)
-        .fails("(?s)Encountered \"-\" at .*");
+        .fails("(?s)Encountered \"-\" at .*")
+        // It should allow if enabled via SqlConformance
+        .withConformance(nonBigQueryConformance)
+        .withQuoting(Quoting.BACK_TICK)
+        .ok("SELECT `baz`.`buzz`\n"
+            + "FROM `foo-bar`.`baz`");
 
     // No hyphenated identifiers as table aliases.
     sql("select * from foo.baz as hyphenated^-^alias-not-allowed")
@@ -923,7 +934,12 @@ public class SqlParserTest {
     sql("select * from foo.baz as `hyphenated-alias-allowed-if-quoted`")
         .withDialect(BIG_QUERY)
         .ok("SELECT *\n"
-            + "FROM foo.baz AS `hyphenated-alias-allowed-if-quoted`");
+            + "FROM foo.baz AS `hyphenated-alias-allowed-if-quoted`")
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
+        .ok("SELECT *\n"
+            + "FROM `foo`.`baz` AS `hyphenated-alias-allowed-if-quoted`");
 
     // No hyphenated identifiers as column names.
     sql("select * from foo-bar.baz cross join (select alpha-omega from t) as t")
@@ -931,28 +947,53 @@ public class SqlParserTest {
         .ok("SELECT *\n"
             + "FROM `foo-bar`.baz\n"
             + "CROSS JOIN (SELECT (alpha - omega)\n"
-            + "FROM t) AS t");
+            + "FROM t) AS t")
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
+        .ok("SELECT *\n"
+           + "FROM `foo-bar`.`baz`\n"
+           + "CROSS JOIN (SELECT (`alpha` - `omega`)\n"
+           + "FROM `t`) AS `t`");
 
     sql("select * from bigquery-foo-bar.baz as hyphenated^-^alias-not-allowed")
         .withDialect(BIG_QUERY)
+        .fails("(?s)Encountered \"-\" at .*")
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
         .fails("(?s)Encountered \"-\" at .*");
 
     sql("insert into bigquery^-^public-data.foo values (1)")
         .fails("Non-query expression encountered in illegal context")
         .withDialect(BIG_QUERY)
         .ok("INSERT INTO `bigquery-public-data`.foo\n"
+            + "VALUES (1)")
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
+        .ok("INSERT INTO `bigquery-public-data`.`foo`\n"
             + "VALUES (1)");
 
     sql("update bigquery^-^public-data.foo set a = b")
         .fails("(?s)Encountered \"-\" at .*")
         .withDialect(BIG_QUERY)
-        .ok("UPDATE `bigquery-public-data`.foo SET a = b");
+        .ok("UPDATE `bigquery-public-data`.foo SET a = b")
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
+        .ok("UPDATE `bigquery-public-data`.`foo` SET `a` = `b`");
 
     sql("delete from bigquery^-^public-data.foo where a = 5")
         .fails("(?s)Encountered \"-\" at .*")
         .withDialect(BIG_QUERY)
         .ok("DELETE FROM `bigquery-public-data`.foo\n"
-            + "WHERE (a = 5)");
+            + "WHERE (a = 5)")
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
+        .ok("DELETE FROM `bigquery-public-data`.`foo`\n"
+            + "WHERE (`a` = 5)");
 
     final String mergeSql = "merge into bigquery^-^public-data.emps e\n"
         + "using (\n"
@@ -977,10 +1018,25 @@ public class SqlParserTest {
         + "WHEN NOT MATCHED THEN"
         + " INSERT (name, dept, salary)"
         + " VALUES (t.name, 10, (t.salary * 0.15))";
+    final String nonBigQueryMergeExpected = "MERGE INTO `bigquery-public-data`.`emps` AS `e`\n"
+        + "USING (SELECT *\n"
+        + "FROM `bigquery-public-data`.`tempemps`\n"
+        + "WHERE (`deptno` IS NULL)) AS `t`\n"
+        + "ON (`e`.`empno` = `t`.`empno`)\n"
+        + "WHEN MATCHED THEN"
+        + " UPDATE SET `name` = `t`.`name`, `deptno` = `t`.`deptno`,"
+        + " `salary` = (`t`.`salary` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN"
+        + " INSERT (`name`, `dept`, `salary`)"
+        + " VALUES (`t`.`name`, 10, (`t`.`salary` * 0.15))";
     sql(mergeSql)
         .fails("(?s)Encountered \"-\" at .*")
         .withDialect(BIG_QUERY)
-        .ok(mergeExpected);
+        .ok(mergeExpected)
+        .withDialect(MYSQL)
+        .withQuoting(Quoting.BACK_TICK)
+        .withConformance(nonBigQueryConformance)
+        .ok(nonBigQueryMergeExpected);
 
     // Hyphenated identifiers may not contain spaces, even in BigQuery.
     sql("select * from bigquery ^-^ foo - bar as t where x < y")
