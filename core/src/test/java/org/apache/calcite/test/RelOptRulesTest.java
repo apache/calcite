@@ -160,8 +160,11 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
@@ -10217,7 +10220,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     @Override public MyFilter copy(RelTraitSet traitSet, RelNode input,
-        RexNode condition) {
+        RexNode condition, Set<CorrelationId> variablesSet) {
+      checkArgument(variablesSet.isEmpty());
       return new MyFilter(getCluster(), traitSet, input, condition);
     }
   }
@@ -10274,7 +10278,8 @@ class RelOptRulesTest extends RelOptTestBase {
     }
 
     public MyProject copy(RelTraitSet traitSet, RelNode input,
-        List<RexNode> projects, RelDataType rowType) {
+        List<RexNode> projects, RelDataType rowType, Set<CorrelationId> variablesSet) {
+      checkArgument(variablesSet.isEmpty());
       return new MyProject(getCluster(), traitSet, input, projects, rowType);
     }
   }

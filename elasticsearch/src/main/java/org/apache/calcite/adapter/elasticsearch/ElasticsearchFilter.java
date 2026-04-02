@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexCall;
@@ -36,6 +37,9 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -57,7 +61,9 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
     return cost.multiplyBy(0.1);
   }
 
-  @Override public Filter copy(RelTraitSet relTraitSet, RelNode input, RexNode condition) {
+  @Override public Filter copy(RelTraitSet relTraitSet, RelNode input, RexNode condition,
+      Set<CorrelationId> variablesSet) {
+    checkArgument(variablesSet.isEmpty());
     return new ElasticsearchFilter(getCluster(), relTraitSet, input, condition);
   }
 
