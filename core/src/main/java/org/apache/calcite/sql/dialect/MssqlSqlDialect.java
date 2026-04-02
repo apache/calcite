@@ -37,6 +37,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -184,6 +185,13 @@ public class MssqlSqlDialect extends SqlDialect {
       case MOD:
         SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
         SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
+        break;
+      case SAFE_CAST:
+        // MSSQL uses TRY_CAST instead of SAFE_CAST (BigQuery)
+        super.unparseCall(writer,
+            SqlLibraryOperators.TRY_CAST.createCall(
+                call.getParserPosition(), call.getOperandList()),
+            leftPrec, rightPrec);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);

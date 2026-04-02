@@ -3136,6 +3136,27 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7456">[CALCITE-7456]
+   * Enable the TRY_CAST function to support the MSSQL dialect</a>. */
+  @Test void testMssqlTryCast() {
+    final String query = "select try_cast(\"product_name\" as date) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT TRY_CAST([product_name] AS DATE)\n"
+        + "FROM [foodmart].[product]";
+
+    sql(query).withLibrary(SqlLibrary.MSSQL).withMssql().ok(expected);
+  }
+
+  @Test void testSafeCastToMssqlTryCast() {
+    final String query = "select safe_cast(\"product_name\" as date) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT TRY_CAST([product_name] AS DATE)\n"
+        + "FROM [foodmart].[product]";
+
+    sql(query).withLibrary(SqlLibrary.BIG_QUERY).withMssql().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6150">[CALCITE-6150]
    * JDBC adapter for ClickHouse generates incorrect SQL for certain units in
    * the EXTRACT function</a>. Also tests other units in other dialects,
