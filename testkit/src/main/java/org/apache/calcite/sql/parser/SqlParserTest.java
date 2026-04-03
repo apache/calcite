@@ -9397,6 +9397,16 @@ public class SqlParserTest {
         + "FROM `EMPS`\n"
         + "FETCH NEXT 2 ROWS ONLY";
     sql(sql3).ok(expected3);
+    // Hint statement without hints
+    final String sql4 = "select /*+*/ empno, ename, deptno from emps limit 2";
+    final String expected4 = "SELECT `EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    sql(sql4).ok(expected4);
+    final String sql5 = "select /*  +*/ * from emps";
+    final String expected5 = "SELECT *\n"
+        + "FROM `EMPS`";
+    sql(sql5).ok(expected5);
   }
 
   @Test void testTableHintsInQuery() {
