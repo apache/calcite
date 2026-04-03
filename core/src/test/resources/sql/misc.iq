@@ -18,6 +18,16 @@
 !use post
 !set outputformat mysql
 
+select CAST(5 AS DOUBLE) / 0 as a;
++----------+
+| A        |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
+
 # [CALCITE-7060] Enable dumping high-level plans in quidem tests
 SELECT * FROM EMP WHERE DEPTNO > 20;
 SELECT "EMP"."ENAME", "EMP"."DEPTNO", "EMP"."GENDER"
@@ -2603,10 +2613,62 @@ FROM "hr"."emps";
 
 !ok
 
-# [CALCITE-6566] JDBC adapter should generate PI function with parentheses in most dialects
-
 !use scott-mysql
 
+# [CALCITE-7270] Add support for a DIVIDE_0_NULL operator
+select 5 / 0 as a;
++---+
+| A |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# No NULL result produced for double division
+select CAST(5 AS DOUBLE) / 0 as a;
++----------+
+| A        |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
+
+select 5 / 1 as a;
++---+
+| A |
++---+
+| 5 |
++---+
+(1 row)
+
+!ok
+
+# [CALCITE-7270] Add support for a DIVIDE_0_NULL operator
+select 5 % 0 as a;
++---+
+| A |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+select 5 % 1 as a;
++---+
+| A |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+# [CALCITE-6566] JDBC adapter should generate PI function with parentheses in most dialects
 # PI function
 values pi;
 No match found for function signature PI()

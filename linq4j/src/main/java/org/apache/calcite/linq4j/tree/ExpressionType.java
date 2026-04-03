@@ -147,10 +147,28 @@ public enum ExpressionType {
   DivideChecked(" / ", false, 3, false),
 
   /**
+   * A nullable division operation, such as (a / b), for numeric
+   * operands, but which returns NULL for a 0 denominator.
+   */
+  Divide0Null(" / ", false, 3, false),
+
+  /**
+   * A checked nullable division operation, such as (a / b), for numeric
+   * operands which returns NULL for a 0 denominator.
+   */
+  Divide0NullChecked(" / ", false, 3, false),
+
+  /**
    * A percent remainder operation, such as (a % b), for numeric
    * operands.
    */
   Mod(" % ", false, 3, false),
+
+  /**
+   * A percent remainder operation, such as (a % b), for numeric
+   * operands.
+   */
+  Mod0Null(" % ", false, 3, false),
 
   /**
    * A node that represents an equality comparison, such as {@code a == b} in
