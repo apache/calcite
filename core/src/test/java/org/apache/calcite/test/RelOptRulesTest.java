@@ -11395,6 +11395,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  // If the PROJECT clause contains non-deterministic expressions,
+  // they will not be merged.
+  @Test void testUnionToFilterRuleWithNonDeterministicProject() {
+    final String sql = "SELECT mgr, comm, rand() FROM emp WHERE mgr = 12\n"
+        + "UNION\n"
+        + "SELECT mgr, comm, rand() FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  // If the projection contains a subquery, merging will not be performed.
+  @Test void testUnionToFilterRuleWithSubqueryProject() {
+    final String sql = "SELECT 1, (SELECT COUNT(*) FROM dept)\n"
+        + "FROM emp WHERE mgr = 12\n"
+        + "UNION\n"
+        + "SELECT 1, (SELECT COUNT(*) FROM dept)\n"
+        + "FROM emp WHERE comm = 5\n";
+
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
    * Create an optimization rule to eliminate UNION

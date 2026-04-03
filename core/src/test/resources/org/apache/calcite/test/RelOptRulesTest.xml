@@ -21498,6 +21498,27 @@ LogicalUnion(all=[false])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionToFilterRuleWithNonDeterministicProject">
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm, rand() FROM emp WHERE mgr = 12
+UNION
+SELECT mgr, comm, rand() FROM emp WHERE comm = 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalProject(MGR=[$0], COMM=[$1], EXPR$2=[RAND()])
+    LogicalFilter(condition=[=($0, 12)])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(MGR=[$0], COMM=[$1], EXPR$2=[RAND()])
+    LogicalFilter(condition=[=($1, 5)])
+      LogicalProject(MGR=[$3], COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnionToFilterRuleWithOneFilter">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp
@@ -21520,6 +21541,37 @@ LogicalUnion(all=[false])
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(MGR=[$3], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnionToFilterRuleWithSubqueryProject">
+    <Resource name="sql">
+      <![CDATA[SELECT 1, (SELECT COUNT(*) FROM dept)
+FROM emp WHERE mgr = 12
+UNION
+SELECT 1, (SELECT COUNT(*) FROM dept)
+FROM emp WHERE comm = 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=[1], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalFilter(condition=[=($0, 12)])
+      LogicalProject(MGR=[$3])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[1], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalFilter(condition=[=($0, 5)])
+      LogicalProject(COMM=[$6])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
