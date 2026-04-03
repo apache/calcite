@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
+import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
@@ -1495,16 +1496,15 @@ public class Smalls {
   }
 
   /** User-defined function with return type byte[]. */
+  @Strict
   public static class ByteArrayFunction {
     public static byte[] eval(String s) {
-      if (s == null) {
-        return null;
-      }
       return s.getBytes(StandardCharsets.UTF_8);
     }
   }
 
   /** User-defined function with parameter type byte[]. */
+  @Strict
   public static class ByteArrayLengthFunction {
     public static int eval(byte[] bytes) {
       return bytes.length;
