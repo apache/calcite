@@ -181,6 +181,14 @@ public final class LogicalJoin extends Join {
         variablesSet, joinType, semiJoinDone, systemFieldList);
   }
 
+  @Override public LogicalJoin copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left,
+      RelNode right, JoinRelType joinType, boolean semiJoinDone, Set<CorrelationId> variablesSet) {
+    assert traitSet.containsIfApplicable(Convention.NONE);
+    return new LogicalJoin(getCluster(),
+        getCluster().traitSetOf(Convention.NONE), hints, left, right, conditionExpr,
+        variablesSet, joinType, semiJoinDone, systemFieldList);
+  }
+
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
