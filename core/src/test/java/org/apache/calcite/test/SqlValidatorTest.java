@@ -10015,7 +10015,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6539">[CALCITE-6539]
-   * Improve did-you-mean suggestions for spelling mistakes</a>. */
+   * Improve did-you-mean suggestions for misspelled SQL identifiers</a>. */
   @Test void testDidYouMeanSpellingSuggestions() {
     sql("select ^firts_name^ from (values (100, 'Bill')) as tbl(id, first_name)")
         .fails("Column 'FIRTS_NAME' not found in any table; did you mean 'FIRST_NAME'\\?");
@@ -10030,7 +10030,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6539">[CALCITE-6539]
-   * Improve did-you-mean suggestions for spelling mistakes</a>. */
+   * Improve did-you-mean suggestions for misspelled SQL identifiers</a>. */
   @Test void testDidYouMeanSpellingSuggestionsInNestedQueries() {
     sql("select ^firts_name^ from (\n"
         + "  select first_name\n"
@@ -10062,6 +10062,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  from (values (100, 'Bill')) as base_tbl(id, first_name)\n"
         + ") as middle_alias")
         .fails("Table 'MIDLE_ALIAS' not found; did you mean 'MIDDLE_ALIAS'\\?");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6539">[CALCITE-6539]
+   * Improve did-you-mean suggestions for misspelled SQL identifiers</a>. */
+  @Test void testDidYouMeanSpellingSuggestionsForStructuredFields() {
+    sql("select t0.^f0.d1^ from struct.t t0")
+        .fails("Column 'F0\\.D1' not found in table 'T0'; did you mean 'C1'\\?");
+    sql("select t0.^f1.a9^ from struct.t t0")
+        .fails("Column 'F1\\.A9' not found in table 'T0'; did you mean 'A0'\\?");
   }
 
   /** Tests matching of built-in operator names. */

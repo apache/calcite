@@ -226,15 +226,17 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return suggestion == null ? null : suggestion.suggestion;
   }
 
-  private static @Nullable String findFieldSuggestion(RelDataType rowType,
-      List<String> names) {
-    RelDataType currentType = rowType;
+  private @Nullable String findFieldSuggestion(SqlValidatorNamespace namespace,
+      SqlNameMatcher nameMatcher, List<String> names) {
+    SqlValidatorNamespace currentNamespace = namespace;
     for (String name : names) {
-      final RelDataTypeField field = currentType.getField(name, true, false);
-      if (field == null) {
-        return SqlNameMatchers.bestMatch(name, fieldNames(currentType));
+      final ResolvedImpl resolved = new ResolvedImpl();
+      resolveInNamespace(currentNamespace, false, ImmutableList.of(name), nameMatcher,
+          Path.EMPTY, resolved);
+      if (resolved.count() == 0) {
+        return SqlNameMatchers.bestMatch(name, fieldNames(currentNamespace.getRowType()));
       }
-      currentType = field.getType();
+      currentNamespace = resolved.only().namespace;
     }
     return null;
   }
@@ -498,7 +500,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       case 0:
         if (nameMatcher.isCaseSensitive()) {
           final @Nullable String suggestion =
-              findFieldSuggestion(requireNonNull(fromRowType, "fromRowType"),
+              findFieldSuggestion(requireNonNull(fromNs, "fromNs"), nameMatcher,
                   suffix.names);
           if (suggestion != null) {
             int k = size - 1;

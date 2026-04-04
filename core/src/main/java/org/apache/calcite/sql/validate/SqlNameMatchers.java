@@ -103,8 +103,9 @@ public class SqlNameMatchers {
         ordinal++;
         continue;
       }
-      matches.add(new MatchResult(candidateName, normalizedCandidateName,
-          similarity, distance, ordinal));
+      matches.add(
+          new MatchResult(candidateName, normalizedCandidateName,
+              similarity, distance, ordinal));
       ordinal++;
     }
     if (matches.isEmpty()) {
