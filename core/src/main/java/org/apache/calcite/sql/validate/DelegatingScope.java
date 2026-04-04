@@ -42,7 +42,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -194,6 +193,70 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
+  private List<String> findColumnSuggestions(String columnName) {
+    final List<SqlMoniker> columnNames = new ArrayList<>();
+    findAllColumnNames(columnNames);
+    return SqlNameMatchers.bestMatches(columnName, simpleNames(columnNames));
+  }
+
+  private @Nullable String findCaseInsensitiveTableSuggestion(List<String> names) {
+    final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
+    final ResolvedImpl resolved = new ResolvedImpl();
+    resolve(names, liberalMatcher, false, resolved);
+    if (resolved.count() == 1) {
+      final Step lastStep = Util.last(resolved.only().path.steps());
+      return lastStep.name;
+    }
+    return null;
+  }
+
+  private @Nullable String findTableSuggestion(SqlIdentifier prefix) {
+    final @Nullable String caseInsensitiveSuggestion =
+        findCaseInsensitiveTableSuggestion(prefix.names);
+    if (caseInsensitiveSuggestion != null) {
+      return caseInsensitiveSuggestion;
+    }
+    if (prefix.names.size() == 1) {
+      final List<SqlMoniker> aliases = new ArrayList<>();
+      findAliases(aliases);
+      return SqlNameMatchers.bestMatch(prefix.names.get(0), simpleNames(aliases));
+    }
+    final SqlNameMatchers.NameSuggestion suggestion =
+        SqlNameMatchers.bestObjectName(validator.catalogReader, prefix.names);
+    return suggestion == null ? null : suggestion.suggestion;
+  }
+
+  private @Nullable String findFieldSuggestion(SqlValidatorNamespace namespace,
+      SqlNameMatcher nameMatcher, List<String> names) {
+    SqlValidatorNamespace currentNamespace = namespace;
+    for (String name : names) {
+      final ResolvedImpl resolved = new ResolvedImpl();
+      resolveInNamespace(currentNamespace, false, ImmutableList.of(name), nameMatcher,
+          Path.EMPTY, resolved);
+      if (resolved.count() == 0) {
+        return SqlNameMatchers.bestMatch(name, fieldNames(currentNamespace.getRowType()));
+      }
+      currentNamespace = resolved.only().namespace;
+    }
+    return null;
+  }
+
+  private static List<String> fieldNames(RelDataType rowType) {
+    final List<String> names = new ArrayList<>();
+    for (RelDataTypeField field : rowType.getFieldList()) {
+      names.add(field.getName());
+    }
+    return names;
+  }
+
+  private static List<String> simpleNames(Iterable<? extends SqlMoniker> monikers) {
+    final List<String> names = new ArrayList<>();
+    for (SqlMoniker moniker : monikers) {
+      names.add(Util.last(moniker.getFullyQualifiedNames()));
+    }
+    return names;
+  }
+
   @Override public void findAllColumnNames(List<SqlMoniker> result) {
     parent.findAllColumnNames(result);
   }
@@ -270,24 +333,11 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       switch (map.size()) {
       case 0:
         if (nameMatcher.isCaseSensitive()) {
-          final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
-          final Map<String, ScopeChild> map2 =
-              findQualifyingTableNames(columnName, identifier, liberalMatcher);
-          if (!map2.isEmpty()) {
-            final List<String> list = new ArrayList<>();
-            for (ScopeChild entry : map2.values()) {
-              final RelDataTypeField field =
-                  liberalMatcher.field(entry.namespace.getRowType(),
-                      columnName);
-              if (field == null) {
-                continue;
-              }
-              list.add(field.getName());
-            }
-            Collections.sort(list);
+          final List<String> suggestions = findColumnSuggestions(columnName);
+          if (!suggestions.isEmpty()) {
             throw validator.newValidationError(identifier,
                 RESOURCE.columnNotFoundDidYouMean(columnName,
-                    Util.sepList(list, "', '")));
+                    Util.sepList(suggestions, "', '")));
           }
         }
         throw validator.newValidationError(identifier,
@@ -342,14 +392,11 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         }
         // Look for a table alias that is the wrong case.
         if (nameMatcher.isCaseSensitive()) {
-          final SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
-          resolved.clear();
-          resolve(prefix.names, liberalMatcher, false, resolved);
-          if (resolved.count() == 1) {
-            final Step lastStep = Util.last(resolved.only().path.steps());
+          final @Nullable String suggestion = findTableSuggestion(prefix);
+          if (suggestion != null) {
             throw validator.newValidationError(prefix,
                 RESOURCE.tableNameNotFoundDidYouMean(prefix.toString(),
-                    lastStep.name));
+                    suggestion));
           }
         }
       }
@@ -361,6 +408,18 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         switch (map.size()) {
         default:
           final SqlIdentifier prefix1 = identifier.skipLast(1);
+          if (nameMatcher.isCaseSensitive()) {
+            final @Nullable String suggestion =
+                fromNs instanceof SchemaNamespace
+                    ? SqlNameMatchers.bestMatch(Util.last(prefix1.names),
+                        fieldNames(fromNs.getRowType()))
+                    : findTableSuggestion(prefix1);
+            if (suggestion != null) {
+              throw validator.newValidationError(prefix1,
+                  RESOURCE.tableNameNotFoundDidYouMean(prefix1.toString(),
+                      suggestion));
+            }
+          }
           throw validator.newValidationError(prefix1,
               RESOURCE.tableNameNotFound(prefix1.toString()));
         case 1: {
@@ -439,20 +498,17 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final Path path;
       switch (resolved.count()) {
       case 0:
-        // Maybe the last component was correct, just wrong case
         if (nameMatcher.isCaseSensitive()) {
-          SqlNameMatcher liberalMatcher = SqlNameMatchers.liberal();
-          resolved.clear();
-          resolveInNamespace(fromNs, false, suffix.names, liberalMatcher,
-              Path.EMPTY, resolved);
-          if (resolved.count() > 0) {
+          final @Nullable String suggestion =
+              findFieldSuggestion(requireNonNull(fromNs, "fromNs"), nameMatcher,
+                  suffix.names);
+          if (suggestion != null) {
             int k = size - 1;
             final SqlIdentifier prefix = identifier.getComponent(0, i);
             final SqlIdentifier suffix3 = identifier.getComponent(i, k + 1);
-            final Step step = Util.last(resolved.resolves.get(0).path.steps());
             throw validator.newValidationError(suffix3,
                 RESOURCE.columnNotFoundInTableDidYouMean(suffix3.toString(),
-                    prefix.toString(), step.name));
+                    prefix.toString(), suggestion));
           }
         }
         // Find the shortest suffix that also fails. Suppose we cannot resolve

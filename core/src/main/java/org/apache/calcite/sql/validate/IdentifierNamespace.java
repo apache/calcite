@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -175,9 +176,40 @@ public class IdentifierNamespace extends AbstractNamespace {
                     SqlIdentifier.getString(prefix), next));
           }
         } else {
+          final String missingName = resolve.remainingNames.get(0);
+          final List<SqlMoniker> hints = new ArrayList<>();
+          SqlValidatorUtil.getSchemaObjectMonikers(validator.catalogReader, names,
+              hints);
+          final List<String> candidateNames = new ArrayList<>();
+          for (SqlMoniker hint : hints) {
+            final List<String> hintNames = hint.getFullyQualifiedNames();
+            candidateNames.add(hintNames.get(hintNames.size() - 1));
+          }
+          final String suggestion =
+              SqlNameMatchers.bestMatch(missingName, candidateNames);
+          if (suggestion != null) {
+            throw validator.newValidationError(id,
+                RESOURCE.objectNotFoundWithinDidYouMean(missingName,
+                    SqlIdentifier.getString(resolve.path.stepNames()),
+                    suggestion));
+          }
           throw validator.newValidationError(id,
-              RESOURCE.objectNotFoundWithin(resolve.remainingNames.get(0),
+              RESOURCE.objectNotFoundWithin(missingName,
                   SqlIdentifier.getString(resolve.path.stepNames())));
+        }
+      }
+      final SqlNameMatchers.NameSuggestion suggestion =
+          SqlNameMatchers.bestObjectName(validator.catalogReader, names);
+      if (suggestion != null) {
+        if (suggestion.prefixNames.isEmpty()) {
+          throw validator.newValidationError(id,
+              RESOURCE.objectNotFoundDidYouMean(suggestion.name,
+                  suggestion.suggestion));
+        } else {
+          throw validator.newValidationError(id,
+              RESOURCE.objectNotFoundWithinDidYouMean(suggestion.name,
+                  SqlIdentifier.getString(suggestion.prefixNames),
+                  suggestion.suggestion));
         }
       }
     }
