@@ -627,6 +627,31 @@ public abstract class SqlUtil {
   }
 
   /**
+   * Finding operators matching the given name and number of arguments.
+   *
+   * @param opTab       operator table to search
+   * @param funcName    name of function being invoked
+   * @param argNumber   number of arguments
+   * @param category    category of routine to look up
+   * @param nameMatcher Whether to look up the function case-sensitively
+   * @return list of matching routines
+   */
+  public static List<SqlOperator> lookupOperatorsByParameterCount(
+      SqlOperatorTable opTab,
+      SqlFunctionCategory category,
+      SqlSyntax syntax,
+      SqlIdentifier funcName,
+      SqlNameMatcher nameMatcher,
+      int argNumber) {
+    final List<SqlOperator> sqlOperators = new ArrayList<>();
+    opTab.lookupOperatorOverloads(funcName, category, syntax, sqlOperators,
+        nameMatcher);
+    return sqlOperators.stream()
+        .filter(sqlOperator -> sqlOperator.getOperandCountRange().isValidCount(argNumber))
+        .collect(Collectors.toList());
+  }
+
+  /**
    * Determines whether there is a routine matching the given name and number
    * of arguments.
    *
