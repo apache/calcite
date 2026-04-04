@@ -822,6 +822,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("CHAR(6) NOT NULL");
     expr("'a'||'b'||cast('cde' as VARCHAR(3))|| 'f'")
         .columnType("VARCHAR(6) NOT NULL");
+    expr("null||'b'")
+        .columnType("VARCHAR");
+    expr("cast(null as ANY)||cast(null as ANY)")
+        .columnType("ANY");
     expr("_UTF16'a'||_UTF16'b'||_UTF16'c'").ok();
   }
 
@@ -8293,6 +8297,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testBindConcat() {
     sql("select * from emp where ename = (? || 'KI')").ok();
     sql("select * from emp where ename = ('SM' || ?)").ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7407">[CALCITE-7407]
+   * Illegal use of dynamic parameter with ||</a>. */
+  @Test void testConcatNullAndAnyWithContext() {
+    sql("select * from emp where ename = (null || 'KI')").ok();
+    sql("select * from emp where ename = ('SM' || null)").ok();
+    sql("select * from emp where ename = (cast(null as any) || 'KI')").ok();
+    sql("select * from emp where ename = ('SM' || cast(null as any))").ok();
   }
 
   /** Test case for
