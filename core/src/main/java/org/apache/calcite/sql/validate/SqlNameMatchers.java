@@ -82,6 +82,8 @@ public class SqlNameMatchers {
   /** Returns the best near-match suggestions for a name. */
   public static List<String> bestMatches(String name, Iterable<String> candidateNames) {
     final String normalizedName = normalize(name);
+    // Keep the same thresholds as Ruby's did_you_mean spell checker: Jaro-Winkler
+    // broadens typo recall, and the length-scaled Levenshtein limit keeps hints conservative.
     final double similarityThreshold = normalizedName.length() > 3 ? 0.834D : 0.77D;
     final int distanceThreshold = (normalizedName.length() + 3) / 4;
     final List<MatchResult> matches = new ArrayList<>();

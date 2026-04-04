@@ -10029,6 +10029,41 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'salse' not found; did you mean 'SALES'\\?");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6539">[CALCITE-6539]
+   * Improve did-you-mean suggestions for spelling mistakes</a>. */
+  @Test void testDidYouMeanSpellingSuggestionsInNestedQueries() {
+    sql("select ^firts_name^ from (\n"
+        + "  select first_name\n"
+        + "  from (values (100, 'Bill')) as base_tbl(id, first_name)\n"
+        + ") as outer_tbl")
+        .fails("Column 'FIRTS_NAME' not found in any table; did you mean 'FIRST_NAME'\\?");
+    sql("select outer_tbl.^firts_name^ from (\n"
+        + "  select first_name\n"
+        + "  from (values (100, 'Bill')) as base_tbl(id, first_name)\n"
+        + ") as outer_tbl")
+        .fails("Column 'FIRTS_NAME' not found in table 'OUTER_TBL'; "
+            + "did you mean 'FIRST_NAME'\\?");
+    sql("with base_cte as (\n"
+        + "  select first_name from (values (100, 'Bill')) as base_tbl(id, first_name)\n"
+        + "), nested_cte as (\n"
+        + "  select first_name from base_cte\n"
+        + ")\n"
+        + "select ^firts_name^ from nested_cte")
+        .fails("Column 'FIRTS_NAME' not found in any table; did you mean 'FIRST_NAME'\\?");
+    sql("select * from emp e\n"
+        + "where exists (\n"
+        + "  select 1\n"
+        + "  from dept d\n"
+        + "  where d.^nmae^ = e.ename\n"
+        + ")")
+        .fails("Column 'NMAE' not found in table 'D'; did you mean 'NAME'\\?");
+    sql("select ^midle_alias^.first_name from (\n"
+        + "  select first_name\n"
+        + "  from (values (100, 'Bill')) as base_tbl(id, first_name)\n"
+        + ") as middle_alias")
+        .fails("Table 'MIDLE_ALIAS' not found; did you mean 'MIDDLE_ALIAS'\\?");
+  }
+
   /** Tests matching of built-in operator names. */
   @Test void testUnquotedBuiltInFunctionNames() {
     final SqlValidatorFixture mysql = fixture()
