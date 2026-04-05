@@ -43,6 +43,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
@@ -686,6 +688,164 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       updateInferredType(node2, collectionWidenType);
     }
     return coercedLeft || coercedRight;
+  }
+
+  @Override public boolean collectionFunctionCoercion(SqlCallBinding binding) {
+    final SqlCall call = binding.getCall();
+    final SqlKind kind = call.getKind();
+    switch (kind) {
+    case MAP_VALUE_CONSTRUCTOR:
+      // MAP value constructor (MAP['k1', v1, ...]) coerces when types
+      // differ including precision (e.g. CHAR(5) -> CHAR(10)).
+      return mapCoercion(binding, false);
+    case ARRAY_APPEND:
+    case ARRAY_PREPEND:
+      return arrayAppendPrependCoercion(binding);
+    case ARRAY_INSERT:
+      return arrayInsertCoercion(binding);
+    default:
+      // Spark-style MAP() function has SqlKind.OTHER_FUNCTION.
+      // It only coerces when the SqlTypeName differs (e.g. TINYINT vs
+      // INTEGER), not for same-type precision differences like
+      // CHAR(5) vs CHAR(10).
+      if ("MAP".equals(call.getOperator().getName())) {
+        return mapCoercion(binding, true);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Coerces operands of a MAP constructor or MAP function to the least
+   * restrictive key/value types. Keys are at even positions, values at odd
+   * positions.
+   *
+   * @param binding             Call binding
+   * @param typeNameCheckOnly   If {@code true}, only coerce when the
+   *   {@link SqlTypeName} differs (lenient — used by the Spark MAP function).
+   *   If {@code false}, coerce whenever types are not equal sans field names
+   *   (strict — used by the MAP value constructor).
+   */
+  private boolean mapCoercion(SqlCallBinding binding,
+      boolean typeNameCheckOnly) {
+    final SqlCall call = binding.getCall();
+    final SqlValidatorScope scope = binding.getScope();
+    final List<RelDataType> operandTypes =
+        SqlTypeUtil.deriveType(binding, binding.operands());
+    if (operandTypes.isEmpty() || operandTypes.size() % 2 != 0) {
+      return false;
+    }
+    final RelDataType keyType =
+        factory.leastRestrictive(Util.quotientList(operandTypes, 2, 0));
+    final RelDataType valueType =
+        factory.leastRestrictive(Util.quotientList(operandTypes, 2, 1));
+    if (keyType == null || valueType == null) {
+      return false;
+    }
+    boolean coerced = false;
+    for (int i = 0; i < call.operandCount(); i++) {
+      final RelDataType targetType = i % 2 == 0 ? keyType : valueType;
+      final boolean needsCoercion = typeNameCheckOnly
+          ? operandTypes.get(i).getSqlTypeName() != targetType.getSqlTypeName()
+          : !operandTypes.get(i).equalsSansFieldNames(targetType);
+      if (needsCoercion) {
+        coerced = coerceOperandType(scope, call, i, targetType) || coerced;
+      }
+    }
+    return coerced;
+  }
+
+  /**
+   * Coerces operands of ARRAY_APPEND or ARRAY_PREPEND so that the element
+   * type matches the array component type (or both are widened to the least
+   * restrictive common type).
+   */
+  private boolean arrayAppendPrependCoercion(SqlCallBinding binding) {
+    final SqlCall call = binding.getCall();
+    final SqlValidatorScope scope = binding.getScope();
+    final RelDataType arrayType = binding.getOperandType(0);
+    final RelDataType componentType = arrayType.getComponentType();
+    if (componentType == null) {
+      return false;
+    }
+    final RelDataType elementType = binding.getOperandType(1);
+    final RelDataType targetType =
+        factory.leastRestrictive(
+            ImmutableList.of(componentType, elementType));
+    if (targetType == null) {
+      return false;
+    }
+    boolean coerced = false;
+    if (!componentType.equalsSansFieldNames(targetType)) {
+      // Array elements need widening — coerce the array operand
+      coerced = coerceCollectionOperandElementType(scope, call, 0, targetType);
+    }
+    if (!elementType.equalsSansFieldNames(targetType)) {
+      // Scalar element needs widening
+      coerced = coerceOperandType(scope, call, 1, targetType) || coerced;
+    }
+    return coerced;
+  }
+
+  /**
+   * Coerces operands of ARRAY_INSERT so that the inserted element type matches
+   * the array component type (or both are widened).
+   */
+  private boolean arrayInsertCoercion(SqlCallBinding binding) {
+    final SqlCall call = binding.getCall();
+    final SqlValidatorScope scope = binding.getScope();
+    final RelDataType arrayType = binding.getOperandType(0);
+    final RelDataType componentType = arrayType.getComponentType();
+    if (componentType == null) {
+      return false;
+    }
+    final RelDataType elementType = binding.getOperandType(2);
+    final RelDataType targetType =
+        factory.leastRestrictive(
+            ImmutableList.of(componentType, elementType));
+    if (targetType == null) {
+      return false;
+    }
+    boolean coerced = false;
+    if (!componentType.equalsSansFieldNamesAndNullability(targetType)) {
+      coerced = coerceCollectionOperandElementType(scope, call, 0, targetType);
+    }
+    if (!elementType.equalsSansFieldNamesAndNullability(targetType)) {
+      coerced = coerceOperandType(scope, call, 2, targetType) || coerced;
+    }
+    return coerced;
+  }
+
+  /**
+   * Coerces the element type of a collection (array) operand. If the operand
+   * is an array literal (e.g. {@code ARRAY[1, 2]}), each element is coerced
+   * individually. Otherwise the entire operand is wrapped in a CAST.
+   */
+  private boolean coerceCollectionOperandElementType(
+      @Nullable SqlValidatorScope scope,
+      SqlCall call,
+      int index,
+      RelDataType targetElementType) {
+    final SqlNode operand = call.getOperandList().get(index);
+    if (operand instanceof SqlCall
+        && "ARRAY".equals(((SqlCall) operand).getOperator().getName())) {
+      // For array literals, coerce each element individually
+      final SqlCall arrayCall = (SqlCall) operand;
+      boolean coerced = false;
+      for (int i = 0; i < arrayCall.operandCount(); i++) {
+        coerced =
+            coerceOperandType(scope, arrayCall, i, targetElementType) || coerced;
+      }
+      return coerced;
+    }
+    // For non-literal arrays, cast the whole operand to the target array type
+    final RelDataType operandType =
+        validator.deriveType(requireNonNull(scope, "scope"), operand);
+    final RelDataType targetArrayType =
+        factory.createTypeWithNullability(
+            factory.createArrayType(targetElementType, -1),
+            operandType.isNullable());
+    return coerceOperandType(scope, call, index, targetArrayType);
   }
 
   @Override public boolean builtinFunctionCoercion(

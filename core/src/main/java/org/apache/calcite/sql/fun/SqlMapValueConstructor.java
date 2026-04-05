@@ -22,7 +22,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -52,9 +52,6 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());
 
-    // explicit cast elements to component type if they are not same
-    SqlValidatorUtil.adjustTypeForMapConstructor(type, opBinding);
-
     return SqlTypeUtil.createMapType(
         opBinding.getTypeFactory(),
         requireNonNull(type.left, "inferred key type"),
@@ -80,6 +77,12 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
         throw callBinding.newValidationError(RESOURCE.needSameTypeParameter());
       }
       return false;
+    }
+    // Coerce operands to the least restrictive key/value types via
+    // the TypeCoercion framework.
+    if (callBinding.isTypeCoercionEnabled()) {
+      TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+      typeCoercion.collectionFunctionCoercion(callBinding);
     }
     return true;
   }
