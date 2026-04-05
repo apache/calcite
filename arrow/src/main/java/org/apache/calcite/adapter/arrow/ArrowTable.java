@@ -43,13 +43,17 @@ import org.apache.arrow.gandiva.expression.Condition;
 import org.apache.arrow.gandiva.expression.ExpressionTree;
 import org.apache.arrow.gandiva.expression.TreeBuilder;
 import org.apache.arrow.gandiva.expression.TreeNode;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -62,23 +66,34 @@ import static java.lang.Long.parseLong;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Arrow Table.
+ * Table backed by an Apache Arrow file.
+ *
+ * <p>Reads data from an Arrow IPC file on disk and supports projection
+ * and filter push-down via the Gandiva expression compiler.
+ *
+ * <p>Implements {@link TranslatableTable} so that it can be converted into
+ * an {@link ArrowTableScan} for query planning, and {@link QueryableTable}
+ * so that it can be used via the {@link org.apache.calcite.linq4j} API.
  */
 public class ArrowTable extends AbstractTable
     implements TranslatableTable, QueryableTable {
   private final @Nullable RelProtoDataType protoRowType;
   /** Arrow schema. (In Calcite terminology, more like a row type than a Schema.) */
   private final Schema schema;
-  private final ArrowFileReader arrowFileReader;
+  private final File arrowFile;
 
-  ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
-    try {
-      this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
-    } catch (IOException e) {
-      throw Util.toUnchecked(e);
-    }
+  /** Creates an ArrowTable.
+   *
+   * @param protoRowType Optional row type override; if null, the row type is
+   *                     deduced from the Arrow schema
+   * @param arrowFile    Arrow IPC file on disk
+   * @param schema       Arrow schema of the file
+   */
+  ArrowTable(@Nullable RelProtoDataType protoRowType, File arrowFile,
+      Schema schema) {
     this.protoRowType = protoRowType;
-    this.arrowFileReader = arrowFileReader;
+    this.arrowFile = arrowFile;
+    this.schema = schema;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -148,7 +163,23 @@ public class ArrowTable extends AbstractTable
       }
     }
 
-    return new ArrowEnumerable(arrowFileReader, fields, projector, filter);
+    FileInputStream fis = null;
+    try {
+      fis = new FileInputStream(arrowFile);
+      final ArrowFileReader reader =
+          new ArrowFileReader(new SeekableReadChannel(fis.getChannel()),
+              new RootAllocator());
+      final FileInputStream fisRef = fis;
+      final Runnable onClose = () -> closeSilently(fisRef);
+      fis = null; // ownership transferred to onClose
+      return new ArrowEnumerable(reader, fields, projector, filter, onClose);
+    } catch (IOException e) {
+      throw Util.toUnchecked(e);
+    } finally {
+      if (fis != null) {
+        closeSilently(fis);
+      }
+    }
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -198,6 +229,15 @@ public class ArrowTable extends AbstractTable
 
     return TreeBuilder.makeFunction(
         token.operator, treeNodes, new ArrowType.Bool());
+  }
+
+  /** Closes an {@link AutoCloseable} without throwing. */
+  private static void closeSilently(AutoCloseable closeable) {
+    try {
+      closeable.close();
+    } catch (Exception e) {
+      // ignore
+    }
   }
 
   private static TreeNode makeLiteralNode(String literal, String type) {

@@ -24,6 +24,7 @@ import org.apache.calcite.util.Util;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -96,21 +97,19 @@ class ArrowSchema extends AbstractSchema {
     final Map<String, Table> tables = new HashMap<>();
     for (File file : files) {
       final File arrowFile = new File(Sources.of(file).path());
-      final FileInputStream fileInputStream;
-      try {
-        fileInputStream = new FileInputStream(arrowFile);
-      } catch (FileNotFoundException e) {
+      final Schema arrowSchema;
+      try (FileInputStream fis = new FileInputStream(arrowFile);
+           ArrowFileReader reader =
+               new ArrowFileReader(new SeekableReadChannel(fis.getChannel()),
+               new RootAllocator())) {
+        arrowSchema = reader.getVectorSchemaRoot().getSchema();
+      } catch (IOException e) {
         throw Util.toUnchecked(e);
       }
-      final SeekableReadChannel seekableReadChannel =
-          new SeekableReadChannel(fileInputStream.getChannel());
-      final RootAllocator allocator = new RootAllocator();
-      final ArrowFileReader arrowFileReader =
-          new ArrowFileReader(seekableReadChannel, allocator);
       final String tableName =
           trim(file.getName(), ".arrow").toUpperCase(Locale.ROOT);
       final ArrowTable table =
-          new ArrowTable(null, arrowFileReader);
+          new ArrowTable(null, arrowFile, arrowSchema);
       tables.put(tableName, table);
     }
 
