@@ -20,11 +20,13 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -120,5 +122,56 @@ public class RedshiftSqlDialect extends SqlDialect {
 
   @Override public boolean supportsAliasedValues() {
     return false;
+  }
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+
+    /*
+     * Rewrites the JSON_OBJECT operator for Redshift.
+     *
+     * Redshift has no JSON_OBJECT function or equivalent. To account for this we rewrite the SQL
+     * for each key in the JSON_OBJECT to this:
+     *
+     * '"key_name": ' || COALESCE(CASE WHEN %s::varchar ~'^-?\\\\d*(\\\\.\\\\d+)?$' THEN %s::varchar ELSE quote_ident(%s) END, 'null')
+     *
+     * Concatenate the individual statements with a " || ', ' || ". and surround the entire list with '{ }'
+     *
+     * When executed it produces rows as JSON OBJECTS strings, similar to PostgreSQL and others.
+     *
+     * This statement will convert the value clause to a string and then regex match to see if it is numeric. This can be fooled
+     * by strings that happen to look like numbers. In practice this is probably not a significant issue.
+     *
+     * There are limitations with type checking and casting in Redshift that make it difficult to
+     * get around this regex check (for example - any cast of a date to ::super will generate an error - which
+     * complicates a more definitive, native type checking).
+     */
+    if (call.getOperator() == SqlStdOperatorTable.JSON_OBJECT) {
+      assert call.operandCount() % 2 == 1;
+
+      SqlWriter.Frame frame = writer.startFunCall("");
+      SqlWriter.Frame listFrame = writer.startList("'{' || ", " || '}'");
+      for(int i = 1; i < call.operandCount(); i += 2) {
+
+        // operand 1 is a key name (need to remove surrounding single quotes)
+        String keyName = call.operand(i).toSqlString(this).toString();
+        keyName = keyName.substring(1, keyName.length() - 1);
+
+        // operand 2 is the value. The value can be a literal or any SQL command that generates a value
+        String valueClause = call.operand(i + 1).toSqlString(this).toString();
+
+        // This will create the key/value pair in SQL. It will correctly put NULL as the value for NULL values.
+        // It will surround non-numerics with double-quotes.
+        String jsonFragment = String.format("'\"%s\": ' || COALESCE(CASE WHEN %s::varchar ~'^-?\\\\d*(\\\\.\\\\d+)?$' THEN %s::varchar ELSE quote_ident(%s) END, 'null')", keyName, valueClause, valueClause, valueClause);
+        writer.print(jsonFragment);
+
+        // List separator
+        if (i != call.operandCount() - 2) {
+          writer.print(" || ', ' || ");
+        }
+      }
+      writer.endList(listFrame);
+      writer.endFunCall(frame);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 }
