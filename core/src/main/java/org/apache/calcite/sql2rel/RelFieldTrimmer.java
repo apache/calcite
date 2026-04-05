@@ -89,6 +89,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -533,6 +535,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Project project,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
+    checkArgument(project.getVariablesSet().size() <= 1,
+        "RelFieldTrimmer allows only one correlation variable in variablesSet");
     final RelDataType rowType = project.getRowType();
     final int fieldCount = rowType.getFieldCount();
     final RelNode input = project.getInput();
